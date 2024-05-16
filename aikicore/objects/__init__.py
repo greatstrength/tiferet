@@ -1,1 +1,1 @@
-from .object import ModelObject
+from .object import ModelObject, Entity
