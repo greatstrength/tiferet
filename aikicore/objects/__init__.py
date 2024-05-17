@@ -1,2 +1,2 @@
-from .object import ModelObject, Entity, ValueObject
+from .object import *
 from .error import Error
