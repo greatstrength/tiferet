@@ -8,3 +8,8 @@ class FeatureHandler(Model):
     use_services = t.StringType()
     params = t.DictType(t.StringType(), default={})
     log_activity = t.BooleanType(default=True)
+
+
+class FeatureGroup(Model):
+    name = t.StringType(required=True)
+    data_mapping = t.StringType()
