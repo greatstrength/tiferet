@@ -22,3 +22,17 @@ class FeatureData(Feature, DataObject):
 
     def map(self, role: str = 'to_object.yaml', **kwargs):
         return super().map(Feature, role, **kwargs)
+    
+
+class FeatureGroupData(FeatureGroup, DataObject):
+
+    class Options(DefaultOptions):
+        roles = {
+            'to_object.yaml': blacklist('features'),
+            'to_data.yaml': wholelist()
+        }
+
+    features = t.DictType(t.ModelType(FeatureData), default={})
+
+    def map(self, role: str = 'to_object.yaml', **kwargs):
+        return super().map(FeatureGroupData, role, **kwargs)
