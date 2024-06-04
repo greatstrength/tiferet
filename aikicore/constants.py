@@ -20,3 +20,4 @@ DOMAIN_ROLE_TYPES = [
 
 # Default Mapper Paths
 DEFAULT_HEADER_MAPPER_PATH = 'app.interfaces.{}.mappers.header'
+DEFAULT_DATA_MAPPER_PATH = 'app.interfaces.{}.mappers.command'
