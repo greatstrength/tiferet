@@ -20,6 +20,11 @@ class Container():
 
         # Custom init below
         # ...
+
+    def error_cache(self, flag: str = 'yaml'):
+        if flag in ['yaml', 'yml']:
+            from .repositories.error_cache.yaml import YamlErrorCache
+            return YamlErrorCache(self.config.error_cache_path)
         
     def feature_cache(self, flag: str = 'yaml'):
         if flag in ['yaml', 'yml']:
