@@ -1,11 +1,14 @@
 from schematics import types as t, Model
 
+from .constants import *
+
 # Container configuration
 
 
 class ContainerConfiguration(Model):
 
     app_project_filepath = t.StringType(required=False, default=None)
+    feature_cache_path = t.StringType(required=False, default=DEFAULT_FEATURE_CACHE_PATH)
 
 
 # Default container
