@@ -17,3 +17,6 @@ DOMAIN_ROLE_TYPES = [
     'whitelist',
     'blacklist'
 ]
+
+# Default Mapper Paths
+DEFAULT_HEADER_MAPPER_PATH = 'app.interfaces.{}.mappers.header'
