@@ -27,3 +27,6 @@ DEFAULT_EXECUTE_FEATURE_HANDLER_PATH = 'aikicore.handlers.feature.execute'
 
 # Default Activity Handler Path
 DEFAULT_ACTIVITY_HANDLER_PATH = 'app.core.activity'
+
+# Default Cache Paths
+DEFAULT_ERROR_CACHE_PATH = 'app/app.yml'
