@@ -30,3 +30,4 @@ DEFAULT_ACTIVITY_HANDLER_PATH = 'app.core.activity'
 
 # Default Cache Paths
 DEFAULT_ERROR_CACHE_PATH = 'app/app.yml'
+DEFAULT_FEATURE_CACHE_PATH = 'app/app.yml'
