@@ -8,6 +8,7 @@ from .constants import *
 class ContainerConfiguration(Model):
 
     app_project_filepath = t.StringType(required=False, default=None)
+    error_cache_path = t.StringType(required=False, default=DEFAULT_ERROR_CACHE_PATH)
     feature_cache_path = t.StringType(required=False, default=DEFAULT_FEATURE_CACHE_PATH)
 
 
