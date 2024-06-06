@@ -25,6 +25,9 @@ DEFAULT_DATA_MAPPER_PATH = 'app.interfaces.{}.mappers.command'
 # Default Execute Feature Handler Path
 DEFAULT_EXECUTE_FEATURE_HANDLER_PATH = 'aikicore.handlers.feature.execute'
 
+# Default Feature Objects Path
+DEFAULT_FEATURE_OBJECTS_PATH = 'app.features.objects.requests'
+
 # Default Activity Handler Path
 DEFAULT_ACTIVITY_HANDLER_PATH = 'app.core.activity'
 
