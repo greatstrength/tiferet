@@ -32,7 +32,7 @@ class Container():
         
     def feature_cache(self, flag: str = 'yaml'):
         if flag in ['yaml', 'yml']:
-            from .repositories.feature import yaml as feature_cache
+            from .repositories.feature_cache import yaml as feature_cache
             feature_cache.load_cache(self.config.feature_cache_path)
             return feature_cache
 
