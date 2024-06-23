@@ -8,3 +8,7 @@ class ModelObject(Model):
 
 class Entity(ModelObject):
     id = t.StringType(required=True)
+
+
+class ValueObject(ModelObject):
+    pass
