@@ -5,5 +5,6 @@ class ModelObject(Model):
     name = t.StringType()
     description = t.StringType()
 
+
 class Entity(ModelObject):
     id = t.StringType(required=True)
