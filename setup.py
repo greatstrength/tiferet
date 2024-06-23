@@ -9,7 +9,7 @@ config = {
     'url': r'https://github.com/Great-Strength-Studios/aikicore',
     'download_url': r'https://github.com/Great-Strength-Studios/aikicore',
     'author_email': 'andrew@greatstrength.me',
-    'version': '0.1.0',
+    'version': '0.2.0',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
@@ -18,6 +18,7 @@ config = {
     'packages': [
         'aikicore',
         'aikicore.config',
+        'aikicore.objects',
     ],    
     'scripts': [],
     'name': 'aikicore'
