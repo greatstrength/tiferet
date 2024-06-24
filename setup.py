@@ -6,10 +6,10 @@ except:
 config = {
     'description': 'The Core Library for the Spirit of Harmony',
     'author': 'Andrew Shatz',
-    'url': r'https://github.com/Great-Strength-Studios/aikicore',
-    'download_url': r'https://github.com/Great-Strength-Studios/aikicore',
+    'url': r'https://github.com/greatstrength/aikicore',
+    'download_url': r'https://github.com/greatstrength/aikicore',
     'author_email': 'andrew@greatstrength.me',
-    'version': '0.2.0',
+    'version': '0.2.1',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
