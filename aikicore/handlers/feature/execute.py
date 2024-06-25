@@ -2,11 +2,12 @@ from ...objects import *
 from ...constants import *
 from ...services import *
 from ...errors import *
+from ...repositories import *
 
 from schematics.exceptions import DataError
 
 
-feature_cache = None
+feature_cache: FeatureCache = None
 
 def handle(request: ExecuteFeature, app_context, headers=Header, **kwargs):
     from ...error import ErrorManager
