@@ -61,6 +61,8 @@ class FeatureHandler():
         # Get header data and add to message context.
         context.headers = header_mapping_func(request, app_context, **kwargs)
 
+        feature_group = kwargs.get('feature_group', None)
+
         for function in self.feature_config.functions:
 
             if debug:
@@ -70,24 +72,28 @@ class FeatureHandler():
             context.headers['request_start'] = int(time())
 
             # Set data mapping and service container for feature function
+            data_mapping = function.data_mapping
+            if not data_mapping:
+                data_mapping = self.feature_config.data_mapping
+            if not data_mapping:
+                data_mapping = feature_group.data_mapping
             try:
-                if function.data_mapping:
-                    if debug:
-                        print('Perform data mapping: "mapping": "{}"'.format(
-                            function.data_mapping))
-                    data_mapping = getattr(
-                        import_module(DATA_MAPPER_PATH.format(
-                            app_context.interface)),
-                        function.data_mapping
-                    )
-                    if debug:
-                        print('Performing data mapping for following request: "mapping": "{}", "request": "{}", params: "{}"'.format(
-                            function.data_mapping, request, function.params))
-                    context.data = data_mapping(
-                        context, request, app_context, **function.params, **kwargs)
-                    if debug:
-                        print('Data mapping complete: "mapping": "{}", "data": "{}"'.format(
-                            function.data_mapping, context.data.to_primitive()))
+                if debug:
+                    print('Perform data mapping: "mapping": "{}"'.format(
+                        data_mapping))
+                data_mapping = getattr(
+                    import_module(DATA_MAPPER_PATH.format(
+                        app_context.interface)),
+                    data_mapping
+                )
+                if debug:
+                    print('Performing data mapping for following request: "mapping": "{}", "request": "{}", params: "{}"'.format(
+                        data_mapping, request, function.params))
+                context.data = data_mapping(
+                    context, request, app_context, **function.params, **kwargs)
+                if debug:
+                    print('Data mapping complete: "mapping": "{}", "data": "{}"'.format(
+                        data_mapping, context.data.to_primitive()))
                 # Request model state validation
                 try:
                     context.data.validate()
