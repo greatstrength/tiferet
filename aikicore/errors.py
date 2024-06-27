@@ -9,5 +9,5 @@ class AppError(Exception):
 
 class DomainError(AppError):
 
-    def __init__(self, error_name: str, lang: str = 'en_US', **format_args):
-        super().__init__(error_name, lang, **format_args)
+    def __init__(self, error_name: str, *format_args):
+        super().__init__(error_name, *format_args)
