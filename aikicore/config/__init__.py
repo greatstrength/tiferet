@@ -8,7 +8,6 @@ class FeatureConfiguration(Model):
         name = t.StringType(required=True)
         function_path = t.StringType(required=True)
         data_mapping = t.StringType()
-        use_services = t.StringType()
         params = t.DictType(t.StringType(), default={})
         log_activity = t.BooleanType(default=True)
 
@@ -20,7 +19,6 @@ class FeatureConfiguration(Model):
                 'function_path': raw_data.pop('module_path'),
                 'params': raw_data.pop('params', {}),
                 'data_mapping': raw_data.pop('data_mapping', None),
-                'use_services': raw_data.pop('use_services', None),
                 'log_activity': raw_data.pop('log_activity', True)
             }]
             config['header_mapping'] = raw_data.pop(

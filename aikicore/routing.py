@@ -104,13 +104,8 @@ class FeatureHandler():
             except DataError as ex:
                 raise AppError(
                     app_context.errors.INVALID_REQUEST_DATA.format_message(ex.messages))
-            try:
-                use_services = getattr(import_module(
-                    SERVICES_MAPPER_PATH), function.use_services)
-                context.services = use_services(
-                    context, request, app_context, **function.params)
-            except TypeError:
-                context.services = app_context.container
+
+            context.services = app_context.container
 
             # Format function module path.
             module_path = 'app.features.{}'.format(function.function_path)

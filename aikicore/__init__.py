@@ -16,7 +16,7 @@ class AppContext():
     errors: ErrorManager = ErrorManager()
     feature_groups: dict = None
 
-    def __init__(self, name: str, interface: str, app_config: AppConfiguration, container_config: ContainerConfiguration):
+    def __init__(self, name: str, interface: str, app_config: AppConfiguration, container_config: ContainerConfiguration, container: type = Container):
         # Set app name.
         self.name = name
 
@@ -35,7 +35,7 @@ class AppContext():
 
         # Load container config and container.
         self.container_config = container_config
-        self.container = Container(container_config)
+        self.container = container(container_config)
 
     def run(self, **kwargs):
         pass
