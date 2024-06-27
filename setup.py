@@ -9,7 +9,7 @@ config = {
     'url': r'https://github.com/greatstrength/aikicore',
     'download_url': r'https://github.com/greatstrength/aikicore',
     'author_email': 'andrew@greatstrength.me',
-    'version': '0.2.3',
+    'version': '0.2.4',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
