@@ -2,6 +2,7 @@ from ..containers import *
 from ..config import *
 from ..errors import *
 from ..objects import *
+from .request import *
 
 class AppContext():
 
@@ -27,11 +28,8 @@ class AppContext():
         setattr(handler, 'feature_cache', self.container.feature_cache())
         return handler
     
-    def map_feature_request(self, request): 
-        raise NotImplementedError()
-    
-    def map_headers(self, request):
-        raise NotImplementedError()
+    def create_request(self, request: Any, **kwargs) -> RequestContext: 
+        return RequestContext(request)
     
     def map_response(self, result):
         # Handle list scenario
