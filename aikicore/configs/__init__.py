@@ -78,6 +78,3 @@ def load_app_config_reader(app_config_filepath: str) -> AppConfigurationReader:
     if os.path.splitext(app_config_filepath)[1] in ['.yaml', '.yml']:
         from .yaml import YamlAppConfigurationReader
         return YamlAppConfigurationReader(app_config_filepath)
-    elif os.path.splitext(app_config_filepath)[1] == '.json':
-        from .json import JsonConfigurationReader
-        return JsonConfigurationReader(app_config_filepath)
