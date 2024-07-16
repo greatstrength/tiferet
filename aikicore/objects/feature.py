@@ -4,16 +4,17 @@ from schematics import Model
 
 class FeatureHandler(Model):
     name = t.StringType(required=True)
-    function_path = t.StringType(required=True)
-    data_mapping = t.StringType()
-    use_services = t.StringType()
+    import_path = t.StringType(required=True)
+    function_name = t.StringType(required=True)
     params = t.DictType(t.StringType(), default={})
+    return_to_data = t.BooleanType(default=False)
+    data_key = t.StringType()
+    return_to_result = t.BooleanType(default=False)
     log_activity = t.BooleanType(default=True)
 
 
 class FeatureGroup(Model):
     name = t.StringType(required=True)
-    data_mapping = t.StringType()
 
 
 class Feature(Model):
@@ -22,5 +23,6 @@ class Feature(Model):
     data_mapping = t.StringType()
     header_mapping = t.StringType()
     group = t.ModelType(FeatureGroup)
+    request_type_path = t.StringType() 
     handlers = t.ListType(t.ModelType(FeatureHandler), default=[])
     log_params = t.DictType(t.StringType(), default={})
