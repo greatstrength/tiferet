@@ -51,7 +51,7 @@ class FeatureContext(object):
             if handler.return_to_result:
                 request.result = result
 
-        return self.map_response(request)
+        return request.result
 
     def validate_request_data(self, request: r.RequestContext, feature: Feature):
 
