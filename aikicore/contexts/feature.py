@@ -87,15 +87,3 @@ class FeatureContext(object):
 
         # Return the request class.
         return getattr(module, class_name)
-    
-    def map_response(self, request: r.RequestContext):
-        '''
-        Map the response data to the request context.
-        
-        :param request: The request context object.
-        :type request: r.RequestContext
-        :return: The mapped response data.
-        :rtype: Any
-        '''
-        
-        return request.context.map_response(request.result)
