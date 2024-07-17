@@ -51,7 +51,7 @@ class FeatureContext(object):
             if handler.return_to_result:
                 request.result = result
 
-        return request.result
+        return self.map_response(request)
 
     def validate_request_data(self, request: r.RequestContext, feature: Feature):
 
@@ -87,3 +87,15 @@ class FeatureContext(object):
 
         # Return the request class.
         return getattr(module, class_name)
+    
+    def map_response(self, request: r.RequestContext):
+        '''
+        Map the response data to the request context.
+        
+        :param request: The request context object.
+        :type request: r.RequestContext
+        :return: The mapped response data.
+        :rtype: Any
+        '''
+        
+        return request.context.map_response(request.result)
