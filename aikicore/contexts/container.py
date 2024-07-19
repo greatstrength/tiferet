@@ -1,14 +1,13 @@
 
 class ContainerContext(object):
 
-
     def __init__(self):
         pass
 
-    def yaml_client(self, base_path: str = None):
-        from ..clients.yaml import YamlClient
-        return YamlClient(base_path)
-
+    def cli_interface_repo(self, flag: str = 'yaml', base_path: str = None):
+        if flag in ['yaml', 'yml']:
+            from ..repositories.cli import YamlRepository
+            return YamlRepository(base_path)
 
     def error_cache(self, flag: str = 'yaml'):
         from ..repositories.error import ErrorCache
