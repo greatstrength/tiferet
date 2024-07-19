@@ -17,16 +17,22 @@ config = {
     ],
     'packages': [
         'aikicore',
-        'aikicore.config',
         'aikicore.clients',
+        'aikicore.commands',
+        'aikicore.configs',
+        'aikicore.contexts',
         'aikicore.data',
         'aikicore.objects',
-        'aikicore.handlers',
-        'aikicore.handlers.feature',
         'aikicore.repositories'
+        'aikicore.services',
     ],    
     'scripts': [],
-    'name': 'aikicore'
+    'name': 'aikicore',
+    'entry_points': {
+        'console_scripts': [
+            'tiferet = tiferet_cli:main'
+        ]
+    }
 }
 
 setup(**config)
