@@ -4,20 +4,17 @@ from ..configs.errors import AppError
 from ..objects.error import Error
 from ..objects.object import ModelObject
 
-from . import request as r
-
 
 class AppContext():
 
     name: str = None
+    interface: str = None
     lang: str = None
 
-    def __init__(self, name: str, lang: str = 'en_US'):
+    def __init__(self, name: str, interface: str = None,  lang: str = 'en_US'):
         self.name = name
+        self.interface = interface
         self.lang = lang
-
-    def create_request(self, request: Any, **kwargs) -> r.RequestContext:
-        return r.RequestContext(request)
 
     def map_response(self, result):
         # Handle list scenario

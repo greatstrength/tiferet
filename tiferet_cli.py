@@ -16,3 +16,6 @@ def main():
 
     # Run the CLI interface.
     cli.run(interface='cli')
+
+if __name__ == '__main__':
+    main()
