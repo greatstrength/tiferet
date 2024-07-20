@@ -26,130 +26,134 @@ features:
           name: Add CLI Parent Argument
 interfaces:
   cli:
-    groups:
-      cli:
-        commands:
-          add_argument:
-            arguments:
-            - help: argument action
-              name_or_flags:
-              - --action
-            - help: argument choices
-              name_or_flags:
-              - --choices
-              nargs: +
-            - help: command key
-              name_or_flags:
-              - -c
-              - --command-key
-              required: true
-            - help: argument default
-              name_or_flags:
-              - --default
-            - help: argument flags
-              name_or_flags:
-              - -f
-              - --flags
-              nargs: +
-            - help: argument description
-              name_or_flags:
-              - -d
-              - --description
-              required: true
-            - help: argument name
-              name_or_flags:
-              - name
-            - help: available number of arguments
-              name_or_flags:
-              - --nargs
-            - action: store_true
-              help: argument is positional
-              name_or_flags:
-              - -p
-              - --positional
-            - action: store_true
-              help: argument required
-              name_or_flags:
-              - --required
-            - help: subcommand key
-              name_or_flags:
-              - -s
-              - --subcommand-key
-            - choices:
-              - str
-              - int
-              - float
-              help: argument type
-              name_or_flags:
-              - -t
-              - --type
-            name: Add CLI Argument
-          add_command:
-            arguments:
-            - help: cli command key
-              name_or_flags:
-              - --command-key
-              - -c
-              required: true
-            - help: cli subcommand key
-              name_or_flags:
-              - --subcommand-key
-              - -s
-            - help: cli command name
-              name_or_flags:
-              - name
-            - help: cli command description
-              name_or_flags:
-              - --description
-              - -d
-            name: Add CLI Command
-          add_parent_argument:
-            arguments:
-            - help: argument action
-              name_or_flags:
-              - --action
-            - help: argument choices
-              name_or_flags:
-              - --choices
-              nargs: +
-            - help: argument default
-              name_or_flags:
-              - --default
-            - help: argument flags
-              name_or_flags:
-              - -f
-              - --flags
-              nargs: +
-            - help: argument description
-              name_or_flags:
-              - -d
-              - --description
-              required: true
-            - help: argument name
-              name_or_flags:
-              - name
-            - help: available number of arguments
-              name_or_flags:
-              - --nargs
-            - action: store_true
-              help: argument is positional
-              name_or_flags:
-              - -p
-              - --positional
-            - action: store_true
-              help: argument required
-              name_or_flags:
-              - --required
-            - choices:
-              - str
-              - int
-              - float
-              - bool
-              - list
-              - dict
-              help: argument type
-              name_or_flags:
-              - --type
-            name: Add CLI Parent Argument
-      
+    commands:
+      cli.add_argument:
+        feature_id: cli.add_argument
+        group_id: cli
+        arguments:
+        - help: argument action
+          name_or_flags:
+          - --action
+        - help: argument choices
+          name_or_flags:
+          - --choices
+          nargs: +
+        - help: command key
+          name_or_flags:
+          - -c
+          - --command-key
+          required: true
+        - help: argument default
+          name_or_flags:
+          - --default
+        - help: argument flags
+          name_or_flags:
+          - -f
+          - --flags
+          nargs: +
+        - help: argument description
+          name_or_flags:
+          - -d
+          - --description
+          required: true
+        - help: argument name
+          name_or_flags:
+          - name
+        - help: available number of arguments
+          name_or_flags:
+          - --nargs
+        - action: store_true
+          help: argument is positional
+          name_or_flags:
+          - -p
+          - --positional
+        - action: store_true
+          help: argument required
+          name_or_flags:
+          - --required
+        - help: subcommand key
+          name_or_flags:
+          - -s
+          - --subcommand-key
+        - choices:
+          - str
+          - int
+          - float
+          help: argument type
+          name_or_flags:
+          - -t
+          - --type
+          name: Add CLI Argument
+      cli.add_command:
+        feature_id: cli.add_command
+        group_id: cli
+        arguments:
+        - help: cli command key
+          name_or_flags:
+          - --command-key
+          - -c
+          required: true
+        - help: cli subcommand key
+          name_or_flags:
+          - --subcommand-key
+          - -s
+        - help: cli command name
+          name_or_flags:
+          - name
+        - help: cli command description
+          name_or_flags:
+          - --description
+          - -d
+        name: Add CLI Command
+      cli.add_parent_argument:
+        feature_id: cli.add_parent_argument
+        group_id: cli
+        arguments:
+        - help: argument action
+          name_or_flags:
+          - --action
+        - help: argument choices
+          name_or_flags:
+          - --choices
+          nargs: +
+        - help: argument default
+          name_or_flags:
+          - --default
+        - help: argument flags
+          name_or_flags:
+          - -f
+          - --flags
+          nargs: +
+        - help: argument description
+          name_or_flags:
+          - -d
+          - --description
+          required: true
+        - help: argument name
+          name_or_flags:
+          - name
+        - help: available number of arguments
+          name_or_flags:
+          - --nargs
+        - action: store_true
+          help: argument is positional
+          name_or_flags:
+          - -p
+          - --positional
+        - action: store_true
+          help: argument required
+          name_or_flags:
+          - --required
+        - choices:
+          - str
+          - int
+          - float
+          - bool
+          - list
+          - dict
+          help: argument type
+          name_or_flags:
+          - --type
+        name: Add CLI Parent Argument
+  
 
