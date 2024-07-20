@@ -4,10 +4,12 @@ import yaml
 from ..objects.data import DataObject
 
 
-def load(path: str, start_node = lambda data: data):
+def load(path: str, return_type: type, start_node = lambda data: data, ):
     with open(path, 'r') as file:
         data = yaml.safe_load(file)
-        return start_node(data)
+        if start_node:
+            data = start_node(data)
+        return return_type(data)
 
 
 def save(path: str, data: DataObject, start_node = lambda data: data):
