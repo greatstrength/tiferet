@@ -2,32 +2,70 @@ import argparse
 
 from ..contexts.request import RequestContext
 from ..objects.cli import CliInterface
+from ..objects.cli import CliArgument
+
+
+def create_argument_data(cli_argument: CliArgument):
+    if cli_argument.action:
+        return cli_argument.exclude('name_or_flags', 'type', 'nargs', 'choices')
+    for name in cli_argument.name_or_flags:
+        # Exclude flags that are named parameters.
+        if not name.startswith('--'):
+            return cli_argument.exclude('name_or_flags', 'required')
+    return cli_argument.exclude('name_or_flags')
+
+
+def create_headers(data: dict):
+    headers = dict(
+        group_id=data.pop('group'),
+        command_id=data.pop('command'),
+    )
+    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}"
+    return headers
+
 
 def create_cli_parser(cli_interface: CliInterface):
+
+    # Format commands into a dictionary lookup by group id.
+    commands = {}
+    for command in cli_interface.commands:
+        group_id = command.group_id
+        if group_id not in commands:
+            commands[group_id] = []
+        commands[group_id].append(command)
 
     # Create parser.
     parser = argparse.ArgumentParser()
 
     # Add command subparsers
-    command_subparsers = parser.add_subparsers(dest='command')
-    for command_name, command in cli_interface.commands.items():
-        command_name = command_name.replace('_', '-')
+    command_subparsers = parser.add_subparsers(dest='group')
+    for group_id, commands in commands.items():
+        group_name = group_id.replace('_', '-')
         command_subparser = command_subparsers.add_parser(
-            command_name, **command.to_primitive('add_parser'))
+            group_name)
         subcommand_subparsers = command_subparser.add_subparsers(
-            dest='subcommand')
-        for subcommand_name, subcommand in command.subcommands.items():
-            subcommand_name = subcommand_name.replace('_', '-')
+            dest='command')
+        for command in commands:
+            command_name = command.feature_id.split('.')[-1].replace('_', '-')
             subcommand_subparser = subcommand_subparsers.add_parser(
-                subcommand_name, help=subcommand.help)
-            for argument in subcommand.arguments:
+                command_name)
+            for argument in command.arguments:
                 subcommand_subparser.add_argument(
-                    *argument.name_or_flags, **argument.to_primitive('add_argument'))
-            for argument in cli_interface.parent_arguments:
-                subcommand_subparser.add_argument(
-                    *argument.name_or_flags, **argument.to_primitive('add_argument'))
+                    *argument.name_or_flags, **create_argument_data(argument))
+        for argument in cli_interface.parent_arguments:
+            subcommand_subparser.add_argument(
+                *argument.name_or_flags, **create_argument_data(argument))
 
     return parser
 
-def create_request(self, request: argparse.Namespace, **kwargs) -> RequestContext:
-    return request
+
+def create_request(request: argparse.Namespace, **kwargs) -> RequestContext:
+
+    # Convert argparse.Namespace to dictionary.
+    data = vars(request)
+
+    # Create header values.
+    headers = create_headers(data)
+
+    # Create request context.
+    return RequestContext(data=data, headers=headers, **headers, **kwargs)

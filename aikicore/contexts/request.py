@@ -11,7 +11,7 @@ class RequestContext(object):
     context: app.AppContext = None
     result: Any = None
 
-    def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, Any], context: app.AppContext):
+    def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, Any], context: app.AppContext, **kwargs):
         self.feature_id = feature_id
         self.headers = headers
         self.data = data

@@ -54,6 +54,10 @@ class CliArgument(obj.ValueObject):
 
         # Return argument
         return argument
+    
+    def exclude(self, *args):
+        return {k: v for k, v in self.to_primitive().items() if k not in args}
+
 
 
 class CliCommand(obj.Entity):
