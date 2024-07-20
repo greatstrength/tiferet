@@ -93,10 +93,10 @@ interfaces:
           - --command-key
           - -c
           required: true
-        - help: cli subcommand key
+        - help: context group id
           name_or_flags:
-          - --subcommand-key
-          - -s
+          - --group-id
+          - -g
         - help: cli command name
           name_or_flags:
           - name
