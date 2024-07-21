@@ -1,6 +1,6 @@
-from aikicore.contexts.app import AppContext
-from aikicore.contexts.cli import CliInterfaceContext
-from aikicore.contexts.container import ContainerContext
+from app.contexts.app import AppContext
+from app.contexts.cli import CliInterfaceContext
+from app.contexts.container import ContainerContext
 
 APP_NAME = 'tiferet-console'
 APP_INTERFACE = 'cli'
