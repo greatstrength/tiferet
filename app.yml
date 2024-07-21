@@ -1,3 +1,8 @@
+container:
+  cli_interface_repo:
+    yaml:
+      data:
+        base_path: app.yml
 errors:
   INVALID_REQUEST_DATA:
     message:
