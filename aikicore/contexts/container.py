@@ -1,16 +1,15 @@
-from dependencies import Injector
-
 from ..repositories.cli import YamlRepository
+from ..services import container as container_service
 
 class ContainerContext(object):
 
     def __init__(self):
-        self.container = type('Container', (Injector,), {
-            'cli_interface_repo': YamlRepository,
-            'base_path': 'app.yml',
-        })
-
-    def get_service(self, service: str):
-        return getattr(self.container, service)
+        dependencies = container_service.load_dependencies()
+        self.container = container_service.create_container(dependencies)
+        for dependency in dependencies:
+            try:
+                setattr(self, dependency, getattr(self.container, dependency))
+            except:
+                setattr(self, dependency, dependencies.get(dependency))
 
     

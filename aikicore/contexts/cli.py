@@ -18,7 +18,7 @@ class CliInterfaceContext(a.AppContext):
     def run(self, interface: str, **kwargs):
 
         # Retrieve CLI interface.
-        cli_interface = self.container.cli_interface_repo(base_path='aikicore/configs/app.yml').get(interface)
+        cli_interface = self.container.cli_interface_repo.get(interface)
 
         # Create parser.
         parser = cli_service.create_cli_parser(cli_interface)
