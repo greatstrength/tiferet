@@ -61,6 +61,7 @@ class CliArgument(obj.ValueObject):
 
 
 class CliCommand(obj.Entity):
+    name = t.StringType(required=True)
     feature_id = t.StringType(required=True)
     group_id = t.StringType(required=True)
     help = t.StringType(required=True)
