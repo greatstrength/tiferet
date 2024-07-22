@@ -5,12 +5,13 @@ from app.contexts.container import ContainerContext
 APP_NAME = 'tiferet-console'
 APP_INTERFACE = 'cli'
 APP_LANG = 'en_US'
+APP_DEPENDENCY_FLAG = 'yaml'
 
 def main():
     '''Main entry point for the Tiferet console application.'''
 
     # Load the application container.
-    container = ContainerContext()
+    container = ContainerContext(APP_DEPENDENCY_FLAG)
 
     # Create the application context.
     context = AppContext(APP_NAME, container, lang=APP_LANG)
