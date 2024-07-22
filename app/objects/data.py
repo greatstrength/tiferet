@@ -18,3 +18,7 @@ class DataObject(Model):
             **kwargs,
             **self.to_primitive(role=role)
         ), strict=False)
+    
+    @staticmethod
+    def new(data: dict, **kwargs):
+        return DataObject(data, **kwargs)
