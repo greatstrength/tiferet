@@ -51,3 +51,9 @@ class CliInterfaceData(CliInterface, DataObject):
         interface.commands = [command.map(role, id=id) for id, command in self.commands.items()]
         interface.parent_arguments = [argument.map(role) for argument in self.parent_arguments]
         return interface
+    
+    @staticmethod
+    def new(id: str, data: dict, **kwargs):
+        data = {**data, 'id': id}
+        result =  CliInterfaceData(data, **kwargs)
+        return result
