@@ -10,7 +10,7 @@ class FeatureRepository(object):
         raise NotImplementedError()
 
 
-class FeatureCache():
+class YamlCache(FeatureRepository):
 
     cache: Dict[str, FeatureGroupData] = {}
 
