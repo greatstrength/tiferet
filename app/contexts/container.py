@@ -1,10 +1,9 @@
-from ..repositories.cli import YamlRepository
 from ..services import container as container_service
 
 class ContainerContext(object):
 
-    def __init__(self):
-        dependencies = container_service.load_dependencies()
+    def __init__(self, flag: str, **kwargs):
+        dependencies = container_service.load_dependencies(flag)
         self.container = container_service.create_container(dependencies)
         for dependency in dependencies:
             try:
