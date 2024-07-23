@@ -1,16 +1,25 @@
-from ..objects.data import DataObject
 from schematics import types as t
+from schematics.transforms import wholelist, whitelist, blacklist
+
+from ..objects.data import DataObject
+from ..objects.container import ContainerAttribute
 
 
-class ContainerAttributeData(DataObject):
-        
+class ContainerAttributeData(ContainerAttribute, DataObject):
+
+    class Options():
+        roles = {
+            'to_object.yaml': wholelist(),
+            'to_data.yaml': wholelist()
+        }
+
     type = t.StringType(required=True)
     data = t.DictType(t.DictType(t.StringType()), required=True)
 
-class ContainerData(DataObject):
-
-    attributes = t.DictType(t.ModelType(ContainerAttributeData), required=True, serialized_name='attrs', deserialize_from=['attrs'])
-
     @staticmethod
-    def new(data: dict, **kwargs):
-        return ContainerData(data, **kwargs)
+    def new(id: str, type: str, data: dict):
+        return ContainerAttributeData(dict(
+            id=id,
+            type=type,
+            data=data
+        ))
