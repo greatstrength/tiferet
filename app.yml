@@ -1,8 +1,22 @@
 container:
-  cli_interface_repo:
-    yaml:
+  attrs:
+    add_cli_command:
+      type: dependency
       data:
-        base_path: app.yml
+        yaml:
+          module_path: app.commands.cli
+          class_name: AddCliCommand
+    cli_interface_repo:
+      type: dependency
+      data:
+        yaml:
+          module_path: app.repositories.cli
+          class_name: YamlRepository
+    base_path:
+      type: attribute
+      data:
+        yaml:
+          value: app.yml
 errors:
   INVALID_REQUEST_DATA:
     message:
@@ -88,7 +102,7 @@ interfaces:
           name_or_flags:
           - -t
           - --type
-          name: Add CLI Argument
+        name: Add CLI Argument
       cli.add_command:
         feature_id: cli.add_command
         group_id: cli
