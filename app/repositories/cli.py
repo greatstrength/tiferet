@@ -26,6 +26,6 @@ class YamlRepository(CliInterfaceRepository):
             start_node=lambda data: data.get('interfaces').get(interface_id))
         return data.map('to_object.yaml')
 
-    def save_interface(self, interface: CliInterface):
+    def save(self, interface: CliInterface):
         data = yaml_client.load(self.base_path)
         data['interfaces'][interface.id] = CliInterfaceData(interface).map('to_data.yaml')
