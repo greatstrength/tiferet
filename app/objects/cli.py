@@ -54,10 +54,9 @@ class CliArgument(obj.ValueObject):
 
         # Return argument
         return argument
-    
+
     def exclude(self, *args):
         return {k: v for k, v in self.to_primitive().items() if k not in args}
-
 
 
 class CliCommand(obj.Entity):
@@ -68,9 +67,9 @@ class CliCommand(obj.Entity):
     arguments = t.ListType(t.ModelType(CliArgument), default=[])
 
     @staticmethod
-    def new(id: str, feature_id: str, group_id: str, help: str, arguments: List[CliArgument] = []):
+    def new(id: str, name: str, feature_id: str, group_id: str, help: str, arguments: List[CliArgument] = []):
         command = CliCommand(
-            dict(id=id, feature_id=feature_id, group_id=group_id, help=help))
+            dict(id=id, name=name, feature_id=feature_id, group_id=group_id, help=help))
         command.arguments = arguments
 
         return command
