@@ -12,12 +12,16 @@ class AppContext():
     name: str = None
     container: ContainerContext = None
     interface: str = None
+    env_base_key: str = None
     lang: str = None
 
-    def __init__(self, name: str, container: ContainerContext, interface: str = None, lang: str = 'en_US', ):
+    def __init__(self, name: str, container: ContainerContext, interface: str = None, env_base_key: str = None, lang: str = 'en_US', **kwargs):
         self.name = name
         self.container = container
         self.interface = interface
+        if not env_base_key:
+            env_base_key = name.replace('-', '_').upper()
+        self.env_base_key = env_base_key
         self.lang = lang
 
     def map_response(self, result):
