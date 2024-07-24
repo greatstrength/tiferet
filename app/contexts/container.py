@@ -51,7 +51,7 @@ class ContainerContext(object):
         for attribute in attributes:
             if attribute.type == 'dependency':
                 result[attribute.id] = self.import_dependency(
-                    **attribute.get_data_value(flag))
+                    **attribute.get_data_value(flag).to_primitive())
             elif attribute.type == 'attribute':
                 result[attribute.id] = attribute.get_data_value(flag).value
 
