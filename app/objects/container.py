@@ -35,9 +35,9 @@ class ContainerAttribute(obj.Entity):
             data=data
         ))
     
-    def get_data_value(self, flag: str, type: str = CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE):
-        if type == CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE:
+    def get_data_value(self, flag: str):
+        if self.type == CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE:
             value = AttributeValue(self.data[flag])
-        elif type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
+        elif self.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
             value = DependencyValue(self.data[flag])
         return value
