@@ -13,8 +13,8 @@ class ContainerAttributeData(ContainerAttribute, DataObject):
             'to_data.yaml': wholelist()
         }
 
-    type = t.StringType(required=True)
-    data = t.DictType(t.DictType(t.StringType()), required=True)
+    def map(self, role: str, **kwargs):
+        return super().map(ContainerAttribute, role, **kwargs)
 
     @staticmethod
     def new(id: str, type: str, data: dict):
