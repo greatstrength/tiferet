@@ -6,6 +6,12 @@ container:
         yaml:
           module_path: app.commands.cli
           class_name: AddCliCommand
+    container_repo:
+      type: dependency
+      data:
+        yaml:
+          module_path: app.repositories.container
+          class_name: YamlRepository
     cli_interface_repo:
       type: dependency
       data:
