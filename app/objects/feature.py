@@ -10,6 +10,7 @@ class FeatureHandler(Model):
     return_to_data = t.BooleanType(default=False)
     data_key = t.StringType()
     return_to_result = t.BooleanType(default=False)
+    exit_on_error = t.BooleanType(default=True)
     log_activity = t.BooleanType(default=True)
 
 

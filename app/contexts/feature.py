@@ -1,19 +1,29 @@
-from typing import Any
+from typing import Any, Dict, List
 from importlib import import_module
 
 from ..objects.feature import Feature
-from ..repositories.feature import FeatureCache
+from ..repositories.feature import FeatureRepository
 from ..configs.errors import InvalidRequestData
 
-from . import request as r
+from .request import RequestContext
+from .container import ContainerContext
 
 
 class FeatureContext(object):
 
-    def __init__(self, feature_cache: FeatureCache):
-        self.feature_cache = feature_cache
+    class SessionContext(object):
 
-    def execute(self, request: r.RequestContext, debug: bool = False, **kwargs) -> Any:
+        data: Dict[str, Any] = {}
+        result: Any = None
+        error: str = None
+
+        def __init__(self, session_id: str):
+            self.session_id = session_id
+
+    def __init__(self, container: ContainerContext):
+        self.feature_repo: FeatureRepository = container.feature_repo
+
+    def execute(self, request: RequestContext, debug: bool = False, **kwargs) -> SessionContext:
         '''
         Execute the feature request.
         
@@ -27,8 +37,11 @@ class FeatureContext(object):
         :rtype: Any
         '''
 
+        # Create a session context object.
+        session = self.SessionContext(request.headers.get('session_id'))
+
         # Get feature from cache.
-        feature: Feature = self.feature_cache.get(request.feature_id)
+        feature: Feature = self.feature_repo.get(request.feature_id)
 
         # Validate feature request data.
         self.validate_request_data(request, feature)
@@ -36,24 +49,38 @@ class FeatureContext(object):
         for handler in feature.handlers:
 
             # Import the handle function from the handler module.
-            handle = self.import_handler(
+            handler = self.import_handler(
                 handler.import_path, handler.function_name)
 
             # Execute the handler function.
-            result = handle(**request.data, **handler.params,
-                            context=request.context, **kwargs)
+            try:
+                result = handler.execute(**request.data, **handler.params,
+                                context=request.context, **kwargs)
+            # Handle assertion errors.
+            except AssertionError as e:
 
-            # Return the result to the request object if return to data is set.
-            if handler.return_to_data:
-                request.data[handler.data_key] = result
+                # Set the error message.
+                session.error = str(e)
+
+                # Break if exit on error is set.
+                if handler.exit_on_error:
+                    break
+
+                # Continue to the next handler if continue on error is set.
                 continue
 
+            # Return the result to the session context if return to data is set.
+            if handler.return_to_data:
+                session.data[handler.data_key] = result
+                continue
+            
+            # Return the result to the session context if return to result is set.
             if handler.return_to_result:
-                request.result = result
+                session.result = result
 
-        return request.result
+        return session
 
-    def validate_request_data(self, request: r.RequestContext, feature: Feature):
+    def validate_request_data(self, request: RequestContext, feature: Feature):
 
         # Load the request model validation object.
         request_model = self.import_request(feature.request_type_path)
