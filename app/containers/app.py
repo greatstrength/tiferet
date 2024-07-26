@@ -1,8 +1,9 @@
 from typing import List
 
 from ..objects.container import ContainerAttribute
+from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE as ATTRIBUTE
+from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY as DEPENDENCY
 from ..repositories.container import ContainerRepository
-
 from ..services import container as container_service
 
 
@@ -32,3 +33,15 @@ class AppContainer(object):
 
         # Create container.
         return container_service.create_container(attributes)
+
+    def set_attributes(self, attributes: List[ContainerAttribute], container):
+
+        # Load container dependencies.
+        for attribute in attributes:
+            # Set dependency.
+            if attribute.type == DEPENDENCY:
+                setattr(self, attribute.id, getattr(container, attribute.id))
+
+            # Set attribute.
+            elif attribute.type == ATTRIBUTE:
+                setattr(self, attribute.id, attribute.data.value)
