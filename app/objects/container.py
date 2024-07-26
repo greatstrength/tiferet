@@ -25,7 +25,7 @@ class DependencyValue(obj.ValueObject):
 class ContainerAttribute(obj.Entity):
 
     type = t.StringType(required=True)
-    data = t.DictType(t.DictType(t.StringType()), required=True)
+    data = t.PolyModelType([AttributeValue, DependencyValue], required=True)
 
     @staticmethod
     def new(id: str, type: str, data: dict):
@@ -34,10 +34,3 @@ class ContainerAttribute(obj.Entity):
             type=type,
             data=data
         ))
-    
-    def get_data_value(self, flag: str):
-        if self.type == CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE:
-            value = AttributeValue(self.data[flag])
-        elif self.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
-            value = DependencyValue(self.data[flag])
-        return value
