@@ -1,3 +1,4 @@
+from importlib import import_module
 from typing import List
 
 from dependencies import Injector
@@ -5,6 +6,12 @@ from dependencies import Injector
 from ..objects.container import ContainerAttribute
 from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE
 from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY
+
+
+def import_dependency(self, module_path: str, class_name: str):
+
+    # Import module.
+    return getattr(import_module(module_path), class_name)
 
 
 def create_container(self, attributes: List[ContainerAttribute]):
