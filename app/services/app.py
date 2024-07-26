@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, Dict
 
 from ..contexts.request import RequestContext
+from ..containers.app import AppContainer
 
 def create_request(self, request: Any, **kwargs) -> RequestContext:
     return RequestContext(request)
@@ -35,3 +36,9 @@ def load_environment_variables(env_base_key: str) -> Any:
 
     # Return result.
     return result
+
+
+def create_app_container(env: Dict[str, Any]):
+
+    # Create app container.
+    return AppContainer(**env)

@@ -9,14 +9,15 @@ from ..services import container as container_service
 
 class AppContainer(object):
 
-    def __init__(self, container_repo_module_path: str, container_repo_class_name: str, **kwargs):
+    def __init__(self, container_repo_module_path: str, container_repo_class_name: str, app_container_flag: str, **kwargs):
 
         # Load container repository.
         container_repo: ContainerRepository = self.load_container_repository(
             container_repo_module_path, container_repo_class_name, **kwargs)
 
         # Get container attributes.
-        attributes: List[ContainerAttribute] = container_repo.list_attributes()
+        attributes: List[ContainerAttribute] = container_repo.list_attributes(
+            'app', app_container_flag)
 
         # Create container.
         container = self.create_container(attributes)
