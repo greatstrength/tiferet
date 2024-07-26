@@ -33,7 +33,7 @@ class AppContainer(object):
     def create_container(self, attributes: List[ContainerAttribute]):
 
         # Create container.
-        return container_service.create_container(attributes)
+        return container_service.create_container(attributes, app_container=self)
 
     def set_attributes(self, attributes: List[ContainerAttribute], container):
 

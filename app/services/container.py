@@ -8,13 +8,13 @@ from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE
 from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY
 
 
-def import_dependency(module_path: str, class_name: str):
+def import_dependency(module_path: str, class_name: str, **kwargs):
 
     # Import module.
     return getattr(import_module(module_path), class_name)
 
 
-def create_container(attributes: List[ContainerAttribute]):
+def create_container(attributes: List[ContainerAttribute], **kwargs):
 
     # Create depenedencies dictionary.
     dependencies = {}
@@ -28,4 +28,4 @@ def create_container(attributes: List[ContainerAttribute]):
             dependencies[attribute.id] = attribute.data.value
 
     # Create container.
-    return type('Container', (Injector,), dependencies)
+    return type('Container', (Injector,), {**dependencies, **kwargs})
