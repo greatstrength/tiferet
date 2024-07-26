@@ -21,4 +21,4 @@ class AppContainer(object):
         container = self.create_container(attributes)
 
         # Load container dependencies.
-        self.set_attributes(attributes)
+        self.set_attributes(attributes, container)
