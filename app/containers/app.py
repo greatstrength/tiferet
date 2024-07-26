@@ -22,3 +22,8 @@ class AppContainer(object):
 
         # Load container dependencies.
         self.set_attributes(attributes, container)
+
+    def load_container_repository(self, container_repo_module_path: str, container_repo_class_name: str, **kwargs):
+
+        # Load container repository.
+        return self.import_dependency(container_repo_module_path, container_repo_class_name)(**kwargs)
