@@ -6,7 +6,7 @@ container:
         data:
           yaml:
             module_path: app.contexts.cli
-            class_name: CliAppContext
+            class_name: CliInterfaceContext
       app_context:
         type: dependency
         data:
