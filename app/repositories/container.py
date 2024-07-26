@@ -7,7 +7,7 @@ from ..clients import yaml as yaml_client
 
 class ContainerRepository(object):
 
-    def list_attributes(self) -> List[ContainerAttribute]:
+    def list_attributes(self, container_type: str, flag: str, **kwargs) -> List[ContainerAttribute]:
         raise NotImplementedError()
 
     def get_attribute(self, attribute_id: str) -> ContainerAttribute:
@@ -22,13 +22,13 @@ class YamlRepository(ContainerRepository):
     def __init__(self, base_path: str):
         self.base_path = base_path
 
-    def list_attributes(self) -> List[ContainerAttribute]:
+    def list_attributes(self, container_type: str, flag: str, **kwargs) -> List[ContainerAttribute]:
         data = yaml_client.load(
             self.base_path,
             create_data=lambda data: [ContainerAttributeData.new(
                 attribute_id, **attribute_data) for attribute_id, attribute_data in data.items()],
-            start_node=lambda data: data.get('container').get('attrs'))
-        return [item.map(role='to_object.yaml') for item in data]
+            start_node=lambda data: data.get('container').get(container_type).get('attrs'))
+        return [item.map(role='to_object.yaml', flag=flag) for item in data]
 
     def get_attribute(self, attribute_id: str) -> ContainerAttribute:
         data = yaml_client.load(
