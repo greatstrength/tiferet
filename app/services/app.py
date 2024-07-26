@@ -41,4 +41,4 @@ def load_environment_variables(env_base_key: str) -> Any:
 def create_app_container(env: Dict[str, Any]):
 
     # Create app container.
-    return AppContainer(**env)
+    return AppContainer(**env.get('container'))
