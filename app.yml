@@ -1,28 +1,41 @@
 container:
-  attrs:
-    add_cli_command:
-      type: dependency
-      data:
-        yaml:
-          module_path: app.commands.cli
-          class_name: AddCliCommand
-    container_repo:
-      type: dependency
-      data:
-        yaml:
-          module_path: app.repositories.container
-          class_name: YamlRepository
-    cli_interface_repo:
-      type: dependency
-      data:
-        yaml:
-          module_path: app.repositories.cli
-          class_name: YamlRepository
-    base_path:
-      type: attribute
-      data:
-        yaml:
-          value: app.yml
+  app:
+    attrs:
+      cli_app_context:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.contexts.cli
+            class_name: CliAppContext
+      app_context:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.contexts.app
+            class_name: AppContext
+      add_cli_command:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.commands.cli
+            class_name: AddCliCommand
+      container_repo:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.repositories.container
+            class_name: YamlRepository
+      cli_interface_repo:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.repositories.cli
+            class_name: YamlRepository
+      base_path:
+        type: attribute
+        data:
+          yaml:
+            value: app.yml
 errors:
   INVALID_REQUEST_DATA:
     message:
