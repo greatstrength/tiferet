@@ -4,14 +4,16 @@ from app.contexts.cli import CliInterfaceContext
 from app.containers.app import AppContainer
 from app.services import app as app_service
 
-
+# Define the base key for the application environment variables.
 APP_ENV_BASE_KEY = 'TIFERET'
+
 
 def main():
     '''Main entry point for the Tiferet console application.'''
 
     # Load environment variables.
-    env: Dict[str, Any] = app_service.load_environment_variables(APP_ENV_BASE_KEY)
+    env: Dict[str, Any] = app_service.load_environment_variables(
+        APP_ENV_BASE_KEY)
 
     # Load the application container.
     container: AppContainer = app_service.create_app_container(env)
