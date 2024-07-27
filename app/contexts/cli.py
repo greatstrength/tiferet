@@ -13,16 +13,14 @@ class CliInterfaceContext(a.AppContext):
     def __init__(self, app_context: a.AppContext):
         self.app_context = app_context
         super().__init__(
-            name=app_context.name,
-            container=app_context.container, 
-            interface=app_context.interface,
-            env_base_key=app_context.env_base_key, 
-            lang=app_context.lang)
+            app_name=app_context.name,
+            app_interface=app_context.interface,
+            app_lang=app_context.lang)
 
-    def run(self, interface: str, **kwargs):
+    def run(self, **kwargs):
 
         # Retrieve CLI interface.
-        cli_interface = self.container.cli_interface_repo.get(interface)
+        cli_interface = self.container.cli_interface_repo.get(self.interface)
 
         # Create parser.
         parser = cli_service.create_cli_parser(cli_interface)
@@ -33,11 +31,11 @@ class CliInterfaceContext(a.AppContext):
         # Map arguments to request context.
         request = cli_service.create_request(args, context=self)
 
-        # # Create feature context.
-        # feature = f.FeatureContext(self.container.feature_cache())
+        # Execute feature context and return session.
+        session = self.features.execute(request, **kwargs)
 
-        # # Execute feature.
-        # result = feature.execute(request, **kwargs)
-
-        # # Map result to response and return.
-        # return self.map_response(result)
+        # Handle error if session has error.
+        if session.error:
+            error = self.handle_error(session.error)
+            print(error.message)
+            return
