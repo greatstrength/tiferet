@@ -1,7 +1,7 @@
 container:
   app:
     attrs:
-      cli_app_context:
+      cli_interface_context:
         type: dependency
         data:
           yaml:
