@@ -3,7 +3,7 @@ import argparse
 from ..services import cli as cli_service
 
 from . import app as a
-from . import container as c
+from ..containers.app import AppContainer
 
 
 class CliInterfaceContext(a.AppContext):
@@ -17,10 +17,10 @@ class CliInterfaceContext(a.AppContext):
             app_interface=app_context.interface,
             app_lang=app_context.lang)
 
-    def run(self, **kwargs):
+    def run(self, container: AppContainer, **kwargs):
 
         # Retrieve CLI interface.
-        cli_interface = self.container.cli_interface_repo.get(self.interface)
+        cli_interface = container.cli_interface_repo.get(self.interface)
 
         # Create parser.
         parser = cli_service.create_cli_parser(cli_interface)

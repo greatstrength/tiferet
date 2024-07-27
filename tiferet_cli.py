@@ -22,7 +22,7 @@ def main():
     cli_interface_context: CliInterfaceContext = container.cli_interface_context
 
     # Run the CLI interface.
-    cli_interface_context.run()
+    cli_interface_context.run(container=container)
 
 
 if __name__ == '__main__':
