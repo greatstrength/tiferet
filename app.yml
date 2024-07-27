@@ -1,6 +1,6 @@
 container:
-  app:
-    attrs:
+  attrs:
+    app:
       cli_interface_context:
         type: dependency
         data:
@@ -13,6 +13,12 @@ container:
           yaml:
             module_path: app.contexts.app
             class_name: AppContext
+      feature_context:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.contexts.feature
+            class_name: FeatureContext
       add_cli_command:
         type: dependency
         data:
@@ -30,6 +36,12 @@ container:
         data:
           yaml:
             module_path: app.repositories.cli
+            class_name: YamlRepository
+      feature_repo:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.repositories.feature
             class_name: YamlRepository
       base_path:
         type: attribute

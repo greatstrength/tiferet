@@ -1,26 +1,24 @@
-import argparse
-
+from ..contexts.app import AppContext
+from ..objects.cli import CliInterface
 from ..services import cli as cli_service
-
-from . import app as a
-from ..containers.app import AppContainer
+from ..repositories.cli import CliInterfaceRepository
 
 
-class CliInterfaceContext(a.AppContext):
+class CliInterfaceContext(AppContext):
 
-    app_context: a.AppContext = None
+    cli_interface_repo: CliInterfaceRepository
 
-    def __init__(self, app_context: a.AppContext):
-        self.app_context = app_context
+    def __init__(self, app_context: AppContext, cli_interface_repo: CliInterfaceRepository):
+        self.cli_interface_repo = cli_interface_repo
         super().__init__(
             app_name=app_context.name,
             app_interface=app_context.interface,
             app_lang=app_context.lang)
 
-    def run(self, container: AppContainer, **kwargs):
+    def run(self, **kwargs):
 
         # Retrieve CLI interface.
-        cli_interface = container.cli_interface_repo.get(self.interface)
+        cli_interface: CliInterface = self.cli_interface_repo.get(self.interface)
 
         # Create parser.
         parser = cli_service.create_cli_parser(cli_interface)

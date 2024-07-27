@@ -11,12 +11,14 @@ from .feature import FeatureContext
 class AppContext():
 
     name: str
+    features: FeatureContext
     interface: str = None
     lang: str = 'en_US'
 
-    def __init__(self, app_name: str, app_interface: str = None, app_lang: str = 'en_US'):
+    def __init__(self, app_name: str, app_interface: str, feature_context: FeatureContext, app_lang: str = 'en_US'):
         self.name: str = app_name
         self.interface: str = app_interface
+        self.features: FeatureContext = feature_context
         self.lang: str = app_lang
 
     def map_response(self, result):

@@ -11,6 +11,8 @@ from .container import ContainerContext
 
 class FeatureContext(object):
 
+    feature_repo: FeatureRepository
+
     class SessionContext(object):
 
         data: Dict[str, Any] = {}
@@ -20,8 +22,9 @@ class FeatureContext(object):
         def __init__(self, session_id: str):
             self.session_id = session_id
 
-    def __init__(self, container: ContainerContext):
-        self.feature_repo: FeatureRepository = container.feature_repo
+    def __init__(self, feature_repo: FeatureRepository):
+        
+        self.feature_repo: FeatureRepository = feature_repo
 
     def execute(self, request: RequestContext, debug: bool = False, **kwargs) -> SessionContext:
         '''
