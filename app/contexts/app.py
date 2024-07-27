@@ -5,24 +5,19 @@ from ..objects.error import Error
 from ..objects.object import ModelObject
 
 from .container import ContainerContext
+from .feature import FeatureContext
 
 
 class AppContext():
 
-    name: str = None
-    container: ContainerContext = None
+    name: str
     interface: str = None
-    env_base_key: str = None
-    lang: str = None
+    lang: str = 'en_US'
 
-    def __init__(self, name: str, container: ContainerContext, interface: str = None, env_base_key: str = None, lang: str = 'en_US', **kwargs):
-        self.name = name
-        self.container = container
-        self.interface = interface
-        if not env_base_key:
-            env_base_key = name.replace('-', '_').upper()
-        self.env_base_key = env_base_key
-        self.lang = lang
+    def __init__(self, app_name: str, app_interface: str = None, app_lang: str = 'en_US'):
+        self.name: str = app_name
+        self.interface: str = app_interface
+        self.lang: str = app_lang
 
     def map_response(self, result):
         # Handle list scenario
@@ -41,12 +36,12 @@ class AppContext():
             return result.to_primitive()
         return result
 
-    def handle_error(self, error: AppError, lang: str = 'en_US', error_type: type = Error, **kwargs):
+    def handle_error(self, error: str, lang: str = 'en_US', error_type: type = Error, **kwargs):
         error_cache = self.container.error_cache()
 
         # Get error.
         error = error_cache.get(
-            error.error_name, lang=lang, error_type=error_type)
+            error, lang=lang, error_type=error_type)
 
         return error
 
