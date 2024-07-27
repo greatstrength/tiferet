@@ -28,9 +28,9 @@ class ContainerAttribute(obj.Entity):
     data = t.PolyModelType([AttributeValue, DependencyValue], required=True)
 
     @staticmethod
-    def new(id: str, type: str, data: dict):
+    def new(id: str, type: str, data: dict, **kwargs):
         return ContainerAttribute(dict(
             id=id,
             type=type,
             data=data
-        ))
+        ), strict=False, **kwargs)
