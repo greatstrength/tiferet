@@ -23,7 +23,7 @@ class FeatureContext(object):
             self.session_id = session_id
 
     def __init__(self, feature_repo: FeatureRepository):
-        
+
         self.feature_repo: FeatureRepository = feature_repo
 
     def execute(self, request: RequestContext, debug: bool = False, **kwargs) -> SessionContext:
@@ -107,7 +107,7 @@ class FeatureContext(object):
         # Return the handler function using the handler name.
         return getattr(handler_module, handler_name)
 
-    def import_request(request_path: str):
+    def import_request(self, request_path: str):
 
         # Split the request path into module and class name.
         request_path, class_name = request_path.rsplit('.', 1)

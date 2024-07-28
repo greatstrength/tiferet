@@ -27,7 +27,7 @@ class YamlRepository(ContainerRepository):
             self.base_path,
             create_data=lambda data: [ContainerAttributeData.new(
                 attribute_id, **attribute_data) for attribute_id, attribute_data in data.items()],
-            start_node=lambda data: data.get('container').get(container_type).get('attrs'))
+            start_node=lambda data: data.get('container').get('attrs').get(container_type))
         return [item.map(role='to_object.yaml', flag=flag) for item in data]
 
     def get_attribute(self, attribute_id: str) -> ContainerAttribute:

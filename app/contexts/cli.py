@@ -13,7 +13,8 @@ class CliInterfaceContext(AppContext):
         super().__init__(
             app_name=app_context.name,
             app_interface=app_context.interface,
-            app_lang=app_context.lang)
+            app_lang=app_context.lang,
+            feature_context=app_context.features)
 
     def run(self, **kwargs):
 

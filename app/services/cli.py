@@ -20,7 +20,7 @@ def create_headers(data: dict):
         group_id=data.pop('group'),
         command_id=data.pop('command'),
     )
-    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}"
+    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}".replace('-', '_')
     return headers
 
 

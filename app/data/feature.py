@@ -21,7 +21,8 @@ class FeatureData(Feature, DataObject):
     handlers = t.ListType(t.ModelType(FeatureHandlerData), deserialize_from=['handlers', 'functions'])
 
     def map(self, role: str = 'to_object.yaml', **kwargs):
-        return super().map(Feature, role, **kwargs)
+        handlers = [handler.map() for handler in self.handlers]
+        return super().map(Feature, role, handlers=handlers, **kwargs)
     
 
 class FeatureGroupData(FeatureGroup, DataObject):
@@ -35,4 +36,4 @@ class FeatureGroupData(FeatureGroup, DataObject):
     features = t.DictType(t.ModelType(FeatureData), default={})
 
     def map(self, role: str = 'to_object.yaml', **kwargs):
-        return super().map(FeatureGroupData, role, **kwargs)
+        return super().map(FeatureGroup, role, **kwargs)

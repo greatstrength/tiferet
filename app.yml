@@ -43,11 +43,17 @@ container:
           yaml:
             module_path: app.repositories.feature
             class_name: YamlRepository
+      base_feature_path:
+        type: attribute
+        data:
+          yaml:
+            value: app.yml
       base_path:
         type: attribute
         data:
           yaml:
             value: app.yml
+    
 errors:
   INVALID_REQUEST_DATA:
     message:
@@ -56,24 +62,12 @@ features:
   groups:
     cli:
       features:
-        add_argument:
-          functions:
-          - data_mapping: add_cli_argument
-            function_path: cli.add_argument
-            name: Add CLI Argument
-          name: Add CLI Argument
         add_command:
+          request_type_path: app.configs.requests.AddCliCommand
           functions:
-          - data_mapping: add_cli_command
-            function_path: cli.add_command
-            name: Add CLI Command
+          - attribute_id: add_cli_command
+            name: Add CLI Command Handler
           name: Add CLI Command
-        add_parent_argument:
-          functions:
-          - data_mapping: add_cli_parent_argument
-            function_path: cli.add_parent_argument
-            name: Add CLI Parent Argument
-          name: Add CLI Parent Argument
 interfaces:
   cli:
     commands:

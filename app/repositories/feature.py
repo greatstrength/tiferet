@@ -1,7 +1,10 @@
-from ..data import *
+from typing import Dict, Any, List
 
+from ..data.feature import FeatureData
+from ..data.feature import FeatureGroupData
+from ..objects.feature import Feature
 
-DEFAULT_MAPPER_ROLE = 'to_object'
+from ..clients import yaml as yaml_client
 
 
 class FeatureRepository(object):
@@ -10,25 +13,31 @@ class FeatureRepository(object):
         raise NotImplementedError()
 
 
-class YamlCache(FeatureRepository):
+class YamlRepository(FeatureRepository):
 
-    cache: Dict[str, FeatureGroupData] = {}
-
-    def __init__(self, client, cache_path: str, mapper_role: str = DEFAULT_MAPPER_ROLE):
-        self.client = client
-        self.mapper_role = mapper_role
-        data = self.client.load(
-            cache_path, lambda data: data['features']['groups'])
-        for group_name, group_data in data.items():
-            self.cache[group_name] = FeatureGroupData(
-                dict(group_name=group_name, **group_data))
+    def __init__(self, base_feature_path: str):
+        self.base_feature_path = base_feature_path
 
     def get(self, id: str) -> Feature:
+
+        # Get context group and feature names from the id.
         group_name, feature_name = id.split('.')
-        group_data = FeatureGroupData(self.cache.get(group_name))
+        
+        # Load feature data from yaml.
+        group_data = yaml_client.load(
+            self.base_feature_path,
+            create_data=lambda data: FeatureGroupData(data),
+            start_node=lambda data: data.get('features').get('groups').get(group_name))
+        
+        # Get feature data from group data.
         feature_data: FeatureData = group_data.features.get(feature_name)
-        group = group_data.map(name=group_name)
-        handlers = [handler.map() for handler in feature_data.handlers]
+        
+        # Map group data to group object.
+        group = group_data.map(name=group_name) 
+
+        # Map feature data to feature object.
         feature = feature_data.map(
-            name=feature_name, group=group, handlers=handlers, role=self.mapper_role)
+            id=id, group=group, role='to_object.yaml')
+        
+        # Return feature.
         return feature
