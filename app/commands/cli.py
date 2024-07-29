@@ -7,7 +7,6 @@ class AddCliCommand(object):
 
     def __init__(self, cli_interface_repo: CliInterfaceRepository):
         self.cli_interface_repo = cli_interface_repo
-        pass
 
     def execute(self, interface_id: str, feature_id: str, name: str, group_id: str, help: str, **kwargs):
 

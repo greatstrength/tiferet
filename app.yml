@@ -1,6 +1,17 @@
 container:
   attrs:
     app:
+      flag:
+        type: attribute
+        data:
+          yaml:
+            value: yaml
+      feature_container:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.containers.feature
+            class_name: FeatureContainer
       cli_interface_context:
         type: dependency
         data:
@@ -19,12 +30,6 @@ container:
           yaml:
             module_path: app.contexts.feature
             class_name: FeatureContext
-      add_cli_command:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.commands.cli
-            class_name: AddCliCommand
       container_repo:
         type: dependency
         data:
@@ -48,7 +53,35 @@ container:
         data:
           yaml:
             value: app.yml
+      interface_yaml_base_path:
+        type: attribute
+        data:
+          yaml:
+            value: app.yml
       base_path:
+        type: attribute
+        data:
+          yaml:
+            value: app.yml
+    feature:
+      flag:
+        type: attribute
+        data:
+          yaml:
+            value: yaml
+      add_cli_command:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.commands.cli
+            class_name: AddCliCommand
+      cli_interface_repo:
+        type: dependency
+        data:
+          yaml:
+            module_path: app.repositories.cli
+            class_name: YamlRepository
+      interface_yaml_base_path:
         type: attribute
         data:
           yaml:

@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import List
+from typing import List, Dict, Any
 
 from dependencies import Injector
 
@@ -29,3 +29,16 @@ def create_container(attributes: List[ContainerAttribute], **kwargs):
 
     # Create container.
     return type('Container', (Injector,), {**dependencies, **kwargs})
+
+
+def set_container_attributes(container: Any, injector: Injector, attributes: List[ContainerAttribute], **kwargs):
+
+    # Load container dependencies.
+    for attribute in attributes:
+        # Set dependency.
+        if attribute.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
+            setattr(container, attribute.id, getattr(injector, attribute.id))
+
+        # Set attribute.
+        elif attribute.type == CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE:
+            setattr(container, attribute.id, attribute.data.value)

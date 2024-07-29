@@ -46,17 +46,10 @@ class AppContainer(object):
         # Create container.
         return container_service.create_container(attributes, app_container=self)
 
-    def set_attributes(self, attributes: List[ContainerAttribute], container, app_variables: Dict[str, str], **kwargs):
+    def set_attributes(self, attributes: List[ContainerAttribute], container: Any, app_variables: Dict[str, str], **kwargs):
 
-        # Load container dependencies.
-        for attribute in attributes:
-            # Set dependency.
-            if attribute.type == DEPENDENCY:
-                setattr(self, attribute.id, getattr(container, attribute.id))
-
-            # Set attribute.
-            elif attribute.type == ATTRIBUTE:
-                setattr(self, attribute.id, attribute.data.value)
+        # Set container dependencies.
+        container_service.set_container_attributes(self, container, attributes)
         
         # Load app variables as attributes.
         for key, value in app_variables.items():

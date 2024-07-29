@@ -16,8 +16,8 @@ class CliInterfaceRepository(object):
 
 class YamlRepository(CliInterfaceRepository):
 
-    def __init__(self, base_path: str):
-        self.base_path = base_path
+    def __init__(self, interface_yaml_base_path: str):
+        self.base_path = interface_yaml_base_path
 
     def get(self, interface_id: str) -> CliInterface:
         data: CliInterfaceData = yaml_client.load(
