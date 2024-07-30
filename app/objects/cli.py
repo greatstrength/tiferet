@@ -60,16 +60,22 @@ class CliArgument(obj.ValueObject):
 
 
 class CliCommand(obj.Entity):
-    name = t.StringType(required=True)
     feature_id = t.StringType(required=True)
+    name = t.StringType(required=True)
     group_id = t.StringType(required=True)
     help = t.StringType(required=True)
     arguments = t.ListType(t.ModelType(CliArgument), default=[])
 
     @staticmethod
-    def new(id: str, name: str, feature_id: str, group_id: str, help: str, arguments: List[CliArgument] = []):
-        command = CliCommand(
-            dict(id=id, name=name, feature_id=feature_id, group_id=group_id, help=help))
+    def new(name: str, command_key: str, group_id: str, help: str, arguments: List[CliArgument] = []):
+        feature_id = f'{group_id}.{command_key}'
+        command = CliCommand(dict(
+            id=feature_id,
+            feature_id=feature_id,
+            name=name,
+            group_id=group_id,
+            help=help
+        ))
         command.arguments = arguments
 
         return command
@@ -91,7 +97,7 @@ class CliInterface(obj.Entity):
     parent_arguments = t.ListType(t.ModelType(CliArgument), default=[])
 
     @staticmethod
-    def new(commands: List[CliCommand] = [], parent_arguments: List[CliArgument] = []):
+    def new(id: str, commands: List[CliCommand] = [], parent_arguments: List[CliArgument] = []):
         interface = CliInterface()
         interface.commands = commands
         interface.parent_arguments = parent_arguments
@@ -99,7 +105,9 @@ class CliInterface(obj.Entity):
         return interface
 
     def add_command(self, command: CliCommand) -> None:
-        self.commands[command.id] = command
+
+        # Add the command to the list of commands.
+        self.commands.append(command)
 
     def add_parent_argument(self, argument: CliArgument) -> None:
         self.parent_arguments.append(argument)
@@ -108,4 +116,6 @@ class CliInterface(obj.Entity):
         return next((command for command in self.commands if command.feature_id == feature_id), None)
 
     def command_exists(self, feature_id: str) -> bool:
+
+        # Return True if the command exists.
         return any((command for command in self.commands if command.feature_id == feature_id))

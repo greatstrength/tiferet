@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 from schematics import types as t
 from schematics.transforms import wholelist, whitelist, blacklist
 
@@ -24,7 +26,7 @@ class CliCommandData(CliCommand, DataObject):
 
     class Options(DefaultOptions):
         roles = {
-            'to_object.yaml': blacklist('arguments'),
+            'to_object.yaml': blacklist('arguments', 'id'),
             'to_data.yaml': blacklist('id')
         }
 
@@ -53,7 +55,21 @@ class CliInterfaceData(CliInterface, DataObject):
         return interface
     
     @staticmethod
-    def new(id: str, data: dict, **kwargs):
-        data = {**data, 'id': id}
-        result =  CliInterfaceData(data, **kwargs)
-        return result
+    def new(id: str, commands: List[CliCommand] = [], parent_arguments: List[CliArgument] = []):
+
+        # Create a new CLI interface.
+        data = CliInterfaceData(dict(
+            id=id,
+            commands={command.get('id'): CliCommandData(command, strict=False) for command in commands},
+            parent_arguments=[CliArgumentData(argument, strict=False) for argument in parent_arguments]
+        ))
+
+        # Return the new CLI interface.
+        return data
+
+    @staticmethod
+    def from_yaml_data(id: str, data: dict, **kwargs):
+        
+        # Create a new CLI interface data object.
+        return CliInterfaceData(dict(**data, id=id), **kwargs)
+

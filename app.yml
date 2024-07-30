@@ -1,92 +1,91 @@
 container:
   attrs:
     app:
-      flag:
-        type: attribute
-        data:
-          yaml:
-            value: yaml
-      feature_container:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.containers.feature
-            class_name: FeatureContainer
-      cli_interface_context:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.contexts.cli
-            class_name: CliInterfaceContext
       app_context:
-        type: dependency
         data:
           yaml:
-            module_path: app.contexts.app
             class_name: AppContext
-      feature_context:
+            module_path: app.contexts.app
         type: dependency
-        data:
-          yaml:
-            module_path: app.contexts.feature
-            class_name: FeatureContext
-      container_repo:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.repositories.container
-            class_name: YamlRepository
-      cli_interface_repo:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.repositories.cli
-            class_name: YamlRepository
-      feature_repo:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.repositories.feature
-            class_name: YamlRepository
       base_feature_path:
-        type: attribute
         data:
           yaml:
             value: app.yml
-      interface_yaml_base_path:
         type: attribute
-        data:
-          yaml:
-            value: app.yml
       base_path:
-        type: attribute
         data:
           yaml:
             value: app.yml
-    feature:
-      flag:
         type: attribute
+      cli_interface_context:
+        data:
+          yaml:
+            class_name: CliInterfaceContext
+            module_path: app.contexts.cli
+        type: dependency
+      cli_interface_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.cli
+        type: dependency
+      container_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.container
+        type: dependency
+      feature_container:
+        data:
+          yaml:
+            class_name: FeatureContainer
+            module_path: app.containers.feature
+        type: dependency
+      feature_context:
+        data:
+          yaml:
+            class_name: FeatureContext
+            module_path: app.contexts.feature
+        type: dependency
+      feature_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.feature
+        type: dependency
+      flag:
         data:
           yaml:
             value: yaml
-      add_cli_command:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.commands.cli
-            class_name: AddCliCommand
-      cli_interface_repo:
-        type: dependency
-        data:
-          yaml:
-            module_path: app.repositories.cli
-            class_name: YamlRepository
-      interface_yaml_base_path:
         type: attribute
+      interface_yaml_base_path:
         data:
           yaml:
             value: app.yml
-    
+        type: attribute
+    feature:
+      add_cli_command:
+        data:
+          yaml:
+            class_name: AddCliCommand
+            module_path: app.commands.cli
+        type: dependency
+      cli_interface_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.cli
+        type: dependency
+      flag:
+        data:
+          yaml:
+            value: yaml
+        type: attribute
+      interface_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: attribute
 errors:
   INVALID_REQUEST_DATA:
     message:
@@ -96,17 +95,15 @@ features:
     cli:
       features:
         add_command:
-          request_type_path: app.configs.requests.AddCliCommand
           functions:
           - attribute_id: add_cli_command
             name: Add CLI Command Handler
           name: Add CLI Command
+          request_type_path: app.configs.requests.AddCliCommand
 interfaces:
   cli:
     commands:
       cli.add_argument:
-        feature_id: cli.add_argument
-        group_id: cli
         arguments:
         - help: argument action
           name_or_flags:
@@ -160,11 +157,16 @@ interfaces:
           name_or_flags:
           - -t
           - --type
+        feature_id: cli.add_argument
+        group_id: cli
         name: Add CLI Argument
       cli.add_command:
-        feature_id: cli.add_command
-        group_id: cli
         arguments:
+        - help: cli interface id
+          name_or_flags:
+          - --interface-id
+          - -i
+          required: true
         - help: cli command key
           name_or_flags:
           - --command-key
@@ -181,10 +183,10 @@ interfaces:
           name_or_flags:
           - --description
           - -d
+        feature_id: cli.add_command
+        group_id: cli
         name: Add CLI Command
       cli.add_parent_argument:
-        feature_id: cli.add_parent_argument
-        group_id: cli
         arguments:
         - help: argument action
           name_or_flags:
@@ -231,6 +233,11 @@ interfaces:
           help: argument type
           name_or_flags:
           - --type
+        feature_id: cli.add_parent_argument
+        group_id: cli
         name: Add CLI Parent Argument
-  
-
+      object.new:
+        feature_id: object.new
+        group_id: object
+        help: add new model object
+        name: Add Object

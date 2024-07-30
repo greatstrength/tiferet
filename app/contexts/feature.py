@@ -1,12 +1,12 @@
 from typing import Any, Dict, List
 from importlib import import_module
 
+from ..containers.feature import FeatureContainer
 from ..objects.feature import Feature
 from ..repositories.feature import FeatureRepository
 from ..configs.errors import InvalidRequestData
 
 from .request import RequestContext
-from .container import ContainerContext
 
 
 class FeatureContext(object):
@@ -22,9 +22,11 @@ class FeatureContext(object):
         def __init__(self, session_id: str):
             self.session_id = session_id
 
-    def __init__(self, feature_repo: FeatureRepository):
+    def __init__(self, feature_repo: FeatureRepository, feature_container: FeatureContainer):
 
+        # Set the feature repository and container.
         self.feature_repo: FeatureRepository = feature_repo
+        self.feature_container: FeatureContainer = feature_container
 
     def execute(self, request: RequestContext, debug: bool = False, **kwargs) -> SessionContext:
         '''
@@ -51,14 +53,18 @@ class FeatureContext(object):
 
         for handler in feature.handlers:
 
-            # Import the handle function from the handler module.
-            handler = self.import_handler(
-                handler.import_path, handler.function_name)
+            # Get the command handler function.
+            command = self.get_command_handler(
+                attribute_id=handler.attribute_id
+            )
 
             # Execute the handler function.
             try:
-                result = handler.execute(**request.data, **handler.params,
-                                context=request.context, **kwargs)
+                result = command.execute(
+                    **request.data,
+                    **handler.params,
+                    **kwargs
+                )
             # Handle assertion errors.
             except AssertionError as e:
 
@@ -76,9 +82,9 @@ class FeatureContext(object):
             if handler.return_to_data:
                 session.data[handler.data_key] = result
                 continue
-            
+
             # Return the result to the session context if return to result is set.
-            if handler.return_to_result:
+            if result:
                 session.result = result
 
         return session
@@ -95,17 +101,17 @@ class FeatureContext(object):
         try:
             request_obj.validate()
 
+            # Set the request data if validation passes.
+            request.data = request_obj.to_primitive()
+
         # Raise an invalid request data error if validation fails.
         except Exception as e:
             raise InvalidRequestData(e.messages)
 
-    def import_handler(group_path: str, handler_name: str):
+    def get_command_handler(self, attribute_id: str) -> Any:
 
-        # Import the handler module.
-        handler_module = import_module(group_path)
-
-        # Return the handler function using the handler name.
-        return getattr(handler_module, handler_name)
+        # Return the handler function using Feature Container Attribute ID.
+        return getattr(self.feature_container, attribute_id)
 
     def import_request(self, request_path: str):
 

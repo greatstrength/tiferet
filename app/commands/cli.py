@@ -8,7 +8,7 @@ class AddCliCommand(object):
     def __init__(self, cli_interface_repo: CliInterfaceRepository):
         self.cli_interface_repo = cli_interface_repo
 
-    def execute(self, interface_id: str, feature_id: str, name: str, group_id: str, help: str, **kwargs):
+    def execute(self, interface_id: str, group_id: str, command_key: str, name: str, help: str, **kwargs):
 
         # Get CLI interface using the interface ID.
         cli_interface: CliInterface = self.cli_interface_repo.get(interface_id)
@@ -16,14 +16,18 @@ class AddCliCommand(object):
         # Assert that the CLI interface exists.
         assert cli_interface is not None, f'CLI_INTERFACE_NOT_FOUND: {interface_id}'
 
-        # Assert that the feature does not already exist.
-        assert cli_interface.command_exists(
-            feature_id), f'FEATURE_ALREADY_EXISTS: {feature_id}'
-
         # Create the new CLI command.
         command = CliCommand.new(
-            id=feature_id, name=name, feature_id=feature_id, group_id=group_id, help=help)
-        
+            name=name,
+            command_key=command_key,
+            group_id=group_id,
+            help=help
+        )
+
+        # Assert that the feature does not already exist.
+        assert not cli_interface.command_exists(
+            command.feature_id), f'FEATURE_ALREADY_EXISTS: {command.feature_id}'
+
         # Add the command to the CLI interface.
         cli_interface.add_command(command)
 
