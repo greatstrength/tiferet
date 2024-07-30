@@ -53,12 +53,23 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.feature
         type: dependency
+      error_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.error
+        type: dependency
       flag:
         data:
           yaml:
             value: yaml
         type: attribute
       interface_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: attribute
+      error_yaml_base_path:
         data:
           yaml:
             value: app.yml

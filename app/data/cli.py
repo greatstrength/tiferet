@@ -30,7 +30,7 @@ class CliCommandData(CliCommand, DataObject):
             'to_data.yaml': blacklist('id')
         }
 
-    arguments = t.ListType(t.ModelType(CliArgumentData), default={})
+    arguments = t.ListType(t.ModelType(CliArgumentData), default=[])
 
     def map(self, role: str, id: str, **kwargs):
         command = super().map(CliCommand, role, id=id, **kwargs)

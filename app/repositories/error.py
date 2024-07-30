@@ -1,25 +1,21 @@
-from ..data import *
+from ..objects.error import Error
+from ..data.error import ErrorData
 
 
-DEFAULT_MAPPER_ROLE = 'to_object'
-
-
-class ErrorCache():
-
-    cache: Dict[str, ErrorData] = {}
-
-    def __init__(self, client, cache_path: str, mapper_role: str = DEFAULT_MAPPER_ROLE):
-        self.client = client
-        self.mapper_role = mapper_role
-        data = self.client.load(cache_path, lambda data: data['errors'])
-        for error_name, error_data in data.items():
-            self.cache[error_name] = ErrorData(
-                dict(error_name=error_name, **error_data))
+class ErrorRepository(object):
 
     def get(self, error_name: str, lang: str = 'en_US', error_type: type = Error) -> Error:
-        # First get the error data.
-        try:
-            error_data = self.cache[error_name]
-            return error_data.map(lang=lang, role=self.mapper_role, error_type=error_type)
-        except KeyError:
-            return None
+        raise NotImplementedError()
+
+
+class YamlRepository():
+
+    base_path: str
+
+    def __init__(self, error_yaml_base_path: str):
+        
+        # Set the base path.
+        self.base_path = error_yaml_base_path
+
+    def get(self, error_name: str, lang: str = 'en_US', error_type: type = Error) -> Error:
+        pass

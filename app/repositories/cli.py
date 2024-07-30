@@ -16,7 +16,11 @@ class CliInterfaceRepository(object):
 
 class YamlRepository(CliInterfaceRepository):
 
+    base_path: str
+
     def __init__(self, interface_yaml_base_path: str):
+
+        # Set the base path.
         self.base_path = interface_yaml_base_path
 
     def get(self, interface_id: str) -> CliInterface:

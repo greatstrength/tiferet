@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 from ..contexts.app import AppContext
 from ..objects.cli import CliInterface
 from ..services import cli as cli_service
@@ -14,7 +16,8 @@ class CliInterfaceContext(AppContext):
             app_name=app_context.name,
             app_interface=app_context.interface,
             app_lang=app_context.lang,
-            feature_context=app_context.features)
+            feature_context=app_context.features,
+            error_repo=app_context.error_repo)
 
     def run(self, **kwargs):
 
@@ -35,6 +38,17 @@ class CliInterfaceContext(AppContext):
 
         # Handle error if session has error.
         if session.error:
-            error = self.handle_error(session.error)
+            error = self.handle_error(session.error, **request.headers)
             print(error.message)
             return
+        
+        # Map response to primitive.
+        response = self.map_response(session.result)
+
+        # Handle response.
+        self.handle_response(response)
+
+    def handle_response(self, response: Dict[str, Any]):
+        
+        # Print response.
+        print(response)
