@@ -31,6 +31,10 @@ class YamlRepository(CliInterfaceRepository):
             create_data=lambda data: CliInterfaceData.from_yaml_data(interface_id, data),
             start_node=lambda data: data.get('interfaces').get(interface_id))
         
+        # Exit if the interface data is not found.
+        if data is None:
+            return None
+        
         # Return the interface object.
         return data.map('to_object.yaml')
 

@@ -26,7 +26,7 @@ class AddCliCommand(object):
 
         # Assert that the feature does not already exist.
         assert not cli_interface.command_exists(
-            command.feature_id), f'FEATURE_ALREADY_EXISTS: {command.feature_id}'
+            command.feature_id), f'CLI_COMMAND_ALREADY_EXISTS: {command.feature_id}'
 
         # Add the command to the CLI interface.
         cli_interface.add_command(command)

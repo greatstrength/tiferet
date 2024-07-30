@@ -43,9 +43,17 @@ class AppContext():
 
     def handle_error(self, error: str, lang: str = 'en_US', error_type: type = Error, **kwargs):
 
+        # Parse error.
+        error_name, error_data = error.split(': ')
+        error_data = error_data.split(', ')
+
         # Get error.
-        error = self.error_repo.get(
-            error, lang=lang, error_type=error_type)
+        error: Error = self.error_repo.get(
+            error_name, lang=lang, error_type=error_type)
+        
+        # Add format arguments to error.
+        if error_data:
+            error.set_format_args(*error_data)
 
         return error
 

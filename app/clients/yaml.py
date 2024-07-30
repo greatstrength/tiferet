@@ -7,9 +7,10 @@ from ..objects.data import DataObject
 def load(path: str, create_data = lambda data: data, start_node = lambda data: data, **kwargs):
     with open(path, 'r') as file:
         data = yaml.safe_load(file)
-        if start_node:
-            data = start_node(data)
-        return create_data(data, **kwargs)
+    data = start_node(data)
+    if not data:
+        return None
+    return create_data(data, **kwargs)
 
 
 def save(path: str, data: DataObject | dict, data_save_path: str, **kwargs):

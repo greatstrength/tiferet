@@ -100,7 +100,13 @@ container:
 errors:
   INVALID_REQUEST_DATA:
     message:
-      en_US: 'Invalid request contains the following errors: {}'
+      en_US: 'Invalid request contains the following errors: "{}"'
+  CLI_INTERFACE_NOT_FOUND:
+    message:
+      en_US: 'CLI interface with id "{}" not found'
+  CLI_COMMAND_ALREADY_EXISTS:
+    message:
+      en_US: 'CLI command with for feature "{}" already exists'
 features:
   groups:
     cli:
