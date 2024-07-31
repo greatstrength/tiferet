@@ -32,7 +32,7 @@ class YamlRepository(CliInterfaceRepository):
             start_node=lambda data: data.get('interfaces').get(interface_id))
         
         # Exit if the interface data is not found.
-        if data is None:
+        if not data:
             return None
         
         # Return the interface object.
