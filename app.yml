@@ -117,6 +117,12 @@ features:
             name: Add CLI Command Handler
           name: Add CLI Command
           request_type_path: app.configs.requests.AddCliCommand
+        add_argument:
+          functions:
+          - attribute_id: add_cli_argument
+            name: Add CLI Argument Handler
+          name: Add CLI Argument
+          request_type_path: app.configs.requests.AddCliArgument
 interfaces:
   cli:
     commands:
