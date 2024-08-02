@@ -122,58 +122,56 @@ interfaces:
     commands:
       cli.add_argument:
         arguments:
-        - help: argument action
+        - help: cli argument name
           name_or_flags:
-          - --action
-        - help: argument choices
+          - name
+        - help: cli interface id
           name_or_flags:
-          - --choices
-          nargs: +
-        - help: command key
-          name_or_flags:
-          - -c
-          - --command-key
+          - -i
+          - --interface-id
           required: true
-        - help: argument default
+        - help: feature id
           name_or_flags:
-          - --default
-        - help: argument flags
-          name_or_flags:
+          - --feature-id
           - -f
-          - --flags
-          nargs: +
-        - help: argument description
+          required: true
+        - help: cli argument description
           name_or_flags:
           - -d
           - --description
           required: true
-        - help: argument name
+        - choices:
+          - command
+          - parent_argument
+          default: command
+          help: cli argument type
           name_or_flags:
-          - name
-        - help: available number of arguments
+          - --type
+        - help: optional cli argument flags
           name_or_flags:
-          - --nargs
+          - --flags
+          nargs: +
         - action: store_true
-          help: argument is positional
-          name_or_flags:
-          - -p
-          - --positional
-        - action: store_true
-          help: argument required
+          help: cli argument is required
           name_or_flags:
           - --required
-        - help: subcommand key
+        - help: cli argument default
           name_or_flags:
-          - -s
-          - --subcommand-key
-        - choices:
-          - str
-          - int
-          - float
-          help: argument type
+          - --default
+        - action: store_true
+          help: cli argument is positional
           name_or_flags:
-          - -t
-          - --type
+          - --positional
+        - help: cli argument unique action
+          name_or_flags:
+          - --action
+        - help: cli argument value choices
+          name_or_flags:
+          - --choices
+          nargs: +
+        - help: available number of cli argument values
+          name_or_flags:
+          - --nargs
         feature_id: cli.add_argument
         group_id: cli
         name: Add CLI Argument
