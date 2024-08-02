@@ -6,16 +6,47 @@ from . import object as obj
 
 
 CLI_ARUGUMENT_TYPES = [
+    'command',
+    'parent_argument'
+]
+CLI_ARUGUMENT_TYPE_DEFAULT = 'command'
+CLI_ARUGUMENT_DATA_TYPES = [
     'str',
     'int',
     'float'
 ]
+CLI_ARUGUMENT_DATA_TYPE_DEFAULT = 'str'
 
 
 class CliArgument(obj.ValueObject):
-    name_or_flags = t.ListType(t.StringType, required=True)
+    '''A Command Line Interface (CLI) argument for use in a CLI command or as a parent argument in a CLI interface.
+
+    :param name_or_flags: The name and any optional flags for the CLI argument.
+    :type name_or_flags: list
+    :param help: The help text for the CLI argument.
+    :type help: str
+    :param type: The type of the CLI argument (command, parent_argument).
+    :type type: str
+    :param data_type: The data type of the CLI argument.
+    :type data_type: str
+    :param default: The default value for the CLI argument.
+    :type default: str
+    :param required: True if the CLI argument is required.
+    :type required: bool
+    :param nargs: The number of allowed values for the CLI argument.
+    :type nargs: str
+    :param choices: The choices for the CLI argument value.
+    :type choices: list
+    :param action: The unique action for the CLI argument.
+    :type action: str 
+    '''
+
+    name_or_flags = t.ListType(t.StringType, required=True, default=[])
     help = t.StringType(required=True)
-    type = t.StringType(choices=CLI_ARUGUMENT_TYPES)
+    type = t.StringType(choices=CLI_ARUGUMENT_TYPES,
+                        default=CLI_ARUGUMENT_TYPE_DEFAULT)
+    data_type = t.StringType(
+        choices=CLI_ARUGUMENT_DATA_TYPES, default=CLI_ARUGUMENT_DATA_TYPE_DEFAULT)
     default = t.StringType()
     required = t.BooleanType()
     nargs = t.StringType()
@@ -23,29 +54,72 @@ class CliArgument(obj.ValueObject):
     action = t.StringType()
 
     @staticmethod
-    def new(name: str, help: str, type: str = None, flags: List[str] = [], positional: bool = False, default: str = None, required: bool = False, nargs: str = None, choices: List[str] = None, action: str = None):
+    def new(name: str,
+            help: str,
+            type: str = CLI_ARUGUMENT_TYPE_DEFAULT,
+            data_type: str = CLI_ARUGUMENT_DATA_TYPE_DEFAULT,
+            flags: List[str] = [],
+            required: bool = False,
+            default: str = None,
+            positional: bool = False,
+            choices: List[str] = None,
+            nargs: str = None,
+            action: str = None,
+            **kwargs
+            ):
+        
+        '''
+        Initializes a new CliArgument object.
+
+        :param name: The name of the CLI argument.
+        :type name: str
+        :param help: The help text for the CLI argument.
+        :type help: str
+        :param type: The type of the CLI argument (command, parent_argument).
+        :type type: str
+        :param data_type: The data type of the CLI argument.
+        :type data_type: str
+        :param flags: The optional flags for the CLI argument.
+        :type flags: list
+        :param required: True if the CLI argument is required.
+        :type required: bool
+        :param default: The default value for the CLI argument.
+        :type default: str
+        :param positional: True if the CLI argument is positional.
+        :type positional: bool
+        :param choices: The choices for the CLI argument value.
+        :type choices: list
+        :param nargs: The number of allowed values for the CLI argument.
+        :type nargs: str
+        :param action: The unique action for the CLI argument.
+        :type action: str
+        :return: A new CliArgument object.
+        '''
+
+        # Create a new CliArgument object.
         argument = CliArgument()
 
-        # Format name or flags parameter
-        name = name.lower().replace('_', '-').replace(' ', '-')
-        if not positional:
-            name = '--{}'.format(name)
-            if flags:
-                flags = ['-{}'.format(flag.replace('_', '-'))
-                         for flag in flags]
-        name_or_flags = []
-        name_or_flags.append(name)
-        if flags:
-            name_or_flags.extend(flags)
+        # Format name or flags parameter.
+        name = name.lower().replace('_', '-')
+
+        # If the argument is positional, add the name to the name_or_flags list.
+        if positional:
+            argument.name_or_flags.append(name)
+
+        # If the argument is not positional, add the name and any optional flags to the name_or_flags list.
+        else:
+            argument.name_or_flags.append('--{}'.format(name))
+            for flag in flags:
+                argument.name_or_flags.append('-{}'.format(flag.lower().replace('_', '-')))
 
         # Format required parameter.
         if positional or required == False:
             required = None
 
         # Set argument properties
-        argument.name_or_flags = name_or_flags
         argument.help = help
         argument.type = type
+        argument.data_type = data_type
         argument.default = default
         argument.required = required
         argument.nargs = nargs
