@@ -97,7 +97,7 @@ class CliArgument(obj.ValueObject):
         argument = CliArgument()
 
         # Format name or flags parameter.
-        name = name.lower().replace('_', '-')
+        name = name.lower().replace('_', '-').replace(' ', '-')
 
         # If the argument is positional, add the name to the name_or_flags list.
         if positional:
@@ -105,7 +105,14 @@ class CliArgument(obj.ValueObject):
 
         # If the argument is not positional, add the name and any optional flags to the name_or_flags list.
         else:
+
+            # Add the name to the name_or_flags list.
             argument.name_or_flags.append('--{}'.format(name))
+
+            # Set the flags to an empty list if it is None.
+            flags = flags if flags is not None else []
+            
+            # Loop through the flags and add them to the name_or_flags list.
             for flag in flags:
                 argument.name_or_flags.append(
                     '-{}'.format(flag.lower().replace('_', '-')))
@@ -210,6 +217,9 @@ class CliInterface(obj.Entity):
             # Assert that the command exists.
             assert command is not None, 'CLI_COMMAND_NOT_FOUND'
 
+            # Assert that the argument does not already exist.
+            assert not command.argument_exists(argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
+
             # Add the argument to the command.
             command.add_argument(argument)
         
@@ -217,7 +227,7 @@ class CliInterface(obj.Entity):
         elif arg_type == CLI_ARGUMENT_TYPE_PARENT_ARGUMENT:
 
             # Assert that the argument does not already exist.
-            assert not self.has_parent_argument(argument.name_or_flags), 'CLI_ARGUMENT_ALREADY_EXISTS'
+            assert not self.has_parent_argument(argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
 
             # Add the argument to the parent arguments.
             self.add_parent_argument(argument)

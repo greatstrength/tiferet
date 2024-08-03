@@ -104,18 +104,18 @@ container:
             value: app.yml
         type: attribute
 errors:
-  CLI_ARGUMENT_INVALID_FEATURE_ID:
-    message:
-      en_US: Feature ID is required when adding a CLI argument to a command
-  CLI_COMMAND_NOT_FOUND:
-    message:
-      en_US: CLI command mapped to Feature ID "{}" not found
   CLI_ARGUMENT_ALREADY_EXISTS:
     message:
       en_US: CLI argument with name or flag "{}" already exists
+  CLI_ARGUMENT_INVALID_FEATURE_ID:
+    message:
+      en_US: Feature ID is required when adding a CLI argument to a command
   CLI_COMMAND_ALREADY_EXISTS:
     message:
       en_US: CLI command with for feature "{}" already exists
+  CLI_COMMAND_NOT_FOUND:
+    message:
+      en_US: CLI command mapped to Feature ID "{}" not found
   CLI_INTERFACE_NOT_FOUND:
     message:
       en_US: CLI interface with id "{}" not found
@@ -313,6 +313,31 @@ interfaces:
         - help: model object name
           name_or_flags:
           - name
+          type: str
+        - choices:
+          - entity
+          - value_object
+          help: model object type
+          name_or_flags:
+          - --type
+          - -t
+          required: true
+          type: str
+        - help: model object printed class name
+          name_or_flags:
+          - --class name
+          - -c
+          required: true
+          type: str
+        - help: model object description
+          name_or_flags:
+          - --description
+          - -d
+          required: true
+          type: str
+        - help: id of model object base type
+          name_or_flags:
+          - --base-type-id
           type: str
         feature_id: object.new
         group_id: object
