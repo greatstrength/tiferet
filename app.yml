@@ -35,6 +35,17 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.container
         type: dependency
+      error_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.error
+        type: dependency
+      error_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: attribute
       feature_container:
         data:
           yaml:
@@ -53,12 +64,6 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.feature
         type: dependency
-      error_repo:
-        data:
-          yaml:
-            class_name: YamlRepository
-            module_path: app.repositories.error
-        type: dependency
       flag:
         data:
           yaml:
@@ -69,12 +74,13 @@ container:
           yaml:
             value: app.yml
         type: attribute
-      error_yaml_base_path:
+    feature:
+      add_cli_argument:
         data:
           yaml:
-            value: app.yml
-        type: attribute
-    feature:
+            class_name: AddCliArgument
+            module_path: app.commands.cli
+        type: dependency
       add_cli_command:
         data:
           yaml:
@@ -98,31 +104,40 @@ container:
             value: app.yml
         type: attribute
 errors:
+  CLI_ARGUMENT_INVALID_FEATURE_ID:
+    message:
+      en_US: Feature ID is required when adding a CLI argument to a command
+  CLI_COMMAND_NOT_FOUND:
+    message:
+      en_US: CLI command mapped to Feature ID "{}" not found
+  CLI_ARGUMENT_ALREADY_EXISTS:
+    message:
+      en_US: CLI argument with name or flag "{}" already exists
+  CLI_COMMAND_ALREADY_EXISTS:
+    message:
+      en_US: CLI command with for feature "{}" already exists
+  CLI_INTERFACE_NOT_FOUND:
+    message:
+      en_US: CLI interface with id "{}" not found
   INVALID_REQUEST_DATA:
     message:
       en_US: 'Invalid request contains the following errors: "{}"'
-  CLI_INTERFACE_NOT_FOUND:
-    message:
-      en_US: 'CLI interface with id "{}" not found'
-  CLI_COMMAND_ALREADY_EXISTS:
-    message:
-      en_US: 'CLI command with for feature "{}" already exists'
 features:
   groups:
     cli:
       features:
-        add_command:
-          functions:
-          - attribute_id: add_cli_command
-            name: Add CLI Command Handler
-          name: Add CLI Command
-          request_type_path: app.configs.requests.AddCliCommand
         add_argument:
           functions:
           - attribute_id: add_cli_argument
             name: Add CLI Argument Handler
           name: Add CLI Argument
           request_type_path: app.configs.requests.AddCliArgument
+        add_command:
+          functions:
+          - attribute_id: add_cli_command
+            name: Add CLI Command Handler
+          name: Add CLI Command
+          request_type_path: app.configs.requests.AddCliCommand
 interfaces:
   cli:
     commands:
@@ -131,53 +146,74 @@ interfaces:
         - help: cli argument name
           name_or_flags:
           - name
+          type: str
         - help: cli interface id
           name_or_flags:
           - -i
           - --interface-id
           required: true
+          type: str
         - help: feature id
           name_or_flags:
           - --feature-id
           - -f
           required: true
+          type: str
         - help: cli argument description
           name_or_flags:
           - -d
           - --description
           required: true
+          type: str
         - choices:
           - command
           - parent_argument
           default: command
           help: cli argument type
           name_or_flags:
+          - --arg-type
+          type: str
+        - choices:
+          - str
+          - int
+          - float
+          default: str
+          help: cli argument data type
+          name_or_flags:
           - --type
+          type: str
         - help: optional cli argument flags
           name_or_flags:
           - --flags
           nargs: +
+          type: str
         - action: store_true
           help: cli argument is required
           name_or_flags:
           - --required
+          type: str
         - help: cli argument default
           name_or_flags:
           - --default
+          type: str
         - action: store_true
           help: cli argument is positional
           name_or_flags:
           - --positional
+          type: str
         - help: cli argument unique action
           name_or_flags:
           - --action
+          type: str
         - help: cli argument value choices
           name_or_flags:
           - --choices
           nargs: +
+          type: str
         - help: available number of cli argument values
           name_or_flags:
           - --nargs
+          type: str
         feature_id: cli.add_argument
         group_id: cli
         name: Add CLI Argument
@@ -188,22 +224,27 @@ interfaces:
           - --interface-id
           - -i
           required: true
+          type: str
         - help: cli command key
           name_or_flags:
           - --command-key
           - -c
           required: true
+          type: str
         - help: context group id
           name_or_flags:
           - --group-id
           - -g
+          type: str
         - help: cli command name
           name_or_flags:
           - name
+          type: str
         - help: cli command description
           name_or_flags:
           - --description
           - -d
+          type: str
         feature_id: cli.add_command
         group_id: cli
         name: Add CLI Command
@@ -212,38 +253,47 @@ interfaces:
         - help: argument action
           name_or_flags:
           - --action
+          type: str
         - help: argument choices
           name_or_flags:
           - --choices
           nargs: +
+          type: str
         - help: argument default
           name_or_flags:
           - --default
+          type: str
         - help: argument flags
           name_or_flags:
           - -f
           - --flags
           nargs: +
+          type: str
         - help: argument description
           name_or_flags:
           - -d
           - --description
           required: true
+          type: str
         - help: argument name
           name_or_flags:
           - name
+          type: str
         - help: available number of arguments
           name_or_flags:
           - --nargs
+          type: str
         - action: store_true
           help: argument is positional
           name_or_flags:
           - -p
           - --positional
+          type: str
         - action: store_true
           help: argument required
           name_or_flags:
           - --required
+          type: str
         - choices:
           - str
           - int
@@ -254,10 +304,16 @@ interfaces:
           help: argument type
           name_or_flags:
           - --type
+          type: str
         feature_id: cli.add_parent_argument
         group_id: cli
         name: Add CLI Parent Argument
       object.new:
+        arguments:
+        - help: model object name
+          name_or_flags:
+          - name
+          type: str
         feature_id: object.new
         group_id: object
         help: add new model object

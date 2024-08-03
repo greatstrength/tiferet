@@ -8,11 +8,24 @@ from ..objects.cli import CliArgument
 def create_argument_data(cli_argument: CliArgument):
     if cli_argument.action:
         return cli_argument.exclude('name_or_flags', 'type', 'nargs', 'choices')
+    if cli_argument.type == 'str':
+        data_type = str
+    elif cli_argument.type == 'int':
+        data_type = int
+    elif cli_argument.type == 'float':
+        data_type = float
+    
     for name in cli_argument.name_or_flags:
         # Exclude flags that are named parameters.
         if not name.startswith('--'):
-            return cli_argument.exclude('name_or_flags', 'required')
-    return cli_argument.exclude('name_or_flags')
+            return dict(
+                **cli_argument.exclude('name_or_flags', 'required', 'type'),
+                type=data_type
+            )
+    return dict(
+        **cli_argument.exclude('name_or_flags', 'arg_type', 'type'),
+        type=data_type
+    )
 
 
 def create_headers(data: dict):

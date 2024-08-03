@@ -5,17 +5,20 @@ from schematics import types as t
 from . import object as obj
 
 
-CLI_ARUGUMENT_TYPES = [
-    'command',
-    'parent_argument'
+
+CLI_ARGUMENT_TYPE_COMMAND = 'command'
+CLI_ARGUMENT_TYPE_PARENT_ARGUMENT = 'parent_argument'
+CLI_ARGUMENT_TYPES = [
+    CLI_ARGUMENT_TYPE_COMMAND,
+    CLI_ARGUMENT_TYPE_PARENT_ARGUMENT
 ]
-CLI_ARUGUMENT_TYPE_DEFAULT = 'command'
-CLI_ARUGUMENT_DATA_TYPES = [
+CLI_ARGUMENT_TYPE_DEFAULT = CLI_ARGUMENT_TYPE_COMMAND
+CLI_ARGUMENT_DATA_TYPES = [
     'str',
     'int',
     'float'
 ]
-CLI_ARUGUMENT_DATA_TYPE_DEFAULT = 'str'
+CLI_ARGUMENT_DATA_TYPE_DEFAULT = 'str'
 
 
 class CliArgument(obj.ValueObject):
@@ -25,10 +28,10 @@ class CliArgument(obj.ValueObject):
     :type name_or_flags: list
     :param help: The help text for the CLI argument.
     :type help: str
-    :param type: The type of the CLI argument (command, parent_argument).
+    :param arg_type: The type of the CLI argument (command, parent_argument).
+    :type arg_type: str
+    :param type: The data type of the CLI argument.
     :type type: str
-    :param data_type: The data type of the CLI argument.
-    :type data_type: str
     :param default: The default value for the CLI argument.
     :type default: str
     :param required: True if the CLI argument is required.
@@ -43,10 +46,8 @@ class CliArgument(obj.ValueObject):
 
     name_or_flags = t.ListType(t.StringType, required=True, default=[])
     help = t.StringType(required=True)
-    type = t.StringType(choices=CLI_ARUGUMENT_TYPES,
-                        default=CLI_ARUGUMENT_TYPE_DEFAULT)
-    data_type = t.StringType(
-        choices=CLI_ARUGUMENT_DATA_TYPES, default=CLI_ARUGUMENT_DATA_TYPE_DEFAULT)
+    type = t.StringType(
+        choices=CLI_ARGUMENT_DATA_TYPES, default=CLI_ARGUMENT_DATA_TYPE_DEFAULT)
     default = t.StringType()
     required = t.BooleanType()
     nargs = t.StringType()
@@ -56,8 +57,7 @@ class CliArgument(obj.ValueObject):
     @staticmethod
     def new(name: str,
             help: str,
-            type: str = CLI_ARUGUMENT_TYPE_DEFAULT,
-            data_type: str = CLI_ARUGUMENT_DATA_TYPE_DEFAULT,
+            type: str = CLI_ARGUMENT_DATA_TYPE_DEFAULT,
             flags: List[str] = [],
             required: bool = False,
             default: str = None,
@@ -67,7 +67,6 @@ class CliArgument(obj.ValueObject):
             action: str = None,
             **kwargs
             ):
-        
         '''
         Initializes a new CliArgument object.
 
@@ -75,10 +74,8 @@ class CliArgument(obj.ValueObject):
         :type name: str
         :param help: The help text for the CLI argument.
         :type help: str
-        :param type: The type of the CLI argument (command, parent_argument).
+        :param type: The data type of the CLI argument.
         :type type: str
-        :param data_type: The data type of the CLI argument.
-        :type data_type: str
         :param flags: The optional flags for the CLI argument.
         :type flags: list
         :param required: True if the CLI argument is required.
@@ -110,7 +107,8 @@ class CliArgument(obj.ValueObject):
         else:
             argument.name_or_flags.append('--{}'.format(name))
             for flag in flags:
-                argument.name_or_flags.append('-{}'.format(flag.lower().replace('_', '-')))
+                argument.name_or_flags.append(
+                    '-{}'.format(flag.lower().replace('_', '-')))
 
         # Format required parameter.
         if positional or required == False:
@@ -119,7 +117,6 @@ class CliArgument(obj.ValueObject):
         # Set argument properties
         argument.help = help
         argument.type = type
-        argument.data_type = data_type
         argument.default = default
         argument.required = required
         argument.nargs = nargs
@@ -183,13 +180,44 @@ class CliInterface(obj.Entity):
         # Add the command to the list of commands.
         self.commands.append(command)
 
-    def add_parent_argument(self, argument: CliArgument) -> None:
-        self.parent_arguments.append(argument)
-
     def get_command(self, feature_id: str) -> CliCommand:
         return next((command for command in self.commands if command.feature_id == feature_id), None)
 
-    def command_exists(self, feature_id: str) -> bool:
+    def has_parent_argument(self, flags: List[str]) -> bool:
 
-        # Return True if the command exists.
-        return any((command for command in self.commands if command.feature_id == feature_id))
+        # Loop through the flags and check if any of them match the flags of an existing parent argument.
+        for flag in flags:
+            if any([argument for argument in self.parent_arguments if flag in argument.name_or_flags]):
+                return True
+
+        # Return False if no parent argument was found.
+        return False
+
+    def add_parent_argument(self, argument: CliArgument) -> None:
+        self.parent_arguments.append(argument)
+
+    def set_argument(self, argument: CliArgument, arg_type: str, feature_id: str = None) -> None:
+        
+        # If the argument is a command...
+        if arg_type == CLI_ARGUMENT_TYPE_COMMAND:
+
+            # Assert that the feature ID is not None.
+            assert feature_id is not None, 'CLI_ARGUMENT_INVALID_FEATURE_ID'
+
+            # Get the command.
+            command = self.get_command(feature_id)
+
+            # Assert that the command exists.
+            assert command is not None, 'CLI_COMMAND_NOT_FOUND'
+
+            # Add the argument to the command.
+            command.add_argument(argument)
+        
+        # If the argument is a parent argument...
+        elif arg_type == CLI_ARGUMENT_TYPE_PARENT_ARGUMENT:
+
+            # Assert that the argument does not already exist.
+            assert not self.has_parent_argument(argument.name_or_flags), 'CLI_ARGUMENT_ALREADY_EXISTS'
+
+            # Add the argument to the parent arguments.
+            self.add_parent_argument(argument)

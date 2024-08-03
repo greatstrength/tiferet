@@ -44,8 +44,13 @@ class AppContext():
     def handle_error(self, error: str, lang: str = 'en_US', error_type: type = Error, **kwargs):
 
         # Parse error.
-        error_name, error_data = error.split(': ')
-        error_data = error_data.split(', ')
+        try:
+            error_name, error_data = error.split(': ')
+            error_data = error_data.split(', ')
+        # Handle error without data if ValueError is raised.
+        except ValueError:
+            error_name = error
+            error_data = None
 
         # Get error.
         error: Error = self.error_repo.get(
