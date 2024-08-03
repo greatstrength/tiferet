@@ -1,7 +1,7 @@
 from schematics import types as t
 from schematics.transforms import wholelist, whitelist, blacklist
 
-from ..objects.data import DataObject
+from ..objects.data import ModelData
 from ..objects.container import ContainerAttribute
 from ..objects.container import AttributeValue
 from ..objects.container import DependencyValue
@@ -9,7 +9,7 @@ from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE
 from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY
 
 
-class ContainerAttributeData(ContainerAttribute, DataObject):
+class ContainerAttributeData(ContainerAttribute, ModelData):
 
     class Options():
         roles = {

@@ -6,11 +6,11 @@ from schematics.transforms import wholelist, whitelist, blacklist
 from ..objects.cli import CliInterface
 from ..objects.cli import CliCommand
 from ..objects.cli import CliArgument
-from ..objects.data import DataObject
+from ..objects.data import ModelData
 from ..objects.data import DefaultOptions
 
 
-class CliArgumentData(CliArgument, DataObject):
+class CliArgumentData(CliArgument, ModelData):
 
     class Options(DefaultOptions):
         roles = {
@@ -22,7 +22,7 @@ class CliArgumentData(CliArgument, DataObject):
         return super().map(CliArgument, role, **kwargs)
 
 
-class CliCommandData(CliCommand, DataObject):
+class CliCommandData(CliCommand, ModelData):
 
     class Options(DefaultOptions):
         roles = {
@@ -38,7 +38,7 @@ class CliCommandData(CliCommand, DataObject):
         return command
 
 
-class CliInterfaceData(CliInterface, DataObject):
+class CliInterfaceData(CliInterface, ModelData):
 
     class Options(DefaultOptions):
         roles = {

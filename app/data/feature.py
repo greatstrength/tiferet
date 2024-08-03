@@ -1,7 +1,7 @@
 from ..objects import *
 
 
-class FeatureHandlerData(FeatureHandler, DataObject):
+class FeatureHandlerData(FeatureHandler, ModelData):
     
     class Options(DefaultOptions):
         pass
@@ -10,7 +10,7 @@ class FeatureHandlerData(FeatureHandler, DataObject):
         return super().map(FeatureHandler, role, **kwargs)
     
 
-class FeatureData(Feature, DataObject):
+class FeatureData(Feature, ModelData):
 
     class Options(DefaultOptions):
         roles = {
@@ -25,7 +25,7 @@ class FeatureData(Feature, DataObject):
         return super().map(Feature, role, handlers=handlers, **kwargs)
     
 
-class FeatureGroupData(FeatureGroup, DataObject):
+class FeatureGroupData(FeatureGroup, ModelData):
 
     class Options(DefaultOptions):
         roles = {

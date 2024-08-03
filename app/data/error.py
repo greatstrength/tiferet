@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from ..objects import *
 
 
-class ErrorData(Error, DataObject):
+class ErrorData(Error, ModelData):
 
     class Options(DefaultOptions):
         roles = {

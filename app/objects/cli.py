@@ -96,7 +96,7 @@ class CliArgument(obj.ValueObject):
         # Create a new CliArgument object.
         argument = CliArgument()
 
-        # Format name or flags parameter.
+        # Format name.
         name = name.lower().replace('_', '-').replace(' ', '-')
 
         # If the argument is positional, add the name to the name_or_flags list.

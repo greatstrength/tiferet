@@ -11,7 +11,7 @@ class DefaultOptions():
     }
 
 
-class DataObject(Model):
+class ModelData(Model):
 
     def map(self, type: type, role: str = 'to_object', **kwargs):
         return type(dict(
@@ -21,4 +21,4 @@ class DataObject(Model):
     
     @staticmethod
     def new(data: dict, **kwargs):
-        return DataObject(data, **kwargs)
+        return ModelData(data, **kwargs)
