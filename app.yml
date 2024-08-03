@@ -314,6 +314,11 @@ interfaces:
           name_or_flags:
           - name
           type: str
+        - help: id of model object context group
+          name_or_flags:
+          - --group-id
+          required: true
+          type: str
         - choices:
           - entity
           - value_object
