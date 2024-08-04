@@ -8,7 +8,7 @@ def load(path: str, create_data = lambda data: data, start_node = lambda data: d
     with open(path, 'r') as file:
         data = yaml.safe_load(file)
     data = start_node(data)
-    if not data:
+    if data == None:
         return None
     return create_data(data, **kwargs)
 

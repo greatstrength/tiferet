@@ -87,6 +87,12 @@ container:
             class_name: AddCliCommand
             module_path: app.commands.cli
         type: dependency
+      add_new_object:
+        data:
+          yaml:
+            class_name: AddNewObject
+            module_path: app.commands.object
+        type: dependency
       cli_interface_repo:
         data:
           yaml:
@@ -99,6 +105,17 @@ container:
             value: yaml
         type: attribute
       interface_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: attribute
+      object_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.object
+        type: dependency
+      object_yaml_base_path:
         data:
           yaml:
             value: app.yml
@@ -122,6 +139,9 @@ errors:
   INVALID_REQUEST_DATA:
     message:
       en_US: 'Invalid request contains the following errors: "{}"'
+  OBJECT_ALREADY_EXISTS:
+    message:
+      en_US: Object with class name "{}" already exists
 features:
   groups:
     cli:
@@ -138,6 +158,14 @@ features:
             name: Add CLI Command Handler
           name: Add CLI Command
           request_type_path: app.configs.requests.AddCliCommand
+    object:
+      features:
+        new:
+          functions:
+          - attribute_id: add_new_object
+            name: Add New Object Handler
+          name: Add New Object
+          request_type_path: app.configs.requests.AddNewObject
 interfaces:
   cli:
     commands:
@@ -317,6 +345,7 @@ interfaces:
         - help: id of model object context group
           name_or_flags:
           - --group-id
+          - -g
           required: true
           type: str
         - choices:
@@ -330,7 +359,7 @@ interfaces:
           type: str
         - help: model object printed class name
           name_or_flags:
-          - --class name
+          - --class-name
           - -c
           required: true
           type: str
@@ -348,3 +377,10 @@ interfaces:
         group_id: object
         help: add new model object
         name: Add Object
+objects:
+  model_object:
+    class_name: ModelObject
+    description: A domain model component defined as a class object
+    group_id: object
+    name: Model Object
+    type: entity
