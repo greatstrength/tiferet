@@ -93,6 +93,12 @@ container:
             class_name: AddNewObject
             module_path: app.commands.object
         type: dependency
+      add_object_attribute:
+        data:
+          yaml:
+            class_name: AddObjectAttribute
+            module_path: app.commands.object
+        type: dependency
       cli_interface_repo:
         data:
           yaml:
@@ -142,6 +148,9 @@ errors:
   OBJECT_ALREADY_EXISTS:
     message:
       en_US: Object with class name "{}" already exists
+  OBJECT_NOT_FOUND:
+    message:
+      en_US: Object with id "{}" not found
 features:
   groups:
     cli:
@@ -160,6 +169,12 @@ features:
           request_type_path: app.configs.requests.AddCliCommand
     object:
       features:
+        add_attribute:
+          functions:
+          - attribute_id: add_object_attribute
+            name: Add Object Attribute Handler
+          name: Add Object Attribute
+          request_type_path: app.configs.requests.AddObjectAttribute
         new:
           functions:
           - attribute_id: add_new_object
@@ -336,6 +351,11 @@ interfaces:
         feature_id: cli.add_parent_argument
         group_id: cli
         name: Add CLI Parent Argument
+      object.add_attribute:
+        feature_id: object.add_attribute
+        group_id: object
+        help: add attribute to model object
+        name: Add Object Attribute
       object.new:
         arguments:
         - help: model object name

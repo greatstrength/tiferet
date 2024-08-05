@@ -1,4 +1,5 @@
 from ..objects.object import ModelObject
+from ..objects.object import ObjectAttribute
 from ..repositories.object import ObjectRepository
 
 class AddNewObject(object):
@@ -30,4 +31,30 @@ class AddNewObject(object):
         self.object_repo.save(_object)
 
         # Return the new object.
+        return _object
+    
+
+class AddObjectAttribute(object):
+
+    def __init__(self, object_repo: ObjectRepository):
+        self.object_repo = object_repo
+
+    def execute(self, object_id: str, **kwargs) -> ModelObject:
+
+        # Get the object.
+        _object = self.object_repo.get(object_id)
+
+        # Assert that the object exists.
+        assert _object is not None, f'OBJECT_NOT_FOUND: {object_id}'
+
+        # Create a new object attribute.
+        attribute = ObjectAttribute.new(object_id=object_id, **kwargs)
+
+        # Add the attribute to the object.
+        _object.attributes.append(attribute)
+
+        # Save the object attribute.
+        self.object_repo.save(attribute)
+
+        # Return the object.
         return _object
