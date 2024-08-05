@@ -6,6 +6,7 @@ from ..objects.cli import CLI_ARGUMENT_DATA_TYPE_DEFAULT as DATA_TYPE_DEFAULT
 from ..objects.cli import CLI_ARGUMENT_TYPES as ARG_TYPES
 from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
 from ..objects.object import ModelObject
+from ..objects.object import ObjectAttribute
 
 
 class AddCliCommand(Model):
@@ -38,3 +39,9 @@ class AddNewObject(ModelObject):
 
     id = t.StringType()
     class_name = t.StringType()
+
+
+class AddObjectAttribute(ObjectAttribute):
+    
+    object_id = t.StringType(required=True)
+    type_properties = t.DictType(t.StringType(), default={})
