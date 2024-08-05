@@ -51,7 +51,7 @@ class YamlRepository(ObjectRepository):
             start_node=lambda data: data.get('objects'))
 
         # Return the objects.
-        return [record.map() for record in data]
+        return [record.map(role='to_object.yaml') for record in data]
 
     def get(self, id: str) -> ModelObject:
 
@@ -62,7 +62,7 @@ class YamlRepository(ObjectRepository):
             start_node=lambda data: data.get('objects').get(id))
 
         # Return the object.
-        return data.map(id, 'to_object.yaml')
+        return data.map(role='to_object.yaml')
 
     def save(self, _object: ModelObject) -> ModelObject:
 

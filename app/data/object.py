@@ -31,7 +31,7 @@ class ModelObjectData(ModelObject, ModelData):
         # Create a new ModelObjectData object.
         return ModelObjectData(kwargs)
 
-    def map(self, id: str, role: str = 'to_object.yaml', **kwargs) -> ModelObject:
+    def map(self, role: str = 'to_object.yaml', **kwargs) -> ModelObject:
         '''Maps the model object data to a model object.
         
         :param id: The unique identifier for the model object.
@@ -42,4 +42,4 @@ class ModelObjectData(ModelObject, ModelData):
         '''
 
         # Map the model object data to a model object.
-        return super().map(ModelObject, role, id=id, **kwargs)
+        return super().map(ModelObject, role, **kwargs)
