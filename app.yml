@@ -378,9 +378,56 @@ interfaces:
         help: add new model object
         name: Add Object
 objects:
+  date_settings:
+    base_type_id: object_type_settings
+    class_name: DateSettings
+    description: Type-specific settings for an date object attribute.
+    group_id: object
+    name: Date Settings
+    type: value_object
+  date_time_settings:
+    base_type_id: object_type_settings
+    class_name: DateTimeSettings
+    description: Type-specific settings for a datetime object attribute.
+    group_id: object
+    name: Date Time Settings
+    type: value_object
+  dict_settings:
+    base_type_id: object_type_settings
+    class_name: DictSettings
+    description: Type-specific settings for a dict object attribute.
+    group_id: object
+    name: Dict Settings
+    type: value_object
+  list_settings:
+    base_type_id: object_type_settings
+    class_name: ListSettings
+    description: Type-specific settings for a list object attribute.
+    group_id: object
+    name: List Settings
+    type: value_object
+  model_attribute:
+    class_name: ModelAttribute
+    description: An attribute of a model object.
+    group_id: object
+    name: Model Attribute
+    type: value_object
   model_object:
     class_name: ModelObject
-    description: A domain model component defined as a class object
+    description: A domain model component defined as a class object.
     group_id: object
     name: Model Object
     type: entity
+  object_type_settings:
+    class_name: ObjectTypeSettings
+    description: Type-specific settings for an object attribute.
+    group_id: object
+    name: Object Type Settings
+    type: value_object
+  string_settings:
+    base_type_id: object_type_settings
+    class_name: StringSettings
+    description: Type-specific settings for an string attribute.
+    group_id: object
+    name: String Settings
+    type: value_object

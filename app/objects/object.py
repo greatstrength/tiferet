@@ -8,6 +8,33 @@ OBJECT_TYPES = [
     'value_object'
 ]
 OBJECT_TYPE_DEFAULT = OBJECT_TYPE_ENTITY
+ATTRIBUTE_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'list',
+    'dict',
+    'model',
+    'poly'
+]
+ATTRIBUTE_INNER_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'model'
+]
+DATE_TIME_SETTINGS_TZD_TYPES = [
+    'require',
+    'allow',
+    'utc',
+    'reject'
+]
 
 
 class Entity(Model):
@@ -64,4 +91,223 @@ class ModelObject(Entity):
         obj.validate()
 
         # Return the new ModelObject object.
+        return obj
+
+
+class ObjectAttribute(ValueObject):
+    '''
+    An attribute of a model object.
+    '''
+
+    name = t.StringType(required=True)
+    description = t.StringType(required=True)
+    type = t.StringType(required=True, choices=ATTRIBUTE_TYPES)
+    inner_type = t.StringType(choices=ATTRIBUTE_INNER_TYPES)
+    type_object_id = t.StringType()
+    poly_type_object_ids = t.ListType(t.StringType(), default=[])
+    required = t.BooleanType(default=False)
+    default = t.StringType()
+    choices = t.ListType(t.StringType(), default=[])
+    # type_settings = t.PolyModelType([StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
+
+    @staticmethod
+    def new(**kwargs) -> 'ObjectAttribute':
+        '''
+        Initializes a new ObjectAttribute object.
+
+        :return: A new ObjectAttribute object.
+        '''
+
+        # Create a new ModelAttribute object.
+        obj = ObjectAttribute(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate the new ModelAttribute object.
+        obj.validate()
+
+        # Return the new ModelAttribute object.
+        return obj
+
+
+class ObjectTypeSettings(ValueObject):
+    '''
+    Type-specific settings for an object attribute.
+    '''
+
+    pass
+
+
+class StringSettings(ObjectTypeSettings):
+    '''
+    Type-specific settings for a string object attribute.
+    '''
+
+    regex = t.StringType()
+    min_length = t.IntType()
+    max_length = t.IntType()
+
+    @staticmethod
+    def new(min_length: int = None, max_length: int = None, **kwargs):
+        '''
+        Initializes a new StringSettings object.
+        
+        :param min_length: The minimum length for the string object attribute.
+        :type min_length: int
+        :param max_length: The maximum length for the string object attribute.
+        :type max_length: int
+        :return: A new StringSettings object.
+        '''
+
+        # Set the min and max length as integers if provided.
+        min_length = int(min_length) if min_length else None
+        max_length = int(max_length) if max_length else None
+
+        # Create a new StringSettings object.
+        obj = StringSettings(dict(
+            min_length=min_length,
+            max_length=max_length,
+            **kwargs
+        ), strict=False)
+
+        # Validate the new StringSettings object.
+        obj.validate()
+
+        # Return the new StringSettings object.
+        return obj
+
+
+class DateSettings(ObjectTypeSettings):
+    '''
+    Type-specific settings for a date object attribute.
+    '''
+
+    format = t.StringType()
+
+    @staticmethod
+    def new(**kwargs):
+        '''
+        Initializes a new DateSettings object.
+
+        :param format: The string format for the date object attribute.
+        :type format: str
+        :return: A new DateSettings object.
+        '''
+
+        # Create a new DateSettings object.
+        obj = DateSettings(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate the new DateSettings object.
+        obj.validate()
+
+        # Return the new DateSettings object.
+        return obj
+
+
+class DateTimeSettings(ObjectTypeSettings):
+    '''
+    Type-specific settings for a datetime object attribute.
+    '''
+
+    formats = t.StringType()
+    serialized_format = t.StringType()
+    parser = t.StringType()
+    tzd = t.StringType(choices=DATE_TIME_SETTINGS_TZD_TYPES)
+    convert_tz = t.BooleanType()
+    drop_tzinfo = t.BooleanType()
+
+    @staticmethod
+    def new(convert_tz: bool = None, drop_tzinfo: bool = None, **kwargs):
+        '''
+        Initializes a new DateTimeSettings object.
+
+        :param convert_tz: Whether to convert the timezone for the datetime object attribute.
+        :type convert_tz: bool
+        :param drop_tzinfo: Whether to drop the timezone info for the datetime object attribute.
+        :type drop_tzinfo: bool
+        :return: A new DateTimeSettings object.
+        '''
+
+        # Set Drop TZInfo to True if Convert TZ is True.
+        if convert_tz and not drop_tzinfo:
+            drop_tzinfo = True
+
+        # Create a new DateTimeSettings object.
+        obj = DateTimeSettings(dict(
+            convert_tz=convert_tz,
+            drop_tzinfo=drop_tzinfo,
+            **kwargs
+        ), strict=False)
+
+        # Validate the new DateTimeSettings object.
+        obj.validate()
+
+        # Return the new DateTimeSettings object.
+        return obj
+
+
+class ListSettings(ObjectTypeSettings):
+    '''
+    Type-specific settings for a list object attribute.
+    '''
+
+    min_size = t.IntType()
+    max_size = t.IntType()
+
+    @staticmethod
+    def new(min_size: int = None, max_size: int = None, **kwargs):
+        '''
+        Initializes a new ListSettings object.
+
+        :param min_size: The minimum size for the list object attribute.
+        :type min_size: int
+        :param max_size: The maximum size for the list object attribute.
+        :type max_size: int
+        :return: A new ListSettings object.
+        '''
+
+        # Set the min and max size as integers if provided.
+        min_size = int(min_size) if min_size else None
+        max_size = int(max_size) if max_size else None
+
+        # Create a new ListSettings object.
+        obj = ListSettings(dict(
+            min_size=min_size,
+            max_size=max_size,
+            **kwargs
+        ), strict=False)
+
+        # Validate the new ListSettings object.
+        obj.validate()
+
+        # Return the new ListSettings object.
+        return obj
+
+
+class DictSettings(ObjectTypeSettings):
+    '''
+    Type-specific settings for a dict object attribute.
+    '''
+
+    coerce_key = t.StringType()
+
+    @staticmethod
+    def new(**kwargs):
+        '''
+        Initializes a new DictSettings object.
+
+        :return: A new DictSettings object.
+        '''
+
+        # Create a new DictSettings object.
+        obj = DictSettings(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate the new DictSettings object.
+        obj.validate()
+
+        # Return the new DictSettings object.
         return obj
