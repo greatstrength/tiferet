@@ -31,7 +31,7 @@ class AddCliArgument(Model):
     default = t.StringType()
     positional = t.BooleanType()
     choices = t.ListType(t.StringType(), default=[])
-    nargs = t.IntType()
+    nargs = t.StringType()
     action = t.StringType()
 
 

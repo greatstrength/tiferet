@@ -291,67 +291,75 @@ interfaces:
         feature_id: cli.add_command
         group_id: cli
         name: Add CLI Command
-      cli.add_parent_argument:
+      object.add_attribute:
         arguments:
-        - help: argument action
-          name_or_flags:
-          - --action
-          type: str
-        - help: argument choices
-          name_or_flags:
-          - --choices
-          nargs: +
-          type: str
-        - help: argument default
-          name_or_flags:
-          - --default
-          type: str
-        - help: argument flags
-          name_or_flags:
-          - -f
-          - --flags
-          nargs: +
-          type: str
-        - help: argument description
-          name_or_flags:
-          - -d
-          - --description
-          required: true
-          type: str
-        - help: argument name
+        - help: object attribute name
           name_or_flags:
           - name
           type: str
-        - help: available number of arguments
+        - help: object attribute parent object id
           name_or_flags:
-          - --nargs
+          - --object-id
+          - -o
+          required: true
           type: str
-        - action: store_true
-          help: argument is positional
+        - help: object attribute description
           name_or_flags:
-          - -p
-          - --positional
-          type: str
-        - action: store_true
-          help: argument required
-          name_or_flags:
-          - --required
+          - --description
+          - -d
+          required: true
           type: str
         - choices:
           - str
           - int
           - float
           - bool
+          - date
+          - datetime
           - list
           - dict
-          help: argument type
+          - model
+          - poly
+          help: object attribute data type
           name_or_flags:
           - --type
+          - -t
+          required: true
           type: str
-        feature_id: cli.add_parent_argument
-        group_id: cli
-        name: Add CLI Parent Argument
-      object.add_attribute:
+        - choices:
+          - str
+          - int
+          - float
+          - bool
+          - date
+          - datetime
+          - model
+          help: object attribute inner data type (list/dict)
+          name_or_flags:
+          - --inner-type
+          type: str
+        - help: object id for object attribute model type
+          name_or_flags:
+          - --type-object-id
+          type: str
+        - help: object ids for object attribute poly type
+          name_or_flags:
+          - --poly-type-object-ids
+          nargs: +
+          type: str
+        - action: store_true
+          help: true if the object attribute value is required
+          name_or_flags:
+          - --required
+          type: str
+        - help: object attribute default value
+          name_or_flags:
+          - --default
+          type: str
+        - help: set of valid object attribute values
+          name_or_flags:
+          - --choices
+          type: str
         feature_id: object.add_attribute
         group_id: object
         help: add attribute to model object
