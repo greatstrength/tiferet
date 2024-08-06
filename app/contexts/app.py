@@ -1,8 +1,8 @@
 from typing import Any
 
-from ..configs.errors import AppError
+from schematics import Model
+
 from ..objects.error import Error
-from ..objects.object import ModelObject
 from ..repositories.error import ErrorRepository
 
 from .feature import FeatureContext
@@ -29,7 +29,7 @@ class AppContext():
         if type(result) == list:
             result = []
             for item in result:
-                if isinstance(item, ModelObject):
+                if isinstance(item, Model):
                     result.append(item.to_primitive())
                 else:
                     result.append(item)
@@ -37,7 +37,7 @@ class AppContext():
         if not result:
             return {}
         # Convert schematics models to primitive dicts.
-        if isinstance(result, ModelObject):
+        if isinstance(result, Model):
             return result.to_primitive()
         return result
 

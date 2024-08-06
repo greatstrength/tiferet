@@ -291,6 +291,43 @@ interfaces:
         feature_id: cli.add_command
         group_id: cli
         name: Add CLI Command
+      container.add_attribute:
+        arguments:
+        - help: attribute container id
+          name_or_flags:
+          - id
+          type: str
+        - help: attribute container context group id
+          name_or_flags:
+          - --group-id
+          - -g
+          required: true
+          type: str
+        - choices:
+          - attribute
+          - dependency
+          help: attribute container type
+          name_or_flags:
+          - --type
+          - -t
+          required: true
+          type: str
+        - help: container attribute infrastructure flag
+          name_or_flags:
+          - --flag
+          - -f
+          required: true
+          type: str
+        - help: container attribute data (separated by '=')
+          name_or_flags:
+          - --data
+          nargs: +
+          required: true
+          type: str
+        feature_id: container.add_attribute
+        group_id: container
+        help: add container attribute
+        name: Add Container Attribute
       object.add_attribute:
         arguments:
         - help: object attribute name

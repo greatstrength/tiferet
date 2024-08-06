@@ -7,6 +7,7 @@ from ..objects.cli import CLI_ARGUMENT_TYPES as ARG_TYPES
 from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
+from ..objects.container import ContainerAttribute
 
 
 class AddCliCommand(Model):
@@ -33,6 +34,11 @@ class AddCliArgument(Model):
     choices = t.ListType(t.StringType(), default=[])
     nargs = t.StringType()
     action = t.StringType()
+
+
+class AddContainerAttribute(ContainerAttribute):
+
+    data = t.ListType(t.StringType(), default=[])
 
 
 class AddNewObject(ModelObject):
