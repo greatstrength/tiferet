@@ -1,8 +1,7 @@
 from typing import List, Dict, Any
 
 from ..objects.container import ContainerAttribute
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE as ATTRIBUTE
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY as DEPENDENCY
+from ..objects.container import DataAttribute
 from ..repositories.container import ContainerRepository
 from ..services import container as container_service
 
@@ -35,7 +34,7 @@ class AppContainer(object):
     
         # Add app variables as attributes.
         for key, value in kwargs.get('app').items():
-            attributes.append(ContainerAttribute.new(id=key, type=ATTRIBUTE, data={'value': value}))
+            attributes.append(DataAttribute.new(id=key, data={'value': value}))
 
         # Return attributes.
         return attributes

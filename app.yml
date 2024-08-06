@@ -11,12 +11,12 @@ container:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
       base_path:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
       cli_interface_context:
         data:
           yaml:
@@ -35,6 +35,11 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.container
         type: dependency
+      container_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: data
       error_repo:
         data:
           yaml:
@@ -45,7 +50,7 @@ container:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
       feature_container:
         data:
           yaml:
@@ -68,12 +73,12 @@ container:
         data:
           yaml:
             value: yaml
-        type: attribute
+        type: data
       interface_yaml_base_path:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
     feature:
       add_cli_argument:
         data:
@@ -86,6 +91,12 @@ container:
           yaml:
             class_name: AddCliCommand
             module_path: app.commands.cli
+        type: dependency
+      add_container_attribute:
+        data:
+          yaml:
+            class_name: AddContainerAttribute
+            module_path: app.commands.container
         type: dependency
       add_new_object:
         data:
@@ -105,16 +116,27 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.cli
         type: dependency
+      container_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.container
+        type: dependency
+      container_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: data
       flag:
         data:
           yaml:
             value: yaml
-        type: attribute
+        type: data
       interface_yaml_base_path:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
       object_repo:
         data:
           yaml:
@@ -125,7 +147,7 @@ container:
         data:
           yaml:
             value: app.yml
-        type: attribute
+        type: data
 errors:
   CLI_ARGUMENT_ALREADY_EXISTS:
     message:
@@ -142,6 +164,12 @@ errors:
   CLI_INTERFACE_NOT_FOUND:
     message:
       en_US: CLI interface with id "{}" not found
+  CONTAINER_ATTRIBUTE_ALREADY_EXISTS:
+    message:
+      en_US: Container attribute "{}" already exists within group "{}"
+  INVALID_CONTAINER_ATTRIBUTE_DATA:
+    message:
+      en_US: Container data for attribute with "{}" is invalid
   INVALID_REQUEST_DATA:
     message:
       en_US: 'Invalid request contains the following errors: "{}"'
@@ -167,6 +195,14 @@ features:
             name: Add CLI Command Handler
           name: Add CLI Command
           request_type_path: app.configs.requests.AddCliCommand
+    container:
+      features:
+        add_attribute:
+          functions:
+          - attribute_id: add_container_attribute
+            name: Add Container Attribute Handler
+          name: Add Container Attribute
+          request_type_path: app.configs.requests.AddContainerAttribute
     object:
       features:
         add_attribute:
@@ -291,7 +327,7 @@ interfaces:
         feature_id: cli.add_command
         group_id: cli
         name: Add CLI Command
-      container.add_attribute:
+      container.set_attribute:
         arguments:
         - help: attribute container id
           name_or_flags:
@@ -326,8 +362,8 @@ interfaces:
           type: str
         feature_id: container.add_attribute
         group_id: container
-        help: add container attribute
-        name: Add Container Attribute
+        help: set container attribute
+        name: Set Container Attribute
       object.add_attribute:
         arguments:
         - help: object attribute name

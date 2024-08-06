@@ -38,6 +38,8 @@ class AddCliArgument(Model):
 
 class AddContainerAttribute(ContainerAttribute):
 
+    group_id = t.StringType(required=True)
+    flag = t.StringType(required=True)
     data = t.ListType(t.StringType(), default=[])
 
 

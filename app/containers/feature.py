@@ -1,8 +1,6 @@
 from typing import List, Dict, Any
 
 from ..objects.container import ContainerAttribute
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_ATTRIBUTE as ATTRIBUTE
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY as DEPENDENCY
 from ..repositories.container import ContainerRepository
 from ..services import container as container_service
 
@@ -14,7 +12,7 @@ class FeatureContainer(object):
         # Load container repository and list attributes.
         attributes = self.list_attributes(
             flag=flag,
-            container_type='feature',
+            group_id='feature',
             container_repo=container_repo
         )
 
@@ -24,11 +22,11 @@ class FeatureContainer(object):
         # Load container dependencies.
         self.set_attributes(attributes, container)
 
-    def list_attributes(self, container_type: str, flag: str, container_repo: ContainerRepository, **kwargs):
+    def list_attributes(self, group_id: str, flag: str, container_repo: ContainerRepository, **kwargs):
 
         # Get container attributes.
         attributes: List[ContainerAttribute] = container_repo.list_attributes(
-            container_type=container_type,
+            group_id=group_id,
             flag=flag
         )
 
