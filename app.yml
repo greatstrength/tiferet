@@ -360,6 +360,11 @@ interfaces:
           name_or_flags:
           - --choices
           type: str
+        - help: object attribute type settings (separated by '=')
+          name_or_flags:
+          - --type-settings
+          nargs: +
+          type: str
         feature_id: object.add_attribute
         group_id: object
         help: add attribute to model object
