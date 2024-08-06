@@ -484,6 +484,25 @@ interfaces:
         help: add new model object
         name: Add Object
 objects:
+  container_attribute:
+    class_name: ContainerAttribute
+    description: A container attribute object.
+    group_id: container
+    name: Container Attribute
+    type: entity
+  data_attribute:
+    base_type_id: container_attribute
+    class_name: DataAttribute
+    description: A container attribute object for a data-type values.
+    group_id: container
+    name: Data Attribute
+    type: entity
+  data_value:
+    class_name: DataValue
+    description: A container attribute data value object.
+    group_id: container
+    name: Data Value
+    type: value_object
   date_settings:
     base_type_id: object_type_settings
     class_name: DateSettings
@@ -497,6 +516,19 @@ objects:
     description: Type-specific settings for a datetime object attribute.
     group_id: object
     name: Date Time Settings
+    type: value_object
+  dependency_attribute:
+    base_type_id: container_attribute
+    class_name: DependencyAttribute
+    description: A container attribute object for a dependency-type values.
+    group_id: container
+    name: Dependency Attribute
+    type: entity
+  dependency_value:
+    class_name: DependencyValue
+    description: A container attribute dependency value object.
+    group_id: container
+    name: Dependency Value
     type: value_object
   dict_settings:
     base_type_id: object_type_settings

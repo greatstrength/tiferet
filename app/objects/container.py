@@ -13,26 +13,38 @@ CONTAINER_ATTRIBUTE_TYPES = [
 ]
 
 
-class AttributeValue(obj.ValueObject):
+class ContainerAttribute(obj.Entity):
+    '''
+    A container attribute object.
+    '''
+
+    type = t.StringType(required=True, choices=CONTAINER_ATTRIBUTE_TYPES)
+
+
+class DataValue(obj.ValueObject):
+    '''
+    A container attribute data value object.
+    '''
 
     value = t.StringType(required=True)
 
 
 class DependencyValue(obj.ValueObject):
+    '''
+    A container attribute dependency value object.
+    '''
 
     module_path = t.StringType(required=True)
     class_name = t.StringType(required=True)
 
 
-class ContainerAttribute(obj.Entity):
-
-    type = t.StringType(required=True, choices=CONTAINER_ATTRIBUTE_TYPES)
-
-
 class DataAttribute(ContainerAttribute):
+    '''
+    A container attribute object for a data-type value.
+    '''
 
     type = t.StringType(default=CONTAINER_ATTRIBUTE_TYPE_DATA)
-    data = t.ModelType(AttributeValue, required=True)
+    data = t.ModelType(DataValue, required=True)
 
     @staticmethod
     def new(**kwargs) -> 'DataAttribute':
@@ -55,6 +67,9 @@ class DataAttribute(ContainerAttribute):
 
 
 class DependencyAttribute(ContainerAttribute):
+    '''
+    A container attribute object for a dependency-type value.
+    '''
 
     type = t.StringType(default=CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY)
     data = t.ModelType(DependencyValue, required=True)
