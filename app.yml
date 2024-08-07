@@ -364,6 +364,23 @@ interfaces:
         group_id: container
         help: set container attribute
         name: Set Container Attribute
+      error.new:
+        arguments:
+        - help: error name
+          name_or_flags:
+          - name
+          type: str
+        - help: error message by lang (separated by '=')
+          name_or_flags:
+          - --message
+          - -m
+          nargs: +
+          required: true
+          type: str
+        feature_id: error.new
+        group_id: error
+        help: add new error
+        name: Add New Error
       object.add_attribute:
         arguments:
         - help: object attribute name
