@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 
 from ..contexts.app import AppContext
 from ..objects.cli import CliInterface
+from ..objects.error import Error
 from ..services import cli as cli_service
 from ..repositories.cli import CliInterfaceRepository
 
@@ -38,8 +39,8 @@ class CliInterfaceContext(AppContext):
 
         # Handle error if session has error.
         if session.error:
-            error = self.handle_error(session.error, **request.headers)
-            print(error.message)
+            error: Error = self.handle_error(session.error, **request.headers)
+            print(error.get_message())
             return
         
         # Map response to primitive.

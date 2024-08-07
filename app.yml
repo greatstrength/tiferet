@@ -196,6 +196,12 @@ errors:
     - lang: en_US
       text: Container attribute "{}" already exists within group "{}"
     name: CONTAINER_ATTRIBUTE_ALREADY_EXISTS
+  ERROR_ALREADY_EXISTS:
+    error_code: ERROR_ALREADY_EXISTS
+    message:
+    - lang: en_US
+      text: Error with id "{}" already exists
+    name: ERROR_ALREADY_EXISTS
   INVALID_CONTAINER_ATTRIBUTE_DATA:
     message:
     - lang: en_US

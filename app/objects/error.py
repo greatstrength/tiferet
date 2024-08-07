@@ -65,6 +65,7 @@ class Error(Entity):
 
         # Create a new Error object.
         obj = Error(dict(
+            id=id,
             name=name,
             error_code=error_code,
             **kwargs),
