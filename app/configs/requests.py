@@ -43,6 +43,12 @@ class AddContainerAttribute(ContainerAttribute):
     data = t.ListType(t.StringType(), default=[])
 
 
+class AddNewError(Model):
+
+    name = t.StringType(required=True)
+    message = t.ListType(t.StringType(), default=[])
+
+
 class AddNewObject(ModelObject):
 
     id = t.StringType()
