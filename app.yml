@@ -98,6 +98,12 @@ container:
             class_name: AddContainerAttribute
             module_path: app.commands.container
         type: dependency
+      add_new_error:
+        data:
+          yaml:
+            class_name: AddNewError
+            module_path: app.commands.error
+        type: dependency
       add_new_object:
         data:
           yaml:
@@ -151,34 +157,54 @@ container:
 errors:
   CLI_ARGUMENT_ALREADY_EXISTS:
     message:
-      en_US: CLI argument with name or flag "{}" already exists
+    - lang: en_US
+      text: CLI argument with name or flag "{}" already exists
+    name: CLI_ARGUMENT_ALREADY_EXISTS
   CLI_ARGUMENT_INVALID_FEATURE_ID:
     message:
-      en_US: Feature ID is required when adding a CLI argument to a command
+    - lang: en_US
+      text: Feature ID is required when adding a CLI argument to a command
+    name: CLI_ARGUMENT_INVALID_FEATURE_ID
   CLI_COMMAND_ALREADY_EXISTS:
     message:
-      en_US: CLI command with for feature "{}" already exists
+    - lang: en_US
+      text: CLI command with for feature "{}" already exists
+    name: CLI_COMMAND_ALREADY_EXISTS
   CLI_COMMAND_NOT_FOUND:
     message:
-      en_US: CLI command mapped to Feature ID "{}" not found
+    - lang: en_US
+      text: CLI command mapped to Feature ID "{}" not found
+    name: CLI_COMMAND_NOT_FOUND
   CLI_INTERFACE_NOT_FOUND:
     message:
-      en_US: CLI interface with id "{}" not found
+    - lang: en_US
+      text: CLI interface with id "{}" not found
+    name: CLI_INTERFACE_NOT_FOUND
   CONTAINER_ATTRIBUTE_ALREADY_EXISTS:
     message:
-      en_US: Container attribute "{}" already exists within group "{}"
+    - lang: en_US
+      text: Container attribute "{}" already exists within group "{}"
+    name: CONTAINER_ATTRIBUTE_ALREADY_EXISTS
   INVALID_CONTAINER_ATTRIBUTE_DATA:
     message:
-      en_US: Container data for attribute with "{}" is invalid
+    - lang: en_US
+      text: Container data for attribute with "{}" is invalid
+    name: INVALID_CONTAINER_ATTRIBUTE_DATA
   INVALID_REQUEST_DATA:
     message:
-      en_US: 'Invalid request contains the following errors: "{}"'
+    - lang: en_US
+      text: 'Invalid request contains the following errors: "{}"'
+    name: INVALID_REQUEST_DATA
   OBJECT_ALREADY_EXISTS:
     message:
-      en_US: Object with class name "{}" already exists
+    - lang: en_US
+      text: Object with class name "{}" already exists
+    name: OBJECT_ALREADY_EXISTS
   OBJECT_NOT_FOUND:
     message:
-      en_US: Object with id "{}" not found
+    - lang: en_US
+      text: Object with id "{}" not found
+    name: OBJECT_NOT_FOUND
 features:
   groups:
     cli:
@@ -203,6 +229,14 @@ features:
             name: Add Container Attribute Handler
           name: Add Container Attribute
           request_type_path: app.configs.requests.AddContainerAttribute
+    error:
+      features:
+        new:
+          functions:
+          - attribute_id: add_new_error
+            name: Add New Error Handler
+          name: Add New Error
+          request_type_path: app.configs.requests.AddNewError
     object:
       features:
         add_attribute:

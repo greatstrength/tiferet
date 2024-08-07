@@ -37,3 +37,6 @@ class AddContainerAttribute(object):
 
         # Save the container attribute.
         self.container_repo.save_attribute(attribute=attribute, **kwargs)
+
+        # Return the new container attribute.
+        return attribute
