@@ -20,7 +20,7 @@ class AddContainerAttribute(object):
 
         self.container_repo = container_repo
 
-    def execute(self, **kwargs):
+    def execute(self, group_id: str, **kwargs):
         '''
         Execute the command to set a new container attribute.
 
@@ -33,7 +33,8 @@ class AddContainerAttribute(object):
 
         # Assert that the attribute does not already exist.
         assert not self.container_repo.attribute_exists(
-            **kwargs), f'CONTAINER_ATTRIBUTE_ALREADY_EXISTS: {attribute.group_id}, {attribute.id}'
+            group_id=group_id,
+            **kwargs), f'CONTAINER_ATTRIBUTE_ALREADY_EXISTS: {attribute.id}, {group_id}'
 
         # Save the container attribute.
         self.container_repo.save_attribute(attribute=attribute, **kwargs)

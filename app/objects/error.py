@@ -9,6 +9,11 @@ class ErrorMessage(ValueObject):
     lang = t.StringType(required=True)
     text = t.StringType(required=True)
 
+    def format(self, *args):
+        if not args:
+            return
+        self.text = self.text.format(*args)
+
 
 class Error(Entity):
     '''
@@ -20,8 +25,6 @@ class Error(Entity):
     message = t.ListType(t.ModelType(ErrorMessage), required=True)
 
     def set_format_args(self, *args):
-        if not args:
-            return
         for msg in self.message:
             msg.format(*args)
 
