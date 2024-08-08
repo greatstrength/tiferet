@@ -683,6 +683,18 @@ objects:
     group_id: object
     name: Dict Settings
     type: value_object
+  feature:
+    class_name: Feature
+    description: A feature object.
+    group_id: feature
+    name: Feature
+    type: entity
+  feature_handler:
+    class_name: FeatureHandler
+    description: A handler object for a feature command.
+    group_id: feature
+    name: Feature Handler
+    type: entity
   list_settings:
     base_type_id: object_type_settings
     class_name: ListSettings
