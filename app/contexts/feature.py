@@ -72,7 +72,7 @@ class FeatureContext(object):
                 session.error = str(e)
 
                 # Break if exit on error is set.
-                if handler.exit_on_error:
+                if not handler.pass_on_error:
                     break
 
                 # Continue to the next handler if continue on error is set.

@@ -5,16 +5,22 @@ from .object import ValueObject
 
 
 class FeatureHandler(ValueObject):
+    '''
+    A handler object for a feature command.
+    '''
     name = t.StringType(required=True)
     attribute_id = t.StringType(required=True)
     params = t.DictType(t.StringType(), default={})
-    return_to_data = t.BooleanType(default=False)
+    return_to_data = t.BooleanType()
     data_key = t.StringType()
-    exit_on_error = t.BooleanType(default=True)
-    log_activity = t.BooleanType(default=True)
+    pass_on_error = t.BooleanType()
 
 
 class Feature(Entity):
+    '''
+    A feature object.
+    '''
+
     name = t.StringType(required=True)
     group_id = t.StringType(required=True)
     description = t.StringType()
