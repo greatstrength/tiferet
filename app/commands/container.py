@@ -37,7 +37,11 @@ class AddContainerAttribute(object):
             **kwargs), f'CONTAINER_ATTRIBUTE_ALREADY_EXISTS: {attribute.id}, {group_id}'
 
         # Save the container attribute.
-        self.container_repo.save_attribute(attribute=attribute, **kwargs)
+        self.container_repo.save_attribute(
+            group_id=group_id,
+            attribute=attribute, 
+            **kwargs
+        )
 
         # Return the new container attribute.
         return attribute

@@ -14,36 +14,35 @@ class FeatureHandler(ValueObject):
     log_activity = t.BooleanType(default=True)
 
 
-class FeatureGroup(ValueObject):
-    name = t.StringType(required=True)
-
-
 class Feature(Entity):
     name = t.StringType(required=True)
+    group_id = t.StringType(required=True)
     description = t.StringType()
     use_role = t.StringType()
-    group = t.ModelType(FeatureGroup)
     request_type_path = t.StringType()
     handlers = t.ListType(t.ModelType(FeatureHandler), default=[])
     log_params = t.DictType(t.StringType(), default={})
 
     @staticmethod
-    def new(name: str, group: FeatureGroup, **kwargs) -> 'Feature':
+    def new(group_id: str, feature_key: str, **kwargs) -> 'Feature':
         '''Initializes a new Feature object.
 
-        :param name: The name of the feature.
-        :type name: str
-        :param group: The group of the feature.
-        :type group: FeatureGroup
+        :param group_id: The group ID of the feature.
+        :type group_id: str
+        :param feature_key: The key of the feature.
+        :type feature_key: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new Feature object.
         '''
 
+        # Feature ID is the group ID and feature key separated by a period.
+        id = f'{group_id}.{feature_key}'
+
         # Create a new Feature object.
         obj = Feature(dict(
-            name=name,
-            group=group,
+            id=id,
+            group_id=group_id,
             **kwargs
         ), strict=False)
 

@@ -51,14 +51,14 @@ class AddNewError(Model):
     message = t.ListType(t.ModelType(ErrorMessage), default=[])
 
 
-class AddNewFeature(ModelObject):
+class AddNewFeature(Model):
 
     name = t.StringType(required=True)
     group_id = t.StringType(required=True)
     feature_key = t.StringType(required=True)
-    handlers = t.ListType(t.ModelType(FeatureHandler), default=[])
+    handlers = t.ListType(t.ModelType(FeatureHandler), default=[], deserialize_from=['handler', 'handlers'])
+    request_type_path = t.StringType()
     description = t.StringType()
-
 
 
 class AddNewObject(ModelObject):

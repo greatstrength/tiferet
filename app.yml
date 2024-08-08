@@ -69,6 +69,11 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.feature
         type: dependency
+      feature_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: data
       flag:
         data:
           yaml:
@@ -103,6 +108,12 @@ container:
           yaml:
             class_name: AddNewError
             module_path: app.commands.error
+        type: dependency
+      add_new_feature:
+        data:
+          yaml:
+            class_name: AddNewFeature
+            module_path: app.commands.feature
         type: dependency
       add_new_object:
         data:
@@ -140,6 +151,17 @@ container:
             module_path: app.repositories.error
         type: dependency
       error_yaml_base_path:
+        data:
+          yaml:
+            value: app.yml
+        type: data
+      feature_repo:
+        data:
+          yaml:
+            class_name: YamlRepository
+            module_path: app.repositories.feature
+        type: dependency
+      feature_yaml_base_path:
         data:
           yaml:
             value: app.yml
@@ -260,13 +282,26 @@ features:
             name: Add New Error
           name: Add New Error
           request_type_path: app.configs.requests.AddNewError
+    feature:
+      features:
+        new:
+          functions:
+          - attribute_id: add_new_feature
+            name: Add New Feature
+          name: Add New Feature
+          request_type_path: app.configs.requests.AddNewFeature
     object:
       features:
         add_attribute:
-          functions:
+          description: Add an attribute to a model object.
+          handlers:
           - attribute_id: add_object_attribute
+            exit_on_error: true
+            log_activity: true
             name: Add Object Attribute
-          name: Add Object Attribute
+            return_to_data: false
+          id: object.add_attribute
+          name: Add New Feature
           request_type_path: app.configs.requests.AddObjectAttribute
         new:
           functions:
@@ -384,7 +419,7 @@ interfaces:
         feature_id: cli.add_command
         group_id: cli
         name: Add CLI Command
-      container.set_attribute:
+      container.add_attribute:
         arguments:
         - help: attribute container id
           name_or_flags:
@@ -397,7 +432,7 @@ interfaces:
           required: true
           type: str
         - choices:
-          - attribute
+          - data
           - dependency
           help: attribute container type
           name_or_flags:
@@ -419,8 +454,8 @@ interfaces:
           type: str
         feature_id: container.add_attribute
         group_id: container
-        help: set container attribute
-        name: Set Container Attribute
+        help: add container attribute
+        name: Add Container Attribute
       error.new:
         arguments:
         - help: error name
@@ -459,9 +494,9 @@ interfaces:
           type: str
         - action: append
           help: feature workflow step handler (parameters separated by '=')
+          input_to_data: true
           name_or_flags:
           - --handler
-          nargs: +
           type: str
         - help: feature request type validator path
           name_or_flags:
