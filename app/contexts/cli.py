@@ -23,7 +23,8 @@ class CliInterfaceContext(AppContext):
     def run(self, **kwargs):
 
         # Retrieve CLI interface.
-        cli_interface: CliInterface = self.cli_interface_repo.get(self.interface)
+        cli_interface: CliInterface = self.cli_interface_repo.get(
+            self.interface)
 
         # Create parser.
         parser = cli_service.create_cli_parser(cli_interface)
@@ -32,7 +33,11 @@ class CliInterfaceContext(AppContext):
         args = parser.parse_args()
 
         # Map arguments to request context.
-        request = cli_service.create_request(args, context=self)
+        request = cli_service.create_request(
+            request=args,
+            cli_interface=cli_interface,
+            context=self
+        )
 
         # Execute feature context and return session.
         session = self.features.execute(request, **kwargs)
@@ -42,14 +47,15 @@ class CliInterfaceContext(AppContext):
             error: Error = self.handle_error(session.error, **request.headers)
             print(error.get_message())
             return
-        
+
         # Map response to primitive.
         response = self.map_response(session.result)
 
         # Handle response.
         self.handle_response(response)
 
+
     def handle_response(self, response: Dict[str, Any]):
-        
+
         # Print response.
         print(response)

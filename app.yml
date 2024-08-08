@@ -202,6 +202,12 @@ errors:
     - lang: en_US
       text: Error with id "{}" already exists
     name: ERROR_ALREADY_EXISTS
+  FEATURE_ALREADY_EXISTS:
+    error_code: FEATURE_ALREADY_EXISTS
+    message:
+    - lang: en_US
+      text: Feature with id "{}" already exists
+    name: FEATURE_ALREADY_EXISTS
   INVALID_CONTAINER_ATTRIBUTE_DATA:
     message:
     - lang: en_US
@@ -229,13 +235,13 @@ features:
         add_argument:
           functions:
           - attribute_id: add_cli_argument
-            name: Add CLI Argument Handler
+            name: Add CLI Argument
           name: Add CLI Argument
           request_type_path: app.configs.requests.AddCliArgument
         add_command:
           functions:
           - attribute_id: add_cli_command
-            name: Add CLI Command Handler
+            name: Add CLI Command
           name: Add CLI Command
           request_type_path: app.configs.requests.AddCliCommand
     container:
@@ -243,7 +249,7 @@ features:
         add_attribute:
           functions:
           - attribute_id: add_container_attribute
-            name: Add Container Attribute Handler
+            name: Add Container Attribute
           name: Add Container Attribute
           request_type_path: app.configs.requests.AddContainerAttribute
     error:
@@ -251,7 +257,7 @@ features:
         new:
           functions:
           - attribute_id: add_new_error
-            name: Add New Error Handler
+            name: Add New Error
           name: Add New Error
           request_type_path: app.configs.requests.AddNewError
     object:
@@ -259,13 +265,13 @@ features:
         add_attribute:
           functions:
           - attribute_id: add_object_attribute
-            name: Add Object Attribute Handler
+            name: Add Object Attribute
           name: Add Object Attribute
           request_type_path: app.configs.requests.AddObjectAttribute
         new:
           functions:
           - attribute_id: add_new_object
-            name: Add New Object Handler
+            name: Add New Object
           name: Add New Object
           request_type_path: app.configs.requests.AddNewObject
 interfaces:
@@ -421,17 +427,54 @@ interfaces:
           name_or_flags:
           - name
           type: str
-        - help: error message by lang (separated by '=')
+        - action: append
+          help: error message by lang (separated by '=')
+          input_to_data: true
           name_or_flags:
           - --message
           - -m
-          nargs: +
           required: true
           type: str
         feature_id: error.new
         group_id: error
         help: add new error
         name: Add New Error
+      feature.new:
+        arguments:
+        - help: feature name
+          name_or_flags:
+          - name
+          type: str
+        - help: feature group id
+          name_or_flags:
+          - --group-id
+          - -g
+          required: true
+          type: str
+        - help: feature id key
+          name_or_flags:
+          - --feature-key
+          - -f
+          required: true
+          type: str
+        - action: append
+          help: feature workflow step handler (parameters separated by '=')
+          name_or_flags:
+          - --handler
+          nargs: +
+          type: str
+        - help: feature request type validator path
+          name_or_flags:
+          - --request-type-path
+          type: str
+        - help: feature description
+          name_or_flags:
+          - --description
+          type: str
+        feature_id: feature.new
+        group_id: feature
+        help: add new feature
+        name: Add New Feature
       object.add_attribute:
         arguments:
         - help: object attribute name

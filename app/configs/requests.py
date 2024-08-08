@@ -8,6 +8,8 @@ from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.container import ContainerAttribute
+from ..objects.error import ErrorMessage
+from ..objects.feature import FeatureHandler
 
 
 class AddCliCommand(Model):
@@ -46,7 +48,17 @@ class AddContainerAttribute(ContainerAttribute):
 class AddNewError(Model):
 
     name = t.StringType(required=True)
-    message = t.ListType(t.StringType(), default=[])
+    message = t.ListType(t.ModelType(ErrorMessage), default=[])
+
+
+class AddNewFeature(ModelObject):
+
+    name = t.StringType(required=True)
+    group_id = t.StringType(required=True)
+    feature_key = t.StringType(required=True)
+    handlers = t.ListType(t.ModelType(FeatureHandler), default=[])
+    description = t.StringType()
+
 
 
 class AddNewObject(ModelObject):

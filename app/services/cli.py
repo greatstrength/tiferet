@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 import argparse
 
 from ..contexts.request import RequestContext
@@ -14,7 +15,7 @@ def create_argument_data(cli_argument: CliArgument):
         data_type = int
     elif cli_argument.type == 'float':
         data_type = float
-    
+
     for name in cli_argument.name_or_flags:
         # Exclude flags that are named parameters.
         if not name.startswith('--'):
@@ -33,7 +34,8 @@ def create_headers(data: dict):
         group_id=data.pop('group'),
         command_id=data.pop('command'),
     )
-    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}".replace('-', '_')
+    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}".replace(
+        '-', '_')
     return headers
 
 
@@ -72,7 +74,7 @@ def create_cli_parser(cli_interface: CliInterface):
     return parser
 
 
-def create_request(request: argparse.Namespace, **kwargs) -> RequestContext:
+def create_request(request: argparse.Namespace, cli_interface: CliInterface, **kwargs) -> RequestContext:
 
     # Convert argparse.Namespace to dictionary.
     data = vars(request)
@@ -80,5 +82,75 @@ def create_request(request: argparse.Namespace, **kwargs) -> RequestContext:
     # Create header values.
     headers = create_headers(data)
 
+    # Get the command from the CLI interface.
+    command = cli_interface.get_command(**headers)
+
+    # Create map of arguments to their data attribute names.
+    argument_map = {arg.get_name(): arg for arg in command.arguments}
+
+    # Map the data to the request context.
+    for key, value in data.items():
+        if value is None:
+            continue
+        argument = argument_map.get(key)
+        data[key] = map_object_input(value, argument)
+
     # Create request context.
     return RequestContext(data=data, headers=headers, **headers, **kwargs)
+
+
+def map_object_input(data: Any, argument: CliArgument):
+
+    # If the argument is not input to data,
+    if not argument.input_to_data:
+
+        # Return the data.
+        return data
+
+    # If the argument is a dictionary,
+    if argument.nargs:
+
+        # If the argument is a list, split the data by the delimiter.
+        result = {}
+
+        # For each item in the data, split the item into key and value.
+        for item in data:
+
+            # Split the item into key and value.
+            key, value = item.split('=')
+
+            # Add the key and value to the result.
+            result[key] = value
+
+        # Return result.
+        return result
+
+    # If the argument is an object list,
+    if argument.action == 'append':
+
+        # Create a list to store the result.
+        result = []
+
+        # For each row object in the data,
+        for row in data:
+
+            # Create an object to store the key value pairs.
+            obj = {}
+
+            # Split the row by the delimiter.
+            items = row.split(';')
+
+            # For each item in the row,
+            for item in items:
+
+                # Split the item into key and value.
+                key, value = item.split('=')
+
+                # Add the key and value to the object.
+                obj[key] = value
+
+            # Add the object to the result.
+            result.append(obj)
+
+        # Return result.
+        return result

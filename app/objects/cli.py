@@ -5,7 +5,6 @@ from schematics import types as t
 from . import object as obj
 
 
-
 CLI_ARGUMENT_TYPE_COMMAND = 'command'
 CLI_ARGUMENT_TYPE_PARENT_ARGUMENT = 'parent_argument'
 CLI_ARGUMENT_TYPES = [
@@ -53,18 +52,13 @@ class CliArgument(obj.ValueObject):
     nargs = t.StringType()
     choices = t.ListType(t.StringType)
     action = t.StringType()
+    input_to_data = t.BooleanType(default=False)
 
     @staticmethod
     def new(name: str,
-            help: str,
-            type: str = CLI_ARGUMENT_DATA_TYPE_DEFAULT,
             flags: List[str] = [],
             required: bool = False,
-            default: str = None,
             positional: bool = False,
-            choices: List[str] = None,
-            nargs: str = None,
-            action: str = None,
             **kwargs
             ):
         '''
@@ -72,32 +66,24 @@ class CliArgument(obj.ValueObject):
 
         :param name: The name of the CLI argument.
         :type name: str
-        :param help: The help text for the CLI argument.
-        :type help: str
-        :param type: The data type of the CLI argument.
-        :type type: str
         :param flags: The optional flags for the CLI argument.
         :type flags: list
         :param required: True if the CLI argument is required.
         :type required: bool
-        :param default: The default value for the CLI argument.
-        :type default: str
         :param positional: True if the CLI argument is positional.
         :type positional: bool
-        :param choices: The choices for the CLI argument value.
-        :type choices: list
-        :param nargs: The number of allowed values for the CLI argument.
-        :type nargs: str
-        :param action: The unique action for the CLI argument.
-        :type action: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new CliArgument object.
         '''
 
         # Create a new CliArgument object.
-        argument = CliArgument()
+        argument = CliArgument(dict(
+            **kwargs
+        ))
 
         # Format name.
-        name = name.lower().replace('_', '-').replace(' ', '-')
+        argument.name = name.lower().replace('_', '-').replace(' ', '-')
 
         # If the argument is positional, add the name to the name_or_flags list.
         if positional:
@@ -111,7 +97,7 @@ class CliArgument(obj.ValueObject):
 
             # Set the flags to an empty list if it is None.
             flags = flags if flags is not None else []
-            
+
             # Loop through the flags and add them to the name_or_flags list.
             for flag in flags:
                 argument.name_or_flags.append(
@@ -121,20 +107,24 @@ class CliArgument(obj.ValueObject):
         if positional or required == False:
             required = None
 
-        # Set argument properties
-        argument.help = help
-        argument.type = type
-        argument.default = default
+        # Set the required parameter.
         argument.required = required
-        argument.nargs = nargs
-        argument.choices = choices
-        argument.action = action
 
         # Return argument
         return argument
 
     def exclude(self, *args):
-        return {k: v for k, v in self.to_primitive().items() if k not in args}
+        return {k: v for k, v in self.to_primitive().items() if k not in args and k not in ['input_to_data']}
+    
+    def get_name(self):
+        for name in self.name_or_flags:
+            if name.startswith('--'):
+                return name.replace('--', '').replace('-', '_')
+            elif name.startswith('-') and len(name) == 2:
+                continue
+            else:
+                return name
+        return None
 
 
 class CliCommand(obj.Entity):
@@ -187,7 +177,7 @@ class CliInterface(obj.Entity):
         # Add the command to the list of commands.
         self.commands.append(command)
 
-    def get_command(self, feature_id: str) -> CliCommand:
+    def get_command(self, feature_id: str, **kwargs) -> CliCommand:
         return next((command for command in self.commands if command.feature_id == feature_id), None)
 
     def has_parent_argument(self, flags: List[str]) -> bool:
@@ -204,7 +194,7 @@ class CliInterface(obj.Entity):
         self.parent_arguments.append(argument)
 
     def set_argument(self, argument: CliArgument, arg_type: str, feature_id: str = None) -> None:
-        
+
         # If the argument is a command...
         if arg_type == CLI_ARGUMENT_TYPE_COMMAND:
 
@@ -218,16 +208,18 @@ class CliInterface(obj.Entity):
             assert command is not None, 'CLI_COMMAND_NOT_FOUND'
 
             # Assert that the argument does not already exist.
-            assert not command.argument_exists(argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
+            assert not command.argument_exists(
+                argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
 
             # Add the argument to the command.
             command.add_argument(argument)
-        
+
         # If the argument is a parent argument...
         elif arg_type == CLI_ARGUMENT_TYPE_PARENT_ARGUMENT:
 
             # Assert that the argument does not already exist.
-            assert not self.has_parent_argument(argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
+            assert not self.has_parent_argument(
+                argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
 
             # Add the argument to the parent arguments.
             self.add_parent_argument(argument)

@@ -1,6 +1,5 @@
 from ..objects.error import Error
 from ..repositories.error import ErrorRepository
-from ..services import error as error_service
 
 class AddNewError(object):
 
@@ -10,7 +9,7 @@ class AddNewError(object):
     def execute(self, **kwargs) -> Error:
 
         # Create a new error.
-        error = error_service.create_error(**kwargs)
+        error: Error = Error.new(**kwargs)
 
         # Assert that the error does not already exist.
         assert not self.error_repo.exists(error.id), f'ERROR_ALREADY_EXISTS: {error.id}'
