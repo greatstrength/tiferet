@@ -4,11 +4,30 @@ from ..repositories.object import ObjectRepository
 from ..services import object as object_service
 
 class AddNewObject(object):
+    '''
+    Command to add a new object.
+    '''
 
     def __init__(self, object_repo: ObjectRepository):
+        '''
+        Initialize the command to add a new object.
+
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        '''
+
+        # Set the object repository.
         self.object_repo = object_repo
 
     def execute(self, **kwargs) -> ModelObject:
+        '''
+        Execute the command to add a new object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: dict
+        :return: The new object.
+        :rtype: ModelObject
+        '''
 
         # Create a new object.
         _object = ModelObject.new(**kwargs)
@@ -36,11 +55,32 @@ class AddNewObject(object):
     
 
 class AddObjectAttribute(object):
+    '''
+    Command to add a new object attribute.
+    '''
 
     def __init__(self, object_repo: ObjectRepository):
+        '''
+        Initialize the command to add a new object attribute.
+        
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        '''
+
+        # Set the object repository.
         self.object_repo = object_repo
 
     def execute(self, object_id: str, **kwargs) -> ModelObject:
+        '''
+        Execute the command to add a new object attribute.
+
+        :param object_id: The object ID.
+        :type object_id: str
+        :param kwargs: The keyword arguments.
+        :type kwargs: dict
+        :return: The object.
+        :rtype: ModelObject
+        '''
 
         # Get the object.
         _object = self.object_repo.get(object_id)
@@ -57,8 +97,8 @@ class AddObjectAttribute(object):
         # Add the attribute to the object.
         _object.add_attribute(attribute)
 
-        # Save the object attribute.
-        self.object_repo.save(attribute)
+        # Save the object.
+        self.object_repo.save(_object)
 
         # Return the object.
         return _object

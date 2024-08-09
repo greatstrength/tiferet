@@ -49,11 +49,30 @@ class ModelObjectData(ModelObject, ModelData):
         # Create a new ModelObjectData object.
         return ModelObjectData(kwargs, strict=False)
 
-    def map(self, role: str = 'to_object.yaml', **kwargs) -> ModelObject:
-        '''Maps the model object data to a model object.
+    @staticmethod
+    def from_yaml_data(id: str, **kwargs) -> 'ModelObjectData':
+        '''Initializes a new ModelObjectData object from YAML data.
         
         :param id: The unique identifier for the model object.
         :type id: str
+        :return: A new ModelObjectData object.
+        '''
+
+        # Create a new ModelObjectData object.
+        _data = ModelObjectData(dict(
+            id=id,
+            **kwargs
+        ), strict=False)
+
+        # Validate the new ModelObjectData object.
+        _data.validate()
+
+        # Return the new ModelObjectData object.
+        return _data
+
+    def map(self, role: str = 'to_object.yaml', **kwargs) -> ModelObject:
+        '''Maps the model object data to a model object.
+        
         :param role: The role for the mapping.
         :type role: str
         :return: A new model object
