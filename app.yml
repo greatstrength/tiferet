@@ -757,6 +757,72 @@ objects:
     group_id: object
     name: Model Object
     type: entity
+  object_attribute:
+    attributes:
+    - description: The object attribute name.
+      name: name
+      required: true
+      type: str
+    - description: The object attribute description.
+      name: description
+      required: true
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - bool
+      - date
+      - datetime
+      - list
+      - dict
+      - model
+      - poly
+      description: The object attribute data type.
+      name: type
+      required: true
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - bool
+      - date
+      - datetime
+      - model
+      description: The object attribute inner data type if the base type is a list
+        or dict.
+      name: inner_type
+      type: str
+    - description: The ID of the object if the object attribute has a model type or
+        inner type.
+      name: type_object_id
+      type: str
+    - description: The list of object IDs if the object attribute has a poly type.
+      inner_type: str
+      name: poly_type_object_ids
+      type: list
+    - description: True if a value for the object attribute is required.
+      name: required
+      type: bool
+    - description: The set of valid object attribute values.
+      inner_type: str
+      name: choices
+      type: list
+    - description: The type-specific settings for an object attribite.
+      name: type_settings
+      poly_type_object_ids:
+      - string_settings
+      - date_settings
+      - date_time_settings
+      - list_settings
+      - dict_settings
+      type: poly
+    class_name: ObjectAttribute
+    description: A model object attribute.
+    group_id: object
+    name: Object Attribute
+    type: value_object
   object_type_settings:
     class_name: ObjectTypeSettings
     description: Type-specific settings for an object attribute.

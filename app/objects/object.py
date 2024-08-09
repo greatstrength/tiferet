@@ -230,7 +230,7 @@ class DictSettings(ObjectTypeSettings):
 
 class ObjectAttribute(ValueObject):
     '''
-    An attribute of a model object.
+    A model object attribute.
     '''
 
     name = t.StringType(required=True)
@@ -239,7 +239,7 @@ class ObjectAttribute(ValueObject):
     inner_type = t.StringType(choices=ATTRIBUTE_INNER_TYPES)
     type_object_id = t.StringType()
     poly_type_object_ids = t.ListType(t.StringType(), default=[])
-    required = t.BooleanType(default=False)
+    required = t.BooleanType()
     default = t.StringType()
     choices = t.ListType(t.StringType(), default=[])
     type_settings = t.PolyModelType(
@@ -250,6 +250,8 @@ class ObjectAttribute(ValueObject):
         '''
         Initializes a new ObjectAttribute object.
 
+        :param name: The name of the object attribute.
+        :type name: str
         :return: A new ObjectAttribute object.
         '''
 
