@@ -10,9 +10,16 @@ class ObjectRepository(object):
     Object repository interface.
     '''
 
-    def exists(self, id: str, class_name: str) -> bool:
+    def exists(self, id: str = None, class_name: str = None) -> bool:
         '''
         Verifies if the object exists by Object ID or class name.
+
+        :param id: The object id.
+        :type id: str
+        :param class_name: The object class name.
+        :type class_name: str
+        :return: Whether the object exists.
+        :rtype: bool
         '''
 
         raise NotImplementedError()
@@ -67,7 +74,7 @@ class YamlRepository(ObjectRepository):
         # Set the base path.
         self.base_path = object_yaml_base_path
 
-    def exists(self, id: str, class_name: str) -> bool:
+    def exists(self, id: str = None, class_name: str = None) -> bool:
         '''
         Verifies if the object exists within the yaml file by Object ID or class name.
         

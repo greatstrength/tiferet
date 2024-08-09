@@ -303,7 +303,6 @@ features:
           handlers:
           - attribute_id: add_object_attribute
             name: Add Object Attribute
-          id: object.add_attribute
           name: Add New Feature
           request_type_path: app.configs.requests.AddObjectAttribute
         new:
@@ -586,6 +585,7 @@ interfaces:
         - help: set of valid object attribute values
           name_or_flags:
           - --choices
+          nargs: +
           type: str
         - help: object attribute type settings (separated by '=')
           name_or_flags:
@@ -717,6 +717,41 @@ objects:
     name: Model Attribute
     type: value_object
   model_object:
+    attributes:
+    - description: The object attribute name.
+      name: name
+      required: true
+      type: str
+    - description: The ID of the parent model object.
+      name: group_id
+      required: true
+      type: str
+    - choices:
+      - entity
+      - value_object
+      default: entity
+      description: The model object type.
+      name: type
+      required: false
+      type: str
+    - description: The model object class name.
+      name: class_name
+      required: true
+      type: str
+    - description: The model object description.
+      name: description
+      required: true
+      type: str
+    - description: The model object base type object ID.
+      name: base_type_id
+      required: false
+      type: str
+    - default: '[]'
+      description: The model object attributes.
+      inner_type: model
+      name: attributes
+      type: list
+      type_object_id: model_attribute
     class_name: ModelObject
     description: A domain model component defined as a class object.
     group_id: object

@@ -45,88 +45,6 @@ class ValueObject(Model):
     pass
 
 
-class ModelObject(Entity):
-    '''
-    A domain model component defined as a class object.
-    '''
-
-    name = t.StringType(required=True)
-    group_id = t.StringType(required=True)
-    type = t.StringType(choices=OBJECT_TYPES, default=OBJECT_TYPE_DEFAULT)
-    class_name = t.StringType(required=True)
-    description = t.StringType(required=True)
-    base_type_id = t.StringType()
-    attributes = t.ListType(t.ModelType('ObjectAttribute'), default=[])
-
-    @staticmethod
-    def new(name: str, id: str = None, class_name: str = None, **kwargs) -> 'ModelObject':
-        '''
-        Initializes a new ModelObject object.
-
-        :param name: The name of the model object.
-        :type name: str
-        :param id: The unique identifier for the model object.
-        :type id: str
-        :param class_name: The printed class name for the model object.
-        :type class_name: str
-        :return: A new ModelObject object.
-        '''
-
-        # Set the class name as the Pascal case of the name if not provided.
-        if not class_name:
-            class_name = name.title().replace(' ', '')
-
-        # Set the unique identifier as the snake case of the class name if not provided.
-        if not id:
-            id = name.lower().replace(' ', '_')
-
-        # Create a new ModelObject object.
-        obj = ModelObject(dict(
-            id=id,
-            name=name,
-            class_name=class_name,
-            **kwargs
-        ), strict=False)
-
-        # Validate the new ModelObject object.
-        obj.validate()
-
-        # Return the new ModelObject object.
-        return obj
-
-    def attribute_exists(self, name: str) -> bool:
-        '''
-        Returns True if the attribute exists in the model object.
-
-        :param name: The name of the attribute.
-        :type name: str
-        :return: True if the attribute exists in the model object.
-        :rtype: bool
-        '''
-
-        # Format the attribute name.
-        attribute_name = name.lower().replace(' ', '_')
-
-        # Return True if the attribute exists in the model object.
-        return any([attribute.name == attribute_name for attribute in self.attributes])
-
-    def add_attribute(self, attribute: 'ObjectAttribute', **kwargs):
-        '''
-        Adds an attribute to the model object.
-
-        :param attribute: The attribute to add to the model object.
-        :type attribute: ObjectAttribute
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        '''
-
-        # Add the attribute to the model object.
-        self.attributes.append(attribute)
-
-
-
-
-
 class ObjectTypeSettings(ValueObject):
     '''
     Type-specific settings for an object attribute.
@@ -308,7 +226,7 @@ class DictSettings(ObjectTypeSettings):
 
         # Return the new DictSettings object.
         return obj
-    
+
 
 class ObjectAttribute(ValueObject):
     '''
@@ -324,18 +242,23 @@ class ObjectAttribute(ValueObject):
     required = t.BooleanType(default=False)
     default = t.StringType()
     choices = t.ListType(t.StringType(), default=[])
-    type_settings = t.PolyModelType([StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
+    type_settings = t.PolyModelType(
+        [StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
 
     @staticmethod
-    def new(**kwargs) -> 'ObjectAttribute':
+    def new(name: str, **kwargs) -> 'ObjectAttribute':
         '''
         Initializes a new ObjectAttribute object.
 
         :return: A new ObjectAttribute object.
         '''
 
+        # Set the name as the snake case of the name by default.
+        name = name.lower().replace(' ', '_')
+
         # Create a new ModelAttribute object.
         obj = ObjectAttribute(dict(
+            name=name,
             **kwargs
         ), strict=False)
 
@@ -344,3 +267,82 @@ class ObjectAttribute(ValueObject):
 
         # Return the new ModelAttribute object.
         return obj
+
+
+class ModelObject(Entity):
+    '''
+    A domain model component defined as a class object.
+    '''
+
+    name = t.StringType(required=True)
+    group_id = t.StringType(required=True)
+    type = t.StringType(choices=OBJECT_TYPES, default=OBJECT_TYPE_DEFAULT)
+    class_name = t.StringType(required=True)
+    description = t.StringType(required=True)
+    base_type_id = t.StringType()
+    attributes = t.ListType(t.ModelType(ObjectAttribute), default=[])
+
+    @staticmethod
+    def new(name: str, id: str = None, class_name: str = None, **kwargs) -> 'ModelObject':
+        '''
+        Initializes a new ModelObject object.
+
+        :param name: The name of the model object.
+        :type name: str
+        :param id: The unique identifier for the model object.
+        :type id: str
+        :param class_name: The printed class name for the model object.
+        :type class_name: str
+        :return: A new ModelObject object.
+        '''
+
+        # Set the class name as the Pascal case of the name if not provided.
+        if not class_name:
+            class_name = name.title().replace(' ', '')
+
+        # Set the unique identifier as the snake case of the class name if not provided.
+        if not id:
+            id = name.lower().replace(' ', '_')
+
+        # Create a new ModelObject object.
+        obj = ModelObject(dict(
+            id=id,
+            name=name,
+            class_name=class_name,
+            **kwargs
+        ), strict=False)
+
+        # Validate the new ModelObject object.
+        obj.validate()
+
+        # Return the new ModelObject object.
+        return obj
+
+    def attribute_exists(self, name: str) -> bool:
+        '''
+        Returns True if the attribute exists in the model object.
+
+        :param name: The name of the attribute.
+        :type name: str
+        :return: True if the attribute exists in the model object.
+        :rtype: bool
+        '''
+
+        # Format the attribute name.
+        attribute_name = name.lower().replace(' ', '_')
+
+        # Return True if the attribute exists in the model object.
+        return any([attribute.name == attribute_name for attribute in self.attributes])
+
+    def add_attribute(self, attribute: 'ObjectAttribute', **kwargs):
+        '''
+        Adds an attribute to the model object.
+
+        :param attribute: The attribute to add to the model object.
+        :type attribute: ObjectAttribute
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Add the attribute to the model object.
+        self.attributes.append(attribute)
