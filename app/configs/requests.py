@@ -36,6 +36,7 @@ class AddCliArgument(Model):
     choices = t.ListType(t.StringType(), default=[])
     nargs = t.StringType()
     action = t.StringType()
+    to_data = t.BooleanType()
 
 
 class AddContainerAttribute(ContainerAttribute):

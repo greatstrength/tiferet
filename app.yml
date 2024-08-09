@@ -388,6 +388,11 @@ interfaces:
           name_or_flags:
           - --nargs
           type: str
+        - action: store_true
+          help: convert argument value to object or object list
+          name_or_flags:
+          - --to-data
+          type: str
         feature_id: cli.add_argument
         group_id: cli
         name: Add CLI Argument
@@ -467,11 +472,11 @@ interfaces:
           type: str
         - action: append
           help: error message by lang (separated by '=')
-          input_to_data: true
           name_or_flags:
           - --message
           - -m
           required: true
+          to_data: true
           type: str
         feature_id: error.new
         group_id: error
@@ -497,9 +502,9 @@ interfaces:
           type: str
         - action: append
           help: feature workflow step handler (parameters separated by '=')
-          input_to_data: true
           name_or_flags:
           - --handler
+          to_data: true
           type: str
         - help: feature request type validator path
           name_or_flags:

@@ -7,8 +7,17 @@ from ..objects.cli import CliArgument
 
 
 def create_argument_data(cli_argument: CliArgument):
+
+    # List fields to be excluded.
+    exclude_fields = ['name_or_flags', 'arg_type', 'to_data']
+
+    # Exclude unneeded fields if the argument contains an action.
     if cli_argument.action:
-        return cli_argument.exclude('name_or_flags', 'type', 'nargs', 'choices')
+        exclude_fields.append('nargs')
+        exclude_fields.append('type')
+        exclude_fields.append('choices')
+
+    # Set the data type for the argument.
     if cli_argument.type == 'str':
         data_type = str
     elif cli_argument.type == 'int':
@@ -16,17 +25,32 @@ def create_argument_data(cli_argument: CliArgument):
     elif cli_argument.type == 'float':
         data_type = float
 
+    # For each name or flag in the argument,
     for name in cli_argument.name_or_flags:
-        # Exclude flags that are named parameters.
+
+        # If the name or flag is a positional argument,
         if not name.startswith('--'):
-            return dict(
-                **cli_argument.exclude('name_or_flags', 'required', 'type'),
-                type=data_type
-            )
-    return dict(
-        **cli_argument.exclude('name_or_flags', 'arg_type', 'type'),
-        type=data_type
-    )
+
+            # Remove the required field.
+            exclude_fields.append('required')
+
+    # Assemble the argument data.
+    argument_data = cli_argument.to_primitive()
+
+    # Set the data type.
+    argument_data['type'] = data_type
+
+    # For each field in the excluded fields,
+    for field in exclude_fields:
+
+        # Remove the field from the argument data if it is present.
+        try:
+            del argument_data[field]
+        except KeyError:
+            pass
+
+    # Return the argument data.
+    return argument_data
 
 
 def create_headers(data: dict):
@@ -102,7 +126,7 @@ def create_request(request: argparse.Namespace, cli_interface: CliInterface, **k
 def map_object_input(data: Any, argument: CliArgument):
 
     # If the argument is not input to data,
-    if not argument.input_to_data:
+    if not argument.to_data:
 
         # Return the data.
         return data

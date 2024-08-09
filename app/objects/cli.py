@@ -52,7 +52,7 @@ class CliArgument(obj.ValueObject):
     nargs = t.StringType()
     choices = t.ListType(t.StringType)
     action = t.StringType()
-    input_to_data = t.BooleanType(default=False)
+    to_data = t.BooleanType()
 
     @staticmethod
     def new(name: str,
@@ -80,10 +80,10 @@ class CliArgument(obj.ValueObject):
         # Create a new CliArgument object.
         argument = CliArgument(dict(
             **kwargs
-        ))
+        ), strict=False)
 
         # Format name.
-        argument.name = name.lower().replace('_', '-').replace(' ', '-')
+        name = name.lower().replace('_', '-').replace(' ', '-')
 
         # If the argument is positional, add the name to the name_or_flags list.
         if positional:
@@ -113,9 +113,6 @@ class CliArgument(obj.ValueObject):
         # Return argument
         return argument
 
-    def exclude(self, *args):
-        return {k: v for k, v in self.to_primitive().items() if k not in args and k not in ['input_to_data']}
-    
     def get_name(self):
         for name in self.name_or_flags:
             if name.startswith('--'):
