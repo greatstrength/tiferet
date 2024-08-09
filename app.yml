@@ -245,6 +245,12 @@ errors:
     - lang: en_US
       text: Object with class name "{}" already exists
     name: OBJECT_ALREADY_EXISTS
+  OBJECT_ATTRIBUTE_ALREADY_EXISTS:
+    error_code: OBJECT_ATTRIBUTE_ALREADY_EXISTS
+    message:
+    - lang: en_US
+      text: Object attribute with name "{}" already exists
+    name: OBJECT_ATTRIBUTE_ALREADY_EXISTS
   OBJECT_NOT_FOUND:
     message:
     - lang: en_US
@@ -296,10 +302,7 @@ features:
           description: Add an attribute to a model object.
           handlers:
           - attribute_id: add_object_attribute
-            exit_on_error: true
-            log_activity: true
             name: Add Object Attribute
-            return_to_data: false
           id: object.add_attribute
           name: Add New Feature
           request_type_path: app.configs.requests.AddObjectAttribute

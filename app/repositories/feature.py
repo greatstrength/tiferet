@@ -96,7 +96,7 @@ class YamlRepository(FeatureRepository):
         _data: FeatureData = yaml_client.load(
             self.base_path,
             create_data=lambda data: FeatureData.from_yaml_data(
-                id=id, group_id=group_id, **data),
+                group_id=group_id, **data),
             start_node=lambda data: data.get('features').get(
                 'groups').get(group_id).get('features').get(feature_key)
         )

@@ -6,6 +6,23 @@ from schematics.transforms import wholelist, whitelist, blacklist
 from ..objects.data import ModelData
 from ..objects.data import DefaultOptions
 from ..objects.object import ModelObject
+from ..objects.object import ObjectAttribute
+
+
+class ObjectAttributeData(ObjectAttribute, ModelData):
+    '''
+    A data representation of an object attribute.
+    '''
+
+    class Options(DefaultOptions):
+        '''
+        The options for the object attribute data.
+        '''
+
+        roles = {
+            'to_object.yaml': wholelist(),
+            'to_data.yaml': wholelist()
+        }
 
 
 class ModelObjectData(ModelObject, ModelData):
@@ -20,6 +37,7 @@ class ModelObjectData(ModelObject, ModelData):
         }
 
     id = t.StringType()
+    attributes = t.ListType(t.ModelType(ObjectAttributeData), default=[])
 
     @staticmethod
     def new(**kwargs):
@@ -29,7 +47,7 @@ class ModelObjectData(ModelObject, ModelData):
         '''
 
         # Create a new ModelObjectData object.
-        return ModelObjectData(kwargs)
+        return ModelObjectData(kwargs, strict=False)
 
     def map(self, role: str = 'to_object.yaml', **kwargs) -> ModelObject:
         '''Maps the model object data to a model object.

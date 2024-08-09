@@ -56,9 +56,10 @@ class ModelObject(Entity):
     class_name = t.StringType(required=True)
     description = t.StringType(required=True)
     base_type_id = t.StringType()
+    attributes = t.ListType(t.ModelType('ObjectAttribute'), default=[])
 
     @staticmethod
-    def new(name: str, id: str = None, class_name: str = None, **kwargs):
+    def new(name: str, id: str = None, class_name: str = None, **kwargs) -> 'ModelObject':
         '''
         Initializes a new ModelObject object.
 
@@ -93,41 +94,37 @@ class ModelObject(Entity):
         # Return the new ModelObject object.
         return obj
 
-
-class ObjectAttribute(ValueObject):
-    '''
-    An attribute of a model object.
-    '''
-
-    name = t.StringType(required=True)
-    description = t.StringType(required=True)
-    type = t.StringType(required=True, choices=ATTRIBUTE_TYPES)
-    inner_type = t.StringType(choices=ATTRIBUTE_INNER_TYPES)
-    type_object_id = t.StringType()
-    poly_type_object_ids = t.ListType(t.StringType(), default=[])
-    required = t.BooleanType(default=False)
-    default = t.StringType()
-    choices = t.ListType(t.StringType(), default=[])
-    # type_settings = t.PolyModelType([StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
-
-    @staticmethod
-    def new(**kwargs) -> 'ObjectAttribute':
+    def attribute_exists(self, name: str) -> bool:
         '''
-        Initializes a new ObjectAttribute object.
+        Returns True if the attribute exists in the model object.
 
-        :return: A new ObjectAttribute object.
+        :param name: The name of the attribute.
+        :type name: str
+        :return: True if the attribute exists in the model object.
+        :rtype: bool
         '''
 
-        # Create a new ModelAttribute object.
-        obj = ObjectAttribute(dict(
-            **kwargs
-        ), strict=False)
+        # Format the attribute name.
+        attribute_name = name.lower().replace(' ', '_')
 
-        # Validate the new ModelAttribute object.
-        obj.validate()
+        # Return True if the attribute exists in the model object.
+        return any([attribute.name == attribute_name for attribute in self.attributes])
 
-        # Return the new ModelAttribute object.
-        return obj
+    def add_attribute(self, attribute: 'ObjectAttribute', **kwargs):
+        '''
+        Adds an attribute to the model object.
+
+        :param attribute: The attribute to add to the model object.
+        :type attribute: ObjectAttribute
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Add the attribute to the model object.
+        self.attributes.append(attribute)
+
+
+
 
 
 class ObjectTypeSettings(ValueObject):
@@ -310,4 +307,40 @@ class DictSettings(ObjectTypeSettings):
         obj.validate()
 
         # Return the new DictSettings object.
+        return obj
+    
+
+class ObjectAttribute(ValueObject):
+    '''
+    An attribute of a model object.
+    '''
+
+    name = t.StringType(required=True)
+    description = t.StringType(required=True)
+    type = t.StringType(required=True, choices=ATTRIBUTE_TYPES)
+    inner_type = t.StringType(choices=ATTRIBUTE_INNER_TYPES)
+    type_object_id = t.StringType()
+    poly_type_object_ids = t.ListType(t.StringType(), default=[])
+    required = t.BooleanType(default=False)
+    default = t.StringType()
+    choices = t.ListType(t.StringType(), default=[])
+    type_settings = t.PolyModelType([StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
+
+    @staticmethod
+    def new(**kwargs) -> 'ObjectAttribute':
+        '''
+        Initializes a new ObjectAttribute object.
+
+        :return: A new ObjectAttribute object.
+        '''
+
+        # Create a new ModelAttribute object.
+        obj = ObjectAttribute(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate the new ModelAttribute object.
+        obj.validate()
+
+        # Return the new ModelAttribute object.
         return obj

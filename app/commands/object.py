@@ -1,6 +1,7 @@
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..repositories.object import ObjectRepository
+from ..services import object as object_service
 
 class AddNewObject(object):
 
@@ -51,7 +52,10 @@ class AddObjectAttribute(object):
         attribute = ObjectAttribute.new(object_id=object_id, **kwargs)
 
         # Add the attribute to the object.
-        _object.attributes.append(attribute)
+        object_service.validate_attribute(self.object_repo, attribute)
+
+        # Add the attribute to the object.
+        _object.add_attribute(attribute)
 
         # Save the object attribute.
         self.object_repo.save(attribute)
