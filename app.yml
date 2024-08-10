@@ -723,12 +723,30 @@ objects:
     name: CLI Interface
     type: entity
   container_attribute:
+    attributes:
+    - choices:
+      - data
+      - dependency
+      description: The type of container attribute.
+      name: type
+      required: true
+      type: str
     class_name: ContainerAttribute
     description: A container attribute object.
     group_id: container
     name: Container Attribute
     type: entity
   data_attribute:
+    attributes:
+    - default: data
+      description: The type of container attribute (defaults to data).
+      name: type
+      type: str
+    - description: The data for a data attribute.
+      name: data
+      required: true
+      type: model
+      type_object_id: data_value
     base_type_id: container_attribute
     class_name: DataAttribute
     description: A container attribute object for a data-type values.
@@ -736,6 +754,11 @@ objects:
     name: Data Attribute
     type: entity
   data_value:
+    attributes:
+    - description: The value for the data attribute.
+      name: value
+      required: true
+      type: str
     class_name: DataValue
     description: A container attribute data value object.
     group_id: container
@@ -783,6 +806,16 @@ objects:
     name: Date Time Settings
     type: value_object
   dependency_attribute:
+    attributes:
+    - default: dependency
+      description: The type of container attribute (defaults to dependency).
+      name: type
+      type: str
+    - description: The data for a dependency attribute.
+      name: data
+      required: true
+      type: model
+      type_object_id: dependency_value
     base_type_id: container_attribute
     class_name: DependencyAttribute
     description: A container attribute object for a dependency-type values.
@@ -790,6 +823,15 @@ objects:
     name: Dependency Attribute
     type: entity
   dependency_value:
+    attributes:
+    - description: The module path for a dependency attribute.
+      name: module_path
+      required: true
+      type: str
+    - description: The class name for the dependency attribute.
+      name: class_name
+      required: true
+      type: str
     class_name: DependencyValue
     description: A container attribute dependency value object.
     group_id: container
