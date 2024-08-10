@@ -106,15 +106,15 @@ class DateSettings(ObjectTypeSettings):
     Type-specific settings for a date object attribute.
     '''
 
-    format = t.StringType()
+    formats = t.StringType()
 
     @staticmethod
     def new(**kwargs):
         '''
         Initializes a new DateSettings object.
 
-        :param format: The string format for the date object attribute.
-        :type format: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new DateSettings object.
         '''
 
@@ -137,7 +137,6 @@ class DateTimeSettings(ObjectTypeSettings):
 
     formats = t.StringType()
     serialized_format = t.StringType()
-    parser = t.StringType()
     tzd = t.StringType(choices=DATE_TIME_SETTINGS_TZD_TYPES)
     convert_tz = t.BooleanType()
     drop_tzinfo = t.BooleanType()
@@ -147,9 +146,9 @@ class DateTimeSettings(ObjectTypeSettings):
         '''
         Initializes a new DateTimeSettings object.
 
-        :param convert_tz: Whether to convert the timezone for the datetime object attribute.
+        :param convert_tz: Whether to convert the timezone to UTC for the datetime object attribute value.
         :type convert_tz: bool
-        :param drop_tzinfo: Whether to drop the timezone info for the datetime object attribute.
+        :param drop_tzinfo: Whether to drop the timezone info for the datetime object attribute value.
         :type drop_tzinfo: bool
         :return: A new DateTimeSettings object.
         '''
@@ -165,10 +164,8 @@ class DateTimeSettings(ObjectTypeSettings):
             **kwargs
         ), strict=False)
 
-        # Validate the new DateTimeSettings object.
+        # Validate and return the new DateTimeSettings object.
         obj.validate()
-
-        # Return the new DateTimeSettings object.
         return obj
 
 
@@ -185,9 +182,9 @@ class ListSettings(ObjectTypeSettings):
         '''
         Initializes a new ListSettings object.
 
-        :param min_size: The minimum size for the list object attribute.
+        :param min_size: The minimum size for a list object attribute value.
         :type min_size: int
-        :param max_size: The maximum size for the list object attribute.
+        :param max_size: The maximum size for a list object attribute value.
         :type max_size: int
         :return: A new ListSettings object.
         '''
@@ -232,8 +229,6 @@ class DictSettings(ObjectTypeSettings):
 
         # Validate the new DictSettings object.
         obj.validate()
-
-        # Return the new DictSettings object.
         return obj
 
 
@@ -273,10 +268,8 @@ class ObjectAttribute(ValueObject):
             **kwargs
         ), strict=False)
 
-        # Validate the new ModelAttribute object.
+        # Validate and return the new ModelAttribute object.
         obj.validate()
-
-        # Return the new ModelAttribute object.
         return obj
 
 
@@ -323,10 +316,8 @@ class ModelObject(Entity):
             **kwargs
         ), strict=False)
 
-        # Validate the new ModelObject object.
+        # Validate and return the new ModelObject object.
         obj.validate()
-
-        # Return the new ModelObject object.
         return obj
 
     def attribute_exists(self, name: str) -> bool:

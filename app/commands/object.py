@@ -3,6 +3,7 @@ from ..objects.object import ObjectAttribute
 from ..repositories.object import ObjectRepository
 from ..services import object as object_service
 
+
 class AddNewObject(object):
     '''
     Command to add a new object.
@@ -33,7 +34,8 @@ class AddNewObject(object):
         _object = ModelObject.new(**kwargs)
 
         # Assert that the object does not already exist.
-        assert not self.object_repo.exists(_object.id, _object.class_name), f'OBJECT_ALREADY_EXISTS: {_object.id}, {_object.class_name}'
+        assert not self.object_repo.exists(
+            _object.id, _object.class_name), f'OBJECT_ALREADY_EXISTS: {_object.id}, {_object.class_name}'
 
         # If the object has a base type...
         if _object.base_type_id:
@@ -52,7 +54,7 @@ class AddNewObject(object):
 
         # Return the new object.
         return _object
-    
+
 
 class AddObjectAttribute(object):
     '''
@@ -89,9 +91,9 @@ class AddObjectAttribute(object):
         assert _object is not None, f'OBJECT_NOT_FOUND: {object_id}'
 
         # Create a new object attribute.
-        attribute = ObjectAttribute.new(object_id=object_id, **kwargs)
+        attribute = object_service.create_attribute(object_id, **kwargs)
 
-        # Add the attribute to the object.
+        # Validate the attribute.
         object_service.validate_attribute(self.object_repo, attribute)
 
         # Add the attribute to the object.

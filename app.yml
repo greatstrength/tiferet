@@ -659,6 +659,10 @@ objects:
     name: Data Value
     type: value_object
   date_settings:
+    attributes:
+    - description: The date formats for a date object attribute value.
+      name: formats
+      type: str
     base_type_id: object_type_settings
     class_name: DateSettings
     description: Type-specific settings for an date object attribute.
@@ -666,6 +670,29 @@ objects:
     name: Date Settings
     type: value_object
   date_time_settings:
+    attributes:
+    - description: The date formats for a datetime object attribute value.
+      name: formats
+      type: str
+    - description: The output format for a datetime object attribute value.
+      name: serialized_format
+      type: str
+    - choices:
+      - require
+      - allow
+      - utc
+      - reject
+      description: The time zone policy for a datetime object attribute value.
+      name: tzd
+      type: str
+    - description: Whether to convert the timezone to UTC for a datetime object attribute
+        value.
+      name: convert_tz
+      type: bool
+    - description: Whether to drop the timezone info for a datetime object attribute
+        value.
+      name: drop_tzinfo
+      type: bool
     base_type_id: object_type_settings
     class_name: DateTimeSettings
     description: Type-specific settings for a datetime object attribute.
@@ -686,6 +713,10 @@ objects:
     name: Dependency Value
     type: value_object
   dict_settings:
+    attributes:
+    - description: The coerce key for a dict object attribute value.
+      name: coerce_key
+      type: str
     base_type_id: object_type_settings
     class_name: DictSettings
     description: Type-specific settings for a dict object attribute.
@@ -716,6 +747,13 @@ objects:
     name: Feature Handler
     type: entity
   list_settings:
+    attributes:
+    - description: The minimum size for a list object attribute value.
+      name: min_size
+      type: int
+    - description: The maximum size for a list object attribute value.
+      name: max_size
+      type: int
     base_type_id: object_type_settings
     class_name: ListSettings
     description: Type-specific settings for a list object attribute.
@@ -843,6 +881,17 @@ objects:
     name: Object Type Settings
     type: value_object
   string_settings:
+    attributes:
+    - description: The regular expression required for the string object attribute
+        value.
+      name: regex
+      type: str
+    - description: The minimum length for the string object attribute value.
+      name: min_length
+      type: int
+    - description: The maximum length for the string object attribute value.
+      name: max_length
+      type: int
     base_type_id: object_type_settings
     class_name: StringSettings
     description: Type-specific settings for an string attribute.
