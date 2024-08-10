@@ -4,7 +4,6 @@ from schematics import types as t
 from schematics.transforms import wholelist, whitelist, blacklist
 
 from ..objects.data import ModelData
-from ..objects.data import DefaultOptions
 from ..objects.error import Error
 from ..objects.error import ErrorMessage
 

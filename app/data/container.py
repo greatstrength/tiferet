@@ -2,7 +2,6 @@ from schematics import types as t
 from schematics.transforms import wholelist, whitelist, blacklist
 
 from ..objects.data import ModelData
-from ..objects.data import DefaultOptions
 from ..objects.container import ContainerAttribute
 from ..objects.container import DataAttribute
 from ..objects.container import DependencyAttribute
@@ -15,11 +14,12 @@ class ContainerAttributeData(ContainerAttribute, ModelData):
     A data representation of a container attribute object.
     '''
 
-    class Options(DefaultOptions):
+    class Options():
         '''
         The options for the container attribute data.
         '''
 
+        serialize_when_none = False
         roles = {
             'to_object.yaml': blacklist('data'),
             'to_data.yaml': blacklist('id')
