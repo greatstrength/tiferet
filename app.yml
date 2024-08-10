@@ -640,6 +640,36 @@ interfaces:
         name: Add Object
 objects:
   cli_argument:
+    attributes:
+    - default: '[]'
+      description: The name and any optional flags for the CLI argument.
+      name: name_or_flags
+      required: true
+      type: str
+    - description: The help text for the CLI argument.
+      name: help
+      required: true
+      type: str
+    - description: The default value for the CLI argument.
+      name: default
+      type: str
+    - description: True if a value is required for the CLI argument.
+      name: required
+      type: bool
+    - description: The number of allowed values for the CLI argument.
+      name: nargs
+      type: str
+    - description: The pre-defined set of values for the CLI argument.
+      inner_type: str
+      name: choices
+      type: list
+    - description: The unique action for the CLI argument.
+      name: action
+      type: str
+    - description: True if the CLI argument should be converted to an object or object
+        list.
+      name: to_data
+      type: bool
     class_name: CliArgument
     description: A Command Line Interface (CLI) argument for use in a CLI command
       or as a parent argument in a CLI interface

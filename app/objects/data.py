@@ -28,8 +28,7 @@ class ModelData(Model):
             **self.to_primitive(role=role)
         ), strict=False)
 
-        # Validate and return the model data.
-        _data.validate()
+        # Return the model data.
         return _data
 
     @staticmethod
@@ -45,4 +44,5 @@ class ModelData(Model):
         :rtype: ModelData
         '''
 
+        # Create a new ModelData object.
         return ModelData(data, **kwargs)

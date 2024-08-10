@@ -57,7 +57,7 @@ class CliArgument(obj.ValueObject):
 
     required = t.BooleanType(
         metadata=dict(
-            description='True if the CLI argument is required.'
+            description='True if a value is required for the CLI argument.'
         )
     )
 
@@ -70,7 +70,7 @@ class CliArgument(obj.ValueObject):
     choices = t.ListType(
         t.StringType,
         metadata=dict(
-            description='The choices for the CLI argument value.'
+            description='The pre-defined set of values for the CLI argument.'
         )
     )
 

@@ -68,6 +68,7 @@ def create_attribute(object_id: str, type: str, type_settings: Dict[str, Any], *
     # Create a new object attribute.
     attribute = ObjectAttribute.new(
         object_id=object_id,
+        type=type,
         type_settings=type_settings,
         **kwargs
     )
