@@ -185,7 +185,7 @@ class CliCommand(obj.Entity):
     help = t.StringType(
         required=True,
         metadata=dict(
-            description='The help text for the CLI command for inline display.'
+            description='The help text for the CLI command.'
         )
     )
 
@@ -193,7 +193,7 @@ class CliCommand(obj.Entity):
         t.ModelType(CliArgument),
         default=[],
         metadata=dict(
-            description='The list of arguments for the CLI command.'
+            description='The list of CLI arguments for the CLI command.'
         )
     )
 

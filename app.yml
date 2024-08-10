@@ -676,6 +676,34 @@ objects:
     group_id: cli
     name: CLI Argument
     type: value_object
+  cli_command:
+    attributes:
+    - description: The feature identifier for the CLI command.
+      name: feature_id
+      required: true
+      type: str
+    - description: The name of the CLI command.
+      name: name
+      required: true
+      type: str
+    - description: The context group identifier for the CLI command.
+      name: group_id
+      required: true
+      type: str
+    - description: The help text for the CLI command.
+      name: help
+      required: true
+      type: str
+    - description: The list of CLI arguments for a CLI command.
+      inner_type: model
+      name: arguments
+      type: list
+      type_object_id: cli_argument
+    class_name: CliCommand
+    description: A Command Line Interface (CLI) command for use in a CLI interface.
+    group_id: cli
+    name: CLI Command
+    type: entity
   container_attribute:
     class_name: ContainerAttribute
     description: A container attribute object.
