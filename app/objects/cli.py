@@ -256,7 +256,7 @@ class CliInterface(obj.Entity):
         t.ModelType(CliCommand),
         default=[],
         metadata=dict(
-            description='The list of commands for the CLI interface.'
+            description='The list of CLI commands for the CLI interface.'
         )
     )
 
@@ -264,7 +264,7 @@ class CliInterface(obj.Entity):
         t.ModelType(CliArgument),
         default=[],
         metadata=dict(
-            description='The list of parent arguments used by all CLI commands for the CLI interface.'
+            description='The list of CLI parent arguments used by all CLI commands for the CLI interface.'
         )
     )
 

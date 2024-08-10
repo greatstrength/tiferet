@@ -704,6 +704,24 @@ objects:
     group_id: cli
     name: CLI Command
     type: entity
+  cli_interface:
+    attributes:
+    - description: The list of CLI commands for a CLI interface.
+      inner_type: model
+      name: commands
+      type: list
+      type_object_id: cli_command
+    - description: The list of CLI parent arguments used by all CLI commands for the
+        CLI interface.
+      inner_type: model
+      name: parent_arguments
+      type: list
+      type_object_id: cli_argument
+    class_name: CliInterface
+    description: A Command Line Interface (CLI) interface for use in a CLI application.
+    group_id: cli
+    name: CLI Interface
+    type: entity
   container_attribute:
     class_name: ContainerAttribute
     description: A container attribute object.
