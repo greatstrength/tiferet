@@ -639,6 +639,13 @@ interfaces:
         help: add new model object
         name: Add Object
 objects:
+  cli_argument:
+    class_name: CliArgument
+    description: A Command Line Interface (CLI) argument for use in a CLI command
+      or as a parent argument in a CLI interface
+    group_id: cli
+    name: CLI Argument
+    type: value_object
   container_attribute:
     class_name: ContainerAttribute
     description: A container attribute object.
@@ -766,6 +773,12 @@ objects:
     group_id: object
     name: Model Attribute
     type: value_object
+  model_data:
+    class_name: ModelData
+    description: A data representation of a model object.
+    group_id: data
+    name: Model Data
+    type: entity
   model_object:
     attributes:
     - description: The object attribute name.
