@@ -11,7 +11,8 @@ from ..objects.error import ErrorMessage
 
 class ErrorMessageData(ErrorMessage, ModelData):
 
-    class Options(DefaultOptions):
+    class Options():
+        serialize_when_none = False
         roles = {
             'to_data.yaml': wholelist('id'),
             'to_object.yaml': wholelist()
@@ -20,7 +21,8 @@ class ErrorMessageData(ErrorMessage, ModelData):
 
 class ErrorData(Error, ModelData):
 
-    class Options(DefaultOptions):
+    class Options():
+        serialize_when_none = False
         roles = {
             'to_data.yaml': blacklist('id'),
             'to_object.yaml': wholelist()

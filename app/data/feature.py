@@ -6,7 +6,6 @@ from schematics.transforms import wholelist, whitelist, blacklist
 from ..objects.feature import Feature
 from ..objects.feature import FeatureHandler
 from ..objects.data import ModelData
-from ..objects.data import DefaultOptions
 
 
 
@@ -15,10 +14,13 @@ class FeatureHandlerData(FeatureHandler, ModelData):
     A data representation of a feature handler.
     '''
 
-    class Options(DefaultOptions):
+    class Options():
         '''
         The default options for the feature handler data.
         '''
+
+        # Set the serialize when none flag to false.
+        serialize_when_none = False
 
         # Define the roles for the feature handler data.
         roles = {
@@ -45,10 +47,13 @@ class FeatureData(Feature, ModelData):
     A data representation of a feature.
     '''
 
-    class Options(DefaultOptions):
+    class Options():
         '''
         The default options for the feature data.
         '''
+
+        # Set the serialize when none flag to false.
+        serialize_when_none = False
 
         # Define the roles for the feature data.
         roles = {

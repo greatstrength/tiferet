@@ -7,12 +7,12 @@ from ..objects.cli import CliInterface
 from ..objects.cli import CliCommand
 from ..objects.cli import CliArgument
 from ..objects.data import ModelData
-from ..objects.data import DefaultOptions
 
 
 class CliArgumentData(CliArgument, ModelData):
 
-    class Options(DefaultOptions):
+    class Options():
+        serialize_when_none = False
         roles = {
             'to_object.yaml': wholelist(),
             'to_data.yaml': wholelist()
@@ -24,7 +24,8 @@ class CliArgumentData(CliArgument, ModelData):
 
 class CliCommandData(CliCommand, ModelData):
 
-    class Options(DefaultOptions):
+    class Options():
+        serialize_when_none = False
         roles = {
             'to_object.yaml': blacklist('arguments', 'id'),
             'to_data.yaml': blacklist('id')
@@ -40,7 +41,8 @@ class CliCommandData(CliCommand, ModelData):
 
 class CliInterfaceData(CliInterface, ModelData):
 
-    class Options(DefaultOptions):
+    class Options():
+        serialize_when_none = False
         roles = {
             'to_object.yaml': blacklist('commands', 'parent_arguments'),
             'to_data.yaml': blacklist('id')
