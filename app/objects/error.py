@@ -5,13 +5,37 @@ from ..objects import ValueObject
 
 
 class ErrorMessage(ValueObject):
+    '''
+    An error message object.
+    '''
 
-    lang = t.StringType(required=True)
-    text = t.StringType(required=True)
+    lang = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The language of the error message text.'
+        )
+    )
+
+    text = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The error message text.'
+        )
+    )
 
     def format(self, *args):
+        '''
+        Formats the error message text.
+
+        :param args: The arguments to format the error message text with.
+        :type args: tuple
+        '''
+
+        # If there are no arguments, return.
         if not args:
             return
+
+        # Format the error message text.
         self.text = self.text.format(*args)
 
 
@@ -20,21 +44,66 @@ class Error(Entity):
     An error object.
     '''
 
-    name = t.StringType(required=True, deserialize_from=['name', 'error_name'])
-    error_code = t.StringType()
-    message = t.ListType(t.ModelType(ErrorMessage), required=True)
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the error.'
+        )
+    )
+
+    error_code = t.StringType(
+        metadata=dict(
+            description='The unique code of the error.'
+        )
+    )
+
+    message = t.ListType(
+        t.ModelType(ErrorMessage),
+        required=True,
+        metadata=dict(
+            description='The error message translations for the error.'
+        )
+    )
 
     def set_format_args(self, *args):
+        '''
+        Sets the format arguments for the error messages.
+        
+        :param args: The format arguments for the error messages.
+        :type args: tuple
+        '''
+
+        # Set the format arguments for the error messages.
         for msg in self.message:
             msg.format(*args)
 
     def get_message(self, lang: str = 'en_US', *args) -> str:
+        '''
+        Returns the error message text for the specified language.
+
+        :param lang: The language of the error message text.
+        :type lang: str
+        :param args: The format arguments for the error message text.
+        :type args: tuple
+        :return: The error message text.
+        :rtype: str
+        '''
+
+        # Iterate through the error messages.
         for msg in self.message:
+
+            # Skip if the language does not match.
             if msg.lang != lang:
                 continue
+
+            # Set the error message text.
             text = msg.text
+
+            # Format the error message text if there are arguments.
             if args:
                 text = text.format(*args)
+
+            # Return the error message text.
             return text
 
     @staticmethod
@@ -72,8 +141,6 @@ class Error(Entity):
             strict=False
         )
 
-        # Validate the new Error object.
+        # Validate and return the new Error object.
         obj.validate()
-
-        # Return the new Error object.
         return obj

@@ -859,6 +859,41 @@ objects:
     group_id: object
     name: Entity
     type: model
+  error:
+    attributes:
+    - description: The name of the error.
+      name: name
+      required: true
+      type: str
+    - description: The unique code for the error.
+      name: error_code
+      type: str
+    - description: The error message translations for the error.
+      inner_type: model
+      name: message
+      required: true
+      type: list
+      type_object_id: error_message
+    class_name: Error
+    description: An error object.
+    group_id: error
+    name: Error
+    type: entity
+  error_message:
+    attributes:
+    - description: The language of the error message text.
+      name: lang
+      required: true
+      type: str
+    - description: The error message text.
+      name: text
+      required: true
+      type: str
+    class_name: ErrorMessage
+    description: An error message object.
+    group_id: error
+    name: Error Message
+    type: value_object
   feature:
     class_name: Feature
     description: A feature object.
