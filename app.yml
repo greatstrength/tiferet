@@ -611,6 +611,7 @@ interfaces:
         - choices:
           - entity
           - value_object
+          - model
           help: model object type
           name_or_flags:
           - --type
@@ -691,6 +692,17 @@ objects:
     group_id: object
     name: Dict Settings
     type: value_object
+  entity:
+    attributes:
+    - description: The entity unique identifier.
+      name: id
+      required: true
+      type: str
+    class_name: Entity
+    description: A domain model entity.
+    group_id: object
+    name: Entity
+    type: model
   feature:
     class_name: Feature
     description: A feature object.
@@ -729,6 +741,7 @@ objects:
     - choices:
       - entity
       - value_object
+      - model
       default: entity
       description: The model object type.
       name: type
@@ -836,3 +849,9 @@ objects:
     group_id: object
     name: String Settings
     type: value_object
+  value_object:
+    class_name: ValueObject
+    description: A domain model value object.
+    group_id: object
+    name: Value Object
+    type: model

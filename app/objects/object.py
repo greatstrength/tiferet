@@ -5,7 +5,8 @@ OBJECT_TYPE_ENTITY = 'entity'
 OBJECT_TYPE_VALUE_OBJECT = 'value_object'
 OBJECT_TYPES = [
     'entity',
-    'value_object'
+    'value_object',
+    'model',
 ]
 OBJECT_TYPE_DEFAULT = OBJECT_TYPE_ENTITY
 ATTRIBUTE_TYPES = [
@@ -38,10 +39,18 @@ DATE_TIME_SETTINGS_TZD_TYPES = [
 
 
 class Entity(Model):
+    '''
+    A domain model entity.
+    '''
+    
     id = t.StringType(required=True)
 
 
 class ValueObject(Model):
+    '''
+    A domain model value object.
+    '''
+
     pass
 
 
