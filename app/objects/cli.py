@@ -21,38 +21,70 @@ CLI_ARGUMENT_DATA_TYPE_DEFAULT = 'str'
 
 
 class CliArgument(obj.ValueObject):
-    '''A Command Line Interface (CLI) argument for use in a CLI command or as a parent argument in a CLI interface.
-
-    :param name_or_flags: The name and any optional flags for the CLI argument.
-    :type name_or_flags: list
-    :param help: The help text for the CLI argument.
-    :type help: str
-    :param arg_type: The type of the CLI argument (command, parent_argument).
-    :type arg_type: str
-    :param type: The data type of the CLI argument.
-    :type type: str
-    :param default: The default value for the CLI argument.
-    :type default: str
-    :param required: True if the CLI argument is required.
-    :type required: bool
-    :param nargs: The number of allowed values for the CLI argument.
-    :type nargs: str
-    :param choices: The choices for the CLI argument value.
-    :type choices: list
-    :param action: The unique action for the CLI argument.
-    :type action: str 
+    '''
+    A Command Line Interface (CLI) argument for use in a CLI command or as a parent argument for a CLI interface.
     '''
 
-    name_or_flags = t.ListType(t.StringType, required=True, default=[])
-    help = t.StringType(required=True)
+    name_or_flags = t.ListType(
+        t.StringType,
+        required=True,
+        default=[],
+        metadata=dict(
+            description='The name and any optional flags for the CLI argument.'
+        )
+    )
+
+    help = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The help text for the CLI argument.'
+        )
+    )
+
     type = t.StringType(
-        choices=CLI_ARGUMENT_DATA_TYPES, default=CLI_ARGUMENT_DATA_TYPE_DEFAULT)
-    default = t.StringType()
-    required = t.BooleanType()
-    nargs = t.StringType()
-    choices = t.ListType(t.StringType)
-    action = t.StringType()
-    to_data = t.BooleanType()
+        choices=CLI_ARGUMENT_DATA_TYPES,
+        default=CLI_ARGUMENT_DATA_TYPE_DEFAULT,
+        metadata=dict(
+            description='The data type of the CLI argument.'
+        )
+    )
+
+    default = t.StringType(
+        metadata=dict(
+            description='The default value for the CLI argument.'
+        )
+    )
+
+    required = t.BooleanType(
+        metadata=dict(
+            description='True if the CLI argument is required.'
+        )
+    )
+
+    nargs = t.StringType(
+        metadata=dict(
+            description='The number of allowed values for the CLI argument.'
+        )
+    )
+
+    choices = t.ListType(
+        t.StringType,
+        metadata=dict(
+            description='The choices for the CLI argument value.'
+        )
+    )
+
+    action = t.StringType(
+        metadata=dict(
+            description='The unique action for the CLI argument.'
+        )
+    )
+
+    to_data = t.BooleanType(
+        metadata=dict(
+            description='True if the CLI argument should be converted to an object or object list.'
+        )
+    )
 
     @staticmethod
     def new(name: str,
@@ -125,27 +157,85 @@ class CliArgument(obj.ValueObject):
 
 
 class CliCommand(obj.Entity):
-    feature_id = t.StringType(required=True)
-    name = t.StringType(required=True)
-    group_id = t.StringType(required=True)
-    help = t.StringType(required=True)
-    arguments = t.ListType(t.ModelType(CliArgument), default=[])
+    '''
+    A Command Line Interface (CLI) command for use in a CLI interface.
+    '''
+
+    feature_id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The feature identifier for the CLI command.'
+        )
+    )
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the CLI command.'
+        )
+    )
+
+    group_id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The context group identifier for the CLI command.'
+        )
+    )
+
+    help = t.StringType(
+        required=True, 
+        metadata=dict(
+            description='The help text for the CLI command for inline display.'
+        )
+    )
+
+    arguments = t.ListType(
+        t.ModelType(CliArgument), 
+        default=[],
+        metadata=dict(
+            description='The list of arguments for the CLI command.'
+        )
+    )
 
     @staticmethod
-    def new(name: str, command_key: str, group_id: str, help: str, arguments: List[CliArgument] = []):
+    def new(group_id: str, command_key: str, **kwargs):
+        '''
+        Initializes a new CliCommand object.
+
+        :param group_id: The group identifier for the CLI command.
+        :type group_id: str
+        :param command_key: The key for the CLI command.
+        :type command_key: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new CliCommand object
+        :rtype: CliCommand
+        '''
+        
+        # Create the feature ID by combining the group ID and the command key.
         feature_id = f'{group_id}.{command_key}'
+
+        # Create a new CliCommand object.
         command = CliCommand(dict(
             id=feature_id,
             feature_id=feature_id,
-            name=name,
-            group_id=group_id,
-            help=help
-        ))
-        command.arguments = arguments
+            **kwargs
+        ), strict=False)
 
+        # Validate and return the new CliCommand object.
+        command.validate()
         return command
 
-    def argument_exists(self, flags: List[str]):
+    def argument_exists(self, flags: List[str]) -> bool:
+        '''
+        Returns True if an argument exists with the specified flags.
+
+        :param flags: The flags of the argument.
+        :type flags: list
+        :return: True if an argument exists with the specified flags.
+        :rtype: bool
+        '''
+
         # Loop through the flags and check if any of them match the flags of an existing argument
         for flag in flags:
             if any([argument for argument in self.arguments if flag in argument.name_or_flags]):
@@ -158,26 +248,81 @@ class CliCommand(obj.Entity):
 
 
 class CliInterface(obj.Entity):
-    commands = t.ListType(t.ModelType(CliCommand), default=[])
-    parent_arguments = t.ListType(t.ModelType(CliArgument), default=[])
+    '''
+    A Command Line Interface (CLI) interface for use in a CLI application.
+    '''
+
+    commands = t.ListType(
+        t.ModelType(CliCommand), 
+        default=[],
+        metadata=dict(
+            description='The list of commands for the CLI interface.'
+        )
+    )
+
+    parent_arguments = t.ListType(
+        t.ModelType(CliArgument), 
+        default=[],
+        metadata=dict(
+            description='The list of parent arguments used by all CLI commands for the CLI interface.'
+        )
+    )
 
     @staticmethod
-    def new(id: str, commands: List[CliCommand] = [], parent_arguments: List[CliArgument] = []):
-        interface = CliInterface()
-        interface.commands = commands
-        interface.parent_arguments = parent_arguments
+    def new(**kwargs) -> 'CliInterface':
+        '''
+        Initializes a new CliInterface object.
+        
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new CliInterface object.
+        :rtype: CliInterface
+        '''
+        
+        # Create a new CliInterface object.
+        interface = CliInterface(dict(
+            **kwargs
+        ), strict=False)
 
+        # Validate and return the new CliInterface object.
+        interface.validate()
         return interface
 
     def add_command(self, command: CliCommand) -> None:
+        '''
+        Adds a command to the CLI interface.
+        
+        :param command: The command to add to the CLI interface.
+        :type command: CliCommand
+        '''
 
         # Add the command to the list of commands.
         self.commands.append(command)
 
     def get_command(self, feature_id: str, **kwargs) -> CliCommand:
+        '''
+        Returns the command with the specified feature ID.
+
+        :param feature_id: The feature ID of the command.
+        :type feature_id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The command with the specified feature ID.
+        :rtype: CliCommand
+        '''
+
+        # Return the command with the specified feature ID.
         return next((command for command in self.commands if command.feature_id == feature_id), None)
 
     def has_parent_argument(self, flags: List[str]) -> bool:
+        '''
+        Returns True if a parent argument exists with the specified flags.
+        
+        :param flags: The flags of the parent argument.
+        :type flags: list
+        :return: True if a parent argument exists with the specified flags.
+        :rtype: bool
+        '''
 
         # Loop through the flags and check if any of them match the flags of an existing parent argument.
         for flag in flags:
@@ -188,9 +333,27 @@ class CliInterface(obj.Entity):
         return False
 
     def add_parent_argument(self, argument: CliArgument) -> None:
+        '''
+        Adds a parent argument to the CLI interface.
+
+        :param argument: The parent argument to add to the CLI interface.
+        :type argument: CliArgument
+        '''
+
+        # Add the argument to the list of parent arguments.
         self.parent_arguments.append(argument)
 
     def set_argument(self, argument: CliArgument, arg_type: str, feature_id: str = None) -> None:
+        '''
+        Sets a CLI argument to the CLI interface.
+
+        :param argument: The CLI argument to set.
+        :type argument: CliArgument
+        :param arg_type: The type of CLI argument.
+        :type arg_type: str
+        :param feature_id: The feature ID if the CLI argument is to be added to a CLI command.
+        :type feature_id: str
+        '''
 
         # If the argument is a command...
         if arg_type == CLI_ARGUMENT_TYPE_COMMAND:
