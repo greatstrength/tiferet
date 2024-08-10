@@ -183,14 +183,14 @@ class CliCommand(obj.Entity):
     )
 
     help = t.StringType(
-        required=True, 
+        required=True,
         metadata=dict(
             description='The help text for the CLI command for inline display.'
         )
     )
 
     arguments = t.ListType(
-        t.ModelType(CliArgument), 
+        t.ModelType(CliArgument),
         default=[],
         metadata=dict(
             description='The list of arguments for the CLI command.'
@@ -211,7 +211,7 @@ class CliCommand(obj.Entity):
         :return: A new CliCommand object
         :rtype: CliCommand
         '''
-        
+
         # Create the feature ID by combining the group ID and the command key.
         feature_id = f'{group_id}.{command_key}'
 
@@ -253,7 +253,7 @@ class CliInterface(obj.Entity):
     '''
 
     commands = t.ListType(
-        t.ModelType(CliCommand), 
+        t.ModelType(CliCommand),
         default=[],
         metadata=dict(
             description='The list of commands for the CLI interface.'
@@ -261,7 +261,7 @@ class CliInterface(obj.Entity):
     )
 
     parent_arguments = t.ListType(
-        t.ModelType(CliArgument), 
+        t.ModelType(CliArgument),
         default=[],
         metadata=dict(
             description='The list of parent arguments used by all CLI commands for the CLI interface.'
@@ -278,7 +278,7 @@ class CliInterface(obj.Entity):
         :return: A new CliInterface object.
         :rtype: CliInterface
         '''
-        
+
         # Create a new CliInterface object.
         interface = CliInterface(dict(
             **kwargs

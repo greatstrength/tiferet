@@ -18,7 +18,13 @@ class ContainerAttribute(obj.Entity):
     A container attribute object.
     '''
 
-    type = t.StringType(required=True, choices=CONTAINER_ATTRIBUTE_TYPES)
+    type = t.StringType(
+        required=True,
+        choices=CONTAINER_ATTRIBUTE_TYPES,
+        metadata=dict(
+            description='The type of container attribute.'
+        )
+    )
 
 
 class DataValue(obj.ValueObject):
@@ -26,7 +32,12 @@ class DataValue(obj.ValueObject):
     A container attribute data value object.
     '''
 
-    value = t.StringType(required=True)
+    value = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The value for a data attribute.'
+        )
+    )
 
 
 class DependencyValue(obj.ValueObject):
@@ -34,8 +45,19 @@ class DependencyValue(obj.ValueObject):
     A container attribute dependency value object.
     '''
 
-    module_path = t.StringType(required=True)
-    class_name = t.StringType(required=True)
+    module_path = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The module path for a dependency attribute.'
+        )
+    )
+
+    class_name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The class name for a dependency attribute.'
+        )
+    )
 
 
 class DataAttribute(ContainerAttribute):
@@ -43,8 +65,20 @@ class DataAttribute(ContainerAttribute):
     A container attribute object for a data-type value.
     '''
 
-    type = t.StringType(default=CONTAINER_ATTRIBUTE_TYPE_DATA)
-    data = t.ModelType(DataValue, required=True)
+    type = t.StringType(
+        default=CONTAINER_ATTRIBUTE_TYPE_DATA,
+        metadata=dict(
+            description='The type of container attribute (defaults to data).'
+        )
+    )
+
+    data = t.ModelType(
+        DataValue,
+        required=True,
+        metadata=dict(
+            description='The data for a data attribute.'
+        )
+    )
 
     @staticmethod
     def new(**kwargs) -> 'DataAttribute':
@@ -71,8 +105,20 @@ class DependencyAttribute(ContainerAttribute):
     A container attribute object for a dependency-type value.
     '''
 
-    type = t.StringType(default=CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY)
-    data = t.ModelType(DependencyValue, required=True)
+    type = t.StringType(
+        default=CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY,
+        metadata=dict(
+            description='The type of container attribute (defaults to dependency).'
+        )
+    )
+
+    data = t.ModelType(
+        DependencyValue,
+        required=True,
+        metadata=dict(
+            description='The data for a dependency attribute.'
+        )
+    )
 
     @staticmethod
     def new(**kwargs) -> 'DependencyAttribute':
