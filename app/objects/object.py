@@ -375,13 +375,62 @@ class ModelObject(Entity):
     A domain model component defined as a class object.
     '''
 
-    name = t.StringType(required=True)
-    group_id = t.StringType(required=True)
-    type = t.StringType(choices=OBJECT_TYPES, default=OBJECT_TYPE_DEFAULT)
-    class_name = t.StringType(required=True)
-    description = t.StringType(required=True)
-    base_type_id = t.StringType()
-    attributes = t.ListType(t.ModelType(ObjectAttribute), default=[])
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The model object name.'
+        )
+    )
+
+    group_id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The context group identifier for the model object.'
+        )
+    )
+
+    type = t.StringType(
+        choices=OBJECT_TYPES,
+        default=OBJECT_TYPE_DEFAULT,
+        metadata=dict(
+            description='The model object type.'
+        )
+    )
+
+    class_name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The model object class name.'
+        )
+    )
+
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The model object description.'
+        )
+    )
+
+    base_type_id = t.StringType(
+        metadata=dict(
+            description='The base model object identifier.'
+        )
+    )
+    attributes = t.ListType(
+        t.ModelType(ObjectAttribute),
+        default=[],
+        metadata=dict(
+            description='The model object attributes.'
+        )
+    )
+
+    methods = t.ListType(
+        t.ModelType(ObjectMethod),
+        default=[],
+        metadata=dict(
+            description='The model object methods.'
+        )
+    )
 
     @staticmethod
     def new(name: str, id: str = None, class_name: str = None, **kwargs) -> 'ModelObject':

@@ -1053,11 +1053,11 @@ objects:
     type: entity
   model_object:
     attributes:
-    - description: The object attribute name.
+    - description: The model object name.
       name: name
       required: true
       type: str
-    - description: The ID of the parent model object.
+    - description: The context group identifier for the model object.
       name: group_id
       required: true
       type: str
@@ -1078,7 +1078,7 @@ objects:
       name: description
       required: true
       type: str
-    - description: The model object base type object ID.
+    - description: The base model object identifer.
       name: base_type_id
       required: false
       type: str
@@ -1088,6 +1088,12 @@ objects:
       name: attributes
       type: list
       type_object_id: model_attribute
+    - default: '[]'
+      description: The model object methods.
+      inner_type: model
+      name: methods
+      type: list
+      type_object_id: object_method
     class_name: ModelObject
     description: A domain model component defined as a class object.
     group_id: object
