@@ -596,6 +596,65 @@ interfaces:
         group_id: object
         help: add attribute to model object
         name: Add Object Attribute
+      object.add_method:
+        arguments:
+        - help: object method name
+          name_or_flags:
+          - name
+          type: str
+        - choices:
+          - factory
+          - state
+          help: object method type
+          name_or_flags:
+          - --type
+          - -t
+          required: true
+          type: str
+        - help: parent object id
+          name_or_flags:
+          - --object-id
+          - -o
+          required: true
+          type: str
+        - help: object method description
+          name_or_flags:
+          - --description
+          - -d
+          required: true
+          type: str
+        - choices:
+          - str
+          - int
+          - float
+          - date
+          - datetime
+          - list
+          - dict
+          - model
+          help: object method return type
+          name_or_flags:
+          - --return-type
+          type: str
+        - choices:
+          - str
+          - int
+          - float
+          - date
+          - datetime
+          - model
+          help: inner return type for list or dict object method return type
+          name_or_flags:
+          - --inner-return-type
+          type: str
+        - help: object id for model object method return type
+          name_or_flags:
+          - --return-type-object-id
+          type: str
+        feature_id: object.add_method
+        group_id: object
+        help: add method to model object
+        name: Add Object Method
       object.new:
         arguments:
         - help: model object name

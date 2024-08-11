@@ -217,6 +217,7 @@ class CliCommand(obj.Entity):
 
         # Create a new CliCommand object.
         command = CliCommand(dict(
+            group_id=group_id,
             id=feature_id,
             feature_id=feature_id,
             **kwargs

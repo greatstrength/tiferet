@@ -120,8 +120,6 @@ class Feature(Entity):
             **kwargs
         ), strict=False)
 
-        # Validate the new Feature object.
+        # Validate and return the new Feature object.
         obj.validate()
-
-        # Return the new Feature object.
         return obj
