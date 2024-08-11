@@ -66,7 +66,7 @@ class Entity(Model):
     '''
     A domain model entity.
     '''
-    
+
     id = t.StringType(required=True)
 
 
@@ -345,6 +345,30 @@ class ObjectMethod(ValueObject):
         )
     )
 
+    @staticmethod
+    def new(name: str, **kwargs) -> 'ObjectMethod':
+        '''
+        Initializes a new ObjectMethod object.
+        
+        :param name: The name of the object method.
+        :type name: str
+        :return: A new ObjectMethod object.
+        :rtype: ObjectMethod
+        '''
+
+        # Convert name to snake case.
+        name = name.lower().replace(' ', '_')
+
+        # Create a new ObjectMethod object.
+        obj = ObjectMethod(dict(
+            name=name,
+            **kwargs
+        ), strict=False)
+
+        # Validate and return the new ObjectMethod object.
+        obj.validate()
+        return obj
+
 
 class ModelObject(Entity):
     '''
@@ -393,7 +417,7 @@ class ModelObject(Entity):
         obj.validate()
         return obj
 
-    def attribute_exists(self, name: str) -> bool:
+    def has_attribute(self, name: str) -> bool:
         '''
         Returns True if the attribute exists in the model object.
 
@@ -421,3 +445,32 @@ class ModelObject(Entity):
 
         # Add the attribute to the model object.
         self.attributes.append(attribute)
+
+    def has_method(self, name: str) -> bool:
+        '''
+        Returns True if the method exists in the model object.
+
+        :param name: The name of the method.
+        :type name: str
+        :return: True if the method exists in the model object.
+        :rtype: bool
+        '''
+
+        # Format the method name.
+        method_name = name.lower().replace(' ', '_')
+
+        # Return True if the method exists in the model object.
+        return any([method.name == method_name for method in self.methods])
+
+    def add_method(self, method: 'ObjectMethod', **kwargs):
+        '''
+        Adds a method to the model object.
+
+        :param method: The method to add to the model object.
+        :type method: ObjectMethod
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Add the method to the model object.
+        self.methods.append(method)

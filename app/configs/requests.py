@@ -7,25 +7,28 @@ from ..objects.cli import CLI_ARGUMENT_TYPES as ARG_TYPES
 from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
+from ..objects.object import ObjectMethod
 from ..objects.container import ContainerAttribute
 from ..objects.error import ErrorMessage
 from ..objects.feature import FeatureHandler
 
 
 class AddCliCommand(Model):
-    
+
     interface_id = t.StringType(required=True)
     group_id = t.StringType(required=True)
     command_key = t.StringType(required=True)
     name = t.StringType(required=True)
-    help = t.StringType(required=True, deserialize_from=['help', 'description'])
+    help = t.StringType(required=True, deserialize_from=[
+                        'help', 'description'])
 
 
 class AddCliArgument(Model):
 
     name = t.StringType(required=True)
     interface_id = t.StringType(required=True)
-    help = t.StringType(required=True, deserialize_from=['help', 'description'])
+    help = t.StringType(required=True, deserialize_from=[
+                        'help', 'description'])
     arg_type = t.StringType(default=ARG_TYPE_DEFAULT, choices=ARG_TYPES)
     feature_id = t.StringType()
     flags = t.ListType(t.StringType(), default=[])
@@ -57,7 +60,8 @@ class AddNewFeature(Model):
     name = t.StringType(required=True)
     group_id = t.StringType(required=True)
     feature_key = t.StringType(required=True)
-    handlers = t.ListType(t.ModelType(FeatureHandler), default=[], deserialize_from=['handler', 'handlers'])
+    handlers = t.ListType(t.ModelType(FeatureHandler),
+                          default=[], deserialize_from=['handler', 'handlers'])
     request_type_path = t.StringType()
     description = t.StringType()
 
@@ -69,6 +73,11 @@ class AddNewObject(ModelObject):
 
 
 class AddObjectAttribute(ObjectAttribute):
-    
+
     object_id = t.StringType(required=True)
     type_properties = t.DictType(t.StringType(), default={})
+
+
+class AddObjectMethod(ObjectMethod):
+
+    object_id = t.StringType(required=True)

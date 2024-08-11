@@ -85,6 +85,12 @@ container:
             value: app.yml
         type: data
     feature:
+      Add Object Method:
+        data:
+          yaml:
+            class_name: AddObjectMethod
+            module_path: app.commands.object
+        type: dependency
       add_cli_argument:
         data:
           yaml:
@@ -251,6 +257,12 @@ errors:
     - lang: en_US
       text: Object attribute with name "{}" already exists
     name: OBJECT_ATTRIBUTE_ALREADY_EXISTS
+  OBJECT_METHOD_ALREADY_EXISTS:
+    error_code: OBJECT_METHOD_ALREADY_EXISTS
+    message:
+    - lang: en_US
+      text: Object method with name "{}" already exists on model object "{}"
+    name: OBJECT_METHOD_ALREADY_EXISTS
   OBJECT_NOT_FOUND:
     message:
     - lang: en_US
@@ -305,6 +317,14 @@ features:
             name: Add Object Attribute
           name: Add New Feature
           request_type_path: app.configs.requests.AddObjectAttribute
+        add_method:
+          description: Adds a new method to a model object.
+          handlers:
+          - attribute_id: add_object_method
+            name: Add Object Method
+          id: object.add_method
+          name: Add Object Method
+          request_type_path: app.configs.requests.AddObjectMethod
         new:
           functions:
           - attribute_id: add_new_object
