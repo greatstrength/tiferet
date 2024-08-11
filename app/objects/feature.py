@@ -8,12 +8,46 @@ class FeatureHandler(ValueObject):
     '''
     A handler object for a feature command.
     '''
-    name = t.StringType(required=True)
-    attribute_id = t.StringType(required=True)
-    params = t.DictType(t.StringType(), default={})
-    return_to_data = t.BooleanType()
-    data_key = t.StringType()
-    pass_on_error = t.BooleanType()
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the feature handler.'
+        )
+    )
+
+    attribute_id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The container attribute ID for the feature command.'
+        )
+    )
+
+    params = t.DictType(
+        t.StringType(),
+        default={},
+        metadata=dict(
+            description='The custom parameters for the feature handler.'
+        )
+    )
+
+    return_to_data = t.BooleanType(
+        metadata=dict(
+            description='Whether to return the feature command result to the feature data context.'
+        )
+    )
+
+    data_key = t.StringType(
+        metadata=dict(
+            description='The data key to store the feature command result in if Return to Data is True.'
+        )
+    )
+
+    pass_on_error = t.BooleanType(
+        metadata=dict(
+            description='Whether to pass on the error if the feature handler fails.'
+        )
+    )
 
 
 class Feature(Entity):
@@ -21,13 +55,47 @@ class Feature(Entity):
     A feature object.
     '''
 
-    name = t.StringType(required=True)
-    group_id = t.StringType(required=True)
-    description = t.StringType()
-    use_role = t.StringType()
-    request_type_path = t.StringType()
-    handlers = t.ListType(t.ModelType(FeatureHandler), default=[])
-    log_params = t.DictType(t.StringType(), default={})
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the feature.'
+        )
+    )
+
+    group_id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The context group identifier for the feature.'
+        )
+    )
+
+    description = t.StringType(
+        metadata=dict(
+            description='The description of the feature.'
+        )
+    )
+
+    request_type_path = t.StringType(
+        metadata=dict(
+            description='The path to the request type for the feature.'
+        )
+    )
+
+    handlers = t.ListType(
+        t.ModelType(FeatureHandler),
+        default=[],
+        metadata=dict(
+            description='The command handler workflow for the feature.'
+        )
+    )
+
+    log_params = t.DictType(
+        t.StringType(),
+        default={},
+        metadata=dict(
+            description='The parameters to log for the feature.'
+        )
+    )
 
     @staticmethod
     def new(group_id: str, feature_key: str, **kwargs) -> 'Feature':

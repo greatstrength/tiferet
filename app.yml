@@ -895,12 +895,52 @@ objects:
     name: Error Message
     type: value_object
   feature:
+    attributes:
+    - description: The name of the feature.
+      name: name
+      required: true
+      type: str
+    - description: The context group identifier for the feature.
+      name: group_id
+      required: true
+      type: str
+    - description: The description of the feature.
+      name: description
+      type: str
+    - description: The path to the request type for the feature.
+      name: request_type_path
+      type: str
+    - description: The command handler workflow for the feature.
+      inner_type: model
+      name: handlers
+      type: list
+      type_object_id: feature_handler
+    - description: The parameters to log for the feature.
+      inner_type: str
+      name: log_params
+      type: dict
     class_name: Feature
     description: A feature object.
     group_id: feature
     name: Feature
     type: entity
   feature_handler:
+    attributes:
+    - description: The name of the feature handler.
+      name: name
+      required: true
+      type: str
+    - description: Whether to return the feature command result to the feature data
+        context.
+      name: return_to_data
+      type: bool
+    - description: The data key to store the feature command result if Return to Result
+        is True.
+      name: data_key
+      type: str
+    - description: Whether to pass on an error if the feature handler fails.
+      name: pass_on_error
+      type: bool
     class_name: FeatureHandler
     description: A handler object for a feature command.
     group_id: feature
