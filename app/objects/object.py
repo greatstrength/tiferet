@@ -36,6 +36,30 @@ DATE_TIME_SETTINGS_TZD_TYPES = [
     'utc',
     'reject'
 ]
+METHOD_TYPES = [
+    'factory',
+    'behavior',
+]
+METHOD_RETURN_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'list',
+    'dict',
+    'model',
+]
+METHOD_RETURN_INNER_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'model'
+]
 
 
 class Entity(Model):
@@ -271,6 +295,55 @@ class ObjectAttribute(ValueObject):
         # Validate and return the new ModelAttribute object.
         obj.validate()
         return obj
+
+
+class ObjectMethod(ValueObject):
+    '''
+    A model object method.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the object method.'
+        )
+    )
+
+    type = t.StringType(
+        required=True,
+        choices=METHOD_TYPES,
+        metadata=dict(
+            description='The type of the object method.'
+        )
+    )
+
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The description of the object method for inline documentation.'
+        )
+    )
+
+    return_type = t.StringType(
+        required=True,
+        choices=METHOD_RETURN_TYPES,
+        metadata=dict(
+            description='The return type of the object method.'
+        )
+    )
+
+    return_inner_type = t.StringType(
+        choices=METHOD_RETURN_INNER_TYPES,
+        metadata=dict(
+            description='The inner return type for object methods that return a list or dict.'
+        )
+    )
+
+    return_type_object_id = t.StringType(
+        metadata=dict(
+            description='The object identifier for the return type for object methods with a model return type or inner return type.'
+        )
+    )
 
 
 class ModelObject(Entity):

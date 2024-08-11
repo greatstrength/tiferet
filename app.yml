@@ -1139,6 +1139,56 @@ objects:
     group_id: object
     name: Object Attribute
     type: value_object
+  object_method:
+    attributes:
+    - description: The name of the object method.
+      name: name
+      required: true
+      type: str
+    - choices:
+      - factory
+      - behavior
+      description: The type of object method.
+      name: type
+      required: true
+      type: str
+    - description: The description of the object method for inline documentation.
+      name: description
+      required: true
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - date
+      - datetime
+      - list
+      - dict
+      - model
+      description: The return type of the object method.
+      name: return_type
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - bool
+      - date
+      - datetime
+      - model
+      description: The inner return type for object methods that return a list or
+        dict.
+      name: inner_return_type
+      type: str
+    - description: The return type object identifier for object methods with a model
+        return type or inner return type.
+      name: return_type_object_id
+      type: str
+    class_name: ObjectMethod
+    description: A model object method.
+    group_id: object
+    name: Object Method
+    type: value_object
   object_type_settings:
     class_name: ObjectTypeSettings
     description: Type-specific settings for an object attribute.
