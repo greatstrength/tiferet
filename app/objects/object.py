@@ -67,7 +67,12 @@ class Entity(Model):
     A domain model entity.
     '''
 
-    id = t.StringType(required=True)
+    id = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The entity unique identifier.'
+        )
+    )
 
 
 class ValueObject(Model):
@@ -91,9 +96,23 @@ class StringSettings(ObjectTypeSettings):
     Type-specific settings for a string object attribute.
     '''
 
-    regex = t.StringType()
-    min_length = t.IntType()
-    max_length = t.IntType()
+    regex = t.StringType(
+        metadata=dict(
+            description='The regular expression required for the string object attribute value.'
+        )
+    )
+
+    min_length = t.IntType(
+        metadata=dict(
+            description='The minimum length for the string object attribute value.'
+        )
+    )
+
+    max_length = t.IntType(
+        metadata=dict(
+            description='The maximum length for the string object attribute value.'
+        )
+    )
 
     @staticmethod
     def new(min_length: int = None, max_length: int = None, **kwargs):
@@ -118,10 +137,8 @@ class StringSettings(ObjectTypeSettings):
             **kwargs
         ), strict=False)
 
-        # Validate the new StringSettings object.
+        # Valdiate and return the new StringSettings object.
         obj.validate()
-
-        # Return the new StringSettings object.
         return obj
 
 
@@ -130,7 +147,11 @@ class DateSettings(ObjectTypeSettings):
     Type-specific settings for a date object attribute.
     '''
 
-    formats = t.StringType()
+    formats = t.StringType(
+        metadata=dict(
+            description='The formats for a date object attribute value.'
+        )
+    )
 
     @staticmethod
     def new(**kwargs):
@@ -147,10 +168,8 @@ class DateSettings(ObjectTypeSettings):
             **kwargs
         ), strict=False)
 
-        # Validate the new DateSettings object.
+        # Validate and return the new DateSettings object.
         obj.validate()
-
-        # Return the new DateSettings object.
         return obj
 
 
@@ -159,11 +178,36 @@ class DateTimeSettings(ObjectTypeSettings):
     Type-specific settings for a datetime object attribute.
     '''
 
-    formats = t.StringType()
-    serialized_format = t.StringType()
-    tzd = t.StringType(choices=DATE_TIME_SETTINGS_TZD_TYPES)
-    convert_tz = t.BooleanType()
-    drop_tzinfo = t.BooleanType()
+    formats = t.StringType(
+        metadata=dict(
+            description='The formats for a datetime object attribute value.'
+        )
+    )
+
+    serialized_format = t.StringType(
+        metadata=dict(
+            description='The output format for a datetime object attribute value.'
+        )
+    )
+
+    tzd = t.StringType(
+        choices=DATE_TIME_SETTINGS_TZD_TYPES,
+        metadata=dict(
+            description='The timezone policy for a datetime object attribute value.'
+        )
+    )
+
+    convert_tz = t.BooleanType(
+        metadata=dict(
+            description='Whether to convert the timezone to UTC for the datetime object attribute value.'
+        )
+    )
+
+    drop_tzinfo = t.BooleanType(
+        metadata=dict(
+            description='Whether to drop the timezone info for the datetime object attribute value.'
+        )
+    )
 
     @staticmethod
     def new(convert_tz: bool = None, drop_tzinfo: bool = None, **kwargs):
@@ -198,8 +242,17 @@ class ListSettings(ObjectTypeSettings):
     Type-specific settings for a list object attribute.
     '''
 
-    min_size = t.IntType()
-    max_size = t.IntType()
+    min_size = t.IntType(
+        metadata=dict(
+            description='The minimum size for a list object attribute value.'
+        )
+    )
+
+    max_size = t.IntType(
+        metadata=dict(
+            description='The maximum size for a list object attribute value.'
+        )
+    )
 
     @staticmethod
     def new(min_size: int = None, max_size: int = None, **kwargs):
