@@ -78,6 +78,14 @@ class ModelObjectData(ModelObject, ModelData):
         )
     )
 
+    methods = t.ListType(
+        t.ModelType(ObjectMethodData),
+        default=[],
+        metadata=dict(
+            description='The model object methods.'
+        )
+    )
+
     @staticmethod
     def new(**kwargs):
         '''Initializes a new ModelObjectData object.

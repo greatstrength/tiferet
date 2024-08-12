@@ -58,7 +58,7 @@ class FeatureData(Feature, ModelData):
         # Define the roles for the feature data.
         roles = {
             'to_object.yaml': blacklist('feature_key'),
-            'to_data.yaml': blacklist('feature_key', 'group_id')
+            'to_data.yaml': blacklist('feature_key', 'group_id', 'id')
         }
 
     handlers = t.ListType(t.ModelType(FeatureHandlerData),

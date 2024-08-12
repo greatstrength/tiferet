@@ -115,7 +115,7 @@ class StringSettings(ObjectTypeSettings):
     )
 
     @staticmethod
-    def new(min_length: int = None, max_length: int = None, **kwargs):
+    def new(min_length: int = None, max_length: int = None, **kwargs) -> 'StringSettings':
         '''
         Initializes a new StringSettings object.
         
@@ -154,7 +154,7 @@ class DateSettings(ObjectTypeSettings):
     )
 
     @staticmethod
-    def new(**kwargs):
+    def new(**kwargs) -> 'DateSettings':
         '''
         Initializes a new DateSettings object.
 
@@ -210,7 +210,7 @@ class DateTimeSettings(ObjectTypeSettings):
     )
 
     @staticmethod
-    def new(convert_tz: bool = None, drop_tzinfo: bool = None, **kwargs):
+    def new(convert_tz: bool = None, drop_tzinfo: bool = None, **kwargs) -> 'DateTimeSettings':
         '''
         Initializes a new DateTimeSettings object.
 
@@ -255,7 +255,7 @@ class ListSettings(ObjectTypeSettings):
     )
 
     @staticmethod
-    def new(min_size: int = None, max_size: int = None, **kwargs):
+    def new(min_size: int = None, max_size: int = None, **kwargs) -> 'ListSettings':
         '''
         Initializes a new ListSettings object.
 
@@ -292,7 +292,7 @@ class DictSettings(ObjectTypeSettings):
     coerce_key = t.StringType()
 
     @staticmethod
-    def new(**kwargs):
+    def new(**kwargs) -> 'DictSettings':
         '''
         Initializes a new DictSettings object.
 

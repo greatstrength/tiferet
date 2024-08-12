@@ -85,12 +85,6 @@ container:
             value: app.yml
         type: data
     feature:
-      Add Object Method:
-        data:
-          yaml:
-            class_name: AddObjectMethod
-            module_path: app.commands.object
-        type: dependency
       add_cli_argument:
         data:
           yaml:
@@ -131,6 +125,12 @@ container:
         data:
           yaml:
             class_name: AddObjectAttribute
+            module_path: app.commands.object
+        type: dependency
+      add_object_method:
+        data:
+          yaml:
+            class_name: AddObjectMethod
             module_path: app.commands.object
         type: dependency
       cli_interface_repo:
@@ -322,7 +322,6 @@ features:
           handlers:
           - attribute_id: add_object_method
             name: Add Object Method
-          id: object.add_method
           name: Add Object Method
           request_type_path: app.configs.requests.AddObjectMethod
         new:
@@ -665,7 +664,7 @@ interfaces:
           - model
           help: inner return type for list or dict object method return type
           name_or_flags:
-          - --inner-return-type
+          - --return-inner-type
           type: str
         - help: object id for model object method return type
           name_or_flags:
@@ -1237,6 +1236,12 @@ objects:
     class_name: StringSettings
     description: Type-specific settings for an string attribute.
     group_id: object
+    methods:
+    - description: Initializes a new StringSettings object.
+      name: new
+      return_type: model
+      return_type_object_id: string_settings
+      type: factory
     name: String Settings
     type: value_object
   value_object:

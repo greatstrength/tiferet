@@ -144,7 +144,7 @@ class AddObjectMethod(object):
         assert _object is not None, f'OBJECT_NOT_FOUND: {object_id}'
 
         # Create a new object method.
-        method = ObjectMethod.new(object_id, **kwargs)
+        method = ObjectMethod.new(**kwargs)
 
         # Assert that the method does not already exist.
         assert not _object.has_method(method.name), f'OBJECT_METHOD_ALREADY_EXISTS: {method.name}'
