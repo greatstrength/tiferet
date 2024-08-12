@@ -974,6 +974,18 @@ objects:
     class_name: Error
     description: An error object.
     group_id: error
+    methods:
+    - description: Initializes a new Error object.
+      name: new
+      return_type: model
+      return_type_object_id: error
+      type: factory
+    - description: Sets the format arguments for the error messages.
+      name: set_format_args
+      type: state
+    - description: Returns the error message text for the specified language.
+      name: get_message
+      type: state
     name: Error
     type: entity
   error_message:
@@ -989,6 +1001,10 @@ objects:
     class_name: ErrorMessage
     description: An error message object.
     group_id: error
+    methods:
+    - description: Formats the error message text.
+      name: format
+      type: state
     name: Error Message
     type: value_object
   feature:

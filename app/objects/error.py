@@ -65,6 +65,45 @@ class Error(Entity):
         )
     )
 
+    @staticmethod
+    def new(name: str, id: str = None, error_code: str = None, **kwargs) -> 'Error':
+        '''Initializes a new Error object.
+
+        :param name: The name of the error.
+        :type name: str
+        :param id: The unique identifier for the error.
+        :type id: str
+        :param error_code: The error code for the error.
+        :type error_code: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new Error object.
+        '''
+
+        # Upper snake case the name.
+        name = name.upper()
+
+        # Set the error code as the name if not provided.
+        if not error_code:
+            error_code = name
+
+        # Set Id as the name if not provided.
+        if not id:
+            id = name
+
+        # Create a new Error object.
+        obj = Error(dict(
+            id=id,
+            name=name,
+            error_code=error_code,
+            **kwargs),
+            strict=False
+        )
+
+        # Validate and return the new Error object.
+        obj.validate()
+        return obj
+
     def set_format_args(self, *args):
         '''
         Sets the format arguments for the error messages.
@@ -105,42 +144,3 @@ class Error(Entity):
 
             # Return the error message text.
             return text
-
-    @staticmethod
-    def new(name: str, id: str = None, error_code: str = None, **kwargs) -> 'Error':
-        '''Initializes a new Error object.
-
-        :param name: The name of the error.
-        :type name: str
-        :param id: The unique identifier for the error.
-        :type id: str
-        :param error_code: The error code for the error.
-        :type error_code: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new Error object.
-        '''
-
-        # Upper snake case the name.
-        name = name.upper()
-
-        # Set the error code as the name if not provided.
-        if not error_code:
-            error_code = name
-
-        # Set Id as the name if not provided.
-        if not id:
-            id = name
-
-        # Create a new Error object.
-        obj = Error(dict(
-            id=id,
-            name=name,
-            error_code=error_code,
-            **kwargs),
-            strict=False
-        )
-
-        # Validate and return the new Error object.
-        obj.validate()
-        return obj
