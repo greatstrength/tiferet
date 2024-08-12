@@ -6,6 +6,7 @@ from schematics.transforms import wholelist, whitelist, blacklist
 from ..objects.data import ModelData
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
+from ..objects.object import ObjectMethod
 
 
 class ObjectAttributeData(ObjectAttribute, ModelData):
@@ -28,6 +29,26 @@ class ObjectAttributeData(ObjectAttribute, ModelData):
         }
 
 
+class ObjectMethodData(ObjectMethod, ModelData):
+    '''
+    A data representation of an object method.
+    '''
+
+    class Options():
+        '''
+        The options for the object method data.
+        '''
+
+        # Set the serialize when none flag to false.
+        serialize_when_none = False
+
+        # Define the roles for the object method data.
+        roles = {
+            'to_object.yaml': wholelist(),
+            'to_data.yaml': wholelist()
+        }
+
+
 class ModelObjectData(ModelObject, ModelData):
     '''A data representation of a model object.'''
 
@@ -43,8 +64,19 @@ class ModelObjectData(ModelObject, ModelData):
             'to_object.yaml': wholelist()
         }
 
-    id = t.StringType()
-    attributes = t.ListType(t.ModelType(ObjectAttributeData), default=[])
+    id = t.StringType(
+        metadata=dict(
+            description='The model object unique identifier.'
+        )
+    )
+
+    attributes = t.ListType(
+        t.ModelType(ObjectAttributeData), 
+        default=[],
+        metadata=dict(
+            description='The model object attributes.'
+        )
+    )
 
     @staticmethod
     def new(**kwargs):
