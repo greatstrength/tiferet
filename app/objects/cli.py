@@ -145,7 +145,15 @@ class CliArgument(obj.ValueObject):
         # Return argument
         return argument
 
-    def get_name(self):
+    def get_name(self) -> str:
+        '''
+        Returns the name of the CLI argument.
+
+        :return: The name of the CLI argument.
+        :rtype: str
+        '''
+
+        # Loop through the name_or_flags list and return the first name that is not a flag.
         for name in self.name_or_flags:
             if name.startswith('--'):
                 return name.replace('--', '').replace('-', '_')
@@ -153,6 +161,8 @@ class CliArgument(obj.ValueObject):
                 continue
             else:
                 return name
+
+        # Return None if no name was found.
         return None
 
 
@@ -227,9 +237,9 @@ class CliCommand(obj.Entity):
         command.validate()
         return command
 
-    def argument_exists(self, flags: List[str]) -> bool:
+    def has_argument(self, flags: List[str]) -> bool:
         '''
-        Returns True if an argument exists with the specified flags.
+        Returns True if arguments exists with the specified flags.
 
         :param flags: The flags of the argument.
         :type flags: list
@@ -244,7 +254,15 @@ class CliCommand(obj.Entity):
         # Return False if no argument was found
         return False
 
-    def add_argument(self, argument: CliArgument) -> None:
+    def add_argument(self, argument: CliArgument):
+        '''
+        Adds an argument to the CLI command.
+
+        :param argument: The argument to add to the CLI command.
+        :type argument: CliArgument
+        '''
+
+        # Add the argument to the list of arguments.
         self.arguments.append(argument)
 
 
@@ -289,7 +307,7 @@ class CliInterface(obj.Entity):
         interface.validate()
         return interface
 
-    def add_command(self, command: CliCommand) -> None:
+    def add_command(self, command: CliCommand):
         '''
         Adds a command to the CLI interface.
         
@@ -302,7 +320,7 @@ class CliInterface(obj.Entity):
 
     def get_command(self, feature_id: str, **kwargs) -> CliCommand:
         '''
-        Returns the command with the specified feature ID.
+        Returns the command with the specified feature identifier.
 
         :param feature_id: The feature ID of the command.
         :type feature_id: str
@@ -317,7 +335,7 @@ class CliInterface(obj.Entity):
 
     def has_parent_argument(self, flags: List[str]) -> bool:
         '''
-        Returns True if a parent argument exists with the specified flags.
+        Returns True if parent arguments exist with the specified flags.
         
         :param flags: The flags of the parent argument.
         :type flags: list
@@ -333,7 +351,7 @@ class CliInterface(obj.Entity):
         # Return False if no parent argument was found.
         return False
 
-    def add_parent_argument(self, argument: CliArgument) -> None:
+    def add_parent_argument(self, argument: CliArgument):
         '''
         Adds a parent argument to the CLI interface.
 
@@ -344,9 +362,9 @@ class CliInterface(obj.Entity):
         # Add the argument to the list of parent arguments.
         self.parent_arguments.append(argument)
 
-    def set_argument(self, argument: CliArgument, arg_type: str, feature_id: str = None) -> None:
+    def set_argument(self, argument: CliArgument, arg_type: str, feature_id: str = None):
         '''
-        Sets a CLI argument to the CLI interface.
+        Sets an argument to the CLI interface.
 
         :param argument: The CLI argument to set.
         :type argument: CliArgument
@@ -369,7 +387,7 @@ class CliInterface(obj.Entity):
             assert command is not None, 'CLI_COMMAND_NOT_FOUND'
 
             # Assert that the argument does not already exist.
-            assert not command.argument_exists(
+            assert not command.has_argument(
                 argument.name_or_flags), f'CLI_ARGUMENT_ALREADY_EXISTS: {argument.name_or_flags}'
 
             # Add the argument to the command.

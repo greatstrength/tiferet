@@ -753,6 +753,16 @@ objects:
     description: A Command Line Interface (CLI) argument for use in a CLI command
       or as a parent argument in a CLI interface
     group_id: cli
+    methods:
+    - description: Initializes a new CliArgument object.
+      name: new
+      return_type: model
+      return_type_object_id: cli_argument
+      type: factory
+    - description: Returns the name of the CLI argument.
+      name: get_name
+      return_type: str
+      type: state
     name: CLI Argument
     type: value_object
   cli_command:
@@ -781,6 +791,19 @@ objects:
     class_name: CliCommand
     description: A Command Line Interface (CLI) command for use in a CLI interface.
     group_id: cli
+    methods:
+    - description: Initializes a new CliCommand object.
+      name: new
+      return_type: model
+      return_type_object_id: cli_command
+      type: factory
+    - description: Returns True if arguments exists with the specified flags.
+      name: has_argument
+      return_type: bool
+      type: state
+    - description: Adds an argument to the CLI command.
+      name: add_argument
+      type: state
     name: CLI Command
     type: entity
   cli_interface:
@@ -799,6 +822,30 @@ objects:
     class_name: CliInterface
     description: A Command Line Interface (CLI) interface for use in a CLI application.
     group_id: cli
+    methods:
+    - description: Initializes a new CliInterface object.
+      name: new
+      return_type: model
+      return_type_object_id: cli_interface
+      type: factory
+    - description: Adds a command to the CLI interface.
+      name: add_command
+      type: state
+    - description: Returns the command with the specified feature identifier.
+      name: get_command
+      return_type: model
+      return_type_object_id: cli_command
+      type: state
+    - description: Returns True if parent arguments exist with the specified flags.
+      name: has_parent_argument
+      return_type: bool
+      type: state
+    - description: Adds a parent argument to the CLI interface.
+      name: add_parent_argument
+      type: state
+    - description: Sets an argument to the CLI interface.
+      name: set_argument
+      type: state
     name: CLI Interface
     type: entity
   container_attribute:
