@@ -60,6 +60,26 @@ METHOD_RETURN_INNER_TYPES = [
     'datetime',
     'model'
 ]
+METHOD_PARAMETER_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'list',
+    'dict',
+    'model'
+]
+METHOD_PARAMETER_INNER_TYPES = [
+    'str',
+    'int',
+    'float',
+    'bool',
+    'date',
+    'datetime',
+    'model'
+]
 
 
 class Entity(Model):
@@ -402,6 +422,76 @@ class ObjectAttribute(ValueObject):
         ), strict=False)
 
         # Validate and return the new ModelAttribute object.
+        obj.validate()
+        return obj
+
+
+class ObjectMethodParameter(ValueObject):
+    '''
+    A model object method parameter.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the object method parameter.'
+        )
+    )
+
+    type = t.StringType(
+        required=True,
+        choices=METHOD_PARAMETER_TYPES,
+        metadata=dict(
+            description='The data type of the object method parameter.'
+        )
+    )
+
+    inner_type = t.StringType(
+        choices=METHOD_PARAMETER_INNER_TYPES,
+        metadata=dict(
+            description='The inner data type for object method parameters that are lists or dicts.'
+        )
+    )
+
+    type_object_id = t.StringType(
+        metadata=dict(
+            description='The object identifier for the parameter type for object method parameters with a model type or inner type.'
+        )
+    )
+
+    required = t.BooleanType(
+        metadata=dict(
+            description='True if the object method parameter is required.'
+        )
+    )
+
+    default = t.StringType(
+        metadata=dict(
+            description='The default value for the object method parameter.'
+        )
+    )
+
+    @staticmethod
+    def new(name: str, **kwargs) -> 'ObjectMethodParameter':
+        '''
+        Initializes a new ObjectMethodParameter object.
+
+        :param name: The name of the object method parameter.
+        :type name: str
+        :return: A new ObjectMethodParameter object.
+        :rtype: ObjectMethodParameter
+        '''
+
+        # Convert name to snake case.
+        name = name.lower().replace(' ', '_')
+
+        # Create a new ObjectMethodParameter object.
+        obj = ObjectMethodParameter(dict(
+            name=name,
+            **kwargs
+        ), strict=False)
+
+        # Validate and return the new ObjectMethodParameter object.
         obj.validate()
         return obj
 

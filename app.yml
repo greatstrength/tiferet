@@ -1044,6 +1044,7 @@ objects:
       type: state
     - description: Returns the error message text for the specified language.
       name: get_message
+      return_type: str
       type: state
     name: Error
     type: entity
@@ -1163,7 +1164,7 @@ objects:
     - description: Maps the model data to a model object.
       name: map
       return_type: model
-      return_type_object_id: model_data
+      return_type_object_id: model_object
       type: state
     name: Model Data
     type: entity
@@ -1365,6 +1366,57 @@ objects:
       return_type_object_id: object_method
       type: factory
     name: Object Method
+    type: value_object
+  object_method_parameter:
+    attributes:
+    - description: The name of the object method parameter.
+      name: name
+      required: true
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - date
+      - datetime
+      - list
+      - dict
+      - model
+      description: The data tyoe of the object method parameter.
+      name: type
+      required: true
+      type: str
+    - choices:
+      - str
+      - int
+      - float
+      - date
+      - datetme
+      - model
+      description: The inner data type for object method parameters that are lists
+        or dicts.
+      name: inner_type
+      type: str
+    - description: The object identifier for the parameter type for object method
+        parameters with a model type or inner type.
+      name: type_object_id
+      type: str
+    - description: True if the object method parameter is required.
+      name: required
+      type: bool
+    - description: The default value for the object method parameter.
+      name: default
+      type: str
+    class_name: ObjectMethodParameter
+    description: A model object method parameter.
+    group_id: object
+    methods:
+    - description: Initializes a new ObjectMethodParameter object.
+      name: new
+      return_type: model
+      return_type_object_id: object_method_parameter
+      type: factory
+    name: Object Method Parameter
     type: value_object
   object_type_settings:
     class_name: ObjectTypeSettings

@@ -2,6 +2,8 @@ from schematics import Model, types as t
 from schematics.types.serializable import serializable
 from schematics.transforms import wholelist, whitelist, blacklist
 
+from ..objects.object import ModelObject
+
 
 class ModelData(Model):
     '''
@@ -24,7 +26,7 @@ class ModelData(Model):
         # Create a new ModelData object.
         return ModelData(data, **kwargs)
 
-    def map(self, type: type, role: str = 'to_object', **kwargs) -> 'ModelData':
+    def map(self, type: type, role: str = 'to_object', **kwargs) -> ModelObject:
         '''
         Maps the model data to a model object.
 
