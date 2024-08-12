@@ -93,10 +93,8 @@ class DataAttribute(ContainerAttribute):
             strict=False
         )
 
-        # Validate the new DataAttribute object.
+        # Validate and return the new DataAttribute object.
         obj.validate()
-
-        # Return the new DataAttribute object.
         return obj
 
 
@@ -133,8 +131,6 @@ class DependencyAttribute(ContainerAttribute):
             strict=False
         )
 
-        # Validate the new DependencyAttribute object.
+        # Validate and return the new DependencyAttribute object.
         obj.validate()
-
-        # Return the new DependencyAttribute object.
         return obj
