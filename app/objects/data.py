@@ -8,6 +8,22 @@ class ModelData(Model):
     A data representation of a model object.
     '''
 
+    @staticmethod
+    def new(data: dict, **kwargs) -> 'ModelData':
+        '''
+        Initializes a new ModelData object.
+
+        :param data: The data for the model object.
+        :type data: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ModelData object.
+        :rtype: ModelData
+        '''
+
+        # Create a new ModelData object.
+        return ModelData(data, **kwargs)
+
     def map(self, type: type, role: str = 'to_object', **kwargs) -> 'ModelData':
         '''
         Maps the model data to a model object.
@@ -30,19 +46,3 @@ class ModelData(Model):
 
         # Return the model data.
         return _data
-
-    @staticmethod
-    def new(data: dict, **kwargs) -> 'ModelData':
-        '''
-        Initializes a new ModelData object.
-
-        :param data: The data for the model object.
-        :type data: dict
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ModelData object.
-        :rtype: ModelData
-        '''
-
-        # Create a new ModelData object.
-        return ModelData(data, **kwargs)

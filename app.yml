@@ -1095,6 +1095,17 @@ objects:
     class_name: ModelData
     description: A data representation of a model object.
     group_id: data
+    methods:
+    - description: Initializes a new ModelData object.
+      name: new
+      return_type: model
+      return_type_object_id: model_data
+      type: factory
+    - description: Maps the model data to a model object.
+      name: map
+      return_type: model
+      return_type_object_id: model_data
+      type: state
     name: Model Data
     type: entity
   model_object:
