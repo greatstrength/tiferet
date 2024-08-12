@@ -347,7 +347,7 @@ class ObjectAttribute(ValueObject):
     )
 
     type = t.StringType(
-        required=True, 
+        required=True,
         choices=ATTRIBUTE_TYPES,
         metadata=dict(
             description='The object attribute data type.'
@@ -368,7 +368,7 @@ class ObjectAttribute(ValueObject):
     )
 
     poly_type_object_ids = t.ListType(
-        t.StringType(), 
+        t.StringType(),
         default=[],
         metadata=dict(
             description='The object identifiers for an object attribute with a poly type.'
@@ -388,7 +388,7 @@ class ObjectAttribute(ValueObject):
     )
 
     choices = t.ListType(
-        t.StringType(), 
+        t.StringType(),
         default=[],
         metadata=dict(
             description='The set of valid object attribute values.'
@@ -543,6 +543,14 @@ class ObjectMethod(ValueObject):
         )
     )
 
+    parameters = t.ListType(
+        t.ModelType(ObjectMethodParameter),
+        default=[],
+        metadata=dict(
+            description='The parameters for the object method.'
+        )
+    )
+
     @staticmethod
     def new(name: str, **kwargs) -> 'ObjectMethod':
         '''
@@ -566,6 +574,35 @@ class ObjectMethod(ValueObject):
         # Validate and return the new ObjectMethod object.
         obj.validate()
         return obj
+
+    def has_parameter(self, name: str) -> bool:
+        '''
+        Returns True if the parameter exists in the object method.
+
+        :param name: The name of the parameter.
+        :type name: str
+        :return: True if the parameter exists in the object method.
+        :rtype: bool
+        '''
+
+        # Format the parameter name.
+        parameter_name = name.lower().replace(' ', '_')
+
+        # Return True if the parameter exists in the object method.
+        return any([parameter.name == parameter_name for parameter in self.parameters])
+
+    def add_parameter(self, parameter: 'ObjectMethodParameter', **kwargs):
+        '''
+        Adds a parameter to the object method.
+
+        :param parameter: The parameter to add to the object method.
+        :type parameter: ObjectMethodParameter
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Add the parameter to the object method.
+        self.parameters.append(parameter)
 
 
 class ModelObject(Entity):

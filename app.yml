@@ -1356,6 +1356,12 @@ objects:
         return type or inner return type.
       name: return_type_object_id
       type: str
+    - default: '[]'
+      description: The parameters for the object method.
+      inner_type: model
+      name: parameters
+      type: list
+      type_object_id: object_method_parameter
     class_name: ObjectMethod
     description: A model object method.
     group_id: object
@@ -1365,6 +1371,13 @@ objects:
       return_type: model
       return_type_object_id: object_method
       type: factory
+    - description: Returns True if the parameter exists in the object method.
+      name: has_parameter
+      return_type: bool
+      type: state
+    - description: Adds a parameter to the object method.
+      name: add_parameter
+      type: state
     name: Object Method
     type: value_object
   object_method_parameter:
