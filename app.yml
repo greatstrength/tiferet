@@ -1019,6 +1019,12 @@ objects:
     class_name: Feature
     description: A feature object.
     group_id: feature
+    methods:
+    - description: Initializes a new Feature object.
+      name: new
+      return_type: model
+      return_type_object_id: feature
+      type: factory
     name: Feature
     type: entity
   feature_handler:
