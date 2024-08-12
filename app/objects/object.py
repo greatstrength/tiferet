@@ -38,7 +38,7 @@ DATE_TIME_SETTINGS_TZD_TYPES = [
 ]
 METHOD_TYPES = [
     'factory',
-    'behavior',
+    'state',
 ]
 METHOD_RETURN_TYPES = [
     'str',
@@ -277,10 +277,8 @@ class ListSettings(ObjectTypeSettings):
             **kwargs
         ), strict=False)
 
-        # Validate the new ListSettings object.
+        # Validate and return the new ListSettings object.
         obj.validate()
-
-        # Return the new ListSettings object.
         return obj
 
 
@@ -304,7 +302,7 @@ class DictSettings(ObjectTypeSettings):
             **kwargs
         ), strict=False)
 
-        # Validate the new DictSettings object.
+        # Validate and return the new DictSettings object.
         obj.validate()
         return obj
 
@@ -314,17 +312,75 @@ class ObjectAttribute(ValueObject):
     A model object attribute.
     '''
 
-    name = t.StringType(required=True)
-    description = t.StringType(required=True)
-    type = t.StringType(required=True, choices=ATTRIBUTE_TYPES)
-    inner_type = t.StringType(choices=ATTRIBUTE_INNER_TYPES)
-    type_object_id = t.StringType()
-    poly_type_object_ids = t.ListType(t.StringType(), default=[])
-    required = t.BooleanType()
-    default = t.StringType()
-    choices = t.ListType(t.StringType(), default=[])
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The object attribute name.'
+        )
+    )
+
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The object attribute description for inline documentation.'
+        )
+    )
+
+    type = t.StringType(
+        required=True, 
+        choices=ATTRIBUTE_TYPES,
+        metadata=dict(
+            description='The object attribute data type.'
+        )
+    )
+
+    inner_type = t.StringType(
+        choices=ATTRIBUTE_INNER_TYPES,
+        metadata=dict(
+            description='The object attribute inner data type if the base type is a list or dict.'
+        )
+    )
+
+    type_object_id = t.StringType(
+        metadata=dict(
+            description='The object identifier for the attribute type for object attributes with a model type or inner type.'
+        )
+    )
+
+    poly_type_object_ids = t.ListType(
+        t.StringType(), 
+        default=[],
+        metadata=dict(
+            description='The object identifiers for an object attribute with a poly type.'
+        )
+    )
+
+    required = t.BooleanType(
+        metadata=dict(
+            description='True if a value for the object attribute is required.'
+        )
+    )
+
+    default = t.StringType(
+        metadata=dict(
+            description='The object attribute default value.'
+        )
+    )
+
+    choices = t.ListType(
+        t.StringType(), 
+        default=[],
+        metadata=dict(
+            description='The set of valid object attribute values.'
+        )
+    )
+
     type_settings = t.PolyModelType(
-        [StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings])
+        [StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings],
+        metadata=dict(
+            description='The type-specific settings for the object attribute.'
+        )
+    )
 
     @staticmethod
     def new(name: str, **kwargs) -> 'ObjectAttribute':
@@ -378,7 +434,6 @@ class ObjectMethod(ValueObject):
     )
 
     return_type = t.StringType(
-        required=True,
         choices=METHOD_RETURN_TYPES,
         metadata=dict(
             description='The return type of the object method.'

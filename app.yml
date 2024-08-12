@@ -646,6 +646,7 @@ interfaces:
           - str
           - int
           - float
+          - bool
           - date
           - datetime
           - list
@@ -851,6 +852,12 @@ objects:
     class_name: DateSettings
     description: Type-specific settings for an date object attribute.
     group_id: object
+    methods:
+    - description: Initializes a new DateSettings object.
+      name: new
+      return_type: model
+      return_type_object_id: date_settings
+      type: factory
     name: Date Settings
     type: value_object
   date_time_settings:
@@ -881,6 +888,12 @@ objects:
     class_name: DateTimeSettings
     description: Type-specific settings for a datetime object attribute.
     group_id: object
+    methods:
+    - description: Initializes a DateTimeSettings object.
+      name: new
+      return_type: model
+      return_type_object_id: date_time_settings
+      type: factory
     name: Date Time Settings
     type: value_object
   dependency_attribute:
@@ -924,6 +937,12 @@ objects:
     class_name: DictSettings
     description: Type-specific settings for a dict object attribute.
     group_id: object
+    methods:
+    - description: Initializes a DictSettings object.
+      name: new
+      return_type: model
+      return_type_object_id: dict_settings
+      type: factory
     name: Dict Settings
     type: value_object
   entity:
@@ -1036,6 +1055,12 @@ objects:
     class_name: ListSettings
     description: Type-specific settings for a list object attribute.
     group_id: object
+    methods:
+    - description: Initializes a ListSettings object.
+      name: new
+      return_type: model
+      return_type_object_id: list_settings
+      type: factory
     name: List Settings
     type: value_object
   model_attribute:
@@ -1096,6 +1121,26 @@ objects:
     class_name: ModelObject
     description: A domain model component defined as a class object.
     group_id: object
+    methods:
+    - description: Initializes a new ModelObject object.
+      name: new
+      return_type: model
+      return_type_object_id: model_object
+      type: factory
+    - description: Returns True if the attribute exists in the model object.
+      name: has_attribute
+      return_type: bool
+      type: state
+    - description: Adds an attribute to the model object.
+      name: add_attribute
+      type: state
+    - description: Returns True if the method exists in the model object.
+      name: has_method
+      return_type: bool
+      type: state
+    - description: Adds a method to the model object.
+      name: add_method
+      type: state
     name: Model Object
     type: entity
   object_attribute:
@@ -1104,7 +1149,7 @@ objects:
       name: name
       required: true
       type: str
-    - description: The object attribute description.
+    - description: The object attribute description for inline documentation.
       name: description
       required: true
       type: str
@@ -1135,17 +1180,20 @@ objects:
         or dict.
       name: inner_type
       type: str
-    - description: The ID of the object if the object attribute has a model type or
-        inner type.
+    - description: The object identifier for the attribute type for object attributes
+        with a model type or inner type.
       name: type_object_id
       type: str
-    - description: The list of object IDs if the object attribute has a poly type.
+    - description: The object identifiers for an object attribute with a poly type.
       inner_type: str
       name: poly_type_object_ids
       type: list
     - description: True if a value for the object attribute is required.
       name: required
       type: bool
+    - description: The object attribute deault value.
+      name: default
+      type: str
     - description: The set of valid object attribute values.
       inner_type: str
       name: choices
@@ -1162,6 +1210,12 @@ objects:
     class_name: ObjectAttribute
     description: A model object attribute.
     group_id: object
+    methods:
+    - description: Initializes a new ObjectAttribute object.
+      name: new
+      return_type: model
+      return_type_object_id: object_attribute
+      type: factory
     name: Object Attribute
     type: value_object
   object_method:
@@ -1212,6 +1266,12 @@ objects:
     class_name: ObjectMethod
     description: A model object method.
     group_id: object
+    methods:
+    - description: Initializes a new ObjectMethod object.
+      name: new
+      return_type: model
+      return_type_object_id: object_method
+      type: factory
     name: Object Method
     type: value_object
   object_type_settings:
