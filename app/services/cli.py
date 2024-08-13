@@ -58,7 +58,7 @@ def create_headers(data: dict):
         group_id=data.pop('group'),
         command_id=data.pop('command'),
     )
-    headers['feature_id'] = f"{headers['group_id']}.{headers['command_id']}".replace(
+    headers['id'] = f"{headers['group_id']}.{headers['command_id']}".replace(
         '-', '_')
     return headers
 
@@ -120,7 +120,13 @@ def create_request(request: argparse.Namespace, cli_interface: CliInterface, **k
         data[key] = map_object_input(value, argument)
 
     # Create request context.
-    return RequestContext(data=data, headers=headers, **headers, **kwargs)
+    return RequestContext(
+        feature_id=command.feature_id,
+        data=data,
+        headers=headers,
+        **headers,
+        **kwargs
+    )
 
 
 def map_object_input(data: Any, argument: CliArgument):

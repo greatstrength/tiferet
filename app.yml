@@ -348,6 +348,7 @@ features:
           - attribute_id: add_object_method_parameters
             name: Add Method Parameters
           name: Add Method Parameters
+          request_type_path: app.configs.requests.AddObjectMethodParameters
         new:
           functions:
           - attribute_id: add_new_object
@@ -723,6 +724,7 @@ interfaces:
           - --params
           - -p
           required: true
+          to_data: true
           type: str
         feature_id: object.add_method_parameters
         group_id: object
@@ -1514,6 +1516,11 @@ objects:
     methods:
     - description: Initializes a new StringSettings object.
       name: new
+      parameters:
+      - name: min_length
+        type: int
+      - name: max_length
+        type: int
       return_type: model
       return_type_object_id: string_settings
       type: factory

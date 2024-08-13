@@ -326,12 +326,11 @@ class CliInterface(obj.Entity):
         # Add the command to the list of commands.
         self.commands.append(command)
 
-    def get_command(self, feature_id: str, **kwargs) -> CliCommand:
+    def get_command(self, id: str, **kwargs) -> CliCommand:
         '''
         Returns the command with the specified feature identifier.
 
-        :param feature_id: The feature ID of the command.
-        :type feature_id: str
+        :param id: The command identifier.
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The command with the specified feature ID.
@@ -339,7 +338,7 @@ class CliInterface(obj.Entity):
         '''
 
         # Return the command with the specified feature ID.
-        return next((command for command in self.commands if command.feature_id == feature_id), None)
+        return next((command for command in self.commands if command.id == id), None)
 
     def has_parent_argument(self, flags: List[str]) -> bool:
         '''
