@@ -7,6 +7,8 @@ from ..objects.data import ModelData
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
+from ..objects.object import ObjectMethodParameter
+
 
 
 class ObjectAttributeData(ObjectAttribute, ModelData):
@@ -23,6 +25,26 @@ class ObjectAttributeData(ObjectAttribute, ModelData):
         serialize_when_none = False
 
         # Define the roles for the object attribute data.
+        roles = {
+            'to_object.yaml': wholelist(),
+            'to_data.yaml': wholelist()
+        }
+
+
+class ObjectMethodParameterData(ObjectMethodParameter, ModelData):
+    '''
+    A data representation of an object method parameter.
+    '''
+
+    class Options():
+        '''
+        The options for the object method parameter data.
+        '''
+
+        # Set the serialize when none flag to false.
+        serialize_when_none = False
+
+        # Define the roles for the object method parameter data.
         roles = {
             'to_object.yaml': wholelist(),
             'to_data.yaml': wholelist()
@@ -47,6 +69,14 @@ class ObjectMethodData(ObjectMethod, ModelData):
             'to_object.yaml': wholelist(),
             'to_data.yaml': wholelist()
         }
+
+    parameters = t.ListType(
+        t.ModelType(ObjectMethodParameterData),
+        default=[],
+        metadata=dict(
+            description='The model object method parameters.'
+        )
+    )
 
 
 class ModelObjectData(ModelObject, ModelData):
