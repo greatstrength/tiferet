@@ -8,6 +8,7 @@ from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
+from ..objects.object import ObjectMethodParameter
 from ..objects.container import ContainerAttribute
 from ..objects.error import ErrorMessage
 from ..objects.feature import FeatureHandler
@@ -21,6 +22,7 @@ class AddCliCommand(Model):
     name = t.StringType(required=True)
     help = t.StringType(required=True, deserialize_from=[
                         'help', 'description'])
+    feature_key = t.StringType()
 
 
 class AddCliArgument(Model):
@@ -81,3 +83,10 @@ class AddObjectAttribute(ObjectAttribute):
 class AddObjectMethod(ObjectMethod):
 
     object_id = t.StringType(required=True)
+
+
+class AddObjectMethodParameters(Model):
+
+    object_id = t.StringType(required=True)
+    method_name = t.StringType(required=True)
+    params_data = t.ListType(t.ModelType(ObjectMethodParameter), required=True, deserialize_from=['params'])

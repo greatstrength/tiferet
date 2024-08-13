@@ -133,6 +133,12 @@ container:
             class_name: AddObjectMethod
             module_path: app.commands.object
         type: dependency
+      add_object_method_parameters:
+        data:
+          yaml:
+            class_name: AddObjectMethodParameters
+            module_path: app.commands.object
+        type: dependency
       cli_interface_repo:
         data:
           yaml:
@@ -336,6 +342,12 @@ features:
             name: Add Object Method
           name: Add Object Method
           request_type_path: app.configs.requests.AddObjectMethod
+        add_method_parameters:
+          description: Adds parameters to a model object method.
+          handlers:
+          - attribute_id: add_object_method_parameters
+            name: Add Method Parameters
+          name: Add Method Parameters
         new:
           functions:
           - attribute_id: add_new_object
@@ -453,6 +465,10 @@ interfaces:
           name_or_flags:
           - --description
           - -d
+          type: str
+        - help: cli command feature key
+          name_or_flags:
+          - --feature-key
           type: str
         feature_id: cli.add_command
         group_id: cli
@@ -687,6 +703,31 @@ interfaces:
         group_id: object
         help: add method to model object
         name: Add Object Method
+      object.add_method_params:
+        arguments:
+        - help: parent object id
+          name_or_flags:
+          - --object-id
+          - -o
+          required: true
+          type: str
+        - help: parent method name
+          name_or_flags:
+          - --method-name
+          - -m
+          required: true
+          type: str
+        - action: append
+          help: object method parameters
+          name_or_flags:
+          - --params
+          - -p
+          required: true
+          type: str
+        feature_id: object.add_method_parameters
+        group_id: object
+        help: add model object method parameters
+        name: Add Method Parameters
       object.new:
         arguments:
         - help: model object name

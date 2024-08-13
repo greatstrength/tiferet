@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 from ..objects.object import ModelObject
 from ..objects.object import ObjectMethod
 from ..objects.object import ObjectMethodParameter
@@ -95,7 +97,8 @@ class AddObjectAttribute(object):
         attribute = object_service.create_attribute(object_id, **kwargs)
 
         # Assert that the attribute does not already exist.
-        assert not _object.has_attribute(attribute.name), f'OBJECT_ATTRIBUTE_ALREADY_EXISTS: {attribute.name}'
+        assert not _object.has_attribute(
+            attribute.name), f'OBJECT_ATTRIBUTE_ALREADY_EXISTS: {attribute.name}'
 
         # Validate the attribute.
         object_service.validate_attribute(self.object_repo, attribute)
@@ -148,7 +151,8 @@ class AddObjectMethod(object):
         method = ObjectMethod.new(**kwargs)
 
         # Assert that the method does not already exist.
-        assert not _object.has_method(method.name), f'OBJECT_METHOD_ALREADY_EXISTS: {method.name}'
+        assert not _object.has_method(
+            method.name), f'OBJECT_METHOD_ALREADY_EXISTS: {method.name}'
 
         # Add the method to the object.
         _object.add_method(method)
@@ -158,9 +162,9 @@ class AddObjectMethod(object):
 
         # Return the object.
         return _object
-    
 
-class AddObjectMethodParameter(object):
+
+class AddObjectMethodParameters(object):
     '''
     Command to add a new object method parameter.
     '''
@@ -176,7 +180,7 @@ class AddObjectMethodParameter(object):
         # Set the object repository.
         self.object_repo = object_repo
 
-    def execute(self, object_id: str, method_name: str, **kwargs) -> ModelObject:
+    def execute(self, object_id: str, method_name: str, params_data: List[Any], **kwargs) -> ModelObject:
         '''
         Execute the command to add a new object method parameter.
 
@@ -202,17 +206,20 @@ class AddObjectMethodParameter(object):
         # Assert that the method exists.
         assert method is not None, f'OBJECT_METHOD_NOT_FOUND: {_object.name},{method_name}'
 
-        # Create a new object method parameter.
-        parameter = ObjectMethodParameter.new(
-            name=method_name, 
-            **kwargs
-        )
+        # For each parameter data...
+        for params in params_data:
 
-        # Assert that the parameter does not already exist.
-        assert not method.has_parameter(parameter.name), f'OBJECT_METHOD_PARAMETER_ALREADY_EXISTS: {_object.class_name},{method_name},{parameter.name}'
+            # Create a new object method parameter.
+            parameter = ObjectMethodParameter.new(
+                **params
+            )
 
-        # Add the parameter to the method.
-        method.add_parameter(parameter)
+            # Assert that the parameter does not already exist.
+            assert not method.has_parameter(
+                parameter.name), f'OBJECT_METHOD_PARAMETER_ALREADY_EXISTS: {_object.class_name},{method_name},{parameter.name}'
+
+            # Add the parameter to the method.
+            method.add_parameter(parameter)
 
         # Save the object.
         self.object_repo.save(_object)

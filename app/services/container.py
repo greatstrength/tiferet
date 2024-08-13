@@ -42,6 +42,9 @@ def create_attribute(id: str, type: str, data: List[str], **kwargs) -> Container
         key, value = item.split('=')
         data_dict[key] = value
 
+    # Format the id to lower case snake case.
+    id = id.lower().replace(' ', '_')
+
     # Create attribute object.
     try:
         if type == CONTAINER_ATTRIBUTE_TYPE_DATA:

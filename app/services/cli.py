@@ -85,7 +85,7 @@ def create_cli_parser(cli_interface: CliInterface):
         subcommand_subparsers = command_subparser.add_subparsers(
             dest='command')
         for command in commands:
-            command_name = command.feature_id.split('.')[-1].replace('_', '-')
+            command_name = command.id.split('.')[-1].replace('_', '-')
             subcommand_subparser = subcommand_subparsers.add_parser(
                 command_name)
             for argument in command.arguments:

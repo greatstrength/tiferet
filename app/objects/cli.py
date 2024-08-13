@@ -208,7 +208,7 @@ class CliCommand(obj.Entity):
     )
 
     @staticmethod
-    def new(group_id: str, command_key: str, **kwargs):
+    def new(group_id: str, command_key: str, feature_key: str = None, **kwargs):
         '''
         Initializes a new CliCommand object.
 
@@ -216,19 +216,27 @@ class CliCommand(obj.Entity):
         :type group_id: str
         :param command_key: The key for the CLI command.
         :type command_key: str
+        :param feature_key: The key for the CLI feature.
+        :type feature_key: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new CliCommand object
         :rtype: CliCommand
         '''
 
-        # Create the feature ID by combining the group ID and the command key.
-        feature_id = f'{group_id}.{command_key}'
+        # Set the id as the group ID and command key.
+        id = f'{group_id}.{command_key}'
+
+        # Set the feature key as the command key if it is None.
+        feature_key = command_key if not feature_key else feature_key
+
+        # Set the feature ID as the group ID and feature key.
+        feature_id = f'{group_id}.{feature_key}'
 
         # Create a new CliCommand object.
         command = CliCommand(dict(
             group_id=group_id,
-            id=feature_id,
+            id=id,
             feature_id=feature_id,
             **kwargs
         ), strict=False)
