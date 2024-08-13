@@ -1459,6 +1459,10 @@ objects:
       name: type
       required: true
       type: str
+    - description: The description of the object method parameter for inline documentation
+      name: description
+      required: true
+      type: str
     - choices:
       - str
       - int
@@ -1516,11 +1520,6 @@ objects:
     methods:
     - description: Initializes a new StringSettings object.
       name: new
-      parameters:
-      - name: min_length
-        type: int
-      - name: max_length
-        type: int
       return_type: model
       return_type_object_id: string_settings
       type: factory

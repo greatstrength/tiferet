@@ -446,6 +446,13 @@ class ObjectMethodParameter(ValueObject):
         )
     )
 
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The description of the object method parameter for inline documentation.'
+        )
+    )
+
     inner_type = t.StringType(
         choices=METHOD_PARAMETER_INNER_TYPES,
         metadata=dict(
