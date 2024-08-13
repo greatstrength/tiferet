@@ -80,16 +80,16 @@ class Error(Entity):
         :return: A new Error object.
         '''
 
-        # Upper snake case the name.
-        name = name.upper()
+        # Format name as upper case snake case.
+        name = name.upper().replace(' ', '_')
+        
+        # Set Id as the name if not provided.
+        if not id:
+            id = name
 
         # Set the error code as the name if not provided.
         if not error_code:
             error_code = name
-
-        # Set Id as the name if not provided.
-        if not id:
-            id = name
 
         # Create a new Error object.
         obj = Error(dict(

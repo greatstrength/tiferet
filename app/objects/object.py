@@ -740,11 +740,24 @@ class ModelObject(Entity):
         :rtype: bool
         '''
 
+        # Return True if the method exists in the model object.
+        return self.get_method(name) is not None
+    
+    def get_method(self, name: str) -> 'ObjectMethod':
+        '''
+        Returns the method with the specified name.
+
+        :param name: The name of the method.
+        :type name: str
+        :return: The method with the specified name.
+        :rtype: ObjectMethod
+        '''
+
         # Format the method name.
         method_name = name.lower().replace(' ', '_')
 
-        # Return True if the method exists in the model object.
-        return any([method.name == method_name for method in self.methods])
+        # Return the method with the specified name.
+        return next((method for method in self.methods if method.name == method_name), None)
 
     def add_method(self, method: 'ObjectMethod', **kwargs):
         '''

@@ -263,6 +263,18 @@ errors:
     - lang: en_US
       text: Object method with name "{}" already exists on model object "{}"
     name: OBJECT_METHOD_ALREADY_EXISTS
+  OBJECT_METHOD_NOT_FOUND:
+    error_code: OBJECT_METHOD_NOT_FOUND
+    message:
+    - lang: en_US
+      text: Method with name "{}" not found in model object "{}".
+    name: OBJECT_METHOD_NOT_FOUND
+  OBJECT_METHOD_PARAMETER_ALREADY_EXISTS:
+    error_code: OBJECT_METHOD_PARAMETER_ALREADY_EXISTS
+    message:
+    - lang: en_US
+      text: Object method "{}.{}" already has a parameter named "{}".
+    name: OBJECT_METHOD_PARAMETER_ALREADY_EXISTS
   OBJECT_NOT_FOUND:
     message:
     - lang: en_US
@@ -1233,6 +1245,11 @@ objects:
       type: state
     - description: Adds a method to the model object.
       name: add_method
+      type: state
+    - description: Returns the method with the specified name.
+      name: get_method
+      return_type: model
+      return_type_object_id: object_method
       type: state
     name: Model Object
     type: entity

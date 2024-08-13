@@ -1,5 +1,6 @@
 from ..objects.object import ModelObject
 from ..objects.object import ObjectMethod
+from ..objects.object import ObjectMethodParameter
 from ..repositories.object import ObjectRepository
 from ..services import object as object_service
 
@@ -151,6 +152,67 @@ class AddObjectMethod(object):
 
         # Add the method to the object.
         _object.add_method(method)
+
+        # Save the object.
+        self.object_repo.save(_object)
+
+        # Return the object.
+        return _object
+    
+
+class AddObjectMethodParameter(object):
+    '''
+    Command to add a new object method parameter.
+    '''
+
+    def __init__(self, object_repo: ObjectRepository):
+        '''
+        Initialize the command to add a new object method parameter.
+
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        '''
+
+        # Set the object repository.
+        self.object_repo = object_repo
+
+    def execute(self, object_id: str, method_name: str, **kwargs) -> ModelObject:
+        '''
+        Execute the command to add a new object method parameter.
+
+        :param object_id: The object ID.
+        :type object_id: str
+        :param method_name: The method name.
+        :type method_name: str
+        :param kwargs: The keyword arguments.
+        :type kwargs: dict
+        :return: The object.
+        :rtype: ModelObject
+        '''
+
+        # Get the object.
+        _object = self.object_repo.get(object_id)
+
+        # Assert that the object exists.
+        assert _object is not None, f'OBJECT_NOT_FOUND: {object_id}'
+
+        # Get the method.
+        method: ObjectMethod = _object.get_method(method_name)
+
+        # Assert that the method exists.
+        assert method is not None, f'OBJECT_METHOD_NOT_FOUND: {_object.name},{method_name}'
+
+        # Create a new object method parameter.
+        parameter = ObjectMethodParameter.new(
+            name=method_name, 
+            **kwargs
+        )
+
+        # Assert that the parameter does not already exist.
+        assert not method.has_parameter(parameter.name), f'OBJECT_METHOD_PARAMETER_ALREADY_EXISTS: {_object.class_name},{method_name},{parameter.name}'
+
+        # Add the parameter to the method.
+        method.add_parameter(parameter)
 
         # Save the object.
         self.object_repo.save(_object)
