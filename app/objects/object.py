@@ -143,6 +143,8 @@ class StringSettings(ObjectTypeSettings):
         :type min_length: int
         :param max_length: The maximum length for the string object attribute.
         :type max_length: int
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new StringSettings object.
         '''
 
@@ -238,6 +240,8 @@ class DateTimeSettings(ObjectTypeSettings):
         :type convert_tz: bool
         :param drop_tzinfo: Whether to drop the timezone info for the datetime object attribute value.
         :type drop_tzinfo: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new DateTimeSettings object.
         '''
 
@@ -283,6 +287,8 @@ class ListSettings(ObjectTypeSettings):
         :type min_size: int
         :param max_size: The maximum size for a list object attribute value.
         :type max_size: int
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new ListSettings object.
         '''
 
@@ -314,6 +320,8 @@ class DictSettings(ObjectTypeSettings):
         '''
         Initializes a new DictSettings object.
 
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new DictSettings object.
         '''
 
@@ -409,6 +417,8 @@ class ObjectAttribute(ValueObject):
 
         :param name: The name of the object attribute.
         :type name: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new ObjectAttribute object.
         '''
 
@@ -485,6 +495,8 @@ class ObjectMethodParameter(ValueObject):
 
         :param name: The name of the object method parameter.
         :type name: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new ObjectMethodParameter object.
         :rtype: ObjectMethodParameter
         '''
@@ -565,6 +577,8 @@ class ObjectMethod(ValueObject):
         
         :param name: The name of the object method.
         :type name: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new ObjectMethod object.
         :rtype: ObjectMethod
         '''
@@ -598,14 +612,12 @@ class ObjectMethod(ValueObject):
         # Return True if the parameter exists in the object method.
         return any([parameter.name == parameter_name for parameter in self.parameters])
 
-    def add_parameter(self, parameter: 'ObjectMethodParameter', **kwargs):
+    def add_parameter(self, parameter: 'ObjectMethodParameter'):
         '''
         Adds a parameter to the object method.
 
         :param parameter: The parameter to add to the object method.
         :type parameter: ObjectMethodParameter
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
         # Add the parameter to the object method.
@@ -724,14 +736,12 @@ class ModelObject(Entity):
         # Return True if the attribute exists in the model object.
         return any([attribute.name == attribute_name for attribute in self.attributes])
 
-    def add_attribute(self, attribute: 'ObjectAttribute', **kwargs):
+    def add_attribute(self, attribute: 'ObjectAttribute'):
         '''
         Adds an attribute to the model object.
 
         :param attribute: The attribute to add to the model object.
         :type attribute: ObjectAttribute
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
         # Add the attribute to the model object.
@@ -766,7 +776,7 @@ class ModelObject(Entity):
         # Return the method with the specified name.
         return next((method for method in self.methods if method.name == method_name), None)
 
-    def add_method(self, method: 'ObjectMethod', **kwargs):
+    def add_method(self, method: 'ObjectMethod'):
         '''
         Adds a method to the model object.
 

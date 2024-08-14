@@ -1527,11 +1527,14 @@ objects:
       - str
       - int
       - float
+      - bool
       - date
       - datetime
       - list
       - dict
       - model
+      - args
+      - kwargs
       description: The data tyoe of the object method parameter.
       name: type
       required: true
