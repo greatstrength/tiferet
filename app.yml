@@ -999,6 +999,14 @@ objects:
     methods:
     - description: Initializes a DateTimeSettings object.
       name: new
+      parameters:
+      - description: Whether to convert the timezone to UTC for the datetime object
+          value
+        name: convert_tz
+        type: bool
+      - description: Whether to drop the timezone info for the datetime object value.
+        name: drop_tzinfo
+        type: bool
       return_type: model
       return_type_object_id: date_time_settings
       type: factory
@@ -1195,6 +1203,13 @@ objects:
     methods:
     - description: Initializes a ListSettings object.
       name: new
+      parameters:
+      - description: The minimum size for a list object attribute value.
+        name: min_size
+        type: int
+      - description: The maximum size for a list object attribute value.
+        name: max_size
+        type: int
       return_type: model
       return_type_object_id: list_settings
       type: factory
@@ -1272,11 +1287,27 @@ objects:
     methods:
     - description: Initializes a new ModelObject object.
       name: new
+      parameters:
+      - description: The name of the model object.
+        name: name
+        required: true
+        type: str
+      - description: The unique identifier for the model object.
+        name: id
+        type: str
+      - description: The printed class name for the model object.
+        name: class_name
+        type: str
       return_type: model
       return_type_object_id: model_object
       type: factory
     - description: Returns True if the attribute exists in the model object.
       name: has_attribute
+      parameters:
+      - description: The name of the attribute.
+        name: name
+        required: true
+        type: str
       return_type: bool
       type: state
     - description: Adds an attribute to the model object.
@@ -1284,13 +1315,29 @@ objects:
       type: state
     - description: Returns True if the method exists in the model object.
       name: has_method
+      parameters:
+      - description: The name of the method.
+        name: name
+        required: true
+        type: str
       return_type: bool
       type: state
     - description: Adds a method to the model object.
       name: add_method
+      parameters:
+      - description: The method to add to the model object.
+        name: method
+        required: true
+        type: model
+        type_object_id: object_method
       type: state
     - description: Returns the method with the specified name.
       name: get_method
+      parameters:
+      - description: The name of the method.
+        name: name
+        required: true
+        type: str
       return_type: model
       return_type_object_id: object_method
       type: state
@@ -1366,6 +1413,11 @@ objects:
     methods:
     - description: Initializes a new ObjectAttribute object.
       name: new
+      parameters:
+      - description: The name of the object attribute.
+        name: name
+        required: true
+        type: str
       return_type: model
       return_type_object_id: object_attribute
       type: factory
@@ -1428,15 +1480,31 @@ objects:
     methods:
     - description: Initializes a new ObjectMethod object.
       name: new
+      parameters:
+      - description: The name of the object method.
+        name: name
+        required: true
+        type: str
       return_type: model
       return_type_object_id: object_method
       type: factory
     - description: Returns True if the parameter exists in the object method.
       name: has_parameter
+      parameters:
+      - description: The name of the parameter.
+        name: name
+        required: true
+        type: str
       return_type: bool
       type: state
     - description: Adds a parameter to the object method.
       name: add_parameter
+      parameters:
+      - description: The parameter to add to the object method.
+        name: parameter
+        required: true
+        type: model
+        type_object_id: object_method_parameter
       type: state
     name: Object Method
     type: value_object
@@ -1490,6 +1558,11 @@ objects:
     methods:
     - description: Initializes a new ObjectMethodParameter object.
       name: new
+      parameters:
+      - description: The name of the object method parameter.
+        name: name
+        required: true
+        type: str
       return_type: model
       return_type_object_id: object_method_parameter
       type: factory
@@ -1520,6 +1593,13 @@ objects:
     methods:
     - description: Initializes a new StringSettings object.
       name: new
+      parameters:
+      - description: The minimum length for the string object attribute.
+        name: min_length
+        type: int
+      - description: The maximum length for the string object attribute.
+        name: max_length
+        type: int
       return_type: model
       return_type_object_id: string_settings
       type: factory
