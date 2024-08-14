@@ -101,7 +101,7 @@ class Feature(Entity):
     def new(group_id: str, feature_key: str, **kwargs) -> 'Feature':
         '''Initializes a new Feature object.
 
-        :param group_id: The group ID of the feature.
+        :param group_id: The context group identifier of the feature.
         :type group_id: str
         :param feature_key: The key of the feature.
         :type feature_key: str

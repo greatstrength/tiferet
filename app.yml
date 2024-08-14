@@ -1161,6 +1161,15 @@ objects:
     methods:
     - description: Initializes a new Feature object.
       name: new
+      parameters:
+      - description: The context group identifier of the feature.
+        name: group_id
+        required: true
+        type: str
+      - description: The key of the feature.
+        name: feature_key
+        required: true
+        type: str
       return_type: model
       return_type_object_id: feature
       type: factory
