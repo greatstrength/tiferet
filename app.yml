@@ -1099,14 +1099,31 @@ objects:
     methods:
     - description: Initializes a new Error object.
       name: new
+      parameters:
+      - description: The name of the error.
+        name: name
+        required: true
+        type: str
       return_type: model
       return_type_object_id: error
       type: factory
     - description: Sets the format arguments for the error messages.
       name: set_format_args
+      parameters:
+      - description: The format arguments for the error messages.
+        name: args
+        type: args
       type: state
     - description: Returns the error message text for the specified language.
       name: get_message
+      parameters:
+      - default: en_US
+        description: The language of the error message text.
+        name: lang
+        type: str
+      - description: The format arguments for the error message text.
+        name: args
+        type: args
       return_type: str
       type: state
     name: Error
@@ -1127,6 +1144,10 @@ objects:
     methods:
     - description: Formats the error message text.
       name: format
+      parameters:
+      - description: The arguments to format the error message with.
+        name: args
+        type: args
       type: state
     name: Error Message
     type: value_object

@@ -69,7 +69,9 @@ METHOD_PARAMETER_TYPES = [
     'datetime',
     'list',
     'dict',
-    'model'
+    'model',
+    'args',
+    'kwargs'
 ]
 METHOD_PARAMETER_INNER_TYPES = [
     'str',
