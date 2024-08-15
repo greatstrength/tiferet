@@ -216,7 +216,7 @@ class CliCommand(obj.Entity):
         :type group_id: str
         :param command_key: The key for the CLI command.
         :type command_key: str
-        :param feature_key: The key for the CLI feature.
+        :param feature_key: The feature key for the CLI command.
         :type feature_key: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
@@ -249,7 +249,7 @@ class CliCommand(obj.Entity):
         '''
         Returns True if arguments exists with the specified flags.
 
-        :param flags: The flags of the argument.
+        :param flags: The flags to check for.
         :type flags: list
         :return: True if an argument exists with the specified flags.
         :rtype: bool
@@ -259,6 +259,7 @@ class CliCommand(obj.Entity):
         for flag in flags:
             if any([argument for argument in self.arguments if flag in argument.name_or_flags]):
                 return True
+            
         # Return False if no argument was found
         return False
 
@@ -331,6 +332,7 @@ class CliInterface(obj.Entity):
         Returns the command with the specified feature identifier.
 
         :param id: The command identifier.
+        :type id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The command with the specified feature ID.
@@ -344,7 +346,7 @@ class CliInterface(obj.Entity):
         '''
         Returns True if parent arguments exist with the specified flags.
         
-        :param flags: The flags of the parent argument.
+        :param flags: The flags to check for.
         :type flags: list
         :return: True if a parent argument exists with the specified flags.
         :rtype: bool
@@ -377,7 +379,7 @@ class CliInterface(obj.Entity):
         :type argument: CliArgument
         :param arg_type: The type of CLI argument.
         :type arg_type: str
-        :param feature_id: The feature ID if the CLI argument is to be added to a CLI command.
+        :param feature_id: The feature identifier if the CLI argument is to be added to a CLI command.
         :type feature_id: str
         '''
 

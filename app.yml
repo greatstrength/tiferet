@@ -811,6 +811,24 @@ objects:
     methods:
     - description: Initializes a new CliArgument object.
       name: new
+      parameters:
+      - description: The name of the CLI argument.
+        name: name
+        required: true
+        type: str
+      - default: '[]'
+        description: The optional flags for the CLI argument.
+        inner_type: str
+        name: flags
+        type: list
+      - default: 'False'
+        description: True if the CLI argument is required.
+        name: required
+        type: bool
+      - default: 'False'
+        description: True if the CLI argument is positional.
+        name: positional
+        type: bool
       return_type: model
       return_type_object_id: cli_argument
       type: factory
@@ -849,15 +867,38 @@ objects:
     methods:
     - description: Initializes a new CliCommand object.
       name: new
+      parameters:
+      - description: The group identifier for the CLI command.
+        name: group_id
+        required: true
+        type: str
+      - description: The key for the CLI command.
+        name: command_key
+        required: true
+        type: str
+      - description: The feature key for the CLI command.
+        name: feature_key
+        type: str
       return_type: model
       return_type_object_id: cli_command
       type: factory
     - description: Returns True if arguments exists with the specified flags.
       name: has_argument
+      parameters:
+      - description: The flags to check for.
+        inner_type: str
+        name: flags
+        type: list
       return_type: bool
       type: state
     - description: Adds an argument to the CLI command.
       name: add_argument
+      parameters:
+      - description: The argument to add to the CLI command.
+        name: argument
+        required: true
+        type: model
+        type_object_id: cli_argument
       type: state
     name: CLI Command
     type: entity
@@ -888,18 +929,52 @@ objects:
       type: state
     - description: Returns the command with the specified feature identifier.
       name: get_command
+      parameters:
+      - description: The command identifier.
+        name: id
+        required: true
+        type: str
+      - description: Additional keyword arguments.
+        name: kwargs
+        type: kwargs
       return_type: model
       return_type_object_id: cli_command
       type: state
     - description: Returns True if parent arguments exist with the specified flags.
       name: has_parent_argument
+      parameters:
+      - description: The flags to check for.
+        inner_type: str
+        name: flags
+        required: true
+        type: list
       return_type: bool
       type: state
     - description: Adds a parent argument to the CLI interface.
       name: add_parent_argument
+      parameters:
+      - description: The parent argclearument to add to the CLI interface.
+        name: argument
+        required: true
+        type: model
+        type_object_id: cli_argument
       type: state
     - description: Sets an argument to the CLI interface.
       name: set_argument
+      parameters:
+      - description: The CLI argument to set.
+        name: argument
+        required: true
+        type: model
+        type_object_id: cli_argument
+      - description: The type of CLI argument.
+        name: arg_type
+        required: true
+        type: str
+      - description: The feature identifier if the CLI argument is to be added to
+          a CLI command.
+        name: feature_id
+        type: str
       type: state
     name: CLI Interface
     type: entity
