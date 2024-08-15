@@ -83,7 +83,9 @@ class DataAttribute(ContainerAttribute):
     @staticmethod
     def new(**kwargs) -> 'DataAttribute':
         '''Initializes a new DataAttribute object.
-        
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new DataAttribute object.
         '''
 
@@ -121,7 +123,9 @@ class DependencyAttribute(ContainerAttribute):
     @staticmethod
     def new(**kwargs) -> 'DependencyAttribute':
         '''Initializes a new DependencyAttribute object.
-        
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new DependencyAttribute object.
         '''
 
