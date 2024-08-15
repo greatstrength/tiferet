@@ -1256,13 +1256,20 @@ objects:
     description: A data representation of a model object.
     group_id: data
     methods:
-    - description: Initializes a new ModelData object.
-      name: new
-      return_type: model
-      return_type_object_id: model_data
-      type: factory
     - description: Maps the model data to a model object.
       name: map
+      parameters:
+      - description: The type of model object to map to.
+        name: type
+        required: true
+        type: type
+      - default: to_object
+        description: The role for the mapping.
+        name: role
+        type: type
+      - description: Additional keyword arguments for mapping.
+        name: kwargs
+        type: kwargs
       return_type: model
       return_type_object_id: model_object
       type: state
@@ -1554,6 +1561,7 @@ objects:
       - list
       - dict
       - model
+      - type
       - args
       - kwargs
       description: The data tyoe of the object method parameter.

@@ -70,6 +70,7 @@ METHOD_PARAMETER_TYPES = [
     'list',
     'dict',
     'model',
+    'type',
     'args',
     'kwargs'
 ]
