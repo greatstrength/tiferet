@@ -49,6 +49,24 @@ class FeatureHandler(ValueObject):
         )
     )
 
+    @staticmethod
+    def new(**kwargs) -> 'FeatureHandler':
+        '''Initializes a new FeatureHandler object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new FeatureHandler object.
+        '''
+
+        # Create a new FeatureHandler object.
+        obj = FeatureHandler(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate and return the new FeatureHandler object.
+        obj.validate()
+        return obj
+
 
 class Feature(Entity):
     '''
@@ -123,3 +141,19 @@ class Feature(Entity):
         # Validate and return the new Feature object.
         obj.validate()
         return obj
+
+
+    def add_handler(self, handler: FeatureHandler, position: int = None):
+        '''Adds a handler to the feature.
+
+        :param handler: The handler to add.
+        :type handler: FeatureHandler
+        :param position: The position to add the handler at.
+        :type position: int
+        '''
+
+        # Add the handler to the feature.
+        if position:
+            self.handlers.insert(position, handler)
+        else:
+            self.handlers.append(handler)

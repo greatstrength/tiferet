@@ -68,6 +68,12 @@ class AddNewFeature(Model):
     description = t.StringType()
 
 
+class AddFeatureHandler(FeatureHandler):
+    
+    feature_id = t.StringType(required=True)
+    position = t.IntType()
+
+
 class AddNewObject(ModelObject):
 
     id = t.StringType()
@@ -83,10 +89,11 @@ class AddObjectAttribute(ObjectAttribute):
 class AddObjectMethod(ObjectMethod):
 
     object_id = t.StringType(required=True)
+    parameters = t.ListType(t.ModelType(ObjectMethodParameter), default=[], deserialize_from=['param'])
 
 
 class AddObjectMethodParameters(Model):
 
     object_id = t.StringType(required=True)
     method_name = t.StringType(required=True)
-    params_data = t.ListType(t.ModelType(ObjectMethodParameter), required=True, deserialize_from=['params'])
+    params_data = t.ListType(t.ModelType(ObjectMethodParameter), required=True, deserialize_from=['param'])

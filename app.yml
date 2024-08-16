@@ -700,6 +700,12 @@ interfaces:
           name_or_flags:
           - --return-type-object-id
           type: str
+        - action: append
+          help: object method parameter
+          name_or_flags:
+          - --param
+          to_data: true
+          type: str
         feature_id: object.add_method
         group_id: object
         help: add method to model object
@@ -719,9 +725,9 @@ interfaces:
           required: true
           type: str
         - action: append
-          help: object method parameters
+          help: object method parameter
           name_or_flags:
-          - --params
+          - --param
           - -p
           required: true
           to_data: true
@@ -1269,6 +1275,18 @@ objects:
       return_type: model
       return_type_object_id: feature
       type: factory
+    - description: Adds a handler to the feature.
+      name: add_handler
+      parameters:
+      - description: The handler to add.
+        name: handler
+        required: true
+        type: model
+        type_object_id: feature_handler
+      - description: The position to add the handler at.
+        name: position
+        type: int
+      type: state
     name: Feature
     type: entity
   feature_handler:
@@ -1291,6 +1309,12 @@ objects:
     class_name: FeatureHandler
     description: A handler object for a feature command.
     group_id: feature
+    methods:
+    - description: Adds a handler to the feature.
+      name: new
+      return_type: model
+      return_type_object_id: feature_handler
+      type: factory
     name: Feature Handler
     type: entity
   list_settings:
