@@ -103,6 +103,12 @@ container:
             class_name: AddContainerAttribute
             module_path: app.commands.container
         type: dependency
+      add_feature_handler:
+        data:
+          yaml:
+            class_name: AddFeatureHandler
+            module_path: app.commands.feature
+        type: dependency
       add_new_error:
         data:
           yaml:
@@ -242,6 +248,12 @@ errors:
     - lang: en_US
       text: Feature with id "{}" already exists
     name: FEATURE_ALREADY_EXISTS
+  FEATURE_NOT_FOUND:
+    error_code: FEATURE_NOT_FOUND
+    message:
+    - lang: en_US
+      text: Feature with ID "{}" not found.
+    name: FEATURE_NOT_FOUND
   INVALID_CONTAINER_ATTRIBUTE_DATA:
     message:
     - lang: en_US
@@ -320,6 +332,13 @@ features:
           request_type_path: app.configs.requests.AddNewError
     feature:
       features:
+        add_handler:
+          description: Add Feature Handler
+          handlers:
+          - attribute_id: add_feature_handler
+            name: AddFeatureHandler
+          name: Add Feature Handler
+          request_type_path: app.configs.requests.AddFeatureHandler
         new:
           functions:
           - attribute_id: add_new_feature
