@@ -548,6 +548,47 @@ interfaces:
         group_id: error
         help: add new error
         name: Add New Error
+      feature.add_handler:
+        arguments:
+        - help: feature handler name
+          name_or_flags:
+          - name
+          type: str
+        - help: parent feature id
+          name_or_flags:
+          - --feature-id
+          - -f
+          required: true
+          type: str
+        - help: command handler attribute id
+          name_or_flags:
+          - --attribute-id
+          - -a
+          required: true
+          type: str
+        - help: feature handler position
+          name_or_flags:
+          - --position
+          type: int
+        - help: feature handler custom parameter
+          name_or_flags:
+          - --param
+          nargs: +
+          to_data: true
+          type: str
+        - help: feature handler result data key
+          name_or_flags:
+          - --data-key
+          type: str
+        - action: store_true
+          help: pass on handler error
+          name_or_flags:
+          - --pass-on-error
+          type: str
+        feature_id: feature.add_handler
+        group_id: feature
+        help: Adds a feature handler to the feature.
+        name: Add Feature Handler
       feature.new:
         arguments:
         - help: feature name

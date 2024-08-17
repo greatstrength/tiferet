@@ -1,23 +1,26 @@
 from typing import List
+from enum import Enum
 
 from schematics import types as t
 
 from . import object as obj
 
 
-CLI_ARGUMENT_TYPE_COMMAND = 'command'
-CLI_ARGUMENT_TYPE_PARENT_ARGUMENT = 'parent_argument'
-CLI_ARGUMENT_TYPES = [
-    CLI_ARGUMENT_TYPE_COMMAND,
-    CLI_ARGUMENT_TYPE_PARENT_ARGUMENT
-]
-CLI_ARGUMENT_TYPE_DEFAULT = CLI_ARGUMENT_TYPE_COMMAND
 CLI_ARGUMENT_DATA_TYPES = [
     'str',
     'int',
     'float'
 ]
 CLI_ARGUMENT_DATA_TYPE_DEFAULT = 'str'
+
+
+class CliArgumentType(Enum):
+    '''
+    An enumeration of CLI argument types.
+    '''
+
+    COMMAND = 'command'
+    PARENT_ARGUMENT = 'parent_argument'
 
 
 class CliArgument(obj.ValueObject):
@@ -259,7 +262,7 @@ class CliCommand(obj.Entity):
         for flag in flags:
             if any([argument for argument in self.arguments if flag in argument.name_or_flags]):
                 return True
-            
+
         # Return False if no argument was found
         return False
 
@@ -384,7 +387,7 @@ class CliInterface(obj.Entity):
         '''
 
         # If the argument is a command...
-        if arg_type == CLI_ARGUMENT_TYPE_COMMAND:
+        if arg_type == CliArgumentType.COMMAND.value:
 
             # Assert that the feature ID is not None.
             assert feature_id is not None, 'CLI_ARGUMENT_INVALID_FEATURE_ID'
@@ -403,7 +406,7 @@ class CliInterface(obj.Entity):
             command.add_argument(argument)
 
         # If the argument is a parent argument...
-        elif arg_type == CLI_ARGUMENT_TYPE_PARENT_ARGUMENT:
+        elif arg_type == CliArgumentType.PARENT_ARGUMENT.value:
 
             # Assert that the argument does not already exist.
             assert not self.has_parent_argument(

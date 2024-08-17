@@ -1,10 +1,7 @@
 from schematics import types as t
 from schematics import Model
 
-from ..objects.cli import CLI_ARGUMENT_DATA_TYPES as DATA_TYPES
-from ..objects.cli import CLI_ARGUMENT_DATA_TYPE_DEFAULT as DATA_TYPE_DEFAULT
-from ..objects.cli import CLI_ARGUMENT_TYPES as ARG_TYPES
-from ..objects.cli import CLI_ARGUMENT_TYPE_DEFAULT as ARG_TYPE_DEFAULT
+from ..objects.cli import CliArgument
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
@@ -25,23 +22,17 @@ class AddCliCommand(Model):
     feature_key = t.StringType()
 
 
-class AddCliArgument(Model):
+class AddCliArgument(CliArgument):
 
     name = t.StringType(required=True)
     interface_id = t.StringType(required=True)
     help = t.StringType(required=True, deserialize_from=[
                         'help', 'description'])
-    arg_type = t.StringType(default=ARG_TYPE_DEFAULT, choices=ARG_TYPES)
+    arg_type = t.StringType(default='command', choices=['command', 'parent_argument'])
     feature_id = t.StringType()
-    flags = t.ListType(t.StringType(), default=[])
-    type = t.StringType(default=DATA_TYPE_DEFAULT, choices=DATA_TYPES)
-    required = t.BooleanType()
-    default = t.StringType()
     positional = t.BooleanType()
-    choices = t.ListType(t.StringType(), default=[])
-    nargs = t.StringType()
-    action = t.StringType()
-    to_data = t.BooleanType()
+    flags = t.ListType(t.StringType(), default=[])
+    name_or_flags = t.ListType(t.StringType(), default=[])
 
 
 class AddContainerAttribute(ContainerAttribute):
