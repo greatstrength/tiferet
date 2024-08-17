@@ -111,6 +111,44 @@ class AddObjectAttribute(object):
 
         # Return the object.
         return _object
+    
+
+class GetObject(object):
+    '''
+    Command to get an object.
+    '''
+
+    def __init__(self, object_repo: ObjectRepository):
+        '''
+        Initialize the command to get an object.
+
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        '''
+
+        # Set the object repository.
+        self.object_repo = object_repo
+
+    def execute(self, object_id: str, **kwargs) -> ModelObject:
+        '''
+        Execute the command to get an object.
+
+        :param object_id: The object ID.
+        :type object_id: str
+        :param kwargs: The keyword arguments.
+        :type kwargs: dict
+        :return: The object.
+        :rtype: ModelObject
+        '''
+
+        # Get the object by ID.
+        _object = self.object_repo.get(object_id)
+
+        # Assert that the object was successfully found.
+        assert _object, f'OBJECT_NOT_FOUND: {object_id}'
+
+        # Return the object.
+        return _object
 
 
 class AddObjectMethod(object):
