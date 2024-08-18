@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 from schematics import Model, types as t
 
 
@@ -675,6 +677,17 @@ class ObjectMethod(ValueObject):
 
         # Add the parameter to the object method.
         self.parameters.append(parameter)
+
+    def add_to_code_block(self, code_block: List['ObjectMethodCodeBlock']):
+        '''
+        Adds a code block to the object method.
+
+        :param code_block: The code block to add to the object method.
+        :type code_block: List[ObjectMethodCodeBlock]
+        '''
+
+        # Add the code block to the object method.
+        self.code_block.extend(code_block)
 
 
 class ModelObject(Entity):
