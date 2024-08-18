@@ -83,6 +83,11 @@ METHOD_PARAMETER_INNER_TYPES = [
     'datetime',
     'model'
 ]
+METHOD_CODE_BLOCK_PYTHON = 'python'
+METHOD_CODE_BLOCK_TYPES = [
+    METHOD_CODE_BLOCK_PYTHON
+]
+METHOD_CODE_BLOCK_DEFAULT = METHOD_CODE_BLOCK_PYTHON
 
 
 class Entity(Model):
@@ -516,6 +521,43 @@ class ObjectMethodParameter(ValueObject):
         # Validate and return the new ObjectMethodParameter object.
         obj.validate()
         return obj
+    
+
+class ObjectMethodCodeBlock(ValueObject):
+    '''
+    A model object method code block.
+    '''
+
+    type = t.StringType(
+        required=True,
+        default=METHOD_CODE_BLOCK_DEFAULT,
+        choices=METHOD_CODE_BLOCK_TYPES,
+        metadata=dict(
+            description='The code block type.'
+        )
+    )
+
+    comments = t.ListType(
+        t.StringType(),
+        default=[],
+        metadata=dict(
+            description='The comments for the code block.'
+        )
+    )
+
+    lines = t.ListType(
+        t.StringType(),
+        default=[],
+        metadata=dict(
+            description='The lines of code for the code block.'
+        )
+    )
+
+    indent = t.IntType(
+        metadata=dict(
+            description='The number of tabs to indent the code block.'
+        )
+    )
 
 
 class ObjectMethod(ValueObject):
@@ -570,6 +612,14 @@ class ObjectMethod(ValueObject):
         default=[],
         metadata=dict(
             description='The parameters for the object method.'
+        )
+    )
+
+    code_block = t.ListType(
+        t.ModelType(ObjectMethodCodeBlock),
+        default=[],
+        metadata=dict(
+            description='The code blocks for the object method.'
         )
     )
 
