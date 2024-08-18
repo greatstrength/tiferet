@@ -6,6 +6,7 @@ from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
 from ..objects.object import ObjectMethodParameter
+from ..objects.object import ObjectMethodCodeBlock
 from ..objects.container import ContainerAttribute
 from ..objects.error import ErrorMessage
 from ..objects.feature import FeatureHandler
@@ -88,3 +89,10 @@ class AddObjectMethodParameters(Model):
     object_id = t.StringType(required=True)
     method_name = t.StringType(required=True)
     params_data = t.ListType(t.ModelType(ObjectMethodParameter), required=True, deserialize_from=['param'])
+
+
+class AddObjectMethodCode(Model):
+
+    object_id = t.StringType(required=True)
+    method_name = t.StringType(required=True)
+    code_block = t.ListType(t.ModelType(ObjectMethodCodeBlock), required=True, deserialize_from=['code'])

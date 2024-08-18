@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from ..objects.object import ModelObject
 from ..objects.object import ObjectMethod
 from ..objects.object import ObjectMethodParameter
+from ..objects.object import ObjectMethodCodeBlock
 from ..repositories.object import ObjectRepository
 from ..services import object as object_service
 
@@ -258,6 +259,52 @@ class AddObjectMethodParameters(object):
 
             # Add the parameter to the method.
             method.add_parameter(parameter)
+
+        # Save the object.
+        self.object_repo.save(_object)
+
+        # Return the object.
+        return _object
+    
+
+class AddObjectMethodCode(object):
+
+    def __init__(self, object_repo: ObjectRepository):
+        '''
+        Initialize the command to add a new object method code.
+
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        '''
+
+        # Set the object repository.
+        self.object_repo = object_repo
+
+    def execute(self, _object: ModelObject, method_name: str, code_block: List[Any], **kwargs) -> ModelObject:
+        '''
+        Execute the command to add a new object method code.
+
+        :param _object: The object to add the method code to.
+        :type _object: ModelObject
+        :param method_name: The method name.
+        :type method_name: str
+        :param kwargs: The keyword arguments.
+        :type kwargs: dict
+        :return: The object.
+        :rtype: ModelObject
+        '''
+
+        # Get the method.
+        method: ObjectMethod = _object.get_method(method_name)
+
+        # Assert that the method exists.
+        assert method is not None, f'OBJECT_METHOD_NOT_FOUND: {_object.name},{method_name}'
+
+        # Create a new code block.
+        code_block = [ObjectMethodCodeBlock.new(**code) for code in code_block]
+
+        # Add the code block to the method.
+        method.add_code_block(code_block)
 
         # Save the object.
         self.object_repo.save(_object)
