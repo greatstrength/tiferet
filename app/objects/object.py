@@ -539,17 +539,13 @@ class ObjectMethodCodeBlock(ValueObject):
         )
     )
 
-    comments = t.ListType(
-        t.StringType(),
-        default=[],
+    comments = t.StringType(
         metadata=dict(
             description='The comments for the code block.'
         )
     )
 
-    lines = t.ListType(
-        t.StringType(),
-        default=[],
+    lines = t.StringType(
         metadata=dict(
             description='The lines of code for the code block.'
         )
@@ -560,6 +556,26 @@ class ObjectMethodCodeBlock(ValueObject):
             description='The number of tabs to indent the code block.'
         )
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'ObjectMethodCodeBlock':
+        '''
+        Initializes a new ObjectMethodCodeBlock object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ObjectMethodCodeBlock object.
+        :rtype: ObjectMethodCodeBlock
+        '''
+
+        # Create a new ObjectMethodCodeBlock object.
+        obj = ObjectMethodCodeBlock(dict(
+            **kwargs
+        ), strict=False)
+
+        # Validate and return the new ObjectMethodCodeBlock object.
+        obj.validate()
+        return obj
 
 
 class ObjectMethod(ValueObject):
@@ -678,7 +694,7 @@ class ObjectMethod(ValueObject):
         # Add the parameter to the object method.
         self.parameters.append(parameter)
 
-    def add_to_code_block(self, code_block: List['ObjectMethodCodeBlock']):
+    def add_code_block(self, code_block: List[ObjectMethodCodeBlock]):
         '''
         Adds a code block to the object method.
 

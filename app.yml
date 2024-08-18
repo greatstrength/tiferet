@@ -1730,6 +1730,16 @@ objects:
         type: model
         type_object_id: object_method_parameter
       type: state
+    - description: Adds a code block to the object method.
+      name: add_code_block
+      parameters:
+      - description: The code block to add to the object method.
+        inner_type: model
+        name: code_block
+        required: true
+        type: list
+        type_object_id: object_method_code_block
+      type: state
     name: Object Method
     type: value_object
   object_method_code_block:
@@ -1741,22 +1751,24 @@ objects:
       name: type
       required: true
       type: str
-    - default: '[]'
-      description: The comments for the code block.
-      inner_type: str
+    - description: The comments for the code block.
       name: comments
-      type: list
-    - default: '[]'
-      description: The lines of code for the code block.
-      inner_type: str
+      type: str
+    - description: The lines of code for the code block.
       name: lines
-      type: list
+      type: str
     - description: The number of tabs to indent the code block.
       name: indent
       type: int
     class_name: ObjectMethodCodeBlock
     description: A Model object method code block.
     group_id: object
+    methods:
+    - description: Initializes a new ObjectMethodCodeBlock object.
+      name: new
+      return_type: model
+      return_type_object_id: object_method_code_block
+      type: factory
     name: Object Method Code Block
     type: value_object
   object_method_parameter:
