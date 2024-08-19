@@ -808,6 +808,32 @@ interfaces:
         group_id: object
         help: add method to model object
         name: Add Object Method
+      object.add_method_code:
+        arguments:
+        - help: model object id
+          name_or_flags:
+          - --object-id
+          - -o
+          required: true
+          type: str
+        - help: model object method name
+          name_or_flags:
+          - --method-name
+          - -m
+          required: true
+          type: str
+        - action: append
+          help: model object method code block
+          name_or_flags:
+          - --code-block
+          - -c
+          required: true
+          to_data: true
+          type: str
+        feature_id: object.add_method_code
+        group_id: object
+        help: add code to object method
+        name: Add Method Code
       object.add_method_params:
         arguments:
         - help: parent object id
