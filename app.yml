@@ -109,6 +109,12 @@ container:
             class_name: AddFeatureHandler
             module_path: app.commands.feature
         type: dependency
+      add_method_code:
+        data:
+          yaml:
+            class_name: AddObjectMethodCode
+            module_path: app.commands.object
+        type: dependency
       add_new_error:
         data:
           yaml:
@@ -373,6 +379,16 @@ features:
             name: Add Object Method
           name: Add Object Method
           request_type_path: app.configs.requests.AddObjectMethod
+        add_method_code:
+          description: Adds Code to an Object Method
+          handlers:
+          - attribute_id: get_object
+            data_key: object
+            name: Get Object
+            return_to_data: true
+          - attribute_id: add_method_code
+            name: Add Object Method Code
+          name: Add Object Method Code
         add_method_parameters:
           description: Adds parameters to a model object method.
           handlers:
