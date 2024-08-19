@@ -8,7 +8,7 @@ from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
 from ..objects.object import ObjectMethodParameter
-
+from ..objects.object import ObjectMethodCodeBlock
 
 
 class ObjectAttributeData(ObjectAttribute, ModelData):
@@ -51,6 +51,26 @@ class ObjectMethodParameterData(ObjectMethodParameter, ModelData):
         }
 
 
+class ObjectMethodCodeBlockData(ObjectMethodCodeBlock, ModelData):
+    '''
+    A data representation of an object method code block.
+    '''
+
+    class Options():
+        '''
+        The options for the object method code block data.
+        '''
+
+        # Set the serialize when none flag to false.
+        serialize_when_none = False
+
+        # Define the roles for the object method code block data.
+        roles = {
+            'to_object.yaml': wholelist(),
+            'to_data.yaml': wholelist()
+        }
+
+
 class ObjectMethodData(ObjectMethod, ModelData):
     '''
     A data representation of an object method.
@@ -78,6 +98,14 @@ class ObjectMethodData(ObjectMethod, ModelData):
         )
     )
 
+    code_block = t.ListType(
+        t.ModelType(ObjectMethodCodeBlockData),
+        default=[],
+        metadata=dict(
+            description='The model object method code block.'
+        )
+    )
+
 
 class ModelObjectData(ModelObject, ModelData):
     '''A data representation of a model object.'''
@@ -101,7 +129,7 @@ class ModelObjectData(ModelObject, ModelData):
     )
 
     attributes = t.ListType(
-        t.ModelType(ObjectAttributeData), 
+        t.ModelType(ObjectAttributeData),
         default=[],
         metadata=dict(
             description='The model object attributes.'
