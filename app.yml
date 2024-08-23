@@ -389,6 +389,7 @@ features:
           - attribute_id: add_method_code
             name: Add Object Method Code
           name: Add Object Method Code
+          request_type_path: app.configs.requests.AddObjectMethodCode
         add_method_parameters:
           description: Adds parameters to a model object method.
           handlers:

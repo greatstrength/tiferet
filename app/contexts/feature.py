@@ -63,6 +63,7 @@ class FeatureContext(object):
                 result = command.execute(
                     **request.data,
                     **handler.params,
+                    **session.data,
                     **kwargs
                 )
             # Handle assertion errors.
