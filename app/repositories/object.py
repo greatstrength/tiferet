@@ -7,7 +7,7 @@ from ..clients import yaml as yaml_client
 
 class ObjectRepository(object):
     '''
-    Object repository interface.
+    A repository interface for managing model objects.
     '''
 
     def exists(self, id: str = None, class_name: str = None) -> bool:
@@ -43,14 +43,12 @@ class ObjectRepository(object):
 
         raise NotImplementedError()
 
-    def save(self, _object: ModelObject) -> ModelObject:
+    def save(self, _object: ModelObject):
         '''
         Save the object.
         
         :param _object: The object.
         :type _object: ModelObject
-        :return: The updated object.
-        :rtype: ModelObject
         '''
 
         raise NotImplementedError()

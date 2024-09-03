@@ -35,10 +35,8 @@ class AddNewFeature(object):
         assert not self.feature_repo.exists(
             feature.id), f'FEATURE_ALREADY_EXISTS: {feature.id}'
 
-        # Save the feature.
+        # Save and return the feature.
         self.feature_repo.save(feature)
-
-        # Return the new feature.
         return feature
 
 

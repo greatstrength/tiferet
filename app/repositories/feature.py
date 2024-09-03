@@ -41,8 +41,6 @@ class FeatureRepository(object):
         
         :param feature: The feature object.
         :type feature: f.Feature
-        :return: The updated feature object.
-        :rtype: f.Feature
         '''
 
         raise NotImplementedError()
@@ -93,15 +91,14 @@ class YamlRepository(FeatureRepository):
         group_id, feature_key = id.split('.')
 
         # Load feature data from yaml.
+        import os
         _data: FeatureData = yaml_client.load(
-            self.base_path,
+            os.path.join(self.base_path, group_id, f'{feature_key}.yml'),
             create_data=lambda data: FeatureData.from_yaml_data(
                 id=id,
                 group_id=group_id,
                 **data
-            ),
-            start_node=lambda data: data.get('features').get(
-                'groups').get(group_id).get('features').get(feature_key)
+            )
         )
 
         # Return None if feature data is not found.
@@ -123,10 +120,10 @@ class YamlRepository(FeatureRepository):
         feature_data = FeatureData.new(**feature.to_primitive())
 
         # Update the feature data.
+        import os
         yaml_client.save(
-            path=self.base_path,
+            os.path.join(self.base_path, feature.group_id, f'{feature_data.feature_key}.yml'),
             data=feature_data,
-            data_save_path=f'features.groups.{feature.group_id}.features.{feature_data.feature_key}'
         )
 
         # Return the updated feature object.

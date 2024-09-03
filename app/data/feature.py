@@ -91,7 +91,7 @@ class FeatureData(Feature, ModelData):
     @staticmethod
     def new(**kwargs) -> 'FeatureData':
         '''
-        Initializes a new FeatureData object.
+        Initializes a new FeatureData object from a Feature object.
         
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
@@ -100,12 +100,13 @@ class FeatureData(Feature, ModelData):
         '''
 
         # Create a new FeatureData object.
-        _data = FeatureData(dict(**kwargs), strict=False)
+        _data = FeatureData(
+            dict(**kwargs,), 
+            strict=False
+        )
 
-        # Validate the new FeatureData object.
+        # Validate and return the new FeatureData object.
         _data.validate()
-
-        # Return the new FeatureData object.
         return _data
 
     @staticmethod
@@ -115,7 +116,7 @@ class FeatureData(Feature, ModelData):
         
         :param id: The feature id.
         :type id: str
-        :param group_id: The group id.
+        :param group_id: The context group id.
         :type group_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
@@ -124,14 +125,12 @@ class FeatureData(Feature, ModelData):
         '''
 
         # Create a new FeatureData object.
-        _data = FeatureData(dict(
-            id=id,
-            group_id=group_id,
-            **kwargs
-        ), strict=False)
+        _data = FeatureData(
+            dict(**kwargs, 
+                 id=id, group_id=group_id
+            ), 
+            strict=False)
 
-        # Validate the new FeatureData object.
+        # Validate and return the new FeatureData object.
         _data.validate()
-
-        # Return the new FeatureData object.
         return _data
