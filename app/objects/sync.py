@@ -1,0 +1,239 @@
+from typing import List, Dict, Any
+from schematics import Model, types as t
+
+from .object import Entity
+from .object import ValueObject
+
+
+ATTRIBUTE_TYPES = [
+    'model',
+    'data',
+    'context',
+    'serializable'
+]
+IMPORT_TYPE_CORE = 'core'
+IMPORT_TYPE_INFRA = 'infra'
+IMPORT_TYPE_APP = 'app'
+IMPORT_TYPES = [
+    IMPORT_TYPE_CORE,
+    IMPORT_TYPE_INFRA,
+    IMPORT_TYPE_APP,
+]
+
+
+class Import(ValueObject):
+    '''
+    A code import object.
+    '''
+
+    type = t.StringType(
+        required=True,
+        choices=IMPORT_TYPES,
+        metadata=dict(
+            description='The type of the import.'
+        ),
+    )
+
+    from_module = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The module to import from.'
+        ),
+    )
+
+    import_module = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The module to import.'
+        ),
+    )
+
+    alias = t.StringType(
+        metadata=dict(
+            description='The alias for the import.'
+        ),
+    )
+
+
+class CodeComponent(ValueObject):
+    '''
+    A code component object.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the component.'
+        ),
+    )
+
+class Module(Entity):
+    '''
+    A module file represented as an object.
+    '''
+
+    imports = t.ListType(
+        t.ModelType(Import),
+        default=[],
+        metadata=dict(
+            description='The imports for the module.'
+        ),
+    )
+
+    components = t.ListType(
+        t.ModelType(CodeComponent),
+        required=True,
+        metadata=dict(
+            description='The components of the module.'
+        ),
+    )
+
+
+class Variable(CodeComponent):
+    '''
+    A code variable object.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the variable.'
+        ),
+    )
+
+    value = t.StringType(
+        metadata=dict(
+            description='The value of the variable.'
+        ),
+    )
+
+    type = t.StringType(
+        metadata=dict(
+            description='The type of the variable.'
+        ),
+    )
+
+
+class Parameter(ValueObject):
+    '''
+    A code parameter object.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the parameter.'
+        ),
+    )
+
+    type = t.StringType(
+        metadata=dict(
+            description='The type of the parameter.'
+        ),
+    )
+
+    default = t.StringType(
+        metadata=dict(
+            description='The default value of the parameter.'
+        ),
+    )
+
+
+class CodeBlock(ValueObject):
+
+    lines = t.ListType(
+        t.StringType,
+        required=True,
+        metadata=dict(
+            description='The lines of code in the block.'
+        ),
+    )
+
+    comments = t.ListType(
+        t.StringType,
+        metadata=dict(
+            description='The comments for the code block.'
+        ),
+    )
+
+
+class Function(CodeComponent):
+    '''
+    A code function object.
+    '''
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the function.'
+        ),
+    )
+
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The description of the function.'
+        ),
+    )
+
+    parameters = t.ListType(
+        t.ModelType(Parameter),
+        required=True,
+        metadata=dict(
+            description='The parameters of the function.'
+        ),
+    )
+
+    return_type = t.StringType(
+        default='Any',
+        metadata=dict(
+            description='The return type of the function.'
+        ),
+    )
+
+    code_block = t.ListType(
+        t.ModelType(CodeBlock),
+        default=[],
+        metadata=dict(
+            description='The code block for the function.'
+        ),
+    )
+
+
+class Class(CodeComponent):
+
+    name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the class.'
+        ),
+    )
+
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The description of the class.'
+        ),
+    )
+
+    base_class_name = t.StringType(
+        metadata=dict(
+            description='The base class name of the class.'
+        ),
+    )
+
+    attributes = t.ListType(
+        t.ModelType(Variable),
+        default=[],
+        metadata=dict(
+            description='The attributes of the class.'
+        ),
+    )
+
+    methods = t.ListType(
+        t.ModelType(Function),
+        default=[],
+        metadata=dict(
+            description='The methods of the class.'
+        ),
+    )
