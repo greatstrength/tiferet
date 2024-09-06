@@ -19,6 +19,7 @@ IMPORT_TYPES = [
     IMPORT_TYPE_INFRA,
     IMPORT_TYPE_APP,
 ]
+MODULE_TYPE_OBJECT = 'object'
 TAB = '    '
 
 

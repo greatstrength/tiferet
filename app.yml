@@ -77,7 +77,7 @@ container:
       flags:
         data:
           yaml:
-            value: yaml
+            value: yaml, python
         type: data
       interface_yaml_base_path:
         data:
@@ -190,10 +190,10 @@ container:
           yaml:
             value: app.yml
         type: data
-      flag:
+      flags:
         data:
           yaml:
-            value: yaml
+            value: yaml, python
         type: data
       get_object:
         data:
@@ -414,9 +414,14 @@ features:
         model_to_code:
           description: Syncs a model object to code.
           handlers:
+          - attribute_id: get_object
+            data_key: _object
+            name: Get Object
+            return_to_data: true
           - attribute_id: sync_model_to_code
             name: Sync Model to Code
           name: Sync Model to Code
+          request_type_path: app.configs.requests.SyncModelToCode
 interfaces:
   cli:
     commands:

@@ -1,11 +1,11 @@
 from typing import List, Dict, Any
 
-from repositories.sync import SyncRepository
-from repositories.object import ObjectRepository
-from objects.object import ModelObject
-from objects.sync import Class
-import services.object as object_service
-import services.sync as sync_service
+from ..repositories.sync import SyncRepository
+from ..repositories.object import ObjectRepository
+from ..objects.object import ModelObject
+from ..objects.sync import Class
+from ..services import object as object_service
+from ..services import sync as sync_service
 
 
 class SyncModelToCode(object):
@@ -28,7 +28,7 @@ class SyncModelToCode(object):
         # Set the sync repository.
         self.sync_repo = sync_repo
 
-    def execute(self, _object: ModelObject) -> Class:
+    def execute(self, _object: ModelObject, **kwargs) -> Class:
 
         # Get the base object.
         base_object = object_service.get_base_model(_object, self.object_repo)

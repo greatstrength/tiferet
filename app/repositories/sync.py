@@ -1,8 +1,8 @@
 import os
 from typing import List, Dict, Any
 
-from objects.sync import Module
-from data.sync import ModuleData
+from ..objects.sync import Module
+from ..data.sync import ModuleData
 from ..clients import python as python_client
 
 
