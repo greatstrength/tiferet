@@ -7,7 +7,7 @@ def load(path: str, map_to_data: lambda data: data, **kwargs):
     # Load the data from the file.
     try:
         with open(path, 'r') as file:
-            data = file.readlines()
+            data = file.read().split('\n')
 
     # Return None if the file is not found.
     except FileNotFoundError:

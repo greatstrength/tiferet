@@ -1,12 +1,71 @@
 from typing import List, Dict, Any
 
 from ..objects.object import ModelObject
+from ..objects.object import ObjectAttribute
 from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
-from ..objects.sync import Class
-from ..objects.sync import Module
-from ..objects.sync import MODULE_TYPE_OBJECTS
-from ..objects.sync import Import
+from ..objects.sync import *
+
+
+MODEL_ATTRIBUTE_TYPES = {
+    'str': 't.StringType',
+    'int': 't.IntType',
+    'float': 't.FloatType',
+    'bool': 't.BooleanType',
+    'date': 't.DateType',
+    'datetime': 't.DateTimeType',
+    'list': 't.ListType',
+    'dict': 't.DictType',
+    'model': 't.ModelType',
+}
+
+def sync_model_attribute_to_code(attribute: ObjectAttribute) -> Variable:
+    '''
+    Syncs an attribute to code.
+
+    :param attribute: The attribute.
+    :type attribute: ObjectAttribute
+    :param type: The attribute type.
+    :type type: str
+    :return: The variable.
+    :rtype: Variable
+    '''
+
+    # Set the value as an epmty string.
+    value = ''
+
+    # Map on the attribute type for non-compound types.
+    if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
+        value = f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}('
+
+    # Check if the attribute is required.
+    if attribute.required:
+        value += f'\n{TAB}required=True,'
+
+    # Check if there is a default value.
+    if attribute.default:
+        value += f'\n{TAB}default={attribute.default},'
+
+    # Check if there are choices.
+    if attribute.choices:
+        value += f'\n{TAB}choices={attribute.choices},'
+
+    # Add the metadata with the description.
+    value += f'\n{TAB}metadata=dict('
+    value += f'\n{TAB*2}description=\'{attribute.description}\','
+    value += f'\n{TAB}),'
+
+    # Close the value.
+    value += '\n)'
+
+    # Create the variable.
+    variable = Variable.new(
+        name=attribute.name,
+        value=value
+    )
+
+    # Return the variable.
+    return variable
 
 
 def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None) -> Class:
@@ -42,11 +101,21 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
         elif model_object.type == OBJECT_TYPE_VALUE_OBJECT:
             base_classes.append('ValueObject')
 
+    # Create the class attributes.
+    attributes = []
+
+    # Map on the model object attributes.
+    for attribute in model_object.attributes:
+
+        # Sync the attribute to code.
+        attributes.append(sync_model_attribute_to_code(attribute))
+
     # Create the class.
     _class = Class.new(
         name=model_object.class_name,
         description=model_object.description,
-        base_classes=base_classes
+        base_classes=base_classes,
+        attributes=attributes
     )
 
     # Return the class.
@@ -73,6 +142,11 @@ def create_module(type: str, name: str) -> Module:
             type='core',
             from_module='typing',
             import_module='List, Dict, Any'
+        )),
+        Import(dict(
+            type='infra',
+            from_module='schematics',
+            import_module='Model, types as t'
         )),
         Import(dict(
             type='app',

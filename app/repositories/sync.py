@@ -72,7 +72,7 @@ class PythonRepository(SyncRepository):
         # Load the module from the client.
         data = python_client.load(
             path=module_path,
-            map_to_data=lambda data: ModuleData.from_python_file(lines=data)
+            map_to_data=lambda data: ModuleData.from_python_file(lines=data, id=group_id, type=type),
         )
 
         # Return None if the data is None.
@@ -95,6 +95,8 @@ class PythonRepository(SyncRepository):
 
         # Create the Module Data.
         data = ModuleData.new(
+            id=module.id,
+            type=module.type,
             imports=[_import.to_primitive() for _import in module.imports],
             components=module.components,
         )

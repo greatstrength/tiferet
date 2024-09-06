@@ -1,3 +1,5 @@
+import re
+
 from schematics.transforms import wholelist, whitelist, blacklist
 
 from ..objects.sync import *
@@ -35,7 +37,7 @@ class CodeBlockData(ModelData, CodeBlock):
 
         # Map the code block data to a code block object.
         return super().map(CodeBlock, role, **kwargs)
-    
+
     def to_primitive(self, role=None, app_data=None, tab: int = 0, **kwargs):
         '''
         Converts the code block data to a source code-based primitive.
@@ -68,7 +70,7 @@ class CodeBlockData(ModelData, CodeBlock):
 
         # Return the results.
         return results
-    
+
 
 class ImportData(ModelData, Import):
     '''
@@ -88,6 +90,40 @@ class ImportData(ModelData, Import):
             'to_object': wholelist(),
             'to_data.python': wholelist()
         }
+
+    @staticmethod
+    def from_python_file(line: str, type: str, **kwargs) -> 'ImportData':
+
+        # Pull out alias statement if any.
+        alias = None
+        line = line.split(' as ')
+        if len(line) == 2:
+            alias = line[1].strip()
+
+        # Pull out import statement.
+        line = line[0].split('import ')
+        import_module = line[1].strip()
+
+        # Pull out from statement if any.
+        from_module = None
+        line = line[0].split('from ')
+        if len(line) == 2:
+            from_module = line[1].strip()
+
+        # Create the import data.
+        _data = ImportData(
+            dict(**kwargs,
+                 import_module=import_module,
+                 from_module=from_module,
+                 alias=alias,
+                 type=type
+                 ),
+            strict=False
+        )
+
+        # Validate and return the import data.
+        _data.validate()
+        return _data
 
     def map(self, role: str = 'to_object', **kwargs) -> Import:
         '''
@@ -132,7 +168,7 @@ class ImportData(ModelData, Import):
 
         # Return the result.
         return result
-    
+
 
 class CodeComponentData(ModelData, CodeComponent):
     '''
@@ -157,7 +193,7 @@ class CodeComponentData(ModelData, CodeComponent):
 
         # Map the code component data to a code component object.
         return super().map(CodeComponent, role, **kwargs)
-    
+
 
 class VariableData(CodeComponentData, Variable):
     '''
@@ -177,7 +213,7 @@ class VariableData(CodeComponentData, Variable):
             'to_object': wholelist(),
             'to_data.python': wholelist()
         }
-    
+
     @staticmethod
     def new(**kwargs) -> 'VariableData':
         '''
@@ -191,13 +227,61 @@ class VariableData(CodeComponentData, Variable):
 
         # Create the variable data.
         _variable = VariableData(
-            dict(**kwargs), 
+            dict(**kwargs),
             strict=False
         )
 
         # Validate and return the variable data.
         _variable.validate()
         return
+
+    @staticmethod
+    def from_python_file(lines: List[str], var_type: str = None, **kwargs) -> 'VariableData':
+        '''
+        Creates a variable data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: List[str]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new variable data.
+        :rtype: VariableData
+        '''
+
+        # Get the first line of the variable.
+        line = lines[0]
+
+        # Split on the equals sign.
+        line = line.split('=')
+
+        # Set the value to None if there is no equals sign.
+        if len(line) == 1:
+            value = None
+
+        # Set the value to the right side of the equals sign if the type is None.
+        elif not var_type:
+            value = line[1].strip()
+
+        # Split the name and the type
+        line = line[0].split(':')
+
+        # Set the name and type.
+        name = line[0].strip()
+        type = line[1].strip() if len(line) == 2 else None
+
+        # Create the variable data.
+        _variable = VariableData(
+            dict(**kwargs,
+                 name=name,
+                 type=type,
+                 value=value
+                 ),
+            strict=False
+        )
+
+        # Validate and return the variable data.
+        _variable.validate()
+        return _variable
 
     def map(self, role: str = 'to_object', **kwargs) -> Variable:
         '''
@@ -234,13 +318,21 @@ class VariableData(CodeComponentData, Variable):
 
         # Add the type to the result if it exists.
         if self.type:
-            result = f'{result} = {self.type}'
-        
-        # Add the value to the result.
-        f'{result} = {self.value}'
+            result = f'{result}: {self.type}'
 
-        # Return the result as a list.
-        return [result]
+        # Split the value on the newline character.
+        value = self.value.split('\n')
+
+        # If the value is not a list, add it to the result and convert the result to a list.
+        if len(value) == 1:
+            result = f'{result} = {value[0]}'
+            return [result]
+        
+        # Add the first line of the value to the result.
+        result = f'{result} = {value[0]}'
+
+        # Add the rest of the value to the result and return it.
+        return [result, *[f'{value}' for value in value[1:]]]
 
 
 class ParameterData(ModelData, Parameter):
@@ -274,7 +366,7 @@ class ParameterData(ModelData, Parameter):
 
         # Map the parameter data to a parameter object.
         return super().map(Parameter, role, **kwargs)
-    
+
     def to_primitive(self, role=None, app_data=None, **kwargs):
         '''
         Converts the parameter data to a source code-based primitive.
@@ -298,7 +390,7 @@ class ParameterData(ModelData, Parameter):
         # Add the type to the result if it exists.
         if self.type:
             result = f'{result}: {self.type}'
-        
+
         # Add the value to the result and return it.
         f'{result} = {self.value}'
         return result
@@ -322,7 +414,7 @@ class FunctionData(CodeComponentData, Function):
             'to_object': wholelist(),
             'to_data.python': wholelist()
         }
-    
+
     parameters = t.ListType(
         t.ModelType(ParameterData),
         default=[],
@@ -344,14 +436,14 @@ class FunctionData(CodeComponentData, Function):
 
         # Create the function data.
         _function = FunctionData(
-            dict(**kwargs), 
+            dict(**kwargs),
             strict=False
         )
 
         # Validate and return the function data.
         _function.validate()
         return _function
-    
+
     def map(self, role: str = 'to_object', **kwargs) -> Function:
         '''
         Maps the function data to a function object.
@@ -364,7 +456,7 @@ class FunctionData(CodeComponentData, Function):
 
         # Map the function data to a function object.
         return super().map(Function, role, **kwargs)
-    
+
     def to_primitive(self, role=None, app_data=None, **kwargs):
         '''
         Converts the function data to a source code-based primitive.
@@ -381,7 +473,7 @@ class FunctionData(CodeComponentData, Function):
         # If the role is not to_data.python, return the default primitive.
         if role != 'to_data.python':
             return super().to_primitive(role, app_data, **kwargs)
-        
+
         # Initialize the result as the function name.
         result = f'def {self.name}('
 
@@ -398,7 +490,8 @@ class FunctionData(CodeComponentData, Function):
         result = [result]
 
         # Add the code block to the result.
-        result.extend([code.to_primitive(role, tab=1) for code in self.code_block])
+        result.extend([code.to_primitive(role, tab=1)
+                      for code in self.code_block])
 
 
 class ClassData(CodeComponentData, Class):
@@ -449,7 +542,49 @@ class ClassData(CodeComponentData, Class):
 
         # Create the class data.
         _class = ClassData(
-            dict(**kwargs), 
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the class data.
+        _class.validate()
+        return _class
+
+    @staticmethod
+    def from_python_file(lines: List[str], **kwargs) -> 'ClassData':
+        '''
+        Creates a class data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: List[str]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new class data.
+        :rtype: ClassData
+        '''
+
+        # Get the first line of the class.
+        line = lines[0]
+
+        # Split on the open parenthesis.
+        line = line.split('(')
+
+        # Set the name and base classes.
+        name = line[0].split('class ')[1].strip()
+        base_classes = line[1].split(')')[0].split(
+            ',') if len(line) == 2 else []
+
+        # Set the description.
+        if lines[1].startswith(f'{TAB}\'\'\''):
+            description = lines[2].strip()
+
+        # Create the class data.
+        _class = ClassData(
+            dict(**kwargs,
+                 name=name,
+                 base_classes=base_classes,
+                 description=description
+                 ),
             strict=False
         )
 
@@ -468,8 +603,8 @@ class ClassData(CodeComponentData, Class):
         '''
 
         # Map the class data to a class object.
-        return super().map(Class, role, **kwargs)
-    
+        return Class.new(**self.to_primitive(role, **kwargs))
+
     def to_primitive(self, role=None, app_data=None, **kwargs):
         '''
         Converts the class data to a source code-based primitive.
@@ -487,21 +622,21 @@ class ClassData(CodeComponentData, Class):
         if role != 'to_data.python':
             return super().to_primitive(role, app_data, **kwargs)
 
-        # Initialize the result as the class name.
-        result = f'class {self.name}'
+        # Initialize the result as a list.
+        result = []
 
-        # Add the base classes to the result if they exist.
+        # Add the class to the result.
+        first_line = f'class {self.name}'
         if self.base_classes:
-            result = f'{result}({", ".join(self.base_classes)}):'
+            first_line = f'{first_line}({", ".join(self.base_classes)}):'
         else:
-            result = f'{result}(object):'
+            first_line = f'{first_line}(object):'
+        result.append(first_line)
 
-        # Set the result as a list.
-        result = [result]
+        # Set the description.
         result.append(f'{TAB}\'\'\'')
         result.append(f'{TAB}{self.description}')
         result.append(f'{TAB}\'\'\'')
-        
 
         # Return the result if there are no attributes or methods.
         if not self.attributes and not self.methods:
@@ -513,14 +648,17 @@ class ClassData(CodeComponentData, Class):
         if self.attributes:
             result.append('')
         for attribute in self.attributes:
-            result.extend([f'{TAB}{line}' for line in attribute.to_primitive(role, app_data, **kwargs)])
-            
+            result.append(f'{TAB}#** attribute - {attribute.name}')
+            result.extend(
+                [f'{TAB}{line}' for line in attribute.to_primitive(role, app_data, **kwargs)])
 
         # Add the methods to the result.
         if self.methods:
             result.append('')
         for method in self.methods:
-            result.extend([f'{TAB}{line}' for line in method.to_primitive(role, app_data, **kwargs)])
+            result.append(f'{TAB}#** method - {method.name}')
+            result.extend(
+                [f'{TAB}{line}' for line in method.to_primitive(role, app_data, **kwargs)])
 
         # Return the result.
         return result
@@ -544,18 +682,6 @@ class ModuleData(ModelData, Module):
             'to_object': wholelist(),
             'to_data.python': wholelist()
         }
-
-    id = t.StringType(
-        metadata=dict(
-            description='The module file name placeholder.'
-        ),
-    )
-
-    type = t.StringType(
-        metadata=dict(
-            description='The module type placeholder.'
-        ),
-    )
 
     imports = t.ListType(
         t.ModelType(ImportData),
@@ -590,17 +716,19 @@ class ModuleData(ModelData, Module):
         _components = []
         for component in components:
             if isinstance(component, Variable):
-                _components.append(VariableData.new(**component.to_primitive()))
+                _components.append(VariableData.new(
+                    **component.to_primitive()))
             elif isinstance(component, Function):
-                _components.append(FunctionData.new(**component.to_primitive()))
+                _components.append(FunctionData.new(
+                    **component.to_primitive()))
             elif isinstance(component, Class):
                 _components.append(ClassData.new(**component.to_primitive()))
 
         # Create the module.
         _module = ModuleData(
             dict(**kwargs,
-                components=_components
-            ), 
+                 components=_components
+                 ),
             strict=False
         )
 
@@ -614,7 +742,66 @@ class ModuleData(ModelData, Module):
         Creates a module data from a Python file.
         '''
 
-        pass
+        # Create a lookup of module code.
+        module_code = {}
+
+        # Current code marker.
+        code_marker = None
+
+        # Iterate over the lines.
+        for i, line in enumerate(lines):
+
+            # Skip the first line if it is empty.
+            if i == 0 and not line:
+                continue
+
+            # If the line is a comment, add it to the module code.
+            if line.startswith('#**'):
+
+                # Set the code marker.
+                code_marker = line[3:].strip()
+                module_code[code_marker] = []
+
+            # If the line is not a comment, add it to the module code.
+            else:
+                module_code[code_marker].append(line)
+
+        # Create imports and components list.
+        imports = []
+        components = []
+
+        for key, value in module_code.items():
+
+            # Create the imports if present.
+            if 'imports' in key:
+                type = key.split(' - ')[1]
+                imports.extend([ImportData.from_python_file(line, type)
+                               for line in value if line])
+
+            # Create the variable components if present.
+            elif 'variable' in key:
+                components.append(VariableData.from_python_file(value, type))
+
+            # Create the function components if present.
+            elif 'function' in key:
+                components.append(FunctionData.from_python_file(value))
+
+            # Create the class components if present.
+            elif 'class' in key:
+                components.append(ClassData.from_python_file(value))
+
+        # Create the module data.
+        _data = ModuleData(
+            dict(**kwargs,
+                 imports=imports,
+                 components=components
+                 ),
+            strict=False
+        )
+
+        # Validate and return the module data.
+        _data.validate()
+        return _data
 
     def map(self, role: str = 'to_object', **kwargs) -> Module:
         '''
@@ -629,43 +816,65 @@ class ModuleData(ModelData, Module):
         '''
 
         # Map the module data to a module data.
-        return super().map(Module, role, **kwargs)
+        _object = super().map(Module, role, **kwargs)
+
+        # Set the components as the mapped components.
+        _object.components = [component.map(role, **kwargs) for component in self.components]
+
+        # Return the mapped module data.
+        return _object
 
     def to_primitive(self, role=None, app_data=None, **kwargs):
+        '''
+        Converts the module data to a source code-based primitive.
+        
+        :param role: The role for the conversion.
+        :type role: str
+        :param app_data: The application data.
+        :type app_data: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The source code-based primitive.
+        :rtype: str
+        '''
+
+        # If the role is not to_data.python, return the default primitive.
         if role != 'to_data.python':
             return super().to_primitive(role, app_data, **kwargs)
 
         # Initialize and add the imports and components to the result.
         result = []
-        
+
         # Create lookup of core, infra, and app imports.
-        core_imports = []
-        infra_imports = []
-        app_imports = []
+        lookup = dict(
+            core=[],
+            infra=[],
+            app=[]
+        )
 
         # Add the imports to the result.
         for _import in self.imports:
-            if _import.type == 'core':
-                core_imports.append(_import.to_primitive(role=role))
-            elif _import.type == 'infra':
-                infra_imports.append(_import.to_primitive(role=role))
-            else:
-                app_imports.append(_import.to_primitive(role=role))
+            lookup[_import.type].append(_import.to_primitive(role=role))
 
         # Add the imports to the result.
-        if core_imports:
-            result.extend(core_imports)
-            result.append('')
-        if infra_imports:    
-            result.extend(infra_imports)
-            result.append('')
-        if app_imports:
-            result.extend(app_imports)
-            result.append('')
+        for type in ['core', 'infra', 'app']:
+            imports = lookup[type]
+            if imports:
+                result.append(f'#** imports - {type}')
+                result.extend(imports)
+                result.append('')
         result.append('')
 
+        # Add the components to the result.
         for component in self.components:
-            result.extend([line for line in component.to_primitive(role, app_data, **kwargs)])
+            if isinstance(component, Variable):
+                result.append(f'#** variable - {component.name}')
+            elif isinstance(component, Function):
+                result.append(f'#** function - {component.name}')
+            elif isinstance(component, Class):
+                result.append(f'#** class - {component.name}')
+            result.extend(
+                [line for line in component.to_primitive(role, app_data, **kwargs)])
             result.append('')
 
         # Return the result.

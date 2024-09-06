@@ -128,7 +128,17 @@ class Module(Entity):
         :type component: CodeComponent
         '''
 
-        # Add the component to the components list.
+        # If a component with the same name exists...
+        for i, _component in enumerate(self.components):
+
+            # If the component names match...
+            if _component.name == component.name:
+
+                # Replace the component.
+                self.components[i] = component
+                return
+            
+        # Add the component.
         self.components.append(component)
 
 
@@ -144,17 +154,38 @@ class Variable(CodeComponent):
         ),
     )
 
+    type = t.StringType(
+        metadata=dict(
+            description='The type of the variable.'
+        ),
+    )
+
     value = t.StringType(
         metadata=dict(
             description='The value of the variable.'
         ),
     )
 
-    type = t.StringType(
-        metadata=dict(
-            description='The type of the variable.'
-        ),
-    )
+    @staticmethod
+    def new(**kwargs) -> 'Variable':
+        '''
+        Initializes a new Variable object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The new Variable object.
+        :rtype: Variable
+        '''
+
+        # Create the variable.
+        _variable = Variable(
+            dict(**kwargs), 
+            strict=False
+        )
+
+        # Validate and return the variable.
+        _variable.validate()
+        return _variable
 
 
 class Parameter(ValueObject):
@@ -297,5 +328,6 @@ class Class(CodeComponent):
             strict=False
         )
 
-        # Return the class.
+        # Validate and return the class.
+        _class.validate()
         return _class
