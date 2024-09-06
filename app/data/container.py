@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 from schematics import types as t
 from schematics.transforms import wholelist, whitelist, blacklist
 
@@ -27,7 +29,7 @@ class ContainerAttributeData(ContainerAttribute, ModelData):
 
     data = t.DictType(t.DictType(t.StringType), default={}, required=True)
 
-    def map(self, role: str, flag: str, **kwargs) -> ContainerAttribute:
+    def map(self, role: str, flags: List[str], **kwargs) -> ContainerAttribute:
         '''
         Maps the container attribute data to a container attribute object.
 
@@ -37,11 +39,17 @@ class ContainerAttributeData(ContainerAttribute, ModelData):
         :type flag: str
         :return: A new container attribute object.
         '''
-        data = self.data[flag]
-        if self.type == CONTAINER_ATTRIBUTE_TYPE_DATA:
-            return super().map(DataAttribute, role, data=data, **kwargs)
-        elif self.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
-            return super().map(DependencyAttribute, role, data=data, **kwargs)
+
+        # Get the data for the flag.
+        for flag in flags:
+            try:
+                data = self.data[flag]
+            except KeyError:
+                continue
+            if self.type == CONTAINER_ATTRIBUTE_TYPE_DATA:
+                return super().map(DataAttribute, role, data=data, **kwargs)
+            elif self.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
+                return super().map(DependencyAttribute, role, data=data, **kwargs)
 
     @staticmethod
     def new(id: str, type: str, flag: str, data: dict, **kwargs) -> 'ContainerAttributeData':

@@ -7,7 +7,10 @@ from ..objects.data import ModelData
 def load(path: str, create_data = lambda data: data, start_node = lambda data: data, **kwargs):
     with open(path, 'r') as file:
         data = yaml.safe_load(file)
-    data = start_node(data)
+    try:
+        data = start_node(data)
+    except AttributeError:
+        return None
     if data == None:
         return None
     return create_data(data, **kwargs)
@@ -26,7 +29,11 @@ def save(path: str, data: ModelData | dict, data_save_path: str, **kwargs):
         if new_yaml_data is None:
             new_yaml_data = yaml_data[fragment]
         else:
-            new_yaml_data = new_yaml_data[fragment]
+            try:
+                new_yaml_data = new_yaml_data[fragment]
+            except KeyError:
+                new_yaml_data[fragment] = {}
+                new_yaml_data = new_yaml_data[fragment]
 
     new_yaml_data[save_path_list[-1]] = data.to_primitive('to_data.yaml')
 

@@ -30,7 +30,8 @@ class AppContainer(object):
         container_repo: ContainerRepository = self.load_container_repository(**kwargs.get('container_repo', {}))
 
         # Get container attributes.
-        attributes: List[ContainerAttribute] = container_repo.list_attributes(container_type, **kwargs.get('container', {}))
+        flags = kwargs.get('container').get('flags').split(', ')
+        attributes: List[ContainerAttribute] = container_repo.list_attributes(container_type, flags)
     
         # Add app variables as attributes.
         for key, value in kwargs.get('app').items():

@@ -10,7 +10,7 @@ class FeatureContainer(object):
     A container for a feature.
     '''
 
-    def __init__(self, flag: str, container_repo: ContainerRepository):
+    def __init__(self, flags: str, container_repo: ContainerRepository):
         '''
         Initialize the feature container.
 
@@ -22,7 +22,7 @@ class FeatureContainer(object):
 
         # Load container repository and list attributes.
         attributes = self.list_attributes(
-            flag=flag,
+            flags=flags.split(', '),
             group_id='feature',
             container_repo=container_repo
         )
@@ -33,14 +33,14 @@ class FeatureContainer(object):
         # Load container dependencies.
         self.set_attributes(attributes, container)
 
-    def list_attributes(self, group_id: str, flag: str, container_repo: ContainerRepository, **kwargs):
+    def list_attributes(self, group_id: str, flags: List[str], container_repo: ContainerRepository, **kwargs):
         '''
         List container attributes.
 
         :param group_id: The group id.
         :type group_id: str
-        :param flag: The container flag.
-        :type flag: str
+        :param flag: The container flags.
+        :type flag: List[str]
         :param container_repo: The container repository.
         :type container_repo: ContainerRepository
         :param kwargs: Additional keyword arguments.
@@ -52,7 +52,7 @@ class FeatureContainer(object):
         # Get container attributes.
         attributes: List[ContainerAttribute] = container_repo.list_attributes(
             group_id=group_id,
-            flag=flag
+            flags=flags
         )
 
         # Return attributes.

@@ -96,3 +96,8 @@ class AddObjectMethodCode(Model):
     object_id = t.StringType(required=True)
     method_name = t.StringType(required=True)
     code_block = t.ListType(t.ModelType(ObjectMethodCodeBlock), required=True, deserialize_from=['code'])
+
+
+class SyncModelToCode(Model):
+
+    object_id = t.StringType(required=True)

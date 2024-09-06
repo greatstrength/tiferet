@@ -74,7 +74,7 @@ container:
           yaml:
             value: app.yml
         type: data
-      flag:
+      flags:
         data:
           yaml:
             value: yaml
@@ -217,6 +217,18 @@ container:
           yaml:
             value: app.yml
         type: data
+      sync_model_to_code:
+        data:
+          python:
+            class_name: SyncModelToCode
+            module_path: app.commands.sync
+        type: dependency
+      sync_repo:
+        data:
+          python:
+            class_name: PythonRepository
+            module_path: app.repositories.sync
+        type: dependency
 errors:
   CLI_ARGUMENT_ALREADY_EXISTS:
     message:
@@ -397,6 +409,14 @@ features:
             name: Add New Object
           name: Add New Object
           request_type_path: app.configs.requests.AddNewObject
+    sync:
+      features:
+        model_to_code:
+          description: Syncs a model object to code.
+          handlers:
+          - attribute_id: sync_model_to_code
+            name: Sync Model to Code
+          name: Sync Model to Code
 interfaces:
   cli:
     commands:
@@ -887,6 +907,18 @@ interfaces:
         group_id: object
         help: add new model object
         name: Add Object
+      sync.model_to_code:
+        arguments:
+        - help: id of object to sync
+          name_or_flags:
+          - --object-id
+          - -o
+          required: true
+          type: str
+        feature_id: sync.model_to_code
+        group_id: sync
+        help: syncs model object to code
+        name: Sync Model to Code
 objects:
   cli_argument:
     attributes:

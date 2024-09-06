@@ -19,6 +19,7 @@ IMPORT_TYPES = [
     IMPORT_TYPE_INFRA,
     IMPORT_TYPE_APP,
 ]
+TAB = '    '
 
 
 class Import(ValueObject):
@@ -87,6 +88,17 @@ class Module(Entity):
             description='The components of the module.'
         ),
     )
+
+    def set_component(self, component: CodeComponent):
+        '''
+        Sets a component for the module.
+
+        :param component: The component to set.
+        :type component: CodeComponent
+        '''
+
+        # Add the component to the components list.
+        self.components.append(component)
 
 
 class Variable(CodeComponent):
@@ -216,9 +228,10 @@ class Class(CodeComponent):
         ),
     )
 
-    base_class_name = t.StringType(
+    base_classes = t.ListType(
+        t.StringType,
         metadata=dict(
-            description='The base class name of the class.'
+            description='The base class names for the class.'
         ),
     )
 

@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 
+from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectTypeSettings
 from ..objects.object import StringSettings
@@ -107,3 +108,31 @@ def validate_attribute(object_repo: ObjectRepository, attribute: ObjectAttribute
             # Assert that the object exists or return an Object Not Found error.
             assert object_repo.exists(
                 object_id), f'OBJECT_NOT_FOUND: {object_id}'
+            
+
+def get_base_model(_object: ModelObject, object_repo: ObjectRepository) -> ModelObject:
+    '''
+    Get the base model for an object.
+
+    :param object: The object.
+    :type object: Object
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
+    :return: The base model.
+    :rtype: Object
+    '''
+
+    # If the object has a base type id,
+    if _object.base_type_id:
+
+        # Get the base object.
+        base_object = object_repo.get(_object.base_type_id)
+
+        # Assert that the base object exists.
+        assert base_object is not None, f'OBJECT_BASE_NOT_FOUND: {_object.base_type_id}'
+
+        # Return the base object.
+        return base_object
+
+    # Return None.
+    return None
