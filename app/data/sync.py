@@ -651,6 +651,7 @@ class ClassData(CodeComponentData, Class):
             result.append(f'{TAB}#** attribute - {attribute.name}')
             result.extend(
                 [f'{TAB}{line}' for line in attribute.to_primitive(role, app_data, **kwargs)])
+            result.append('')
 
         # Add the methods to the result.
         if self.methods:
@@ -659,6 +660,7 @@ class ClassData(CodeComponentData, Class):
             result.append(f'{TAB}#** method - {method.name}')
             result.extend(
                 [f'{TAB}{line}' for line in method.to_primitive(role, app_data, **kwargs)])
+            result.append('')
 
         # Return the result.
         return result
@@ -749,10 +751,10 @@ class ModuleData(ModelData, Module):
         code_marker = None
 
         # Iterate over the lines.
-        for i, line in enumerate(lines):
+        for line in lines:
 
-            # Skip the first line if it is empty.
-            if i == 0 and not line:
+            # Skip the line if it is empty.
+            if not line:
                 continue
 
             # If the line is a comment, add it to the module code.

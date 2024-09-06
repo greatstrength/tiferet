@@ -375,7 +375,11 @@ features:
           description: Add an attribute to a model object.
           handlers:
           - attribute_id: add_object_attribute
+            data_key: _object
             name: Add Object Attribute
+            return_to_data: true
+          - attribute_id: sync_model_to_code
+            name: Sync Model Object to Code
           name: Add New Feature
           request_type_path: app.configs.requests.AddObjectAttribute
         add_method:
