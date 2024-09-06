@@ -19,7 +19,10 @@ IMPORT_TYPES = [
     IMPORT_TYPE_INFRA,
     IMPORT_TYPE_APP,
 ]
-MODULE_TYPE_OBJECT = 'object'
+MODULE_TYPE_OBJECTS = 'objects'
+MODULE_TYPES = [
+    MODULE_TYPE_OBJECTS,
+]
 TAB = '    '
 
 
@@ -74,6 +77,14 @@ class Module(Entity):
     A module file represented as an object.
     '''
 
+    type = t.StringType(
+        required=True,
+        choices=MODULE_TYPES,
+        metadata=dict(
+            description='The module type.'
+        )
+    )
+
     imports = t.ListType(
         t.ModelType(Import),
         default=[],
@@ -84,11 +95,30 @@ class Module(Entity):
 
     components = t.ListType(
         t.ModelType(CodeComponent),
-        required=True,
+        default=[],
         metadata=dict(
             description='The components of the module.'
         ),
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'Module':
+        '''
+        Initializes a new Module object.
+
+        :return: The new Module object.
+        :rtype: Module
+        '''
+
+        # Create the module.
+        _module = Module(
+            dict(**kwargs), 
+            strict=False
+        )
+
+        # Validate and return the module.
+        _module.validate()
+        return _module
 
     def set_component(self, component: CodeComponent):
         '''
@@ -251,3 +281,21 @@ class Class(CodeComponent):
             description='The methods of the class.'
         ),
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'Class':
+        '''
+        Initializes a new Class object.
+
+        :return: The new Class object.
+        :rtype: Class
+        '''
+
+        # Create the class.
+        _class = Class(
+            dict(**kwargs), 
+            strict=False
+        )
+
+        # Return the class.
+        return _class

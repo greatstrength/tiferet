@@ -5,7 +5,7 @@ from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
 from ..objects.sync import Class
 from ..objects.sync import Module
-from ..objects.sync import MODULE_TYPE_OBJECT
+from ..objects.sync import MODULE_TYPE_OBJECTS
 from ..objects.sync import Import
 
 
@@ -21,25 +21,32 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
     :rtype
     '''
 
-    # Format the base class name.
-    base_class_name = base_model.class_name if base_model else None
+    # Format the base classes as a list.
+    base_classes = []
 
-    # If the model object has no base class...
-    if not base_class_name:
+    # If the base model exists...
+    if base_model:
+
+        # Add the base model class name to the base classes.
+        base_classes.append(base_model.class_name)
+
+
+    # If the model object has no base classes...
+    if not base_classes:
 
         # Set the base class name to Entity if the object type is 'entity'.
         if model_object.type == OBJECT_TYPE_ENTITY:
-            base_class_name = 'Entity'
+            base_classes.append('Entity')
         
         # Set the base class name to ValueObject if the object type is 'value_object'.
         elif model_object.type == OBJECT_TYPE_VALUE_OBJECT:
-            base_class_name = 'ValueObject'
+            base_classes.append('ValueObject')
 
     # Create the class.
     _class = Class.new(
         name=model_object.class_name,
         description=model_object.description,
-        base_class_name=base_class_name
+        base_classes=base_classes
     )
 
     # Return the class.
@@ -59,23 +66,25 @@ def create_module(type: str, name: str) -> Module:
     '''
 
     # If the module type is an object...
-    if type == MODULE_TYPE_OBJECT:
+    if type == MODULE_TYPE_OBJECTS:
 
         # Create new module imports.
         imports = [Import(dict(
+            type='core',
             from_module='typing',
-            import_name='List, Dict, Any'
-        ))]
-
-        # Create secondary imports.
-        secondary_imports = []
+            import_module='List, Dict, Any'
+        )),
+        Import(dict(
+            type='app',
+            from_module='..objects.object',
+            import_module='Entity'
+        )),]
 
     # Create the module.
     module = Module.new(
         imports=imports,
-        secondary_imports=secondary_imports,
         type=type,
-        name=name
+        id=name
     )
 
     # Return the module.

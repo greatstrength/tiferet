@@ -1,9 +1,9 @@
 from typing import List, Dict, Any
 
-from ..repositories.sync import SyncRepository
-from ..repositories.object import ObjectRepository
 from ..objects.object import ModelObject
-from ..objects.sync import Class
+from ..objects.sync import *
+from ..repositories.object import ObjectRepository
+from ..repositories.sync import *
 from ..services import object as object_service
 from ..services import sync as sync_service
 
@@ -37,14 +37,19 @@ class SyncModelToCode(object):
         _class = sync_service.sync_model_to_code(_object, base_object)
 
         # Get the sync module.
-        sync_module = self.sync_repo.get('object', _object.group_id)
+        sync_module = self.sync_repo.get(
+            MODULE_TYPE_OBJECTS,
+            _object.group_id,
+        )
 
         # If the sync module does not exist...
         if not sync_module:
 
             # Create a new sync module.
             sync_module = sync_service.create_module(
-                'object', _object.group_id)
+                MODULE_TYPE_OBJECTS,
+                _object.group_id,
+            )
 
         # Add the class to the sync
         sync_module.set_component(_class)
