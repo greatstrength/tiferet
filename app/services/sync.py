@@ -89,7 +89,6 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
         # Add the base model class name to the base classes.
         base_classes.append(base_model.class_name)
 
-
     # If the model object has no base classes...
     if not base_classes:
 

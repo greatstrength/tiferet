@@ -404,9 +404,13 @@ features:
           name: Add Method Parameters
           request_type_path: app.configs.requests.AddObjectMethodParameters
         new:
-          functions:
+          handlers:
           - attribute_id: add_new_object
+            data_key: _object
             name: Add New Object
+            return_to_data: true
+          - attribute_id: sync_model_to_code
+            name: Sync Model Object to Code
           name: Add New Object
           request_type_path: app.configs.requests.AddNewObject
     sync:

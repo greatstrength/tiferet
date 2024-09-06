@@ -64,6 +64,7 @@ class AddFeatureHandler(FeatureHandler):
     
     feature_id = t.StringType(required=True)
     position = t.IntType()
+    params = t.ListType(t.StringType(), default=[], deserialize_from=['param'])
 
 
 class AddNewObject(ModelObject):
