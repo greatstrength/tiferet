@@ -386,7 +386,11 @@ features:
           description: Adds a new method to a model object.
           handlers:
           - attribute_id: add_object_method
+            data_key: _object
             name: Add Object Method
+            return_to_data: true
+          - attribute_id: sync_model_to_code
+            name: Sync Model Object to Code
           name: Add Object Method
           request_type_path: app.configs.requests.AddObjectMethod
         add_method_code:

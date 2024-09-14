@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
+from ..objects.object import ObjectMethod
+from ..objects.object import ObjectMethodParameter
 from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
 from ..objects.sync import *
@@ -18,6 +20,98 @@ MODEL_ATTRIBUTE_TYPES = {
     'dict': 't.DictType',
     'model': 't.ModelType',
 }
+
+
+def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: str = ModelObject) -> str:
+    '''
+    Syncs a parameter type.
+
+    :param parameter: The parameter.
+    :type parameter: ObjectMethodParameter
+    :return: The parameter type.
+    :rtype: str
+    '''
+
+    # If the parameter type is a model, set the type as the model class name.
+    if parameter.type == 'model':
+        return param_obj.class_name
+    
+    # If the parameter type is not set, return 'Any'.
+    if not parameter.type:
+        return 'Any'
+    
+    # If the parameter is not a list, dict, or model, return the parameter type.
+    if parameter.type not in ['list', 'dict', 'model']:
+        return parameter.type
+
+    # If the parameter is a list, set the type as 'List['.
+    if parameter.type == 'list':
+        type = f'List['
+
+    # If the parameter is a dict, set the type as 'Dict['.
+    elif parameter.type == 'dict':
+        type = f'Dict['
+
+    # If the parameter inner type is a model, use the model class name.
+    if parameter.inner_type == 'model':
+        type += f'{param_obj.class_name}]'
+
+    # Otherwise, use the inner type.
+    else:
+        type += f'{parameter.inner_type}]'
+
+    # Return the type.
+    return type
+
+
+def sync_parameter_to_code(parameter: ObjectMethodParameter, param_obj: str = ModelObject) -> Parameter:
+    '''
+    Syncs a parameter to code.
+
+    :param parameter: The parameter.
+    :type parameter: ObjectMethodParameter
+    :return: The variable.
+    :rtype: Variable
+    '''
+   
+    # Sync the parameter type.
+    type = sync_parameter_type(parameter, param_obj)
+
+    # Create the variable.
+    variable = Parameter.new(
+        name=parameter.name,
+        type=type,
+        default=parameter.default,
+    )
+
+    # Return the variable.
+    return variable
+
+def sync_model_method_to_code(method: ObjectMethod) -> Function:
+    '''
+    Syncs a method to code.
+
+    :param method: The method.
+    :type method: ObjectMethod
+    :return: The function.
+    :rtype: Function
+    '''
+
+    # Create the parameters.
+    # parameters = [sync_parameter_to_code(param) for param in method.parameters]
+
+
+    # Create the function.
+    function = Function.new(
+        name=method.name,
+        description=method.description,
+        parameters=method.parameters,
+        return_type=method.return_type,
+        code_block=method.code_block
+    )
+
+    # Return the function.
+    return function
 
 def sync_model_attribute_to_code(attribute: ObjectAttribute) -> Variable:
     '''
@@ -102,6 +196,7 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
 
     # Create the class attributes.
     attributes = []
+    methods = []
 
     # Map on the model object attributes.
     for attribute in model_object.attributes:
@@ -109,12 +204,19 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
         # Sync the attribute to code.
         attributes.append(sync_model_attribute_to_code(attribute))
 
+    # Map on the model object methods.
+    for method in model_object.methods:
+
+        # Sync the method to code.
+        methods.append(sync_model_method_to_code(method))
+
     # Create the class.
     _class = Class.new(
         name=model_object.class_name,
         description=model_object.description,
         base_classes=base_classes,
-        attributes=attributes
+        attributes=attributes,
+        methods=methods
     )
 
     # Return the class.

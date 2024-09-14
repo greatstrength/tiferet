@@ -455,16 +455,14 @@ class FunctionData(CodeComponentData, Function):
         '''
 
         # Map the function data to a function object.
-        return super().map(Function, role, **kwargs)
+        return Function.new(**self.to_primitive(role, **kwargs))
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None, **kwargs):
         '''
         Converts the function data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The source code-based primitive.
@@ -472,13 +470,14 @@ class FunctionData(CodeComponentData, Function):
 
         # If the role is not to_data.python, return the default primitive.
         if role != 'to_data.python':
-            return super().to_primitive(role, app_data, **kwargs)
+            return super().to_primitive(role, **kwargs)
 
         # Initialize the result as the function name.
         result = f'def {self.name}('
 
-        # Add the parameters to the result.
-        result = f'{result}{", ".join([parameter.to_primitive(role, app_data, **kwargs) for parameter in self.parameters])})'
+        # Add the parameters to the result if they exist.
+        parameters = self.parameters if self.parameters else []
+        result = f'{result}{", ".join([parameter.to_primitive(role, **kwargs) for parameter in parameters])})'
 
         # Add the return type to the result if it exists.
         if self.return_type:
@@ -489,9 +488,26 @@ class FunctionData(CodeComponentData, Function):
         # Set the result as a list.
         result = [result]
 
+        # Set the description.
+        if self.description:
+            result.append(f'{TAB}\'\'\'')
+            result.append(f'{TAB}{self.description}')
+            if parameters:
+                result.append('')
+                for parameter in parameters:
+                    result.append(f'{TAB}:param {parameter.name}: {parameter.description}')
+                    result.append(f'{TAB}:type {parameter.name}: {parameter.type}')
+            result.append(f'{TAB}\'\'\'')
+            result.append('')
+
         # Add the code block to the result.
-        result.extend([code.to_primitive(role, tab=1)
-                      for code in self.code_block])
+        for code in self.code_block:
+            result.extend(
+                [line for line in code.to_primitive(role, tab=1, **kwargs)])
+            result.append('')
+        
+        # Return the result.
+        return result
 
 
 class ClassData(CodeComponentData, Class):
@@ -605,14 +621,12 @@ class ClassData(CodeComponentData, Class):
         # Map the class data to a class object.
         return Class.new(**self.to_primitive(role, **kwargs))
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None, **kwargs):
         '''
         Converts the class data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The source code-based primitive.
@@ -620,7 +634,7 @@ class ClassData(CodeComponentData, Class):
         '''
 
         if role != 'to_data.python':
-            return super().to_primitive(role, app_data, **kwargs)
+            return super().to_primitive(role, **kwargs)
 
         # Initialize the result as a list.
         result = []
@@ -650,7 +664,7 @@ class ClassData(CodeComponentData, Class):
         for attribute in self.attributes:
             result.append(f'{TAB}#** attribute - {attribute.name}')
             result.extend(
-                [f'{TAB}{line}' for line in attribute.to_primitive(role, app_data, **kwargs)])
+                [f'{TAB}{line}' for line in attribute.to_primitive(role)])
             result.append('')
 
         # Add the methods to the result.
@@ -659,7 +673,7 @@ class ClassData(CodeComponentData, Class):
         for method in self.methods:
             result.append(f'{TAB}#** method - {method.name}')
             result.extend(
-                [f'{TAB}{line}' for line in method.to_primitive(role, app_data, **kwargs)])
+                [f'{TAB}{line}' for line in method.to_primitive(role)])
             result.append('')
 
         # Return the result.
@@ -826,23 +840,19 @@ class ModuleData(ModelData, Module):
         # Return the mapped module data.
         return _object
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None):
         '''
         Converts the module data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         :return: The source code-based primitive.
         :rtype: str
         '''
 
         # If the role is not to_data.python, return the default primitive.
         if role != 'to_data.python':
-            return super().to_primitive(role, app_data, **kwargs)
+            return super().to_primitive(role)
 
         # Initialize and add the imports and components to the result.
         result = []
@@ -876,7 +886,7 @@ class ModuleData(ModelData, Module):
             elif isinstance(component, Class):
                 result.append(f'#** class - {component.name}')
             result.extend(
-                [line for line in component.to_primitive(role, app_data, **kwargs)])
+                [line for line in component.to_primitive(role=role)])
             result.append('')
 
         # Return the result.

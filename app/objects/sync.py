@@ -72,6 +72,7 @@ class CodeComponent(ValueObject):
         ),
     )
 
+
 class Module(Entity):
     '''
     A module file represented as an object.
@@ -112,7 +113,7 @@ class Module(Entity):
 
         # Create the module.
         _module = Module(
-            dict(**kwargs), 
+            dict(**kwargs),
             strict=False
         )
 
@@ -137,7 +138,7 @@ class Module(Entity):
                 # Replace the component.
                 self.components[i] = component
                 return
-            
+
         # Add the component.
         self.components.append(component)
 
@@ -179,7 +180,7 @@ class Variable(CodeComponent):
 
         # Create the variable.
         _variable = Variable(
-            dict(**kwargs), 
+            dict(**kwargs),
             strict=False
         )
 
@@ -211,6 +212,27 @@ class Parameter(ValueObject):
             description='The default value of the parameter.'
         ),
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'Parameter':
+        '''
+        Initializes a new Parameter object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The new Parameter object.
+        :rtype: Parameter
+        '''
+
+        # Create the parameter.
+        _parameter = Parameter(
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the parameter.
+        _parameter.validate()
+        return _parameter
 
 
 class CodeBlock(ValueObject):
@@ -252,7 +274,7 @@ class Function(CodeComponent):
 
     parameters = t.ListType(
         t.ModelType(Parameter),
-        required=True,
+        default=[],
         metadata=dict(
             description='The parameters of the function.'
         ),
@@ -272,6 +294,27 @@ class Function(CodeComponent):
             description='The code block for the function.'
         ),
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'Function':
+        '''
+        Initializes a new Function object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The new Function object.
+        :rtype: Function
+        '''
+
+        # Create the function.
+        _function = Function(
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the function.
+        _function.validate()
+        return _function
 
 
 class Class(CodeComponent):
@@ -324,7 +367,7 @@ class Class(CodeComponent):
 
         # Create the class.
         _class = Class(
-            dict(**kwargs), 
+            dict(**kwargs),
             strict=False
         )
 
