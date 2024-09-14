@@ -500,6 +500,11 @@ class FunctionData(CodeComponentData, Function):
             result.append(f'{TAB}\'\'\'')
             result.append('')
 
+        # If there are no code block, add pass with a tab and return.
+        if not self.code_block:
+            result.append(f'{TAB}pass')
+            return result
+
         # Add the code block to the result.
         for code in self.code_block:
             result.extend(
