@@ -7,6 +7,7 @@ from ..objects.object import ObjectMethodParameter
 from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
 from ..objects.sync import *
+from ..repositories.object import ObjectRepository
 
 
 MODEL_ATTRIBUTE_TYPES = {
@@ -22,18 +23,20 @@ MODEL_ATTRIBUTE_TYPES = {
 }
 
 
-def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: str = ModelObject) -> str:
+def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: ModelObject = None) -> str:
     '''
     Syncs a parameter type.
 
     :param parameter: The parameter.
     :type parameter: ObjectMethodParameter
+    :param param_obj: The parameter object.
+    :type param_obj: ModelObject
     :return: The parameter type.
     :rtype: str
     '''
 
     # If the parameter type is a model, set the type as the model class name.
-    if parameter.type == 'model':
+    if parameter.type == 'model' and param_obj:
         return param_obj.class_name
     
     # If the parameter type is not set, return 'Any'.
@@ -64,49 +67,56 @@ def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: str = Model
     return type
 
 
-def sync_parameter_to_code(parameter: ObjectMethodParameter, param_obj: str = ModelObject) -> Parameter:
+def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: ObjectRepository) -> Parameter:
     '''
     Syncs a parameter to code.
 
     :param parameter: The parameter.
     :type parameter: ObjectMethodParameter
-    :return: The variable.
-    :rtype: Variable
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
+    :return: The parameter.
+    :rtype: Parameter
     '''
+
+    # Get the parameter object.
+    param_obj = object_repo.get(parameter.type_object_id)
    
     # Sync the parameter type.
     type = sync_parameter_type(parameter, param_obj)
 
     # Create the variable.
-    variable = Parameter.new(
+    parameter = Parameter.new(
         name=parameter.name,
         type=type,
         default=parameter.default,
     )
 
     # Return the variable.
-    return variable
+    return parameter
 
-def sync_model_method_to_code(method: ObjectMethod) -> Function:
+def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepository) -> Function:
     '''
     Syncs a method to code.
 
     :param method: The method.
     :type method: ObjectMethod
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
     :return: The function.
     :rtype: Function
     '''
 
     # Create the parameters.
-    # parameters = [sync_parameter_to_code(param) for param in method.parameters]
-
+    parameters = [sync_parameter_to_code(param, object_repo) for param in method.parameters]
 
     # Create the function.
     function = Function.new(
         name=method.name,
         description=method.description,
-        parameters=method.parameters,
+        parameters=parameters,
         return_type=method.return_type,
+        return_description=method.return_description,
         code_block=method.code_block
     )
 
@@ -162,7 +172,7 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute) -> Variable:
     return variable
 
 
-def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None) -> Class:
+def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository, base_model: ModelObject = None) -> Class:
     '''
     Syncs a model object to code.
 
@@ -208,7 +218,7 @@ def sync_model_to_code(model_object: ModelObject, base_model: ModelObject = None
     for method in model_object.methods:
 
         # Sync the method to code.
-        methods.append(sync_model_method_to_code(method))
+        methods.append(sync_model_method_to_code(method, object_repo))
 
     # Create the class.
     _class = Class.new(

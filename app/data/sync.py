@@ -354,6 +354,22 @@ class ParameterData(ModelData, Parameter):
             'to_data.python': wholelist()
         }
 
+    @staticmethod
+    def new(**kwargs) -> 'ParameterData':
+        '''
+        Initializes a new ParameterData object from a Parameter object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ParameterData object.
+        :rtype: ParameterData
+        '''
+
+        # Create the parameter data.
+        return ParameterData(
+            super(ParameterData, ParameterData).new(**kwargs),
+        )
+
     def map(self, role: str = 'to_object', **kwargs) -> Parameter:
         '''
         Maps the parameter data to a parameter object.
@@ -391,8 +407,12 @@ class ParameterData(ModelData, Parameter):
         if self.type:
             result = f'{result}: {self.type}'
 
+        # If the type is string with a default value, add quotes to the default value.
+        if self.type == 'str' and self.default:
+            self.default = f'\'{self.default}\''
+
         # Add the value to the result and return it.
-        f'{result} = {self.value}'
+        result = f'{result} = {self.default}' if self.default else result
         return result
 
 
@@ -435,14 +455,9 @@ class FunctionData(CodeComponentData, Function):
         '''
 
         # Create the function data.
-        _function = FunctionData(
-            dict(**kwargs),
-            strict=False
+        return FunctionData(
+            super(FunctionData, FunctionData).new(**kwargs),
         )
-
-        # Validate and return the function data.
-        _function.validate()
-        return _function
 
     def map(self, role: str = 'to_object', **kwargs) -> Function:
         '''
@@ -471,38 +486,40 @@ class FunctionData(CodeComponentData, Function):
         # If the role is not to_data.python, return the default primitive.
         if role != 'to_data.python':
             return super().to_primitive(role, **kwargs)
+        
+        # Create the parameters segment.
+        delimiter = ', ' if len(self.parameters) < 3 else f',\n{TAB}'
+        parameters = (
+            parameter.to_primitive(role, **kwargs) for parameter in self.parameters
+        )
 
         # Initialize the result as the function name.
-        result = f'def {self.name}('
-
-        # Add the parameters to the result if they exist.
-        parameters = self.parameters if self.parameters else []
-        result = f'{result}{", ".join([parameter.to_primitive(role, **kwargs) for parameter in parameters])})'
-
-        # Add the return type to the result if it exists.
-        if self.return_type:
-            result = f'{result} -> {self.return_type}:'
-        else:
-            result = f'{result}:'
-
-        # Set the result as a list.
-        result = [result]
+        result = ''.join([ 
+            f'def {self.name}(',
+            'self' if self.is_class_method else '',
+            ', ' if self.parameters else '',
+            delimiter.join(parameters) if self.parameters else '',
+            f') -> {self.return_type}:\n' if self.return_type else ':\n'
+        ])
 
         # Set the description.
-        if self.description:
-            result.append(f'{TAB}\'\'\'')
-            result.append(f'{TAB}{self.description}')
-            if parameters:
-                result.append('')
-                for parameter in parameters:
-                    result.append(f'{TAB}:param {parameter.name}: {parameter.description}')
-                    result.append(f'{TAB}:type {parameter.name}: {parameter.type}')
-            result.append(f'{TAB}\'\'\'')
-            result.append('')
+        description = ''.join([
+            '\'\'\'\n',
+            f'{self.description}\n',
+            '\n' if self.parameters or self.return_type else '',
+            '\n'.join([f':param {param.name}: {param.description}\n:type {param.name}: {param.type}' for param in self.parameters]),
+            f':return: {self.return_description}\n:rtype: {self.return_type}\n' if self.return_type else '',
+            '\'\'\'\n'
+        ])
+
+        # Add the description to the result.
+        result +='\n'.join([f'{TAB}{line}' if line else '' for line in description.split('\n')])
+        result = result.split('\n')
 
         # If there are no code block, add pass with a tab and return.
         if not self.code_block:
             result.append(f'{TAB}pass')
+            result.append('')
             return result
 
         # Add the code block to the result.
@@ -555,21 +572,16 @@ class ClassData(CodeComponentData, Class):
         '''
         Initializes a new ClassData object from a Class object.
 
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ClassData object.
         :rtype: ClassData
         '''
 
         # Create the class data.
-        _class = ClassData(
-            dict(**kwargs),
-            strict=False
+        return ClassData(
+            super(ClassData, ClassData).new(**kwargs),
         )
-
-        # Validate and return the class data.
-        _class.validate()
-        return _class
 
     @staticmethod
     def from_python_file(lines: List[str], **kwargs) -> 'ClassData':

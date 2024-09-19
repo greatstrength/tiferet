@@ -287,6 +287,18 @@ class Function(CodeComponent):
         ),
     )
 
+    return_description = t.StringType(
+        metadata=dict(
+            description='The description of the return value.'
+        ),
+    )
+
+    is_class_method = t.BooleanType(
+        metadata=dict(
+            description='Whether the function is a class method.'
+        ),
+    )
+
     code_block = t.ListType(
         t.ModelType(CodeBlock),
         default=[],

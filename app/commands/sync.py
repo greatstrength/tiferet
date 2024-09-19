@@ -34,7 +34,11 @@ class SyncModelToCode(object):
         base_object = object_service.get_base_model(_object, self.object_repo)
 
         # Create the class.
-        _class = sync_service.sync_model_to_code(_object, base_object)
+        _class = sync_service.sync_model_to_code(
+            _object, 
+            self.object_repo, 
+            base_object
+        )
 
         # Get the sync module.
         sync_module = self.sync_repo.get(

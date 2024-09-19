@@ -625,6 +625,12 @@ class ObjectMethod(ValueObject):
         )
     )
 
+    return_description = t.StringType(
+        metadata=dict(
+            description='The description of the return type for inline documentation.'
+        )
+    )
+
     parameters = t.ListType(
         t.ModelType(ObjectMethodParameter),
         default=[],
