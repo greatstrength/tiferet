@@ -84,14 +84,16 @@ class CodeBlockData(ModelData, CodeBlock):
 
         # Initialize the result a list.
         result = ''.join([
-            '\n'.join(f'# {comment}' for comment in self.comments) if self.comments else '',
+            '\n'.join(
+                f'# {comment}' for comment in self.comments) if self.comments else '',
             '\n' if self.comments and self.lines else '',
             '\n'.join(self.lines) if self.lines else '',
         ])
 
         # Add tabs and return the formatted result.
         if tabs:
-            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
+            result = '\n'.join(
+                [f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -113,6 +115,22 @@ class ImportData(ModelData, Import):
             'to_object': wholelist(),
             'to_data.python': wholelist()
         }
+
+    @staticmethod
+    def new(**kwargs) -> 'ImportData':
+        '''
+        Initializes a new ImportData object from an Import object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ImportData object.
+        :rtype: ImportData
+        '''
+
+        # Create the import data.
+        return ImportData(
+            super(ImportData, ImportData).new(**kwargs),
+        )
 
     @staticmethod
     def from_python_file(line: str, type: str, **kwargs) -> 'ImportData':
@@ -161,35 +179,39 @@ class ImportData(ModelData, Import):
         # Map the import data to an import object.
         return super().map(Import, role, **kwargs)
 
-    def to_primitive(self, role=None, app_data=None, **kwargs) -> List[str]:
+    def to_primitive(self, role=None, **kwargs) -> str:
         '''
         Converts the import data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The source code-based primitive.
         :rtype: List[str]
         '''
 
-        if role != 'to_data.python':
-            return super().to_primitive(role, app_data, **kwargs)
+        # If the role is to_data.python, return the python primitive.
+        if role == 'to_data.python':
+            return self.to_python_primitive()
 
-        # Start the result as a string import statement.
-        result = f'import {self.import_module}'
+        # Return the default primitive.
+        return super().to_primitive(role, **kwargs)
 
-        # If the import has a from module, add it to the result.
-        if self.from_module:
-            result = f'from {self.from_module} {result}'
+    def to_python_primitive(self) -> str:
+        '''
+        Converts the import data to a python source code-based primitive.
+        
+        :return: The source code-based primitive.
+        :rtype: str
+        '''
 
-        # If the import has an alias, add it to the result.
-        if self.alias:
-            result = f'{result} as {self.alias}'
-
-        # Return the result.
+        # Initialize the result as a string and return it.
+        result = ''.join([
+            f'from {self.from_module} ' if self.from_module else '',
+            f'import {self.import_module}' if self.import_module else '',
+            f' as {self.alias}' if self.alias else '',
+        ])
         return result
 
 
@@ -343,7 +365,6 @@ class VariableData(CodeComponentData, Variable):
             f'{self.name}',
             f': {self.type}' if self.type else '',
             f' = {self.value}' if self.value else '',
-            '\n'
         ])
 
         # Add tabs and return the formatted result.
@@ -416,10 +437,10 @@ class ParameterData(ModelData, Parameter):
         # If the role is to_data.python, return the python primitive.
         if role == 'to_data.python':
             return self.to_python_primitive()
-        
+
         # Return the default primitive.
         return super().to_primitive(role, **kwargs)
-    
+
     def to_python_primitive(self):
         '''
         Converts the parameter data to a python source code-based primitive.
@@ -561,7 +582,8 @@ class FunctionData(CodeComponentData, Function):
 
         # Format the tabs and return the result.
         if tabs:
-            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
+            result = '\n'.join(
+                [f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -610,6 +632,12 @@ class ClassData(CodeComponentData, Class):
         :return: A new ClassData object.
         :rtype: ClassData
         '''
+
+        # Set the attributes and methods as VariableData and FunctionData objects.
+        kwargs['attributes'] = [VariableData.new(
+            **attribute) for attribute in kwargs.get('attributes', [])]
+        kwargs['methods'] = [FunctionData.new(
+            **method) for method in kwargs.get('methods', [])]
 
         # Create the class data.
         return ClassData(
@@ -686,10 +714,10 @@ class ClassData(CodeComponentData, Class):
         # If the role is to_data.python, return the python primitive.
         if role == 'to_data.python':
             return self.to_python_primitive(role, **kwargs)
-        
+
         # Return the default primitive.
         return super().to_primitive(role, **kwargs)
-    
+
     def to_python_primitive(self, role: str, tabs: int = 0, **kwargs):
         '''
         Converts the class data to a python source code-based primitive.
@@ -712,18 +740,21 @@ class ClassData(CodeComponentData, Class):
             f'{TAB}\'\'\'\n',
             f'{TAB}{self.description}\n',
             f'{TAB}\'\'\'\n',
-            f'{TAB}pass\n' if not self.attributes and not self.methods else '',
+            f'\n{TAB}pass\n' if not self.attributes and not self.methods else '',
             '\n' if self.attributes or self.methods else '',
             f'{TAB}#** moa\n\n' if self.attributes and self.type == 'model' else '',
-            '\n'.join([attribute.to_primitive(role, tabs=1) for attribute in self.attributes]) if self.attributes else '',
-            '\n' if self.attributes else '',
+            '\n'.join([f'{attribute.to_primitive(role, tabs=1)}\n'
+                      for attribute in self.attributes]) if self.attributes else '',
+            '\n' if self.methods else '',
             f'{TAB}#** mom\n\n' if self.methods and self.type == 'model' else '',
-            '\n'.join([method.to_primitive(role, tabs=1) for method in self.methods]) if self.methods else '',
+            '\n'.join([method.to_primitive(role, tabs=1)
+                      for method in self.methods]) if self.methods else '',
         ])
 
         # Format the tabs and return the result.
         if tabs:
-            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
+            result = '\n'.join(
+                [f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -751,6 +782,14 @@ class ModuleData(ModelData, Module):
         default=[],
         metadata=dict(
             description='The imports for the module.'
+        ),
+    )
+
+    constants = t.ListType(
+        t.ModelType(VariableData),
+        default=[],
+        metadata=dict(
+            description='The constants for the module.'
         ),
     )
 
@@ -898,44 +937,36 @@ class ModuleData(ModelData, Module):
         :rtype: str
         '''
 
-        # If the role is not to_data.python, return the default primitive.
-        if role != 'to_data.python':
-            return super().to_primitive(role)
+        # If the role is to_data.python, return the python primitive.
+        if role == 'to_data.python':
+            return self.to_python_primitive(role)
 
-        # Initialize and add the imports and components to the result.
-        result = []
+        # Return the default primitive.
+        return super().to_primitive(role)
 
-        # Create lookup of core, infra, and app imports.
-        lookup = dict(
-            core=[],
-            infra=[],
-            app=[]
-        )
+    def to_python_primitive(self, role: str = 'to_data.python'):
+        '''
+        Converts the module data to a python source code-based primitive.
+        
+        :return: The source code-based primitive.
+        :rtype: str
+        '''
 
-        # Add the imports to the result.
-        for _import in self.imports:
-            lookup[_import.type].append(_import.to_primitive(role=role))
-
-        # Add the imports to the result.
-        for type in ['core', 'infra', 'app']:
-            imports = lookup[type]
-            if imports:
-                result.append(f'#** imports - {type}')
-                result.extend(imports)
-                result.append('')
-        result.append('')
-
-        # Add the components to the result.
-        for component in self.components:
-            if isinstance(component, Variable):
-                result.append(f'#** variable - {component.name}')
-            elif isinstance(component, Function):
-                result.append(f'#** function - {component.name}')
-            elif isinstance(component, Class):
-                result.append(f'#** class - {component.name}')
-            result.extend(
-                [line for line in component.to_primitive(role=role)])
-            result.append('')
-
-        # Return the result.
+        # Prepare imports for the python primitive.
+        has_imports = {type: any(_import.type == type for _import in self.imports) for type in IMPORT_TYPES}
+    
+        # Create the python primitive.
+        result = ''.join([
+            '#** imp\n\n' if self.imports else '',
+            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'core')) if has_imports[IMPORT_TYPE_CORE] else '',
+            '\n\n' if has_imports[IMPORT_TYPE_CORE] else '',
+            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'infra')) if has_imports[IMPORT_TYPE_INFRA] else '',
+            '\n\n' if has_imports[IMPORT_TYPE_INFRA] else '',
+            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'app')) if has_imports[IMPORT_TYPE_APP] else '',
+            '\n\n' if has_imports[IMPORT_TYPE_APP] else '',
+            '\n' if self.imports else '',
+            '#** com\n\n' if self.components else '',
+            '\n\n'.join(
+                (f'{component.to_primitive(role=role)}' for component in self.components)),
+        ])
         return result

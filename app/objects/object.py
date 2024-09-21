@@ -1,7 +1,11 @@
+#** imp
+
 import typing
 
 from schematics import Model, types as t
 
+
+#** con
 
 OBJECT_TYPE_ENTITY = 'entity'
 OBJECT_TYPE_VALUE_OBJECT = 'value_object'
@@ -91,6 +95,8 @@ METHOD_CODE_BLOCK_TYPES = [
 ]
 METHOD_CODE_BLOCK_DEFAULT = METHOD_CODE_BLOCK_PYTHON
 
+
+#** com
 
 class Entity(Model):
     '''
@@ -523,7 +529,7 @@ class ObjectMethodParameter(ValueObject):
         # Validate and return the new ObjectMethodParameter object.
         obj.validate()
         return obj
-    
+
 
 class ObjectMethodCodeBlock(ValueObject):
     '''
@@ -847,7 +853,7 @@ class ModelObject(Entity):
 
         # Return True if the method exists in the model object.
         return self.get_method(name) is not None
-    
+
     def get_method(self, name: str) -> 'ObjectMethod':
         '''
         Returns the method with the specified name.

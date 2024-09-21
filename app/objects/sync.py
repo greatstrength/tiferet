@@ -47,7 +47,6 @@ class Import(ValueObject):
     )
 
     from_module = t.StringType(
-        required=True,
         metadata=dict(
             description='The module to import from.'
         ),
@@ -65,6 +64,27 @@ class Import(ValueObject):
             description='The alias for the import.'
         ),
     )
+
+    @staticmethod
+    def new(**kwargs) -> 'Import':
+        '''
+        Initializes a new Import object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The new Import object.
+        :rtype: Import
+        '''
+
+        # Create the import.
+        _import = Import(
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the import.
+        _import.validate()
+        return _import
 
 
 class CodeComponent(ValueObject):
@@ -424,6 +444,8 @@ class Class(CodeComponent):
         :return: The new Class object.
         :rtype: Class
         '''
+
+
 
         # Create the class.
         _class = Class(
