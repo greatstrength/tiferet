@@ -11,6 +11,13 @@ ATTRIBUTE_TYPES = [
     'context',
     'serializable'
 ]
+CLASS_TYPES = [
+    'model',
+    'data',
+    'context',
+    'repository',
+    'service',
+]
 IMPORT_TYPE_CORE = 'core'
 IMPORT_TYPE_INFRA = 'infra'
 IMPORT_TYPE_APP = 'app'
@@ -201,6 +208,13 @@ class Parameter(ValueObject):
         ),
     )
 
+    description = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The description of the parameter.'
+        ),
+    )
+
     type = t.StringType(
         metadata=dict(
             description='The type of the parameter.'
@@ -252,6 +266,27 @@ class CodeBlock(ValueObject):
         ),
     )
 
+    @staticmethod
+    def new(**kwargs) -> 'CodeBlock':
+        '''
+        Initializes a new CodeBlock object.
+
+        :param kwargs: The keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :return: The new CodeBlock object.
+        :rtype: CodeBlock
+        '''
+
+        # Create the code block.
+        _code_block = CodeBlock(
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the code block.
+        _code_block.validate()
+        return _code_block
+
 
 class Function(CodeComponent):
     '''
@@ -281,7 +316,6 @@ class Function(CodeComponent):
     )
 
     return_type = t.StringType(
-        default='Any',
         metadata=dict(
             description='The return type of the function.'
         ),
@@ -335,6 +369,14 @@ class Class(CodeComponent):
         required=True,
         metadata=dict(
             description='The name of the class.'
+        ),
+    )
+
+    type = t.StringType(
+        required=True,
+        choices=CLASS_TYPES,
+        metadata=dict(
+            description='The type of the class.'
         ),
     )
 
