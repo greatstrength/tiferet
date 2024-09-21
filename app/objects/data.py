@@ -10,7 +10,11 @@ class ModelData(Model):
     A data representation of a model object.
     '''
 
-    def map(self, type: type, role: str = 'to_object', **kwargs) -> ModelObject:
+    def map(self,
+        type: type,
+        role: str = 'to_object',
+        **kwargs
+    ) -> ModelObject:
         '''
         Maps the model data to a model object.
 
@@ -24,7 +28,7 @@ class ModelData(Model):
         :rtype: ModelData
         '''
 
-        # Map the model data to a model data.
+        # Map the model object data to a model data.
         _data = type(dict(
             **kwargs,
             **self.to_primitive(role=role)

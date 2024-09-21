@@ -91,7 +91,7 @@ class CodeBlockData(ModelData, CodeBlock):
 
         # Add tabs and return the formatted result.
         if tabs:
-            result = '\n'.join([f'{TAB*tabs}{line}' for line in result.split('\n')])
+            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -314,14 +314,12 @@ class VariableData(CodeComponentData, Variable):
         # Map the variable data to a variable object.
         return super().map(Variable, role, **kwargs)
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None, **kwargs):
         '''
         Converts the variable data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The source code-based primitive.
@@ -330,10 +328,10 @@ class VariableData(CodeComponentData, Variable):
 
         # If the role is to_data.python, return the python primitive.
         if role == 'to_data.python':
-            return self.to_python_primitive(role, **kwargs)
+            return self.to_python_primitive(**kwargs)
 
         # Return the default primitive.
-        return super().to_primitive(role, app_data, **kwargs)
+        return super().to_primitive(role, **kwargs)
 
     def to_python_primitive(self, tabs: int = 0, **kwargs):
         '''
@@ -341,17 +339,17 @@ class VariableData(CodeComponentData, Variable):
         '''
 
         # Set the result as a list.
-        result = [
+        result = ''.join([
             f'{self.name}',
             f': {self.type}' if self.type else '',
             f' = {self.value}' if self.value else '',
             '\n'
-        ]
+        ])
 
         # Add tabs and return the formatted result.
         if tabs:
             result = '\n'.join(
-                [f'{TAB*tabs}{line}' for line in result.split('\n')])
+                [f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -403,36 +401,41 @@ class ParameterData(ModelData, Parameter):
         # Map the parameter data to a parameter object.
         return super().map(Parameter, role, **kwargs)
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None, **kwargs):
         '''
         Converts the parameter data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The source code-based primitive.
         :rtype: str
         '''
 
-        if role != 'to_data.python':
-            return super().to_primitive(role, app_data, **kwargs)
+        # If the role is to_data.python, return the python primitive.
+        if role == 'to_data.python':
+            return self.to_python_primitive()
+        
+        # Return the default primitive.
+        return super().to_primitive(role, **kwargs)
+    
+    def to_python_primitive(self):
+        '''
+        Converts the parameter data to a python source code-based primitive.
+        
+        :return: The source code-based primitive.
+        :rtype: str
+        '''
 
-        # Set the result as the name.
-        result = self.name
-
-        # Add the type to the result if it exists.
-        if self.type:
-            result = f'{result}: {self.type}'
-
-        # If the type is string with a default value, add quotes to the default value.
-        if self.type == 'str' and self.default:
-            self.default = f'\'{self.default}\''
-
-        # Add the value to the result and return it.
-        result = f'{result} = {self.default}' if self.default else result
+        # Set the result as a string and return it.
+        result = ''.join([
+            '**' if self.is_kwargs else '',
+            f'{self.name}',
+            f': {self.type}' if self.type and not self.is_kwargs else '',
+            f' = \'{self.default}\'' if self.default and self.type == 'str' else '',
+            f' = {self.default}' if self.default and not self.type == 'str' else '',
+        ])
         return result
 
 
@@ -534,26 +537,31 @@ class FunctionData(CodeComponentData, Function):
         result = ''.join([
             f'def {self.name}(',
             'self' if self.is_class_method else '',
-            ', ' if self.parameters else '',
+            ',' if self.parameters else '',
+            f'\n{TAB}' if len(self.parameters) > 2 else '',
+            ' ' if self.parameters and len(self.parameters) <= 2 else '',
             delimiter.join(parameters) if self.parameters else '',
+            '\n' if len(self.parameters) > 2 else '',
             f') -> {self.return_type}:\n' if self.return_type else '):\n',
             f'{TAB}\'\'\'\n',
             f'{TAB}{self.description}\n',
             '\n' if self.parameters or self.return_type else '',
             '\n'.join(
                 [f'{TAB}:param {param.name}: {param.description}\n{TAB}:type {param.name}: {param.type}' for param in self.parameters]),
-            f'{TAB}:return: {self.return_description}\n{TAB}:rtype: {self.return_type}\n' if self.return_type else '\n',
+            '\n' if self.parameters and self.return_type else '',
+            f'{TAB}:return: {self.return_description}\n' if self.return_description else '',
+            f'{TAB}:rtype: {self.return_type}\n' if self.return_type else '\n',
             f'{TAB}\'\'\'\n',
             f'\n{TAB}pass\n' if not self.code_block else '',
             '\n' if self.code_block else '',
-            '\n'.join(
+            '\n\n'.join(
                 [f'{block.to_primitive(role, tabs=1)}' for block in self.code_block]) if self.code_block else '',
-            '\n' if self.code_block else ''
+            '\n' if self.code_block else '',
         ])
 
         # Format the tabs and return the result.
         if tabs:
-            result = '\n'.join([f'{TAB*tabs}{line}' for line in result])
+            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 
@@ -675,8 +683,26 @@ class ClassData(CodeComponentData, Class):
         :rtype: str
         '''
 
-        if role != 'to_data.python':
-            return super().to_primitive(role, **kwargs)
+        # If the role is to_data.python, return the python primitive.
+        if role == 'to_data.python':
+            return self.to_python_primitive(role, **kwargs)
+        
+        # Return the default primitive.
+        return super().to_primitive(role, **kwargs)
+    
+    def to_python_primitive(self, role: str, tabs: int = 0, **kwargs):
+        '''
+        Converts the class data to a python source code-based primitive.
+        
+        :param role: The role for the conversion.
+        :type role: str
+        :param tabs: The number of tabs for the code block.
+        :type tabs: int
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The source code-based primitive.
+        :rtype: str
+        '''
 
         # Initialize the result as a list.
         result = ''.join([
@@ -687,22 +713,17 @@ class ClassData(CodeComponentData, Class):
             f'{TAB}{self.description}\n',
             f'{TAB}\'\'\'\n',
             f'{TAB}pass\n' if not self.attributes and not self.methods else '',
-            f'{TAB} #** moa\n' if self.attributes and self.type == 'model' else '',
-            f'{(attribute.to_primitive(role, tabs=1) for attribute in self.attributes)}' if self.attributes else '',
-            f'{TAB} #** mom\n' if self.methods and self.type == 'model' else '',
-            f'{(method.to_primitive(role, tabs=1) for method in self.methods)}' if self.methods else '',
-        ]).split('\n')
+            '\n' if self.attributes or self.methods else '',
+            f'{TAB}#** moa\n\n' if self.attributes and self.type == 'model' else '',
+            '\n'.join([attribute.to_primitive(role, tabs=1) for attribute in self.attributes]) if self.attributes else '',
+            '\n' if self.attributes else '',
+            f'{TAB}#** mom\n\n' if self.methods and self.type == 'model' else '',
+            '\n'.join([method.to_primitive(role, tabs=1) for method in self.methods]) if self.methods else '',
+        ])
 
-        # Add the methods to the result.
-        if self.methods:
-            result.append('')
-        for method in self.methods:
-            result.append(f'{TAB}#** method - {method.name}')
-            result.extend(
-                [f'{TAB}{line}' for line in method.to_primitive(role)])
-            result.append('')
-
-        # Return the result.
+        # Format the tabs and return the result.
+        if tabs:
+            result = '\n'.join([f'{TAB*tabs}{line}' if line else '' for line in result.split('\n')])
         return result
 
 

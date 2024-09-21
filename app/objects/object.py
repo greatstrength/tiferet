@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+import typing
 
 from schematics import Model, types as t
 
@@ -700,7 +700,7 @@ class ObjectMethod(ValueObject):
         # Add the parameter to the object method.
         self.parameters.append(parameter)
 
-    def add_code_block(self, code_block: List[ObjectMethodCodeBlock]):
+    def add_code_block(self, code_block: typing.List[ObjectMethodCodeBlock]):
         '''
         Adds a code block to the object method.
 

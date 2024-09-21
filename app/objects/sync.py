@@ -221,6 +221,12 @@ class Parameter(ValueObject):
         ),
     )
 
+    is_kwargs = t.BooleanType(
+        metadata=dict(
+            description='Whether the parameter is a keyword arguments parameter.'
+        ),
+    )
+
     default = t.StringType(
         metadata=dict(
             description='The default value of the parameter.'
