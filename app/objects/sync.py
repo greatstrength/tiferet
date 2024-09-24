@@ -11,13 +11,6 @@ ATTRIBUTE_TYPES = [
     'context',
     'serializable'
 ]
-CLASS_TYPES = [
-    'model',
-    'data',
-    'context',
-    'repository',
-    'service',
-]
 IMPORT_TYPE_CORE = 'core'
 IMPORT_TYPE_INFRA = 'infra'
 IMPORT_TYPE_APP = 'app'
@@ -395,14 +388,6 @@ class Class(CodeComponent):
         required=True,
         metadata=dict(
             description='The name of the class.'
-        ),
-    )
-
-    type = t.StringType(
-        required=True,
-        choices=CLASS_TYPES,
-        metadata=dict(
-            description='The type of the class.'
         ),
     )
 

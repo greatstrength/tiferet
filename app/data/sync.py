@@ -40,6 +40,34 @@ class CodeBlockData(ModelData, CodeBlock):
         return CodeBlockData(
             super(CodeBlockData, CodeBlockData).new(**kwargs),
         )
+    
+    @staticmethod
+    def from_python_file(lines: str) -> 'CodeBlockData':
+        '''
+        Creates a code block data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: List[str]
+        :return: A new code block data.
+        :rtype: CodeBlockData
+        '''
+
+        # Split the lines on the comments.
+        comments = []
+        code_lines = []
+        for line in lines.split('\n'):
+            if line.startswith('# '):
+                comments.append(line.strip().strip('# '))
+            else:
+                code_lines.append(line.strip())
+
+        # Create the code block data.
+        return CodeBlockData(
+            super(CodeBlockData, CodeBlockData).new(
+                comments=comments,
+                lines=code_lines
+            ),
+        )
 
     def map(self, role: str = 'to_object', **kwargs) -> CodeBlock:
         '''
@@ -278,52 +306,30 @@ class VariableData(CodeComponentData, Variable):
         )
 
     @staticmethod
-    def from_python_file(lines: List[str], var_type: str = None, **kwargs) -> 'VariableData':
+    def from_python_file(lines: str) -> 'VariableData':
         '''
         Creates a variable data from a Python file.
 
         :param lines: The lines of the Python file.
-        :type lines: List[str]
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :type lines: str
         :return: A new variable data.
         :rtype: VariableData
         '''
 
-        # Get the first line of the variable.
-        line = lines[0]
-
-        # Split on the equals sign.
-        line = line.split('=')
-
-        # Set the value to None if there is no equals sign.
-        if len(line) == 1:
-            value = None
-
-        # Set the value to the right side of the equals sign if the type is None.
-        elif not var_type:
-            value = line[1].strip()
-
-        # Split the name and the type
-        line = line[0].split(':')
-
-        # Set the name and type.
-        name = line[0].strip()
-        type = line[1].strip() if len(line) == 2 else None
+        # Split the lines on the equals sign.
+        name_and_type, value = lines.split(' =' if ' = ' in lines else '=')
+        name, type = name_and_type.split(': ') if ':' in name_and_type else (name_and_type.strip(), None)
+        if type == 'str':
+            value = value.strip().strip('\'')
 
         # Create the variable data.
-        _variable = VariableData(
-            dict(**kwargs,
-                 name=name,
-                 type=type,
-                 value=value
-                 ),
-            strict=False
+        return VariableData(
+            super(VariableData, VariableData).new(
+                name=name,
+                type=type,
+                value=value.strip(),
+            ),
         )
-
-        # Validate and return the variable data.
-        _variable.validate()
-        return _variable
 
     def map(self, role: str = 'to_object', **kwargs) -> Variable:
         '''
@@ -413,32 +419,24 @@ class ParameterData(ModelData, Parameter):
         )
     
     @staticmethod
-    def from_python_file(lines: List[str], **kwargs) -> 'ParameterData':
+    def from_python_file(line: str, **kwargs) -> 'ParameterData':
         '''
         Creates a parameter data from a Python file.
 
-        :param lines: The lines of the Python file.
-        :type lines: List[str]
+        :param lines: The line of the Python file.
+        :type line: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new parameter data.
         :rtype: ParameterData
         '''
 
-        # Convert the lines to a string.
-        lines = '/n'.join(lines).strip()
-
-        # Split the lines on the colon.
-        line = lines.split(':')
-
-        # Set the name, type, and default.
-        name = line[0].strip()
-        type = line[1].strip() if len(line) == 2 else None
-        default = None
-        if '=' in type:
-            type = type.split('=')
-            default = type[1].strip()
-            type = type[0].strip()
+        # Remove the leading and trailing whitespace.
+        line = line.strip('\n')
+        name_and_type, default = line.split(' = ' if ' = ' in line else '=') if '=' in line else (line, None)
+        name, type = name_and_type.split(': ') if ':' in name_and_type else (None, name_and_type.strip())
+        if type == 'str':
+            default = default.strip().strip('\'')
 
         # Check if the parameter is kwargs.
         is_kwargs = False
@@ -447,19 +445,13 @@ class ParameterData(ModelData, Parameter):
             is_kwargs = True
 
         # Create the parameter data.
-        _parameter = ParameterData(
-            dict(**kwargs,
-                name=name,
-                type=type,
-                default=default,
-                is_kwargs=is_kwargs
-            ),
-            strict=False
+        return ParameterData.new(
+            **kwargs,
+            name=name,
+            type=type,
+            default=default.strip() if default else None,
+            is_kwargs=is_kwargs
         )
-
-        # Validate and return the parameter data.
-        _parameter.validate()
-        return _parameter
 
     def map(self, role: str = 'to_object', **kwargs) -> Parameter:
         '''
@@ -556,93 +548,64 @@ class FunctionData(CodeComponentData, Function):
         )
     
     @staticmethod
-    def from_python_file(lines: List[str], **kwargs) -> 'FunctionData':
+    def from_python_file(lines: str, **kwargs) -> 'FunctionData':
         '''
         Creates a function data from a Python file.
 
         :param lines: The lines of the Python file.
-        :type lines: List[str]
+        :type lines: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new function data.
         :rtype: FunctionData
         '''
 
-        # Get the first line of the function.
-        line = lines[0]
-
-        # Split on the open parenthesis.
-        line = line.split('(')
-
-        # Set the name, parameters, and code block.
-        name = line[0].split('def ')[1].strip()
-        parameters = line[1].split(')')[0].split(',') if len(line) == 2 else []
-        description_block = []
-        code_block = []
-
-        # Set the current region to parameters.
-        current_region = 'parameters'
-
-        # Iterate over the lines of the Python file.
-        for line in lines[1:]:
-
-            # Remove the leading whitespace.
-            line = line.strip()
-
-            # If the line starts with ''', set the current region to description and add the remaining parameters.
-            if line.startswith("'''") and current_region == 'parameters':
-                current_region = 'description'
-
-            # If the line starts with ''' and the current region is description, set the current region to code block.
-            elif line.startswith("'''") and current_region == 'description':
-                current_region = 'code_block'
-                
-            # If the current region is parameter, add the line to the parameters block.
-            if current_region == 'parameters':
-                parameters.append(line)
-            
-            # If the current region is description, add the line to the description block.
-            if current_region == 'description':
-                description_block.append(line)
-
-            # If the current region is code block, add the line to the code block.
-            if current_region == 'code_block':
-                code_block.append(line)
-
-        # Initialize the parameter descriptions and types.
+        # Initialize the parameter descriptions.
         param_descriptions = {}
-        param_types = {}
-        return_type = None
+
+        # Convert the lines to a string.
+        lines = lines.strip('\n')
+        name, parameters = lines.split('(')[0].replace('def ', '').strip(), '('.join(lines.split('(')[1:])
+        parameters, description = [param.strip() for param in parameters.split(')')[0].split(',')], ')'.join(parameters.split(')')[1:])
+        return_type, description = description.split(':\n')[0].replace('-> ', '').strip() if '->' in description else (None, description.split(':\n')[1])
+        description = '\n'.join(line[4:] if line.startswith(f'{TAB}') else line for line in description.split('\n'))
+        _, description, code_block = description.split('\'\'\'\n')
+        description_block = description.strip('\n').split('\n')
+        description = description_block[0].strip()
         return_description = None
-        for line in description_block:
-            if ':param' in line:
+        for line in description_block[2:]:
+            if 'param' in line:
                 param = line.split(':param ')[1].split(': ')[0]
-                description = line.split(': ')[1]
-                param_descriptions[param] = description
-            if ':type' in line:
-                param = line.split(':type ')[1].split(': ')[0]
-                type = line.split(': ')[1]
-                param_types[param] = type
-            if ':return' in line:
+                param_desc = line.split(': ')[1]
+                param_descriptions[next((p.strip() for p in parameters if param in p.strip()), None)] = param_desc
+            if 'return' in line:
                 return_description = line.split(': ')[1]
-            if ':rtype' in line:
+            if 'rtype' in line and not return_type:
                 return_type = line.split(': ')[1]
 
-        # Create the function data.
-        _function = FunctionData(
-            dict(**kwargs,
-                name=name,
-                parameters=[],
-                return_type=return_type,
-                return_description=return_description,
-                description=description_block[1]
-            ),
-            strict=False
-        )
+        # Set the code block.
+        code_block = code_block.strip('\n').split('\n\n')
+        if len(code_block) > 1 or 'pass' not in code_block[0]:
+            code_block = [CodeBlockData.from_python_file(block.strip()) for block in code_block]
+        else:
+            code_block = []
 
-        # Validate and return the function data.
-        _function.validate()
-        return
+        # If the first parameter is self, set the function as a class method and remove the self parameter.
+        is_class_method = False
+        if parameters[0] == 'self':
+            is_class_method = True
+            parameters = parameters[1:]
+
+        # Create the function data.
+        return FunctionData.new(**kwargs,
+            name=name,
+            parameters=[ParameterData.from_python_file(param, description=param_descriptions[param]) for param in parameters if param != 'self'],
+            return_type=return_type,
+            return_description=return_description,
+            description=description,
+            code_block=code_block,
+            is_class_method=is_class_method
+        )
 
     def map(self, role: str = 'to_object', **kwargs) -> Function:
         '''
@@ -786,14 +749,12 @@ class ClassData(CodeComponentData, Class):
         )
 
     @staticmethod
-    def from_python_file(lines: List[str], type: str, **kwargs) -> 'ClassData':
+    def from_python_file(lines: str, **kwargs) -> 'ClassData':
         '''
         Creates a class data from a Python file.
 
         :param lines: The lines of the Python file.
-        :type lines: List[str]
-        :param type: The type of the class.
-        :type type: str
+        :type lines: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new class data.
@@ -801,62 +762,54 @@ class ClassData(CodeComponentData, Class):
         '''
 
         # Get the first line of the class.
-        line = lines[0]
+        name, lines = lines.split('(')[0].replace('class ', '').strip(), '('.join(lines.split('(')[1:])
+        base_classes, description = lines.split('):\n')[0].split(','), '):\n'.join(lines.split('):\n')[1:]) 
+        description, lines = description.split('\'\'\'')[1].strip(f'{TAB}\n'), '\'\'\''.join(description.split('\'\'\'')[2:])
 
-        # Split on the open parenthesis.
-        line = line.split('(')
-
-        # Set the name and base classes.
-        name = line[0].split('class ')[1].strip()
-        base_classes = line[1].split(')')[0].split(
-            ',') if len(line) == 2 else []
-
-        # Set the description.
-        if lines[1].startswith(f'{TAB}\'\'\''):
-            description = lines[2].strip()
+        # Strip a tab from the beginning of each line.
+        lines = '\n'.join([line[4:] if line.startswith(f'{TAB}') else line for line in lines.split('\n')])
+        lines = lines.strip('\n\n').split('\n\n')
 
         # Initialize the attributes and methods.
         attributes = []
         methods = []
+        method_lines = []
         current_region = None
 
-        # Iterate over the lines of the Python file.
-        for line in lines[3:]:
+        # Iterate over the lines.
+        for line in lines:
 
             # Set the current region.
-            if line.__contains__('#**'):
+            if line.startswith('#**'):
                 current_region = line.strip()
 
             # Add the line to the attributes if the current region is attributes.
-            elif type == 'model' and current_region == '#** moa':
-                attributes.append(line.strip())
+            elif current_region == '#** atr':
+                attributes.append(VariableData.from_python_file(line.strip()))
                 
-
             # Add the line to the methods if the current region is methods.
-            elif type == 'model' and current_region == '#** mom':
-                methods.append(line)
-
-            
-
-
-
-            
+            elif current_region == '#** met':
+                if 'def ' in line:
+                    if method_lines:
+                        methods.append(FunctionData.from_python_file('\n'.join(method_lines)))
+                        method_lines = []
+                    method_lines.append(line)
+                if line.startswith(TAB):
+                    method_lines.append(line)
+        
+        # Add the last method.
+        if method_lines:
+            methods.append(FunctionData.from_python_file('\n\n'.join(method_lines)))
 
         # Create the class data.
-        _class = ClassData(
-            dict(**kwargs,
-                name=name,
-                attributes=[VariableData.from_python_file(lines) for lines in '/n'.join(attributes).split('\n\n')],
-                methods=[FunctionData.from_python_file(lines) for lines in '/n'.join(methods).split('\n\n')],
-                base_classes=base_classes,
-                description=description
-            ),
-            strict=False
+        return ClassData.new(
+            **kwargs,
+            name=name,
+            attributes=attributes,
+            methods=methods,
+            base_classes=base_classes,
+            description=description,
         )
-
-        # Validate and return the class data.
-        _class.validate()
-        return _class
 
     def map(self, role: str = 'to_object', **kwargs) -> Class:
         '''
@@ -914,11 +867,11 @@ class ClassData(CodeComponentData, Class):
             f'{TAB}\'\'\'\n',
             f'\n{TAB}pass\n' if not self.attributes and not self.methods else '',
             '\n' if self.attributes or self.methods else '',
-            f'{TAB}#** moa\n\n' if self.attributes and self.type == 'model' else '',
+            f'{TAB}#** atr\n\n' if self.attributes else '',
             '\n'.join([f'{attribute.to_primitive(role, tabs=1)}'
                       for attribute in self.attributes]) if self.attributes else '',
             '\n' if self.methods else '',
-            f'{TAB}#** mom\n\n' if self.methods and self.type == 'model' else '',
+            f'{TAB}#** met\n\n' if self.methods else '',
             '\n'.join([method.to_primitive(role, tabs=1)
                       for method in self.methods]) if self.methods else '',
         ])
