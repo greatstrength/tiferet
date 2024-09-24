@@ -133,38 +133,39 @@ class ImportData(ModelData, Import):
         )
 
     @staticmethod
-    def from_python_file(line: str, type: str, **kwargs) -> 'ImportData':
+    def from_python_file(line: str) -> 'ImportData':
+        '''
+        Creates an import data from a Python file.
 
-        # Pull out alias statement if any.
-        alias = None
-        line = line.split(' as ')
-        if len(line) == 2:
-            alias = line[1].strip()
+        :param line: The line of the Python file.
+        :type line: str
+        :return: A new import data.
+        :rtype: ImportData
+        '''
 
-        # Pull out import statement.
-        line = line[0].split('import ')
-        import_module = line[1].strip()
+        # Split the line on the import keywords.
+        from_module, import_module = line.strip('\n').split('import ')
+        from_module = from_module.replace('from ', '').strip() if 'from' in from_module else None
+        import_module, alias = import_module.split(' as ') if ' as ' in import_module else (import_module, None)
 
-        # Pull out from statement if any.
-        from_module = None
-        line = line[0].split('from ')
-        if len(line) == 2:
-            from_module = line[1].strip()
+        # Determine import type.
+        if 'import' in line:
+            if 'from' not in line:
+                type = IMPORT_TYPE_CORE
+            elif from_module.startswith('.'):
+                type = IMPORT_TYPE_APP
+            else:
+                type = IMPORT_TYPE_INFRA
 
         # Create the import data.
-        _data = ImportData(
-            dict(**kwargs,
-                 import_module=import_module,
-                 from_module=from_module,
-                 alias=alias,
-                 type=type
-                 ),
-            strict=False
+        return ImportData(
+            super(ImportData, ImportData).new(
+                from_module=from_module,
+                import_module=import_module,
+                alias=alias,
+                type=type
+            ),
         )
-
-        # Validate and return the import data.
-        _data.validate()
-        return _data
 
     def map(self, role: str = 'to_object', **kwargs) -> Import:
         '''
@@ -211,6 +212,7 @@ class ImportData(ModelData, Import):
             f'from {self.from_module} ' if self.from_module else '',
             f'import {self.import_module}' if self.import_module else '',
             f' as {self.alias}' if self.alias else '',
+            '\n',
         ])
         return result
 
@@ -365,6 +367,7 @@ class VariableData(CodeComponentData, Variable):
             f'{self.name}',
             f': {self.type}' if self.type else '',
             f' = {self.value}' if self.value else '',
+            '\n',
         ])
 
         # Add tabs and return the formatted result.
@@ -408,6 +411,55 @@ class ParameterData(ModelData, Parameter):
         return ParameterData(
             super(ParameterData, ParameterData).new(**kwargs),
         )
+    
+    @staticmethod
+    def from_python_file(lines: List[str], **kwargs) -> 'ParameterData':
+        '''
+        Creates a parameter data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: List[str]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new parameter data.
+        :rtype: ParameterData
+        '''
+
+        # Convert the lines to a string.
+        lines = '/n'.join(lines).strip()
+
+        # Split the lines on the colon.
+        line = lines.split(':')
+
+        # Set the name, type, and default.
+        name = line[0].strip()
+        type = line[1].strip() if len(line) == 2 else None
+        default = None
+        if '=' in type:
+            type = type.split('=')
+            default = type[1].strip()
+            type = type[0].strip()
+
+        # Check if the parameter is kwargs.
+        is_kwargs = False
+        if '**' in name:
+            name = name.replace('**', '')
+            is_kwargs = True
+
+        # Create the parameter data.
+        _parameter = ParameterData(
+            dict(**kwargs,
+                name=name,
+                type=type,
+                default=default,
+                is_kwargs=is_kwargs
+            ),
+            strict=False
+        )
+
+        # Validate and return the parameter data.
+        _parameter.validate()
+        return _parameter
 
     def map(self, role: str = 'to_object', **kwargs) -> Parameter:
         '''
@@ -502,6 +554,95 @@ class FunctionData(CodeComponentData, Function):
         return FunctionData(
             super(FunctionData, FunctionData).new(**kwargs),
         )
+    
+    @staticmethod
+    def from_python_file(lines: List[str], **kwargs) -> 'FunctionData':
+        '''
+        Creates a function data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: List[str]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new function data.
+        :rtype: FunctionData
+        '''
+
+        # Get the first line of the function.
+        line = lines[0]
+
+        # Split on the open parenthesis.
+        line = line.split('(')
+
+        # Set the name, parameters, and code block.
+        name = line[0].split('def ')[1].strip()
+        parameters = line[1].split(')')[0].split(',') if len(line) == 2 else []
+        description_block = []
+        code_block = []
+
+        # Set the current region to parameters.
+        current_region = 'parameters'
+
+        # Iterate over the lines of the Python file.
+        for line in lines[1:]:
+
+            # Remove the leading whitespace.
+            line = line.strip()
+
+            # If the line starts with ''', set the current region to description and add the remaining parameters.
+            if line.startswith("'''") and current_region == 'parameters':
+                current_region = 'description'
+
+            # If the line starts with ''' and the current region is description, set the current region to code block.
+            elif line.startswith("'''") and current_region == 'description':
+                current_region = 'code_block'
+                
+            # If the current region is parameter, add the line to the parameters block.
+            if current_region == 'parameters':
+                parameters.append(line)
+            
+            # If the current region is description, add the line to the description block.
+            if current_region == 'description':
+                description_block.append(line)
+
+            # If the current region is code block, add the line to the code block.
+            if current_region == 'code_block':
+                code_block.append(line)
+
+        # Initialize the parameter descriptions and types.
+        param_descriptions = {}
+        param_types = {}
+        return_type = None
+        return_description = None
+        for line in description_block:
+            if ':param' in line:
+                param = line.split(':param ')[1].split(': ')[0]
+                description = line.split(': ')[1]
+                param_descriptions[param] = description
+            if ':type' in line:
+                param = line.split(':type ')[1].split(': ')[0]
+                type = line.split(': ')[1]
+                param_types[param] = type
+            if ':return' in line:
+                return_description = line.split(': ')[1]
+            if ':rtype' in line:
+                return_type = line.split(': ')[1]
+
+        # Create the function data.
+        _function = FunctionData(
+            dict(**kwargs,
+                name=name,
+                parameters=[],
+                return_type=return_type,
+                return_description=return_description,
+                description=description_block[1]
+            ),
+            strict=False
+        )
+
+        # Validate and return the function data.
+        _function.validate()
+        return
 
     def map(self, role: str = 'to_object', **kwargs) -> Function:
         '''
@@ -645,12 +786,14 @@ class ClassData(CodeComponentData, Class):
         )
 
     @staticmethod
-    def from_python_file(lines: List[str], **kwargs) -> 'ClassData':
+    def from_python_file(lines: List[str], type: str, **kwargs) -> 'ClassData':
         '''
         Creates a class data from a Python file.
 
         :param lines: The lines of the Python file.
         :type lines: List[str]
+        :param type: The type of the class.
+        :type type: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new class data.
@@ -672,13 +815,42 @@ class ClassData(CodeComponentData, Class):
         if lines[1].startswith(f'{TAB}\'\'\''):
             description = lines[2].strip()
 
+        # Initialize the attributes and methods.
+        attributes = []
+        methods = []
+        current_region = None
+
+        # Iterate over the lines of the Python file.
+        for line in lines[3:]:
+
+            # Set the current region.
+            if line.__contains__('#**'):
+                current_region = line.strip()
+
+            # Add the line to the attributes if the current region is attributes.
+            elif type == 'model' and current_region == '#** moa':
+                attributes.append(line.strip())
+                
+
+            # Add the line to the methods if the current region is methods.
+            elif type == 'model' and current_region == '#** mom':
+                methods.append(line)
+
+            
+
+
+
+            
+
         # Create the class data.
         _class = ClassData(
             dict(**kwargs,
-                 name=name,
-                 base_classes=base_classes,
-                 description=description
-                 ),
+                name=name,
+                attributes=[VariableData.from_python_file(lines) for lines in '/n'.join(attributes).split('\n\n')],
+                methods=[FunctionData.from_python_file(lines) for lines in '/n'.join(methods).split('\n\n')],
+                base_classes=base_classes,
+                description=description
+            ),
             strict=False
         )
 
@@ -743,7 +915,7 @@ class ClassData(CodeComponentData, Class):
             f'\n{TAB}pass\n' if not self.attributes and not self.methods else '',
             '\n' if self.attributes or self.methods else '',
             f'{TAB}#** moa\n\n' if self.attributes and self.type == 'model' else '',
-            '\n'.join([f'{attribute.to_primitive(role, tabs=1)}\n'
+            '\n'.join([f'{attribute.to_primitive(role, tabs=1)}'
                       for attribute in self.attributes]) if self.attributes else '',
             '\n' if self.methods else '',
             f'{TAB}#** mom\n\n' if self.methods and self.type == 'model' else '',
@@ -839,58 +1011,65 @@ class ModuleData(ModelData, Module):
         return _module
 
     @staticmethod
-    def from_python_file(lines: List[str], **kwargs) -> 'ModuleData':
+    def from_python_file(lines: List[str], type: str, **kwargs) -> 'ModuleData':
         '''
         Creates a module data from a Python file.
         '''
 
-        # Create a lookup of module code.
-        module_code = {}
+        # Convert to a string.
+        lines = '\n'.join(lines)
 
-        # Current code marker.
-        code_marker = None
+        # Split the lines on the component type.
+        lines = lines.split('#** com\n\n')
 
-        # Iterate over the lines.
-        for line in lines:
+        # Split on the imports and package them.
+        imports = lines[0].split('#** imp\n\n')
+        imports = [ImportData.from_python_file(import_line) for import_line in imports if import_line]
 
-            # Skip the line if it is empty.
-            if not line:
-                continue
+        # Split the classes on the three new lines.
+        classes = lines[1].split('\n\n\n')
 
-            # If the line is a comment, add it to the module code.
-            if line.startswith('#**'):
-
-                # Set the code marker.
-                code_marker = line[3:].strip()
-                module_code[code_marker] = []
-
-            # If the line is not a comment, add it to the module code.
-            else:
-                module_code[code_marker].append(line)
-
-        # Create imports and components list.
+        # Initialize the module data.
         imports = []
         components = []
+        current_region = None
+        component_type = None
+        component_lines = []
 
-        for key, value in module_code.items():
+        # Iterate over the lines of the Python file.
+        for line in lines:
 
-            # Create the imports if present.
-            if 'imports' in key:
-                type = key.split(' - ')[1]
-                imports.extend([ImportData.from_python_file(line, type)
-                               for line in value if line])
+            # Set the current region if the line is a comment.
+            if line.startswith('#**'):
+                current_region = line
+                continue
 
-            # Create the variable components if present.
-            elif 'variable' in key:
-                components.append(VariableData.from_python_file(value, type))
+            # Add the line to the module code if the current region is imports.
+            if current_region == '#** imp':
+                if line.startswith('import'):
+                    imports.append(ImportData.from_python_file(line, 'core'))
+                elif line.startswith('from .'):
+                    imports.append(ImportData.from_python_file(line, 'app'))
+                elif line.startswith('from'):
+                    imports.append(ImportData.from_python_file(line, 'infra'))
+                elif not line:
+                    continue
 
-            # Create the function components if present.
-            elif 'function' in key:
-                components.append(FunctionData.from_python_file(value))
-
-            # Create the class components if present.
-            elif 'class' in key:
-                components.append(ClassData.from_python_file(value))
+            # Add the line to the module code if the current region is components.
+            elif current_region == '#** com':
+                if line.startswith('class'):
+                    if component_lines and component_type == 'class': 
+                        type = 'model' if type == 'objects' else type 
+                        components.append(ClassData.from_python_file(
+                            lines=component_lines, 
+                            type=type
+                        ))
+                    component_type = 'class'
+                    component_lines = [line]
+                elif not line and not component_type:
+                    continue
+                else:
+                    component_lines.append(line)
 
         # Create the module data.
         _data = ModuleData(

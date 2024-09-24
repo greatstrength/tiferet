@@ -134,19 +134,19 @@ class StringSettings(ObjectTypeSettings):
 
     regex = t.StringType(
         metadata=dict(
-            description='The regular expression required for the string object attribute value.'
+            description='The regular expression for the string attribute value.'
         )
     )
 
     min_length = t.IntType(
         metadata=dict(
-            description='The minimum length for the string object attribute value.'
+            description='The minimum length for the string attribute value.'
         )
     )
 
     max_length = t.IntType(
         metadata=dict(
-            description='The maximum length for the string object attribute value.'
+            description='The maximum length for the string attribute value.'
         )
     )
 
@@ -155,13 +155,14 @@ class StringSettings(ObjectTypeSettings):
         '''
         Initializes a new StringSettings object.
         
-        :param min_length: The minimum length for the string object attribute.
+        :param min_length: The minimum length of the string object attribute.
         :type min_length: int
-        :param max_length: The maximum length for the string object attribute.
+        :param max_length: The maximum length of the string object attribute.
         :type max_length: int
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new StringSettings object.
+        :rtype: StringSettings
         '''
 
         # Set the min and max length as integers if provided.
