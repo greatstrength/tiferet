@@ -1,5 +1,3 @@
-import re
-
 from schematics.transforms import wholelist, whitelist, blacklist
 
 from ..objects.sync import *
@@ -560,19 +558,20 @@ class FunctionData(CodeComponentData, Function):
         :rtype: FunctionData
         '''
 
-        # Initialize the parameter descriptions.
-        param_descriptions = {}
-
         # Convert the lines to a string.
         lines = lines.strip('\n')
         name, parameters = lines.split('(')[0].replace('def ', '').strip(), '('.join(lines.split('(')[1:])
         parameters, description = [param.strip() for param in parameters.split(')')[0].split(',')], ')'.join(parameters.split(')')[1:])
-        return_type, description = description.split(':\n')[0].replace('-> ', '').strip() if '->' in description else (None, description.split(':\n')[1])
+        description = description.split(':\n')[-1].strip('\n')
         description = '\n'.join(line[4:] if line.startswith(f'{TAB}') else line for line in description.split('\n'))
         _, description, code_block = description.split('\'\'\'\n')
         description_block = description.strip('\n').split('\n')
         description = description_block[0].strip()
+        
+        # Set the parameter descriptions.
+        param_descriptions = {}
         return_description = None
+        return_type = None
         for line in description_block[2:]:
             if 'param' in line:
                 param = line.split(':param ')[1].split(': ')[0]
@@ -964,30 +963,27 @@ class ModuleData(ModelData, Module):
         return _module
 
     @staticmethod
-    def from_python_file(lines: List[str], type: str, **kwargs) -> 'ModuleData':
+    def from_python_file(lines: str, type: str, **kwargs) -> 'ModuleData':
         '''
         Creates a module data from a Python file.
+
+        :param lines: The lines of the Python file.
+        :type lines: str
+        :param type: The type of the module.
+        :type type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new module data.
+        :rtype: ModuleData
         '''
 
-        # Convert to a string.
-        lines = '\n'.join(lines)
-
-        # Split the lines on the component type.
-        lines = lines.split('#** com\n\n')
-
-        # Split on the imports and package them.
-        imports = lines[0].split('#** imp\n\n')
-        imports = [ImportData.from_python_file(import_line) for import_line in imports if import_line]
-
-        # Split the classes on the three new lines.
-        classes = lines[1].split('\n\n\n')
-
-        # Initialize the module data.
+        # Split the lines on the comment.
+        lines = lines.strip('\n').split('\n')
         imports = []
-        components = []
+        constants = []
+        classes = []
         current_region = None
-        component_type = None
-        component_lines = []
+        class_lines = []
 
         # Iterate over the lines of the Python file.
         for line in lines:
@@ -998,22 +994,15 @@ class ModuleData(ModelData, Module):
                 continue
 
             # Add the line to the module code if the current region is imports.
-            if current_region == '#** imp':
-                if line.startswith('import'):
-                    imports.append(ImportData.from_python_file(line, 'core'))
-                elif line.startswith('from .'):
-                    imports.append(ImportData.from_python_file(line, 'app'))
-                elif line.startswith('from'):
-                    imports.append(ImportData.from_python_file(line, 'infra'))
-                elif not line:
-                    continue
+            if current_region == '#** imp' and line:
+                imports.append(ImportData.from_python_file(line))
 
             # Add the line to the module code if the current region is components.
             elif current_region == '#** com':
                 if line.startswith('class'):
                     if component_lines and component_type == 'class': 
                         type = 'model' if type == 'objects' else type 
-                        components.append(ClassData.from_python_file(
+                        classes.append(ClassData.from_python_file(
                             lines=component_lines, 
                             type=type
                         ))
@@ -1028,7 +1017,7 @@ class ModuleData(ModelData, Module):
         _data = ModuleData(
             dict(**kwargs,
                  imports=imports,
-                 components=components
+                 components=classes
                  ),
             strict=False
         )
@@ -1090,12 +1079,12 @@ class ModuleData(ModelData, Module):
         # Create the python primitive.
         result = ''.join([
             '#** imp\n\n' if self.imports else '',
-            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'core')) if has_imports[IMPORT_TYPE_CORE] else '',
-            '\n\n' if has_imports[IMPORT_TYPE_CORE] else '',
-            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'infra')) if has_imports[IMPORT_TYPE_INFRA] else '',
-            '\n\n' if has_imports[IMPORT_TYPE_INFRA] else '',
-            '\n'.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'app')) if has_imports[IMPORT_TYPE_APP] else '',
-            '\n\n' if has_imports[IMPORT_TYPE_APP] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'core')) if has_imports[IMPORT_TYPE_CORE] else '',
+            '\n' if has_imports[IMPORT_TYPE_CORE] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'infra')) if has_imports[IMPORT_TYPE_INFRA] else '',
+            '\n' if has_imports[IMPORT_TYPE_INFRA] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'app')) if has_imports[IMPORT_TYPE_APP] else '',
+            '\n' if has_imports[IMPORT_TYPE_APP] else '',
             '\n' if self.imports else '',
             '#** com\n\n' if self.components else '',
             '\n\n'.join(
