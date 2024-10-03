@@ -1,9 +1,17 @@
-from typing import List, Dict, Any
-from schematics import Model, types as t
+#** imp
+
+from typing import List
+from typing import Dict
+from typing import Any
+
+from schematics import Model
+from schematics import types as t
 
 from .object import Entity
 from .object import ValueObject
 
+
+#** con
 
 ATTRIBUTE_TYPES = [
     'model',
@@ -26,10 +34,14 @@ MODULE_TYPES = [
 TAB = '    '
 
 
+#** cls
+
 class Import(ValueObject):
     '''
     A code import object.
     '''
+
+    #** atr
 
     type = t.StringType(
         required=True,
@@ -58,6 +70,8 @@ class Import(ValueObject):
         ),
     )
 
+    #** met
+
     @staticmethod
     def new(**kwargs) -> 'Import':
         '''
@@ -85,6 +99,8 @@ class CodeComponent(ValueObject):
     A code component object.
     '''
 
+    #** atr
+
     name = t.StringType(
         required=True,
         metadata=dict(
@@ -93,80 +109,12 @@ class CodeComponent(ValueObject):
     )
 
 
-class Module(Entity):
-    '''
-    A module file represented as an object.
-    '''
-
-    type = t.StringType(
-        required=True,
-        choices=MODULE_TYPES,
-        metadata=dict(
-            description='The module type.'
-        )
-    )
-
-    imports = t.ListType(
-        t.ModelType(Import),
-        default=[],
-        metadata=dict(
-            description='The imports for the module.'
-        ),
-    )
-
-    components = t.ListType(
-        t.ModelType(CodeComponent),
-        default=[],
-        metadata=dict(
-            description='The components of the module.'
-        ),
-    )
-
-    @staticmethod
-    def new(**kwargs) -> 'Module':
-        '''
-        Initializes a new Module object.
-
-        :return: The new Module object.
-        :rtype: Module
-        '''
-
-        # Create the module.
-        _module = Module(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the module.
-        _module.validate()
-        return _module
-
-    def set_component(self, component: CodeComponent):
-        '''
-        Sets a component for the module.
-
-        :param component: The component to set.
-        :type component: CodeComponent
-        '''
-
-        # If a component with the same name exists...
-        for i, _component in enumerate(self.components):
-
-            # If the component names match...
-            if _component.name == component.name:
-
-                # Replace the component.
-                self.components[i] = component
-                return
-
-        # Add the component.
-        self.components.append(component)
-
-
 class Variable(CodeComponent):
     '''
     A code variable object.
     '''
+
+    #** atr
 
     name = t.StringType(
         required=True,
@@ -186,6 +134,8 @@ class Variable(CodeComponent):
             description='The value of the variable.'
         ),
     )
+
+    #** met
 
     @staticmethod
     def new(**kwargs) -> 'Variable':
@@ -213,6 +163,8 @@ class Parameter(ValueObject):
     '''
     A code parameter object.
     '''
+
+    #** atr
 
     name = t.StringType(
         required=True,
@@ -246,6 +198,8 @@ class Parameter(ValueObject):
         ),
     )
 
+    #** met
+
     @staticmethod
     def new(**kwargs) -> 'Parameter':
         '''
@@ -270,6 +224,8 @@ class Parameter(ValueObject):
 
 class CodeBlock(ValueObject):
 
+    #** atr
+
     lines = t.ListType(
         t.StringType,
         required=True,
@@ -284,6 +240,8 @@ class CodeBlock(ValueObject):
             description='The comments for the code block.'
         ),
     )
+
+    #** met
 
     @staticmethod
     def new(**kwargs) -> 'CodeBlock':
@@ -311,6 +269,8 @@ class Function(CodeComponent):
     '''
     A code function object.
     '''
+
+    #** atr
 
     name = t.StringType(
         required=True,
@@ -360,6 +320,8 @@ class Function(CodeComponent):
         ),
     )
 
+    #** met
+
     @staticmethod
     def new(**kwargs) -> 'Function':
         '''
@@ -383,6 +345,11 @@ class Function(CodeComponent):
 
 
 class Class(CodeComponent):
+    '''
+    A code class object.
+    '''
+
+    #** atr
 
     name = t.StringType(
         required=True,
@@ -421,6 +388,8 @@ class Class(CodeComponent):
         ),
     )
 
+    #** met
+
     @staticmethod
     def new(**kwargs) -> 'Class':
         '''
@@ -429,8 +398,6 @@ class Class(CodeComponent):
         :return: The new Class object.
         :rtype: Class
         '''
-
-
 
         # Create the class.
         _class = Class(
@@ -441,3 +408,99 @@ class Class(CodeComponent):
         # Validate and return the class.
         _class.validate()
         return _class
+
+
+class Module(Entity):
+    '''
+    A module file represented as an object.
+    '''
+
+    #** atr
+
+    type = t.StringType(
+        required=True,
+        choices=MODULE_TYPES,
+        metadata=dict(
+            description='The module type.'
+        )
+    )
+
+    imports = t.ListType(
+        t.ModelType(Import),
+        default=[],
+        metadata=dict(
+            description='The imports for the module.'
+        ),
+    )
+
+    constants = t.ListType(
+        t.ModelType(Variable),
+        default=[],
+        metadata=dict(
+            description='The constants for the module.'
+        ),
+    )
+
+    functions = t.ListType(
+        t.ModelType(Function),
+        default=[],
+        metadata=dict(
+            description='The functions for the module.'
+        ),
+    )
+
+    classes = t.ListType(
+        t.ModelType(Class),
+        default=[],
+        metadata=dict(
+            description='The classes for the module.'
+        ),
+    )
+
+    #** met
+
+    @staticmethod
+    def new(**kwargs) -> 'Module':
+        '''
+        Initializes a new Module object.
+
+        :return: The new Module object.
+        :rtype: Module
+        '''
+
+        # Create the module.
+        _module = Module(
+            dict(**kwargs),
+            strict=False
+        )
+
+        # Validate and return the module.
+        _module.validate()
+        return _module
+
+    def set_component(self, component: CodeComponent):
+        '''
+        Sets a component for the module.
+
+        :param component: The component to set.
+        :type component: CodeComponent
+        '''
+
+        # Get the components based on the component type.
+        components = None
+        if isinstance(component, Variable):
+            components = self.constants
+        elif isinstance(component, Function):
+            components = self.functions
+        elif isinstance(component, Class):
+            components = self.classes
+
+        # If the components are set...
+        # Replace the component if it already exists.
+        # Otherwise, add the component.
+        if components:
+            for i, comp in enumerate(components):
+                if comp.name == component.name:
+                    components[i] = component
+                    return
+            components.append(component)

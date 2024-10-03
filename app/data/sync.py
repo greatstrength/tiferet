@@ -175,13 +175,12 @@ class ImportData(ModelData, Import):
         import_module, alias = import_module.split(' as ') if ' as ' in import_module else (import_module, None)
 
         # Determine import type.
-        if 'import' in line:
-            if 'from' not in line:
-                type = IMPORT_TYPE_CORE
-            elif from_module.startswith('.'):
-                type = IMPORT_TYPE_APP
-            else:
-                type = IMPORT_TYPE_INFRA
+        if 'from' not in line:
+            type = IMPORT_TYPE_CORE
+        elif from_module.startswith('.'):
+            type = IMPORT_TYPE_APP
+        else:
+            type = IMPORT_TYPE_INFRA
 
         # Create the import data.
         return ImportData(
@@ -432,7 +431,7 @@ class ParameterData(ModelData, Parameter):
         # Remove the leading and trailing whitespace.
         line = line.strip('\n')
         name_and_type, default = line.split(' = ' if ' = ' in line else '=') if '=' in line else (line, None)
-        name, type = name_and_type.split(': ') if ':' in name_and_type else (None, name_and_type.strip())
+        name, type = name_and_type.split(': ') if ':' in name_and_type else (name_and_type.strip(), None)
         if type == 'str':
             default = default.strip().strip('\'')
 
@@ -564,7 +563,7 @@ class FunctionData(CodeComponentData, Function):
         parameters, description = [param.strip() for param in parameters.split(')')[0].split(',')], ')'.join(parameters.split(')')[1:])
         description = description.split(':\n')[-1].strip('\n')
         description = '\n'.join(line[4:] if line.startswith(f'{TAB}') else line for line in description.split('\n'))
-        _, description, code_block = description.split('\'\'\'\n')
+        _, description, code_block = description.split('\'\'\'')
         description_block = description.strip('\n').split('\n')
         description = description_block[0].strip()
         
@@ -917,16 +916,24 @@ class ModuleData(ModelData, Module):
         ),
     )
 
-    components = t.ListType(
-        t.ModelType(CodeComponentData),
+    functions = t.ListType(
+        t.ModelType(FunctionData),
         default=[],
         metadata=dict(
-            description='The components of the module.'
+            description='The functions for the module.'
+        ),
+    )
+
+    classes = t.ListType(
+        t.ModelType(ClassData),
+        default=[],
+        metadata=dict(
+            description='The classes for the module.'
         ),
     )
 
     @staticmethod
-    def new(components: List[CodeComponent], **kwargs) -> 'ModuleData':
+    def new(**kwargs) -> 'ModuleData':
         '''
         Initializes a new ModuleData object from a Module object.
 
@@ -938,32 +945,13 @@ class ModuleData(ModelData, Module):
         :rtype: ModuleData
         '''
 
-        # Create the Data object for each component.
-        _components = []
-        for component in components:
-            if isinstance(component, Variable):
-                _components.append(VariableData.new(
-                    **component.to_primitive()))
-            elif isinstance(component, Function):
-                _components.append(FunctionData.new(
-                    **component.to_primitive()))
-            elif isinstance(component, Class):
-                _components.append(ClassData.new(**component.to_primitive()))
-
-        # Create the module.
-        _module = ModuleData(
-            dict(**kwargs,
-                 components=_components
-                 ),
-            strict=False
+        # Create the module data.
+        return ModuleData(
+            super(ModuleData, ModuleData).new(**kwargs),
         )
 
-        # Validate and return the module.
-        _module.validate()
-        return _module
-
     @staticmethod
-    def from_python_file(lines: str, type: str, **kwargs) -> 'ModuleData':
+    def from_python_file(lines: str, **kwargs) -> 'ModuleData':
         '''
         Creates a module data from a Python file.
 
@@ -977,47 +965,17 @@ class ModuleData(ModelData, Module):
         :rtype: ModuleData
         '''
 
-        # Split the lines on the comment.
-        lines = lines.strip('\n').split('\n')
-        imports = []
-        constants = []
-        classes = []
-        current_region = None
-        class_lines = []
-
-        # Iterate over the lines of the Python file.
-        for line in lines:
-
-            # Set the current region if the line is a comment.
-            if line.startswith('#**'):
-                current_region = line
-                continue
-
-            # Add the line to the module code if the current region is imports.
-            if current_region == '#** imp' and line:
-                imports.append(ImportData.from_python_file(line))
-
-            # Add the line to the module code if the current region is components.
-            elif current_region == '#** com':
-                if line.startswith('class'):
-                    if component_lines and component_type == 'class': 
-                        type = 'model' if type == 'objects' else type 
-                        classes.append(ClassData.from_python_file(
-                            lines=component_lines, 
-                            type=type
-                        ))
-                    component_type = 'class'
-                    component_lines = [line]
-                elif not line and not component_type:
-                    continue
-                else:
-                    component_lines.append(line)
+        # Split the lines on the code marker comments.
+        lines, classes = lines.split('#** cls\n\n') if '#** cls' in lines else (lines, None)
+        imports = lines.split('#** imp\n\n')[1] if '#** imp' in lines else None
+        imports = [ImportData.from_python_file(line) for line in imports.split('\n') if line] if imports else []
+        classes = [ClassData.from_python_file(class_lines) for class_lines in classes.strip('\n').split('\n\n\n')] if classes else []
 
         # Create the module data.
         _data = ModuleData(
             dict(**kwargs,
                  imports=imports,
-                 components=classes
+                 classes=classes
                  ),
             strict=False
         )
