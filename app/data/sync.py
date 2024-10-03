@@ -1044,8 +1044,16 @@ class ModuleData(ModelData, Module):
             ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'app')) if has_imports[IMPORT_TYPE_APP] else '',
             '\n' if has_imports[IMPORT_TYPE_APP] else '',
             '\n' if self.imports else '',
-            '#** com\n\n' if self.components else '',
+            '#** con\n\n' if self.constants else '',
+            ''.join(
+                (f'{constant.to_primitive(role=role)}' for constant in self.constants)) if self.constants else '',
+            '\n' if self.constants else '',
+            '#** fun\n\n' if self.functions else '',
             '\n\n'.join(
-                (f'{component.to_primitive(role=role)}' for component in self.components)),
+                (f'{function.to_primitive(role=role)}' for function in self.functions)) if self.functions else '',
+            '\n' if self.functions else '',
+            '#** cls\n\n' if self.classes else '',
+            '\n\n'.join(
+                (f'{cls.to_primitive(role=role)}' for cls in self.classes)) if self.classes else ''
         ])
         return result
