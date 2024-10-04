@@ -1,8 +1,6 @@
 #** imp
 
-from typing import List
-from typing import Dict
-from typing import Any
+import typing
 
 from schematics import Model
 from schematics import types as t
@@ -503,4 +501,4 @@ class Module(Entity):
                 if comp.name == component.name:
                     components[i] = component
                     return
-            components.append(component)
+        components.append(component)

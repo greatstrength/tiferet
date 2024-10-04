@@ -2,6 +2,7 @@ import os
 from typing import List, Dict, Any
 
 from ..objects.sync import Module
+from ..objects.sync import Variable
 from ..data.sync import ModuleData
 from ..clients import python as python_client
 
@@ -49,6 +50,7 @@ class PythonRepository(SyncRepository):
         :type base_path: str
         '''
         
+        # Set the base path.
         if not app_base_path:
             self.base_path = os.path.join(os.getcwd(), 'app')
         else:
@@ -76,10 +78,9 @@ class PythonRepository(SyncRepository):
         )
 
         # Return None if the data is None.
+        # Otherwise, return the module object.
         if not data:
             return None
-
-        # Return the module.
         return data.map('to_object')
     
     def save(self, module: Module):
@@ -95,10 +96,7 @@ class PythonRepository(SyncRepository):
 
         # Create the Module Data.
         data = ModuleData.new(
-            id=module.id,
-            type=module.type,
-            imports=[_import.to_primitive() for _import in module.imports],
-            components=module.components,
+            **module.to_primitive(),
         )
 
         # Save the module to the client.

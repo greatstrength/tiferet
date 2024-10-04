@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+import typing
 
 from ..objects.object import ModelObject
 from ..objects.sync import *
@@ -33,8 +33,8 @@ class SyncModelToCode(object):
         # Get the base object.
         base_object = object_service.get_base_model(_object, self.object_repo)
 
-        # Create the class.
-        _class = sync_service.sync_model_to_code(
+        # Create the class and constants.
+        _class, constants = sync_service.sync_model_to_code(
             _object, 
             self.object_repo, 
             base_object
@@ -55,7 +55,9 @@ class SyncModelToCode(object):
                 _object.group_id,
             )
 
-        # Add the class to the sync
+        # Add the constants and class to the sync module.
+        for constant in constants:
+            sync_module.set_component(constant)
         sync_module.set_component(_class)
 
         # Save the sync module.

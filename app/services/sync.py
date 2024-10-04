@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+import typing
 
 from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
@@ -38,11 +38,11 @@ def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: ModelObject
     # If the parameter type is a model, set the type as the model class name.
     if parameter.type == 'model' and param_obj:
         return param_obj.class_name
-    
+
     # If the parameter type is not set, return 'Any'.
     if not parameter.type:
         return 'Any'
-    
+
     # If the parameter is not a list, dict, or model, return the parameter type.
     if parameter.type not in ['list', 'dict', 'model']:
         return parameter.type
@@ -81,7 +81,7 @@ def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: Object
 
     # Get the parameter object.
     param_obj = object_repo.get(parameter.type_object_id)
-   
+
     # Sync the parameter type.
     type = sync_parameter_type(parameter, param_obj)
 
@@ -94,6 +94,7 @@ def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: Object
 
     # Return the variable.
     return parameter
+
 
 def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepository) -> Function:
     '''
@@ -108,7 +109,8 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
     '''
 
     # Create the parameters.
-    parameters = [sync_parameter_to_code(param, object_repo) for param in method.parameters]
+    parameters = [sync_parameter_to_code(
+        param, object_repo) for param in method.parameters]
 
     # Create the function.
     function = Function.new(
@@ -123,56 +125,69 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
     # Return the function.
     return function
 
-def sync_model_attribute_to_code(attribute: ObjectAttribute) -> Variable:
+
+def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject, constants: typing.List[Variable] = []) -> Variable:
     '''
     Syncs an attribute to code.
 
     :param attribute: The attribute.
     :type attribute: ObjectAttribute
-    :param type: The attribute type.
-    :type type: str
+    :param model: The model object.
+    :type model: ModelObject
+    :param constants: The constants.
+    :type constants: List[Variable]
     :return: The variable.
     :rtype: Variable
     '''
 
-    # Set the value as an epmty string.
-    value = ''
+    # Set the value and model name.
+    value = []
+    model_name = model.name.replace(' ','_').upper()
 
     # Map on the attribute type for non-compound types.
     if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
-        value = f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}('
+        value.append(f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(')
 
     # Check if the attribute is required.
     if attribute.required:
-        value += f'\n{TAB}required=True,'
+        value.append(f'\n{TAB}required=True,')
 
     # Check if there is a default value.
     if attribute.default:
-        value += f'\n{TAB}default={attribute.default},'
+        variable = Variable.new(
+            name=f'{model_name}_{attribute.name.upper()}_DEFAULT',
+            value=f'\'{attribute.default}\'' if attribute.type == 'str' else attribute.default
+        )
+        constants.append(variable)
+        value.append(f'\n{TAB}default={variable.name},')
 
-    # Check if there are choices.
+    # Add the choices and constants if choices are provided.
     if attribute.choices:
-        value += f'\n{TAB}choices={attribute.choices},'
+        values_list = f',\n{TAB}'.join([f'\'{choice}\'' if attribute.type == 'str' else choice for choice in attribute.choices])
+        variable = Variable.new(
+            name=f'{model_name}_{attribute.name.upper()}_CHOICES',
+            value=f'[\n{TAB}{values_list}\n]'
+        )
+        constants.append(variable)
+        value.append(f'\n{TAB}choices={variable.name},')
 
     # Add the metadata with the description.
-    value += f'\n{TAB}metadata=dict('
-    value += f'\n{TAB*2}description=\'{attribute.description}\','
-    value += f'\n{TAB}),'
-
-    # Close the value.
-    value += '\n)'
+    value.append(f'\n{TAB}metadata=dict(')
+    value.append(f'\n{TAB*2}description=\'{attribute.description}\',')
+    value.append(f'\n{TAB}),')
+    value.append('\n)')
 
     # Create the variable.
     variable = Variable.new(
         name=attribute.name,
-        value=value
+        value=''.join(value)
     )
 
     # Return the variable.
     return variable
 
 
-def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository, base_model: ModelObject = None) -> Class:
+def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository, base_model: ModelObject = None, constants: typing.List[Variable] = []) -> tuple:
     '''
     Syncs a model object to code.
 
@@ -199,7 +214,7 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
         # Set the base class name to Entity if the object type is 'entity'.
         if model_object.type == OBJECT_TYPE_ENTITY:
             base_classes.append('Entity')
-        
+
         # Set the base class name to ValueObject if the object type is 'value_object'.
         elif model_object.type == OBJECT_TYPE_VALUE_OBJECT:
             base_classes.append('ValueObject')
@@ -207,12 +222,13 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
     # Create the class attributes.
     attributes = []
     methods = []
+    constants = []
 
     # Map on the model object attributes.
     for attribute in model_object.attributes:
 
         # Sync the attribute to code.
-        attributes.append(sync_model_attribute_to_code(attribute))
+        attributes.append(sync_model_attribute_to_code(attribute, model_object, constants))
 
     # Map on the model object methods.
     for method in model_object.methods:
@@ -229,9 +245,9 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
         methods=methods
     )
 
-    # Return the class.
-    return _class
-    
+    # Return the class and constants.
+    return _class, constants
+
 
 def create_module(type: str, name: str) -> Module:
     '''
@@ -249,21 +265,32 @@ def create_module(type: str, name: str) -> Module:
     if type == MODULE_TYPE_OBJECTS:
 
         # Create new module imports.
-        imports = [Import(dict(
-            type='core',
-            from_module='typing',
-            import_module='List, Dict, Any'
-        )),
-        Import(dict(
-            type='infra',
-            from_module='schematics',
-            import_module='Model, types as t'
-        )),
-        Import(dict(
-            type='app',
-            from_module='..objects.object',
-            import_module='Entity'
-        )),]
+        imports = [
+            Import(dict(
+                type='core',
+                import_module='typing'
+            )),
+            Import(dict(
+                type='infra',
+                from_module='schematics',
+                import_module='Model'
+            )),
+            Import(dict(
+                type='infra',
+                from_module='schematics',
+                import_module='types',
+                alias='t'
+            )),
+            Import(dict(
+                type='app',
+                from_module='..objects.object',
+                import_module='Entity'
+            )),
+            Import(dict(
+                type='app',
+                from_module='..objects.object',
+                import_module='ValueObject'
+            ))]
 
     # Create the module.
     module = Module.new(

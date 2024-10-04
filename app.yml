@@ -1085,6 +1085,7 @@ objects:
     methods:
     - description: Initializes a new CliInterface object.
       name: new
+      return_description: A new CliInterface object.
       return_type: model
       return_type_object_id: cli_interface
       type: factory
@@ -1142,6 +1143,37 @@ objects:
       type: state
     name: CLI Interface
     type: entity
+  constant:
+    attributes:
+    - description: Name of the constant.
+      name: name
+      required: true
+      type: str
+    - choices:
+      - str
+      - list
+      - dict
+      default: str
+      description: The data type of the constant.
+      name: data_type
+      required: true
+      type: str
+    - choices:
+      - model
+      - service
+      description: The type of the constant.
+      name: type
+      required: true
+      type: str
+    - description: The context group ID of the constant.
+      name: group_id
+      required: true
+      type: str
+    class_name: Constant
+    description: A constant value for the state of the object.
+    group_id: config
+    name: Constant
+    type: value_object
   container_attribute:
     attributes:
     - choices:

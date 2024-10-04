@@ -28,11 +28,14 @@ class ModelData(Model):
         :rtype: ModelData
         '''
 
+        # Get primitive of the model data and merge with the keyword arguments.
+        # Give priority to the keyword arguments.
+        _data = self.to_primitive(role=role)
+        for key, value in kwargs.items():
+            _data[key] = value
+
         # Map the model object data to a model data.
-        _data = type(dict(
-            **kwargs,
-            **self.to_primitive(role=role)
-        ), strict=False)
+        _data = type(_data, strict=False)
 
         # Return the model data.
         return _data

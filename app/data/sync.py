@@ -38,7 +38,7 @@ class CodeBlockData(ModelData, CodeBlock):
         return CodeBlockData(
             super(CodeBlockData, CodeBlockData).new(**kwargs),
         )
-    
+
     @staticmethod
     def from_python_file(lines: str) -> 'CodeBlockData':
         '''
@@ -171,8 +171,10 @@ class ImportData(ModelData, Import):
 
         # Split the line on the import keywords.
         from_module, import_module = line.strip('\n').split('import ')
-        from_module = from_module.replace('from ', '').strip() if 'from' in from_module else None
-        import_module, alias = import_module.split(' as ') if ' as ' in import_module else (import_module, None)
+        from_module = from_module.replace(
+            'from ', '').strip() if 'from' in from_module else None
+        import_module, alias = import_module.split(
+            ' as ') if ' as ' in import_module else (import_module, None)
 
         # Determine import type.
         if 'from' not in line:
@@ -239,35 +241,10 @@ class ImportData(ModelData, Import):
             f' as {self.alias}' if self.alias else '',
             '\n',
         ])
-        return result
+        return result 
 
 
-class CodeComponentData(ModelData, CodeComponent):
-    '''
-    A data representation of a code component.
-    '''
-
-    class Options():
-        '''
-        The options for the code component data.
-        '''
-
-        # Set the serialize when none flag to false.
-        serialize_when_none = False
-
-        # Define the roles for the code component data.
-        roles = {
-            'to_object': wholelist(),
-            'to_data.python': wholelist()
-        }
-
-    def map(self, role: str = 'to_object', **kwargs) -> CodeComponent:
-
-        # Map the code component data to a code component object.
-        return super().map(CodeComponent, role, **kwargs)
-
-
-class VariableData(CodeComponentData, Variable):
+class VariableData(ModelData, Variable):
     '''
     A data representation of a variable.
     '''
@@ -315,7 +292,8 @@ class VariableData(CodeComponentData, Variable):
 
         # Split the lines on the equals sign.
         name_and_type, value = lines.split(' =' if ' = ' in lines else '=')
-        name, type = name_and_type.split(': ') if ':' in name_and_type else (name_and_type.strip(), None)
+        name, type = name_and_type.split(
+            ': ') if ':' in name_and_type else (name_and_type.strip(), None)
         if type == 'str':
             value = value.strip().strip('\'')
 
@@ -414,7 +392,7 @@ class ParameterData(ModelData, Parameter):
         return ParameterData(
             super(ParameterData, ParameterData).new(**kwargs),
         )
-    
+
     @staticmethod
     def from_python_file(line: str, **kwargs) -> 'ParameterData':
         '''
@@ -430,8 +408,10 @@ class ParameterData(ModelData, Parameter):
 
         # Remove the leading and trailing whitespace.
         line = line.strip('\n')
-        name_and_type, default = line.split(' = ' if ' = ' in line else '=') if '=' in line else (line, None)
-        name, type = name_and_type.split(': ') if ':' in name_and_type else (name_and_type.strip(), None)
+        name_and_type, default = line.split(
+            ' = ' if ' = ' in line else '=') if '=' in line else (line, None)
+        name, type = name_and_type.split(
+            ': ') if ':' in name_and_type else (name_and_type.strip(), None)
         if type == 'str':
             default = default.strip().strip('\'')
 
@@ -501,7 +481,7 @@ class ParameterData(ModelData, Parameter):
         return result
 
 
-class FunctionData(CodeComponentData, Function):
+class FunctionData(ModelData, Function):
     '''
     A data representation of a function.
     '''
@@ -543,7 +523,7 @@ class FunctionData(CodeComponentData, Function):
         return FunctionData(
             super(FunctionData, FunctionData).new(**kwargs),
         )
-    
+
     @staticmethod
     def from_python_file(lines: str, **kwargs) -> 'FunctionData':
         '''
@@ -559,14 +539,17 @@ class FunctionData(CodeComponentData, Function):
 
         # Convert the lines to a string.
         lines = lines.strip('\n')
-        name, parameters = lines.split('(')[0].replace('def ', '').strip(), '('.join(lines.split('(')[1:])
-        parameters, description = [param.strip() for param in parameters.split(')')[0].split(',')], ')'.join(parameters.split(')')[1:])
+        name, parameters = lines.split('(')[0].replace(
+            'def ', '').strip(), '('.join(lines.split('(')[1:])
+        parameters, description = [param.strip() for param in parameters.split(
+            ')')[0].split(',')], ')'.join(parameters.split(')')[1:])
         description = description.split(':\n')[-1].strip('\n')
-        description = '\n'.join(line[4:] if line.startswith(f'{TAB}') else line for line in description.split('\n'))
+        description = '\n'.join(line[4:] if line.startswith(
+            f'{TAB}') else line for line in description.split('\n'))
         _, description, code_block = description.split('\'\'\'')
         description_block = description.strip('\n').split('\n')
         description = description_block[0].strip()
-        
+
         # Set the parameter descriptions.
         param_descriptions = {}
         return_description = None
@@ -575,7 +558,8 @@ class FunctionData(CodeComponentData, Function):
             if 'param' in line:
                 param = line.split(':param ')[1].split(': ')[0]
                 param_desc = line.split(': ')[1]
-                param_descriptions[next((p.strip() for p in parameters if param in p.strip()), None)] = param_desc
+                param_descriptions[next(
+                    (p.strip() for p in parameters if param in p.strip()), None)] = param_desc
             if 'return' in line:
                 return_description = line.split(': ')[1]
             if 'rtype' in line and not return_type:
@@ -584,7 +568,8 @@ class FunctionData(CodeComponentData, Function):
         # Set the code block.
         code_block = code_block.strip('\n').split('\n\n')
         if len(code_block) > 1 or 'pass' not in code_block[0]:
-            code_block = [CodeBlockData.from_python_file(block.strip()) for block in code_block]
+            code_block = [CodeBlockData.from_python_file(
+                block.strip()) for block in code_block]
         else:
             code_block = []
 
@@ -596,14 +581,15 @@ class FunctionData(CodeComponentData, Function):
 
         # Create the function data.
         return FunctionData.new(**kwargs,
-            name=name,
-            parameters=[ParameterData.from_python_file(param, description=param_descriptions[param]) for param in parameters if param != 'self'],
-            return_type=return_type,
-            return_description=return_description,
-            description=description,
-            code_block=code_block,
-            is_class_method=is_class_method
-        )
+                                name=name,
+                                parameters=[ParameterData.from_python_file(
+                                    param, description=param_descriptions[param]) for param in parameters if param != 'self'],
+                                return_type=return_type,
+                                return_description=return_description,
+                                description=description,
+                                code_block=code_block,
+                                is_class_method=is_class_method
+                                )
 
     def map(self, role: str = 'to_object', **kwargs) -> Function:
         '''
@@ -689,7 +675,7 @@ class FunctionData(CodeComponentData, Function):
         return result
 
 
-class ClassData(CodeComponentData, Class):
+class ClassData(ModelData, Class):
     '''
     A data representation of a class.
     '''
@@ -760,12 +746,16 @@ class ClassData(CodeComponentData, Class):
         '''
 
         # Get the first line of the class.
-        name, lines = lines.split('(')[0].replace('class ', '').strip(), '('.join(lines.split('(')[1:])
-        base_classes, description = lines.split('):\n')[0].split(','), '):\n'.join(lines.split('):\n')[1:]) 
-        description, lines = description.split('\'\'\'')[1].strip(f'{TAB}\n'), '\'\'\''.join(description.split('\'\'\'')[2:])
+        name, lines = lines.split('(')[0].replace(
+            'class ', '').strip(), '('.join(lines.split('(')[1:])
+        base_classes, description = lines.split('):\n')[0].split(
+            ','), '):\n'.join(lines.split('):\n')[1:])
+        description, lines = description.split('\'\'\'')[1].strip(
+            f'{TAB}\n'), '\'\'\''.join(description.split('\'\'\'')[2:])
 
         # Strip a tab from the beginning of each line.
-        lines = '\n'.join([line[4:] if line.startswith(f'{TAB}') else line for line in lines.split('\n')])
+        lines = '\n'.join([line[4:] if line.startswith(
+            f'{TAB}') else line for line in lines.split('\n')])
         lines = lines.strip('\n\n').split('\n\n')
 
         # Initialize the attributes and methods.
@@ -784,20 +774,22 @@ class ClassData(CodeComponentData, Class):
             # Add the line to the attributes if the current region is attributes.
             elif current_region == '#** atr':
                 attributes.append(VariableData.from_python_file(line.strip()))
-                
+
             # Add the line to the methods if the current region is methods.
             elif current_region == '#** met':
                 if 'def ' in line:
                     if method_lines:
-                        methods.append(FunctionData.from_python_file('\n'.join(method_lines)))
+                        methods.append(FunctionData.from_python_file(
+                            '\n'.join(method_lines)))
                         method_lines = []
                     method_lines.append(line)
                 if line.startswith(TAB):
                     method_lines.append(line)
-        
+
         # Add the last method.
         if method_lines:
-            methods.append(FunctionData.from_python_file('\n\n'.join(method_lines)))
+            methods.append(FunctionData.from_python_file(
+                '\n\n'.join(method_lines)))
 
         # Create the class data.
         return ClassData.new(
@@ -933,21 +925,37 @@ class ModuleData(ModelData, Module):
     )
 
     @staticmethod
-    def new(**kwargs) -> 'ModuleData':
+    def new(
+        imports: typing.List[Import] = [], 
+        constants: typing.List[Variable] = [],          
+            functions: typing.List[Function] = [], 
+            classes: typing.List[Class] = [],
+            **kwargs
+        ) -> 'ModuleData':
         '''
         Initializes a new ModuleData object from a Module object.
 
-        :param components: The components for the module.
-        :type components: List[CodeComponent]
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ModuleData object.
         :rtype: ModuleData
         '''
 
+        # Set the imports, constants, functions, and classes as ImportData, VariableData, FunctionData, and ClassData objects.
+        imports = [ImportData.new(**_import) for _import in imports]
+        constants = [VariableData.new(**constant) for constant in constants]
+        functions = [FunctionData.new(**function) for function in functions]
+        classes = [ClassData.new(**cls) for cls in classes]
+
         # Create the module data.
         return ModuleData(
-            super(ModuleData, ModuleData).new(**kwargs),
+            super(ModuleData, ModuleData).new(
+                **kwargs,
+                imports=imports,
+                constants=constants,
+                functions=functions,
+                classes=classes
+            ),
         )
 
     @staticmethod
@@ -966,15 +974,28 @@ class ModuleData(ModelData, Module):
         '''
 
         # Split the lines on the code marker comments.
-        lines, classes = lines.split('#** cls\n\n') if '#** cls' in lines else (lines, None)
+        lines, classes = lines.split(
+            '#** cls\n\n') if '#** cls' in lines else (lines, None)
+        lines, functions = lines.split(
+            '#** fun\n\n') if '#** fun' in lines else (lines, None)
+        lines, constants = lines.split(
+            '#** con\n\n') if '#** con' in lines else (lines, None)
         imports = lines.split('#** imp\n\n')[1] if '#** imp' in lines else None
-        imports = [ImportData.from_python_file(line) for line in imports.split('\n') if line] if imports else []
-        classes = [ClassData.from_python_file(class_lines) for class_lines in classes.strip('\n').split('\n\n\n')] if classes else []
+        imports = [ImportData.from_python_file(
+            line) for line in imports.split('\n') if line] if imports else []
+        constants = [VariableData.from_python_file(
+            constant) for constant in constants.strip('\n').split(' #/\n') if constant] if constants else []
+        functions = [FunctionData.from_python_file(
+            function) for function in functions.split('\n\n\n') if function] if functions else []
+        classes = [ClassData.from_python_file(class_lines) for class_lines in classes.strip(
+            '\n').split('\n\n\n')] if classes else []
 
         # Create the module data.
         _data = ModuleData(
             dict(**kwargs,
                  imports=imports,
+                 constants=constants,
+                 functions=functions,
                  classes=classes
                  ),
             strict=False
@@ -996,12 +1017,21 @@ class ModuleData(ModelData, Module):
         :rtype: ModuleData
         '''
 
-        # Map the module data to a module data.
-        _object = super().map(Module, role, **kwargs)
+        # Prepare the imports, constants, functions, and classes.
+        imports = [import_.map(role, **kwargs)
+                   for import_ in self.imports] if self.imports else []
+        constants = [constant.map(role, **kwargs)
+                     for constant in self.constants] if self.constants else []
+        functions = [function.map(role, **kwargs)
+                     for function in self.functions] if self.functions else []
+        classes = [cls.map(role, **kwargs)
+                   for cls in self.classes] if self.classes else []
 
-        # Set the components as the mapped components.
-        _object.components = [component.map(
-            role, **kwargs) for component in self.components]
+        # Map the module data to a module data.
+        _object = super().map(Module, role,
+                              imports=imports, constants=constants,
+                              functions=functions, classes=classes,
+                              **kwargs)
 
         # Return the mapped module data.
         return _object
@@ -1032,22 +1062,26 @@ class ModuleData(ModelData, Module):
         '''
 
         # Prepare imports for the python primitive.
-        has_imports = {type: any(_import.type == type for _import in self.imports) for type in IMPORT_TYPES}
-    
+        has_imports = {type: any(
+            _import.type == type for _import in self.imports) for type in IMPORT_TYPES}
+
         # Create the python primitive.
         result = ''.join([
             '#** imp\n\n' if self.imports else '',
-            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'core')) if has_imports[IMPORT_TYPE_CORE] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type ==
+                    'core')) if has_imports[IMPORT_TYPE_CORE] else '',
             '\n' if has_imports[IMPORT_TYPE_CORE] else '',
-            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'infra')) if has_imports[IMPORT_TYPE_INFRA] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type ==
+                    'infra')) if has_imports[IMPORT_TYPE_INFRA] else '',
             '\n' if has_imports[IMPORT_TYPE_INFRA] else '',
-            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type == 'app')) if has_imports[IMPORT_TYPE_APP] else '',
+            ''.join((_import.to_primitive(role=role) for _import in self.imports if _import.type ==
+                    'app')) if has_imports[IMPORT_TYPE_APP] else '',
             '\n' if has_imports[IMPORT_TYPE_APP] else '',
             '\n' if self.imports else '',
             '#** con\n\n' if self.constants else '',
-            ''.join(
-                (f'{constant.to_primitive(role=role)}' for constant in self.constants)) if self.constants else '',
-            '\n' if self.constants else '',
+            ' #/\n'.join(
+                (f'{constant.to_primitive(role=role)}'.strip('\n') for constant in self.constants)) if self.constants else '',
+            '\n\n\n' if self.constants else '',
             '#** fun\n\n' if self.functions else '',
             '\n\n'.join(
                 (f'{function.to_primitive(role=role)}' for function in self.functions)) if self.functions else '',
