@@ -7,15 +7,15 @@ from schematics import Model, types as t
 
 #** con
 
-OBJECT_TYPE_ENTITY = 'entity'
-OBJECT_TYPE_VALUE_OBJECT = 'value_object'
-OBJECT_TYPES = [
+OBJECT_TYPE_ENTITY = 'entity' #\
+OBJECT_TYPE_VALUE_OBJECT = 'value_object' #\
+OBJECT_TYPE_CHOICES = [
     'entity',
     'value_object',
     'model',
-]
-OBJECT_TYPE_DEFAULT = OBJECT_TYPE_ENTITY
-ATTRIBUTE_TYPES = [
+] #\-
+OBJECT_TYPE_DEFAULT = OBJECT_TYPE_ENTITY #\-
+ATTRIBUTE_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -27,7 +27,7 @@ ATTRIBUTE_TYPES = [
     'model',
     'poly'
 ]
-ATTRIBUTE_INNER_TYPES = [
+ATTRIBUTE_INNER_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -36,17 +36,17 @@ ATTRIBUTE_INNER_TYPES = [
     'datetime',
     'model'
 ]
-DATE_TIME_SETTINGS_TZD_TYPES = [
+DATE_TIME_SETTINGS_TZD_CHOICES = [
     'require',
     'allow',
     'utc',
     'reject'
 ]
-METHOD_TYPES = [
+METHOD_TYPE_CHOICES = [
     'factory',
     'state',
 ]
-METHOD_RETURN_TYPES = [
+METHOD_RETURN_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -57,7 +57,7 @@ METHOD_RETURN_TYPES = [
     'dict',
     'model',
 ]
-METHOD_RETURN_INNER_TYPES = [
+METHOD_RETURN_INNER_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -66,7 +66,7 @@ METHOD_RETURN_INNER_TYPES = [
     'datetime',
     'model'
 ]
-METHOD_PARAMETER_TYPES = [
+METHOD_PARAMETER_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -80,7 +80,7 @@ METHOD_PARAMETER_TYPES = [
     'args',
     'kwargs'
 ]
-METHOD_PARAMETER_INNER_TYPES = [
+METHOD_PARAMETER_INNER_TYPE_CHOICES = [
     'str',
     'int',
     'float',
@@ -90,7 +90,7 @@ METHOD_PARAMETER_INNER_TYPES = [
     'model'
 ]
 METHOD_CODE_BLOCK_PYTHON = 'python'
-METHOD_CODE_BLOCK_TYPES = [
+METHOD_CODE_BLOCK_TYPE_CHOICES = [
     METHOD_CODE_BLOCK_PYTHON
 ]
 METHOD_CODE_BLOCK_DEFAULT = METHOD_CODE_BLOCK_PYTHON
@@ -98,7 +98,42 @@ METHOD_CODE_BLOCK_DEFAULT = METHOD_CODE_BLOCK_PYTHON
 
 #** com
 
-class Entity(Model):
+class FactoryMethod(Model):
+    '''
+    A factory method for creating model objects.
+    '''
+
+    @staticmethod
+    def new(model_type: type, validate: bool = True, strict: bool = True, **kwargs) -> typing.Any:
+        '''
+        Initializes a new model object.
+
+        :param model_type: The type of model object to create.
+        :type model_type: type
+        :param validate: True to validate the model object.
+        :type validate: bool
+        :param strict: True to enforce strict mode for the model object.
+        :type strict: bool
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new model object.
+        :rtype: Any
+        '''
+
+        # Create a new model object.
+        _object = model_type(dict(
+            **kwargs
+        ), strict=strict)
+
+        # Validate if specified.
+        if validate:
+            _object.validate()
+
+        # Return the new model object.
+        return _object
+
+
+class Entity(FactoryMethod):
     '''
     A domain model entity.
     '''
@@ -111,7 +146,7 @@ class Entity(Model):
     )
 
 
-class ValueObject(Model):
+class ValueObject(FactoryMethod):
     '''
     A domain model value object.
     '''
@@ -159,7 +194,7 @@ class StringSettings(ObjectTypeSettings):
         :type min_length: int
         :param max_length: The maximum length of the string object attribute.
         :type max_length: int
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new StringSettings object.
         :rtype: StringSettings
@@ -169,16 +204,13 @@ class StringSettings(ObjectTypeSettings):
         min_length = int(min_length) if min_length else None
         max_length = int(max_length) if max_length else None
 
-        # Create a new StringSettings object.
-        obj = StringSettings(dict(
+        # Create and return a new StringSettings object.
+        return super(StringSettings, StringSettings).new(
+            StringSettings,
             min_length=min_length,
             max_length=max_length,
             **kwargs
-        ), strict=False)
-
-        # Valdiate and return the new StringSettings object.
-        obj.validate()
-        return obj
+        )
 
 
 class DateSettings(ObjectTypeSettings):
@@ -197,19 +229,14 @@ class DateSettings(ObjectTypeSettings):
         '''
         Initializes a new DateSettings object.
 
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new DateSettings object.
+        :rtype: DateSettings
         '''
 
-        # Create a new DateSettings object.
-        obj = DateSettings(dict(
-            **kwargs
-        ), strict=False)
-
-        # Validate and return the new DateSettings object.
-        obj.validate()
-        return obj
+        # Create and return a new DateSettings object.
+        return super(DateSettings, DateSettings).new(DateSettings, **kwargs)
 
 
 class DateTimeSettings(ObjectTypeSettings):
@@ -230,7 +257,7 @@ class DateTimeSettings(ObjectTypeSettings):
     )
 
     tzd = t.StringType(
-        choices=DATE_TIME_SETTINGS_TZD_TYPES,
+        choices=DATE_TIME_SETTINGS_TZD_CHOICES,
         metadata=dict(
             description='The timezone policy for a datetime object attribute value.'
         )
@@ -257,25 +284,23 @@ class DateTimeSettings(ObjectTypeSettings):
         :type convert_tz: bool
         :param drop_tzinfo: Whether to drop the timezone info for the datetime object attribute value.
         :type drop_tzinfo: bool
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new DateTimeSettings object.
+        :rtype: DateTimeSettings
         '''
 
         # Set Drop TZInfo to True if Convert TZ is True.
         if convert_tz and not drop_tzinfo:
             drop_tzinfo = True
 
-        # Create a new DateTimeSettings object.
-        obj = DateTimeSettings(dict(
+        # Create and return a new DateTimeSettings object.
+        return super(DateTimeSettings, DateTimeSettings).new(
+            DateTimeSettings,
             convert_tz=convert_tz,
             drop_tzinfo=drop_tzinfo,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new DateTimeSettings object.
-        obj.validate()
-        return obj
+        )
 
 
 class ListSettings(ObjectTypeSettings):
@@ -304,25 +329,23 @@ class ListSettings(ObjectTypeSettings):
         :type min_size: int
         :param max_size: The maximum size for a list object attribute value.
         :type max_size: int
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ListSettings object.
+        :rtype: ListSettings
         '''
 
         # Set the min and max size as integers if provided.
         min_size = int(min_size) if min_size else None
         max_size = int(max_size) if max_size else None
 
-        # Create a new ListSettings object.
-        obj = ListSettings(dict(
+        # Create and return a new ListSettings object.
+        return super(ListSettings, ListSettings).new(
+            ListSettings,
             min_size=min_size,
             max_size=max_size,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new ListSettings object.
-        obj.validate()
-        return obj
+        )
 
 
 class DictSettings(ObjectTypeSettings):
@@ -337,19 +360,14 @@ class DictSettings(ObjectTypeSettings):
         '''
         Initializes a new DictSettings object.
 
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new DictSettings object.
+        :rtype: DictSettings
         '''
 
-        # Create a new DictSettings object.
-        obj = DictSettings(dict(
-            **kwargs
-        ), strict=False)
-
-        # Validate and return the new DictSettings object.
-        obj.validate()
-        return obj
+        # Create and return a new DictSettings object.
+        return super(DictSettings, DictSettings).new(DictSettings, **kwargs)
 
 
 class ObjectAttribute(ValueObject):
@@ -373,14 +391,14 @@ class ObjectAttribute(ValueObject):
 
     type = t.StringType(
         required=True,
-        choices=ATTRIBUTE_TYPES,
+        choices=ATTRIBUTE_TYPE_CHOICES,
         metadata=dict(
             description='The object attribute data type.'
         )
     )
 
     inner_type = t.StringType(
-        choices=ATTRIBUTE_INNER_TYPES,
+        choices=ATTRIBUTE_INNER_TYPE_CHOICES,
         metadata=dict(
             description='The object attribute inner data type if the base type is a list or dict.'
         )
@@ -434,7 +452,7 @@ class ObjectAttribute(ValueObject):
 
         :param name: The name of the object attribute.
         :type name: str
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ObjectAttribute object.
         '''
@@ -442,15 +460,12 @@ class ObjectAttribute(ValueObject):
         # Set the name as the snake case of the name by default.
         name = name.lower().replace(' ', '_')
 
-        # Create a new ModelAttribute object.
-        obj = ObjectAttribute(dict(
+        # Create and return a new ObjectAttribute object.
+        return super(ObjectAttribute, ObjectAttribute).new(
+            ObjectAttribute,
             name=name,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new ModelAttribute object.
-        obj.validate()
-        return obj
+        )
 
 
 class ObjectMethodParameter(ValueObject):
@@ -467,7 +482,7 @@ class ObjectMethodParameter(ValueObject):
 
     type = t.StringType(
         required=True,
-        choices=METHOD_PARAMETER_TYPES,
+        choices=METHOD_PARAMETER_TYPE_CHOICES,
         metadata=dict(
             description='The data type of the object method parameter.'
         )
@@ -481,7 +496,7 @@ class ObjectMethodParameter(ValueObject):
     )
 
     inner_type = t.StringType(
-        choices=METHOD_PARAMETER_INNER_TYPES,
+        choices=METHOD_PARAMETER_INNER_TYPE_CHOICES,
         metadata=dict(
             description='The inner data type for object method parameters that are lists or dicts.'
         )
@@ -521,15 +536,12 @@ class ObjectMethodParameter(ValueObject):
         # Convert name to snake case.
         name = name.lower().replace(' ', '_')
 
-        # Create a new ObjectMethodParameter object.
-        obj = ObjectMethodParameter(dict(
+        # Create and return a new ObjectMethodParameter object.
+        return super(ObjectMethodParameter, ObjectMethodParameter).new(
+            ObjectMethodParameter,
             name=name,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new ObjectMethodParameter object.
-        obj.validate()
-        return obj
+        )
 
 
 class ObjectMethodCodeBlock(ValueObject):
@@ -540,7 +552,7 @@ class ObjectMethodCodeBlock(ValueObject):
     type = t.StringType(
         required=True,
         default=METHOD_CODE_BLOCK_DEFAULT,
-        choices=METHOD_CODE_BLOCK_TYPES,
+        choices=METHOD_CODE_BLOCK_TYPE_CHOICES,
         metadata=dict(
             description='The code block type.'
         )
@@ -569,20 +581,17 @@ class ObjectMethodCodeBlock(ValueObject):
         '''
         Initializes a new ObjectMethodCodeBlock object.
 
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ObjectMethodCodeBlock object.
         :rtype: ObjectMethodCodeBlock
         '''
 
-        # Create a new ObjectMethodCodeBlock object.
-        obj = ObjectMethodCodeBlock(dict(
+        # Create and return a new ObjectMethodCodeBlock object.
+        return super(ObjectMethodCodeBlock, ObjectMethodCodeBlock).new(
+            ObjectMethodCodeBlock,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new ObjectMethodCodeBlock object.
-        obj.validate()
-        return obj
+        )
 
 
 class ObjectMethod(ValueObject):
@@ -599,7 +608,7 @@ class ObjectMethod(ValueObject):
 
     type = t.StringType(
         required=True,
-        choices=METHOD_TYPES,
+        choices=METHOD_TYPE_CHOICES,
         metadata=dict(
             description='The type of the object method.'
         )
@@ -613,14 +622,14 @@ class ObjectMethod(ValueObject):
     )
 
     return_type = t.StringType(
-        choices=METHOD_RETURN_TYPES,
+        choices=METHOD_RETURN_TYPE_CHOICES,
         metadata=dict(
             description='The return type of the object method.'
         )
     )
 
     return_inner_type = t.StringType(
-        choices=METHOD_RETURN_INNER_TYPES,
+        choices=METHOD_RETURN_INNER_TYPE_CHOICES,
         metadata=dict(
             description='The inner return type for object methods that return a list or dict.'
         )
@@ -739,7 +748,7 @@ class ModelObject(Entity):
     )
 
     type = t.StringType(
-        choices=OBJECT_TYPES,
+        choices=OBJECT_TYPE_CHOICES,
         default=OBJECT_TYPE_DEFAULT,
         metadata=dict(
             description='The model object type.'
