@@ -75,39 +75,17 @@ class Import(ValueObject):
         '''
         Initializes a new Import object.
 
-        :param kwargs: The keyword arguments.
-        :type kwargs: Dict[str, Any]
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Import object.
         :rtype: Import
         '''
 
-        # Create the import.
-        _import = Import(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the import.
-        _import.validate()
-        return _import
+        # Create and return the import.
+        return super(Import, Import).new(Import, **kwargs)
 
 
-class CodeComponent(ValueObject):
-    '''
-    A code component object.
-    '''
-
-    #** atr
-
-    name = t.StringType(
-        required=True,
-        metadata=dict(
-            description='The name of the component.'
-        ),
-    )
-
-
-class Variable(CodeComponent):
+class Variable(ValueObject):
     '''
     A code variable object.
     '''
@@ -140,21 +118,14 @@ class Variable(CodeComponent):
         '''
         Initializes a new Variable object.
 
-        :param kwargs: The keyword arguments.
-        :type kwargs: Dict[str, Any]
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Variable object.
         :rtype: Variable
         '''
 
-        # Create the variable.
-        _variable = Variable(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the variable.
-        _variable.validate()
-        return _variable
+        # Create and return the variable.
+        return super(Variable, Variable).new(Variable, **kwargs)
 
 
 class Parameter(ValueObject):
@@ -203,21 +174,14 @@ class Parameter(ValueObject):
         '''
         Initializes a new Parameter object.
 
-        :param kwargs: The keyword arguments.
-        :type kwargs: Dict[str, Any]
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Parameter object.
         :rtype: Parameter
         '''
 
-        # Create the parameter.
-        _parameter = Parameter(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the parameter.
-        _parameter.validate()
-        return _parameter
+        # Create and return the parameter.
+        return super(Parameter, Parameter).new(Parameter, **kwargs)
 
 
 class CodeBlock(ValueObject):
@@ -246,24 +210,17 @@ class CodeBlock(ValueObject):
         '''
         Initializes a new CodeBlock object.
 
-        :param kwargs: The keyword arguments.
-        :type kwargs: Dict[str, Any]
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new CodeBlock object.
         :rtype: CodeBlock
         '''
 
-        # Create the code block.
-        _code_block = CodeBlock(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the code block.
-        _code_block.validate()
-        return _code_block
+        # Create and return the code block.
+        return super(CodeBlock, CodeBlock).new(CodeBlock, **kwargs)
 
 
-class Function(CodeComponent):
+class Function(ValueObject):
     '''
     A code function object.
     '''
@@ -325,24 +282,17 @@ class Function(CodeComponent):
         '''
         Initializes a new Function object.
 
-        :param kwargs: The keyword arguments.
-        :type kwargs: Dict[str, Any]
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Function object.
         :rtype: Function
         '''
 
-        # Create the function.
-        _function = Function(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the function.
-        _function.validate()
-        return _function
+        # Create and return the function.
+        return super(Function, Function).new(Function, **kwargs)
 
 
-class Class(CodeComponent):
+class Class(ValueObject):
     '''
     A code class object.
     '''
@@ -393,19 +343,14 @@ class Class(CodeComponent):
         '''
         Initializes a new Class object.
 
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Class object.
         :rtype: Class
         '''
 
-        # Create the class.
-        _class = Class(
-            dict(**kwargs),
-            strict=False
-        )
-
-        # Validate and return the class.
-        _class.validate()
-        return _class
+        # Create and return the class.
+        return super(Class, Class).new(Class, **kwargs)
 
 
 class Module(Entity):
@@ -462,26 +407,34 @@ class Module(Entity):
         '''
         Initializes a new Module object.
 
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
         :return: The new Module object.
         :rtype: Module
         '''
 
-        # Create the module.
-        _module = Module(
-            dict(**kwargs),
-            strict=False
-        )
+        # Create and return the module.
+        return super(Module, Module).new(Module, **kwargs)
+    
+    def get_class(self, class_name: str) -> Class:
+        '''
+        Gets a class by name.
 
-        # Validate and return the module.
-        _module.validate()
-        return _module
+        :param class_name: The class name.
+        :type class_name: str
+        :return: The class.
+        :rtype: Class
+        '''
 
-    def set_component(self, component: CodeComponent):
+        # Get the class by name.
+        return next((c for c in self.classes if c.name == class_name), None)
+
+    def set_component(self, component: typing.Any):
         '''
         Sets a component for the module.
 
         :param component: The component to set.
-        :type component: CodeComponent
+        :type component: Any
         '''
 
         # Get the components based on the component type.
@@ -492,6 +445,10 @@ class Module(Entity):
             components = self.functions
         elif isinstance(component, Class):
             components = self.classes
+        
+        # If the component matches none of the types, exit.
+        else:
+            return
 
         # If the components are set...
         # Replace the component if it already exists.
