@@ -16,6 +16,7 @@ class SyncModelToCode(object):
     def __init__(self, object_repo: ObjectRepository, sync_repo: SyncRepository):
         '''
         Initialize the sync model to code command.
+        
         :param object_repo: The object repository.
         :type object_repo: ObjectRepository
         :param sync_repo: The sync repository.
@@ -29,6 +30,16 @@ class SyncModelToCode(object):
         self.sync_repo = sync_repo
 
     def execute(self, _object: ModelObject, **kwargs) -> Class:
+        '''
+        Execute the sync model to code command.
+
+        :param _object: The model object to sync.
+        :type _object: ModelObject
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The model object.
+        :rtype: ModelObject
+        '''
 
         # Get the base object.
         base_object = object_service.get_base_model(_object, self.object_repo)
@@ -64,4 +75,68 @@ class SyncModelToCode(object):
         self.sync_repo.save(sync_module)
 
         # Return the model object.
+        return _object
+
+class SyncCodeToModel(object):
+    '''
+    Syncs code to a model object.
+    '''
+
+    def __init__(self, object_repo: ObjectRepository, sync_repo: SyncRepository):
+        '''
+        Initialize the sync code to model command.
+
+        :param object_repo: The object repository.
+        :type object_repo: ObjectRepository
+        :param sync_repo: The sync repository.
+        :type sync_repo: SyncRepository
+        '''
+
+        # Set the object repository.
+        self.object_repo = object_repo
+
+        # Set the sync repository.
+        self.sync_repo = sync_repo
+
+    def execute(self, group_id: str, class_name: str, **kwargs) -> ModelObject:
+        '''
+        Execute the sync code to model command.
+
+        :param group_id: The group id of the model object.
+        :type group_id: str
+        :param class_name: The class name of the model object.
+        :type class_name: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The model object.
+        :rtype: ModelObject
+        '''
+
+        # Get the sync module.
+        sync_module = self.sync_repo.get(
+            MODULE_TYPE_OBJECTS,
+            group_id,
+        )
+
+        # Assert that the sync module exists.
+        # Raise SYNC_MODULE_NOT_FOUND if it does not.
+        assert sync_module, f'SYNC_MODULE_NOT_FOUND: {MODULE_TYPE_OBJECTS}.{group_id}'
+
+        # Get the class.
+        _class = sync_module.get_class(class_name)
+
+        # Assert that the class exists.
+        # Raise SYNC_CLASS_NOT_FOUND if it does not.
+        assert _class, f'SYNC_CLASS_NOT_FOUND: {class_name}'
+
+        # Create the model object.
+        _object = sync_service.sync_code_to_model(
+            group_id=group_id,
+            _class=_class,
+            object_repo=self.object_repo,
+            constants=sync_module.constants
+        )
+
+        # Save and return the model object.
+        self.object_repo.save(_object)
         return _object

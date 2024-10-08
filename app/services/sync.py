@@ -4,8 +4,10 @@ from ..objects.object import ModelObject
 from ..objects.object import ObjectAttribute
 from ..objects.object import ObjectMethod
 from ..objects.object import ObjectMethodParameter
+from ..objects.object import ObjectMethodCodeBlock
 from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
+from ..objects.object import METHOD_PARAMETER_INNER_TYPE_CHOICES
 from ..objects.sync import *
 from ..repositories.object import ObjectRepository
 
@@ -247,6 +249,159 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
 
     # Return the class and constants.
     return _class, constants
+
+
+def sync_code_to_attribute(attribute: ObjectAttribute, constants: typing.List[Variable] = []) -> ObjectAttribute:
+    '''
+    Syncs class attribute code into a model object attribute.
+    '''
+
+    pass
+
+
+def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) -> ObjectMethodParameter:
+    '''
+    Syncs class parameter code into a model object parameter.
+    
+    :param parameter: The parameter.
+    :type parameter: Parameter
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
+    :return: The model object parameter.
+    :rtype: ObjectMethodParameter
+    '''
+
+    # Set the parameter type.
+    type = 'str'
+    inner_type = None
+    type_object_id = None
+    required = False
+
+    # Map on the parameter type for non-compound types.
+    if 'List' in parameter.type:
+        type = 'list'
+        inner_type = parameter.type[5:-1]
+    elif 'Dict' in parameter.type:
+        type = 'dict'
+        inner_type = parameter.type[5:-1].split(',')[1]
+    elif parameter.type not in ['str', 'int', 'float', 'bool', 'date', 'datetime', 'type']:
+        type = 'model'
+        type_object_id = object_repo.get(class_name=parameter.type).id
+    else:
+        type = parameter.type
+
+    # Set the type object id if the inner type is a model.
+    if inner_type and inner_type not in METHOD_PARAMETER_INNER_TYPE_CHOICES:
+        type_object_id = object_repo.get(class_name=inner_type).id
+        inner_type = 'model'
+
+    # Set required to true if the default value is not set.
+    if not parameter.default:
+        required = True
+
+    # Create the model object parameter.
+    return ObjectMethodParameter.new(
+        name=parameter.name,
+        description=parameter.description,
+        type=type,
+        inner_type=inner_type,
+        type_object_id=type_object_id,
+        required=required,
+        default=parameter.default
+    )
+
+
+def sync_code_to_code_block(code_block: CodeBlock) -> ObjectMethodCodeBlock:
+    '''
+    Syncs class code block code into a model object code block.
+    '''
+
+    # Format the code block lines.
+    lines = '/n/'.join(code_block.lines).replace(TAB, '/t/') if code_block.lines else None
+
+    # Create the model object code block.
+    return ObjectMethodCodeBlock.new(
+        comments='/n/'.join(code_block.comments) if code_block.comments else None,
+        lines=lines
+    )
+
+
+def sync_code_to_method(function: Function, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectMethod:
+    '''
+    Syncs class method code into a model object method.
+
+    :param function: The function.
+    :type function: Function
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
+    :param constants: The constants.
+    :type constants: List[Variable]
+    :return: The model object method.
+    :rtype: ObjectMethod
+    '''
+
+    return ObjectMethod.new(
+        name=function.name,
+        type='factory' if function.is_static_method else 'state',
+        description=function.description,
+        parameters=[sync_code_to_parameter(param, object_repo) for param in function.parameters if not param.is_kwargs],
+        return_type=function.return_type.lower() if function.return_type else None,
+        return_description=function.return_description,
+        code_block=[sync_code_to_code_block(code_block) for code_block in function.code_block]
+    )
+
+def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ModelObject:
+    '''
+    Syncs code to a model object.
+
+    :param group_id: The context group id.
+    :type group_id: str
+    :param _class: The class.
+    :type _class: Class
+    :param object_repo: The object repository.
+    :type object_repo: ObjectRepository
+    :param constants: The constants.
+    :type constants: List[Variable]
+    :return: The model object.
+    :rtype: ModelObject
+    '''
+
+    # Import the regular expression module.
+    # Reformat the class name.
+    import re
+    name = re.findall('[A-Z][^A-Z]*', _class.name)
+    name = ' '.join(name).title()
+
+    # Create the model object attributes from the class attributes.
+    attributes = [sync_code_to_attribute(attribute, constants) for attribute in _class.attributes]
+
+    # Create the model object methods from the class methods.
+    methods = [sync_code_to_method(method, object_repo, constants) for method in _class.methods]
+
+    # Set the model object type.
+    type = OBJECT_TYPE_ENTITY if 'Entity' in _class.base_classes else None
+    type = OBJECT_TYPE_VALUE_OBJECT if 'ValueObject' in _class.base_classes else None
+    type = 'model' if 'Model' in _class.base_classes else None
+    if not type:
+        for base_class in _class.base_classes:
+            base_class = object_repo.get(class_name=base_class)
+            type = base_class.type
+            if type:
+                break
+
+    # Create the model object.
+    model = ModelObject.new(
+        name=name,
+        group_id=group_id,
+        class_name=_class.name,
+        type=type,
+        description=_class.description,
+        attributes=attributes,
+        methods=methods
+    )
+
+    # Return the model object.
+    return model
 
 
 def create_module(type: str, name: str) -> Module:

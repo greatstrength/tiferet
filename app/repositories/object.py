@@ -31,12 +31,14 @@ class ObjectRepository(object):
 
         raise NotImplementedError()
 
-    def get(self, id: str) -> ModelObject:
+    def get(self, id: str = None, class_name: str = None) -> ModelObject:
         '''
         Get the object by id.
 
         :param id: The object id.
         :type id: str
+        :param class_name: The object class name.
+        :type class_name: str
         :return: The object.
         :rtype: ModelObject
         '''
@@ -111,7 +113,7 @@ class YamlRepository(ObjectRepository):
         # Return the objects.
         return [record.map(role='to_object.yaml') for record in data]
 
-    def get(self, id: str) -> ModelObject:
+    def get(self, id: str = None, class_name: str = None) -> ModelObject:
         '''
         Get the object by id.
 
@@ -121,12 +123,21 @@ class YamlRepository(ObjectRepository):
         :rtype: ModelObject
         '''
 
-        # Load the object data from the yaml configuration file.
-        data: ModelObjectData = yaml_client.load(
-            self.base_path,
-            create_data=lambda data: ModelObjectData.from_yaml_data(
-                id=id, **data),
-            start_node=lambda data: data.get('objects').get(id))
+        # If the id is provided...
+        if id:
+            # Load the object data from the yaml configuration file.
+            data: ModelObjectData = yaml_client.load(
+                self.base_path,
+                create_data=lambda data: ModelObjectData.from_yaml_data(
+                    id=id, **data),
+                start_node=lambda data: data.get('objects').get(id))
+        # Otherwise, list the objects and find the object by class name.
+        else:
+            data = next((record for record in self.list() if record.class_name == class_name), None)
+
+        # If the data is None, return None.
+        if not data:
+            return None
 
         # Return the object.
         return data.map(

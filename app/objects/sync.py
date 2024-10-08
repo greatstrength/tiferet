@@ -267,6 +267,12 @@ class Function(ValueObject):
         ),
     )
 
+    is_static_method = t.BooleanType(
+        metadata=dict(
+            description='Whether the function is a static method.'
+        ),
+    )
+
     code_block = t.ListType(
         t.ModelType(CodeBlock),
         default=[],

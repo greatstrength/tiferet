@@ -57,7 +57,7 @@ class CodeBlockData(ModelData, CodeBlock):
             if line.startswith('# '):
                 comments.append(line.strip().strip('# '))
             else:
-                code_lines.append(line.strip())
+                code_lines.append(line[4:] if line.startswith(TAB) else line)
 
         # Create the code block data.
         return CodeBlockData(
@@ -412,7 +412,7 @@ class ParameterData(ModelData, Parameter):
             ' = ' if ' = ' in line else '=') if '=' in line else (line, None)
         name, type = name_and_type.split(
             ': ') if ':' in name_and_type else (name_and_type.strip(), None)
-        if type == 'str':
+        if type == 'str' and default:
             default = default.strip().strip('\'')
 
         # Check if the parameter is kwargs.
@@ -541,43 +541,49 @@ class FunctionData(ModelData, Function):
         lines = lines.strip('\n')
         name, parameters = lines.split('(')[0].replace(
             'def ', '').strip(), '('.join(lines.split('(')[1:])
+        name = name.strip('@staticmethod\n')
         parameters, description = [param.strip() for param in parameters.split(
             ')')[0].split(',')], ')'.join(parameters.split(')')[1:])
-        description = description.split(':\n')[-1].strip('\n')
-        description = '\n'.join(line[4:] if line.startswith(
-            f'{TAB}') else line for line in description.split('\n'))
+        description = ':\n'.join(description.split(':\n')[1:])
         _, description, code_block = description.split('\'\'\'')
-        description_block = description.strip('\n').split('\n')
-        description = description_block[0].strip()
+        description_block = description.split(f'\n{TAB}')[1:]
+        description = description_block[0].strip('\n')
 
         # Set the parameter descriptions.
         param_descriptions = {}
         return_description = None
         return_type = None
-        for line in description_block[2:]:
-            if 'param' in line:
+        for line in description_block[1:]:
+            if ':param' in line:
                 param = line.split(':param ')[1].split(': ')[0]
                 param_desc = line.split(': ')[1]
                 param_descriptions[next(
                     (p.strip() for p in parameters if param in p.strip()), None)] = param_desc
-            if 'return' in line:
+            if ':return' in line:
                 return_description = line.split(': ')[1]
-            if 'rtype' in line and not return_type:
+            if ':rtype' in line and not return_type:
                 return_type = line.split(': ')[1]
 
         # Set the code block.
         code_block = code_block.strip('\n').split('\n\n')
         if len(code_block) > 1 or 'pass' not in code_block[0]:
             code_block = [CodeBlockData.from_python_file(
-                block.strip()) for block in code_block]
+                block[4:]) for block in code_block]
         else:
             code_block = []
 
-        # If the first parameter is self, set the function as a class method and remove the self parameter.
+        # If the lines start with @staticmethod, set the is_static_method and is_class_method flags.
         is_class_method = False
-        if parameters[0] == 'self':
+        is_static_method = False
+        if lines.startswith('@staticmethod'):
             is_class_method = True
+            is_static_method = True
+        
+        # Remove the first parameter if it is self and the function is not a class method.
+        # Then sent the function as a class method.
+        if not is_class_method and parameters[0] == 'self':
             parameters = parameters[1:]
+            is_class_method = True
 
         # Create the function data.
         return FunctionData.new(**kwargs,
@@ -587,8 +593,9 @@ class FunctionData(ModelData, Function):
                                 return_type=return_type,
                                 return_description=return_description,
                                 description=description,
-                                code_block=code_block,
-                                is_class_method=is_class_method
+                                is_class_method=is_class_method,
+                                is_static_method=is_static_method,
+                                code_block=code_block
                                 )
 
     def map(self, role: str = 'to_object', **kwargs) -> Function:
@@ -990,20 +997,14 @@ class ModuleData(ModelData, Module):
         classes = [ClassData.from_python_file(class_lines) for class_lines in classes.strip(
             '\n').split('\n\n\n')] if classes else []
 
-        # Create the module data.
-        _data = ModuleData(
-            dict(**kwargs,
-                 imports=imports,
-                 constants=constants,
-                 functions=functions,
-                 classes=classes
-                 ),
-            strict=False
-        )
-
-        # Validate and return the module data.
-        _data.validate()
-        return _data
+        # Create and return the module data.
+        return ModuleData(super(ModuleData, ModuleData).new(
+            imports=imports,
+            constants=constants,
+            functions=functions,
+            classes=classes,
+            **kwargs
+        ))
 
     def map(self, role: str = 'to_object', **kwargs) -> Module:
         '''

@@ -102,3 +102,9 @@ class AddObjectMethodCode(Model):
 class SyncModelToCode(Model):
 
     object_id = t.StringType(required=True)
+
+
+class SyncCodeToModel(Model):
+
+    group_id = t.StringType(required=True)
+    class_name = t.StringType(required=True)

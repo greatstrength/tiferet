@@ -217,6 +217,12 @@ container:
           yaml:
             value: app.yml
         type: data
+      sync_code_to_model:
+        data:
+          yaml:
+            class_name: SyncCodeToModel
+            module_path: app.commands.sync
+        type: dependency
       sync_model_to_code:
         data:
           python:
@@ -320,8 +326,20 @@ errors:
   OBJECT_NOT_FOUND:
     message:
     - lang: en_US
-      text: Object with id "{}" not found
+      text: Object with id or class name "{}" not found
     name: OBJECT_NOT_FOUND
+  SYNC_CLASS_NOT_FOUND:
+    error_code: SYNC_CLASS_NOT_FOUND
+    message:
+    - lang: en_US
+      text: Unable to find sync class with name '{}'.
+    name: SYNC_CLASS_NOT_FOUND
+  SYNC_MODULE_NOT_FOUND:
+    error_code: SYNC_MODULE_NOT_FOUND
+    message:
+    - lang: en_US
+      text: Unable to find module with name '{}'.
+    name: SYNC_MODULE_NOT_FOUND
 features:
   groups:
     cli:
@@ -397,11 +415,13 @@ features:
           description: Adds Code to an Object Method
           handlers:
           - attribute_id: get_object
-            data_key: object
+            data_key: _object
             name: Get Object
             return_to_data: true
           - attribute_id: add_method_code
             name: Add Object Method Code
+          - attribute_id: sync_model_to_code
+            name: Sync Model Object to Code
           name: Add Object Method Code
           request_type_path: app.configs.requests.AddObjectMethodCode
         add_method_parameters:
@@ -423,6 +443,13 @@ features:
           request_type_path: app.configs.requests.AddNewObject
     sync:
       features:
+        code_to_model:
+          description: Syncs code from module to model components.
+          handlers:
+          - attribute_id: sync_code_to_model
+            name: SyncCodeToModel
+          name: Sync Code To Model
+          request_type_path: app.configs.requests.SyncCodeToModel
         model_to_code:
           description: Syncs a model object to code.
           handlers:
@@ -924,6 +951,24 @@ interfaces:
         group_id: object
         help: add new model object
         name: Add Object
+      sync.code_to_model:
+        arguments:
+        - help: context group id
+          name_or_flags:
+          - --group-id
+          - -g
+          required: true
+          type: str
+        - help: class name to sync
+          name_or_flags:
+          - --class-name
+          - -c
+          required: true
+          type: str
+        feature_id: sync.code_to_model
+        group_id: sync
+        help: sync code to model
+        name: Sync Code To Model
       sync.model_to_code:
         arguments:
         - help: id of object to sync
@@ -1422,6 +1467,43 @@ objects:
       type: state
     name: Error Message
     type: value_object
+  factory_method:
+    class_name: FactoryMethod
+    description: A factory method for creating model objects.
+    group_id: object
+    methods:
+    - code_block:
+      - comments: Create a new model object.
+        lines: _object = model_type(dict(/n//t/**kwargs/n/), strict=strict)
+        type: python
+      - comments: Validate if specified.
+        lines: if validate:/n//t/_object.validate()
+        type: python
+      - comments: Return the new model object.
+        lines: return _object
+        type: python
+      description: Initializes a new model object.
+      name: new
+      parameters:
+      - description: The type of model object to create.
+        name: model_type
+        required: true
+        type: type
+      - default: 'True'
+        description: True to validate the model object.
+        name: validate
+        required: false
+        type: bool
+      - default: 'True'
+        description: True to enforce strict mode for the model object.
+        name: strict
+        required: false
+        type: bool
+      return_description: A new model object.
+      return_type: any
+      type: factory
+    name: Factory Method
+    type: model
   feature:
     attributes:
     - description: The name of the feature.
