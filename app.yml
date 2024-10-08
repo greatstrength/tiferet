@@ -2030,38 +2030,52 @@ objects:
     description: Type-specific settings for an object attribute.
     group_id: object
     name: Object Type Settings
-    type: value_object
+    type: model
   string_settings:
     attributes:
-    - description: The regular expression required for the string object attribute
-        value.
+    - description: The regular expression for the string attribute value.
       name: regex
+      required: false
       type: str
-    - description: The minimum length for the string object attribute value.
+    - description: The minimum length for the string attribute value.
       name: min_length
+      required: false
       type: int
-    - description: The maximum length for the string object attribute value.
+    - description: The maximum length for the string attribute value.
       name: max_length
+      required: false
       type: int
-    base_type_id: object_type_settings
     class_name: StringSettings
-    description: Type-specific settings for an string attribute.
+    description: Type-specific settings for a string object attribute.
     group_id: object
     methods:
-    - description: Initializes a new StringSettings object.
+    - code_block:
+      - comments: Set the min and max length as integers if provided.
+        lines: min_length = int(min_length) if min_length else None/n/max_length =
+          int(max_length) if max_length else None
+        type: python
+      - comments: Create and return a new StringSettings object.
+        lines: return super(StringSettings, StringSettings).new(/n//t/StringSettings,/n//t/min_length=min_length,/n//t/max_length=max_length,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new StringSettings object.
       name: new
       parameters:
-      - description: The minimum length for the string object attribute.
+      - default: None
+        description: The minimum length of the string object attribute.
         name: min_length
+        required: false
         type: int
-      - description: The maximum length for the string object attribute.
+      - default: None
+        description: The maximum length of the string object attribute.
         name: max_length
+        required: false
         type: int
+      return_description: A new StringSettings object.
       return_type: model
       return_type_object_id: string_settings
       type: factory
     name: String Settings
-    type: value_object
+    type: model
   value_object:
     class_name: ValueObject
     description: A domain model value object.
