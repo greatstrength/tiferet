@@ -2063,12 +2063,10 @@ objects:
       - default: None
         description: The minimum length of the string object attribute.
         name: min_length
-        required: false
         type: int
       - default: None
         description: The maximum length of the string object attribute.
         name: max_length
-        required: false
         type: int
       return_description: A new StringSettings object.
       return_type: model

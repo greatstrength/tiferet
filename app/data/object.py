@@ -30,6 +30,21 @@ class ObjectAttributeData(ObjectAttribute, ModelData):
             'to_data.yaml': wholelist()
         }
 
+    @staticmethod
+    def new(**kwargs) -> 'ObjectAttributeData':
+        '''Initializes a new ObjectAttributeData object.
+        
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new ObjectAttributeData object.
+        :rtype: ObjectAttributeData
+        '''
+
+        # Create a new ObjectAttributeData object.
+        return ObjectAttributeData( 
+            super(ObjectAttributeData, ObjectAttributeData).new(**kwargs)
+        )
+
 
 class ObjectMethodParameterData(ObjectMethodParameter, ModelData):
     '''
@@ -50,6 +65,27 @@ class ObjectMethodParameterData(ObjectMethodParameter, ModelData):
             'to_data.yaml': wholelist()
         }
 
+    @staticmethod
+    def new(required: bool = None, **kwargs) -> 'ObjectMethodParameterData':
+        '''Initializes a new ObjectMethodParameterData object.
+        
+        :param required: Whether the parameter is required.
+        :type required: bool
+        :return: A new ObjectMethodParameterData object.
+        :rtype: ObjectMethodParameterData
+        '''
+
+        # Set the required flag to None if it is false.
+        required = None if not required else required
+
+        # Create a new ObjectMethodParameterData object.
+        return ObjectMethodParameterData(
+            super(ObjectMethodParameterData, ObjectMethodParameterData).new(
+                required=required,
+                **kwargs
+            )
+        )
+
 
 class ObjectMethodCodeBlockData(ObjectMethodCodeBlock, ModelData):
     '''
@@ -69,6 +105,21 @@ class ObjectMethodCodeBlockData(ObjectMethodCodeBlock, ModelData):
             'to_object.yaml': wholelist(),
             'to_data.yaml': wholelist()
         }
+
+    @staticmethod
+    def new(**kwargs) -> 'ObjectMethodCodeBlockData':
+        '''Initializes a new ObjectMethodCodeBlockData object.
+        
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new ObjectMethodCodeBlockData object.
+        :rtype: ObjectMethodCodeBlockData
+        '''
+
+        # Create a new ObjectMethodCodeBlockData object.
+        return ObjectMethodCodeBlockData(
+            super(ObjectMethodCodeBlockData, ObjectMethodCodeBlockData).new(**kwargs)
+        )
 
 
 class ObjectMethodData(ObjectMethod, ModelData):
@@ -105,6 +156,41 @@ class ObjectMethodData(ObjectMethod, ModelData):
             description='The model object method code block.'
         )
     )
+
+    @staticmethod
+    def new(parameters: List[Any], code_block: List[Any], **kwargs) -> 'ObjectMethodData':
+        '''Initializes a new ObjectMethodData object.
+        
+        :param parameters: The model object method parameters.
+        :type parameters: List[Any]
+        :param code_block: The model object method code block.
+        :type code_block: List[Any]
+        :param kwargs: Additional keyword arguments.
+        :return: A new ObjectMethodData object.
+        :rtype: ObjectMethodData
+        '''
+
+        # Map the parameters to ObjectMethodParameterData objects.
+        parameters = [
+            ObjectMethodParameterData.new(**parameter)
+            for parameter in parameters
+        ]
+
+        # Map the code block to ObjectMethodCodeBlockData objects.
+        code_block = [
+            ObjectMethodCodeBlockData.new(**block)
+            for block in code_block
+        ]
+
+        # Create a new ObjectMethodData object.
+        return ObjectMethodData(
+            super(
+                ObjectMethodData, ObjectMethodData).new(
+                parameters=parameters,
+                code_block=code_block,
+                **kwargs
+            )
+        )
 
 
 class ModelObjectData(ModelObject, ModelData):
@@ -145,14 +231,39 @@ class ModelObjectData(ModelObject, ModelData):
     )
 
     @staticmethod
-    def new(**kwargs):
+    def new(attributes: List[Any], methods: List[Any], **kwargs):
         '''Initializes a new ModelObjectData object.
         
+        :param attributes: The model object attributes.
+        :type attributes: List[Any]
+        :param methods: The model object methods.
+        :type methods: List[Any]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new ModelObjectData object.
+        :rtype: ModelObjectData
         '''
 
+        # Map the attributes to ObjectAttributeData objects.
+        attributes = [
+            ObjectAttributeData.new(**attribute)
+            for attribute in attributes
+        ]
+
+        # Map the methods to ObjectMethodData objects.
+        methods = [
+            ObjectMethodData.new(**method)
+            for method in methods
+        ]
+
         # Create a new ModelObjectData object.
-        return ModelObjectData(kwargs, strict=False)
+        return ModelObjectData(
+            super(ModelObjectData, ModelObjectData).new(
+                attributes=attributes,
+                methods=methods,
+                **kwargs
+            )
+        )
 
     @staticmethod
     def from_yaml_data(id: str, **kwargs) -> 'ModelObjectData':
