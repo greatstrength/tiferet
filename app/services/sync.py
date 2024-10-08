@@ -8,7 +8,15 @@ from ..objects.object import ObjectMethodCodeBlock
 from ..objects.object import OBJECT_TYPE_ENTITY
 from ..objects.object import OBJECT_TYPE_VALUE_OBJECT
 from ..objects.object import METHOD_PARAMETER_INNER_TYPE_CHOICES
-from ..objects.sync import *
+from ..objects.sync import Class
+from ..objects.sync import Function
+from ..objects.sync import Parameter
+from ..objects.sync import Variable
+from ..objects.sync import Module
+from ..objects.sync import Import
+from ..objects.sync import CodeBlock
+from ..objects.sync import MODULE_TYPE_OBJECTS
+from ..objects.sync import TAB
 from ..repositories.object import ObjectRepository
 
 
@@ -23,6 +31,12 @@ MODEL_ATTRIBUTE_TYPES = {
     'dict': 't.DictType',
     'model': 't.ModelType',
 }
+
+
+def get_model_attribute_type(varable_type: str) -> str:
+    for k, v in MODEL_ATTRIBUTE_TYPES.items():
+        if v == varable_type:
+            return k
 
 
 def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: ModelObject = None) -> str:
@@ -251,12 +265,51 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
     return _class, constants
 
 
-def sync_code_to_attribute(attribute: ObjectAttribute, constants: typing.List[Variable] = []) -> ObjectAttribute:
+def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectAttribute:
     '''
     Syncs class attribute code into a model object attribute.
     '''
 
-    pass
+    # Set the attribute type.
+    type = 'str'
+    inner_type = None
+    type_object_id = None
+    required = False
+    default = None
+    choices = []
+
+    # Map the attribute type.
+    type = get_model_attribute_type(variable.value.split('(')[0])
+
+    # Split and format the settings.
+    settings = '('.join(variable.value.split('(')[1:]).strip()
+    settings = settings.replace('\n', '').replace(TAB, ' ').replace('\'', '').split(', ')
+    for setting in settings:
+        if type in ['list', 'dict'] and 't.' in setting:
+            inner_type = get_model_attribute_type(setting)
+        elif 'required=True' in setting:
+            required = True
+        elif 'default=' in setting:
+            default = setting.split('=')[1]
+        elif 'choices=' in setting:
+            const = next((constant.name == setting.split('=')[1] for constant in constants), None)
+            choices = const.value if const else setting.split('=')[1]
+        elif 'metadata=' in setting:
+            setting = setting.replace('metadata=dict(', '').replace(')', '')
+            description = setting.split('=')[1].strip()
+    
+    # Create the model object attribute.
+    return ObjectAttribute.new(
+        name=variable.name,
+        description=description,
+        type=type,
+        inner_type=inner_type,
+        type_object_id=type_object_id,
+        required=required,
+        default=default,
+        choices=choices
+    )
+    
 
 
 def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) -> ObjectMethodParameter:
@@ -373,7 +426,7 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
     name = ' '.join(name).title()
 
     # Create the model object attributes from the class attributes.
-    attributes = [sync_code_to_attribute(attribute, constants) for attribute in _class.attributes]
+    attributes = [sync_code_to_attribute(attribute, object_repo, constants) for attribute in _class.attributes]
 
     # Create the model object methods from the class methods.
     methods = [sync_code_to_method(method, object_repo, constants) for method in _class.methods]

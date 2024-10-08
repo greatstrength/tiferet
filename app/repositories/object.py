@@ -131,18 +131,16 @@ class YamlRepository(ObjectRepository):
                 create_data=lambda data: ModelObjectData.from_yaml_data(
                     id=id, **data),
                 start_node=lambda data: data.get('objects').get(id))
+            try:
+                return data.map(
+                    role='to_object.yaml'
+                )
+            except:
+                return None
+        
         # Otherwise, list the objects and find the object by class name.
         else:
-            data = next((record for record in self.list() if record.class_name == class_name), None)
-
-        # If the data is None, return None.
-        if not data:
-            return None
-
-        # Return the object.
-        return data.map(
-            role='to_object.yaml'
-        )
+            return next((record for record in self.list() if record.class_name == class_name), None)
 
     def save(self, _object: ModelObject):
         '''
