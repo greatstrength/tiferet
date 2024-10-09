@@ -468,8 +468,8 @@ class ObjectAttribute(ValueObject):
         )
     )
 
-    type_settings = t.PolyModelType(
-        [StringSettings, DateSettings, DateTimeSettings, ListSettings, DictSettings],
+    type_settings = t.ModelType(
+        ObjectTypeSettings,
         metadata=dict(
             description='The type-specific settings for the object attribute.'
         )
@@ -487,6 +487,7 @@ class ObjectAttribute(ValueObject):
         :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new ObjectAttribute object.
+        :rtype: ObjectAttribute
         '''
 
         # Set the name as the snake case of the name by default.
@@ -749,7 +750,7 @@ class ObjectMethod(ValueObject):
         # Return True if the parameter exists in the object method.
         return any([parameter.name == parameter_name for parameter in self.parameters])
 
-    def add_parameter(self, parameter: 'ObjectMethodParameter'):
+    def add_parameter(self, parameter: ObjectMethodParameter):
         '''
         Adds a parameter to the object method.
 
@@ -891,7 +892,7 @@ class ModelObject(Entity):
         # Return True if the attribute exists in the model object.
         return any([attribute.name == attribute_name for attribute in self.attributes])
 
-    def add_attribute(self, attribute: 'ObjectAttribute'):
+    def add_attribute(self, attribute: ObjectAttribute):
         '''
         Adds an attribute to the model object.
 
@@ -915,7 +916,7 @@ class ModelObject(Entity):
         # Return True if the method exists in the model object.
         return self.get_method(name) is not None
 
-    def get_method(self, name: str) -> 'ObjectMethod':
+    def get_method(self, name: str) -> ObjectMethod:
         '''
         Returns the method with the specified name.
 
@@ -931,7 +932,7 @@ class ModelObject(Entity):
         # Return the method with the specified name.
         return next((method for method in self.methods if method.name == method_name), None)
 
-    def add_method(self, method: 'ObjectMethod'):
+    def add_method(self, method: ObjectMethod):
         '''
         Adds a method to the model object.
 

@@ -541,7 +541,7 @@ class FunctionData(ModelData, Function):
         lines = lines.strip('\n')
         name, parameters = lines.split('(')[0].replace(
             'def ', '').strip(), '('.join(lines.split('(')[1:])
-        name = name.strip('@staticmethod\n')
+        name = name.split('\n')[1] if name.startswith('@staticmethod') else name
         parameters, description = [param.strip() for param in parameters.split(
             ')')[0].split(',')], ')'.join(parameters.split(')')[1:])
         description = ':\n'.join(description.split(':\n')[1:])

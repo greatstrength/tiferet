@@ -1692,10 +1692,10 @@ objects:
       - entity
       - value_object
       - model
+      - ''
       default: entity
       description: The model object type.
       name: type
-      required: false
       type: str
     - description: The model object class name.
       name: class_name
@@ -1705,64 +1705,112 @@ objects:
       name: description
       required: true
       type: str
-    - description: The base model object identifer.
+    - description: The base model object identifier.
       name: base_type_id
-      required: false
       type: str
     - default: '[]'
       description: The model object attributes.
-      inner_type: model
       name: attributes
       type: list
-      type_object_id: model_attribute
     - default: '[]'
       description: The model object methods.
-      inner_type: model
       name: methods
       type: list
-      type_object_id: object_method
     class_name: ModelObject
     description: A domain model component defined as a class object.
     group_id: object
     methods:
-    - description: Initializes a new ModelObject object.
+    - code_block:
+      - comments: Set the class name as the Pascal case of the name if not provided.
+        lines: if not class_name:/n//t/class_name = name.title().replace(' ', '')/n/#
+          Set the unique identifier as the snake case of the class name if not provided./n/if
+          not id:/n//t/id = name.lower().replace(' ', '_')/n/# Create a new ModelObject
+          object./n/obj = ModelObject(dict(/n//t/id=id,/n//t/name=name,/n//t/class_name=class_name,/n//t/**kwargs/n/),
+          strict=False)/n/# Validate and return the new ModelObject object./n/obj.validate()/n/return
+          obj
+        type: python
+      description: Initializes a new ModelObject object.
       name: new
       parameters:
       - description: The name of the model object.
         name: name
         required: true
         type: str
-      - description: The unique identifier for the model object.
+      - default: None
+        description: The unique identifier for the model object.
         name: id
         type: str
-      - description: The printed class name for the model object.
+      - default: None
+        description: The printed class name for the model object.
         name: class_name
         type: str
-      return_type: model
-      return_type_object_id: model_object
+      return_description: A new ModelObject object.
       type: factory
-    - description: Returns True if the attribute exists in the model object.
+    - code_block:
+      - comments: Format the attribute name.
+        lines: attribute_name = name.lower().replace(' ', '_')/n/# Return True if
+          the attribute exists in the model object./n/return any([attribute.name ==
+          attribute_name for attribute in self.attributes])
+        type: python
+      description: Returns True if the attribute exists in the model object.
       name: has_attribute
       parameters:
       - description: The name of the attribute.
         name: name
         required: true
         type: str
+      return_description: True if the attribute exists in the model object.
       return_type: bool
       type: state
-    - description: Adds an attribute to the model object.
+    - code_block:
+      - comments: Add the attribute to the model object.
+        lines: self.attributes.append(attribute)
+        type: python
+      description: Adds an attribute to the model object.
       name: add_attribute
+      parameters:
+      - description: The attribute to add to the model object.
+        name: attribute
+        required: true
+        type: model
+        type_object_id: object_attribute
       type: state
-    - description: Returns True if the method exists in the model object.
+    - code_block:
+      - comments: Return True if the method exists in the model object.
+        lines: return self.get_method(name) is not None
+        type: python
+      description: Returns True if the method exists in the model object.
       name: has_method
       parameters:
       - description: The name of the method.
         name: name
         required: true
         type: str
+      return_description: True if the method exists in the model object.
       return_type: bool
       type: state
-    - description: Adds a method to the model object.
+    - code_block:
+      - comments: Format the method name.
+        lines: method_name = name.lower().replace(' ', '_')/n/# Return the method
+          with the specified name./n/return next((method for method in self.methods
+          if method.name == method_name), None)
+        type: python
+      description: Returns the method with the specified name.
+      name: get_method
+      parameters:
+      - description: The name of the method.
+        name: name
+        required: true
+        type: str
+      return_description: The method with the specified name.
+      return_type: model
+      return_type_object_id: object_method
+      type: state
+    - code_block:
+      - comments: Add the method to the model object.
+        lines: self.methods.append(method)
+        type: python
+      description: Adds a method to the model object.
       name: add_method
       parameters:
       - description: The method to add to the model object.
@@ -1770,16 +1818,6 @@ objects:
         required: true
         type: model
         type_object_id: object_method
-      type: state
-    - description: Returns the method with the specified name.
-      name: get_method
-      parameters:
-      - description: The name of the method.
-        name: name
-        required: true
-        type: str
-      return_type: model
-      return_type_object_id: object_method
       type: state
     name: Model Object
     type: entity
@@ -1824,40 +1862,43 @@ objects:
         with a model type or inner type.
       name: type_object_id
       type: str
-    - description: The object identifiers for an object attribute with a poly type.
-      inner_type: str
+    - default: '[]'
+      description: The object identifiers for an object attribute with a poly type.
       name: poly_type_object_ids
       type: list
     - description: True if a value for the object attribute is required.
       name: required
       type: bool
-    - description: The object attribute deault value.
+    - description: The object attribute default value.
       name: default
       type: str
-    - description: The set of valid object attribute values.
-      inner_type: str
+    - default: '[]'
+      description: The set of valid object attribute values.
       name: choices
       type: list
-    - description: The type-specific settings for an object attribite.
+    - description: The type-specific settings for the object attribute.
       name: type_settings
-      poly_type_object_ids:
-      - string_settings
-      - date_settings
-      - date_time_settings
-      - list_settings
-      - dict_settings
-      type: poly
+      type: model
+      type_object_id: object_type_settings
     class_name: ObjectAttribute
     description: A model object attribute.
     group_id: object
     methods:
-    - description: Initializes a new ObjectAttribute object.
+    - code_block:
+      - comments: Set the name as the snake case of the name by default.
+        lines: name = name.lower().replace(' ', '_')
+        type: python
+      - comments: Create and return a new ObjectAttribute object.
+        lines: return super(ObjectAttribute, ObjectAttribute).new(/n//t/ObjectAttribute,/n//t/name=name,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new ObjectAttribute object.
       name: new
       parameters:
       - description: The name of the object attribute.
         name: name
         required: true
         type: str
+      return_description: A new ObjectAttribute object.
       return_type: model
       return_type_object_id: object_attribute
       type: factory
@@ -1871,8 +1912,9 @@ objects:
       type: str
     - choices:
       - factory
-      - behavior
-      description: The type of object method.
+      - state
+      - ''
+      description: The type of the object method.
       name: type
       required: true
       type: str
@@ -1884,11 +1926,13 @@ objects:
       - str
       - int
       - float
+      - bool
       - date
       - datetime
       - list
       - dict
       - model
+      - any
       description: The return type of the object method.
       name: return_type
       type: str
@@ -1902,48 +1946,66 @@ objects:
       - model
       description: The inner return type for object methods that return a list or
         dict.
-      name: inner_return_type
+      name: return_inner_type
       type: str
-    - description: The return type object identifier for object methods with a model
-        return type or inner return type.
+    - description: The object identifier for the return type for object methods with
+        a model return type or inner return type.
       name: return_type_object_id
+      type: str
+    - description: The description of the return type for inline documentation.
+      name: return_description
       type: str
     - default: '[]'
       description: The parameters for the object method.
-      inner_type: model
       name: parameters
       type: list
-      type_object_id: object_method_parameter
     - default: '[]'
       description: The code blocks for the object method.
-      inner_type: model
       name: code_block
       type: list
-      type_object_id: object_method_code_block
     class_name: ObjectMethod
     description: A model object method.
     group_id: object
     methods:
-    - description: Initializes a new ObjectMethod object.
+    - code_block:
+      - comments: Convert name to snake case.
+        lines: name = name.lower().replace(' ', '_')/n/# Create a new ObjectMethod
+          object./n/obj = ObjectMethod(dict(/n//t/name=name,/n//t/**kwargs/n/), strict=False)/n/#
+          Validate and return the new ObjectMethod object./n/obj.validate()/n/return
+          obj
+        type: python
+      description: Initializes a new ObjectMethod object.
       name: new
       parameters:
       - description: The name of the object method.
         name: name
         required: true
         type: str
+      return_description: A new ObjectMethod object.
       return_type: model
       return_type_object_id: object_method
       type: factory
-    - description: Returns True if the parameter exists in the object method.
+    - code_block:
+      - comments: Format the parameter name.
+        lines: parameter_name = name.lower().replace(' ', '_')/n/# Return True if
+          the parameter exists in the object method./n/return any([parameter.name
+          == parameter_name for parameter in self.parameters])
+        type: python
+      description: Returns True if the parameter exists in the object method.
       name: has_parameter
       parameters:
       - description: The name of the parameter.
         name: name
         required: true
         type: str
+      return_description: True if the parameter exists in the object method.
       return_type: bool
       type: state
-    - description: Adds a parameter to the object method.
+    - code_block:
+      - comments: Add the parameter to the object method.
+        lines: self.parameters.append(parameter)
+        type: python
+      description: Adds a parameter to the object method.
       name: add_parameter
       parameters:
       - description: The parameter to add to the object method.
@@ -1952,7 +2014,11 @@ objects:
         type: model
         type_object_id: object_method_parameter
       type: state
-    - description: Adds a code block to the object method.
+    - code_block:
+      - comments: Add the code block to the object method.
+        lines: self.code_block.extend(code_block)
+        type: python
+      description: Adds a code block to the object method.
       name: add_code_block
       parameters:
       - description: The code block to add to the object method.
@@ -1968,7 +2034,8 @@ objects:
     attributes:
     - choices:
       - python
-      default: python
+      - ''
+      default: METHOD_CODE_BLOCK_DEFAULT
       description: The code block type.
       name: type
       required: true
@@ -1983,11 +2050,16 @@ objects:
       name: indent
       type: int
     class_name: ObjectMethodCodeBlock
-    description: A Model object method code block.
+    description: A model object method code block.
     group_id: object
     methods:
-    - description: Initializes a new ObjectMethodCodeBlock object.
+    - code_block:
+      - comments: Create and return a new ObjectMethodCodeBlock object.
+        lines: return super(ObjectMethodCodeBlock, ObjectMethodCodeBlock).new(/n//t/ObjectMethodCodeBlock,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new ObjectMethodCodeBlock object.
       name: new
+      return_description: A new ObjectMethodCodeBlock object.
       return_type: model
       return_type_object_id: object_method_code_block
       type: factory
@@ -2012,11 +2084,11 @@ objects:
       - type
       - args
       - kwargs
-      description: The data tyoe of the object method parameter.
+      description: The data type of the object method parameter.
       name: type
       required: true
       type: str
-    - description: The description of the object method parameter for inline documentation
+    - description: The description of the object method parameter for inline documentation.
       name: description
       required: true
       type: str
@@ -2024,8 +2096,9 @@ objects:
       - str
       - int
       - float
+      - bool
       - date
-      - datetme
+      - datetime
       - model
       description: The inner data type for object method parameters that are lists
         or dicts.
@@ -2045,13 +2118,21 @@ objects:
     description: A model object method parameter.
     group_id: object
     methods:
-    - description: Initializes a new ObjectMethodParameter object.
+    - code_block:
+      - comments: Convert name to snake case.
+        lines: name = name.lower().replace(' ', '_')
+        type: python
+      - comments: Create and return a new ObjectMethodParameter object.
+        lines: return super(ObjectMethodParameter, ObjectMethodParameter).new(/n//t/ObjectMethodParameter,/n//t/name=name,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new ObjectMethodParameter object.
       name: new
       parameters:
       - description: The name of the object method parameter.
         name: name
         required: true
         type: str
+      return_description: A new ObjectMethodParameter object.
       return_type: model
       return_type_object_id: object_method_parameter
       type: factory

@@ -294,6 +294,8 @@ def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, co
             required = True
         elif 'default=' in setting:
             default = setting.split('=')[1]
+            const = next((constant for constant in constants if constant.name == default), None)
+            default = const.value.strip('\'') if const else default
         elif 'choices=' in setting:
             const = next((constant for constant in constants if constant.name == setting.split('=')[1]), None)
             choices = const.value.strip('[').strip(']').replace(TAB, '').replace('\n', '').split(',') if const else setting.split('=')[1]
@@ -302,6 +304,8 @@ def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, co
         elif 'metadata=' in setting:
             setting = setting.replace('metadata=dict(', '').replace(')', '')
             description = setting.split('=')[1].strip()
+        elif type == 'model' and 't.' not in setting:
+            type_object_id = object_repo.get(class_name=setting).id
 
     # Create the model object attribute.
     return ObjectAttribute.new(
@@ -337,10 +341,10 @@ def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) 
     # Map on the parameter type for non-compound types.
     if 'List' in parameter.type:
         type = 'list'
-        inner_type = parameter.type[5:-1]
+        inner_type = parameter.type[12:-1]
     elif 'Dict' in parameter.type:
         type = 'dict'
-        inner_type = parameter.type[5:-1].split(',')[1]
+        inner_type = parameter.type[12:-1].split(',')[1]
     elif parameter.type not in ['str', 'int', 'float', 'bool', 'date', 'datetime', 'type']:
         type = 'model'
         type_object_id = object_repo.get(class_name=parameter.type).id
@@ -406,13 +410,13 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
     # If the return type is a standard type...
     if function.return_type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         return_type = function.return_type
-    elif 'List[' in function.return_type:
+    elif function.return_type and 'List[' in function.return_type:
         return_type = 'list'
         return_inner_type = function.return_type[5:-1]
-    elif 'Dict[' in function.return_type:
+    elif function.return_type and 'Dict[' in function.return_type:
         return_type = 'dict'
         return_inner_type = function.return_type[5:-1].split(',')[1]
-    elif function.return_type not in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
+    elif function.return_type and function.return_type not in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         return_type = 'model'
         return_type_object_id = object_repo.get(
             class_name=function.return_type).id
