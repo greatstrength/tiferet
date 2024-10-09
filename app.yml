@@ -1269,21 +1269,25 @@ objects:
     type: value_object
   date_settings:
     attributes:
-    - description: The date formats for a date object attribute value.
+    - description: The formats for a date object attribute value.
       name: formats
       type: str
-    base_type_id: object_type_settings
     class_name: DateSettings
-    description: Type-specific settings for an date object attribute.
+    description: Type-specific settings for a date object attribute.
     group_id: object
     methods:
-    - description: Initializes a new DateSettings object.
+    - code_block:
+      - comments: Create and return a new DateSettings object.
+        lines: return super(DateSettings, DateSettings).new(DateSettings, **kwargs)
+        type: python
+      description: Initializes a new DateSettings object.
       name: new
+      return_description: A new DateSettings object.
       return_type: model
       return_type_object_id: date_settings
       type: factory
     name: Date Settings
-    type: value_object
+    type: model
   date_time_settings:
     attributes:
     - description: The date formats for a datetime object attribute value.
@@ -2035,15 +2039,12 @@ objects:
     attributes:
     - description: The regular expression for the string attribute value.
       name: regex
-      required: false
       type: str
     - description: The minimum length for the string attribute value.
       name: min_length
-      required: false
       type: int
     - description: The maximum length for the string attribute value.
       name: max_length
-      required: false
       type: int
     class_name: StringSettings
     description: Type-specific settings for a string object attribute.

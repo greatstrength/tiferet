@@ -31,18 +31,26 @@ class ObjectAttributeData(ObjectAttribute, ModelData):
         }
 
     @staticmethod
-    def new(**kwargs) -> 'ObjectAttributeData':
+    def new(required: bool = False, **kwargs) -> 'ObjectAttributeData':
         '''Initializes a new ObjectAttributeData object.
         
-        :param kwargs: Keyword arguments.
+        :param required: Whether the attribute is required.
+        :type required: bool
+        :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new ObjectAttributeData object.
         :rtype: ObjectAttributeData
         '''
 
+        # Set the required flag to None if it is false.
+        required = None if not required else required
+
         # Create a new ObjectAttributeData object.
         return ObjectAttributeData( 
-            super(ObjectAttributeData, ObjectAttributeData).new(**kwargs)
+            super(ObjectAttributeData, ObjectAttributeData).new(
+                required=required,
+                **kwargs
+            )
         )
 
 
