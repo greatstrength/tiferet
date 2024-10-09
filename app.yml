@@ -1287,7 +1287,7 @@ objects:
       return_type_object_id: date_settings
       type: factory
     name: Date Settings
-    type: model
+    type: value_object
   date_time_settings:
     attributes:
     - description: The date formats for a datetime object attribute value.
@@ -2034,7 +2034,7 @@ objects:
     description: Type-specific settings for an object attribute.
     group_id: object
     name: Object Type Settings
-    type: model
+    type: value_object
   string_settings:
     attributes:
     - description: The regular expression for the string attribute value.
@@ -2074,7 +2074,7 @@ objects:
       return_type_object_id: string_settings
       type: factory
     name: String Settings
-    type: model
+    type: value_object
   value_object:
     class_name: ValueObject
     description: A domain model value object.

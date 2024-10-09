@@ -463,8 +463,10 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
 
     # Set the model object type.
     type = OBJECT_TYPE_ENTITY if 'Entity' in _class.base_classes else None
-    type = OBJECT_TYPE_VALUE_OBJECT if 'ValueObject' in _class.base_classes else None
-    type = 'model' if 'Model' in _class.base_classes else None
+    if not type:
+        type = OBJECT_TYPE_VALUE_OBJECT if 'ValueObject' in _class.base_classes else None
+    if not type:
+        type = 'model' if 'Model' in _class.base_classes else None
     if not type:
         for base_class in _class.base_classes:
             base_class = object_repo.get(class_name=base_class)
