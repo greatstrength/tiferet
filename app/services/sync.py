@@ -1,3 +1,5 @@
+#** imp
+
 import typing
 
 from ..objects.object import ModelObject
@@ -19,6 +21,7 @@ from ..objects.sync import MODULE_TYPE_OBJECTS
 from ..objects.sync import TAB
 from ..repositories.object import ObjectRepository
 
+#** con
 
 MODEL_ATTRIBUTE_TYPES = {
     'str': 't.StringType',
@@ -30,8 +33,9 @@ MODEL_ATTRIBUTE_TYPES = {
     'list': 't.ListType',
     'dict': 't.DictType',
     'model': 't.ModelType',
-}
+} #/
 
+#** fun
 
 def get_model_attribute_type(varable_type: str) -> str:
     for k, v in MODEL_ATTRIBUTE_TYPES.items():
