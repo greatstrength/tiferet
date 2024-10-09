@@ -1384,7 +1384,7 @@ objects:
     type: value_object
   dict_settings:
     attributes:
-    - description: The coerce key for a dict object attribute value.
+    - description: The data type to coerce the dict keys.
       name: coerce_key
       type: str
     base_type_id: object_type_settings
@@ -1392,8 +1392,13 @@ objects:
     description: Type-specific settings for a dict object attribute.
     group_id: object
     methods:
-    - description: Initializes a DictSettings object.
+    - code_block:
+      - comments: Create and return a new DictSettings object.
+        lines: return super(DictSettings, DictSettings).new(DictSettings, **kwargs)
+        type: python
+      description: Initializes a new DictSettings object.
       name: new
+      return_description: A new DictSettings object.
       return_type: model
       return_type_object_id: dict_settings
       type: factory
@@ -1618,15 +1623,26 @@ objects:
     description: Type-specific settings for a list object attribute.
     group_id: object
     methods:
-    - description: Initializes a ListSettings object.
+    - code_block:
+      - comments: Set the min and max size as integers if provided.
+        lines: min_size = int(min_size) if min_size else None/n/max_size = int(max_size)
+          if max_size else None
+        type: python
+      - comments: Create and return a new ListSettings object.
+        lines: return super(ListSettings, ListSettings).new(/n//t/ListSettings,/n//t/min_size=min_size,/n//t/max_size=max_size,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new ListSettings object.
       name: new
       parameters:
-      - description: The minimum size for a list object attribute value.
+      - default: None
+        description: The minimum size for a list object attribute value.
         name: min_size
         type: int
-      - description: The maximum size for a list object attribute value.
+      - default: None
+        description: The maximum size for a list object attribute value.
         name: max_size
         type: int
+      return_description: A new ListSettings object.
       return_type: model
       return_type_object_id: list_settings
       type: factory

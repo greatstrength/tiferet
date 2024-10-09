@@ -406,10 +406,10 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
     # If the return type is a standard type...
     if function.return_type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         return_type = function.return_type
-    elif 'List' in function.return_type:
+    elif 'List[' in function.return_type:
         return_type = 'list'
         return_inner_type = function.return_type[5:-1]
-    elif 'Dict' in function.return_type:
+    elif 'Dict[' in function.return_type:
         return_type = 'dict'
         return_inner_type = function.return_type[5:-1].split(',')[1]
     elif function.return_type not in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
