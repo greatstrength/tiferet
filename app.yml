@@ -1272,6 +1272,7 @@ objects:
     - description: The formats for a date object attribute value.
       name: formats
       type: str
+    base_type_id: object_type_settings
     class_name: DateSettings
     description: Type-specific settings for a date object attribute.
     group_id: object
@@ -1290,7 +1291,7 @@ objects:
     type: value_object
   date_time_settings:
     attributes:
-    - description: The date formats for a datetime object attribute value.
+    - description: The formats for a datetime object attribute value.
       name: formats
       type: str
     - description: The output format for a datetime object attribute value.
@@ -1301,14 +1302,14 @@ objects:
       - allow
       - utc
       - reject
-      description: The time zone policy for a datetime object attribute value.
+      description: The timezone policy for a datetime object attribute value.
       name: tzd
       type: str
-    - description: Whether to convert the timezone to UTC for a datetime object attribute
-        value.
+    - description: Whether to convert the timezone to UTC for the datetime object
+        attribute value.
       name: convert_tz
       type: bool
-    - description: Whether to drop the timezone info for a datetime object attribute
+    - description: Whether to drop the timezone info for the datetime object attribute
         value.
       name: drop_tzinfo
       type: bool
@@ -1317,16 +1318,27 @@ objects:
     description: Type-specific settings for a datetime object attribute.
     group_id: object
     methods:
-    - description: Initializes a DateTimeSettings object.
+    - code_block:
+      - comments: Set Drop TZInfo to True if Convert TZ is True.
+        lines: if convert_tz and not drop_tzinfo:/n//t/drop_tzinfo = True
+        type: python
+      - comments: Create and return a new DateTimeSettings object.
+        lines: return super(DateTimeSettings, DateTimeSettings).new(/n//t/DateTimeSettings,/n//t/convert_tz=convert_tz,/n//t/drop_tzinfo=drop_tzinfo,/n//t/**kwargs/n/)
+        type: python
+      description: Initializes a new DateTimeSettings object.
       name: new
       parameters:
-      - description: Whether to convert the timezone to UTC for the datetime object
-          value
+      - default: None
+        description: Whether to convert the timezone to UTC for the datetime object
+          attribute value.
         name: convert_tz
         type: bool
-      - description: Whether to drop the timezone info for the datetime object value.
+      - default: None
+        description: Whether to drop the timezone info for the datetime object attribute
+          value.
         name: drop_tzinfo
         type: bool
+      return_description: A new DateTimeSettings object.
       return_type: model
       return_type_object_id: date_time_settings
       type: factory
@@ -2046,6 +2058,7 @@ objects:
     - description: The maximum length for the string attribute value.
       name: max_length
       type: int
+    base_type_id: object_type_settings
     class_name: StringSettings
     description: Type-specific settings for a string object attribute.
     group_id: object

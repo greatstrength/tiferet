@@ -295,9 +295,10 @@ def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, co
         elif 'default=' in setting:
             default = setting.split('=')[1]
         elif 'choices=' in setting:
-            const = next((constant.name == setting.split(
-                '=')[1] for constant in constants), None)
-            choices = const.value if const else setting.split('=')[1]
+            const = next((constant for constant in constants if constant.name == setting.split('=')[1]), None)
+            choices = const.value.strip('[').strip(']').replace(TAB, '').replace('\n', '').split(',') if const else setting.split('=')[1]
+            if type == 'str':
+                choices = [choice.strip('\'') for choice in choices]
         elif 'metadata=' in setting:
             setting = setting.replace('metadata=dict(', '').replace(')', '')
             description = setting.split('=')[1].strip()
@@ -462,6 +463,7 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
                for method in _class.methods]
 
     # Set the model object type.
+    base_type_id = None
     type = OBJECT_TYPE_ENTITY if 'Entity' in _class.base_classes else None
     if not type:
         type = OBJECT_TYPE_VALUE_OBJECT if 'ValueObject' in _class.base_classes else None
@@ -471,6 +473,7 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
         for base_class in _class.base_classes:
             base_class = object_repo.get(class_name=base_class)
             type = base_class.type
+            base_type_id = base_class.id
             if type:
                 break
 
@@ -481,6 +484,7 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
         class_name=_class.name,
         type=type,
         description=_class.description,
+        base_type_id=base_type_id,
         attributes=attributes,
         methods=methods
     )
