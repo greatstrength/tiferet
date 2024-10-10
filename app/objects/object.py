@@ -76,8 +76,9 @@ METHOD_PARAMETER_TYPE_CHOICES = [
     'datetime',
     'list',
     'dict',
-    'model',
     'type',
+    'any',
+    'model',
     'args',
     'kwargs'
 ] #/
