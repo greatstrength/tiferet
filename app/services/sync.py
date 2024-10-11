@@ -50,37 +50,7 @@ def get_model_attribute_type(varable_type: str) -> str:
     # Map on the model attribute types.
     for k, v in MODEL_ATTRIBUTE_TYPES.items():
         if v == varable_type:
-            return k
-
-
-def sync_parameter_type(parameter: ObjectMethodParameter, param_obj: ModelObject = None) -> str:
-    '''
-    Syncs a parameter type.
-
-    :param parameter: The parameter.
-    :type parameter: ObjectMethodParameter
-    :param param_obj: The parameter object.
-    :type param_obj: ModelObject
-    :return: The parameter type.
-    :rtype: str
-    '''
-
-    return ''.join([
-        # If the parameter is not an any, list, dict, model, return the parameter type.
-        parameter.type if parameter.type not in ['any', 'list', 'dict', 'model'] else '',
-        # If the parameter type is not set, return 'Any'.
-        'Any' if parameter.type == 'any' else '',
-        # If the parameter is a list, set the type as 'List['.
-        'List[' if parameter.type == 'list' else '',
-        # If the parameter is a dict, set the type as 'Dict['.
-        'Dict[str, ' if parameter.type == 'dict' else '',
-        # If the parameter inner type is a model, use the model class name.
-        f'{param_obj.class_name}]' if parameter.inner_type == 'model' else '',
-        # Otherwise, use the inner type.
-        f'{parameter.inner_type}]' if parameter.inner_type and parameter.inner_type != 'model' else '',
-        # If the parameter type is a model, set the type as the model class name.
-        param_obj.class_name if parameter.type == 'model' else '',
-    ])
+            return k 
 
 
 def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: ObjectRepository) -> Parameter:
@@ -99,17 +69,30 @@ def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: Object
     param_obj = object_repo.get(parameter.type_object_id)
 
     # Sync the parameter type.
-    type = sync_parameter_type(parameter, param_obj)
+    type = ''.join([
+        # If the parameter is not an any, list, dict, model, return the parameter type.
+        parameter.type if parameter.type not in ['any', 'list', 'dict', 'model'] else '',
+        # If the parameter type is not set, return 'Any'.
+        'Any' if parameter.type == 'any' else '',
+        # If the parameter is a list, set the type as 'List['.
+        'List[' if parameter.type == 'list' else '',
+        # If the parameter is a dict, set the type as 'Dict['.
+        'Dict[str, ' if parameter.type == 'dict' else '',
+        # If the parameter inner type is a model, use the model class name.
+        f'{param_obj.class_name}]' if parameter.inner_type == 'model' else '',
+        # Otherwise, use the inner type.
+        f'{parameter.inner_type}]' if parameter.inner_type and parameter.inner_type != 'model' else '',
+        # If the parameter type is a model, set the type as the model class name.
+        param_obj.class_name if parameter.type == 'model' else '',
+    ])
 
-    # Create the variable.
-    parameter = Parameter.new(
+    # Create and return the parameter.
+    return Parameter.new(
         name=parameter.name,
         type=type,
         default=parameter.default,
+        description=parameter.description
     )
-
-    # Return the variable.
-    return parameter
 
 
 def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepository) -> Function:
