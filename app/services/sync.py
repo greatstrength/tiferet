@@ -95,6 +95,22 @@ def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: Object
     )
 
 
+def sync_model_code_block_to_code(code_block: ObjectMethodCodeBlock) -> CodeBlock:
+    '''
+    Syncs a code block to code.
+
+    :param code_block: The code block.
+    :type code_block: ObjectMethodCodeBlock
+    :return: The code block.
+    :rtype: CodeBlock
+    '''
+
+    # Create the code block.
+    return CodeBlock.new(
+        comments=code_block.comments.split('/n/') if code_block.comments else None,
+        lines=code_block.lines.split('/n/') if code_block.lines else None
+    )
+
 def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepository) -> Function:
     '''
     Syncs a method to code.
@@ -110,15 +126,18 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
     # Create the parameters.
     parameters = [sync_parameter_to_code(
         param, object_repo) for param in method.parameters]
+    
+    code_block = [sync_model_code_block_to_code(code_block) for code_block in method.code_block]
 
     # Create the function.
     function = Function.new(
         name=method.name,
         description=method.description,
+        is_class_method=method.type == 'state',
         parameters=parameters,
         return_type=method.return_type,
         return_description=method.return_description,
-        code_block=method.code_block
+        code_block=code_block
     )
 
     # Return the function.

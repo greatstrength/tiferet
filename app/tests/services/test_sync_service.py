@@ -1,9 +1,13 @@
 from ...objects.object import ModelObject
+from ...objects.object import ObjectMethod
 from ...objects.object import ObjectMethodParameter
+from ...objects.object import ObjectMethodCodeBlock
 from ...objects.sync import Class
 from ...objects.sync import Parameter
 from ...services.sync import sync_parameter_to_code
+from ...services.sync import sync_model_code_block_to_code
 from ...services.sync import get_model_attribute_type
+from ...services.sync import sync_model_method_to_code
 from ...services.sync import sync_code_to_model
 from ..mocks import MockObjectRepository
 
@@ -151,6 +155,72 @@ def test_sync_parameter_to_code_model():
     assert param.name == 'attribute'
     assert param.type == 'Attribute'
     assert param.description == 'The attribute to add.'
+
+
+def test_sync_model_code_block_to_code():
+
+    # Create a code block.
+    code_block = ObjectMethodCodeBlock.new(
+        comments='Add the attribute to the object.',
+        lines='self.attributes.append(attribute)',
+    )
+
+    # Get the code block.
+    sync_code_block = sync_model_code_block_to_code(code_block)
+
+    # Assert the code block is correct.
+    assert sync_code_block.comments[0] == 'Add the attribute to the object.'
+    assert sync_code_block.lines[0] == 'self.attributes.append(attribute)'
+
+
+def test_sync_model_method_to_code():
+
+    # Create a mock object repository.
+    object_repo = MockObjectRepository([
+        ModelObject.new(
+            name='Attribute',
+            type='value_object',
+            group_id='object',
+            description='An attribute.',
+        )
+    ])
+
+    # Create a method with parameters.
+    method = ObjectMethod.new(
+        name='add_attribute',
+        type='state',
+        description='Adds an attribute to the object.',
+        is_class_method=True,
+        parameters=[
+            ObjectMethodParameter.new(
+                name='attribute',
+                type='model',
+                type_object_id='attribute',
+                description='The attribute to add.',
+            )
+        ],
+        code_block=[
+            ObjectMethodCodeBlock.new(
+                comments='Add the attribute to the object.',
+                lines='self.attributes.append(attribute)',
+            )
+        ],
+    )
+
+    # Get the method.
+    sync_method = sync_model_method_to_code(method, object_repo)
+
+    # Assert the method is correct.
+    assert sync_method.name == 'add_attribute'
+    assert sync_method.description == 'Adds an attribute to the object.'
+    assert sync_method.is_class_method == True
+    assert len(sync_method.parameters) == 1
+    assert sync_method.parameters[0].name == 'attribute'
+    assert sync_method.parameters[0].type == 'Attribute'
+    assert sync_method.parameters[0].description == 'The attribute to add.'
+    assert len(sync_method.code_block) == 1
+    assert sync_method.code_block[0].comments[0] == 'Add the attribute to the object.'
+    assert sync_method.code_block[0].lines[0] == 'self.attributes.append(attribute)'
 
 
 def test_sync_code_to_model():
