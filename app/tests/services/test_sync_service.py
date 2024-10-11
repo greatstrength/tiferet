@@ -173,6 +173,23 @@ def test_sync_model_code_block_to_code():
     assert sync_code_block.lines[0] == 'self.attributes.append(attribute)'
 
 
+def test_sync_model_code_block_to_code_multiple_lines():
+
+    # Create a code block.
+    code_block = ObjectMethodCodeBlock.new(
+        comments='Add the attribute to the object.',
+        lines='self.attributes.append(attribute)/n/self.attributes.append(attribute)',
+    )
+
+    # Get the code block.
+    sync_code_block = sync_model_code_block_to_code(code_block)
+
+    # Assert the code block is correct.
+    assert sync_code_block.comments[0] == 'Add the attribute to the object.'
+    assert sync_code_block.lines[0] == 'self.attributes.append(attribute)'
+    assert sync_code_block.lines[1] == 'self.attributes.append(attribute)'
+
+
 def test_sync_model_method_to_code():
 
     # Create a mock object repository.
