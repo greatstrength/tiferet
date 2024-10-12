@@ -208,7 +208,7 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
     # Create and return the variable.
     variable = Variable.new(
         name=attribute.name,
-        value=''.join(value)
+        value=value
     )
     return variable
 
