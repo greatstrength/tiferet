@@ -158,29 +158,23 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
     :rtype: Variable
     '''
 
-    # Set the value and model name.
-    value = []
-    model_name = model.name.replace(' ', '_').upper()
+    # Set the initial variables.
+    model_name = None
+    default_var = None
+    choices_var = None
 
-    value = ''.join([
-        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}('
-    ])
-    # Map on the attribute type for non-compound types.
-    if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
-        value.append(f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(')
+    # Get the model name if default or choices are provided.
+    if attribute.default or attribute.choices:
+        model_name = model.name.replace(' ', '_').upper()
 
-    # Check if the attribute is required.
-    if attribute.required:
-        value.append(f'\n{TAB}required=True,')
-
-    # Check if there is a default value.
+    # Create the constant value if the attribute has a default value.
     if attribute.default:
         variable = Variable.new(
             name=f'{model_name}_{attribute.name.upper()}_DEFAULT',
             value=f'\'{attribute.default}\'' if attribute.type == 'str' else attribute.default
         )
         constants.append(variable)
-        value.append(f'\n{TAB}default={variable.name},')
+        default_var = variable.name
 
     # Add the choices and constants if choices are provided.
     if attribute.choices:
@@ -191,21 +185,31 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
             value=f'[\n{TAB}{values_list}\n]'
         )
         constants.append(variable)
-        value.append(f'\n{TAB}choices={variable.name},')
+        choices_var = variable.name
 
-    # Add the metadata with the description.
-    value.append(f'\n{TAB}metadata=dict(')
-    value.append(f'\n{TAB*2}description=\'{attribute.description}\',')
-    value.append(f'\n{TAB}),')
-    value.append('\n)')
+    # Create the attribute value.
+    value = ''.join([
+        # Map on the attribute type for non-compound types.
+        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(' if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime'] else '',
+        # Check if the attribute is required.
+        f'\n{TAB}required=True,' if attribute.required else '',
+        # Check if the attribute has a default value.
+        f'\n{TAB}default={default_var},' if default_var else '',
+        # Check if the attribute has choices.
+        f'\n{TAB}choices={choices_var},' if choices_var else '',
+        # Add the metadata with the description.
+        f'\n{TAB}metadata=dict(',
+        f'\n{TAB*2}description=\'{attribute.description}\',',
+        f'\n{TAB}),',
+        # Close the attribute type.
+        f'\n)'
+    ])
 
-    # Create the variable.
+    # Create and return the variable.
     variable = Variable.new(
         name=attribute.name,
         value=''.join(value)
     )
-
-    # Return the variable.
     return variable
 
 
