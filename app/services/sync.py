@@ -162,6 +162,9 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
     value = []
     model_name = model.name.replace(' ', '_').upper()
 
+    value = ''.join([
+        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}('
+    ])
     # Map on the attribute type for non-compound types.
     if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         value.append(f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(')
@@ -181,8 +184,8 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
 
     # Add the choices and constants if choices are provided.
     if attribute.choices:
-        values_list = f',\n{TAB}'.join(
-            [f'\'{choice}\'' if attribute.type == 'str' else choice for choice in attribute.choices])
+        values_list = f'\n{TAB}'.join(
+            [f'\'{choice}\',' if attribute.type == 'str' else choice for choice in attribute.choices])
         variable = Variable.new(
             name=f'{model_name}_{attribute.name.upper()}_CHOICES',
             value=f'[\n{TAB}{values_list}\n]'

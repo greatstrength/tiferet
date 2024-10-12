@@ -1,12 +1,14 @@
 from ...objects.object import ModelObject
+from ...objects.object import ObjectAttribute
 from ...objects.object import ObjectMethod
 from ...objects.object import ObjectMethodParameter
 from ...objects.object import ObjectMethodCodeBlock
 from ...objects.sync import Class
 from ...objects.sync import Parameter
+from ...services.sync import get_model_attribute_type
 from ...services.sync import sync_parameter_to_code
 from ...services.sync import sync_model_code_block_to_code
-from ...services.sync import get_model_attribute_type
+from ...services.sync import sync_model_attribute_to_code
 from ...services.sync import sync_model_method_to_code
 from ...services.sync import sync_code_to_model
 from ..mocks import MockObjectRepository
@@ -238,6 +240,176 @@ def test_sync_model_method_to_code():
     assert len(sync_method.code_block) == 1
     assert sync_method.code_block[0].comments[0] == 'Add the attribute to the object.'
     assert sync_method.code_block[0].lines[0] == 'self.attributes.append(attribute)'
+
+
+def test_sync_model_attribute_to_code():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='required',
+        type='bool',
+        description='Whether the attribute is required.',
+    )
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'required'
+    assert sync_attribute.value == 't.BooleanType(\n    metadata=dict(\n        description=\'Whether the attribute is required.\',\n    ),\n)'
+
+
+def test_sync_model_attribute_to_code_required():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='name',
+        type='str',
+        description='The name of the attribute.',
+        required=True,
+    )
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'name'
+    assert sync_attribute.value == 't.StringType(\n    required=True,\n    metadata=dict(\n        description=\'The name of the attribute.\',\n    ),\n)'
+
+
+def test_sync_model_attribute_to_code_default():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='name',
+        type='str',
+        description='The name of the attribute.',
+        default='name',
+    )
+
+    # Get the attribute with constants.
+    constants = []
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'name'
+    assert sync_attribute.value == 't.StringType(\n    default=ATTRIBUTE_NAME_DEFAULT,\n    metadata=dict(\n        description=\'The name of the attribute.\',\n    ),\n)'
+    assert constants[0].name == 'ATTRIBUTE_NAME_DEFAULT'
+    assert constants[0].value == "'name'"
+
+
+def test_sync_model_attribute_to_code_default_bool():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='required',
+        type='bool',
+        description='Whether the attribute is required.',
+        default='True',
+    )
+
+    # Get the attribute with constants.
+    constants = []
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'required'
+    assert sync_attribute.value == 't.BooleanType(\n    default=ATTRIBUTE_REQUIRED_DEFAULT,\n    metadata=dict(\n        description=\'Whether the attribute is required.\',\n    ),\n)'
+    assert constants[0].name == 'ATTRIBUTE_REQUIRED_DEFAULT'
+    assert constants[0].value == 'True'
+
+
+def test_sync_model_attribute_to_code_choices():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='type',
+        type='str',
+        description='The type of the attribute.',
+        choices=['string', 'number'],
+    )
+
+    # Get the attribute with constants.
+    constants = []
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'type'
+    assert sync_attribute.value == 't.StringType(\n    choices=ATTRIBUTE_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the attribute.\',\n    ),\n)'
+    assert constants[0].name == 'ATTRIBUTE_TYPE_CHOICES'
+    assert constants[0].value == "[\n    'string',\n    'number',\n]"
+
+
+def test_sync_model_attribute_to_code_default_and_choices():
+
+    # Create the object model.
+    model_obj = ModelObject.new(
+        name='Attribute',
+        type='value_object',
+        group_id='object',
+        description='An attribute.',
+    )
+
+    # Create an attribute.
+    attribute = ObjectAttribute.new(
+        name='type',
+        type='str',
+        description='The type of the attribute.',
+        choices=['string', 'number'],
+        default='string',
+    )
+
+    # Get the attribute with constants.
+    constants = []
+    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'type'
+    assert sync_attribute.value == 't.StringType(\n    default=ATTRIBUTE_TYPE_DEFAULT,\n    choices=ATTRIBUTE_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the attribute.\',\n    ),\n)'
+    assert constants[0].name == 'ATTRIBUTE_TYPE_DEFAULT'
+    assert constants[0].value == "'string'"
+    assert constants[1].name == 'ATTRIBUTE_TYPE_CHOICES'
+    assert constants[1].value == "[\n    'string',\n    'number',\n]"
 
 
 def test_sync_code_to_model():
