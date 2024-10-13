@@ -134,6 +134,7 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
         name=method.name,
         description=method.description,
         is_class_method=method.type == 'state',
+        is_static_method=method.type == 'factory',
         parameters=parameters,
         return_type=method.return_type,
         return_description=method.return_description,
@@ -144,7 +145,7 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
     return function
 
 
-def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject, constants: typing.List[Variable] = []) -> Variable:
+def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> Variable:
     '''
     Syncs an attribute to code.
 
@@ -190,7 +191,9 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
     # Create the attribute value.
     value = ''.join([
         # Map on the attribute type for non-compound types.
-        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(' if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime'] else '',
+        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(' if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime', 'model'] else '',
+        # If the type is a model, set the model class name.
+        f'\n{TAB}{object_repo.get(id=attribute.type_object_id).class_name},' if attribute.type == 'model' else '',
         # Check if the attribute is required.
         f'\n{TAB}required=True,' if attribute.required else '',
         # Check if the attribute has a default value.
@@ -255,7 +258,11 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
 
         # Sync the attribute to code.
         attributes.append(sync_model_attribute_to_code(
-            attribute, model_object, constants))
+            attribute,
+            model_object,
+            object_repo,
+            constants
+        ))
 
     # Map on the model object methods.
     for method in model_object.methods:

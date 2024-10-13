@@ -191,64 +191,58 @@ def test_sync_model_attribute_to_code_default_bool():
 
 def test_sync_model_attribute_to_code_choices():
 
-    # Create the object model.
-    model_obj = ModelObject.new(
-        name='Attribute',
-        type='value_object',
-        group_id='object',
-        description='An attribute.',
-    )
-
-    # Create an attribute.
-    attribute = ObjectAttribute.new(
-        name='type',
-        type='str',
-        description='The type of the attribute.',
-        choices=['string', 'number'],
-    )
-
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_CHOICES, MODEL_OBJ_ENTITY, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'type'
-    assert sync_attribute.value == 't.StringType(\n    choices=ATTRIBUTE_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the attribute.\',\n    ),\n)'
-    assert constants[0].name == 'ATTRIBUTE_TYPE_CHOICES'
-    assert constants[0].value == "[\n    'string',\n    'number',\n]"
+    assert sync_attribute.value == 't.StringType(\n    choices=OBJECT_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the object.\',\n    ),\n)'
+    assert constants[0].name == 'OBJECT_TYPE_CHOICES'
+    assert constants[0].value == "[\n    'entity',\n    'value_object',\n    'context',\n]"
 
 
 def test_sync_model_attribute_to_code_default_and_choices():
 
-    # Create the object model.
-    model_obj = ModelObject.new(
-        name='Attribute',
-        type='value_object',
-        group_id='object',
-        description='An attribute.',
-    )
-
     # Create an attribute.
-    attribute = ObjectAttribute.new(
-        name='type',
-        type='str',
-        description='The type of the attribute.',
-        choices=['string', 'number'],
-        default='string',
-    )
+    attribute = MODEL_OBJ_ATTR_CHOICES
+    attribute.default = 'entity'
 
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(attribute, model_obj, constants)
+    sync_attribute = sync_model_attribute_to_code(attribute, MODEL_OBJ_ENTITY, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'type'
-    assert sync_attribute.value == 't.StringType(\n    default=ATTRIBUTE_TYPE_DEFAULT,\n    choices=ATTRIBUTE_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the attribute.\',\n    ),\n)'
-    assert constants[0].name == 'ATTRIBUTE_TYPE_DEFAULT'
-    assert constants[0].value == "'string'"
-    assert constants[1].name == 'ATTRIBUTE_TYPE_CHOICES'
-    assert constants[1].value == "[\n    'string',\n    'number',\n]"
+    assert sync_attribute.value == 't.StringType(\n    default=OBJECT_TYPE_DEFAULT,\n    choices=OBJECT_TYPE_CHOICES,\n    metadata=dict(\n        description=\'The type of the object.\',\n    ),\n)'
+    assert constants[0].name == 'OBJECT_TYPE_DEFAULT'
+    assert constants[0].value == "'entity'"
+    assert constants[1].name == 'OBJECT_TYPE_CHOICES'
+    assert constants[1].value == "[\n    'entity',\n    'value_object',\n    'context',\n]"
 
+
+def test_sync_model_attribute_to_code_model():
+
+    # Create a mock object repository with the Type model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_CORE
+    ])
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_MODEL, MODEL_OBJ_CORE, object_repo)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'type'
+    assert sync_attribute.value == 't.ModelType(\n    Type,\n    metadata=dict(\n        description=\'The object type.\',\n    ),\n)'
+
+def test_sync_model_attribute_to_code_list():
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_LIST, MODEL_OBJ_ENTITY)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'choices'
+    assert sync_attribute.value == 't.ListType(\n    t.StringType(),\n    metadata=dict(\n        description=\'The choices for the attribute value.\',\n    ),\n)'
 
 def test_sync_code_to_model():
 

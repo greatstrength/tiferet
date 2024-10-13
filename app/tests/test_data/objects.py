@@ -35,6 +35,35 @@ MODEL_OBJ_ATTR_CHOICES = ObjectAttribute.new(
     choices=['entity', 'value_object', 'context'],
 )
 
+MODEL_OBJ_ATTR_LIST = ObjectAttribute.new(
+    name='choices',
+    type='list',
+    inner_type='str',
+    description='The choices for the attribute value.',
+)
+
+MODEL_OBJ_ATTR_MODEL = ObjectAttribute.new(
+    name='type',
+    type='model',
+    type_object_id='type',
+    description='The object type.',
+)
+
+MODEL_OBJ_ATTR_LIST_MODEL_INNER_TYPE = ObjectAttribute.new(
+    name='attributes',
+    type='list',
+    inner_type='model',
+    type_object_id='attribute',
+    description='The attributes for the object.',
+)
+
+MODEL_OBJ_ATTR_DICT = ObjectAttribute.new(
+    name='metadata',
+    type='dict',
+    inner_type='str',
+    description='The metadata for the attribute.',
+)
+
 MODEL_OBJ_PARAM_ANY = ObjectMethodParameter.new(
         name='component',
         type='any',
@@ -69,16 +98,6 @@ MODEL_OBJ_ATTR_MODEL_LIST = ObjectMethodParameter.new(
     description='The attributes to add to the object.',
 )
 
-MODEL_OBJ_ENTITY = ModelObject.new(
-    name='Object',
-    type='entity',
-    group_id='model',
-    description='The object.',
-    attributes=[
-        MODEL_OBJ_ATTR_REQUIRED,
-    ]
-)
-
 MODEL_OBJ_MET_PARAM_MODEL = ObjectMethodParameter.new(
     name='attribute',
     type='model',
@@ -110,6 +129,23 @@ MODEL_OBJ_MET_STATE = ObjectMethod.new(
             comments='Add the attribute to the object.',
             lines='self.attributes.append(attribute)',
         )
+    ]
+)
+
+MODEL_OBJ_CORE = ModelObject.new(
+    name='Type',
+    group_id='base',
+    type='model',
+    description='The object type.',
+)
+
+MODEL_OBJ_ENTITY = ModelObject.new(
+    name='Object',
+    type='entity',
+    group_id='model',
+    description='The object.',
+    attributes=[
+        MODEL_OBJ_ATTR_REQUIRED,
     ]
 )
 
