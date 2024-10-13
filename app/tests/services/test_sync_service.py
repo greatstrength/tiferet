@@ -32,7 +32,8 @@ def test_sync_parameter_to_code_any():
 def test_sync_parameter_to_code_non_compound():
 
     # Get the parameter.
-    type = sync_parameter_to_code(MODEL_OBJ_PARAM_MODEL, MockObjectRepository())
+    type = sync_parameter_to_code(
+        MODEL_OBJ_PARAM_MODEL, MockObjectRepository())
 
     # Assert the parameter is correct.
     assert type.name == 'attribute'
@@ -43,7 +44,8 @@ def test_sync_parameter_to_code_non_compound():
 def test_sync_parameter_to_code_list():
 
     # Get the parameter.
-    param = sync_parameter_to_code(MODEL_OBJ_PARAM_LIST, MockObjectRepository())
+    param = sync_parameter_to_code(
+        MODEL_OBJ_PARAM_LIST, MockObjectRepository())
 
     # Assert the parameter is correct.
     assert param.name == 'choices'
@@ -54,7 +56,8 @@ def test_sync_parameter_to_code_list():
 def test_sync_parameter_to_code_dict():
 
     # Get the parameter.
-    param = sync_parameter_to_code(MODEL_OBJ_PARAM_DICT, MockObjectRepository())
+    param = sync_parameter_to_code(
+        MODEL_OBJ_PARAM_DICT, MockObjectRepository())
 
     # Assert the parameter is correct.
     assert param.name == 'metadata'
@@ -107,7 +110,8 @@ def test_sync_model_code_block_to_code():
 def test_sync_model_code_block_to_code_multiple_lines():
 
     # Get the code block.
-    sync_code_block = sync_model_code_block_to_code(MODEL_OBJ_MET_CODE_BLOCK_MULTILINE)
+    sync_code_block = sync_model_code_block_to_code(
+        MODEL_OBJ_MET_CODE_BLOCK_MULTILINE)
 
     # Assert the code block is correct.
     assert sync_code_block.comments[0] == 'Validate and return the model object.'
@@ -142,7 +146,8 @@ def test_sync_model_method_to_code():
 def test_sync_model_attribute_to_code():
 
     # Get the attribute.
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_BOOL, MODEL_OBJ_VALUE_OBJECT)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_BOOL, MODEL_OBJ_VALUE_OBJECT)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'required'
@@ -153,7 +158,7 @@ def test_sync_model_attribute_to_code_required():
 
     # Get the attribute.
     sync_attribute = sync_model_attribute_to_code(
-        attribute=MODEL_OBJ_ATTR_REQUIRED, 
+        attribute=MODEL_OBJ_ATTR_REQUIRED,
         model=MODEL_OBJ_ENTITY,
         constants=[],
     )
@@ -167,7 +172,8 @@ def test_sync_model_attribute_to_code_default():
 
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_DEFAULT, MODEL_OBJ_VALUE_OBJECT, constants)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_DEFAULT, MODEL_OBJ_VALUE_OBJECT, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'description'
@@ -180,7 +186,8 @@ def test_sync_model_attribute_to_code_default_bool():
 
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_BOOL_DEFAULT, MODEL_OBJ_VALUE_OBJECT, constants)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_BOOL_DEFAULT, MODEL_OBJ_VALUE_OBJECT, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'pass_on_error'
@@ -193,7 +200,8 @@ def test_sync_model_attribute_to_code_choices():
 
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_CHOICES, MODEL_OBJ_ENTITY, constants)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_CHOICES, MODEL_OBJ_ENTITY, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'type'
@@ -210,7 +218,8 @@ def test_sync_model_attribute_to_code_default_and_choices():
 
     # Get the attribute with constants.
     constants = []
-    sync_attribute = sync_model_attribute_to_code(attribute, MODEL_OBJ_ENTITY, constants)
+    sync_attribute = sync_model_attribute_to_code(
+        attribute, MODEL_OBJ_ENTITY, constants)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'type'
@@ -229,25 +238,67 @@ def test_sync_model_attribute_to_code_model():
     ])
 
     # Get the attribute.
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_MODEL, MODEL_OBJ_CORE, object_repo)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_MODEL, MODEL_OBJ_CORE, object_repo)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'type'
     assert sync_attribute.value == 't.ModelType(\n    Type,\n    metadata=dict(\n        description=\'The object type.\',\n    ),\n)'
 
+
 def test_sync_model_attribute_to_code_list():
 
+    # Create the mock object repository with the core object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_CORE
+    ])
+
     # Get the attribute.
-    sync_attribute = sync_model_attribute_to_code(MODEL_OBJ_ATTR_LIST, MODEL_OBJ_ENTITY)
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_LIST, MODEL_OBJ_ENTITY, object_repo)
 
     # Assert the attribute is correct.
     assert sync_attribute.name == 'choices'
     assert sync_attribute.value == 't.ListType(\n    t.StringType(),\n    metadata=dict(\n        description=\'The choices for the attribute value.\',\n    ),\n)'
 
+
+def test_sync_model_attribute_to_code_list_model():
+
+    # Create the mock object repository with the core object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_ENTITY,
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_LIST_MODEL_INNER_TYPE, MODEL_OBJ_ENTITY, object_repo)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'attributes'
+    assert sync_attribute.value == 't.ListType(\n    t.ModelType(Attribute),\n    metadata=dict(\n        description=\'The attributes for the object.\',\n    ),\n)'
+
+
+def test_sync_model_attribute_to_code_dict():
+    # Create a mock object repository with the entity object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_ENTITY
+    ])
+
+    # Get the attribute.
+    sync_attribute = sync_model_attribute_to_code(
+        MODEL_OBJ_ATTR_DICT, MODEL_OBJ_ENTITY, object_repo)
+
+    # Assert the attribute is correct.
+    assert sync_attribute.name == 'metadata'
+    assert sync_attribute.value == 't.DictType(\n    t.StringType(),\n    metadata=dict(\n        description=\'The metadata for the attribute.\',\n    ),\n)'
+
+
 def test_sync_code_to_model():
 
     # Get the model object.
-    model_object = sync_code_to_model('object', SYNC_CLASS_EMPTY, MockObjectRepository())
+    model_object = sync_code_to_model(
+        'object', SYNC_CLASS_EMPTY, MockObjectRepository())
 
     # Assert the model object is correct.
     assert model_object.name == 'Object'

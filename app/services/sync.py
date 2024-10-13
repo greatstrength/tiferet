@@ -190,10 +190,16 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
 
     # Create the attribute value.
     value = ''.join([
-        # Map on the attribute type for non-compound types.
-        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(' if attribute.type in ['str', 'int', 'float', 'bool', 'date', 'datetime', 'model'] else '',
+        # Map the attribute type.
+        f'{MODEL_ATTRIBUTE_TYPES[attribute.type]}(',
         # If the type is a model, set the model class name.
         f'\n{TAB}{object_repo.get(id=attribute.type_object_id).class_name},' if attribute.type == 'model' else '',
+        # If the type is a list or dict, set the inner type.
+        f'\n{TAB}{MODEL_ATTRIBUTE_TYPES[attribute.inner_type]}(' if attribute.type in ['list', 'dict'] else '',
+        # If the inner type is a model, set the model class name.
+        f'{object_repo.get(id=attribute.type_object_id).class_name}' if attribute.inner_type == 'model' else '',
+        # Close the inner type.
+        f'),' if attribute.type in ['list', 'dict'] else '',
         # Check if the attribute is required.
         f'\n{TAB}required=True,' if attribute.required else '',
         # Check if the attribute has a default value.
