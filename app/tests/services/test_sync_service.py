@@ -1,6 +1,3 @@
-from ...objects.object import ModelObject
-from ...objects.object import ObjectAttribute
-from ...objects.sync import Class
 from ...services.sync import *
 from ..mocks import MockObjectRepository
 from ..test_data import *
@@ -292,6 +289,37 @@ def test_sync_model_attribute_to_code_dict():
     # Assert the attribute is correct.
     assert sync_attribute.name == 'metadata'
     assert sync_attribute.value == 't.DictType(\n    t.StringType(),\n    metadata=dict(\n        description=\'The metadata for the attribute.\',\n    ),\n)'
+
+
+def test_sync_model_to_code():
+
+    # Create a mock object repository with the entity object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_ENTITY,
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Get the model.
+    constants = []
+    sync_class = sync_model_object_to_code(MODEL_OBJ_ENTITY, object_repo, constants)
+
+    # Assert the model is correct.
+    assert sync_class.name == 'Object'
+    assert sync_class.base_classes == ['Entity']
+    assert sync_class.description == 'An object.'
+    assert len(sync_class.attributes) == 2
+    assert sync_class.attributes[0].name == 'name'
+    assert sync_class.attributes[0].value == 't.StringType(\n    required=True,\n    metadata=dict(\n        description=\'The name of the object.\',\n    ),\n)'
+    assert sync_class.attributes[1].name == 'attributes'
+    assert sync_class.attributes[1].value == 't.ListType(\n    t.ModelType(Attribute),\n    metadata=dict(\n        description=\'The attributes for the object.\',\n    ),\n)'
+    assert len(sync_class.methods) == 1
+    assert sync_class.methods[0].name == 'add_attribute'
+    assert sync_class.methods[0].description == 'Adds an attribute to the object.'
+    assert sync_class.methods[0].is_class_method == True
+    assert len(sync_class.methods[0].parameters) == 1
+    assert sync_class.methods[0].parameters[0].name == 'attribute'
+    assert sync_class.methods[0].parameters[0].type == 'Attribute'
+    assert sync_class.methods[0].parameters[0].description == 'The attribute to add.'
 
 
 def test_sync_code_to_model():

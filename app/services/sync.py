@@ -222,7 +222,7 @@ def sync_model_attribute_to_code(attribute: ObjectAttribute, model: ModelObject,
     return variable
 
 
-def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository, base_model: ModelObject = None, constants: typing.List[Variable] = []) -> tuple:
+def sync_model_object_to_code(model_object: ModelObject, object_repo: ObjectRepository, base_model: ModelObject = None, constants: typing.List[Variable] = []) -> Class:
     '''
     Syncs a model object to code.
 
@@ -234,49 +234,33 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
     :rtype
     '''
 
-    # Format the base classes as a list.
-    base_classes = []
-
-    # If the base model exists...
-    if base_model:
-
-        # Add the base model class name to the base classes.
-        base_classes.append(base_model.class_name)
-
-    # If the model object has no base classes...
+    # Set the base classes.
+    base_classes = [base_model.class_name] if base_model else []
     if not base_classes:
-
-        # Set the base class name to Entity if the object type is 'entity'.
         if model_object.type == OBJECT_TYPE_ENTITY:
             base_classes.append('Entity')
-
-        # Set the base class name to ValueObject if the object type is 'value_object'.
         elif model_object.type == OBJECT_TYPE_VALUE_OBJECT:
             base_classes.append('ValueObject')
-
-    # Create the class attributes.
-    attributes = []
-    methods = []
-    constants = []
+        else:
+            base_classes.append('Model')
 
     # Map on the model object attributes.
-    for attribute in model_object.attributes:
-
-        # Sync the attribute to code.
-        attributes.append(sync_model_attribute_to_code(
-            attribute,
-            model_object,
-            object_repo,
-            constants
-        ))
+    attributes = [
+        sync_model_attribute_to_code(
+            attribute, 
+            model_object, 
+            object_repo, 
+            constants) 
+        for attribute in model_object.attributes]
 
     # Map on the model object methods.
-    for method in model_object.methods:
+    methods = [
+        sync_model_method_to_code(
+            method, 
+            object_repo) 
+        for method in model_object.methods]
 
-        # Sync the method to code.
-        methods.append(sync_model_method_to_code(method, object_repo))
-
-    # Create the class.
+    # Create and return the class and constants.
     _class = Class.new(
         name=model_object.class_name,
         description=model_object.description,
@@ -284,9 +268,7 @@ def sync_model_to_code(model_object: ModelObject, object_repo: ObjectRepository,
         attributes=attributes,
         methods=methods
     )
-
-    # Return the class and constants.
-    return _class, constants
+    return _class
 
 
 def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectAttribute:
