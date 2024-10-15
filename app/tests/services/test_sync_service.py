@@ -472,6 +472,159 @@ def test_sync_code_to_model_attribute_list_model():
     assert model_attribute.description == 'The attributes for the object.'
 
 
+def test_sync_code_to_model_parameter_required():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='id',
+        type='str',
+        description='The id of the object.',
+    )
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(
+        sync_parameter, MockObjectRepository())
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'id'
+    assert parameter.type == 'str'
+    assert parameter.description == 'The id of the object.'
+    assert parameter.required == True
+
+
+def test_sync_code_to_model_parameter_not_required():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='class_name',
+        type='str',
+        description='The class name.',
+        default='None',
+    )
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(
+        sync_parameter, MockObjectRepository())
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'class_name'
+    assert parameter.type == 'str'
+    assert parameter.description == 'The class name.'
+    assert parameter.required == False
+    assert parameter.default == None
+
+
+def test_sync_code_to_model_parameter_default():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='type',
+        type='str',
+        description='The type of the object.',
+        default='entity',
+    )
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(
+        sync_parameter, MockObjectRepository())
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'type'
+    assert parameter.type == 'str'
+    assert parameter.description == 'The type of the object.'
+    assert parameter.required == False
+    assert parameter.default == 'entity'
+
+
+def test_sync_code_to_model_parameter_list():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='choices',
+        type='typing.List[str]',
+        description='The choices for the attribute value.',
+    )
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(
+        sync_parameter, MockObjectRepository())
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'choices'
+    assert parameter.type == 'list'
+    assert parameter.inner_type == 'str'
+    assert parameter.description == 'The choices for the attribute value.'
+
+
+def test_sync_code_to_model_parameter_dict():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='metadata',
+        type='typing.Dict[str, str]',
+        description='The metadata for the attribute.',
+    )
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(
+        sync_parameter, MockObjectRepository())
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'metadata'
+    assert parameter.type == 'dict'
+    assert parameter.inner_type == 'str'
+    assert parameter.description == 'The metadata for the attribute.'
+
+
+def test_sync_code_to_model_parameter_model():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='attribute',
+        type='Attribute',
+        description='The attribute to add.',
+    )
+
+    # Create a mock object repository with the Attribute model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(sync_parameter, object_repo)
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'attribute'
+    assert parameter.type == 'model'
+    assert parameter.type_object_id == 'attribute'
+    assert parameter.description == 'The attribute to add.'
+
+
+def test_sync_code_to_model_parameter_list_model_inner_type():
+
+    # Define a parameter object.
+    sync_parameter = Parameter.new(
+        name='attributes',
+        type='typing.List[Attribute]',
+        description='The attributes for the object.',
+    )
+
+    # Create a mock object repository with the Attribute model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Get the model parameter.
+    parameter = sync_code_to_model_parameter(sync_parameter, object_repo)
+
+    # Assert the model parameter is correct.
+    assert parameter.name == 'attributes'
+    assert parameter.type == 'list'
+    assert parameter.inner_type == 'model'
+    assert parameter.type_object_id == 'attribute'
+    assert parameter.description == 'The attributes for the object.'
+
+
 def test_sync_code_to_model():
 
     # Get the model object.

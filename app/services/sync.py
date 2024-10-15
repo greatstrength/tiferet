@@ -329,7 +329,7 @@ def sync_code_to_model_attribute(variable: Variable, object_repo: ObjectReposito
     )
 
 
-def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) -> ObjectMethodParameter:
+def sync_code_to_model_parameter(parameter: Parameter, object_repo: ObjectRepository) -> ObjectMethodParameter:
     '''
     Syncs class parameter code into a model object parameter.
     
@@ -353,7 +353,7 @@ def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) 
         inner_type = parameter.type[12:-1]
     elif 'Dict' in parameter.type:
         type = 'dict'
-        inner_type = parameter.type[12:-1].split(',')[1]
+        inner_type = parameter.type[12:-1].split(',')[1].strip('] ')
     elif parameter.type not in ['str', 'int', 'float', 'bool', 'date', 'datetime', 'type']:
         type = 'model'
         type_object_id = object_repo.get(class_name=parameter.type).id
@@ -377,7 +377,7 @@ def sync_code_to_parameter(parameter: Parameter, object_repo: ObjectRepository) 
         inner_type=inner_type,
         type_object_id=type_object_id,
         required=required,
-        default=parameter.default
+        default=None if parameter.default == 'None' else parameter.default
     )
 
 
@@ -433,7 +433,7 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
         name=function.name,
         type='factory' if function.is_static_method else 'state',
         description=function.description,
-        parameters=[sync_code_to_parameter(
+        parameters=[sync_code_to_model_parameter(
             param, object_repo) for param in function.parameters if not param.is_kwargs],
         return_type=return_type,
         return_inner_type=return_inner_type,
