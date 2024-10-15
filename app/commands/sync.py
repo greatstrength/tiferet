@@ -132,7 +132,7 @@ class SyncCodeToModel(object):
         assert _class, f'SYNC_CLASS_NOT_FOUND: {class_name}'
 
         # Create the model object.
-        _object = sync_service.sync_code_to_model(
+        _object = sync_service.sync_code_to_model_object(
             group_id=group_id,
             _class=_class,
             object_repo=self.object_repo,

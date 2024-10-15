@@ -381,7 +381,7 @@ def sync_code_to_model_parameter(parameter: Parameter, object_repo: ObjectReposi
     )
 
 
-def sync_code_to_code_block(code_block: CodeBlock) -> ObjectMethodCodeBlock:
+def sync_code_to_model_code_block(code_block: CodeBlock) -> ObjectMethodCodeBlock:
     '''
     Syncs class code block code into a model object code block.
     '''
@@ -396,7 +396,7 @@ def sync_code_to_code_block(code_block: CodeBlock) -> ObjectMethodCodeBlock:
     )
 
 
-def sync_code_to_method(function: Function, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectMethod:
+def sync_code_to_model_method(function: Function, object_repo: ObjectRepository) -> ObjectMethod:
     '''
     Syncs class method code into a model object method.
 
@@ -404,8 +404,6 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
     :type function: Function
     :param object_repo: The object repository.
     :type object_repo: ObjectRepository
-    :param constants: The constants.
-    :type constants: List[Variable]
     :return: The model object method.
     :rtype: ObjectMethod
     '''
@@ -415,7 +413,7 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
     return_inner_type = None
     return_type_object_id = None
 
-    # If the return type is a standard type...
+    # Map the return type.
     if function.return_type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         return_type = function.return_type
     elif function.return_type and 'List[' in function.return_type:
@@ -423,11 +421,15 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
         return_inner_type = function.return_type[5:-1]
     elif function.return_type and 'Dict[' in function.return_type:
         return_type = 'dict'
-        return_inner_type = function.return_type[5:-1].split(',')[1]
+        return_inner_type = function.return_type[5:-1].split(',')[1].strip()
     elif function.return_type and function.return_type not in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
         return_type = 'model'
         return_type_object_id = object_repo.get(
             class_name=function.return_type).id
+    if return_inner_type and return_inner_type not in METHOD_PARAMETER_INNER_TYPE_CHOICES:
+        return_type_object_id = object_repo.get(
+            class_name=return_inner_type).id
+        return_inner_type = 'model'
 
     return ObjectMethod.new(
         name=function.name,
@@ -439,12 +441,12 @@ def sync_code_to_method(function: Function, object_repo: ObjectRepository, const
         return_inner_type=return_inner_type,
         return_type_object_id=return_type_object_id,
         return_description=function.return_description,
-        code_block=[sync_code_to_code_block(
+        code_block=[sync_code_to_model_code_block(
             code_block) for code_block in function.code_block]
     )
 
 
-def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ModelObject:
+def sync_code_to_model_object(group_id: str, _class: Class, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ModelObject:
     '''
     Syncs code to a model object.
 
@@ -476,7 +478,7 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
 
     # Create the model object methods from the class methods.
     methods = [
-        sync_code_to_method(
+        sync_code_to_model_method(
             method, 
             object_repo, 
             constants)

@@ -144,8 +144,8 @@ def test_sync_model_attribute_to_code():
 
     # Get the attribute.
     sync_attribute = sync_model_attribute_to_code(
-        MODEL_OBJ_ATTR_BOOL, 
-        MODEL_OBJ_VALUE_OBJECT, 
+        MODEL_OBJ_ATTR_BOOL,
+        MODEL_OBJ_VALUE_OBJECT,
         MockObjectRepository(),)
 
     # Assert the attribute is correct.
@@ -189,8 +189,8 @@ def test_sync_model_attribute_to_code_default_bool():
     # Get the attribute with constants.
     constants = []
     sync_attribute = sync_model_attribute_to_code(
-        MODEL_OBJ_ATTR_BOOL_DEFAULT, 
-        MODEL_OBJ_VALUE_OBJECT, 
+        MODEL_OBJ_ATTR_BOOL_DEFAULT,
+        MODEL_OBJ_VALUE_OBJECT,
         MockObjectRepository(),
         constants,)
 
@@ -228,7 +228,7 @@ def test_sync_model_attribute_to_code_default_and_choices():
     constants = []
     sync_attribute = sync_model_attribute_to_code(
         attribute,
-        MODEL_OBJ_ENTITY, 
+        MODEL_OBJ_ENTITY,
         MockObjectRepository(),
         constants,)
 
@@ -315,7 +315,8 @@ def test_sync_model_object_to_code():
 
     # Get the model.
     constants = []
-    sync_class = sync_model_object_to_code(MODEL_OBJ_ENTITY, object_repo, constants)
+    sync_class = sync_model_object_to_code(
+        MODEL_OBJ_ENTITY, object_repo, constants)
 
     # Assert the model is correct.
     assert sync_class.name == 'Object'
@@ -345,7 +346,8 @@ def test_sync_code_to_model_attribute_str_required():
     )
 
     # Get the model attribute.
-    model_attribute = sync_code_to_model_attribute(variable, MockObjectRepository())
+    model_attribute = sync_code_to_model_attribute(
+        variable, MockObjectRepository())
 
     # Assert the model attribute is correct.
     assert model_attribute.name == 'name'
@@ -372,7 +374,8 @@ def test_sync_code_to_model_attribute_bool_default():
     ]
 
     # Get the model attribute.
-    model_attribute = sync_code_to_model_attribute(variable, MockObjectRepository(), constants)
+    model_attribute = sync_code_to_model_attribute(
+        variable, MockObjectRepository(), constants)
 
     # Assert the model attribute is correct.
     assert model_attribute.name == 'pass_on_error'
@@ -398,12 +401,13 @@ def test_sync_code_to_model_attribute_str_choices():
     ]
 
     # Get the model attribute.
-    model_attribute = sync_code_to_model_attribute(variable, MockObjectRepository(), constants)
+    model_attribute = sync_code_to_model_attribute(
+        variable, MockObjectRepository(), constants)
 
     # Assert the model attribute is correct.
     assert model_attribute.name == 'type'
     assert model_attribute.type == 'str'
-    assert model_attribute.choices == [ 'entity', 'value_object', 'context' ]
+    assert model_attribute.choices == ['entity', 'value_object', 'context']
     assert model_attribute.description == 'The type of the object.'
 
 
@@ -416,7 +420,8 @@ def test_sync_code_to_model_attribute_list_str():
     )
 
     # Get the model attribute.
-    model_attribute = sync_code_to_model_attribute(variable, MockObjectRepository())
+    model_attribute = sync_code_to_model_attribute(
+        variable, MockObjectRepository())
 
     # Assert the model attribute is correct.
     assert model_attribute.name == 'choices'
@@ -625,10 +630,140 @@ def test_sync_code_to_model_parameter_list_model_inner_type():
     assert parameter.description == 'The attributes for the object.'
 
 
+def test_sync_code_to_model_code_block():
+
+    # Define a code block object.
+    sync_code_block = CodeBlock.new(
+        comments=['Add the attribute to the object.'],
+        lines=['self.attributes.append(attribute)'],
+    )
+
+    # Get the model code block.
+    code_block = sync_code_to_model_code_block(sync_code_block)
+
+    # Assert the model code block is correct.
+    assert code_block.comments == 'Add the attribute to the object.'
+    assert code_block.lines == 'self.attributes.append(attribute)'
+
+
+def test_sync_code_to_model_code_block_multiple_lines():
+
+    # Define a code block object.
+    sync_code_block = CodeBlock.new(
+        comments=['Validate and return the model object.'],
+        lines=['model_obj.validate()', 'return model_obj'],
+    )
+
+    # Get the model code block.
+    code_block = sync_code_to_model_code_block(sync_code_block)
+
+    # Assert the model code block is correct.
+    assert code_block.comments == 'Validate and return the model object.'
+    assert code_block.lines == 'model_obj.validate()/n/return model_obj'
+
+
+def test_sync_code_to_model_method():
+
+    # Create a mock object repository with the Attribute model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Define a method object.
+    sync_method = Function.new(
+        name='add_attribute',
+        description='Adds an attribute to the object.',
+        is_class_method=True,
+        parameters=[
+            Parameter.new(
+                name='attribute',
+                type='Attribute',
+                description='The attribute to add.',
+            )
+        ],
+        code_block=[
+            CodeBlock.new(
+                comments=['Add the attribute to the object.'],
+                lines=['self.attributes.append(attribute)'],
+            )
+        ],
+    )
+
+    # Get the model method.
+    method = sync_code_to_model_method(sync_method, object_repo)
+
+    # Assert the model method is correct.
+    assert method.name == 'add_attribute'
+    assert method.description == 'Adds an attribute to the object.'
+    assert len(method.parameters) == 1
+    assert method.parameters[0].name == 'attribute'
+    assert method.parameters[0].type == 'model'
+    assert method.parameters[0].type_object_id == 'attribute'
+    assert method.parameters[0].description == 'The attribute to add.'
+    assert len(method.code_block) == 1
+    assert method.code_block[0].comments == 'Add the attribute to the object.'
+    assert method.code_block[0].lines == 'self.attributes.append(attribute)'
+
+
+def test_sync_code_to_model_method_list_return_type():
+
+    # Create a mock object repository with the Attribute model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Define a method object.
+    sync_method = Function.new(
+        name='list',
+        return_type='List[Attribute]',
+        return_description='The list of attributes.',
+        description='List all attributes.',
+        is_class_method=True,
+    )
+
+    # Get the model method.
+    method = sync_code_to_model_method(sync_method, object_repo)
+
+    # Assert the model method is correct.
+    assert method.name == 'list'
+    assert method.description == 'List all attributes.'
+    assert method.return_type == 'list'
+    assert method.return_inner_type == 'model'
+    assert method.return_type_object_id == 'attribute'
+    assert method.return_description == 'The list of attributes.'
+
+
+def test_sync_code_to_model_method_dict_return_type():
+
+    # Create a mock object repository with the Attribute model object.
+    object_repo = MockObjectRepository([
+        MODEL_OBJ_VALUE_OBJECT
+    ])
+
+    # Define a method object.
+    sync_method = Function.new(
+        name='get',
+        return_type='Dict[str, Attribute]',
+        return_description='The attributes as a dictionary.',
+        description='Get all attributes.',
+        is_class_method=True,)
+
+    # Get the model method.
+    method = sync_code_to_model_method(sync_method, object_repo)
+
+    # Assert the model method is correct.
+    assert method.name == 'get'
+    assert method.description == 'Get all attributes.'
+    assert method.return_type == 'dict'
+    assert method.return_inner_type == 'model'
+    assert method.return_type_object_id == 'attribute'
+    assert method.return_description == 'The attributes as a dictionary.'
+
+
 def test_sync_code_to_model():
 
     # Get the model object.
-    model_object = sync_code_to_model(
+    model_object = sync_code_to_model_object(
         'object', SYNC_CLASS_EMPTY, MockObjectRepository())
 
     # Assert the model object is correct.
@@ -637,3 +772,36 @@ def test_sync_code_to_model():
     assert model_object.class_name == 'Object'
     assert model_object.type == 'entity'
     assert model_object.description == 'An object.'
+
+
+def test_sync_code_to_model_value_object():
+
+    # Create the attribute class object.
+    attribute = Class.new(
+        name='Attribute',
+        description='An attribute.',
+        base_classes=['ValueObject'],
+        attributes=[
+            Variable.new(
+                name='name',
+                value='t.StringType(\n    required=True,\n    metadata=dict(\n        description=\'The name of the attribute.\',\n    ),\n)',
+            ),
+        ],
+        methods=[],
+    )
+
+    # Get the model object.
+    model_object = sync_code_to_model_object(
+        'object', attribute, MockObjectRepository())
+
+    # Assert the model object is correct.
+    assert model_object.name == 'Attribute'
+    assert model_object.group_id == 'object'
+    assert model_object.class_name == 'Attribute'
+    assert model_object.type == 'value_object'
+    assert model_object.description == 'An attribute.'
+    assert len(model_object.attributes) == 1
+    assert model_object.attributes[0].name == 'name'
+    assert model_object.attributes[0].type == 'str'
+    assert model_object.attributes[0].required == True
+    assert model_object.attributes[0].description == 'The name of the attribute.'
