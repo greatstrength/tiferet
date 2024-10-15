@@ -143,9 +143,13 @@ MODEL_OBJ_ENTITY = ModelObject.new(
     name='Object',
     type='entity',
     group_id='model',
-    description='The object.',
+    description='An object.',
     attributes=[
         MODEL_OBJ_ATTR_REQUIRED,
+        MODEL_OBJ_ATTR_LIST_MODEL_INNER_TYPE,
+    ],
+    methods=[
+        MODEL_OBJ_MET_STATE
     ]
 )
 

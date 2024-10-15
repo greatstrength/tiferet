@@ -271,7 +271,7 @@ def sync_model_object_to_code(model_object: ModelObject, object_repo: ObjectRepo
     return _class
 
 
-def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectAttribute:
+def sync_code_to_model_attribute(variable: Variable, object_repo: ObjectRepository, constants: typing.List[Variable] = []) -> ObjectAttribute:
     '''
     Syncs class attribute code into a model object attribute.
     '''
@@ -291,10 +291,8 @@ def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, co
     settings = '('.join(variable.value.split('(')[1:]).strip()
     settings = settings.replace('\n', '').replace(
         TAB, ' ').replace('\'', '').split(', ')
-    for setting in settings:
-        if type in ['list', 'dict'] and 't.' in setting:
-            inner_type = get_model_attribute_type(setting)
-        elif 'required=True' in setting:
+    for setting in settings[:-1]:
+        if 'required=True' in setting:
             required = True
         elif 'default=' in setting:
             default = setting.split('=')[1]
@@ -310,6 +308,13 @@ def sync_code_to_attribute(variable: Variable, object_repo: ObjectRepository, co
             description = setting.split('=')[1].strip()
         elif type == 'model' and 't.' not in setting:
             type_object_id = object_repo.get(class_name=setting).id
+        elif type in ['list', 'dict'] and 't.' in setting:
+            if 't.ModelType' in setting:
+                inner_type = 'model'
+                type_object_id = object_repo.get(
+                    class_name=setting.split('(')[1].strip(')').strip()).id
+            else:
+                inner_type = get_model_attribute_type(setting)
 
     # Create the model object attribute.
     return ObjectAttribute.new(
@@ -384,7 +389,6 @@ def sync_code_to_code_block(code_block: CodeBlock) -> ObjectMethodCodeBlock:
     # Format the code block lines.
     lines = '/n/'.join(code_block.lines).replace(TAB,
                                                  '/t/') if code_block.lines else None
-
     # Create the model object code block.
     return ObjectMethodCodeBlock.new(
         comments='/n/'.join(code_block.comments) if code_block.comments else None,
@@ -463,12 +467,20 @@ def sync_code_to_model(group_id: str, _class: Class, object_repo: ObjectReposito
     name = ' '.join(name).title()
 
     # Create the model object attributes from the class attributes.
-    attributes = [sync_code_to_attribute(
-        attribute, object_repo, constants) for attribute in _class.attributes]
+    attributes = [
+        sync_code_to_model_attribute(
+            attribute, 
+            object_repo, 
+            constants) 
+        for attribute in _class.attributes]
 
     # Create the model object methods from the class methods.
-    methods = [sync_code_to_method(method, object_repo, constants)
-               for method in _class.methods]
+    methods = [
+        sync_code_to_method(
+            method, 
+            object_repo, 
+            constants)
+        for method in _class.methods]
 
     # Set the model object type.
     base_type_id = None
