@@ -45,10 +45,12 @@ class SyncModelToCode(object):
         base_object = object_service.get_base_model(_object, self.object_repo)
 
         # Create the class and constants.
-        _class, constants = sync_service.sync_model_to_code(
+        constants = []
+        _class = sync_service.sync_model_object_to_code(
             _object, 
-            self.object_repo, 
-            base_object
+            self.object_repo,
+            base_object,
+            constants,
         )
 
         # Get the sync module.
@@ -130,7 +132,7 @@ class SyncCodeToModel(object):
         assert _class, f'SYNC_CLASS_NOT_FOUND: {class_name}'
 
         # Create the model object.
-        _object = sync_service.sync_code_to_model(
+        _object = sync_service.sync_code_to_model_object(
             group_id=group_id,
             _class=_class,
             object_repo=self.object_repo,
