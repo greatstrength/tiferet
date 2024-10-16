@@ -5,7 +5,7 @@ from ..contexts.app import AppContext
 
 
 class EnvironmentContext(object):
-    
+
     def __init__(self, env_base_key: str, **kwargs):
         '''
         Initialize the environment context.
@@ -13,9 +13,19 @@ class EnvironmentContext(object):
         :param env_base_key: The base key for the environment variables.
         :type env_base_key: str
         '''
-        
-        # Set the environment variables.
-        self.__dict__.update(kwargs)
+
+        # Load the environment variables.
+        env_variables = self.load_environment_variables(env_base_key)
+
+        # Create the app container.
+        container = self.create_app_container(env_variables)
+
+        # Load the app context.
+        app_context = self.load_app_context(container)
+
+        # Run the app context.
+        app_context.run(
+            container=container)
 
     def load_environment_variables(self, env_base_key: str) -> typing.Dict[str, typing.Any]:
         '''
@@ -26,7 +36,7 @@ class EnvironmentContext(object):
         :return: The environment variables.
         :rtype: dict
         '''
-    
+
         # Load the environment variables.
         import os
         result = {}
@@ -45,8 +55,8 @@ class EnvironmentContext(object):
                 result[group] = {}
             result[group][variable.lower()] = value
         return result
-    
-    def create_app_container(env_variables: typing.Dict[str, typing.Any]) -> AppContainer:
+
+    def create_app_container(self, env_variables: typing.Dict[str, typing.Any]) -> AppContainer:
         '''
         Create the app container.
 
@@ -59,7 +69,6 @@ class EnvironmentContext(object):
         # Create app container.
         return AppContainer(env_variables)
 
-
     def load_app_context(self, container: AppContainer) -> AppContext:
         '''
         Load the app context.
@@ -69,6 +78,6 @@ class EnvironmentContext(object):
         :return: The app context.
         :rtype: AppContext
         '''
-        
+
         # Create the app context.
         return container.cli_interface_context
