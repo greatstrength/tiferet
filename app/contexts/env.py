@@ -1,5 +1,7 @@
 import typing
 
+from ..containers.app import AppContainer
+
 class EnvironmentContext(object):
     
     def __init__(self, env_base_key: str, **kwargs):
@@ -41,3 +43,16 @@ class EnvironmentContext(object):
                 result[group] = {}
             result[group][variable.lower()] = value
         return result
+    
+    def create_app_container(env_variables: typing.Dict[str, typing.Any]) -> AppContainer:
+        '''
+        Create the app container.
+
+        :param env_variables: The environment variables.
+        :type env_variables: dict
+        :return: The app container.
+        :rtype: AppContainer
+        '''
+
+        # Create app container.
+        return AppContainer(env_variables)
