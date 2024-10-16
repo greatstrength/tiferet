@@ -1,9 +1,43 @@
+import typing
+
 class EnvironmentContext(object):
     
-    def __init__(self, **kwargs):
+    def __init__(self, env_base_key: str, **kwargs):
         '''
         Initialize the environment context.
+
+        :param env_base_key: The base key for the environment variables.
+        :type env_base_key: str
         '''
         
         # Set the environment variables.
         self.__dict__.update(kwargs)
+
+    def load_environment_variables(self, env_base_key: str) -> typing.Dict[str, typing.Any]:
+        '''
+        Load the environment variables.
+
+        :param env_base_key: The base key for the environment variables.
+        :type env_base_key: str
+        :return: The environment variables.
+        :rtype: dict
+        '''
+    
+        # Load the environment variables.
+        import os
+        result = {}
+        for key, value in os.environ.items():
+            # Check if key is a valid environment variable.
+            try:
+                app, group, variable = key.split('__')
+            except:
+                continue
+            # Check if key is a valid environment variable.
+            if app != env_base_key:
+                continue
+            # Add environment variable to result.
+            group = group.lower()
+            if group not in result:
+                result[group] = {}
+            result[group][variable.lower()] = value
+        return result
