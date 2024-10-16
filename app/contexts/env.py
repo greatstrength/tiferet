@@ -56,18 +56,36 @@ class EnvironmentContext(object):
             result[group][variable.lower()] = value
         return result
 
-    def create_app_container(self, env_variables: typing.Dict[str, typing.Any]) -> AppContainer:
+    def create_app_container(self, 
+                             container: typing.Dict[str, str] = None, 
+                             container_repo: typing.Dict[str, str] = None, 
+                             app: typing.Dict[str, str] = None) -> AppContainer:
         '''
         Create the app container.
 
-        :param env_variables: The environment variables.
-        :type env_variables: dict
+        :param container: The container environment variables.
+        :type container: dict
+        :param container_repo: The container repository environment variables.
+        :type container_repo: dict
+        :param app: The app environment variables.
+        :type app: dict
         :return: The app container.
         :rtype: AppContainer
         '''
 
+        # Set default values for the environment variables.
+        container_repo = dict(
+            module_path='app.repositories.container',
+            class_name='YamlRepository',
+            container_yaml_base_path='app.yml')
+        container = dict(
+            flags='yaml, python')
+        app = dict(
+            app_name='tiferet-cli',
+            app_interface='cli')
+
         # Create app container.
-        return AppContainer(env_variables)
+        return AppContainer(container_repo=container_repo, container=container, app=app)
 
     def load_app_context(self, container: AppContainer) -> AppContext:
         '''
