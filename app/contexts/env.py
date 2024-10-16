@@ -1,6 +1,8 @@
 import typing
 
 from ..containers.app import AppContainer
+from ..contexts.app import AppContext
+
 
 class EnvironmentContext(object):
     
@@ -56,3 +58,17 @@ class EnvironmentContext(object):
 
         # Create app container.
         return AppContainer(env_variables)
+
+
+    def load_app_context(self, container: AppContainer) -> AppContext:
+        '''
+        Load the app context.
+
+        :param container: The app container.
+        :type container: AppContainer
+        :return: The app context.
+        :rtype: AppContext
+        '''
+        
+        # Create the app context.
+        return container.cli_interface_context
