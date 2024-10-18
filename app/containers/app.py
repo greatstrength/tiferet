@@ -8,26 +8,26 @@ from ..services import container as container_service
 
 class AppContainer(object):
 
-    def __init__(self, env_variables: Dict[str, Any]):
+    def __init__(self, container_repo, app, **kwargs):
+
+        # Load container repository.
+        container_repo: ContainerRepository = self.load_container_repository(**container_repo)
 
         # Load container repository and list attributes.
-        attributes = self.list_attributes('app', **env_variables)
+        attributes = self.list_attributes('app', container_repo, app=app, **kwargs)
 
         # Create container.
         container = self.create_container(attributes)
 
         # Load container dependencies.
-        self.set_attributes(attributes, container, app_variables=env_variables.get('app', {}))
+        self.set_attributes(attributes, container, app_variables=app)
 
     def load_container_repository(self, module_path: str, class_name: str, **kwargs):
 
         # Load container repository.
         return container_service.import_dependency(module_path, class_name)(**kwargs)
     
-    def list_attributes(self, container_type: str, **kwargs):
-
-        # Load container repository.
-        container_repo: ContainerRepository = self.load_container_repository(**kwargs.get('container_repo', {}))
+    def list_attributes(self, container_type: str, container_repo: ContainerRepository, **kwargs):
 
         # Get container attributes.
         flags = kwargs.get('container').get('flags').split(', ')
