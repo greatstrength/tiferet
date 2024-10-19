@@ -1,10 +1,9 @@
 from typing import Any, Dict, List
-from importlib import import_module
 
-from ..containers.feature import FeatureContainer
 from ..objects.feature import Feature
 from ..repositories.feature import FeatureRepository
 from ..configs.errors import InvalidRequestData
+from ..contexts.container import ContainerContext
 
 from .request import RequestContext
 
@@ -22,11 +21,11 @@ class FeatureContext(object):
         def __init__(self, session_id: str):
             self.session_id = session_id
 
-    def __init__(self, feature_repo: FeatureRepository, feature_container: FeatureContainer):
+    def __init__(self, feature_repo: FeatureRepository, container: ContainerContext):
 
         # Set the feature repository and container.
-        self.feature_repo: FeatureRepository = feature_repo
-        self.feature_container: FeatureContainer = feature_container
+        self.feature_repo = feature_repo
+        self.container = container
 
     def execute(self, request: RequestContext, debug: bool = False, **kwargs) -> SessionContext:
         '''
@@ -112,7 +111,7 @@ class FeatureContext(object):
     def get_command_handler(self, attribute_id: str) -> Any:
 
         # Return the handler function using Feature Container Attribute ID.
-        return getattr(self.feature_container, attribute_id)
+        return self.container.get_dependency('feature', attribute_id)
 
     def import_request(self, request_path: str):
 
@@ -120,6 +119,7 @@ class FeatureContext(object):
         request_path, class_name = request_path.rsplit('.', 1)
 
         # Import the module.
+        from importlib import import_module
         module = import_module(request_path)
 
         # Return the request class.

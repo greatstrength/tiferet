@@ -6,6 +6,7 @@ from ..objects.error import Error
 from ..repositories.error import ErrorRepository
 
 from .feature import FeatureContext
+from .container import ContainerContext
 
 
 
@@ -13,6 +14,7 @@ class AppContext():
 
     name: str
     interface: str
+    container: ContainerContext
     features: FeatureContext
     error_repo: ErrorRepository
     lang: str = 'en_US'
