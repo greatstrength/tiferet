@@ -2,6 +2,7 @@ import typing
 
 from ..containers.app import AppContainer
 from ..contexts.app import AppContext
+from ..services import container_service
 
 
 class EnvironmentContext(object):
@@ -55,6 +56,21 @@ class EnvironmentContext(object):
                 result[group] = {}
             result[group][variable.lower()] = value
         return result
+    
+    def load_container_repository(self, module_path: str, class_name: str, **kwargs):
+        '''
+        Load the container repository.
+
+        :param module_path: The module path for the container repository.
+        :type module_path: str
+        :param class_name: The class name for the container repository.
+        :type class_name: str
+        :return: The container repository.
+        :rtype: ContainerRepository
+        '''
+
+        # Load container repository.
+        return container_service.import_dependency(module_path, class_name)(**kwargs)
 
     def create_app_container(self, 
                              container: typing.Dict[str, str] = None, 
