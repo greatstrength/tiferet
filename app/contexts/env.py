@@ -1,10 +1,10 @@
 import typing
 
-from ..containers.app import AppContainer
 from ..contexts.app import AppContext
 from ..objects.container import DataAttribute
 from ..services import container_service
 from ..repositories.container import ContainerRepository
+from ..contexts.container import ContainerContext
 
 
 class EnvironmentContext(object):
@@ -20,8 +20,8 @@ class EnvironmentContext(object):
         # Load the environment variables.
         env_variables = self.load_environment_variables(env_base_key)
 
-        # Create the app container.
-        container = self.create_app_container(env_variables)
+        # Create the container context.
+        container = self.create_container(env_variables)
 
         # Load the app context.
         app_context = self.load_app_context(container)
@@ -97,11 +97,31 @@ class EnvironmentContext(object):
                     data={'value': value})
             )
         return result
+    
+    def load_attributes(self, container_type: str, container_repo: ContainerRepository, flags: str = 'yaml, python', **kwargs):
+        '''
+        Load the container attributes.
 
-    def create_app_container(self,
-                             container: typing.Dict[str, str] = None,
-                             container_repo: typing.Dict[str, str] = None,
-                             app: typing.Dict[str, str] = None) -> AppContainer:
+        :param container_type: The container type.
+        :type container_type: str
+        :param container_repo: The container repository.
+        :type container_repo: ContainerRepository
+        :param flags: The container flags.
+        :type flags: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The container attributes.
+        :rtype: list
+        '''
+
+        # Get container attributes.
+        flags = flags.split(', ')
+        return container_repo.list_attributes(container_type, flags)
+
+    def create_container(self,
+        app_container: typing.Dict[str, str] = None,
+        container_repo: typing.Dict[str, str] = None,
+        app: typing.Dict[str, str] = None) -> ContainerContext:
         '''
         Create the app container.
 
@@ -119,20 +139,21 @@ class EnvironmentContext(object):
         repo_data = dict(container_yaml_base_path='app.yml') if not container_repo else container_repo
         container_repo = self.load_container_repository(**repo_data)
         
-        # Set the container and app environment variables.
-        container = dict(
-            flags='yaml, python') if not container else container
+        # Set the container environment variables.
+        container = ContainerContext(container_repo=container_repo, **app_container)
 
-        
+        # Set the app environment variables.
         app_data = dict(
             app_name='tiferet-cli',
             app_interface='cli') if not app else app
-        app_attributes = self.load_app_info(**app_data)
-        
-        # Create app container.
-        return AppContainer(container_repo=container_repo, container=container, app=app)
+        attributes = self.load_app_info(**app_data)
 
-    def load_app_context(self, container: AppContainer) -> AppContext:
+        # Add App container to the container context and return it.
+        container.add_container('app', attributes)
+        container.add_container('feature')
+        return container
+
+    def load_app_context(self, container: ContainerContext) -> AppContext:
         '''
         Load the app context.
 
@@ -143,4 +164,4 @@ class EnvironmentContext(object):
         '''
 
         # Create the app context.
-        return container.cli_interface_context
+        return container.get_dependency('app', 'cli_interface_context')

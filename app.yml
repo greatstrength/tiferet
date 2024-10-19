@@ -29,6 +29,12 @@ container:
             class_name: YamlRepository
             module_path: app.repositories.cli
         type: dependency
+      container:
+        data:
+          yaml:
+            class_name: ContainerContext
+            module_path: app.contexts.container
+        type: dependency
       container_repo:
         data:
           yaml:
@@ -51,12 +57,6 @@ container:
           yaml:
             value: app.yml
         type: data
-      feature_container:
-        data:
-          yaml:
-            class_name: FeatureContainer
-            module_path: app.containers.feature
-        type: dependency
       feature_context:
         data:
           yaml:
