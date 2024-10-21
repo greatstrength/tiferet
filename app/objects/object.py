@@ -864,7 +864,7 @@ class ModelObject(Entity):
         id: str = 'None',
         class_name: str = 'None',
         **kwargs
-    ):
+    ) -> 'ModelObject':
         '''
         Initializes a new ModelObject object.
 
