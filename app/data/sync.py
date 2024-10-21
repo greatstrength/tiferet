@@ -683,14 +683,17 @@ class FunctionData(ModelData, Function):
             parameter.to_python_primitive(**kwargs) for parameter in self.parameters
         ) if self.parameters else []
 
+        # Define has_self_parameter flag.
+        has_self_parameter = self.is_class_method and not self.is_static_method
+
         # Initialize the result as the function name.
         result = ''.join([
             '@staticmethod\n' if self.is_static_method else '',
             f'def {self.name}(',
-            'self' if self.is_class_method else '',
-            ',' if self.parameters else '',
+            'self' if has_self_parameter else '',
+            ',' if has_self_parameter and self.parameters else '',
             f'\n{TAB}' if len(self.parameters) > 2 else '',
-            ' ' if self.parameters and len(self.parameters) <= 2 else '',
+            ' ' if has_self_parameter and self.parameters and len(self.parameters) <= 2 else '',
             delimiter.join(parameters) if self.parameters else '',
             '\n' if len(self.parameters) > 2 else '',
             f') -> ' if self.return_type else '):\n',
