@@ -686,6 +686,15 @@ class FunctionData(ModelData, Function):
         # Define has_self_parameter flag.
         has_self_parameter = self.is_class_method and not self.is_static_method
 
+        # Define function to format paramter type description.
+        def _format_parameter_type_description(param_type):
+            if not param_type:
+                return ''
+            for type in ['List', 'Dict', 'Any']:
+                if type in param_type and param_type.startswith('typin'):
+                    return param_type[7:]
+            return param_type
+
         # Initialize the result as the function name.
         result = ''.join([
             '@staticmethod\n' if self.is_static_method else '',
@@ -704,7 +713,7 @@ class FunctionData(ModelData, Function):
             f'{TAB}{self.description}\n',
             '\n' if self.parameters or self.return_type else '',
             '\n'.join(
-                [f'{TAB}:param {param.name}: {param.description}\n{TAB}:type {param.name}: {param.type}' for param in self.parameters]),
+                [f'{TAB}:param {param.name}: {param.description}\n{TAB}:type {param.name}: {_format_parameter_type_description(param.type)}' for param in self.parameters]),
             '\n' if self.parameters and self.return_type else '',
             f'{TAB}:return: {self.return_description}\n' if self.return_description else '',
             f'{TAB}:rtype: {self.return_type}\n' if self.return_type else '\n',
