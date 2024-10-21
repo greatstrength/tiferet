@@ -900,15 +900,13 @@ class ClassData(ModelData, Class):
             f'class {self.name}(',
             ', '.join(self.base_classes) if self.base_classes else 'object',
             '):\n',
-            f'{TAB}\'\'\'\n',
-            f'{TAB}{self.description}\n',
-            f'{TAB}\'\'\'\n',
+            f'{TAB}\'\'\'\n{TAB}{self.description}\n{TAB}\'\'\'\n',
             f'\n{TAB}pass\n' if not self.attributes and not self.methods else '',
             '\n' if self.attributes or self.methods else '',
             f'{TAB}#** atr\n\n' if self.attributes else '',
             '\n'.join([f'{attribute.to_primitive(role, tabs=1)}'
                       for attribute in self.attributes]) if self.attributes else '',
-            '\n' if self.methods else '',
+            '\n' if self.attributes and self.methods else '',
             f'{TAB}#** met\n\n' if self.methods else '',
             '\n'.join([method.to_primitive(role, tabs=1)
                       for method in self.methods]) if self.methods else '',
