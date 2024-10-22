@@ -837,7 +837,7 @@ class ClassData(ModelData, Class):
                 if 'def ' in line:
                     if method_lines:
                         methods.append(FunctionData.from_python_file(
-                            '\n'.join(method_lines)))
+                            '\n\n'.join(method_lines)))
                         method_lines = []
                     method_lines.append(line)
                 if line.startswith(TAB):
