@@ -16,20 +16,20 @@ ATTRIBUTE_TYPES = [
     'data',
     'context',
     'serializable'
-]
-IMPORT_TYPE_CORE = 'core'
-IMPORT_TYPE_INFRA = 'infra'
-IMPORT_TYPE_APP = 'app'
+] #/
+IMPORT_TYPE_CORE = 'core' #/
+IMPORT_TYPE_INFRA = 'infra' #/
+IMPORT_TYPE_APP = 'app' #/
 IMPORT_TYPES = [
     IMPORT_TYPE_CORE,
     IMPORT_TYPE_INFRA,
     IMPORT_TYPE_APP,
-]
-MODULE_TYPE_OBJECTS = 'objects'
+] #/
+MODULE_TYPE_OBJECTS = 'objects' #/
 MODULE_TYPES = [
     MODULE_TYPE_OBJECTS,
-]
-TAB = '    '
+] #/
+TAB = '    ' #/
 
 
 #** cls
@@ -270,6 +270,12 @@ class Function(ValueObject):
     is_static_method = t.BooleanType(
         metadata=dict(
             description='Whether the function is a static method.'
+        ),
+    )
+
+    has_object_return = t.BooleanType(
+        metadata=dict(
+            description='Whether the function returns an object.'
         ),
     )
 

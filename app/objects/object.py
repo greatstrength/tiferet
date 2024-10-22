@@ -107,7 +107,12 @@ class FactoryMethod(Model):
     #** met
 
     @staticmethod
-    def new(model_type: type, validate: bool = True, strict: bool = True, **kwargs) -> typing.Any:
+    def new(
+        model_type: type,
+        validate: bool = True,
+        strict: bool = True,
+        **kwargs
+    ) -> typing.Any:
         '''
         Initializes a new model object.
 
@@ -195,10 +200,14 @@ class StringSettings(ObjectTypeSettings):
     #** met
 
     @staticmethod
-    def new(min_length: int = None, max_length: int = None, **kwargs) -> 'StringSettings':
+    def new(
+        min_length: int = None,
+        max_length: int = None,
+        **kwargs
+    ) -> 'StringSettings':
         '''
         Initializes a new StringSettings object.
-        
+
         :param min_length: The minimum length of the string object attribute.
         :type min_length: int
         :param max_length: The maximum length of the string object attribute.
@@ -293,7 +302,11 @@ class DateTimeSettings(ObjectTypeSettings):
     #** met
 
     @staticmethod
-    def new(convert_tz: bool = None, drop_tzinfo: bool = None, **kwargs) -> 'DateTimeSettings':
+    def new(
+        convert_tz: bool = None,
+        drop_tzinfo: bool = None,
+        **kwargs
+    ) -> 'DateTimeSettings':
         '''
         Initializes a new DateTimeSettings object.
 
@@ -342,7 +355,11 @@ class ListSettings(ObjectTypeSettings):
     #** met
 
     @staticmethod
-    def new(min_size: int = None, max_size: int = None, **kwargs) -> 'ListSettings':
+    def new(
+        min_size: int = None,
+        max_size: int = None,
+        **kwargs
+    ) -> 'ListSettings':
         '''
         Initializes a new ListSettings object.
 
@@ -713,7 +730,7 @@ class ObjectMethod(ValueObject):
     def new(name: str, **kwargs) -> 'ObjectMethod':
         '''
         Initializes a new ObjectMethod object.
-        
+
         :param name: The name of the object method.
         :type name: str
         :param kwargs: Additional keyword arguments.
@@ -842,7 +859,12 @@ class ModelObject(Entity):
     #** met
 
     @staticmethod
-    def new(name: str, id: str = None, class_name: str = None, **kwargs) -> 'ModelObject':
+    def new(
+        name: str,
+        id: str = 'None',
+        class_name: str = 'None',
+        **kwargs
+    ) -> 'ModelObject':
         '''
         Initializes a new ModelObject object.
 
@@ -855,6 +877,7 @@ class ModelObject(Entity):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new ModelObject object.
+        :rtype: ModelObject
         '''
 
         # Set the class name as the Pascal case of the name if not provided.
@@ -917,7 +940,7 @@ class ModelObject(Entity):
         # Return True if the method exists in the model object.
         return self.get_method(name) is not None
 
-    def get_method(self, name: str) -> ObjectMethod:
+    def get_method(self, name: str) -> 'ObjectMethod':
         '''
         Returns the method with the specified name.
 
@@ -939,8 +962,6 @@ class ModelObject(Entity):
 
         :param method: The method to add to the model object.
         :type method: ObjectMethod
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
         # Add the method to the model object.

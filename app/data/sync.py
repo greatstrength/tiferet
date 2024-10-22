@@ -80,14 +80,12 @@ class CodeBlockData(ModelData, CodeBlock):
         # Map the code block data to a code block object.
         return super().map(CodeBlock, role, **kwargs)
 
-    def to_primitive(self, role=None, app_data=None, **kwargs):
+    def to_primitive(self, role=None, **kwargs):
         '''
         Converts the code block data to a source code-based primitive.
         
         :param role: The role for the conversion.
         :type role: str
-        :param app_data: The application data.
-        :type app_data: dict
         :param tab: The tab level for the code block.
         :type tab: int
         :param kwargs: Additional keyword arguments.
@@ -101,11 +99,16 @@ class CodeBlockData(ModelData, CodeBlock):
             return self.to_python_primitive(**kwargs)
 
         # Return the default primitive.
-        return super().to_primitive(role, app_data, **kwargs)
+        return super().to_primitive(role, **kwargs)
 
-    def to_python_primitive(self, tabs: int = 0, **kwargs):
+    def to_python_primitive(self, tabs: int = 0) -> str:
         '''
         Converts the code block data to a python source code-based primitive.
+
+        :param tabs: The number of tabs for the code block.
+        :type tabs: int
+        :return: The source code-based primitive.
+        :rtype: str
         '''
 
         # Initialize the result a list.
@@ -291,7 +294,7 @@ class VariableData(ModelData, Variable):
         '''
 
         # Split the lines on the equals sign.
-        name_and_type, value = lines.split(' =' if ' = ' in lines else '=')
+        name_and_type, value = lines.split(' = ' if ' = ' in lines else '=')
         name, type = name_and_type.split(
             ': ') if ':' in name_and_type else (name_and_type.strip(), None)
         if type == 'str':
@@ -420,6 +423,7 @@ class ParameterData(ModelData, Parameter):
         if '**' in name:
             name = name.replace('**', '')
             is_kwargs = True
+            type = 'dict'
 
         # Create the parameter data.
         return ParameterData.new(
@@ -508,6 +512,14 @@ class FunctionData(ModelData, Function):
         ),
     )
 
+    code_block = t.ListType(
+        t.ModelType(CodeBlockData),
+        default=[],
+        metadata=dict(
+            description='The code blocks for the function.'
+        ),
+    )
+
     @staticmethod
     def new(**kwargs) -> 'FunctionData':
         '''
@@ -518,6 +530,12 @@ class FunctionData(ModelData, Function):
         :return: A new FunctionData object.
         :rtype: FunctionData
         '''
+
+        # Set the parameters as ParameterData objects.
+        kwargs['parameters'] = [ParameterData.new(
+            **parameter) for parameter in kwargs.get('parameters', [])]
+        kwargs['code_block'] = [CodeBlockData.new(
+            **block) for block in kwargs.get('code_block', [])]
 
         # Create the function data.
         return FunctionData(
@@ -578,6 +596,21 @@ class FunctionData(ModelData, Function):
         if lines.startswith('@staticmethod'):
             is_class_method = True
             is_static_method = True
+
+        # If the return type is an object type, set the has_object_return flag.
+        # If there is no return type, set the has_object_return flag to false.
+        # If the return type is a list, dict, or any, set the has_object_return flag to false.
+        # If the return type is a str, int, float, bool, date, or datetime, set the has_object_return flag to false.
+        has_object_return = True
+        if not return_type:
+            has_object_return = False
+        else:
+            for prefix in ['List[', 'Dict[', 'Any']:
+                if return_type.startswith(prefix):
+                    has_object_return = False
+                    break
+            if return_type in ['str', 'int', 'float', 'bool', 'date', 'datetime']:
+                has_object_return = False
         
         # Remove the first parameter if it is self and the function is not a class method.
         # Then sent the function as a class method.
@@ -595,6 +628,7 @@ class FunctionData(ModelData, Function):
                                 description=description,
                                 is_class_method=is_class_method,
                                 is_static_method=is_static_method,
+                                has_object_return=has_object_return,
                                 code_block=code_block
                                 )
 
@@ -646,24 +680,40 @@ class FunctionData(ModelData, Function):
         # Create the parameters segment.
         delimiter = ', ' if len(self.parameters) < 3 else f',\n{TAB}'
         parameters = (
-            parameter.to_primitive(role, **kwargs) for parameter in self.parameters
+            parameter.to_python_primitive(**kwargs) for parameter in self.parameters
         ) if self.parameters else []
+
+        # Define has_self_parameter flag.
+        has_self_parameter = self.is_class_method and not self.is_static_method
+
+        # Define function to format paramter type description.
+        def _format_parameter_type_description(param_type):
+            if not param_type:
+                return ''
+            for type in ['List', 'Dict', 'Any']:
+                if type in param_type and param_type.startswith('typin'):
+                    return param_type[7:]
+            return param_type
 
         # Initialize the result as the function name.
         result = ''.join([
+            '@staticmethod\n' if self.is_static_method else '',
             f'def {self.name}(',
-            'self' if self.is_class_method else '',
-            ',' if self.parameters else '',
+            'self' if has_self_parameter else '',
+            ',' if has_self_parameter and self.parameters else '',
             f'\n{TAB}' if len(self.parameters) > 2 else '',
-            ' ' if self.parameters and len(self.parameters) <= 2 else '',
+            ' ' if has_self_parameter and self.parameters and len(self.parameters) <= 2 else '',
             delimiter.join(parameters) if self.parameters else '',
             '\n' if len(self.parameters) > 2 else '',
-            f') -> {self.return_type}:\n' if self.return_type else '):\n',
+            f') -> ' if self.return_type else '):\n',
+            f'\'{self.return_type}\':\n' if self.has_object_return else '',
+            'typing.' if self.return_type and self.return_type in ['List', 'Dict', 'Any'] else '',
+            f'{self.return_type}:\n' if self.return_type and not self.has_object_return else '',
             f'{TAB}\'\'\'\n',
             f'{TAB}{self.description}\n',
             '\n' if self.parameters or self.return_type else '',
             '\n'.join(
-                [f'{TAB}:param {param.name}: {param.description}\n{TAB}:type {param.name}: {param.type}' for param in self.parameters]),
+                [f'{TAB}:param {param.name}: {param.description}\n{TAB}:type {param.name}: {_format_parameter_type_description(param.type)}' for param in self.parameters]),
             '\n' if self.parameters and self.return_type else '',
             f'{TAB}:return: {self.return_description}\n' if self.return_description else '',
             f'{TAB}:rtype: {self.return_type}\n' if self.return_type else '\n',
@@ -671,7 +721,7 @@ class FunctionData(ModelData, Function):
             f'\n{TAB}pass\n' if not self.code_block else '',
             '\n' if self.code_block else '',
             '\n\n'.join(
-                [f'{block.to_primitive(role, tabs=1)}' for block in self.code_block]) if self.code_block else '',
+                [f'{block.to_python_primitive(tabs)}' for block in self.code_block]) if self.code_block else '',
             '\n' if self.code_block else '',
         ])
 
@@ -787,7 +837,7 @@ class ClassData(ModelData, Class):
                 if 'def ' in line:
                     if method_lines:
                         methods.append(FunctionData.from_python_file(
-                            '\n'.join(method_lines)))
+                            '\n\n'.join(method_lines)))
                         method_lines = []
                     method_lines.append(line)
                 if line.startswith(TAB):
@@ -859,15 +909,13 @@ class ClassData(ModelData, Class):
             f'class {self.name}(',
             ', '.join(self.base_classes) if self.base_classes else 'object',
             '):\n',
-            f'{TAB}\'\'\'\n',
-            f'{TAB}{self.description}\n',
-            f'{TAB}\'\'\'\n',
+            f'{TAB}\'\'\'\n{TAB}{self.description}\n{TAB}\'\'\'\n',
             f'\n{TAB}pass\n' if not self.attributes and not self.methods else '',
             '\n' if self.attributes or self.methods else '',
             f'{TAB}#** atr\n\n' if self.attributes else '',
             '\n'.join([f'{attribute.to_primitive(role, tabs=1)}'
                       for attribute in self.attributes]) if self.attributes else '',
-            '\n' if self.methods else '',
+            '\n' if self.attributes and self.methods else '',
             f'{TAB}#** met\n\n' if self.methods else '',
             '\n'.join([method.to_primitive(role, tabs=1)
                       for method in self.methods]) if self.methods else '',

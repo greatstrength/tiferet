@@ -73,11 +73,11 @@ def sync_parameter_to_code(parameter: ObjectMethodParameter, object_repo: Object
         # If the parameter is not an any, list, dict, model, return the parameter type.
         parameter.type if parameter.type not in ['any', 'list', 'dict', 'model'] else '',
         # If the parameter type is not set, return 'Any'.
-        'Any' if parameter.type == 'any' else '',
+        'typing.Any' if parameter.type == 'any' else '',
         # If the parameter is a list, set the type as 'List['.
-        'List[' if parameter.type == 'list' else '',
+        'typing.List[' if parameter.type == 'list' else '',
         # If the parameter is a dict, set the type as 'Dict['.
-        'Dict[str, ' if parameter.type == 'dict' else '',
+        'typing.Dict[str, ' if parameter.type == 'dict' else '',
         # If the parameter inner type is a model, use the model class name.
         f'{param_obj.class_name}]' if parameter.inner_type == 'model' else '',
         # Otherwise, use the inner type.
@@ -127,6 +127,7 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
     parameters = [sync_parameter_to_code(
         param, object_repo) for param in method.parameters]
     
+    # Sync the code block.
     code_block = [sync_model_code_block_to_code(code_block) for code_block in method.code_block]
 
     # Create the function.
@@ -138,6 +139,7 @@ def sync_model_method_to_code(method: ObjectMethod, object_repo: ObjectRepositor
         parameters=parameters,
         return_type=method.return_type,
         return_description=method.return_description,
+        has_object_return=True if method.return_type_object_id else False,
         code_block=code_block
     )
 
@@ -278,6 +280,7 @@ def sync_code_to_model_attribute(variable: Variable, object_repo: ObjectReposito
 
     # Set the attribute type.
     type = 'str'
+    description = None
     inner_type = None
     type_object_id = None
     required = False
@@ -291,7 +294,7 @@ def sync_code_to_model_attribute(variable: Variable, object_repo: ObjectReposito
     settings = '('.join(variable.value.split('(')[1:]).strip()
     settings = settings.replace('\n', '').replace(
         TAB, ' ').replace('\'', '').split(', ')
-    for setting in settings[:-1]:
+    for setting in settings:
         if 'required=True' in setting:
             required = True
         elif 'default=' in setting:
@@ -304,15 +307,16 @@ def sync_code_to_model_attribute(variable: Variable, object_repo: ObjectReposito
             if type == 'str':
                 choices = [choice.strip('\'') for choice in choices]
         elif 'metadata=' in setting:
-            setting = setting.replace('metadata=dict(', '').replace(')', '')
+            setting = setting.replace('metadata=dict(', '').strip('),')
             description = setting.split('=')[1].strip()
         elif type == 'model' and 't.' not in setting:
             type_object_id = object_repo.get(class_name=setting).id
         elif type in ['list', 'dict'] and 't.' in setting:
             if 't.ModelType' in setting:
                 inner_type = 'model'
+                class_name = setting.replace('t.ModelType', '').strip('()')
                 type_object_id = object_repo.get(
-                    class_name=setting.split('(')[1].strip(')').strip()).id
+                    class_name=class_name).id
             else:
                 inner_type = get_model_attribute_type(setting)
 
@@ -480,8 +484,7 @@ def sync_code_to_model_object(group_id: str, _class: Class, object_repo: ObjectR
     methods = [
         sync_code_to_model_method(
             method, 
-            object_repo, 
-            constants)
+            object_repo)
         for method in _class.methods]
 
     # Set the model object type.
