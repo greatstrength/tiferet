@@ -4,12 +4,12 @@ from schematics.types.serializable import serializable
 from schematics.transforms import wholelist, whitelist, blacklist
 
 from ..objects.feature import Feature
-from ..objects.feature import FeatureHandler
+from ..objects.feature import FeatureCommand
 from ..objects.data import ModelData
 
 
 
-class FeatureHandlerData(FeatureHandler, ModelData):
+class FeatureCommandData(FeatureCommand, ModelData):
     '''
     A data representation of a feature handler.
     '''
@@ -28,7 +28,7 @@ class FeatureHandlerData(FeatureHandler, ModelData):
             'to_data.yaml': wholelist()
         }
 
-    def map(self, role: str = 'to_object', **kwargs) -> FeatureHandler:
+    def map(self, role: str = 'to_object', **kwargs) -> FeatureCommand:
         '''
         Maps the feature handler data to a feature handler object.
         
@@ -37,9 +37,9 @@ class FeatureHandlerData(FeatureHandler, ModelData):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new feature handler object.
-        :rtype: f.FeatureHandler
+        :rtype: f.FeatureCommand
         '''
-        return super().map(FeatureHandler, role, **kwargs)
+        return super().map(FeatureCommand, role, **kwargs)
 
 
 class FeatureData(Feature, ModelData):
@@ -61,7 +61,7 @@ class FeatureData(Feature, ModelData):
             'to_data.yaml': blacklist('feature_key', 'group_id', 'id')
         }
 
-    handlers = t.ListType(t.ModelType(FeatureHandlerData),
+    handlers = t.ListType(t.ModelType(FeatureCommandData),
                           deserialize_from=['handlers', 'functions'])
     
     @serializable

@@ -4,9 +4,9 @@ from .object import Entity
 from .object import ValueObject
 
 
-class FeatureHandler(ValueObject):
+class FeatureCommand(ValueObject):
     '''
-    A handler object for a feature command.
+    A command object for a feature command.
     '''
 
     name = t.StringType(
@@ -50,20 +50,20 @@ class FeatureHandler(ValueObject):
     )
 
     @staticmethod
-    def new(**kwargs) -> 'FeatureHandler':
-        '''Initializes a new FeatureHandler object.
+    def new(**kwargs) -> 'FeatureCommand':
+        '''Initializes a new FeatureCommand object.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new FeatureHandler object.
+        :return: A new FeatureCommand object.
         '''
 
-        # Create a new FeatureHandler object.
-        obj = FeatureHandler(dict(
+        # Create a new FeatureCommand object.
+        obj = FeatureCommand(dict(
             **kwargs
         ), strict=False)
 
-        # Validate and return the new FeatureHandler object.
+        # Validate and return the new FeatureCommand object.
         obj.validate()
         return obj
 
@@ -100,7 +100,7 @@ class Feature(Entity):
     )
 
     handlers = t.ListType(
-        t.ModelType(FeatureHandler),
+        t.ModelType(FeatureCommand),
         default=[],
         metadata=dict(
             description='The command handler workflow for the feature.'
@@ -153,11 +153,11 @@ class Feature(Entity):
         return obj
 
 
-    def add_handler(self, handler: FeatureHandler, position: int = None):
+    def add_handler(self, handler: FeatureCommand, position: int = None):
         '''Adds a handler to the feature.
 
         :param handler: The handler to add.
-        :type handler: FeatureHandler
+        :type handler: FeatureCommand
         :param position: The position to add the handler at.
         :type position: int
         '''
