@@ -1,23 +1,33 @@
-from typing import List, Dict, Any
+#** imports
+
+#*** core
+from typing import Dict 
+from typing import Any 
 
 
-class RequestContext(object):
+#** contexts
+
+#*** context: request_context
+class RequestContext(object): 
     '''
     The context for an application request.
     '''
 
-    # The feature identifier for the request.
-    feature_id: str = None
+    #*** field: feature_id
+    feature_id: str = None # The feature identifier for the request. 
 
-    # The request headers.
-    headers: Dict[str, str] = None
+    #*** field: headers
+    headers: Dict[str, str] = None # The request headers. 
 
-    # The request data.
-    data: Dict[str, Any] = None
+    #*** field: data
+    data: Dict[str, Any] = None # The request data. 
 
-    # The result of the request.
-    result: Any = None
+    #*** field: result
+    result: Any = None # The result of the request. 
 
+    #** methods
+
+    #*** init
     def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, Any], **kwargs):
         '''
         Initialize the request context object.
@@ -36,3 +46,36 @@ class RequestContext(object):
         self.feature_id = feature_id
         self.headers = headers
         self.data = data
+
+    #*** method: map_response
+    def map_response(self, **kwargs) -> dict:
+        '''
+        Map the response to a primitive dictionary.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The response.
+        :rtype: dict
+        '''
+
+        # Return an empty dictionary if the result is None.
+        if not self.result:
+            return {}
+        
+        # If the result is a Model, convert it to a primitive dictionary.
+        from schematics import Model
+        if isinstance(self.result, Model):
+            return self.result.to_primitive()
+        
+        # If the result is not a list, return it.
+        if type(self.result) != list:
+            return self.result
+        
+        # If the result is a list, convert each item to a primitive dictionary.
+        result = []
+        for item in result:
+            if isinstance(item, Model):
+                result.append(item.to_primitive())
+            else:
+                result.append(item)
+        return result
