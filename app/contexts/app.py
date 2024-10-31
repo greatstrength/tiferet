@@ -1,68 +1,95 @@
-from typing import Any
+#** imports
 
-from schematics import Model
+from typing import Any #*** core
 
-from ..objects.error import Error
-from ..repositories.error import ErrorRepository
+from ..objects.error import Error #*** app
+from .request import RequestContext #*** app
+from .feature import FeatureContext #*** app
+from .error import ErrorContext #*** app
 
-from .feature import FeatureContext
-from .container import ContainerContext
+#** contexts
 
-
-
-class AppContext():
+class AppContext(): #*** context: app_context
 
     name: str
-    interface: str
-    container: ContainerContext
     features: FeatureContext
-    error_repo: ErrorRepository
+    errors: ErrorContext
     lang: str = 'en_US'
 
-    def __init__(self, app_name: str, app_interface: str, feature_context: FeatureContext, error_repo: ErrorRepository, app_lang: str = 'en_US'):
+    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, app_lang: str = 'en_US'):
         self.name: str = app_name
-        self.interface: str = app_interface
         self.features: FeatureContext = feature_context
-        self.error_repo: ErrorRepository = error_repo
+        self.errors: ErrorContext = error_context
         self.lang: str = app_lang
 
-    def map_response(self, result):
-        # Handle list scenario
-        if type(result) == list:
-            result = []
-            for item in result:
-                if isinstance(item, Model):
-                    result.append(item.to_primitive())
-                else:
-                    result.append(item)
-            return result
-        if not result:
-            return {}
-        # Convert schematics models to primitive dicts.
-        if isinstance(result, Model):
-            return result.to_primitive()
-        return result
+    def parse_request(self, request: Any, **kwargs) -> RequestContext:
+        '''
+        Parse the incoming request.
 
-    def handle_error(self, error: str, lang: str = 'en_US', error_type: type = Error, **kwargs):
+        :param request: The incoming request.
+        :type request: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The request context.
+        :rtype: RequestContext
+        '''
 
-        # Parse error.
-        try:
-            error_name, error_data = error.split(': ')
-            error_data = error_data.split(', ')
-        # Handle error without data if ValueError is raised.
-        except ValueError:
-            error_name = error
-            error_data = None
+        # Parse request.
+        return request
+    
+    def execute_feature(self, request: RequestContext, **kwargs):
+        '''
+        Execute the feature context.
 
-        # Get error.
-        error: Error = self.error_repo.get(
-            error_name, lang=lang, error_type=error_type)
+        :param request: The request context.
+        :type request: RequestContext
+        '''
+
+        # Execute feature context and return session.
+        session = self.features.execute(request, **kwargs)
+
+        if session.error:
+            return self.handle_error(session.error, **request.headers)
         
-        # Add format arguments to error.
-        if error_data:
-            error.set_format_args(*error_data)
+        # Set the result of the request.
+        request.result = session.result
+    
+    def handle_response(self, request: RequestContext) -> Any:
+        '''
+        Handle the response.
 
-        return error
+        :param request: The request context.
+        :type request: RequestContext
+        :return: The response.
+        :rtype: Any
+        '''
+        
+        # Map response.
+        return request.map_response()
 
+    def handle_error(self, error: str, **kwargs) -> str:
+        '''
+        Handle the error.
+
+        :param error: The error message.
+        :type error: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The error message.
+        :rtype: str
+        '''
+        
+        # Handle error.
+        error: Error = self.errors.handle_error(error, lang=self.lang, **kwargs)
+        return error.get_message()
+        
     def run(self, **kwargs):
-        pass
+        
+        # Parse request.
+        request = self.parse_request(**kwargs)
+
+        # Execute feature context and return session.
+        self.execute_feature(request, **kwargs)
+
+        # Handle response.
+        return self.handle_response(request)
