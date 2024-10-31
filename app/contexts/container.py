@@ -2,7 +2,6 @@ import typing
 
 from dependencies import Injector
 
-from ..services import container as container_service
 from ..services.container import import_dependency
 from ..objects.container import ContainerAttribute
 from ..repositories.container import ContainerRepository
