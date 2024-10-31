@@ -6,7 +6,7 @@ class ErrorContext(object):
     The error context object.
     '''
     
-    error: str = None # The error message.
+    error_repo: ErrorRepository = None # The error repository.
     
     def __init__(self, error_repo: ErrorRepository):
         '''
