@@ -1,15 +1,11 @@
-from typing import List, Dict, Any
-from schematics import types as t
+
 from schematics.types.serializable import serializable
-from schematics.transforms import wholelist, whitelist, blacklist
 
-from ..objects.feature import Feature
-from ..objects.feature import FeatureCommand
-from ..objects.data import ModelData
+from ..objects import *
+from ..objects.feature import Feature, FeatureCommand
 
 
-
-class FeatureCommandData(FeatureCommand, ModelData):
+class FeatureCommandData(FeatureCommand, DataObject):
     '''
     A data representation of a feature handler.
     '''
@@ -24,8 +20,8 @@ class FeatureCommandData(FeatureCommand, ModelData):
 
         # Define the roles for the feature handler data.
         roles = {
-            'to_object.yaml': wholelist(),
-            'to_data.yaml': wholelist()
+            'to_object.yaml': DataObject.allow(),
+            'to_data.yaml': DataObject.allow()
         }
 
     def map(self, role: str = 'to_object', **kwargs) -> FeatureCommand:
@@ -42,7 +38,7 @@ class FeatureCommandData(FeatureCommand, ModelData):
         return super().map(FeatureCommand, role, **kwargs)
 
 
-class FeatureData(Feature, ModelData):
+class FeatureData(Feature, DataObject):
     '''
     A data representation of a feature.
     '''
@@ -57,12 +53,12 @@ class FeatureData(Feature, ModelData):
 
         # Define the roles for the feature data.
         roles = {
-            'to_object.yaml': blacklist('feature_key'),
-            'to_data.yaml': blacklist('feature_key', 'group_id', 'id')
+            'to_object.yaml': DataObject.deny('feature_key'),
+            'to_data.yaml': DataObject.deny('feature_key', 'group_id', 'id')
         }
 
-    handlers = t.ListType(t.ModelType(FeatureCommandData),
-                          deserialize_from=['handlers', 'functions'])
+    commands = t.ListType(t.ModelType(FeatureCommandData),
+                          deserialize_from=['handlers', 'functions', 'commands'],)
     
     @serializable
     def feature_key(self):
@@ -96,7 +92,7 @@ class FeatureData(Feature, ModelData):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FeatureData object.
-        :rtype: f.FeatureData
+        :rtype: FeatureData
         '''
 
         # Create a new FeatureData object.
@@ -121,7 +117,7 @@ class FeatureData(Feature, ModelData):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FeatureData object.
-        :rtype: f.FeatureData
+        :rtype: FeatureData
         '''
 
         # Create a new FeatureData object.

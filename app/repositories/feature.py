@@ -34,6 +34,18 @@ class FeatureRepository(object):
         '''
 
         raise NotImplementedError()
+    
+    def list(self, group_id: str = None) -> List[Feature]:
+        '''
+        List the features.
+
+        :param group_id: The group id.
+        :type group_id: str
+        :return: The list of features.
+        :rtype: list
+        '''
+
+        raise NotImplementedError
 
     def save(self, feature: Feature):
         '''
@@ -107,6 +119,33 @@ class YamlRepository(FeatureRepository):
 
         # Return feature.
         return _data.map('to_object.yaml')
+    
+    def list(self, group_id: str = None) -> List[Feature]:
+        '''
+        List the features.
+        
+        :param group_id: The group id.
+        :type group_id: str
+        :return: The list of features.
+        :rtype: list
+        '''
+
+        # Load all feature data from yaml.
+        features = yaml_client.load(
+            self.base_path,
+            create_data=lambda data: [FeatureData.from_yaml_data(
+                id=id,
+                **feature_data
+            ) for id, feature_data in data.items()],
+            start_node=lambda data: data.get('features')
+        )
+
+        # Filter features by group id.
+        if group_id:
+            features = [feature for feature in features if feature.group_id == group_id]
+
+        # Return the list of features.
+        return [feature.map('to_object.yaml') for feature in features]
 
     def save(self, feature: Feature):
         '''
@@ -123,7 +162,7 @@ class YamlRepository(FeatureRepository):
         yaml_client.save(
             self.base_path,
             data=feature_data,
-            data_save_path=f'features.groups.{feature.group_id}.features.{feature_data.feature_key}'
+            data_save_path=f'features/{feature.group_id}.{feature_data.feature_key}'
         )
 
         # Return the updated feature object.
