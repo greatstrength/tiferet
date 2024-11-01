@@ -9,6 +9,9 @@ from ..objects.error import Error, ErrorMessage
 
 # ** data: error_message_data
 class ErrorMessageData(ErrorMessage, DataObject):
+    '''
+    A data representation of an error message object.
+    '''
 
     class Options():
         serialize_when_none = False
@@ -17,8 +20,12 @@ class ErrorMessageData(ErrorMessage, DataObject):
             'to_object.yaml': DataObject.allow()
         }
 
+
 # ** data: error_data
 class ErrorData(Error, DataObject):
+    '''
+    A data representation of an error object.
+    '''
 
     class Options():
         serialize_when_none = False
@@ -29,7 +36,7 @@ class ErrorData(Error, DataObject):
 
     # * attribute: message
     message = t.ListType(
-        t.ModelType(ErrorMessageData), 
+        t.ModelType(ErrorMessageData),
         required=True,
         metadata=dict(
             description='The error messages.'
@@ -37,20 +44,18 @@ class ErrorData(Error, DataObject):
     )
 
     # * method: map
-    def map(self, role: str = 'to_object.yaml', lang: str = 'en_US', **kwargs):
+    def map(self, role: str = 'to_object.yaml', **kwargs):
         '''
         Maps the error data to an error object.
 
         :param role: The role for the mapping.
         :type role: str
-        :param lang: The language to map the error messages to.
-        :type lang: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new error object.
         :rtype: Error
         '''
-        
+
         # Map the error messages.
         return super().map(Error, role, **kwargs)
 
@@ -71,8 +76,8 @@ class ErrorData(Error, DataObject):
             super(ErrorData, ErrorData).new(**kwargs)
         )
 
-    
     # * method: from_yaml_data
+
     @staticmethod
     def from_yaml_data(id: str, **kwargs):
         '''
