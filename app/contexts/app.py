@@ -1,27 +1,39 @@
-#** imports
+# *** imports
 
-from typing import Any #*** core
+# ** core
+from typing import Any 
 
-from ..objects.error import Error #*** app
+# ** app
 from .request import RequestContext #*** app
 from .feature import FeatureContext #*** app
 from .error import ErrorContext #*** app
 
-#** contexts
 
-class AppContext(): #*** context: app_context
+# *** contexts
 
+# ** context: app_interface_context
+class AppInterfaceContext(): 
+
+    # * field: name
     name: str
+
+    # * field: features
     features: FeatureContext
+
+    # * field: errors
     errors: ErrorContext
+
+    # * field: lang
     lang: str = 'en_US'
 
+    # * method: init
     def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, app_lang: str = 'en_US'):
         self.name: str = app_name
         self.features: FeatureContext = feature_context
         self.errors: ErrorContext = error_context
         self.lang: str = app_lang
 
+    # * method: parse_request
     def parse_request(self, request: Any, **kwargs) -> RequestContext:
         '''
         Parse the incoming request.
@@ -37,6 +49,7 @@ class AppContext(): #*** context: app_context
         # Parse request.
         return request
     
+    # * method: execute_feature
     def execute_feature(self, request: RequestContext, **kwargs):
         '''
         Execute the feature context.
@@ -54,6 +67,7 @@ class AppContext(): #*** context: app_context
         # Set the result of the request.
         request.result = session.result
     
+    # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
         '''
         Handle the response.
@@ -67,7 +81,8 @@ class AppContext(): #*** context: app_context
         # Map response.
         return request.map_response()
 
-    def handle_error(self, error: str, **kwargs) -> str:
+    # * method: handle_error
+    def handle_error(self, error_message: str, **kwargs) -> str:
         '''
         Handle the error.
 
@@ -79,10 +94,13 @@ class AppContext(): #*** context: app_context
         :rtype: str
         '''
         
-        # Handle error.
-        error: Error = self.errors.handle_error(error, lang=self.lang, **kwargs)
-        return error.get_message()
-        
+        # Format error.
+        error = self.errors.format_error(error_message, lang=self.lang, **kwargs)
+
+        # Return error.
+        return error
+    
+    # * method: run
     def run(self, **kwargs):
         
         # Parse request.
