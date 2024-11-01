@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import Dict
+
 # ** app
 from ..repositories.error import ErrorRepository
 from ..objects.error import Error
@@ -13,10 +16,10 @@ class ErrorContext(object):
     The error context object.
     '''
 
-    # ** field: error_repo
-    error_repo: ErrorRepository = None  # The error repository.
+    # * field: errors
+    errors: Dict[str, Error] = None  # The error repository.
 
-    # ** method: init
+    # * method: init
     def __init__(self, error_repo: ErrorRepository):
         '''
         Initialize the error context object.
@@ -25,16 +28,16 @@ class ErrorContext(object):
         :type error_repo: ErrorRepository
         '''
 
-        # Set the error repository.
-        self.error_repo = error_repo
+        # Set the errors lookup from the error repository.
+        self.errors = {error.name: error for error in error_repo.list()}
 
-    # ** method: handle_error
-    def handle_error(self, error: str, lang: str = 'en_US', error_type: type = Error, **kwargs):
+    # * method: handle_error
+    def format_error(self, error_message: str, lang: str = 'en_US', **kwargs):
         '''
         Handle an error.
 
-        :param error: The error message.
-        :type error: str
+        :param error_message: The error message.
+        :type error_message: str
         :param lang: The language of the error message.
         :type lang: str
         :param error_type: The error type.
@@ -48,19 +51,20 @@ class ErrorContext(object):
         # Parse error.
         # Handle error without data if ValueError is raised.
         try:
-            error_name, error_data = error.split(': ')
+            error_name, error_data = error_message.split(': ')
             error_data = error_data.split(', ')
         except ValueError:
             error_name = error
             error_data = None
 
         # Get error.
-        error: Error = self.error_repo.get(
-            error_name, lang=lang, error_type=error_type)
+        error = self.errors.get(error_name)
 
-        # Add format arguments to error.
-        if error_data:
-            error.set_format_args(*error_data)
+        # Set error response.
+        error_response = dict(
+            message=error.format(lang, *error_data if error_data else []),
+            **kwargs
+        )
 
-        # Return error.
-        return error
+        # Return error response.
+        return error_response
