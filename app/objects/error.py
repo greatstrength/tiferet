@@ -1,14 +1,18 @@
-from schematics import Model, types as t
+# *** imports 
 
-from ..objects import Entity
-from ..objects import ValueObject
+# ** core
+from ..objects import *
 
 
+# *** models
+
+# ** model: error_message0
 class ErrorMessage(ValueObject):
     '''
     An error message object.
     '''
 
+    # * attribute: lang
     lang = t.StringType(
         required=True,
         metadata=dict(
@@ -16,6 +20,7 @@ class ErrorMessage(ValueObject):
         )
     )
 
+    # * attribute: text
     text = t.StringType(
         required=True,
         metadata=dict(
@@ -23,27 +28,32 @@ class ErrorMessage(ValueObject):
         )
     )
 
-    def format(self, *args):
+    # * method: format
+    def format(self, *args) -> str:
         '''
         Formats the error message text.
 
         :param args: The arguments to format the error message text with.
         :type args: tuple
+        :return: The formatted error message text.
+        :rtype: str
         '''
 
-        # If there are no arguments, return.
+        # If there are no arguments, return the error message text.
         if not args:
-            return
+            return self.text
 
-        # Format the error message text.
-        self.text = self.text.format(*args)
+        # Format the error message text and return it.
+        return self.text.format(*args)
 
 
+# ** model: error
 class Error(Entity):
     '''
     An error object.
     '''
 
+    # * attribute: name
     name = t.StringType(
         required=True,
         metadata=dict(
@@ -51,12 +61,14 @@ class Error(Entity):
         )
     )
 
+    # * attribute: error_code
     error_code = t.StringType(
         metadata=dict(
             description='The unique code of the error.'
         )
     )
 
+    # * attribute: message
     message = t.ListType(
         t.ModelType(ErrorMessage),
         required=True,
@@ -65,6 +77,7 @@ class Error(Entity):
         )
     )
 
+    # * method: new
     @staticmethod
     def new(name: str, id: str = None, error_code: str = None, **kwargs) -> 'Error':
         '''Initializes a new Error object.
@@ -91,40 +104,24 @@ class Error(Entity):
         if not error_code:
             error_code = name
 
-        # Create a new Error object.
-        obj = Error(dict(
+        # Create and return a new Error object.
+        return super(Error, Error).new(
             id=id,
             name=name,
             error_code=error_code,
-            **kwargs),
-            strict=False
+            **kwargs
         )
 
-        # Validate and return the new Error object.
-        obj.validate()
-        return obj
-
-    def set_format_args(self, *args):
+    # * method: format
+    def format(self, lang: str = 'en_US', *args) -> str:
         '''
-        Sets the format arguments for the error messages.
-        
-        :param args: The format arguments for the error messages.
-        :type args: tuple
-        '''
-
-        # Set the format arguments for the error messages.
-        for msg in self.message:
-            msg.format(*args)
-
-    def get_message(self, lang: str = 'en_US', *args) -> str:
-        '''
-        Returns the error message text for the specified language.
+        Formats the error message text for the specified language.
 
         :param lang: The language of the error message text.
         :type lang: str
         :param args: The format arguments for the error message text.
         :type args: tuple
-        :return: The error message text.
+        :return: The formatted error message text.
         :rtype: str
         '''
 
@@ -135,12 +132,5 @@ class Error(Entity):
             if msg.lang != lang:
                 continue
 
-            # Set the error message text.
-            text = msg.text
-
-            # Format the error message text if there are arguments.
-            if args:
-                text = text.format(*args)
-
-            # Return the error message text.
-            return text
+            # Format the error message text.
+            return msg.format(*args)
