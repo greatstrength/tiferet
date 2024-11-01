@@ -1,22 +1,24 @@
-#*** imports
+# *** imports
 
-#** core
-from typing import Any 
+# ** core
+from typing import Any
+from typing import List
+from typing import Dict
 
-#** infra
-from schematics import Model #*** infra
-from schematics import types as t #*** infra
+# ** infra
+from schematics import Model
+from schematics import types as t
 
 
-#*** models
+# *** models
 
-#** model: model_object
+# ** model: model_object
 class ModelObject(Model):
     '''
     A domain model object.
     '''
 
-    #** method: new
+    # ** method: new
     @staticmethod
     def new(
         model_type: type,
@@ -51,13 +53,14 @@ class ModelObject(Model):
         # Return the new model object.
         return _object
 
-#** model: entity
+
+# ** model: entity
 class Entity(ModelObject):
     '''
     A domain model entity.
     '''
 
-    #** attribute: id
+    # ** attribute: id
     id = t.StringType(
         required=True,
         metadata=dict(
@@ -66,7 +69,7 @@ class Entity(ModelObject):
     )
 
 
-#** model: value_object
+# ** model: value_object
 class ValueObject(ModelObject):
     '''
     A domain model value object.
@@ -75,18 +78,18 @@ class ValueObject(ModelObject):
     pass
 
 
-#** model: data_object
+# ** model: data_object
 class DataObject(Model):
     '''
     A data representation object.
     '''
 
-    #** method: map
+    # ** method: map
     def map(self,
-        type: ModelObject,
-        role: str = 'to_object',
-        **kwargs
-    ) -> ModelObject:
+            type: ModelObject,
+            role: str = 'to_object',
+            **kwargs
+            ) -> ModelObject:
         '''
         Maps the model data to a model object.
 
@@ -111,8 +114,8 @@ class DataObject(Model):
 
         # Return the model data.
         return _object
-    
-    #** method: allow
+
+    # ** method: allow
     @staticmethod
     def allow(*args) -> Any:
 
@@ -122,12 +125,11 @@ class DataObject(Model):
         if args:
             return whitelist(*args)
         return wholelist()
-    
-    #** method: deny
+
+    # ** method: deny
     @staticmethod
     def deny(*args) -> Any:
 
         # Create a blacklist transform.
         from schematics.transforms import blacklist
         return blacklist(*args)
-
