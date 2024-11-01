@@ -1,13 +1,10 @@
 # *** imports
 
 # ** core
-from typing import Any
-from typing import List
-from typing import Dict
+from typing import List, Dict, Any
 
 # ** infra
-from schematics import Model
-from schematics import types as t
+from schematics import Model, types as t
 
 
 # *** models
