@@ -1,55 +1,90 @@
-from typing import List, Dict, Any
+# *** imports
 
-from schematics import types as t
-from schematics.transforms import wholelist, whitelist, blacklist
-
-from ..objects.data import ModelData
-from ..objects.error import Error
-from ..objects.error import ErrorMessage
+# ** app
+from ..objects import *
+from ..objects.error import Error, ErrorMessage
 
 
-class ErrorMessageData(ErrorMessage, ModelData):
+# *** data
 
-    class Options():
-        serialize_when_none = False
-        roles = {
-            'to_data.yaml': wholelist('id'),
-            'to_object.yaml': wholelist()
-        }
-
-
-class ErrorData(Error, ModelData):
+# ** data: error_message_data
+class ErrorMessageData(ErrorMessage, DataObject):
 
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data.yaml': blacklist('id'),
-            'to_object.yaml': wholelist()
+            'to_data.yaml': DataObject.allow('id'),
+            'to_object.yaml': DataObject.allow()
         }
 
-    message = t.ListType(t.ModelType(ErrorMessageData), required=True)
+# ** data: error_data
+class ErrorData(Error, DataObject):
 
+    class Options():
+        serialize_when_none = False
+        roles = {
+            'to_data.yaml': DataObject.deny('id'),
+            'to_object.yaml': DataObject.allow()
+        }
+
+    # * attribute: message
+    message = t.ListType(
+        t.ModelType(ErrorMessageData), 
+        required=True,
+        metadata=dict(
+            description='The error messages.'
+        )
+    )
+
+    # * method: map
     def map(self, role: str = 'to_object.yaml', lang: str = 'en_US', **kwargs):
+        '''
+        Maps the error data to an error object.
+
+        :param role: The role for the mapping.
+        :type role: str
+        :param lang: The language to map the error messages to.
+        :type lang: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new error object.
+        :rtype: Error
+        '''
         
+        # Map the error messages.
         return super().map(Error, role, **kwargs)
 
+    # * method: new
     @staticmethod
-    def new(**kwargs):
+    def new(**kwargs) -> 'ErrorData':
+        '''
+        Creates a new ErrorData object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ErrorData object.
+        :rtype: ErrorData
+        '''
 
         # Create a new ErrorData object.
-        _data: ErrorData = ErrorData(dict(
-            **kwargs
-        ))
-
-        # Validate the new ErrorData object.
-        _data.validate()
-
-        # Return the new ErrorData object.
-        return _data
+        return ErrorData(
+            super(ErrorData, ErrorData).new(**kwargs)
+        )
 
     
+    # * method: from_yaml_data
     @staticmethod
     def from_yaml_data(id: str, **kwargs):
+        '''
+        Initializes a new ErrorData object from yaml data.
+
+        :param id: The unique identifier for the error.
+        :type id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ErrorData object.
+        :rtype: ErrorData
+        '''
 
         # Create a new ErrorData object.
         return ErrorData.new(
