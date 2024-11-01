@@ -347,28 +347,24 @@ features:
     functions:
       - attribute_id: add_cli_argument
         name: Add CLI Argument
-    request_type_path: app.configs.requests.AddCliArgument
   cli.add_command:
     group_id: cli
     name: Add CLI Command
     functions:
       - attribute_id: add_cli_command
         name: Add CLI Command
-    request_type_path: app.configs.requests.AddCliCommand
   container.add_attribute:
     group_id: container
     name: Add Container Attribute
     functions:
       - attribute_id: add_container_attribute
         name: Add Container Attribute
-    request_type_path: app.configs.requests.AddContainerAttribute
   error.add_new:
     group_id: error
     name: Add New Error
     functions:
       - attribute_id: add_new_error
         name: Add New Error
-    request_type_path: app.configs.requests.AddNewError
   feature.add_handler:
     group_id: feature
     name: Add Feature Handler
@@ -376,14 +372,12 @@ features:
     handlers:
       - attribute_id: add_feature_handler
         name: AddFeatureHandler
-    request_type_path: app.configs.requests.AddFeatureHandler
   feature.add_new:
     group_id: feature
     name: Add New Feature
     functions:
       - attribute_id: add_new_feature
         name: Add New Feature
-    request_type_path: app.configs.requests.AddNewFeature
   object.add_attribute:
     group_id: object
     name: Add New Feature
@@ -395,7 +389,6 @@ features:
         return_to_data: true
       - attribute_id: sync_model_to_code
         name: Sync Model Object to Code
-    request_type_path: app.configs.requests.AddObjectAttribute
   object.add_method:
     group_id: object
     name: Add Object Method
@@ -407,7 +400,6 @@ features:
         return_to_data: true
       - attribute_id: sync_model_to_code
         name: Sync Model Object to Code
-    request_type_path: app.configs.requests.AddObjectMethod
   object.add_method_code:
     group_id: object
     name: Add Object Method Code
@@ -421,7 +413,6 @@ features:
         name: Add Object Method Code
       - attribute_id: sync_model_to_code
         name: Sync Model Object to Code
-    request_type_path: app.configs.requests.AddObjectMethodCode
   object.add_method_parameters:
     group_id: object
     name: Add Method Parameters
@@ -429,7 +420,6 @@ features:
     handlers:
       - attribute_id: add_object_method_parameters
         name: Add Method Parameters
-    request_type_path: app.configs.requests.AddObjectMethodParameters
   object.add_new:
     group_id: object
     name: Add New Object
@@ -440,7 +430,6 @@ features:
         return_to_data: true
       - attribute_id: sync_model_to_code
         name: Sync Model Object to Code
-    request_type_path: app.configs.requests.AddNewObject
   sync.code_to_model:
     group_id: sync
     name: Sync Code To Model
@@ -448,7 +437,6 @@ features:
     handlers:
       - attribute_id: sync_code_to_model
         name: SyncCodeToModel
-    request_type_path: app.configs.requests.SyncCodeToModel
   sync.model_to_code:
     group_id: sync
     name: Sync Model to Code
@@ -460,7 +448,6 @@ features:
         return_to_data: true
       - attribute_id: sync_model_to_code
         name: Sync Model to Code
-    request_type_path: app.configs.requests.SyncModelToCode
 interfaces:
   cli:
     commands:

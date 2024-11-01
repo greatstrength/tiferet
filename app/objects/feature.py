@@ -1,14 +1,18 @@
-from schematics import types as t
+# *** imports
 
-from .object import Entity
-from .object import ValueObject
+# ** app
+from .object import *
 
 
+# *** models
+
+# ** model: feature_command
 class FeatureCommand(ValueObject):
     '''
     A command object for a feature command.
     '''
 
+    # * attribute: name
     name = t.StringType(
         required=True,
         metadata=dict(
@@ -16,6 +20,7 @@ class FeatureCommand(ValueObject):
         )
     )
 
+    # * attribute: attribute_id
     attribute_id = t.StringType(
         required=True,
         metadata=dict(
@@ -23,6 +28,7 @@ class FeatureCommand(ValueObject):
         )
     )
 
+    # * attribute: params
     params = t.DictType(
         t.StringType(),
         default={},
@@ -31,24 +37,28 @@ class FeatureCommand(ValueObject):
         )
     )
 
+    # * attribute: return_to_data
     return_to_data = t.BooleanType(
         metadata=dict(
             description='Whether to return the feature command result to the feature data context.'
         )
     )
 
+    # * attribute: data_key
     data_key = t.StringType(
         metadata=dict(
             description='The data key to store the feature command result in if Return to Data is True.'
         )
     )
 
+    # * attribute: pass_on_error
     pass_on_error = t.BooleanType(
         metadata=dict(
             description='Whether to pass on the error if the feature handler fails.'
         )
     )
 
+    # * method: new
     @staticmethod
     def new(**kwargs) -> 'FeatureCommand':
         '''Initializes a new FeatureCommand object.
@@ -68,11 +78,13 @@ class FeatureCommand(ValueObject):
         return obj
 
 
+# ** model: feature
 class Feature(Entity):
     '''
     A feature object.
     '''
 
+    # * attribute: name
     name = t.StringType(
         required=True,
         metadata=dict(
@@ -80,6 +92,7 @@ class Feature(Entity):
         )
     )
 
+    # * attribute: group_id
     group_id = t.StringType(
         required=True,
         metadata=dict(
@@ -87,19 +100,15 @@ class Feature(Entity):
         )
     )
 
+    # * attribute: description
     description = t.StringType(
         metadata=dict(
             description='The description of the feature.'
         )
     )
 
-    request_type_path = t.StringType(
-        metadata=dict(
-            description='The path to the request type for the feature.'
-        )
-    )
-
-    handlers = t.ListType(
+    # * attribute: commands
+    commands = t.ListType(
         t.ModelType(FeatureCommand),
         default=[],
         metadata=dict(
@@ -107,6 +116,7 @@ class Feature(Entity):
         )
     )
 
+    # * attribute: log_params
     log_params = t.DictType(
         t.StringType(),
         default={},
@@ -115,6 +125,7 @@ class Feature(Entity):
         )
     )
 
+    # * method: new
     @staticmethod
     def new(name: str, group_id: str, feature_key: str, description: str = None, **kwargs) -> 'Feature':
         '''Initializes a new Feature object.
@@ -139,20 +150,16 @@ class Feature(Entity):
         if not description:
             description = name
 
-        # Create a new Feature object.
-        obj = Feature(dict(
+        # Create and return a new Feature object.
+        return super(Feature, Feature).new(
             id=id,
-            group_id=group_id,
             name=name,
+            group_id=group_id,
             description=description,
             **kwargs
-        ), strict=False)
-
-        # Validate and return the new Feature object.
-        obj.validate()
-        return obj
-
-
+        )
+    
+    # * method: add_handler
     def add_handler(self, handler: FeatureCommand, position: int = None):
         '''Adds a handler to the feature.
 
@@ -164,6 +171,6 @@ class Feature(Entity):
 
         # Add the handler to the feature.
         if position:
-            self.handlers.insert(position, handler)
+            self.commands.insert(position, handler)
         else:
-            self.handlers.append(handler)
+            self.commands.append(handler)
