@@ -341,126 +341,126 @@ errors:
       text: Unable to find module with name '{}'.
     name: SYNC_MODULE_NOT_FOUND
 features:
-  groups:
-    cli:
-      features:
-        add_argument:
-          functions:
-          - attribute_id: add_cli_argument
-            name: Add CLI Argument
-          name: Add CLI Argument
-          request_type_path: app.configs.requests.AddCliArgument
-        add_command:
-          functions:
-          - attribute_id: add_cli_command
-            name: Add CLI Command
-          name: Add CLI Command
-          request_type_path: app.configs.requests.AddCliCommand
-    container:
-      features:
-        add_attribute:
-          functions:
-          - attribute_id: add_container_attribute
-            name: Add Container Attribute
-          name: Add Container Attribute
-          request_type_path: app.configs.requests.AddContainerAttribute
-    error:
-      features:
-        new:
-          functions:
-          - attribute_id: add_new_error
-            name: Add New Error
-          name: Add New Error
-          request_type_path: app.configs.requests.AddNewError
-    feature:
-      features:
-        add_handler:
-          description: Add Feature Handler
-          handlers:
-          - attribute_id: add_feature_handler
-            name: AddFeatureHandler
-          name: Add Feature Handler
-          request_type_path: app.configs.requests.AddFeatureHandler
-        new:
-          functions:
-          - attribute_id: add_new_feature
-            name: Add New Feature
-          name: Add New Feature
-          request_type_path: app.configs.requests.AddNewFeature
-    object:
-      features:
-        add_attribute:
-          description: Add an attribute to a model object.
-          handlers:
-          - attribute_id: add_object_attribute
-            data_key: _object
-            name: Add Object Attribute
-            return_to_data: true
-          - attribute_id: sync_model_to_code
-            name: Sync Model Object to Code
-          name: Add New Feature
-          request_type_path: app.configs.requests.AddObjectAttribute
-        add_method:
-          description: Adds a new method to a model object.
-          handlers:
-          - attribute_id: add_object_method
-            data_key: _object
-            name: Add Object Method
-            return_to_data: true
-          - attribute_id: sync_model_to_code
-            name: Sync Model Object to Code
-          name: Add Object Method
-          request_type_path: app.configs.requests.AddObjectMethod
-        add_method_code:
-          description: Adds Code to an Object Method
-          handlers:
-          - attribute_id: get_object
-            data_key: _object
-            name: Get Object
-            return_to_data: true
-          - attribute_id: add_method_code
-            name: Add Object Method Code
-          - attribute_id: sync_model_to_code
-            name: Sync Model Object to Code
-          name: Add Object Method Code
-          request_type_path: app.configs.requests.AddObjectMethodCode
-        add_method_parameters:
-          description: Adds parameters to a model object method.
-          handlers:
-          - attribute_id: add_object_method_parameters
-            name: Add Method Parameters
-          name: Add Method Parameters
-          request_type_path: app.configs.requests.AddObjectMethodParameters
-        new:
-          handlers:
-          - attribute_id: add_new_object
-            data_key: _object
-            name: Add New Object
-            return_to_data: true
-          - attribute_id: sync_model_to_code
-            name: Sync Model Object to Code
-          name: Add New Object
-          request_type_path: app.configs.requests.AddNewObject
-    sync:
-      features:
-        code_to_model:
-          description: Syncs code from module to model components.
-          handlers:
-          - attribute_id: sync_code_to_model
-            name: SyncCodeToModel
-          name: Sync Code To Model
-          request_type_path: app.configs.requests.SyncCodeToModel
-        model_to_code:
-          description: Syncs a model object to code.
-          handlers:
-          - attribute_id: get_object
-            data_key: _object
-            name: Get Object
-            return_to_data: true
-          - attribute_id: sync_model_to_code
-            name: Sync Model to Code
-          name: Sync Model to Code
-          request_type_path: app.configs.requests.SyncModelToCode
+  cli.add_argument:
+    group_id: cli
+    name: Add CLI Argument
+    functions:
+      - attribute_id: add_cli_argument
+        name: Add CLI Argument
+    request_type_path: app.configs.requests.AddCliArgument
+  cli.add_command:
+    group_id: cli
+    name: Add CLI Command
+    functions:
+      - attribute_id: add_cli_command
+        name: Add CLI Command
+    request_type_path: app.configs.requests.AddCliCommand
+  container.add_attribute:
+    group_id: container
+    name: Add Container Attribute
+    functions:
+      - attribute_id: add_container_attribute
+        name: Add Container Attribute
+    request_type_path: app.configs.requests.AddContainerAttribute
+  error.add_new:
+    group_id: error
+    name: Add New Error
+    functions:
+      - attribute_id: add_new_error
+        name: Add New Error
+    request_type_path: app.configs.requests.AddNewError
+  feature.add_handler:
+    group_id: feature
+    name: Add Feature Handler
+    description: Add Feature Handler
+    handlers:
+      - attribute_id: add_feature_handler
+        name: AddFeatureHandler
+    request_type_path: app.configs.requests.AddFeatureHandler
+  feature.add_new:
+    group_id: feature
+    name: Add New Feature
+    functions:
+      - attribute_id: add_new_feature
+        name: Add New Feature
+    request_type_path: app.configs.requests.AddNewFeature
+  object.add_attribute:
+    group_id: object
+    name: Add New Feature
+    description: Add an attribute to a model object.
+    handlers:
+      - attribute_id: add_object_attribute
+        data_key: _object
+        name: Add Object Attribute
+        return_to_data: true
+      - attribute_id: sync_model_to_code
+        name: Sync Model Object to Code
+    request_type_path: app.configs.requests.AddObjectAttribute
+  object.add_method:
+    group_id: object
+    name: Add Object Method
+    description: Adds a new method to a model object.
+    handlers:
+      - attribute_id: add_object_method
+        data_key: _object
+        name: Add Object Method
+        return_to_data: true
+      - attribute_id: sync_model_to_code
+        name: Sync Model Object to Code
+    request_type_path: app.configs.requests.AddObjectMethod
+  object.add_method_code:
+    group_id: object
+    name: Add Object Method Code
+    description: Adds Code to an Object Method
+    handlers:
+      - attribute_id: get_object
+        data_key: _object
+        name: Get Object
+        return_to_data: true
+      - attribute_id: add_method_code
+        name: Add Object Method Code
+      - attribute_id: sync_model_to_code
+        name: Sync Model Object to Code
+    request_type_path: app.configs.requests.AddObjectMethodCode
+  object.add_method_parameters:
+    group_id: object
+    name: Add Method Parameters
+    description: Adds parameters to a model object method.
+    handlers:
+      - attribute_id: add_object_method_parameters
+        name: Add Method Parameters
+    request_type_path: app.configs.requests.AddObjectMethodParameters
+  object.add_new:
+    group_id: object
+    name: Add New Object
+    handlers:
+      - attribute_id: add_new_object
+        data_key: _object
+        name: Add New Object
+        return_to_data: true
+      - attribute_id: sync_model_to_code
+        name: Sync Model Object to Code
+    request_type_path: app.configs.requests.AddNewObject
+  sync.code_to_model:
+    group_id: sync
+    name: Sync Code To Model
+    description: Syncs code from module to model components.
+    handlers:
+      - attribute_id: sync_code_to_model
+        name: SyncCodeToModel
+    request_type_path: app.configs.requests.SyncCodeToModel
+  sync.model_to_code:
+    group_id: sync
+    name: Sync Model to Code
+    description: Syncs a model object to code.
+    handlers:
+      - attribute_id: get_object
+        data_key: _object
+        name: Get Object
+        return_to_data: true
+      - attribute_id: sync_model_to_code
+        name: Sync Model to Code
+    request_type_path: app.configs.requests.SyncModelToCode
 interfaces:
   cli:
     commands:
