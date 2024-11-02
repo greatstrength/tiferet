@@ -6,7 +6,7 @@ from typing import Any
 # ** app
 from .request import RequestContext #*** app
 from .feature import FeatureContext #*** app
-from .error import ErrorContext #*** app
+from .error import ErrorContext, ErrorContext as err #*** app
 
 
 # *** contexts
@@ -23,15 +23,23 @@ class AppInterfaceContext():
     # * field: errors
     errors: ErrorContext
 
-    # * field: lang
-    lang: str = 'en_US'
-
     # * method: init
-    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, app_lang: str = 'en_US'):
+    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
+        '''
+        Initialize the application interface context.
+
+        :param app_name: The application name.
+        :type app_name: str
+        :param feature_context: The feature context.
+        :type feature_context: FeatureContext
+        :param error_context: The error context.
+        :type error_context: ErrorContext
+        '''
+
+        # Set the context fields.
         self.name: str = app_name
         self.features: FeatureContext = feature_context
         self.errors: ErrorContext = error_context
-        self.lang: str = app_lang
 
     # * method: parse_request
     def parse_request(self, request: Any, **kwargs) -> RequestContext:
@@ -50,6 +58,7 @@ class AppInterfaceContext():
         return request
     
     # * method: execute_feature
+    @err.handle_error()
     def execute_feature(self, request: RequestContext, **kwargs):
         '''
         Execute the feature context.
@@ -59,13 +68,7 @@ class AppInterfaceContext():
         '''
 
         # Execute feature context and return session.
-        session = self.features.execute(request, **kwargs)
-
-        if session.error:
-            return self.handle_error(session.error, **request.headers)
-        
-        # Set the result of the request.
-        request.result = session.result
+        self.features.execute(request, **kwargs)
     
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
@@ -80,28 +83,15 @@ class AppInterfaceContext():
         
         # Map response.
         return request.map_response()
-
-    # * method: handle_error
-    def handle_error(self, error_message: str, **kwargs) -> str:
-        '''
-        Handle the error.
-
-        :param error: The error message.
-        :type error: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The error message.
-        :rtype: str
-        '''
-        
-        # Format error.
-        error = self.errors.format_error(error_message, lang=self.lang, **kwargs)
-
-        # Return error.
-        return error
     
     # * method: run
     def run(self, **kwargs):
+        '''
+        Run the application interface.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
         
         # Parse request.
         request = self.parse_request(**kwargs)

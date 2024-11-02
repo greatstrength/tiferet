@@ -32,30 +32,53 @@ class ErrorContext(object):
         self.errors = {error.name: error for error in error_repo.list()}
 
     # * method: handle_error
-    def format_error(self, error_message: str, lang: str = 'en_US', **kwargs):
+    @staticmethod
+    def handle_error(self, func):
         '''
         Handle an error.
 
-        :param error_message: The error message.
-        :type error_message: str
-        :param lang: The language of the error message.
-        :type lang: str
-        :param error_type: The error type.
-        :type error_type: type
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The error.
-        :rtype: Error
+        :param func: The function to handle.
+        :type func: function
+        :return: The wrapped function.
+        :rtype: Any
         '''
 
-        # Parse error.
-        # Handle error without data if ValueError is raised.
+        # Import wraps.
+        from functools import wraps
+        
+        # Define the wrapper.
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except AssertionError as e:
+                return self.format_error_response(str(e), **kwargs)
+            
+        # Return the wrapper.
+        return wrapper
+                
+                
+    def format_error_response(self, error_message: str, lang: str = 'en_US', **kwargs) -> str:
+        '''
+        Format the error response.
+
+        :param error_message: The error message.
+        :type error_message: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The formatted error message.
+        :rtype: str
+        '''
+
+        # Split error message.
         try:
             error_name, error_data = error_message.split(': ')
-            error_data = error_data.split(', ')
         except ValueError:
-            error_name = error
+            error_name = error_message
             error_data = None
+
+        # Format error data if present.
+        error_data = error_data.split(', ') if error_data else None
 
         # Get error.
         error = self.errors.get(error_name)
