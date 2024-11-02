@@ -1,7 +1,7 @@
 
 import yaml
 
-from ..objects.data import ModelData
+from ..objects import DataObject
 
 
 def load(path: str, create_data = lambda data: data, start_node = lambda data: data, **kwargs):
@@ -16,12 +16,12 @@ def load(path: str, create_data = lambda data: data, start_node = lambda data: d
     return create_data(data, **kwargs)
 
 
-def save(path: str, data: ModelData | dict, data_save_path: str, **kwargs):
+def save(path: str, data: DataObject | dict, data_save_path: str):
     with open(path, 'r') as file:
         yaml_data = yaml.safe_load(file)
 
     # Get the data save path list.
-    save_path_list = data_save_path.split('.')
+    save_path_list = data_save_path.split('/')
 
     # Update the yaml data.
     new_yaml_data = None
