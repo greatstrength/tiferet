@@ -55,8 +55,7 @@ class FeatureContext(object):
                 result = handler.execute(
                     **request.data,
                     **command.params,
-                    **kwargs
-                )
+                    **kwargs)
             except AssertionError as e:
                 if not command.pass_on_error:
                     raise e 

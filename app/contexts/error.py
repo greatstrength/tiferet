@@ -45,7 +45,7 @@ class ErrorContext(object):
 
         # Import wraps.
         from functools import wraps
-        
+
         # Define the wrapper.
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -53,11 +53,11 @@ class ErrorContext(object):
                 return func(*args, **kwargs)
             except AssertionError as e:
                 return self.format_error_response(str(e), **kwargs)
-            
+
         # Return the wrapper.
         return wrapper
-                
-                
+
+    # * method: format_error_response
     def format_error_response(self, error_message: str, lang: str = 'en_US', **kwargs) -> str:
         '''
         Format the error response.
