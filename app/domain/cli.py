@@ -1,9 +1,7 @@
 from typing import List
 from enum import Enum
 
-from schematics import types as t
-
-from . import object as obj
+from ..domain import *
 
 
 CLI_ARGUMENT_DATA_TYPES = [
@@ -23,7 +21,7 @@ class CliArgumentType(Enum):
     PARENT_ARGUMENT = 'parent_argument'
 
 
-class CliArgument(obj.ValueObject):
+class CliArgument(ValueObject):
     '''
     A Command Line Interface (CLI) argument for use in a CLI command or as a parent argument for a CLI interface.
     '''
@@ -169,7 +167,7 @@ class CliArgument(obj.ValueObject):
         return None
 
 
-class CliCommand(obj.Entity):
+class CliCommand(Entity):
     '''
     A Command Line Interface (CLI) command for use in a CLI interface.
     '''
@@ -278,7 +276,7 @@ class CliCommand(obj.Entity):
         self.arguments.append(argument)
 
 
-class CliInterface(obj.Entity):
+class CliInterface(Entity):
     '''
     A Command Line Interface (CLI) interface for use in a CLI application.
     '''

@@ -1,7 +1,7 @@
 # *** imports 
 
 # ** core
-from ..objects import *
+from ..domain import *
 
 
 # *** models

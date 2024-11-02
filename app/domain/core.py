@@ -15,7 +15,7 @@ class ModelObject(Model):
     A domain model object.
     '''
 
-    # ** method: new
+    # * method: new
     @staticmethod
     def new(
         model_type: type,
@@ -130,3 +130,25 @@ class DataObject(Model):
         # Create a blacklist transform.
         from schematics.transforms import blacklist
         return blacklist(*args)
+
+# ** model: module_dependency
+class ModuleDependency(Model):
+    '''
+    A module dependency.
+    '''
+
+    # * attribute: module_path
+    module_path = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The module path.'
+        )
+    )
+
+    # ** attribute: class_name
+    class_name = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The class name.'
+        )
+    )

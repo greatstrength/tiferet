@@ -1,12 +1,6 @@
 #** imp
 
-import typing
-
-from schematics import Model
-from schematics import types as t
-
-from .object import Entity
-from .object import ValueObject
+from ..domain import *
 
 
 #** con
@@ -441,7 +435,7 @@ class Module(Entity):
         # Get the class by name.
         return next((c for c in self.classes if c.name == class_name), None)
 
-    def set_component(self, component: typing.Any):
+    def set_component(self, component: Any):
         '''
         Sets a component for the module.
 

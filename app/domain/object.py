@@ -1,20 +1,19 @@
-#** imp
+# *** imports
 
-import typing
+# ** core
+from ..domain import *
 
-from schematics import Model, types as t
 
+# ** constants
 
-#** con
-
-OBJECT_TYPE_ENTITY = 'entity' #/
-OBJECT_TYPE_VALUE_OBJECT = 'value_object' #/
+OBJECT_TYPE_ENTITY = 'entity'  # /
+OBJECT_TYPE_VALUE_OBJECT = 'value_object'  # /
 OBJECT_TYPE_CHOICES = [
     'entity',
     'value_object',
     'model',
-] #/
-OBJECT_TYPE_DEFAULT = 'entity' #/
+]  # /
+OBJECT_TYPE_DEFAULT = 'entity'  # /
 ATTRIBUTE_TYPE_CHOICES = [
     'str',
     'int',
@@ -26,7 +25,7 @@ ATTRIBUTE_TYPE_CHOICES = [
     'dict',
     'model',
     'poly'
-] #/
+]  # /
 ATTRIBUTE_INNER_TYPE_CHOICES = [
     'str',
     'int',
@@ -35,17 +34,17 @@ ATTRIBUTE_INNER_TYPE_CHOICES = [
     'date',
     'datetime',
     'model'
-] #/
+]  # /
 DATE_TIME_SETTINGS_TZD_CHOICES = [
     'require',
     'allow',
     'utc',
     'reject'
-] #/
+]  # /
 METHOD_TYPE_CHOICES = [
     'factory',
     'state',
-] #/
+]  # /
 METHOD_RETURN_TYPE_CHOICES = [
     'str',
     'int',
@@ -57,7 +56,7 @@ METHOD_RETURN_TYPE_CHOICES = [
     'dict',
     'model',
     'any'
-] #/
+]  # /
 METHOD_RETURN_INNER_TYPE_CHOICES = [
     'str',
     'int',
@@ -66,7 +65,7 @@ METHOD_RETURN_INNER_TYPE_CHOICES = [
     'date',
     'datetime',
     'model'
-] #/
+]  # /
 METHOD_PARAMETER_TYPE_CHOICES = [
     'str',
     'int',
@@ -81,7 +80,7 @@ METHOD_PARAMETER_TYPE_CHOICES = [
     'model',
     'args',
     'kwargs'
-] #/
+]  # /
 METHOD_PARAMETER_INNER_TYPE_CHOICES = [
     'str',
     'int',
@@ -90,80 +89,16 @@ METHOD_PARAMETER_INNER_TYPE_CHOICES = [
     'date',
     'datetime',
     'model'
-] #/
+]  # /
 METHOD_CODE_BLOCK_TYPE_CHOICES = [
     'python',
-] #/
-METHOD_CODE_BLOCK_DEFAULT = 'python' #/
+]  # /
+METHOD_CODE_BLOCK_DEFAULT = 'python'  # /
 
 
-#** cls
+# *** models
 
-class FactoryMethod(Model):
-    '''
-    A factory method for creating model objects.
-    '''
-
-    #** met
-
-    @staticmethod
-    def new(
-        model_type: type,
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> typing.Any:
-        '''
-        Initializes a new model object.
-
-        :param model_type: The type of model object to create.
-        :type model_type: type
-        :param validate: True to validate the model object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the model object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new model object.
-        :rtype: Any
-        '''
-
-        # Create a new model object.
-        _object = model_type(dict(
-            **kwargs
-        ), strict=strict)
-
-        # Validate if specified.
-        if validate:
-            _object.validate()
-
-        # Return the new model object.
-        return _object
-
-
-class Entity(FactoryMethod):
-    '''
-    A domain model entity.
-    '''
-
-    #** atr
-
-    id = t.StringType(
-        required=True,
-        metadata=dict(
-            description='The entity unique identifier.'
-        )
-    )
-
-
-class ValueObject(FactoryMethod):
-    '''
-    A domain model value object.
-    '''
-
-    pass
-
-
+# ** model: object
 class ObjectTypeSettings(ValueObject):
     '''
     Type-specific settings for an object attribute.
@@ -177,28 +112,28 @@ class StringSettings(ObjectTypeSettings):
     Type-specific settings for a string object attribute.
     '''
 
-    #** atr
-
+    # ** attribute: regex
     regex = t.StringType(
         metadata=dict(
             description='The regular expression for the string attribute value.'
         )
     )
 
+    # ** attribute: min_length
     min_length = t.IntType(
         metadata=dict(
             description='The minimum length for the string attribute value.'
         )
     )
 
+    # ** attribute: max_length
     max_length = t.IntType(
         metadata=dict(
             description='The maximum length for the string attribute value.'
         )
     )
 
-    #** met
-
+    # ** method: new
     @staticmethod
     def new(
         min_length: int = None,
@@ -236,7 +171,7 @@ class DateSettings(ObjectTypeSettings):
     Type-specific settings for a date object attribute.
     '''
 
-    #** atr
+    # ** atr
 
     formats = t.StringType(
         metadata=dict(
@@ -244,7 +179,7 @@ class DateSettings(ObjectTypeSettings):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(**kwargs) -> 'DateSettings':
@@ -266,7 +201,7 @@ class DateTimeSettings(ObjectTypeSettings):
     Type-specific settings for a datetime object attribute.
     '''
 
-    #** atr
+    # ** atr
 
     formats = t.StringType(
         metadata=dict(
@@ -299,7 +234,7 @@ class DateTimeSettings(ObjectTypeSettings):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(
@@ -338,7 +273,7 @@ class ListSettings(ObjectTypeSettings):
     Type-specific settings for a list object attribute.
     '''
 
-    #** atr
+    # ** atr
 
     min_size = t.IntType(
         metadata=dict(
@@ -352,7 +287,7 @@ class ListSettings(ObjectTypeSettings):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(
@@ -391,7 +326,7 @@ class DictSettings(ObjectTypeSettings):
     Type-specific settings for a dict object attribute.
     '''
 
-    #** atr
+    # ** atr
 
     coerce_key = t.StringType(
         metadata=dict(
@@ -399,7 +334,7 @@ class DictSettings(ObjectTypeSettings):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(**kwargs) -> 'DictSettings':
@@ -421,7 +356,7 @@ class ObjectAttribute(ValueObject):
     A model object attribute.
     '''
 
-    #** atr
+    # ** atr
 
     name = t.StringType(
         required=True,
@@ -493,7 +428,7 @@ class ObjectAttribute(ValueObject):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(name: str, **kwargs) -> 'ObjectAttribute':
@@ -524,7 +459,7 @@ class ObjectMethodParameter(ValueObject):
     A model object method parameter.
     '''
 
-    #** atr
+    # ** atr
 
     name = t.StringType(
         required=True,
@@ -573,7 +508,7 @@ class ObjectMethodParameter(ValueObject):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(name: str, **kwargs) -> 'ObjectMethodParameter':
@@ -604,7 +539,7 @@ class ObjectMethodCodeBlock(ValueObject):
     A model object method code block.
     '''
 
-    #** atr
+    # ** atr
 
     type = t.StringType(
         required=True,
@@ -633,7 +568,7 @@ class ObjectMethodCodeBlock(ValueObject):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(**kwargs) -> 'ObjectMethodCodeBlock':
@@ -658,7 +593,7 @@ class ObjectMethod(ValueObject):
     A model object method.
     '''
 
-    #** atr
+    # ** atr
 
     name = t.StringType(
         required=True,
@@ -724,7 +659,7 @@ class ObjectMethod(ValueObject):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(name: str, **kwargs) -> 'ObjectMethod':
@@ -779,7 +714,7 @@ class ObjectMethod(ValueObject):
         # Add the parameter to the object method.
         self.parameters.append(parameter)
 
-    def add_code_block(self, code_block: typing.List[ObjectMethodCodeBlock]):
+    def add_code_block(self, code_block: List[ObjectMethodCodeBlock]):
         '''
         Adds a code block to the object method.
 
@@ -796,7 +731,7 @@ class ModelObject(Entity):
     A domain model component defined as a class object.
     '''
 
-    #** atr
+    # ** atr
 
     name = t.StringType(
         required=True,
@@ -856,7 +791,7 @@ class ModelObject(Entity):
         )
     )
 
-    #** met
+    # ** met
 
     @staticmethod
     def new(
