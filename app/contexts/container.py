@@ -1,76 +1,179 @@
-import typing
+# *** imports
 
+# ** core
+from typing import Any
+
+# ** infra
 from dependencies import Injector
 
-from ..services.container import import_dependency
-from ..objects.container import ContainerAttribute
+# ** app
+from ..configs import *
+from ..configs import container
+from ..domain.container import ContainerAttribute
 from ..repositories.container import ContainerRepository
 
 
-class ContainerContext(object):
+# *** contexts
+
+# ** contexts: container_context
+class ContainerContext(Model):
     '''
     A container context is a class that is used to create a container object.
     '''
 
-    container_repo: ContainerRepository = None
-    flags: typing.List[str] = []
-    
-    containers: typing.Dict[str, Injector] = {}
+    # * attribute: attributes
+    attributes = DictType(
+        ModelType(ContainerAttribute), 
+        default={}, 
+        required=True,
+        metadata=dict(
+            description='The container attributes.'
+        ),
+    )
 
-    def __init__(self, container_repo: ContainerRepository, flags: str = 'yaml, python'):
+    # * attribute: constants
+    constants = DictType(
+        StringType, 
+        default={},
+        metadata=dict(
+            description='The container constants.'
+        ),
+    )
+    
+    # * attribute: interface_flag
+    interface_flag = StringType(
+        required=True,
+        metadata=dict(
+            description='The interface flag.'
+        ),
+    )
+
+    # * attribute: feature_flag
+    feature_flag = StringType(
+        required=True,
+        default='core',
+        metadata=dict(
+            description='The feature flag.'
+        ),
+    )
+
+    # * attribute: data_flag
+    data_flag = StringType(
+        required=True,
+        metadata=dict(
+            description='The data flag.'
+        ),
+    )
+
+    # * method: init
+    def __init__(self, container_repo: ContainerRepository, interface_flag: str, feature_flag: str, data_flag: str, **kwargs):
         '''
         Initialize the container context.
 
         :param container_repo: The container repository.
         :type container_repo: ContainerRepository
-        '''
-
-        # Set the container repository.
-        self.container_repo = container_repo
-
-        # Set the container flags.
-        self.flags = [flag.strip() for flag in flags.split(',')] if flags else []
-
-    def add_container(self, key: str, attributes: typing.List[ContainerAttribute] = [], **kwargs):
-        '''
-        Add a container to the context.
-
-        :param key: The key for the container.
-        :type key: str
-        :param attributes: The attributes for the container.
-        :type attributes: list
+        :param interface_flag: The interface flag.
+        :type interface_flag: str
+        :param feature_flag: The feature flag.
+        :type feature_flag: str
+        :param data_flag: The data flag.
+        :type data_flag: str
         :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         '''
+        
+        # Add the default container attributes first.
+        self.attributes = vars(container)
 
-        # Load container dependencies.
-        dependencies = {}
-        attributes.extend(self.container_repo.list_attributes(key, self.flags))
-        for attribute in attributes:
-            try:
-                dependencies[attribute.id] = attribute.data.value
-            except:
-                dependencies[attribute.id] = import_dependency(
-                    **attribute.data.to_primitive())
+        # Then set the injector flags.
+        self.interface_flag = interface_flag
+        self.feature_flag = feature_flag
+        self.data_flag = data_flag
+        
+        # Get and set attributes and constants.
+        attrs, consts = container_repo.list_all()
+        
+        # Add the attributes to the context.
+        for attr in attrs:
+            attribute: ContainerAttribute = self.attributes[attr.id]
 
-        # Create container.
-        name = f'{key.capitalize()}Container'
-        container = type(name, (Injector,), {**dependencies, **kwargs})
-        self.containers[key] = container
+            # If the attribute already exists, set the dependencies.
+            if attr.id in self.attributes:
+                for dep in attr.dependencies:
+                    attribute.set_dependency(dep)
+                    continue
 
-    def get_dependency(self, key: str, attribute_id: str):
+            # Otherwise, add the attribute.
+            self.attributes[attr.id] = attr
+
+        # Add the constants to the context.
+        self.constants = consts
+
+    # * method: get_dependency
+    def get_dependency(self, attribute_id: str):
         '''
         Get a dependency from the container.
 
-        :param key: The key for the container.
-        :type key: str
-        :param attribute_id: The attribute id.
+        :param attribute_id: The attribute id of the dependency.
         :type attribute_id: str
         :return: The attribute value.
         :rtype: Any
         '''
 
-        # Get container.
-        container = self.containers.get(key)
+        # Create the injector.
+        injector = self.create_injector()
 
         # Get attribute.
-        return getattr(container, attribute_id)
+        return getattr(injector, attribute_id)
+
+    # * method: create_injector
+    def create_injector(self, **kwargs) -> Any:
+        '''
+        Add a container to the context.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The container injector object.
+        :rtype: Any
+        '''
+
+        # Load container dependencies.
+        dependencies = {}
+
+        # Import dependencies.
+        for attribute_id in self.attributes:
+            attribute = self.attributes[attribute_id]
+            flag_map = dict(
+                interface=self.interface_flag,
+                feature=self.feature_flag,
+                data=self.data_flag,
+            )
+            dependencies[attribute_id] = self.import_dependency(attribute, flag_map[attribute.type])
+
+        # Create container.
+        name = f'{self.interface_flag.capitalize()}Container'
+        return type(name, (Injector,), {**self.constants, **dependencies, **kwargs})
+
+    # * method: import_dependency
+    def import_dependency(self, attribute: ContainerAttribute, flag: str) -> Any:
+        '''
+        Import a container attribute dependency from its configured Python module.
+
+        :param attribute: The container attribute.
+        :type attribute: ContainerAttribute
+        :param flag: The flag for the dependency.
+        :type flag: str
+        :return: The dependency.
+        :rtype: Any
+        '''
+
+        # Get the dependency.
+        dependency = attribute.get_dependency(flag)
+
+        # If there is no dependency and the attribute is a feature, import the default feature.
+        if not dependency and attribute.type == 'feature':
+            dependency = attribute.get_dependency('core')
+
+        # Import the dependency.
+        from importlib import import_module
+        return getattr(import_module(dependency.module_path), dependency.class_name)
