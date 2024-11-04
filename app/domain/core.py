@@ -111,6 +111,29 @@ class DataObject(Model):
 
         # Return the model data.
         return _object
+    
+    # ** method: from_model
+    @staticmethod
+    def from_model(
+        model: ModelObject,
+        **kwargs
+    ) -> 'DataObject':
+        '''
+        Initializes a new data object from a model object.
+
+        :param model: The type of model object to map from.
+        :type model: type
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new data object.
+        :rtype: DataObject
+        '''
+
+        # Create a new data object.
+        return DataObject(
+            model.new(**kwargs, strict=False),
+            strict=False,
+        )
 
     # ** method: allow
     @staticmethod
