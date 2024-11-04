@@ -1,10 +1,10 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from typing import Any
 
-# ** infra
-from schematics import Model, types as t
+# ** app
+from ..configs import *
 
 
 # *** models
@@ -58,7 +58,7 @@ class Entity(ModelObject):
     '''
 
     # ** attribute: id
-    id = t.StringType(
+    id = StringType(
         required=True,
         metadata=dict(
             description='The entity unique identifier.'
@@ -84,7 +84,7 @@ class DataObject(Model):
     # ** method: map
     def map(self,
             type: ModelObject,
-            role: str = 'to_object',
+            role: str = 'to_model',
             **kwargs
             ) -> ModelObject:
         '''
@@ -131,6 +131,7 @@ class DataObject(Model):
         from schematics.transforms import blacklist
         return blacklist(*args)
 
+
 # ** model: module_dependency
 class ModuleDependency(Model):
     '''
@@ -138,7 +139,7 @@ class ModuleDependency(Model):
     '''
 
     # * attribute: module_path
-    module_path = t.StringType(
+    module_path = StringType(
         required=True,
         metadata=dict(
             description='The module path.'
@@ -146,9 +147,100 @@ class ModuleDependency(Model):
     )
 
     # ** attribute: class_name
-    class_name = t.StringType(
+    class_name = StringType(
         required=True,
         metadata=dict(
             description='The class name.'
+        )
+    )
+
+
+# ** model: app_interface
+
+class AppInterface(Entity):
+    '''
+    The base application interface object.
+    '''
+
+    # * attribute: name
+    name = StringType(
+        required=True,
+        metadata=dict(
+            description='The name of the application interface.'
+        )
+    )
+
+    # * attribute: attribute_id
+    attribute_id = StringType(
+        required=True,
+        metadata=dict(
+            description='The container attribute for the application interface context.'
+        )
+    )
+
+    # * attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the application interface.'
+        )
+    )
+
+    # * attribute: container_repo
+    container_repo = ModelType(ModuleDependency,
+        required=True,
+        default=ModuleDependency(dict(
+            module_path='app.repositories.container',
+            class_name='YamlProxy'
+        )),
+        metadata=dict(
+            description='The container repository module dependency.'
+        )
+    )
+
+    # * attribute: container_context
+    container_context = ModelType(ModuleDependency,
+        required=True,
+        default=ModuleDependency(dict(
+            module_path='app.contexts.container',
+            class_name='ContainerContext'
+        )),
+        metadata=dict(
+            description='The container context module dependency.'
+        )
+    )
+
+    # * attribute: feature_repo
+    feature_repo = ModelType(ModuleDependency,
+        required=True,
+        default=ModuleDependency(dict(
+            module_path='app.repositories.feature',
+            class_name='YamlProxy'
+        )),
+        metadata=dict(
+            description='The feature repository module dependency.'
+        )
+    )
+
+    # * attribute: feature_context
+    feature_context = ModelType(ModuleDependency,
+        required=True,
+        default=ModuleDependency(dict(
+            module_path='app.contexts.feature',
+            class_name='FeatureContext'
+        )),
+        metadata=dict(
+            description='The feature context module dependency.'
+        )
+    )
+
+    # * attribute: error_repo
+    error_repo = ModelType(ModuleDependency,
+        required=True,
+        default=ModuleDependency(dict(
+            module_path='app.repositories.error',
+            class_name='YamlProxy'
+        )),
+        metadata=dict(
+            description='The error repository module dependency.'
         )
     )
