@@ -1,9 +1,9 @@
 from ..repositories.container import ContainerRepository
-from ..objects.container import ContainerAttribute
+from ..domain.container import ContainerAttribute, ContainerDependency
 from ..services import container as container_service
 
 
-class AddContainerAttribute(object):
+class SetContainerAttribute(object):
     '''
     Command to set a new container attribute
     '''
@@ -20,28 +20,35 @@ class AddContainerAttribute(object):
 
         self.container_repo = container_repo
 
-    def execute(self, group_id: str, **kwargs):
+    def execute(self, attribute_id: str, type: str, **kwargs):
         '''
         Execute the command to set a new container attribute.
 
-        :param kwargs: The keyword arguments.
+        :param attribute_id: The attribute id.
+        :type attribute_id: str
+        :param type: The attribute type.
+        :type type: str
+        :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
+        
+        # Look up the container attribute.
+        attribute: ContainerAttribute = self.container_repo.get_attribute(attribute_id, type)
 
-        # Create a new container attribute.
-        attribute: ContainerAttribute = container_service.create_attribute(**kwargs)
-
-        # Assert that the attribute does not already exist.
-        assert not self.container_repo.attribute_exists(
-            group_id=group_id,
-            **kwargs), f'CONTAINER_ATTRIBUTE_ALREADY_EXISTS: {attribute.id}, {group_id}'
+        # If not attribute is found, create a new one.
+        if not attribute:
+            attribute = ContainerAttribute.new(
+                id=attribute_id,
+                type=type,
+                dependencies=[ContainerDependency.new(**kwargs)])
+        
+        # Otherwise, create the container depenedency and add it to the attribute.
+        else:
+            dependency = ContainerDependency.new(**kwargs)
+            attribute.set_dependency(dependency)
 
         # Save the container attribute.
-        self.container_repo.save_attribute(
-            group_id=group_id,
-            attribute=attribute, 
-            **kwargs
-        )
+        self.container_repo.save_attribute(attribute=attribute)
 
         # Return the new container attribute.
         return attribute

@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List
+from typing import List, Dict, Tuple
 
 # ** app
 from ..domain.container import ContainerAttribute
@@ -9,9 +9,9 @@ from ..data.container import ContainerAttributeYamlData
 from ..clients import yaml as yaml_client
 
 
-# *** repositories
+# *** repository
 
-## * repository: container_repository
+# * interface: container_repository
 class ContainerRepository(object):
     '''
     Container repository interface.
@@ -23,53 +23,48 @@ class ContainerRepository(object):
     # * field: write_role
     write_role: str = None
 
-    # * method: attribute_exists
-    def attribute_exists(self, group_id: str, id: str, **kwargs) -> bool:
+    # * method: get_attribute
+    def get_attribute(self, attribute_id: str, type: str) -> ContainerAttribute:
         '''
-        Verifies if the container attribute exists.
+        Get the container attribute.
 
-        :param group_id: The context group id.
-        :type group_id: str
-        :param id: The attribute id.
-        :type id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: Whether the attribute exists.
-        :rtype: bool
+        :param attribute_id: The attribute id.
+        :type attribute_id: str
+        :param type: The container attribute type.
+        :type type: str
+        :return: The container attribute.
+        :rtype: ContainerAttribute
         '''
 
+        # Not implemented.
         raise NotImplementedError()
 
-    # * method: list_attributes
-    def list_attributes(self) -> List[ContainerAttribute]:
+    # * method: list_all
+    def list_all(self) -> Tuple[List[ContainerAttribute], List[str]]:
         '''
-        List the container attributes.
+        List all the container attributes and constants.
 
-        :return: The list of attributes.
+        :return: The list of container attributes and constants.
         :rtype: List[ContainerAttribute]
         '''
 
+        # Not implemented.
         raise NotImplementedError()
 
     # * method: save_attribute
-    def save_attribute(self, group_id: str, attribute: ContainerAttribute, flag: str, **kwargs):
+    def save_attribute(self, attribute: ContainerAttribute):
         '''
         Save the container attribute.
 
-        :param group_id: The group id.
-        :type group_id: str
         :param attribute: The container attribute.
         :type attribute: ContainerAttribute
-        :param flag: The infrastructure flag to save the attribute under.
-        :type flag: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
+        # Not implemented.
         raise NotImplementedError
 
 
-# ** proxy: yaml_repository
+# ** proxy: yaml_proxy
 class YamlProxy(ContainerRepository):
     '''
     Yaml proxy for container attributes.
@@ -97,45 +92,57 @@ class YamlProxy(ContainerRepository):
         # Set the write role.
         self.write_role = write_role
 
-    # * method: attribute_exists
-    def attribute_exists(self, id: str, **kwargs) -> bool:
+    # * method: get_attribute
+    def get_attribute(self, attribute_id: str, type: str) -> ContainerAttribute:
         '''
-        Verifies if the container attribute exists within the yaml file.
-        
-        :param group_id: The context group id.
-        :type group_id: str
-        :param id: The attribute id.
-        :type id: str
-        :return: Whether the attribute exists.
-        :rtype: bool
-        '''
+        Get the attribute from the yaml file.
 
-        # Load the attribute data from the yaml configuration file.
-        data = yaml_client.load(
-            self.config_file,
-            start_node=lambda data: data.get('attrs'))
-
-        # Return whether the attribute exists.
-        return any([attribute_id == id for attribute_id in data])
-
-    # * method: list_attributes
-    def list_attributes(self) -> List[ContainerAttribute]:
-        '''
-        List the attributes from the yaml file.
-
-        :type flags: List[str]
-        :return: The list of attributes.
+        :param attribute_id: The attribute id.
+        :type attribute_id: str
+        :param type: The attribute type.
+        :type type: str
+        :return: The container attribute.
+        :rtype: ContainerAttribute
         '''
 
         # Load the attribute data from the yaml configuration file.
         data = yaml_client.load(
             self.config_file,
-            create_data=lambda data: [ContainerAttributeYamlData.new(
-                id=id, **attribute_data) for id, attribute_data in data.items()],
-            start_node=lambda data: data.get('attrs'))
+            create_data=lambda data: ContainerAttributeYamlData.new(
+                id=attribute_id, **data),
+            start_node=lambda data: data.get('attrs').get(attribute_id),
+        )
+
+        # If the data is None or the type does not match, return None.
+        if data is None or data.type != type:
+            return None
         
-        # Return the list of attributes.
-        return [attribute.map(self.read_role) for attribute in data]
+        # Return the attribute.
+        return data.map(self.read_role)
+
+    # * method: list_all
+    def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
+        '''
+        List all the container attributes and constants.
+
+        :return: The list of container attributes and constants.
+        :rtype: List[ContainerAttribute]
+        '''
+
+        # Load the attribute data from the yaml configuration file.
+        attr_data, consts = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: (
+                [ContainerAttributeYamlData.new(id=id, **attr_data) for id, attr_data in data.get('attrs', {}).items()],
+                data.get('const', {}),
+            ),
+        )
+
+        # Return the list of container attributes.
+        return (
+            [data.map(self.read_role) for data in attr_data],
+            consts
+        )
 
     # * method: save_attribute
     def save_attribute(self, attribute: ContainerAttribute):

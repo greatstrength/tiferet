@@ -1,17 +1,106 @@
 from typing import List, Dict, Any
 
+
 from schematics import types as t
-from schematics.transforms import wholelist, whitelist, blacklist
 
-from ..objects.data import ModelData
-from ..objects.container import ContainerAttribute
-from ..objects.container import DataAttribute
-from ..objects.container import DependencyAttribute
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DATA
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY
+# ** app
+from ..configs import *
+from ..domain import DataObject
+from ..domain.container import ContainerAttribute, ContainerDependency
 
 
-class ContainerAttributeData(ContainerAttribute, ModelData):
+# *** data
+
+# ** data: container_dependency_yaml_data
+class ContainerDependencyYamlData(ContainerDependency, DataObject):
+    '''
+    A data representation of a container dependency object.
+    '''
+
+    class Options():
+        '''
+        The options for the container dependency data.
+        '''
+
+        serialize_when_none = False
+        roles = {
+            'to_model': DataObject.allow(),
+            'to_data.yaml': DataObject.deny('flag')
+        }
+
+    # * attribute: flag
+    flag = t.StringType(
+        metadata=dict(
+            description='The flag is no longer required due to the YAML format.'
+        ),
+    )
+
+    # * attribute: parameters
+    parameters = DictType(
+        StringType, 
+        default={}, 
+        serialize_name='params', 
+        deserialize_from=['params'],
+        metadata=dict(
+            description='The parameters need to now account for new data names in the YAML format.'
+        ),
+    )
+
+    # * method: map
+    def map(self, **kwargs) -> ContainerDependency:
+        '''
+        Maps the container dependency data to a container dependency object.
+
+        :param role: The role for the mapping.
+        :type role: str
+        :return: A new container dependency object.
+        '''
+
+        # Map to the container dependency object.
+        return super().map(ContainerDependency, **kwargs)
+    
+    # * method: new
+    @staticmethod
+    def new(**kwargs) -> 'ContainerDependencyYamlData':
+        '''
+        Initializes a new ContainerDependencyData object from YAML data.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ContainerDependencyData object.
+        :rtype: ContainerDependencyYamlData
+        '''
+
+        # Create a new ContainerDependencyYamlData object.
+        data = ContainerDependencyYamlData(dict(
+            **kwargs,
+        ), strict=False)
+
+        # Validate and return the object.
+        data.validate()
+        return data
+    
+    # * method: from_model
+    @staticmethod
+    def from_model(model: ContainerDependency, **kwargs) -> 'ContainerDependencyYamlData':
+        '''
+        Initializes a new ContainerDependencyData object from a model object.
+
+        :param model: The container dependency model object.
+        :type model: ContainerDependency
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Create and return a new ContainerDependencyData object.
+        return ContainerDependencyYamlData.new(
+            **model.to_primitive(),
+            **kwargs,
+        )
+
+
+# ** data: container_attribute_yaml_data
+class ContainerAttributeYamlData(ContainerAttribute, DataObject):
     '''
     A data representation of a container attribute object.
     '''
@@ -23,86 +112,71 @@ class ContainerAttributeData(ContainerAttribute, ModelData):
 
         serialize_when_none = False
         roles = {
-            'to_object.yaml': blacklist('data'),
-            'to_data.yaml': blacklist('id')
+            'to_model': DataObject.allow(),
+            'to_data.yaml': DataObject.deny('id')
         }
 
-    data = t.DictType(t.DictType(t.StringType), default={}, required=True)
+    # * attribute: dependencies
+    dependencies = DictType(
+        ModelType(ContainerDependencyYamlData), 
+        default=[], 
+        serialize_name='deps', 
+        deserialize_from=['deps', 'dependencies'],
+        metadata=dict(
+            description='The dependencies are now a key-value pair keyed by the flags.'
+        ),
+    )
 
-    def map(self, role: str, flags: List[str], **kwargs) -> ContainerAttribute:
+    # * method: map
+    def map(self, **kwargs) -> ContainerAttribute:
         '''
         Maps the container attribute data to a container attribute object.
 
-        :param role: The role for the mapping.
-        :type role: str
-        :param flag: The flag to get the attribute under.
-        :type flag: str
-        :return: A new container attribute object.
-        '''
-
-        # Get the data for the flag.
-        for flag in flags:
-            try:
-                data = self.data[flag]
-            except KeyError:
-                continue
-            if self.type == CONTAINER_ATTRIBUTE_TYPE_DATA:
-                return super().map(DataAttribute, role, data=data, **kwargs)
-            elif self.type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
-                return super().map(DependencyAttribute, role, data=data, **kwargs)
-
-    @staticmethod
-    def new(id: str, type: str, flag: str, data: dict, **kwargs) -> 'ContainerAttributeData':
-        '''
-        Initializes a new ContainerAttributeData object.
-
-        :param id: The unique identifier for the container attribute.
-        :type id: str
-        :param type: The type of container attribute.
-        :type type: str
-        :param flag: The flag to get the attribute under.
-        :type flag: str
-        :param data: The data for the container attribute.
-        :type data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Create a new ContainerAttributeData object.
-        _data = ContainerAttributeData(dict(
-            id=id,
-            type=type,
-        ))
+        # Map to the container attribute object with the dependencies.
+        return super().map(ContainerAttribute, 
+            dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
+            **kwargs)
 
-        # Set the data.
-        _data.data[flag] = data
-
-        # Return the new ContainerAttributeData object.
-        return _data
-    
+    # * method: new
     @staticmethod
-    def from_yaml_data(id: str, data: dict, **kwargs) -> 'ContainerAttributeData':
+    def new(**kwargs) -> 'ContainerAttributeYamlData':
         '''
         Initializes a new ContainerAttributeData object from YAML data.
 
-        :param id: The unique identifier for the container attribute.
-        :type id: str
-        :param data: The YAML data for the container attribute.
-        :type data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new ContainerAttributeData object.
         '''
-        
+
         # Create a new ContainerAttributeData object.
-        _data = ContainerAttributeData(dict(
-            id=id,
-            data=data,
-            **kwargs)
+        data = ContainerAttributeYamlData(dict(
+            **kwargs,
+        ), strict=False)
+
+        
+        # Validate and return the object.
+        data.validate()
+        return data
+    
+    # * method: from_model
+    @staticmethod
+    def from_model(model: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
+        '''
+        Initializes a new ContainerAttributeData object from a model object.
+
+        :param model: The container attribute model object.
+        :type model: ContainerAttribute
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Create a new ContainerAttributeData object.
+        return ContainerAttributeYamlData.new(
+            id=model.id,
+            type=model.type,
+            dependencies = {dep.flag: dep for dep in model.dependencies},
         )
-
-        # Validate the new ContainerAttributeData object.
-        _data.validate()
-
-        # Return the new ContainerAttributeData object.
-        return _data
+    

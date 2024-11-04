@@ -29,6 +29,15 @@ class ContainerDependency(ModuleDependency):
         )
     )
 
+    # * attribute: parameters
+    parameters = t.DictType(
+        t.StringType,
+        default={},
+        metadata=dict(
+            description='The container dependency parameters.'
+        )
+    )
+
     # * method: new
     @staticmethod
     def new(**kwargs) -> 'ContainerDependency':
@@ -50,7 +59,7 @@ class ContainerDependency(ModuleDependency):
 # ** model: container_attribute
 class ContainerAttribute(Entity):
     '''
-    A container attribute object.
+    An attribute that defines container injectior behavior.
     '''
 
     # * attribute: id
@@ -95,3 +104,38 @@ class ContainerAttribute(Entity):
         super(ContainerAttribute, ContainerAttribute).new(
             ContainerAttribute,
             **kwargs)
+        
+    # * method: set_dependency
+    def set_dependency(self, dependency: ContainerDependency):
+        '''
+        Sets a container dependency.
+
+        :param dependency: The container dependency to set.
+        :type dependency: ContainerDependency
+        '''
+
+        # Replace the value of the dependency if a dependency with the same flag exists.
+        for index, _dependency in enumerate(self.dependencies):
+            if _dependency.flag == dependency.flag:
+                self.dependencies[index] = dependency
+                return
+        
+        # Append the dependency otherwise.
+        self.dependencies.append(dependency)
+        
+    # * method: get_dependency
+    def get_dependency(self, flag: str) -> ContainerDependency:
+        '''
+        Gets a container dependency by flag.
+
+        :param flag: The flag for the container dependency.
+        :type flag: str
+        :return: The container dependency.
+        :rtype: ContainerDependency
+        '''
+
+        # Return the dependency with the matching flag.
+        return next(
+            (dependency for dependency in self.dependencies if dependency.flag == flag),
+            None
+        )
