@@ -4,7 +4,7 @@
 from typing import List, Dict
 
 # ** app
-from ..objects.error import Error
+from ..domain.error import Error
 from ..clients import yaml as yaml_client
 from ..data.error import ErrorData
 
@@ -69,17 +69,26 @@ class ErrorRepository(object):
         raise NotImplementedError
 
 
-# ** implementation: yaml_repository
-class YamlRepository(ErrorRepository):
+# ** proxy: yaml_proxy
+class YamlProxy(ErrorRepository):
+    '''
+    The YAML proxy for the error repository
+    '''
 
-    # * field: base_path
-    base_path: str
+    # * field: config_file
+    config_file: str
 
     # * method: init
-    def __init__(self, error_yaml_base_path: str):
+    def __init__(self, error_config_file: str):
+        '''
+        Initialize the yaml proxy.
+
+        :param error_config_file: The error configuration file.
+        :type error_config_file: str
+        '''
 
         # Set the base path.
-        self.base_path = error_yaml_base_path
+        self.config_file = error_config_file
 
     # * method: exists
     def exists(self, id: str, **kwargs) -> bool:
@@ -96,7 +105,7 @@ class YamlRepository(ErrorRepository):
 
         # Load the error data from the yaml configuration file.
         data: List[ErrorData] = yaml_client.load(
-            self.base_path,
+            self.config_file,
             create_data=lambda data: ErrorData.from_yaml_data(
                 id=id, **data),
             start_node=lambda data: data.get('errors').get(id))
@@ -117,7 +126,7 @@ class YamlRepository(ErrorRepository):
 
         # Load the error data from the yaml configuration file.
         _data: ErrorData = yaml_client.load(
-            self.base_path,
+            self.config_file,
             create_data=lambda data: ErrorData.from_yaml_data(
                 id=id, **data),
             start_node=lambda data: data.get('errors').get(id))
@@ -136,7 +145,7 @@ class YamlRepository(ErrorRepository):
 
         # Load the error data from the yaml configuration file.
         _data: Dict[str, ErrorData] = yaml_client.load(
-            self.base_path,
+            self.config_file,
             create_data=lambda data: ErrorData.from_yaml_data(
                 id=id, **data),
             start_node=lambda data: data.get('errors'))
@@ -158,7 +167,7 @@ class YamlRepository(ErrorRepository):
 
         # Update the error data.
         yaml_client.save(
-            path=self.base_path,
+            path=self.config_file,
             data=error_data,
             data_save_path=f'errors/{error.name}',
         )
