@@ -53,11 +53,11 @@ attrs:
         class_name: AddCliCommand
         module_path: app.commands.cli
 
-  add_container_attribute:
+  set_container_attribute:
     type: feature
     deps:
       yaml:
-        class_name: AddContainerAttribute
+        class_name: SetContainerAttribute
         module_path: app.commands.container
 
   add_feature_handler:
