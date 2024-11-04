@@ -4,19 +4,26 @@ const:
   feature_config_file: app/configs/features.yml
 
 attrs:
-  cli_interface_context:
+  app_interface_context:
     type: interface
     deps:
-      yaml:
+      cli:
         class_name: CliInterfaceContext
         module_path: app.contexts.cli
 
   feature_context:
     type: interface
     deps:
-      yaml:
+      cli:
         class_name: FeatureContext
         module_path: app.contexts.feature
+
+  error_context:
+    type: interface
+    deps:
+      cli:
+        class_name: ErrorContext
+        module_path: app.contexts.error
 
   cli_interface_repo:
     type: data
@@ -24,8 +31,6 @@ attrs:
       yaml:
         class_name: YamlRepository
         module_path: app.repositories.cli
-        params:
-          app_config_file: '$c.app_config_file'
 
   error_repo:
     type: data
@@ -33,17 +38,6 @@ attrs:
       yaml:
         class_name: YamlRepository
         module_path: app.repositories.error
-        params:
-          error_config_file: '$c.error_config_file'
-
-  feature_repo:
-    type: data
-    deps:
-      yaml:
-        class_name: YamlRepository
-        module_path: app.repositories.feature
-        params:
-          feature_config_file: '$c.feature_config_file'
 
   add_cli_argument:
     type: feature
