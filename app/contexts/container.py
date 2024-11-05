@@ -9,6 +9,7 @@ from dependencies import Injector
 # ** app
 from ..configs import *
 from ..configs import container
+from ..services import container as container_service
 from ..domain.container import ContainerAttribute
 from ..repositories.container import ContainerRepository
 
@@ -137,10 +138,8 @@ class ContainerContext(Model):
         :rtype: Any
         '''
 
-        # Load container dependencies.
-        dependencies = {}
-
         # Import dependencies.
+        dependencies = {}
         for attribute_id in self.attributes:
             attribute = self.attributes[attribute_id]
             flag_map = dict(
@@ -151,8 +150,11 @@ class ContainerContext(Model):
             dependencies[attribute_id] = self.import_dependency(attribute, flag_map[attribute.type])
 
         # Create container.
-        name = f'{self.interface_flag.capitalize()}Container'
-        return type(name, (Injector,), {**self.constants, **dependencies, **kwargs})
+        return container_service.create_injector(self, 
+            self.interface_flag, 
+            **self.constants, 
+            **dependencies, 
+            **kwargs)
 
     # * method: import_dependency
     def import_dependency(self, attribute: ContainerAttribute, flag: str) -> Any:
@@ -175,5 +177,4 @@ class ContainerContext(Model):
             dependency = attribute.get_dependency('core')
 
         # Import the dependency.
-        from importlib import import_module
-        return getattr(import_module(dependency.module_path), dependency.class_name)
+        return container_service.import_dependency(dependency.module_path, dependency.class_name)

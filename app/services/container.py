@@ -28,10 +28,12 @@ def import_dependency(module_path: str, class_name: str) -> Any:
 
 
 # ** function: create_injector
-def create_injector(**dependencies) -> Any:
+def create_injector(name: str, **dependencies) -> Any:
     '''
     Create an injector object with the given dependencies.
 
+    :param name: The name of the injector.
+    :type name: str
     :param dependencies: The dependencies.
     :type dependencies: dict
     :return: The injector object.
@@ -39,4 +41,4 @@ def create_injector(**dependencies) -> Any:
     '''
 
     # Create container.
-    return type('Container', (Injector,), {**dependencies})
+    return type(f'{name.capitalize()}Container', (Injector,), {**dependencies})
