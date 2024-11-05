@@ -27,6 +27,7 @@ def import_dependency(module_path: str, class_name: str) -> Any:
     return getattr(import_module(module_path), class_name)
 
 
+# ** function: create_injector
 def create_injector(**dependencies) -> Any:
     '''
     Create an injector object with the given dependencies.
