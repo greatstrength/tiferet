@@ -1,75 +1,41 @@
-from importlib import import_module
-from typing import List, Dict, Any
+# *** imports
 
+# ** core
+from typing import Any
+
+# ** infra
 from dependencies import Injector
 
-from ..configs.errors import AppError
-from ..objects.container import ContainerAttribute
-from ..objects.container import DataAttribute
-from ..objects.container import DependencyAttribute
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DATA
-from ..objects.container import CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY
 
+# *** functions
 
-def import_dependency(module_path: str, class_name: str, **kwargs):
+# ** function: import_dependency
+def import_dependency(module_path: str, class_name: str) -> Any:
+    '''
+    Import an object dependency from its configured Python module.
+
+    :param module_path: The module path.
+    :type module_path: str
+    :param class_name: The class name.
+    :type class_name: str
+    :return: The dependency.
+    :rtype: Any
+    '''
 
     # Import module.
+    from importlib import import_module
     return getattr(import_module(module_path), class_name)
 
 
-def create_container(attributes: List[ContainerAttribute], **kwargs):
+def create_injector(**dependencies) -> Any:
+    '''
+    Create an injector object with the given dependencies.
 
-    # Create depenedencies dictionary.
-    dependencies = {}
-
-    # Load container configuration data.
-    for attribute in attributes:
-        if isinstance(attribute, DependencyAttribute):
-            dependencies[attribute.id] = import_dependency(
-                **attribute.data.to_primitive())
-        elif isinstance(attribute, DataAttribute):
-            dependencies[attribute.id] = attribute.data.value
+    :param dependencies: The dependencies.
+    :type dependencies: dict
+    :return: The injector object.
+    :rtype: Any
+    '''
 
     # Create container.
-    return type('Container', (Injector,), {**dependencies, **kwargs})
-
-
-def create_attribute(id: str, type: str, data: List[str], **kwargs) -> ContainerAttribute:
-
-    # Convert the data list to a dictionary.
-    data_dict = {}
-    for item in data:
-        key, value = item.split('=')
-        data_dict[key] = value
-
-    # Format the id to lower case snake case.
-    id = id.lower().replace(' ', '_')
-
-    # Create attribute object.
-    try:
-        if type == CONTAINER_ATTRIBUTE_TYPE_DATA:
-            return DataAttribute.new(
-                id=id,
-                data=data_dict
-            )
-        elif type == CONTAINER_ATTRIBUTE_TYPE_DEPENDENCY:
-            return DependencyAttribute.new(
-                id=id,
-                data=data_dict
-            )
-    except Exception:
-        raise AppError(f'INVALID_CONTAINER_ATTRIBUTE_DATA: {id}')
-
-
-def set_container_attributes(container: Any, injector: Injector, attributes: List[ContainerAttribute], **kwargs):
-
-    # Load container dependencies.
-    for attribute in attributes:
-
-        # Set attribute.
-        if isinstance(attribute, DataAttribute):
-            setattr(container, attribute.id, attribute.data.value)
-
-        # Set dependency.
-        elif isinstance(attribute, DependencyAttribute):
-            setattr(container, attribute.id, getattr(injector, attribute.id))
+    return type('Container', (Injector,), {**dependencies})
