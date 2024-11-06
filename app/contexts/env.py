@@ -7,6 +7,9 @@ from typing import Tuple
 from ..configs import *
 from ..contexts.app import AppInterfaceContext
 from ..contexts.container import ContainerContext
+from ..repositories.app import AppRepository
+from ..services.container import import_dependency
+from ..domain.app import AppInterface
 
 
 # *** contexts
@@ -17,44 +20,64 @@ class EnvironmentContext(Model):
     An environment context is a class that is used to create and run the app interface context.
     '''
 
-    # * attribute: containers
-    containers = DictType(
-        ModelType(ContainerContext),
+    # * attribute: interfaces
+    interfaces = DictType(
+        ModelType(AppInterface), 
         default={},
         metadata=dict(
-            description='The container contexts keyed by app interface.'
+            description='The app interfaces keyed by interface ID.'
         ),
     )
 
     # * method: init
-    def __init__(self, interface_id: str, app_config: str, container_config: str, **kwargs):
+    def __init__(self, **kwargs):
         '''
         Initialize the environment context.
-
-        :param env_base_key: The base key for the environment variables.
-        :type env_base_key: str
-        '''
-
-        # Load the container contexts.
-        self.load_containers(**kwargs)
-
-        # Load the app context.
-        container, app_context = self.load_app_context(interface_id)
-
-        # Run the app context.
-        app_context.run(container=container, **kwargs)
-
-    # * method: load_containers
-    def load_containers(self, **kwargs):
-        '''
-        Load the container contexts by app interface.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        pass
-    
+        # Load the app repository.
+        app_repo = self.load_app_repo()
+
+        # Load the interface configuration.
+        self.interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+
+    # * method: start
+    def start(self, interface_id: str, **kwargs):
+        '''
+        Start the environment context.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Load the app context.
+        container, app_context = self.load_app_context(interface_id)
+
+        # Run the app context.
+        app_context.run(
+            interface_id=interface_id, 
+            container=container, 
+            **kwargs
+        )
+
+    # * method: load_app_repo
+    def load_app_repo(self) -> AppRepository:
+        '''
+        Load the app interface repository.
+
+        :return: The app repository.
+        :rtype: AppRepository
+        '''
+
+        # Load the app repository configuration.
+        from ..configs.app import APP_REPO
+
+        # Return the app repository.
+        return import_dependency(APP_REPO.module_path, APP_REPO.class_name)(**APP_REPO.params)
+
     # * method: load_app_context
     def load_app_context(self, interface_id: str) -> Tuple[ContainerContext, AppInterfaceContext]:
         '''
