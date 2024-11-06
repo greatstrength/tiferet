@@ -1,23 +1,30 @@
 # *** imports
 
 # ** core
-from typing import Dict
+from typing import Any, Tuple
 
 # ** app
+from ..configs import *
 from ..repositories.error import ErrorRepository
-from ..objects.error import Error
+from ..domain.error import Error
 
 
 # *** contexts
 
 # ** context: error_context
-class ErrorContext(object):
+class ErrorContext(Model):
     '''
     The error context object.
     '''
 
-    # * field: errors
-    errors: Dict[str, Error] = None  # The error repository.
+    # * attribute: errors
+    errors = DictType(
+        ModelType(Error),
+        required=True,
+        metadata=dict(
+            description='The errors lookup.'
+        )
+    )
 
     # * method: init
     def __init__(self, error_repo: ErrorRepository):
@@ -28,37 +35,33 @@ class ErrorContext(object):
         :type error_repo: ErrorRepository
         '''
 
-        # Set the errors lookup from the error repository.
-        self.errors = {error.name: error for error in error_repo.list()}
+        # Create the errors lookup from the error repository.
+        errors = {error.name: error for error in error_repo.list()}
+
+        # Set the errors lookup and validate.
+        super().__init__(dict(errors=errors))
+        self.validate()
 
     # * method: handle_error
-    @staticmethod
-    def handle_error(self, func):
+    def handle_error(self, execute_feature: Any) -> Tuple[bool, Any]:
         '''
         Handle an error.
 
-        :param func: The function to handle.
+        :param func: The execute feature function to handle.
         :type func: function
-        :return: The wrapped function.
-        :rtype: Any
+        :return: Whether the error was handled.
+        :rtype: bool
         '''
 
-        # Import wraps.
-        from functools import wraps
-
-        # Define the wrapper.
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except AssertionError as e:
-                return self.format_error_response(str(e), **kwargs)
-
-        # Return the wrapper.
-        return wrapper
+        # Execute the feature function and handle the errors.
+        try:
+            execute_feature()
+            return (False, None)
+        except AssertionError as e:
+            return (True, self.format_error_response(str(e)))
 
     # * method: format_error_response
-    def format_error_response(self, error_message: str, lang: str = 'en_US', **kwargs) -> str:
+    def format_error_response(self, error_message: str, lang: str = 'en_US', **kwargs) -> Any:
         '''
         Format the error response.
 
@@ -67,7 +70,7 @@ class ErrorContext(object):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The formatted error message.
-        :rtype: str
+        :rtype: Any
         '''
 
         # Split error message.

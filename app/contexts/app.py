@@ -4,9 +4,9 @@
 from typing import Any 
 
 # ** app
-from .request import RequestContext #*** app
-from .feature import FeatureContext #*** app
-from .error import ErrorContext, ErrorContext as err #*** app
+from .request import RequestContext
+from .feature import FeatureContext
+from .error import ErrorContext
 
 
 # *** contexts
@@ -58,7 +58,6 @@ class AppInterfaceContext():
         return request
     
     # * method: execute_feature
-    @err.handle_error()
     def execute_feature(self, request: RequestContext, **kwargs):
         '''
         Execute the feature context.
@@ -97,7 +96,12 @@ class AppInterfaceContext():
         request = self.parse_request(**kwargs)
 
         # Execute feature context and return session.
-        self.execute_feature(request, **kwargs)
+        # Handle error and return response if triggered.
+        has_error, message = self.errors.handle_error(lambda: self.execute_feature(request, **kwargs))
+
+        # Handle error if present.
+        if has_error:
+            return message
 
         # Handle response.
         return self.handle_response(request)
