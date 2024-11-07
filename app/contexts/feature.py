@@ -1,25 +1,34 @@
 # *** imports
 
-# ** core
-from typing import Dict
-
 # ** app
 from .container import ContainerContext
 from .request import RequestContext
-from ..domain.feature import Feature
+from ..domain import *
 from ..repositories.feature import FeatureRepository
 
 
 # *** contexts
 
 # ** context: feature_context
-class FeatureContext(object):
+class FeatureContext(Model):
 
     # * field: features
-    features: Dict[str, Feature] = None 
+    features = DictType(
+        ModelType(Feature),
+        required=True,
+        metadata=dict(
+            description='The features lookup.'
+        )
+    )
 
     # * field: container
-    container: ContainerContext = None
+    container = ModelType(
+        ContainerContext,
+        required=True,
+        metadata=dict(
+            description='The container context.'
+        ),
+    )
 
     # * method: init
     def __init__(self, feature_repo: FeatureRepository, container: ContainerContext):

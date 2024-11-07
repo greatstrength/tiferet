@@ -1,15 +1,13 @@
 # *** imports
 
-# ** core
-from typing import Tuple
+# ** infra
+from schematics import Model
 
 # ** app
-from ..configs import *
-from ..contexts.app import AppInterfaceContext
-from ..contexts.container import ContainerContext
+from .app import AppInterfaceContext
+from ..services import container_service
+from ..domain import *
 from ..repositories.app import AppRepository
-from ..services.container import import_dependency, create_injector
-from ..domain.app import AppInterface
 
 
 # *** contexts
@@ -75,7 +73,7 @@ class EnvironmentContext(Model):
         from ..configs.app import APP_REPO
 
         # Return the app repository.
-        return import_dependency(APP_REPO.module_path, APP_REPO.class_name)(**APP_REPO.params)
+        return container_service.import_dependency(APP_REPO.module_path, APP_REPO.class_name)(**APP_REPO.params)
 
     # * method: load_app_context
     def load_app_context(self, interface_id: str) -> AppInterfaceContext:
@@ -99,10 +97,10 @@ class EnvironmentContext(Model):
             **app_interface.constants
         )
         for dep in app_interface.get_dependencies():
-            dependencies[dep.attribute_id] = import_dependency(dep.module_path, dep.class_name)
+            dependencies[dep.attribute_id] = container_service.import_dependency(dep.module_path, dep.class_name)
 
         # Create the injector from the dependencies, constants, and the app interface.
-        injector = create_injector(
+        injector = container_service.create_injector(
             app_interface.id
             **dependencies
         )

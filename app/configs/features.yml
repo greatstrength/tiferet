@@ -1,0 +1,12 @@
+cli.add_argument:
+  group_id: cli
+  name: Add CLI Argument
+  functions:
+    - attribute_id: add_cli_argument
+      name: Add CLI Argument
+cli.add_command:
+  group_id: cli
+  name: Add CLI Command
+  functions:
+    - attribute_id: add_cli_command
+      name: Add CLI Command

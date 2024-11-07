@@ -4,9 +4,8 @@
 from typing import Any, Tuple
 
 # ** app
-from ..configs import *
+from ..domain import *
 from ..repositories.error import ErrorRepository
-from ..domain.error import Error
 
 
 # *** contexts

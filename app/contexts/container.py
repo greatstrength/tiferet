@@ -4,10 +4,9 @@
 from typing import Any
 
 # ** app
-from ..configs import *
 from ..configs import container
-from ..services import container as container_service
-from ..domain.container import ContainerAttribute
+from ..domain import *
+from ..services import container_service
 from ..repositories.container import ContainerRepository
 
 
@@ -71,14 +70,14 @@ class ContainerContext(Model):
         :param data_flag: The data flag.
         :type data_flag: str
         '''
-        
-        # Add the default container attributes first.
-        self.attributes = vars(container)
 
         # Then set the interface id and injector flags.
         self.interface_id = interface_id
         self.feature_flag = feature_flag
         self.data_flag = data_flag
+
+        # Add the default container attributes first if any.
+        self.attributes = vars(container)
         
         # Get and set attributes and constants.
         attrs, consts = container_repo.list_all()

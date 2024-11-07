@@ -3,6 +3,9 @@
 # ** core
 from typing import Any
 
+# ** infra
+from schematics import Model
+
 # ** app
 from ..configs import *
 
