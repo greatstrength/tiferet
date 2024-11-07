@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from .object import *
+from ..domain import *
 
 
 # *** models
