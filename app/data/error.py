@@ -1,8 +1,9 @@
 # *** imports
 
 # ** app
-from ..objects import *
-from ..objects.error import Error, ErrorMessage
+from ..configs import *
+from ..domain import DataObject
+from ..domain.error import Error, ErrorMessage
 
 
 # *** data
@@ -35,8 +36,8 @@ class ErrorData(Error, DataObject):
         }
 
     # * attribute: message
-    message = t.ListType(
-        t.ModelType(ErrorMessageData),
+    message = ListType(
+        ModelType(ErrorMessageData),
         required=True,
         metadata=dict(
             description='The error messages.'

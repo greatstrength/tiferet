@@ -37,7 +37,7 @@ class AppDependency(ModuleDependency):
         )
 
 # ** model: app_interface
-class AppInterface(ValueObject):
+class AppInterface(Entity):
     '''
     The base application interface object.
     '''
@@ -57,20 +57,123 @@ class AppInterface(ValueObject):
         ),
     )
 
-    # * attribute: dependencies
-    dependencies = ListType(
-        ModelType(AppDependency),
+    # attribute: feature_flag
+    feature_flag = StringType(
         required=True,
-        default=[],
         metadata=dict(
-            description='The application dependencies.'
+            description='The feature flag.'
+        ),
+    )
+
+    # attribute: data_flag
+    data_flag = StringType(
+        required=True,
+        metadata=dict(
+            description='The data flag.'
+        ),
+    )
+
+    # * attribute: app_context
+    app_context = ModelType(
+        AppDependency,
+        required=True,
+        metadata=dict(
+            description='The application context dependency.'
+        ),
+    )
+
+    # * attribute: feature_context
+    feature_context = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='feature_context',
+            module_path='app.contexts.feature',
+            class_name='FeatureContext',
+        ),
+        metadata=dict(
+            description='The feature context dependency.'
+        ),
+    )
+
+    # * attribute: container_context
+    container_context = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='container_context',
+            module_path='app.contexts.container',
+            class_name='ContainerContext',
+        ),
+        metadata=dict(
+            description='The container context dependency.'
+        ),
+    )
+
+    # * attribute: error_context
+    error_context = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='error_context',
+            module_path='app.contexts.error',
+            class_name='ErrorContext',
+        ),
+        metadata=dict(
+            description='The error context dependency.'
+        ),
+    )
+
+    # * attribute: feature_repo
+    feature_repo = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='feature_repo',
+            module_path='app.repositories.feature',
+            class_name='FeatureRepository',
+        ),
+        metadata=dict(
+            description='The feature repository dependency.'
+        ),
+    )
+
+    # * attribute: container_repo
+    container_repo = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='container_repo',
+            module_path='app.repositories.container',
+            class_name='ContainerRepository',
+        ),
+        metadata=dict(
+            description='The container repository dependency.'
+        ),
+    )
+
+    # * attribute: error_repo
+    error_repo = ModelType(
+        AppDependency,
+        required=True,
+        default=AppDependency.new(
+            attribute_id='error_repo',
+            module_path='app.repositories.error',
+            class_name='ErrorRepository',
+        ),
+        metadata=dict(
+            description='The error repository dependency.'
         ),
     )
 
     # * attribute: constants
     constants = DictType(
         StringType,
-        default={},
+        default=dict(
+            container_config_file='app/configs/container.yml',
+            feature_config_file='app/configs/features.yml',
+            error_config_file='app/configs/errors.yml',
+        ),
         metadata=dict(
             description='The application dependency constants.'
         ),
@@ -93,6 +196,26 @@ class AppInterface(ValueObject):
             AppInterface,
             **kwargs
         )
+    
+    # * method: list_dependencies
+    def get_dependencies(self) -> list:
+        '''
+        Lists the dependencies for the application interface.
+
+        :return: The list of dependencies for the application interface.
+        :rtype: list
+        '''
+
+        # Return the list of dependencies for the application interface.
+        return [
+            self.app_context,
+            self.feature_context,
+            self.container_context,
+            self.error_context,
+            self.feature_repo,
+            self.container_repo,
+            self.error_repo,
+        ]
 
 
 # ** model: app_repository_configuration

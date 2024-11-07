@@ -8,7 +8,7 @@ from ..configs import *
 from ..contexts.app import AppInterfaceContext
 from ..contexts.container import ContainerContext
 from ..repositories.app import AppRepository
-from ..services.container import import_dependency
+from ..services.container import import_dependency, create_injector
 from ..domain.app import AppInterface
 
 
@@ -54,12 +54,11 @@ class EnvironmentContext(Model):
         '''
 
         # Load the app context.
-        container, app_context = self.load_app_context(interface_id)
+        app_context = self.load_app_context(interface_id)
 
         # Run the app context.
         app_context.run(
-            interface_id=interface_id, 
-            container=container, 
+            interface_id=interface_id,
             **kwargs
         )
 
@@ -79,7 +78,7 @@ class EnvironmentContext(Model):
         return import_dependency(APP_REPO.module_path, APP_REPO.class_name)(**APP_REPO.params)
 
     # * method: load_app_context
-    def load_app_context(self, interface_id: str) -> Tuple[ContainerContext, AppInterfaceContext]:
+    def load_app_context(self, interface_id: str) -> AppInterfaceContext:
         '''
         Load the app context.
 
@@ -89,11 +88,24 @@ class EnvironmentContext(Model):
         :rtype: AppContext
         '''
 
-        # Get the app container.
-        container: ContainerContext = self.containers[interface_id]
+        # Get the app interface.
+        app_interface: AppInterface = self.interfaces.get(interface_id)
 
-        # Load the app context.
-        app_context = container.get_dependency('app_interface_context')
+        # Get the dependencies for the app interface.
+        dependencies = dict(
+            interface_id=app_interface.id,
+            feature_flag=app_interface.feature_flag,
+            data_flag=app_interface.data_flag,
+            **app_interface.constants
+        )
+        for dep in app_interface.get_dependencies():
+            dependencies[dep.attribute_id] = import_dependency(dep.module_path, dep.class_name)
+
+        # Create the injector from the dependencies, constants, and the app interface.
+        injector = create_injector(
+            app_interface.id
+            **dependencies
+        )
 
         # Return the app context.
-        return container, app_context
+        return getattr(injector, 'app_context')

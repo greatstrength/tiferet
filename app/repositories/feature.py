@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 
 from ..data.feature import FeatureData
-from ..objects.feature import Feature
+from ..domain.feature import Feature
 
 from ..clients import yaml as yaml_client
 
@@ -58,7 +58,7 @@ class FeatureRepository(object):
         raise NotImplementedError()
 
 
-class YamlRepository(FeatureRepository):
+class YamlProxy(FeatureRepository):
     '''
     Yaml repository for features.
     '''

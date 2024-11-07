@@ -76,12 +76,66 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             'to_data.yaml': DataObject.deny('id')
         }
 
-    # * attribute: dependencies
-    dependencies = DictType(
-        ModelType(AppDependencyYamlData),
-        default={},
+    # attribute: app_context
+    app_context = ModelType(
+        AppDependencyYamlData,
+        required=True,
         metadata=dict(
-            description='The app interface dependencies.'
+            description='The application context dependency.'
+        ),
+    )
+
+    # * attribute: feature_context
+    feature_context = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The feature context dependency.'
+        ),
+    )
+
+    # * attribute: container_context
+    container_context = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The container context dependency.'
+        ),
+    )
+
+    # * attribute: error_context
+    error_context = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The error context dependency.'
+        ),
+    )
+
+    # * attribute: feature_repo
+    feature_repo = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The feature repository dependency.'
+        ),
+    )
+
+    # * attribute: container_repo
+    container_repo = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The container repository dependency.'
+        ),
+    )
+
+    # * attribute: error_repo
+    error_repo = ModelType(
+        AppDependencyYamlData,
+        required=True,
+        metadata=dict(
+            description='The error repository dependency.'
         ),
     )
 
@@ -117,15 +171,8 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         :rtype: AppInterface
         '''
 
-        # Map the app dependency data.
-        dependencies = [
-            dependency.map() for dependency in self.dependencies.values()
-        ]
-
         # Map the app interface data.
-        return super().map(AppInterface,
-            dependencies=dependencies 
-            **kwargs)
+        return super().map(AppInterface, **kwargs)
 
 
 # ** data: app_repository_configuration_yaml_data

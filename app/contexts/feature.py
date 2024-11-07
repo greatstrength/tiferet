@@ -6,7 +6,7 @@ from typing import Dict
 # ** app
 from .container import ContainerContext
 from .request import RequestContext
-from ..objects.feature import Feature
+from ..domain.feature import Feature
 from ..repositories.feature import FeatureRepository
 
 

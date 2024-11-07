@@ -1,8 +1,8 @@
 
 from schematics.types.serializable import serializable
 
-from ..objects import *
-from ..objects.feature import Feature, FeatureCommand
+from ..domain import *
+from ..domain.feature import Feature, FeatureCommand
 
 
 class FeatureCommandData(FeatureCommand, DataObject):

@@ -3,9 +3,6 @@
 # ** core
 from typing import Any
 
-# ** infra
-from dependencies import Injector
-
 # ** app
 from ..configs import *
 from ..configs import container
@@ -40,14 +37,6 @@ class ContainerContext(Model):
             description='The container constants.'
         ),
     )
-    
-    # * attribute: interface_flag
-    interface_flag = StringType(
-        required=True,
-        metadata=dict(
-            description='The interface flag.'
-        ),
-    )
 
     # * attribute: feature_flag
     feature_flag = StringType(
@@ -67,10 +56,12 @@ class ContainerContext(Model):
     )
 
     # * method: init
-    def __init__(self, container_repo: ContainerRepository, interface_flag: str, feature_flag: str, data_flag: str, **kwargs):
+    def __init__(self, interface_id: str, container_repo: ContainerRepository, feature_flag: str, data_flag: str):
         '''
         Initialize the container context.
 
+        :param interface_id: The interface ID.
+        :type interface_id: str
         :param container_repo: The container repository.
         :type container_repo: ContainerRepository
         :param interface_flag: The interface flag.
@@ -79,15 +70,13 @@ class ContainerContext(Model):
         :type feature_flag: str
         :param data_flag: The data flag.
         :type data_flag: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
         
         # Add the default container attributes first.
         self.attributes = vars(container)
 
-        # Then set the injector flags.
-        self.interface_flag = interface_flag
+        # Then set the interface id and injector flags.
+        self.interface_id = interface_id
         self.feature_flag = feature_flag
         self.data_flag = data_flag
         
@@ -143,7 +132,6 @@ class ContainerContext(Model):
         for attribute_id in self.attributes:
             attribute = self.attributes[attribute_id]
             flag_map = dict(
-                interface=self.interface_flag,
                 feature=self.feature_flag,
                 data=self.data_flag,
             )
@@ -151,7 +139,7 @@ class ContainerContext(Model):
 
         # Create container.
         return container_service.create_injector(self, 
-            self.interface_flag, 
+            self.interface_id, 
             **self.constants, 
             **dependencies, 
             **kwargs)

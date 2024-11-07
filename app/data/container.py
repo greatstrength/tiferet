@@ -1,7 +1,4 @@
-from typing import List, Dict, Any
-
-
-from schematics import types as t
+# *** imports
 
 # ** app
 from ..configs import *
@@ -29,7 +26,7 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         }
 
     # * attribute: flag
-    flag = t.StringType(
+    flag = StringType(
         metadata=dict(
             description='The flag is no longer required due to the YAML format.'
         ),

@@ -177,93 +177,20 @@ class ModuleDependency(Model):
         )
     )
 
+    # * method: new
+    @staticmethod
+    def new(**kwargs) -> 'ModuleDependency':
+        '''
+        Initializes a new ModuleDependency object.
 
-# ** model: app_interface
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ModuleDependency object.
+        :rtype: ModuleDependency
+        '''
 
-class AppInterface(Entity):
-    '''
-    The base application interface object.
-    '''
-
-    # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The name of the application interface.'
+        # Create a new ModuleDependency object.
+        return super(ModuleDependency, ModuleDependency).new(
+            ModuleDependency,
+            **kwargs
         )
-    )
-
-    # * attribute: attribute_id
-    attribute_id = StringType(
-        required=True,
-        metadata=dict(
-            description='The container attribute for the application interface context.'
-        )
-    )
-
-    # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the application interface.'
-        )
-    )
-
-    # * attribute: container_repo
-    container_repo = ModelType(ModuleDependency,
-        required=True,
-        default=ModuleDependency(dict(
-            module_path='app.repositories.container',
-            class_name='YamlProxy'
-        )),
-        metadata=dict(
-            description='The container repository module dependency.'
-        )
-    )
-
-    # * attribute: container_context
-    container_context = ModelType(ModuleDependency,
-        required=True,
-        default=ModuleDependency(dict(
-            module_path='app.contexts.container',
-            class_name='ContainerContext'
-        )),
-        metadata=dict(
-            description='The container context module dependency.'
-        )
-    )
-
-    # * attribute: feature_repo
-    feature_repo = ModelType(ModuleDependency,
-        required=True,
-        default=ModuleDependency(dict(
-            module_path='app.repositories.feature',
-            class_name='YamlProxy'
-        )),
-        metadata=dict(
-            description='The feature repository module dependency.'
-        )
-    )
-
-    # * attribute: feature_context
-    feature_context = ModelType(ModuleDependency,
-        required=True,
-        default=ModuleDependency(dict(
-            module_path='app.contexts.feature',
-            class_name='FeatureContext'
-        )),
-        metadata=dict(
-            description='The feature context module dependency.'
-        )
-    )
-
-    # * attribute: error_repo
-    error_repo = ModelType(ModuleDependency,
-        required=True,
-        default=ModuleDependency(dict(
-            module_path='app.repositories.error',
-            class_name='YamlProxy'
-        )),
-        metadata=dict(
-            description='The error repository module dependency.'
-        )
-    )
