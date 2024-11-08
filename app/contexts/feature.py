@@ -12,7 +12,7 @@ from ..repositories.feature import FeatureRepository
 # ** context: feature_context
 class FeatureContext(Model):
 
-    # * field: features
+    # * attribute: features
     features = DictType(
         ModelType(Feature),
         required=True,
@@ -21,7 +21,7 @@ class FeatureContext(Model):
         )
     )
 
-    # * field: container
+    # * attribute: container
     container = ModelType(
         ContainerContext,
         required=True,
@@ -74,6 +74,6 @@ class FeatureContext(Model):
                 request.data[command.data_key] = result
                 continue
 
-            # Return the result to the session context if return to result is set.
+            # Set the result in the request context.
             if result:
-                request.result = result
+                request.set_result(result)

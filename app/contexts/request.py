@@ -2,31 +2,52 @@
 
 # ** core
 from typing import Dict
-from typing import Any
+
+# ** app
+from ..domain import *
 
 
 # *** contexts
 
 # ** context: request_context
-class RequestContext(object):
+class RequestContext(Model):
     '''
     The context for an application request.
     '''
 
-    # * field: feature_id
-    feature_id: str = None  # The feature identifier for the request.
+    # * attribute: feature_id
+    feature_id = StringType(
+        required=True,
+        metadata=dict(
+            description='The feature identifier for the request.'
+        )
+    )
 
-    # * field: headers
-    headers: Dict[str, str] = None  # The request headers.
+    # * attribute: headers
+    headers = DictType(
+        StringType(),
+        metadata=dict(
+            description='The request headers.'
+        )
+    )
 
-    # * field: data
-    data: Dict[str, Any] = None  # The request data.
+    # * attribute: data
+    data = DictType(
+        StringType(),
+        metadata=dict(
+            description='The request data.'
+        )
+    )
 
-    # * field: result
-    result: Any = None  # The result of the request.
+    # * attribute: result
+    result = StringType(
+        metadata=dict(
+            description='The request result.'
+        )
+    )
 
     # * method: init
-    def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, Any], **kwargs):
+    def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, str]):
         '''
         Initialize the request context object.
 
@@ -45,35 +66,43 @@ class RequestContext(object):
         self.headers = headers
         self.data = data
 
-    # * method: map_response
-    def map_response(self, **kwargs) -> dict:
+        # Validate the context.
+        self.validate()
+
+    # * method: set_result
+    def set_result(self, result: Any):
         '''
-        Map the response to a primitive dictionary.
+        Set the serialized result value.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The response.
-        :rtype: dict
+        :param result: The result object.
+        :type result: Any
         '''
 
-        # Return an empty dictionary if the result is None.
-        if not self.result:
-            return {}
+        # Import the json module.
+        import json
 
-        # If the result is a Model, convert it to a primitive dictionary.
-        from schematics import Model
-        if isinstance(self.result, Model):
-            return self.result.to_primitive()
+        # Set the result as a serialized empty dictionary if it is None.
+        if not result:
+            self.result = json.dumps({})
+            return
+            
+        # If the result is a Model, convert it to a primitive dictionary and serialize it.
+        if isinstance(result, Model):
+            self.result = json.dumps(result.to_primitive())
+            return
 
-        # If the result is not a list, return it.
+        # If the result is not a list, it must be a dict, so serialize it and set it.
         if type(self.result) != list:
-            return self.result
+            self.result = json.dumps(result)
+            return
 
         # If the result is a list, convert each item to a primitive dictionary.
-        result = []
+        result_list = []
         for item in result:
             if isinstance(item, Model):
-                result.append(item.to_primitive())
+                result_list.append(item.to_primitive())
             else:
-                result.append(item)
-        return result
+                result_list.append(item)
+
+        # Serialize the result and set it.
+        self.result = json.dumps(result_list)

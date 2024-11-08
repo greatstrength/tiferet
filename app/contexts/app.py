@@ -7,21 +7,39 @@ from typing import Any
 from .request import RequestContext
 from .feature import FeatureContext
 from .error import ErrorContext
+from ..domain import *
 
 
 # *** contexts
 
 # ** context: app_interface_context
-class AppInterfaceContext(): 
+class AppInterfaceContext(Model): 
 
-    # * field: name
-    name: str
+    # * attribute: name
+    name = StringType(
+        required=True,
+        metadata=dict(
+            description='The application name.'
+        )
+    )
 
     # * field: features
-    features: FeatureContext
+    features = ModelType(
+        FeatureContext,
+        required=True,
+        metadata=dict(
+            description='The feature context.'
+        )
+    )
 
     # * field: errors
-    errors: ErrorContext
+    errors = ModelType(
+        ErrorContext,
+        required=True,
+        metadata=dict(
+            description='The error context.'
+        )
+    )
 
     # * method: init
     def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
@@ -36,10 +54,12 @@ class AppInterfaceContext():
         :type error_context: ErrorContext
         '''
 
-        # Set the context fields.
-        self.name: str = app_name
-        self.features: FeatureContext = feature_context
-        self.errors: ErrorContext = error_context
+        # Initialize the model.
+        super().__init__(dict(
+            name=app_name,
+            features=feature_context,
+            errors=error_context
+        ))
 
     # * method: parse_request
     def parse_request(self, request: Any, **kwargs) -> RequestContext:
@@ -80,8 +100,11 @@ class AppInterfaceContext():
         :rtype: Any
         '''
         
-        # Map response.
-        return request.map_response()
+        # Import the JSON module.
+        import json
+
+        # Return the response.
+        return json.loads(request.result)
     
     # * method: run
     def run(self, **kwargs):
