@@ -1,17 +1,17 @@
-from typing import List, Dict, Any
+from typing import Dict, Any
 
-from ..contexts.app import AppContext
-from ..objects.cli import CliInterface
-from ..objects.error import Error
+from .app import AppInterfaceContext
+from ..domain import *
+from ..domain.cli import CliInterface
 from ..services import cli as cli_service
 from ..repositories.cli import CliInterfaceRepository
 
 
-class CliInterfaceContext(AppContext):
+class CliInterfaceContext(AppInterfaceContext):
 
     cli_interface_repo: CliInterfaceRepository
 
-    def __init__(self, app_context: AppContext, cli_interface_repo: CliInterfaceRepository):
+    def __init__(self, app_context: AppInterfaceContext, cli_interface_repo: CliInterfaceRepository):
         self.cli_interface_repo = cli_interface_repo
         super().__init__(
             app_name=app_context.name,

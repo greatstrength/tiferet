@@ -2,8 +2,8 @@ from typing import List, Dict, Any
 import argparse
 
 from ..contexts.request import RequestContext
-from ..objects.cli import CliInterface
-from ..objects.cli import CliArgument
+from ..domain.cli import CliInterface
+from ..domain.cli import CliArgument
 
 
 def create_argument_data(cli_argument: CliArgument):

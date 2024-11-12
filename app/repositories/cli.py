@@ -1,6 +1,6 @@
 from typing import List
 
-from ..objects.cli import CliInterface
+from ..domain.cli import CliInterface
 from ..data.cli import CliInterfaceData
 from ..clients import yaml as yaml_client
 
