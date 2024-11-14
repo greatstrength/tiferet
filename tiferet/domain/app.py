@@ -88,7 +88,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='feature_context',
-            module_path='app.contexts.feature',
+            module_path='tiferet.contexts.feature',
             class_name='FeatureContext',
         ),
         metadata=dict(
@@ -102,7 +102,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='container_context',
-            module_path='app.contexts.container',
+            module_path='tiferet.contexts.container',
             class_name='ContainerContext',
         ),
         metadata=dict(
@@ -116,7 +116,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='error_context',
-            module_path='app.contexts.error',
+            module_path='tiferet.contexts.error',
             class_name='ErrorContext',
         ),
         metadata=dict(
@@ -130,7 +130,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='feature_repo',
-            module_path='app.repositories.feature',
+            module_path='tiferet.repos.feature',
             class_name='FeatureRepository',
         ),
         metadata=dict(
@@ -144,7 +144,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='container_repo',
-            module_path='app.repositories.container',
+            module_path='tiferet.repos.container',
             class_name='ContainerRepository',
         ),
         metadata=dict(
@@ -158,7 +158,7 @@ class AppInterface(Entity):
         required=True,
         default=AppDependency.new(
             attribute_id='error_repo',
-            module_path='app.repositories.error',
+            module_path='tiferet.repos.error',
             class_name='ErrorRepository',
         ),
         metadata=dict(
@@ -227,7 +227,7 @@ class AppRepositoryConfiguration(ModuleDependency):
     # * attribute: module_path
     module_path = StringType(
         required=True,
-        default='app.repositories.app',
+        default='tiferet.repos.app',
         metadata=dict(
             description='The module path for the application repository.'
         ),

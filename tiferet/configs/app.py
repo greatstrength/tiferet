@@ -8,7 +8,7 @@ from ..domain.app import AppRepositoryConfiguration
 
 # ** constant: APP_REPO
 APP_REPO = AppRepositoryConfiguration.new(
-    module_path='app.repositories.app',
+    module_path='tiferet.repos.app',
     class_name='YamlProxy',
     params=dict(
         app_config_file='app/configs/app.yaml'

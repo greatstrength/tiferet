@@ -4,7 +4,6 @@
 from typing import Any
 
 # ** app
-from ..configs import container
 from ..domain import *
 from ..services import container_service
 from ..repos.container import ContainerRepository
@@ -76,8 +75,8 @@ class ContainerContext(Model):
         self.feature_flag = feature_flag
         self.data_flag = data_flag
 
-        # Add the default container attributes first if any.
-        self.attributes = vars(container)
+        # Add the attributes as an empty dictionary.
+        self.attributes = {}
         
         # Get and set attributes and constants.
         attrs, consts = container_repo.list_all()
