@@ -4,24 +4,30 @@ except:
     from distutils.core import setup
 
 config = {
-    'description': 'The Core Library for the Spirit of Harmony',
+    'description': 'A multi-purpose application framework embodying beauty in form.',
     'author': 'Andrew Shatz',
-    'url': r'https://github.com/greatstrength/aikicore',
-    'download_url': r'https://github.com/greatstrength/aikicore',
+    'url': r'https://github.com/greatstrength/app',
+    'download_url': r'https://github.com/greatstrength/app',
     'author_email': 'andrew@greatstrength.me',
-    'version': '0.2.4',
+    'version': '1.0.0-alpha.2',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
         'pyyaml>=6.0.1'
     ],
     'packages': [
-        'aikicore',
-        'aikicore.config',
-        'aikicore.objects',
+        'tiferet',
+        'tiferet.clients',
+        'tiferet.commands',
+        'tiferet.configs',
+        'tiferet.contexts',
+        'tiferet.data',
+        'tiferet.domain',
+        'tiferet.repos',
+        'tiferet.services',
     ],    
     'scripts': [],
-    'name': 'aikicore'
+    'name': 'tiferet'
 }
 
 setup(**config)
