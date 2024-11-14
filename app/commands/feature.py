@@ -1,6 +1,6 @@
-from ..objects.feature import Feature
-from ..objects.feature import FeatureHandler
-from ..repositories.feature import FeatureRepository
+from ..domain.feature import Feature
+from ..domain.feature import FeatureHandler
+from ..repos.feature import FeatureRepository
 
 
 class AddNewFeature(object):

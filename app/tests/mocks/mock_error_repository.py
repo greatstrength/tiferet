@@ -5,7 +5,7 @@ from typing import List
 
 # ** app
 from ...domain import *
-from ...repositories.error import ErrorRepository
+from ...repos.error import ErrorRepository
 
 
 # *** mocks

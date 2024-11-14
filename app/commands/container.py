@@ -1,4 +1,4 @@
-from ..repositories.container import ContainerRepository
+from ..repos.container import ContainerRepository
 from ..domain.container import ContainerAttribute, ContainerDependency
 from ..services import container as container_service
 

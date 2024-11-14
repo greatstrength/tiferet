@@ -5,7 +5,7 @@ from typing import Any, Tuple
 
 # ** app
 from ..domain import *
-from ..repositories.error import ErrorRepository
+from ..repos.error import ErrorRepository
 
 
 # *** contexts

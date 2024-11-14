@@ -4,7 +4,7 @@ except:
     from distutils.core import setup
 
 config = {
-    'description': 'The Core Library for the Spirit of Harmony',
+    'description': 'A multi-purpose application framework embodying beauty in form.',
     'author': 'Andrew Shatz',
     'url': r'https://github.com/greatstrength/app',
     'download_url': r'https://github.com/greatstrength/app',
@@ -20,11 +20,10 @@ config = {
         'app.clients',
         'app.commands',
         'app.configs',
-        'app.containers',
         'app.contexts',
         'app.data',
-        'app.objects',
-        'app.repositories',
+        'app.domain',
+        'app.repos',
         'app.services',
     ],    
     'scripts': [],

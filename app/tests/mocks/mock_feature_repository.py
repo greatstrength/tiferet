@@ -5,7 +5,7 @@ from typing import List
 
 # ** app
 from ...domain import *
-from ...repositories.feature import FeatureRepository
+from ...repos.feature import FeatureRepository
 
 
 # *** mocks

@@ -4,7 +4,7 @@
 from .container import ContainerContext
 from .request import RequestContext
 from ..domain import *
-from ..repositories.feature import FeatureRepository
+from ..repos.feature import FeatureRepository
 
 
 # *** contexts

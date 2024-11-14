@@ -1,5 +1,5 @@
-from ..objects.error import Error
-from ..repositories.error import ErrorRepository
+from ..domain.error import Error
+from ..repos.error import ErrorRepository
 
 class AddNewError(object):
 

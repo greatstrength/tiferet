@@ -5,7 +5,7 @@ from typing import List, Dict
 
 # ** app
 from ...domain import *
-from ...repositories.container import ContainerRepository
+from ...repos.container import ContainerRepository
 
 
 # *** mocks

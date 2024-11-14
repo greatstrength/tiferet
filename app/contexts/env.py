@@ -7,7 +7,7 @@ from schematics import Model
 from .app import AppInterfaceContext
 from ..services import container_service
 from ..domain import *
-from ..repositories.app import AppRepository
+from ..repos.app import AppRepository
 
 
 # *** contexts

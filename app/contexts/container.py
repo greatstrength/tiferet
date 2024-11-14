@@ -7,7 +7,7 @@ from typing import Any
 from ..configs import container
 from ..domain import *
 from ..services import container_service
-from ..repositories.container import ContainerRepository
+from ..repos.container import ContainerRepository
 
 
 # *** contexts
