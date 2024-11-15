@@ -9,11 +9,13 @@ config = {
     'url': r'https://github.com/greatstrength/app',
     'download_url': r'https://github.com/greatstrength/app',
     'author_email': 'andrew@greatstrength.me',
-    'version': '1.0.0-alpha.2',
+    'version': '1.0.0-alpha.3',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
-        'pyyaml>=6.0.1'
+        'pyyaml>=6.0.1',
+        'dependencies>=7.7.0'
+
     ],
     'packages': [
         'tiferet',
