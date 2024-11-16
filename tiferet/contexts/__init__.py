@@ -1,2 +1,2 @@
-from .app import AppContext
+from .app import AppInterfaceContext
 from .env import EnvironmentContext
