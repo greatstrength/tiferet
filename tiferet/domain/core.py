@@ -193,7 +193,6 @@ class ModuleDependency(Model):
         '''
 
         # Create a new ModuleDependency object.
-        return super(ModuleDependency, ModuleDependency).new(
-            ModuleDependency,
+        return ModuleDependency(dict(
             **kwargs
-        )
+        ), strict=False)

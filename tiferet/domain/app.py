@@ -31,9 +31,9 @@ class AppDependency(ModuleDependency):
         '''
 
         # Create and return a new AppDependency object.
-        return super(AppDependency, AppDependency).new(
-            AppDependency,
-            **kwargs
+        return AppDependency(
+            super(AppDependency, AppDependency).new(**kwargs),
+            strict=False,
         )
 
 # ** model: app_interface
@@ -266,9 +266,9 @@ class AppRepositoryConfiguration(ModuleDependency):
         '''
 
         # Create and return a new AppRepositoryConfiguration object.
-        return super(AppRepositoryConfiguration, AppRepositoryConfiguration).new(
-            AppRepositoryConfiguration,
-            **kwargs
+        return AppRepositoryConfiguration(
+            super(AppRepositoryConfiguration, AppRepositoryConfiguration).new(**kwargs),
+            strict=False,
         )
 
 
