@@ -123,26 +123,6 @@ class AppInterface(Entity):
             **kwargs
         )
     
-    # * method: list_dependencies
-    def get_dependencies(self) -> list:
-        '''
-        Lists the dependencies for the application interface.
-
-        :return: The list of dependencies for the application interface.
-        :rtype: list
-        '''
-
-        # Return the list of dependencies for the application interface.
-        return [
-            self.app_context,
-            self.feature_context,
-            self.container_context,
-            self.error_context,
-            self.feature_repo,
-            self.container_repo,
-            self.error_repo,
-        ]
-
 
 # ** model: app_repository_configuration
 class AppRepositoryConfiguration(ModuleDependency):
