@@ -89,14 +89,19 @@ class EnvironmentContext(Model):
         # Get the app interface.
         app_interface: AppInterface = self.interfaces.get(interface_id)
 
-        # Get the dependencies for the app interface.
+        # Get the default dependencies for the app interface.
         dependencies = dict(
             interface_id=app_interface.id,
             feature_flag=app_interface.feature_flag,
             data_flag=app_interface.data_flag,
+            app_context=container_service.import_dependency(
+                **app_interface.app_context.to_primitive()
+            ),
             **app_interface.constants
         )
-        for dep in app_interface.get_dependencies():
+
+        # Import the dependencies.
+        for dep in app_interface.dependencies:
             dependencies[dep.attribute_id] = container_service.import_dependency(dep.module_path, dep.class_name)
 
         # Create the injector from the dependencies, constants, and the app interface.

@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import Dict
+
 # ** app
 from ..configs import *
 from ..domain import DataObject
@@ -13,6 +16,13 @@ class AppDependencyYamlData(AppDependency, DataObject):
     '''
     A YAML data representation of an app dependency object.
     '''
+
+    # * attribute: attribute_id
+    attribute_id = StringType(
+        metadata=dict(
+            description='The attribute id for the application dependency.'
+        ),
+    )
 
     class Options():
         '''
@@ -38,9 +48,8 @@ class AppDependencyYamlData(AppDependency, DataObject):
 
         # Create a new AppDependencyData object.
         return AppDependencyYamlData(
-            super(AppDependencyYamlData, AppDependencyYamlData).new(
-                **kwargs
-            )
+            dict(**kwargs),
+            strict=False,
         )
     
     # * method: map
@@ -72,7 +81,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('app_context', 'container_context', 'feature_context', 'error_context', 'feature_repo', 'container_repo', 'error_repo'),
             'to_data.yaml': DataObject.deny('id')
         }
 
@@ -89,6 +98,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     feature_context = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='feature_context',
+            module_path='tiferet.contexts.feature',
+            class_name='FeatureContext',
+        ),
         metadata=dict(
             description='The feature context dependency.'
         ),
@@ -98,6 +112,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     container_context = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='container_context',
+            module_path='tiferet.contexts.container',
+            class_name='ContainerContext',
+        ),
         metadata=dict(
             description='The container context dependency.'
         ),
@@ -107,6 +126,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     error_context = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='error_context',
+            module_path='tiferet.contexts.error',
+            class_name='ErrorContext',
+        ),
         metadata=dict(
             description='The error context dependency.'
         ),
@@ -116,6 +140,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     feature_repo = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='feature_repo',
+            module_path='tiferet.repos.feature',
+            class_name='FeatureRepository',
+        ),
         metadata=dict(
             description='The feature repository dependency.'
         ),
@@ -125,6 +154,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     container_repo = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='container_repo',
+            module_path='tiferet.repos.container',
+            class_name='ContainerRepository',
+        ),
         metadata=dict(
             description='The container repository dependency.'
         ),
@@ -134,6 +168,11 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     error_repo = ModelType(
         AppDependencyYamlData,
         required=True,
+        default=AppDependencyYamlData.new(
+            attribute_id='error_repo',
+            module_path='tiferet.repos.error',
+            class_name='ErrorRepository',
+        ),
         metadata=dict(
             description='The error repository dependency.'
         ),
@@ -141,7 +180,14 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'AppInterfaceYamlData':
+    def new(app_context: Dict[str, str],
+            container_context: Dict[str, str] = None,
+            feature_context: Dict[str, str] = None,
+            error_context: Dict[str, str] = None,
+            feature_repo: Dict[str, str] = None,
+            container_repo: Dict[str, str] = None,
+            error_repo: Dict[str, str] = None,
+            **kwargs) -> 'AppInterfaceYamlData':
         '''
         Initializes a new YAML representation of an AppInterface object.
 
@@ -151,12 +197,33 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         :rtype: AppInterfaceData
         '''
 
+        # Format the dependencies.
+        dependencies = {}
+        if app_context:
+            dependencies['app_context'] = AppDependencyYamlData.new(attribute_id='app_context', **app_context)
+        if container_context:
+            dependencies['container_context'] = AppDependencyYamlData.new(attribute_id='container_context', **container_context)
+        if feature_context:
+            dependencies['feature_context'] = AppDependencyYamlData.new(attribute_id='feature_context', **feature_context)
+        if error_context:
+            dependencies['error_context'] = AppDependencyYamlData.new(attribute_id='error_context', **error_context)
+        if feature_repo:
+            dependencies['feature_repo'] = AppDependencyYamlData.new(attribute_id='feature_repo', **feature_repo)
+        if container_repo:
+            dependencies['container_repo'] = AppDependencyYamlData.new(attribute_id='container_repo', **container_repo)
+        if error_repo:
+            dependencies['error_repo'] = AppDependencyYamlData.new(attribute_id='error_repo', **error_repo)
+
         # Create a new AppInterfaceData object.
-        return AppInterfaceYamlData(
-            super(AppInterfaceYamlData, AppInterfaceYamlData).new(
-                **kwargs
-            )
+        data = AppInterfaceYamlData(dict(
+            **dependencies,
+            **kwargs),
+            strict=False,
         )
+
+        # Validate and return the new AppInterfaceData object.
+        data.validate()
+        return data
     
     # * method: map
     def map(self, **kwargs) -> AppInterface:
@@ -171,8 +238,23 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         :rtype: AppInterface
         '''
 
+        # Format and map the dependencies.
+        dependencies = [
+            self.app_context.map(),
+            self.container_context.map(),
+            self.feature_context.map(),
+            self.error_context.map(),
+            self.feature_repo.map(),
+            self.container_repo.map(),
+            self.error_repo.map(),
+        ]
+
         # Map the app interface data.
-        return super().map(AppInterface, **kwargs)
+        return super().map(AppInterface, 
+            dependencies=dependencies, 
+            **self.to_primitive('to_model'), 
+            **kwargs
+        )
 
 
 # ** data: app_repository_configuration_yaml_data

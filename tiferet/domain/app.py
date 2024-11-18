@@ -31,9 +31,9 @@ class AppDependency(ModuleDependency):
         '''
 
         # Create and return a new AppDependency object.
-        return AppDependency(
-            super(AppDependency, AppDependency).new(**kwargs),
-            strict=False,
+        return super(AppDependency, AppDependency).new(
+            AppDependency,
+            **kwargs,
         )
 
 # ** model: app_interface
@@ -73,96 +73,13 @@ class AppInterface(Entity):
         ),
     )
 
-    # * attribute: app_context
-    app_context = ModelType(
-        AppDependency,
+    # * attribute: dependencies
+    dependencies = ListType(
+        ModelType(AppDependency),
         required=True,
+        default=[],
         metadata=dict(
-            description='The application context dependency.'
-        ),
-    )
-
-    # * attribute: feature_context
-    feature_context = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='feature_context',
-            module_path='tiferet.contexts.feature',
-            class_name='FeatureContext',
-        ),
-        metadata=dict(
-            description='The feature context dependency.'
-        ),
-    )
-
-    # * attribute: container_context
-    container_context = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='container_context',
-            module_path='tiferet.contexts.container',
-            class_name='ContainerContext',
-        ),
-        metadata=dict(
-            description='The container context dependency.'
-        ),
-    )
-
-    # * attribute: error_context
-    error_context = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='error_context',
-            module_path='tiferet.contexts.error',
-            class_name='ErrorContext',
-        ),
-        metadata=dict(
-            description='The error context dependency.'
-        ),
-    )
-
-    # * attribute: feature_repo
-    feature_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='feature_repo',
-            module_path='tiferet.repos.feature',
-            class_name='FeatureRepository',
-        ),
-        metadata=dict(
-            description='The feature repository dependency.'
-        ),
-    )
-
-    # * attribute: container_repo
-    container_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='container_repo',
-            module_path='tiferet.repos.container',
-            class_name='ContainerRepository',
-        ),
-        metadata=dict(
-            description='The container repository dependency.'
-        ),
-    )
-
-    # * attribute: error_repo
-    error_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='error_repo',
-            module_path='tiferet.repos.error',
-            class_name='ErrorRepository',
-        ),
-        metadata=dict(
-            description='The error repository dependency.'
+            description='The application interface dependencies.'
         ),
     )
 
@@ -197,26 +114,6 @@ class AppInterface(Entity):
             **kwargs
         )
     
-    # * method: list_dependencies
-    def get_dependencies(self) -> list:
-        '''
-        Lists the dependencies for the application interface.
-
-        :return: The list of dependencies for the application interface.
-        :rtype: list
-        '''
-
-        # Return the list of dependencies for the application interface.
-        return [
-            self.app_context,
-            self.feature_context,
-            self.container_context,
-            self.error_context,
-            self.feature_repo,
-            self.container_repo,
-            self.error_repo,
-        ]
-
 
 # ** model: app_repository_configuration
 class AppRepositoryConfiguration(ModuleDependency):

@@ -159,7 +159,7 @@ class DataObject(Model):
 
 
 # ** model: module_dependency
-class ModuleDependency(Model):
+class ModuleDependency(ValueObject):
     '''
     A module dependency.
     '''
@@ -172,27 +172,10 @@ class ModuleDependency(Model):
         )
     )
 
-    # ** attribute: class_name
+    # * attribute: class_name
     class_name = StringType(
         required=True,
         metadata=dict(
             description='The class name.'
         )
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'ModuleDependency':
-        '''
-        Initializes a new ModuleDependency object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ModuleDependency object.
-        :rtype: ModuleDependency
-        '''
-
-        # Create a new ModuleDependency object.
-        return ModuleDependency(dict(
-            **kwargs
-        ), strict=False)
