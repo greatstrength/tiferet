@@ -73,16 +73,6 @@ class AppInterface(Entity):
         ),
     )
 
-    # * attribute: dependencies
-    dependencies = ListType(
-        ModelType(AppDependency),
-        required=True,
-        default=[],
-        metadata=dict(
-            description='The application interface dependencies.'
-        ),
-    )
-
     # * attribute: app_context
     app_context = ModelType(
         ModuleDependency,
@@ -92,87 +82,13 @@ class AppInterface(Entity):
         ),
     )
 
-    # * attribute: feature_context
-    feature_context = ModelType(
-        AppDependency,
+    # * attribute: dependencies
+    dependencies = ListType(
+        ModelType(AppDependency),
         required=True,
-        default=AppDependency.new(
-            attribute_id='feature_context',
-            module_path='tiferet.contexts.feature',
-            class_name='FeatureContext',
-        ),
+        default=[],
         metadata=dict(
-            description='The feature context dependency.'
-        ),
-    )
-
-    # * attribute: container_context
-    container_context = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='container_context',
-            module_path='tiferet.contexts.container',
-            class_name='ContainerContext',
-        ),
-        metadata=dict(
-            description='The container context dependency.'
-        ),
-    )
-
-    # * attribute: error_context
-    error_context = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='error_context',
-            module_path='tiferet.contexts.error',
-            class_name='ErrorContext',
-        ),
-        metadata=dict(
-            description='The error context dependency.'
-        ),
-    )
-
-    # * attribute: feature_repo
-    feature_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='feature_repo',
-            module_path='tiferet.repos.feature',
-            class_name='FeatureRepository',
-        ),
-        metadata=dict(
-            description='The feature repository dependency.'
-        ),
-    )
-
-    # * attribute: container_repo
-    container_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='container_repo',
-            module_path='tiferet.repos.container',
-            class_name='ContainerRepository',
-        ),
-        metadata=dict(
-            description='The container repository dependency.'
-        ),
-    )
-
-    # * attribute: error_repo
-    error_repo = ModelType(
-        AppDependency,
-        required=True,
-        default=AppDependency.new(
-            attribute_id='error_repo',
-            module_path='tiferet.repos.error',
-            class_name='ErrorRepository',
-        ),
-        metadata=dict(
-            description='The error repository dependency.'
+            description='The application interface dependencies.'
         ),
     )
 
