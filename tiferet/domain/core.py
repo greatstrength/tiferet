@@ -172,7 +172,7 @@ class ModuleDependency(ValueObject):
         )
     )
 
-    # ** attribute: class_name
+    # * attribute: class_name
     class_name = StringType(
         required=True,
         metadata=dict(
