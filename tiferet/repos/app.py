@@ -2,7 +2,7 @@
 
 # ** app
 from ..domain.app import AppInterface
-from ..data.app import AppInterfaceData
+from ..data.app import AppInterfaceYamlData
 from ..clients import yaml as yaml_client
 
 
@@ -72,9 +72,10 @@ class YamlProxy(object):
         interfaces = yaml_client.load(
             self.config_file,
             create_data=lambda data: [
-                AppInterfaceData.new(
+                AppInterfaceYamlData.new(
+                    id=interface_id,
                     **record
-                ).map() for record in data],
+                ).map() for interface_id, record in data.items()],
             start_node=lambda data: data.get('interfaces'))
 
         # Return the list of app interface objects.
@@ -94,7 +95,7 @@ class YamlProxy(object):
         # Load the app interface data from the yaml configuration file.
         _data: AppInterface = yaml_client.load(
             self.config_file,
-            create_data=lambda data: AppInterfaceData.new (
+            create_data=lambda data: AppInterfaceYamlData.new (
                 id=id, **data),
             start_node=lambda data: data.get('interfaces').get(id))
 

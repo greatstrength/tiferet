@@ -36,7 +36,7 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     parameters = DictType(
         StringType, 
         default={}, 
-        serialize_name='params', 
+        serialized_name='params', 
         deserialize_from=['params'],
         metadata=dict(
             description='The parameters need to now account for new data names in the YAML format.'
@@ -117,7 +117,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
     dependencies = DictType(
         ModelType(ContainerDependencyYamlData), 
         default=[], 
-        serialize_name='deps', 
+        serialized_name='deps', 
         deserialize_from=['deps', 'dependencies'],
         metadata=dict(
             description='The dependencies are now a key-value pair keyed by the flags.'
