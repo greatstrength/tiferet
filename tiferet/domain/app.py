@@ -73,15 +73,6 @@ class AppInterface(Entity):
         ),
     )
 
-    # * attribute: app_context
-    app_context = ModelType(
-        ModuleDependency,
-        required=True,
-        metadata=dict(
-            description='The application context dependency.'
-        ),
-    )
-
     # * attribute: dependencies
     dependencies = ListType(
         ModelType(AppDependency),
