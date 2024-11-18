@@ -31,9 +31,9 @@ class AppDependency(ModuleDependency):
         '''
 
         # Create and return a new AppDependency object.
-        return AppDependency(
-            super(AppDependency, AppDependency).new(**kwargs),
-            strict=False,
+        return super(AppDependency, AppDependency).new(
+            AppDependency,
+            **kwargs,
         )
 
 # ** model: app_interface
