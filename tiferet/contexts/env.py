@@ -98,6 +98,7 @@ class EnvironmentContext(Model):
         # Get the default dependencies for the app interface.
         dependencies = dict(
             interface_id=app_interface.id,
+            app_name=app_interface.name,
             feature_flag=app_interface.feature_flag,
             data_flag=app_interface.data_flag,
             app_context=container_service.import_dependency(
