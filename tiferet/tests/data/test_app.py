@@ -22,12 +22,8 @@ def test_app_dependency_yaml_data_new():
 
 def test_app_dependency_yaml_data_to_primitive():
 
-    # Create a new app dependency yaml data object.
-    app_dependency_yaml_data = AppDependencyYamlData.new(
-        attribute_id='app_context',
-        module_path='tests.contexts.app',
-        class_name='TestAppContext',
-    )
+    # Import test data.
+    from ..configs.app import test_app_dependency_yaml_data as app_dependency_yaml_data
 
     # Convert the app dependency yaml data object to a primitive.
     primitive = app_dependency_yaml_data.to_primitive('to_data.yaml')
@@ -40,12 +36,8 @@ def test_app_dependency_yaml_data_to_primitive():
 
 def test_app_dependency_yaml_data_map():
 
-    # Create a new app dependency yaml data object.
-    app_dependency_yaml_data = AppDependencyYamlData.new(
-        attribute_id='app_context',
-        module_path='tests.contexts.app',
-        class_name='TestAppContext',
-    )
+    # Import test data.
+    from ..configs.app import test_app_dependency_yaml_data as app_dependency_yaml_data
 
     # Map the app dependency yaml data object to a model object.
     app_dependency = app_dependency_yaml_data.map()
@@ -58,30 +50,17 @@ def test_app_dependency_yaml_data_map():
 
 def test_app_interface_yaml_data_new():
 
-    # Create yaml data representation.
-    yaml_data = dict(
-        id='test app',
-        name='test app interface',
-        description='test app description',
-        feature_flag='test app feature flag',
-        data_flag='test app data flag',
-        app_context=dict(
-            module_path='tests.contexts.app',
-            class_name='TestAppContext',
-        ),
-    )
-
-    # Create a new app interface yaml data object.
-    app_interface_yaml_data = AppInterfaceYamlData.new(**yaml_data)
+    # Import test data.
+    from ..configs.app import test_app_interface_yaml_data as app_interface_yaml_data
 
     # Assert the app interface yaml data object is valid.
-    assert app_interface_yaml_data.id == 'test app'
-    assert app_interface_yaml_data.name == 'test app interface'
-    assert app_interface_yaml_data.description == 'test app description'
-    assert app_interface_yaml_data.feature_flag == 'test app feature flag'
-    assert app_interface_yaml_data.data_flag == 'test app data flag'
+    assert app_interface_yaml_data.id == 'test'
+    assert app_interface_yaml_data.name == 'test interface'
+    assert app_interface_yaml_data.description == 'test description'
+    assert app_interface_yaml_data.feature_flag == 'test feature flag'
+    assert app_interface_yaml_data.data_flag == 'test data flag'
     assert app_interface_yaml_data.app_context.module_path == 'tests.contexts.app'
-    assert app_interface_yaml_data.app_context.class_name == 'TestAppContext'
+    assert app_interface_yaml_data.app_context.class_name == 'TestAppInterfaceContext'
 
     # Assert that the default values are set.
     assert app_interface_yaml_data.feature_context.module_path == 'tiferet.contexts.feature'
@@ -91,11 +70,11 @@ def test_app_interface_yaml_data_new():
     assert app_interface_yaml_data.error_context.module_path == 'tiferet.contexts.error'
     assert app_interface_yaml_data.error_context.class_name == 'ErrorContext'
     assert app_interface_yaml_data.feature_repo.module_path == 'tiferet.repos.feature'
-    assert app_interface_yaml_data.feature_repo.class_name == 'FeatureRepository'
+    assert app_interface_yaml_data.feature_repo.class_name == 'YamlProxy'
     assert app_interface_yaml_data.container_repo.module_path == 'tiferet.repos.container'
-    assert app_interface_yaml_data.container_repo.class_name == 'ContainerRepository'
+    assert app_interface_yaml_data.container_repo.class_name == 'YamlProxy'
     assert app_interface_yaml_data.error_repo.module_path == 'tiferet.repos.error'
-    assert app_interface_yaml_data.error_repo.class_name == 'ErrorRepository'
+    assert app_interface_yaml_data.error_repo.class_name == 'YamlProxy'
 
 
 def test_app_interface_yaml_data_to_primitive():
@@ -108,12 +87,12 @@ def test_app_interface_yaml_data_to_primitive():
 
     # Assert the primitive is valid.
     assert primitive.get('id', None) == None
-    assert primitive.get('name') == 'test app interface'
-    assert primitive.get('description') == 'test app description'
-    assert primitive.get('feature_flag') == 'test app feature flag'
-    assert primitive.get('data_flag') == 'test app data flag'
+    assert primitive.get('name') == 'test interface'
+    assert primitive.get('description') == 'test description'
+    assert primitive.get('feature_flag') == 'test feature flag'
+    assert primitive.get('data_flag') == 'test data flag'
     assert primitive.get('app_context', {}).get('module_path') == 'tests.contexts.app'
-    assert primitive.get('app_context', {}).get('class_name') == 'TestAppContext'
+    assert primitive.get('app_context', {}).get('class_name') == 'TestAppInterfaceContext'
 
     # Assert that the default values are set.
     assert primitive.get('feature_context', {}).get('module_path') == 'tiferet.contexts.feature'
@@ -132,30 +111,17 @@ def test_app_interface_yaml_data_to_primitive():
 
 def test_app_interface_yaml_data_map():
 
-    # Create a new app interface yaml representation.
-    yaml_data = dict(
-        id='test app',
-        name='test app interface',
-        description='test app description',
-        feature_flag='test app feature flag',
-        data_flag='test app data flag',
-        app_context=dict(
-            module_path='tests.contexts.app',
-            class_name='TestAppContext',
-        ),
-    )
-
-    # Create a new app interface yaml data object.
-    app_interface_yaml_data = AppInterfaceYamlData.new(**yaml_data)
+    # Import test data.
+    from ..configs.app import test_app_interface_yaml_data as app_interface_yaml_data
 
     # Map the app interface yaml data object to a model object.
     app_interface = app_interface_yaml_data.map()
 
     # Assert the app interface is valid.
-    assert app_interface.id == 'test app'
-    assert app_interface.name == 'test app interface'
-    assert app_interface.description == 'test app description'
-    assert app_interface.feature_flag == 'test app feature flag'
-    assert app_interface.data_flag == 'test app data flag'
-    assert app_interface.dependencies[0].attribute_id == 'app_context'
+    assert app_interface.id == 'test'
+    assert app_interface.name == 'test interface'
+    assert app_interface.description == 'test description'
+    assert app_interface.feature_flag == 'test feature flag'
+    assert app_interface.data_flag == 'test data flag'
     assert app_interface.dependencies[0].module_path == 'tests.contexts.app'
+    assert app_interface.dependencies[0].class_name == 'TestAppInterfaceContext'

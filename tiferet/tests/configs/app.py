@@ -20,8 +20,15 @@ test_app_interface = AppInterface.new(
     ],
 )
 
+# ** data: test_app_dependency_yaml_data
+test_app_dependency_yaml_data = AppDependencyYamlData.new(
+    attribute_id='app_context',
+    module_path='tests.contexts.app',
+    class_name='TestAppContext',
+)
+
 # ** data: test_app_interface_yaml_data
-test_app_interface_yaml_data = AppDependencyYamlData(dict(
+test_app_interface_yaml_data = AppInterfaceYamlData.new(
     id='test',
     name='test interface',
     description='test description',
@@ -31,4 +38,4 @@ test_app_interface_yaml_data = AppDependencyYamlData(dict(
         module_path='tests.contexts.app',
         class_name='TestAppInterfaceContext',
     ),
-))
+)
