@@ -112,7 +112,7 @@ class EnvironmentContext(Model):
 
         # Create the injector from the dependencies, constants, and the app interface.
         injector = container_service.create_injector(
-            app_interface.id
+            app_interface.id,
             **dependencies
         )
 
