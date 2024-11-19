@@ -17,6 +17,14 @@ class ContainerContext(Model):
     A container context is a class that is used to create a container object.
     '''
 
+    # * attribute: interface_id
+    interface_id = StringType(
+        required=True,
+        metadata=dict(
+            description='The interface ID.'
+        ),
+    )
+
     # * attribute: attributes
     attributes = DictType(
         ModelType(ContainerAttribute), 
@@ -65,37 +73,38 @@ class ContainerContext(Model):
         :param interface_flag: The interface flag.
         :type interface_flag: str
         :param feature_flag: The feature flag.
-        :type feature_flag: str
+        :type feature_flag: str 
         :param data_flag: The data flag.
         :type data_flag: str
         '''
 
-        # Then set the interface id and injector flags.
-        self.interface_id = interface_id
-        self.feature_flag = feature_flag
-        self.data_flag = data_flag
-
         # Add the attributes as an empty dictionary.
-        self.attributes = {}
+        attributes = {}
         
         # Get and set attributes and constants.
         attrs, consts = container_repo.list_all()
         
         # Add the attributes to the context.
         for attr in attrs:
-            attribute: ContainerAttribute = self.attributes[attr.id]
+            attribute: ContainerAttribute = attributes[attr.id]
 
             # If the attribute already exists, set the dependencies.
-            if attr.id in self.attributes:
+            if attr.id in attributes:
                 for dep in attr.dependencies:
                     attribute.set_dependency(dep)
                     continue
 
             # Otherwise, add the attribute.
-            self.attributes[attr.id] = attr
+            attributes[attr.id] = attr
 
-        # Add the constants to the context.
-        self.constants = consts
+        # Add the constants and attributes to the context.
+        super().__init__(dict(
+            interface_id=interface_id,
+            feature_flag=feature_flag,
+            data_flag=data_flag,
+            attributes=attributes,
+            constants=consts,
+        ))
 
     # * method: get_dependency
     def get_dependency(self, attribute_id: str):

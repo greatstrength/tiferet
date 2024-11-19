@@ -76,24 +76,3 @@ class ErrorData(Error, DataObject):
         return ErrorData(
             super(ErrorData, ErrorData).new(**kwargs)
         )
-
-    # * method: from_yaml_data
-
-    @staticmethod
-    def from_yaml_data(id: str, **kwargs):
-        '''
-        Initializes a new ErrorData object from yaml data.
-
-        :param id: The unique identifier for the error.
-        :type id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ErrorData object.
-        :rtype: ErrorData
-        '''
-
-        # Create a new ErrorData object.
-        return ErrorData.new(
-            id=id,
-            **kwargs
-        )

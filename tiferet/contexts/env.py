@@ -40,7 +40,13 @@ class EnvironmentContext(Model):
         app_repo = self.load_app_repo()
 
         # Load the interface configuration.
-        self.interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+        interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+
+        # Set the interfaces.
+        super().__init__(dict(
+            interfaces=interfaces,
+            **kwargs
+        ), strict=False)
 
     # * method: start
     def start(self, interface_id: str, **kwargs):
@@ -90,12 +96,14 @@ class EnvironmentContext(Model):
         app_interface: AppInterface = self.interfaces.get(interface_id)
 
         # Get the default dependencies for the app interface.
+        app_context = app_interface.get_dependency('app_context')
         dependencies = dict(
             interface_id=app_interface.id,
+            app_name=app_interface.name,
             feature_flag=app_interface.feature_flag,
             data_flag=app_interface.data_flag,
             app_context=container_service.import_dependency(
-                **app_interface.app_context.to_primitive()
+                **app_context.to_primitive()
             ),
             **app_interface.constants
         )
@@ -106,7 +114,7 @@ class EnvironmentContext(Model):
 
         # Create the injector from the dependencies, constants, and the app interface.
         injector = container_service.create_injector(
-            app_interface.id
+            app_interface.id,
             **dependencies
         )
 

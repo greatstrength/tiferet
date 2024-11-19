@@ -10,7 +10,7 @@ from dependencies import Injector
 # *** functions
 
 # ** function: import_dependency
-def import_dependency(module_path: str, class_name: str) -> Any:
+def import_dependency(module_path: str, class_name: str, **kwargs) -> Any:
     '''
     Import an object dependency from its configured Python module.
 
@@ -18,6 +18,8 @@ def import_dependency(module_path: str, class_name: str) -> Any:
     :type module_path: str
     :param class_name: The class name.
     :type class_name: str
+    :param kwargs: Additional keyword arguments.
+    :type kwargs: dict
     :return: The dependency.
     :rtype: Any
     '''

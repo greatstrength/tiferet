@@ -14,13 +14,24 @@ from ..domain import *
 
 # ** context: app_interface_context
 class AppInterfaceContext(Model): 
+    '''
+    The application interface context is a class that is used to create and run the application interface.
+    '''
+
+    # * attribute: interface_id
+    interface_id = StringType(
+        required=True,
+        metadata=dict(
+            description='The interface ID.'
+        ),
+    )
 
     # * attribute: name
     name = StringType(
         required=True,
         metadata=dict(
             description='The application name.'
-        )
+        ),
     )
 
     # * field: features
@@ -29,7 +40,7 @@ class AppInterfaceContext(Model):
         required=True,
         metadata=dict(
             description='The feature context.'
-        )
+        ),
     )
 
     # * field: errors
@@ -38,14 +49,16 @@ class AppInterfaceContext(Model):
         required=True,
         metadata=dict(
             description='The error context.'
-        )
+        ),
     )
 
     # * method: init
-    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
+    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
         '''
         Initialize the application interface context.
 
+        :param interface_id: The interface ID.
+        :type interface_id: str
         :param app_name: The application name.
         :type app_name: str
         :param feature_context: The feature context.
@@ -56,6 +69,7 @@ class AppInterfaceContext(Model):
 
         # Initialize the model.
         super().__init__(dict(
+            interface_id=interface_id,
             name=app_name,
             features=feature_context,
             errors=error_context

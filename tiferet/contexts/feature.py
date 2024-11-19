@@ -31,13 +31,24 @@ class FeatureContext(Model):
     )
 
     # * method: init
-    def __init__(self, feature_repo: FeatureRepository, container: ContainerContext):
+    def __init__(self, feature_repo: FeatureRepository, container_context: ContainerContext):
+        '''
+        Initialize the feature context.
 
-        # Set the features.
-        self.features = {feature.id: feature for feature in feature_repo.list()}
+        :param feature_repo: The feature repository.
+        :type feature_repo: FeatureRepository
+        :param container_context: The container context.
+        :type container_context: ContainerContext
+        '''
 
-        # Set the container context.
-        self.container = container
+        # Create the features.
+        features = {feature.id: feature for feature in feature_repo.list()}
+
+        # Set the features and container.
+        super().__init__(dict(
+            features=features,
+            container=container_context,
+        ))
         
     # * method: execute
     def execute(self, request: RequestContext, debug: bool = False, **kwargs):

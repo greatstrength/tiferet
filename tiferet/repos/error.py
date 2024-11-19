@@ -127,7 +127,7 @@ class YamlProxy(ErrorRepository):
         # Load the error data from the yaml configuration file.
         _data: ErrorData = yaml_client.load(
             self.config_file,
-            create_data=lambda data: ErrorData.from_yaml_data(
+            create_data=lambda data: ErrorData.new(
                 id=id, **data),
             start_node=lambda data: data.get('errors').get(id))
 
@@ -146,8 +146,8 @@ class YamlProxy(ErrorRepository):
         # Load the error data from the yaml configuration file.
         _data: Dict[str, ErrorData] = yaml_client.load(
             self.config_file,
-            create_data=lambda data: ErrorData.from_yaml_data(
-                id=id, **data),
+            create_data=lambda data: {id: ErrorData.new(
+                id=id, **error_data) for id, error_data in data.items()},
             start_node=lambda data: data.get('errors'))
 
         # Return the error object.

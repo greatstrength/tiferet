@@ -143,7 +143,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         default=AppDependencyYamlData.new(
             attribute_id='feature_repo',
             module_path='tiferet.repos.feature',
-            class_name='FeatureRepository',
+            class_name='YamlProxy',
         ),
         metadata=dict(
             description='The feature repository dependency.'
@@ -157,7 +157,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         default=AppDependencyYamlData.new(
             attribute_id='container_repo',
             module_path='tiferet.repos.container',
-            class_name='ContainerRepository',
+            class_name='YamlProxy',
         ),
         metadata=dict(
             description='The container repository dependency.'
@@ -171,7 +171,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         default=AppDependencyYamlData.new(
             attribute_id='error_repo',
             module_path='tiferet.repos.error',
-            class_name='ErrorRepository',
+            class_name='YamlProxy',
         ),
         metadata=dict(
             description='The error repository dependency.'

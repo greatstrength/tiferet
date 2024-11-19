@@ -60,6 +60,7 @@ class AppInterface(Entity):
     # attribute: feature_flag
     feature_flag = StringType(
         required=True,
+        default='core',
         metadata=dict(
             description='The feature flag.'
         ),
@@ -114,6 +115,20 @@ class AppInterface(Entity):
             **kwargs
         )
     
+    # * method: get_dependency
+    def get_dependency(self, attribute_id: str) -> AppDependency:
+        '''
+        Get the dependency by attribute id.
+
+        :param attribute_id: The attribute id of the dependency.
+        :type attribute_id: str
+        :return: The dependency.
+        :rtype: AppDependency
+        '''
+
+        # Get the dependency by attribute id.
+        return next((dep for dep in self.dependencies if dep.attribute_id == attribute_id), None)
+    
 
 # ** model: app_repository_configuration
 class AppRepositoryConfiguration(ModuleDependency):
@@ -164,7 +179,9 @@ class AppRepositoryConfiguration(ModuleDependency):
 
         # Create and return a new AppRepositoryConfiguration object.
         return AppRepositoryConfiguration(
-            super(AppRepositoryConfiguration, AppRepositoryConfiguration).new(**kwargs),
+            super(AppRepositoryConfiguration, AppRepositoryConfiguration).new(
+                AppRepositoryConfiguration,
+                **kwargs),
             strict=False,
         )
 
