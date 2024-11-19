@@ -40,7 +40,13 @@ class EnvironmentContext(Model):
         app_repo = self.load_app_repo()
 
         # Load the interface configuration.
-        self.interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+        interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+
+        # Set the interfaces.
+        super().__init__(dict(
+            interfaces=interfaces,
+            **kwargs
+        ), strict=False)
 
     # * method: start
     def start(self, interface_id: str, **kwargs):
