@@ -1,16 +1,22 @@
-from typing import Dict, Any, List
+# *** imports
 
+# ** core
+from typing import List
+
+# ** app
 from ..data.feature import FeatureData
 from ..domain.feature import Feature
+from ..clients import yaml_client
 
-from ..clients import yaml as yaml_client
+# *** repository
 
-
+# ** interface: feature_repository
 class FeatureRepository(object):
     '''
     Feature repository interface.
     '''
 
+    # * method: exists
     def exists(self, id: str) -> bool:
         '''
         Verifies if the feature exists.
@@ -21,8 +27,10 @@ class FeatureRepository(object):
         :rtype: bool
         '''
 
+        # Not implemented.
         raise NotImplementedError()
 
+    # * method: get
     def get(self, id: str) -> Feature:
         '''
         Get the feature by id.
@@ -33,8 +41,10 @@ class FeatureRepository(object):
         :rtype: f.Feature
         '''
 
+        # Not implemented.
         raise NotImplementedError()
-    
+
+    # * method: list
     def list(self, group_id: str = None) -> List[Feature]:
         '''
         List the features.
@@ -45,8 +55,10 @@ class FeatureRepository(object):
         :rtype: list
         '''
 
+        # Not implemented.
         raise NotImplementedError
 
+    # * method: save
     def save(self, feature: Feature):
         '''
         Save the feature.
@@ -55,25 +67,28 @@ class FeatureRepository(object):
         :type feature: f.Feature
         '''
 
+        # Not implemented.
         raise NotImplementedError()
 
-
+# ** repository: yaml_proxy
 class YamlProxy(FeatureRepository):
     '''
     Yaml repository for features.
     '''
 
-    def __init__(self, feature_yaml_base_path: str):
+    # * method: init
+    def __init__(self, feature_config_file: str):
         '''
         Initialize the yaml repository.
 
-        :param feature_yaml_base_path: The base path to the yaml file.
-        :type feature_yaml_base_path: str
+        :param feature_config_file: The feature configuration file.
+        :type feature_config_file: str
         '''
 
         # Set the base path.
-        self.base_path = feature_yaml_base_path
+        self.config_file = feature_config_file
 
+    # * method: exists
     def exists(self, id: str) -> bool:
         '''
         Verifies if the feature exists.
@@ -90,6 +105,7 @@ class YamlProxy(FeatureRepository):
         # Return whether the feature exists.
         return feature is not None
 
+    # * method: get
     def get(self, id: str) -> Feature:
         '''
         Get the feature by id.
@@ -104,7 +120,7 @@ class YamlProxy(FeatureRepository):
 
         # Load feature data from yaml.
         _data: FeatureData = yaml_client.load(
-            self.base_path,
+            self.config_file,
             create_data=lambda data: FeatureData.from_yaml_data(
                 id=id,
                 group_id=group_id,
@@ -120,6 +136,7 @@ class YamlProxy(FeatureRepository):
         # Return feature.
         return _data.map('to_object.yaml')
     
+    # * method: list
     def list(self, group_id: str = None) -> List[Feature]:
         '''
         List the features.
@@ -132,7 +149,7 @@ class YamlProxy(FeatureRepository):
 
         # Load all feature data from yaml.
         features = yaml_client.load(
-            self.base_path,
+            self.config_file,
             create_data=lambda data: [FeatureData.from_yaml_data(
                 id=id,
                 **feature_data
@@ -147,6 +164,7 @@ class YamlProxy(FeatureRepository):
         # Return the list of features.
         return [feature.map('to_object.yaml') for feature in features]
 
+    # * method: save
     def save(self, feature: Feature):
         '''
         Save the feature.
@@ -160,7 +178,7 @@ class YamlProxy(FeatureRepository):
 
         # Update the feature data.
         yaml_client.save(
-            self.base_path,
+            self.config_file,
             data=feature_data,
             data_save_path=f'features/{feature.group_id}.{feature_data.feature_key}'
         )
