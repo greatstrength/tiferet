@@ -60,6 +60,7 @@ class AppInterface(Entity):
     # attribute: feature_flag
     feature_flag = StringType(
         required=True,
+        default='core',
         metadata=dict(
             description='The feature flag.'
         ),
