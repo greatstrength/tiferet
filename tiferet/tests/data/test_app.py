@@ -101,17 +101,7 @@ def test_app_interface_yaml_data_new():
 def test_app_interface_yaml_data_to_primitive():
 
     # Create a new app interface yaml data object.
-    app_interface_yaml_data = AppInterfaceYamlData.new(
-        id='test app',
-        name='test app interface',
-        description='test app description',
-        feature_flag='test app feature flag',
-        data_flag='test app data flag',
-        app_context=dict(
-            module_path='tests.contexts.app',
-            class_name='TestAppContext',
-        ),
-    )
+    from ..configs.app import test_app_interface_yaml_data as app_interface_yaml_data
 
     # Convert the app interface yaml data object to a primitive.
     primitive = app_interface_yaml_data.to_primitive('to_data.yaml')
@@ -133,11 +123,11 @@ def test_app_interface_yaml_data_to_primitive():
     assert primitive.get('error_context', {}).get('module_path') == 'tiferet.contexts.error'
     assert primitive.get('error_context', {}).get('class_name') == 'ErrorContext'
     assert primitive.get('feature_repo', {}).get('module_path') == 'tiferet.repos.feature'
-    assert primitive.get('feature_repo', {}).get('class_name') == 'FeatureRepository'
+    assert primitive.get('feature_repo', {}).get('class_name') == 'YamlProxy'
     assert primitive.get('container_repo', {}).get('module_path') == 'tiferet.repos.container'
-    assert primitive.get('container_repo', {}).get('class_name') == 'ContainerRepository'
+    assert primitive.get('container_repo', {}).get('class_name') == 'YamlProxy'
     assert primitive.get('error_repo', {}).get('module_path') == 'tiferet.repos.error'
-    assert primitive.get('error_repo', {}).get('class_name') == 'ErrorRepository'
+    assert primitive.get('error_repo', {}).get('class_name') == 'YamlProxy'
 
 
 def test_app_interface_yaml_data_map():
