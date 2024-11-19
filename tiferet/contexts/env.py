@@ -96,13 +96,14 @@ class EnvironmentContext(Model):
         app_interface: AppInterface = self.interfaces.get(interface_id)
 
         # Get the default dependencies for the app interface.
+        app_context = app_interface.get_dependency('app_context')
         dependencies = dict(
             interface_id=app_interface.id,
             app_name=app_interface.name,
             feature_flag=app_interface.feature_flag,
             data_flag=app_interface.data_flag,
             app_context=container_service.import_dependency(
-                **app_interface.app_context.to_primitive()
+                **app_context.to_primitive()
             ),
             **app_interface.constants
         )
