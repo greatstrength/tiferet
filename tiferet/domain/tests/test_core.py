@@ -1,27 +1,30 @@
-from ...domain import *
+# *** imports
 
-def test_model_object_new():
-    
-    # Create a new model object.
+# ** infra
+import pytest
+
+# ** app
+from . import *
+
+
+# *** fixtures
+
+# ** fixture: test_model_object
+@pytest.fixture
+def test_model_object():
     class TestModelObject(ModelObject):
-        
         attribute = StringType(
             required=True,
             metadata=dict(
                 description='The attribute.'
             ),
         )
-
-    model_object = ModelObject.new(TestModelObject, attribute='test')
-
-    # Assert the model object is valid.
-    assert isinstance(model_object, TestModelObject)
-    assert model_object.attribute == 'test'
+    return TestModelObject
 
 
-def test_entity_new():
-    
-    # Define a new entity.
+# ** fixture: test_entity
+@pytest.fixture
+def test_entity():
     class TestEntity(Entity):
         id = StringType(
             required=True,
@@ -29,18 +32,12 @@ def test_entity_new():
                 description='The entity unique identifier.'
             ),
         )
-
-    # Create a new entity.
-    entity = Entity.new(TestEntity, id='test')
-
-    # Assert the entity is valid.
-    assert isinstance(entity, TestEntity)
-    assert entity.id == 'test'
+    return TestEntity
 
 
-def test_value_object_new():
-
-    # Define a new value object.
+# ** fixture: test_value_object
+@pytest.fixture
+def test_value_object():
     class TestValueObject(ValueObject):
         attribute = StringType(
             required=True,
@@ -48,48 +45,92 @@ def test_value_object_new():
                 description='The attribute.'
             ),
         )
-
-    # Create a new value object.
-    value_object = ValueObject.new(TestValueObject, attribute='test')
-
-    # Assert the value object is valid.
-    assert isinstance(value_object, TestValueObject)
-    assert value_object.attribute == 'test'
+    return TestValueObject
 
 
-def test_data_object_from_model():
-
-    # Define a new model object.
-    class TestModelObject(ModelObject):
-        pass
-
-    # Create a new data object from the model object.
-    model_object = TestModelObject.new(TestModelObject)
-    data_object = DataObject.from_model(TestModelObject, **model_object.to_primitive())
-
-    # Assert the data object is valid.
-    assert isinstance(data_object, DataObject)
-
-
-def test_data_object_from_data():
-
-    # Create a new data object.
+# ** fixture: test_data_object
+@pytest.fixture
+def test_data_object():
     class TestDataObject(DataObject):
-        
         attribute = StringType(
             required=True,
             metadata=dict(
                 description='The attribute.'
             ),
         )
+    return TestDataObject
 
-    data_object = DataObject.from_data(TestDataObject, attribute='test')
+
+# ** fixture: module_dependency
+@pytest.fixture
+def module_dependency():
+    return ModuleDependency.new(
+        ModuleDependency,
+        module_path='tests.repos.test',
+        class_name='YamlProxy',
+    )
+
+
+# *** tests
+
+# ** domain: test_model_object_new
+def test_model_object_new(test_model_object):
+    
+    # Create a new model object using the fixture.
+    model_object = ModelObject.new(test_model_object, attribute='test')
+
+    # Assert the model object is valid.
+    assert isinstance(model_object, test_model_object)
+    assert model_object.attribute == 'test'
+
+
+# ** domain: test_entity_new
+def test_entity_new(test_entity):
+
+    # Create a new entity using the fixture.
+    entity = Entity.new(test_entity, id='test')
+
+    # Assert the entity is valid.
+    assert isinstance(entity, test_entity)
+    assert entity.id == 'test'
+
+
+# ** domain: test_value_object_new
+def test_value_object_new(test_value_object):
+
+    # Create a new value object using the fixture.
+    value_object = ValueObject.new(test_value_object, attribute='test')
+
+    # Assert the value object is valid.
+    assert isinstance(value_object, test_value_object)
+    assert value_object.attribute == 'test'
+
+
+# ** domain: test_data_object_from_model
+def test_data_object_from_model(test_model_object):
+
+    # Create a new model object from the fixture.
+    model_object = test_model_object.new(test_model_object, attribute='test')
+
+    # Create a new data object from the model object.
+    data_object = DataObject.from_model(test_model_object, **model_object.to_primitive())
 
     # Assert the data object is valid.
-    assert isinstance(data_object, TestDataObject)
+    assert isinstance(data_object, DataObject)
+
+
+# ** domain: test_data_object_from_data
+def test_data_object_from_data(test_data_object):
+
+    # Create a new data object using the fixture.
+    data_object = DataObject.from_data(test_data_object, attribute='test')
+
+    # Assert the data object is valid.
+    assert isinstance(data_object, test_data_object)
     assert data_object.attribute == 'test'
 
 
+# ** domain: test_data_object_allow
 def test_data_object_allow():
 
     # Create a new allow role.
@@ -99,6 +140,7 @@ def test_data_object_allow():
     assert role.fields == {'test'}
 
 
+# ** domain: test_data_object_deny
 def test_data_object_deny():
 
     # Create a new deny role.
@@ -108,16 +150,10 @@ def test_data_object_deny():
     assert role.fields == {'test'}
 
 
-def test_module_dependency_new():
+# ** domain: test_module_dependency_new
+def test_module_dependency_new(module_dependency):
 
-    # Create a new module dependency.
-    module_dependency = ModuleDependency.new(
-        ModuleDependency,
-        module_path='tests.repos.test',
-        class_name='YamlProxy',
-    )
-
-    # Assert the module dependency is valid.
+    # Assert the module dependency is valid using the fixture.
     assert isinstance(module_dependency, ModuleDependency)
     assert module_dependency.module_path == 'tests.repos.test'
     assert module_dependency.class_name == 'YamlProxy'
