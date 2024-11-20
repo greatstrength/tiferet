@@ -21,9 +21,8 @@ def test_model_object_new():
 
 def test_entity_new():
     
-    # Create a new entity.
+    # Define a new entity.
     class TestEntity(Entity):
-        
         id = StringType(
             required=True,
             metadata=dict(
@@ -31,6 +30,7 @@ def test_entity_new():
             ),
         )
 
+    # Create a new entity.
     entity = Entity.new(TestEntity, id='test')
 
     # Assert the entity is valid.
@@ -40,9 +40,8 @@ def test_entity_new():
 
 def test_value_object_new():
 
-    # Create a new value object.
+    # Define a new value object.
     class TestValueObject(ValueObject):
-        
         attribute = StringType(
             required=True,
             metadata=dict(
@@ -50,6 +49,7 @@ def test_value_object_new():
             ),
         )
 
+    # Create a new value object.
     value_object = ValueObject.new(TestValueObject, attribute='test')
 
     # Assert the value object is valid.
@@ -59,7 +59,7 @@ def test_value_object_new():
 
 def test_data_object_from_model():
 
-    # Create a new model object.
+    # Define a new model object.
     class TestModelObject(ModelObject):
         pass
 
