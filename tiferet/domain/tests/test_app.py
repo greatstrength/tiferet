@@ -1,10 +1,7 @@
-from ..app import AppDependency, AppInterface, ModuleDependency
-
-
 def test_app_dependency_new():
 
     # Create a new app dependency.
-    from ...tests.configs.app import test_app_dependency as app_dependency
+    from ...configs.tests import app_dependency
 
     # Assert the app dependency is valid.
     assert app_dependency.attribute_id == 'app_context'
@@ -15,7 +12,7 @@ def test_app_dependency_new():
 def test_app_interface_new():
 
     # Create a new app interface.
-    from ...tests.configs.app import test_app_interface as app_interface
+    from ...configs.tests import app_interface
 
     # Assert the app interface is valid.
     assert app_interface.id == 'test'
@@ -28,11 +25,10 @@ def test_app_interface_new():
     assert app_interface.dependencies[0].module_path == 'tests.contexts.app'
     assert app_interface.dependencies[0].class_name == 'TestAppInterfaceContext'
 
-
 def test_app_interface_get_dependency():
 
-    # Create a new app interface.
-    from ...tests.configs.app import test_app_interface as app_interface
+    # Get the app interface.
+    from ...configs.tests import app_interface
 
     # Get the app dependency.
     app_dependency = app_interface.get_dependency('app_context')
@@ -42,19 +38,18 @@ def test_app_interface_get_dependency():
     assert app_dependency.module_path == 'tests.contexts.app'
     assert app_dependency.class_name == 'TestAppInterfaceContext'
 
-
 def test_app_interface_get_dependency_invalid():
 
-    # Create a new app interface.
-    from ...tests.configs.app import test_app_interface as app_interface
+    # Get the app interface.
+    from ...configs.tests import app_interface
 
     # Assert the app dependency is invalid.
     assert app_interface.get_dependency('invalid') is None
 
 
 def test_app_repository_configuration_new_default():
-
-    # Create a new app repository configuration.
+    
+    # Create a new app repository configuration object.
     from ..app import AppRepositoryConfiguration
 
     # Create a new app repository configuration object.
@@ -68,8 +63,8 @@ def test_app_repository_configuration_new_default():
 
 
 def test_app_repository_configuration_new_custom():
-
-    # Create a new app repository configuration.
+    
+    # Create a new app repository configuration object.
     from ..app import AppRepositoryConfiguration
 
     # Create a new app repository configuration object.
