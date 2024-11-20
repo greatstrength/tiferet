@@ -1,10 +1,10 @@
-from ...domain.app import AppDependency, AppInterface, ModuleDependency
+from ..app import AppDependency, AppInterface, ModuleDependency
 
 
 def test_app_dependency_new():
 
     # Create a new app dependency.
-    from ..configs.app import test_app_dependency as app_dependency
+    from ...tests.configs.app import test_app_dependency as app_dependency
 
     # Assert the app dependency is valid.
     assert app_dependency.attribute_id == 'app_context'
@@ -15,7 +15,7 @@ def test_app_dependency_new():
 def test_app_interface_new():
 
     # Create a new app interface.
-    from ..configs.app import test_app_interface as app_interface
+    from ...tests.configs.app import test_app_interface as app_interface
 
     # Assert the app interface is valid.
     assert app_interface.id == 'test'
@@ -32,7 +32,7 @@ def test_app_interface_new():
 def test_app_interface_get_dependency():
 
     # Create a new app interface.
-    from ..configs.app import test_app_interface as app_interface
+    from ...tests.configs.app import test_app_interface as app_interface
 
     # Get the app dependency.
     app_dependency = app_interface.get_dependency('app_context')
@@ -46,7 +46,7 @@ def test_app_interface_get_dependency():
 def test_app_interface_get_dependency_invalid():
 
     # Create a new app interface.
-    from ..configs.app import test_app_interface as app_interface
+    from ...tests.configs.app import test_app_interface as app_interface
 
     # Assert the app dependency is invalid.
     assert app_interface.get_dependency('invalid') is None
@@ -55,7 +55,7 @@ def test_app_interface_get_dependency_invalid():
 def test_app_repository_configuration_new_default():
 
     # Create a new app repository configuration.
-    from ...domain.app import AppRepositoryConfiguration
+    from ..app import AppRepositoryConfiguration
 
     # Create a new app repository configuration object.
     app_repository_configuration = AppRepositoryConfiguration.new()
@@ -70,7 +70,7 @@ def test_app_repository_configuration_new_default():
 def test_app_repository_configuration_new_custom():
 
     # Create a new app repository configuration.
-    from ...domain.app import AppRepositoryConfiguration
+    from ..app import AppRepositoryConfiguration
 
     # Create a new app repository configuration object.
     app_repository_configuration = AppRepositoryConfiguration.new(
