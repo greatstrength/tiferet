@@ -132,11 +132,18 @@ class DataObject(Model):
         :rtype: DataObject
         '''
 
+        # Create the model object.
+        model_object = ModelObject.new(model, **kwargs)
+
         # Create a new data object.
-        return DataObject(
-            ModelObject.new(model, **kwargs).to_primitive(),
+        data = DataObject(
+            model_object.to_primitive(),
             strict=False
         )
+
+        # Validate and return the data object.
+        data.validate()
+        return data
 
     @staticmethod
     def from_data(
