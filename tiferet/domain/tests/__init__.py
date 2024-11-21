@@ -24,3 +24,7 @@ from ..container import ContainerDependency
 # * error
 from ..error import ErrorMessage
 from ..error import Error
+
+# * feature
+from ..feature import FeatureCommand
+from ..feature import Feature

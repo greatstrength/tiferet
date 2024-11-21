@@ -152,6 +152,7 @@ class Feature(Entity):
 
         # Create and return a new Feature object.
         return super(Feature, Feature).new(
+            Feature,
             id=id,
             name=name,
             group_id=group_id,
@@ -170,7 +171,7 @@ class Feature(Entity):
         '''
 
         # Add the handler to the feature.
-        if position:
+        if position is not None:
             self.commands.insert(position, handler)
         else:
             self.commands.append(handler)
