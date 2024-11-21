@@ -20,3 +20,7 @@ from ..app import AppRepositoryConfiguration
 # * container
 from ..container import ContainerAttribute
 from ..container import ContainerDependency
+
+# * error
+from ..error import ErrorMessage
+from ..error import Error
