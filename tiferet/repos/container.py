@@ -51,18 +51,6 @@ class ContainerRepository(object):
         # Not implemented.
         raise NotImplementedError()
 
-    # * method: save_attribute
-    def save_attribute(self, attribute: ContainerAttribute):
-        '''
-        Save the container attribute.
-
-        :param attribute: The container attribute.
-        :type attribute: ContainerAttribute
-        '''
-
-        # Not implemented.
-        raise NotImplementedError
-
 
 # ** proxy: yaml_proxy
 class YamlProxy(ContainerRepository):
@@ -71,26 +59,16 @@ class YamlProxy(ContainerRepository):
     '''
 
     # * init
-    def __init__(self, container_config_file: str, read_role: str = 'to_object.yaml', write_role: str = 'to_data.yaml'):
+    def __init__(self, container_config_file: str):
         '''
         Initialize the yaml proxy.
         
         :param container_config_file: The YAML file path for the container configuration.
         :type container_config_file: str
-        :param read_role: The read role for the yaml proxy.
-        :type read_role: str
-        :param write_role: The write role for the yaml proxy.
-        :type write_role: str
         '''
 
         # Set the container configuration file.
         self.config_file = container_config_file
-
-        # Set the read role.
-        self.read_role = read_role
-
-        # Set the write role.
-        self.write_role = write_role
 
     # * method: get_attribute
     def get_attribute(self, attribute_id: str, type: str) -> ContainerAttribute:
@@ -108,7 +86,7 @@ class YamlProxy(ContainerRepository):
         # Load the attribute data from the yaml configuration file.
         data = yaml_client.load(
             self.config_file,
-            create_data=lambda data: ContainerAttributeYamlData.new(
+            create_data=lambda data: ContainerAttributeYamlData.from_data(
                 id=attribute_id, **data),
             start_node=lambda data: data.get('attrs').get(attribute_id),
         )
@@ -118,7 +96,7 @@ class YamlProxy(ContainerRepository):
             return None
         
         # Return the attribute.
-        return data.map(self.read_role)
+        return data.map()
 
     # * method: list_all
     def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
@@ -133,32 +111,13 @@ class YamlProxy(ContainerRepository):
         attr_data, consts = yaml_client.load(
             self.config_file,
             create_data=lambda data: (
-                [ContainerAttributeYamlData.new(id=id, **attr_data) for id, attr_data in data.get('attrs', {}).items()],
+                [ContainerAttributeYamlData.from_data(id=id, **attr_data) for id, attr_data in data.get('attrs', {}).items()],
                 data.get('const', {}),
             ),
         )
 
         # Return the list of container attributes.
         return (
-            [data.map(self.read_role) for data in attr_data],
+            [data.map() for data in attr_data],
             consts
-        )
-
-    # * method: save_attribute
-    def save_attribute(self, attribute: ContainerAttribute):
-        '''
-        Save the attribute to the yaml file.
-
-        :param attribute: The attribute to save.
-        :type attribute: ContainerAttribute
-        '''
-
-        # Create a new container attribute data object.
-        data = ContainerAttributeYamlData.from_model(attribute)
-
-        # Update the attribute data.
-        yaml_client.save(
-            self.config_file,
-            data.to_primitive(role=self.write_role),
-            f'container/attrs/{attribute.id}'
         )
