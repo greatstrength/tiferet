@@ -56,19 +56,8 @@ class FeatureRepository(object):
         '''
 
         # Not implemented.
-        raise NotImplementedError
-
-    # * method: save
-    def save(self, feature: Feature):
-        '''
-        Save the feature.
-        
-        :param feature: The feature object.
-        :type feature: f.Feature
-        '''
-
-        # Not implemented.
         raise NotImplementedError()
+    
 
 # ** repository: yaml_proxy
 class YamlProxy(FeatureRepository):
@@ -121,7 +110,7 @@ class YamlProxy(FeatureRepository):
         # Load feature data from yaml.
         _data: FeatureData = yaml_client.load(
             self.config_file,
-            create_data=lambda data: FeatureData.from_yaml_data(
+            create_data=lambda data: FeatureData.from_data(
                 id=id,
                 group_id=group_id,
                 **data
@@ -134,7 +123,7 @@ class YamlProxy(FeatureRepository):
             return None
 
         # Return feature.
-        return _data.map('to_object.yaml')
+        return _data.map()
     
     # * method: list
     def list(self, group_id: str = None) -> List[Feature]:
@@ -150,7 +139,7 @@ class YamlProxy(FeatureRepository):
         # Load all feature data from yaml.
         features = yaml_client.load(
             self.config_file,
-            create_data=lambda data: [FeatureData.from_yaml_data(
+            create_data=lambda data: [FeatureData.from_data(
                 id=id,
                 **feature_data
             ) for id, feature_data in data.items()],
@@ -162,26 +151,5 @@ class YamlProxy(FeatureRepository):
             features = [feature for feature in features if feature.group_id == group_id]
 
         # Return the list of features.
-        return [feature.map('to_object.yaml') for feature in features]
+        return [feature.map() for feature in features]
 
-    # * method: save
-    def save(self, feature: Feature):
-        '''
-        Save the feature.
-        
-        :param feature: The feature object.
-        :type feature: f.Feature
-        '''
-
-        # Create updated feature data.
-        feature_data = FeatureData.new(**feature.to_primitive())
-
-        # Update the feature data.
-        yaml_client.save(
-            self.config_file,
-            data=feature_data,
-            data_save_path=f'features/{feature.group_id}.{feature_data.feature_key}'
-        )
-
-        # Return the updated feature object.
-        return feature_data.map('to_object.yaml')
