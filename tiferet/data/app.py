@@ -36,7 +36,7 @@ class AppDependencyYamlData(AppDependency, DataObject):
 
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'AppDependencyYamlData':
+    def from_data(**kwargs) -> 'AppDependencyYamlData':
         '''
         Initializes a new YAML representation of an AppDependency object.
 
@@ -47,11 +47,11 @@ class AppDependencyYamlData(AppDependency, DataObject):
         '''
 
         # Create a new AppDependencyData object.
-        return AppDependencyYamlData(
-            dict(**kwargs),
-            strict=False,
+        return super(AppDependencyYamlData, AppDependencyYamlData).from_data(
+            AppDependencyYamlData,
+            **kwargs
         )
-    
+
     # * method: map
     def map(self, **kwargs) -> AppDependency:
         '''
@@ -67,7 +67,7 @@ class AppDependencyYamlData(AppDependency, DataObject):
 
         # Map the app dependency data.
         return super().map(AppDependency, **kwargs)
-    
+
 
 # ** data: app_interface_yaml_data
 class AppInterfaceYamlData(AppInterface, DataObject):
@@ -82,7 +82,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('app_context', 'container_context', 'feature_context', 'error_context', 'feature_repo', 'container_repo', 'error_repo'),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data': DataObject.deny('id')
         }
 
     # attribute: app_context
@@ -180,14 +180,14 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
     # * method: new
     @staticmethod
-    def new(app_context: Dict[str, str],
-            container_context: Dict[str, str] = None,
-            feature_context: Dict[str, str] = None,
-            error_context: Dict[str, str] = None,
-            feature_repo: Dict[str, str] = None,
-            container_repo: Dict[str, str] = None,
-            error_repo: Dict[str, str] = None,
-            **kwargs) -> 'AppInterfaceYamlData':
+    def from_data(app_context: Dict[str, str],
+        container_context: Dict[str, str] = None,
+        feature_context: Dict[str, str] = None,
+        error_context: Dict[str, str] = None,
+        feature_repo: Dict[str, str] = None,
+        container_repo: Dict[str, str] = None,
+        error_repo: Dict[str, str] = None,
+        **kwargs) -> 'AppInterfaceYamlData':
         '''
         Initializes a new YAML representation of an AppInterface object.
 
@@ -200,31 +200,34 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         # Format the dependencies.
         dependencies = {}
         if app_context:
-            dependencies['app_context'] = AppDependencyYamlData.new(attribute_id='app_context', **app_context)
+            dependencies['app_context'] = AppDependencyYamlData.new(
+                attribute_id='app_context', **app_context)
         if container_context:
-            dependencies['container_context'] = AppDependencyYamlData.new(attribute_id='container_context', **container_context)
+            dependencies['container_context'] = AppDependencyYamlData.new(
+                attribute_id='container_context', **container_context)
         if feature_context:
-            dependencies['feature_context'] = AppDependencyYamlData.new(attribute_id='feature_context', **feature_context)
+            dependencies['feature_context'] = AppDependencyYamlData.new(
+                attribute_id='feature_context', **feature_context)
         if error_context:
-            dependencies['error_context'] = AppDependencyYamlData.new(attribute_id='error_context', **error_context)
+            dependencies['error_context'] = AppDependencyYamlData.new(
+                attribute_id='error_context', **error_context)
         if feature_repo:
-            dependencies['feature_repo'] = AppDependencyYamlData.new(attribute_id='feature_repo', **feature_repo)
+            dependencies['feature_repo'] = AppDependencyYamlData.new(
+                attribute_id='feature_repo', **feature_repo)
         if container_repo:
-            dependencies['container_repo'] = AppDependencyYamlData.new(attribute_id='container_repo', **container_repo)
+            dependencies['container_repo'] = AppDependencyYamlData.new(
+                attribute_id='container_repo', **container_repo)
         if error_repo:
-            dependencies['error_repo'] = AppDependencyYamlData.new(attribute_id='error_repo', **error_repo)
+            dependencies['error_repo'] = AppDependencyYamlData.new(
+                attribute_id='error_repo', **error_repo)
 
         # Create a new AppInterfaceData object.
-        data = AppInterfaceYamlData(dict(
+        return super(AppInterfaceYamlData, AppInterfaceYamlData).from_data(
+            AppInterfaceYamlData,
             **dependencies,
-            **kwargs),
-            strict=False,
+            **kwargs
         )
 
-        # Validate and return the new AppInterfaceData object.
-        data.validate()
-        return data
-    
     # * method: map
     def map(self, **kwargs) -> AppInterface:
         '''
@@ -250,9 +253,9 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         ]
 
         # Map the app interface data.
-        return super().map(AppInterface, 
-            dependencies=dependencies, 
-            **self.to_primitive('to_model'), 
+        return super().map(AppInterface,
+            dependencies=dependencies,
+            **self.to_primitive('to_model'),
             **kwargs
         )
 
@@ -270,12 +273,12 @@ class AppRepositoryConfigurationYamlData(DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.allow()
+            'to_data': DataObject.allow()
         }
 
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'AppRepositoryConfigurationYamlData':
+    def from_data(**kwargs) -> 'AppRepositoryConfigurationYamlData':
         '''
         Initializes a new YAML representation of an AppRepositoryConfiguration object.
 
@@ -286,12 +289,11 @@ class AppRepositoryConfigurationYamlData(DataObject):
         '''
 
         # Create a new AppRepositoryConfigurationData object.
-        return AppRepositoryConfigurationYamlData(
-            super(AppRepositoryConfigurationYamlData, AppRepositoryConfigurationYamlData).new(
-                **kwargs
-            )
+        return super(AppRepositoryConfigurationYamlData, AppRepositoryConfigurationYamlData).from_data(
+            AppRepositoryConfigurationYamlData,
+            **kwargs
         )
-    
+
     # * method: map
     def map(self, **kwargs) -> AppRepositoryConfiguration:
         '''
