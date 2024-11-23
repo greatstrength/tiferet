@@ -161,9 +161,7 @@ class DataObject(Model):
         '''
 
         # Create a new data object.
-        return data({
-            **kwargs
-        }, strict=False)
+        return data(dict(**kwargs), strict=False)
 
     # ** method: allow
     @staticmethod

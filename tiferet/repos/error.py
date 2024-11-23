@@ -106,7 +106,7 @@ class YamlProxy(ErrorRepository):
         # Load the error data from the yaml configuration file.
         data: List[ErrorData] = yaml_client.load(
             self.config_file,
-            create_data=lambda data: ErrorData.from_yaml_data(
+            create_data=lambda data: ErrorData.from_data(
                 id=id, **data),
             start_node=lambda data: data.get('errors').get(id))
 
@@ -127,12 +127,12 @@ class YamlProxy(ErrorRepository):
         # Load the error data from the yaml configuration file.
         _data: ErrorData = yaml_client.load(
             self.config_file,
-            create_data=lambda data: ErrorData.new(
+            create_data=lambda data: ErrorData.from_data(
                 id=id, **data),
             start_node=lambda data: data.get('errors').get(id))
 
         # Return the error object.
-        return _data.map('to_object.yaml')
+        return _data.map()
     
     # * method: list
     def list(self) -> List[Error]:
@@ -146,12 +146,12 @@ class YamlProxy(ErrorRepository):
         # Load the error data from the yaml configuration file.
         _data: Dict[str, ErrorData] = yaml_client.load(
             self.config_file,
-            create_data=lambda data: {id: ErrorData.new(
+            create_data=lambda data: {id: ErrorData.from_data(
                 id=id, **error_data) for id, error_data in data.items()},
             start_node=lambda data: data.get('errors'))
 
         # Return the error object.
-        return [data.map('to_object.yaml') for data in _data.values()]
+        return [data.map() for data in _data.values()]
 
     # * method: save
     def save(self, error: Error):
@@ -163,7 +163,7 @@ class YamlProxy(ErrorRepository):
         '''
 
         # Create updated error data.
-        error_data = ErrorData.new(**error.to_primitive())
+        error_data = ErrorData.from_model(error)
 
         # Update the error data.
         yaml_client.save(
