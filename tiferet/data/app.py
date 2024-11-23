@@ -238,7 +238,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             if key in kwargs:
                 dependencies[key] = AppDependencyYamlData.from_data(
                     attribute_id=key,
-                    **kwargs[key])
+                    **kwargs.pop(key)) # Pop the key to avoid duplication.
                 continue
             
             # Otherwise, add the default value.
@@ -286,7 +286,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
 
 # ** data: app_repository_configuration_yaml_data
-class AppRepositoryConfigurationYamlData(DataObject):
+class AppRepositoryConfigurationYamlData(DataObject, AppRepositoryConfiguration):
     '''
     A YAML data representation of an app repository configuration object.
     '''
