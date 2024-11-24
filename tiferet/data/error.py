@@ -17,8 +17,8 @@ class ErrorMessageData(ErrorMessage, DataObject):
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data.yaml': DataObject.allow('id'),
-            'to_object.yaml': DataObject.allow()
+            'to_data': DataObject.allow(),
+            'to_model': DataObject.allow()
         }
 
 
@@ -31,8 +31,8 @@ class ErrorData(Error, DataObject):
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data.yaml': DataObject.deny('id'),
-            'to_object.yaml': DataObject.allow()
+            'to_data': DataObject.deny('id'),
+            'to_model': DataObject.allow()
         }
 
     # * attribute: message
@@ -45,12 +45,10 @@ class ErrorData(Error, DataObject):
     )
 
     # * method: map
-    def map(self, role: str = 'to_object.yaml', **kwargs):
+    def map(self, **kwargs) -> Error:
         '''
         Maps the error data to an error object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new error object.
@@ -58,11 +56,13 @@ class ErrorData(Error, DataObject):
         '''
 
         # Map the error messages.
-        return super().map(Error, role, **kwargs)
+        return super().map(Error,
+            **self.to_primitive('to_model'),
+            **kwargs)
 
-    # * method: new
+    # * method: from_data
     @staticmethod
-    def new(**kwargs) -> 'ErrorData':
+    def from_data(**kwargs) -> 'ErrorData':
         '''
         Creates a new ErrorData object.
 
@@ -73,6 +73,7 @@ class ErrorData(Error, DataObject):
         '''
 
         # Create a new ErrorData object.
-        return ErrorData(
-            super(ErrorData, ErrorData).new(**kwargs)
+        return super(ErrorData, ErrorData).from_data(
+            ErrorData, 
+            **kwargs
         )
