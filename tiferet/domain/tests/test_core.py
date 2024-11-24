@@ -113,7 +113,7 @@ def test_data_object_from_model(test_model_object):
     model_object = test_model_object.new(test_model_object, attribute='test')
 
     # Create a new data object from the model object.
-    data_object = DataObject.from_model(test_model_object, **model_object.to_primitive())
+    data_object = DataObject.from_model(DataObject, model_object)
 
     # Assert the data object is valid.
     assert isinstance(data_object, DataObject)
