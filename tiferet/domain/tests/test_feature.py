@@ -45,6 +45,7 @@ def additional_feature_command():
         pass_on_error=False
     )
 
+
 # ** fixture: feature_no_desc
 @pytest.fixture
 def feature_no_desc():
@@ -52,6 +53,25 @@ def feature_no_desc():
         name='Feature with no description',
         group_id='group',
         feature_key='key'
+    )
+
+
+# ** fixture: feature_name_and_group_only
+@pytest.fixture
+def feature_name_and_group_only():
+    return Feature.new(
+        name='Plain Feature',
+        group_id='group'
+    )
+
+
+# ** fixture: feature_with_id
+@pytest.fixture
+def feature_with_id():
+    return Feature.new(
+        name='Feature with ID',
+        group_id='test',
+        id='test.feature_with_id'
     )
 
 
@@ -118,3 +138,25 @@ def test_feature_add_handler_position(feature, additional_feature_command):
     assert feature.commands[0].return_to_data == True
     assert feature.commands[0].data_key == 'additional_key'
     assert feature.commands[0].pass_on_error == False
+
+
+# ** test: test_feature_name_and_group_only
+def test_feature_name_and_group_only(feature_name_and_group_only):
+
+    # Test that the feature with only a name and group ID is created correctly
+    assert feature_name_and_group_only.name == 'Plain Feature'
+    assert feature_name_and_group_only.group_id == 'group'
+    assert feature_name_and_group_only.id == 'group.plain_feature'
+    assert feature_name_and_group_only.description == 'Plain Feature'
+    assert len(feature_name_and_group_only.commands) == 0
+
+
+# ** test: test_feature_with_id
+def test_feature_with_id(feature_with_id):
+
+    # Test that the feature with an ID is created correctly
+    assert feature_with_id.name == 'Feature with ID'
+    assert feature_with_id.group_id == 'test'
+    assert feature_with_id.id == 'test.feature_with_id'
+    assert feature_with_id.description == 'Feature with ID'
+    assert len(feature_with_id.commands) == 0

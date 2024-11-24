@@ -127,7 +127,7 @@ class Feature(Entity):
 
     # * method: new
     @staticmethod
-    def new(name: str, group_id: str, feature_key: str, description: str = None, **kwargs) -> 'Feature':
+    def new(name: str, group_id: str, feature_key: str = None, id: str = None, description: str = None, **kwargs) -> 'Feature':
         '''Initializes a new Feature object.
 
         :param name: The name of the feature.
@@ -136,6 +136,8 @@ class Feature(Entity):
         :type group_id: str
         :param feature_key: The key of the feature.
         :type feature_key: str
+        :param id: The identifier of the feature.
+        :type id: str
         :param description: The description of the feature.
         :type description: str
         :param kwargs: Additional keyword arguments.
@@ -143,8 +145,13 @@ class Feature(Entity):
         :return: A new Feature object.
         '''
 
+        # Set the feature key as the snake case of the name if not provided.
+        if not feature_key:
+            feature_key = name.lower().replace(' ', '_')
+
         # Feature ID is the group ID and feature key separated by a period.
-        id = f'{group_id}.{feature_key}'
+        if not id:
+            id = f'{group_id}.{feature_key}'
 
         # Set the description as the name if not provided.
         if not description:
