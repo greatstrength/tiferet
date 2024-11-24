@@ -88,6 +88,7 @@ class DataObject(Model):
     def map(self,
             type: ModelObject,
             role: str = 'to_model',
+            validate: bool = True,
             **kwargs
             ) -> ModelObject:
         '''
@@ -97,6 +98,8 @@ class DataObject(Model):
         :type type: type
         :param role: The role for the mapping.
         :type role: str
+        :param validate: True to validate the model object.
+        :type validate: bool
         :param kwargs: Additional keyword arguments for mapping.
         :type kwargs: dict
         :return: A new model object.
@@ -112,13 +115,19 @@ class DataObject(Model):
         # Map the data object to a model object.
         _object = type.new(**_data, strict=False)
 
+        # Validate if specified.
+        if validate:
+            _object.validate()
+
         # Return the model data.
         return _object
 
     # ** method: from_model
     @staticmethod
     def from_model(
+        data: 'DataObject',
         model: ModelObject,
+        validate: bool = True,
         **kwargs
     ) -> 'DataObject':
         '''
@@ -126,24 +135,28 @@ class DataObject(Model):
 
         :param model: The type of model object to map from.
         :type model: type
+        :param data: The data object to map from.
+        :type data: DataObject
+        :param validate: True to validate the data object.
+        :type validate: bool
         :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new data object.
         :rtype: DataObject
         '''
 
-        # Create the model object.
-        model_object = ModelObject.new(model, **kwargs)
-
         # Create a new data object.
-        data = DataObject(
-            model_object.to_primitive(),
-            strict=False
-        )
+        obj = data(dict(
+            **model.to_primitive(),
+            **kwargs
+        ), strict=False)
 
-        # Validate and return the data object.
-        data.validate()
-        return data
+        # Validate the data object if specified.
+        if validate:
+            obj.validate()
+
+        # Return the data object.
+        return obj
 
     @staticmethod
     def from_data(

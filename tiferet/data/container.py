@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import Any, Dict
+
 # ** app
 from ..configs import *
 from ..domain import DataObject
@@ -21,8 +24,8 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('flag')
+            'to_model': DataObject.deny('params'),
+            'to_data': DataObject.deny('flag')
         }
 
     # * attribute: flag
@@ -54,11 +57,18 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         '''
 
         # Map to the container dependency object.
-        return super().map(ContainerDependency, **kwargs)
+        obj = super().map(ContainerDependency, **kwargs, validate=False)
+    
+        # Set the parameters in due to the deserializer.
+        obj.parameters = self.parameters
+
+        # Validate and return the object.
+        obj.validate()
+        return obj
     
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'ContainerDependencyYamlData':
+    def from_data(**kwargs) -> 'ContainerDependencyYamlData':
         '''
         Initializes a new ContainerDependencyData object from YAML data.
 
@@ -68,14 +78,14 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         :rtype: ContainerDependencyYamlData
         '''
 
-        # Create a new ContainerDependencyYamlData object.
-        data = ContainerDependencyYamlData(dict(
-            **kwargs,
-        ), strict=False)
-
-        # Validate and return the object.
-        data.validate()
-        return data
+        # Create a new ContainerDependencyData object.
+        return super(
+            ContainerDependencyYamlData, 
+            ContainerDependencyYamlData
+        ).from_data(
+            ContainerDependencyYamlData,
+            **kwargs
+        )
     
     # * method: from_model
     @staticmethod
@@ -90,8 +100,9 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         '''
 
         # Create and return a new ContainerDependencyData object.
-        return ContainerDependencyYamlData.new(
-            **model.to_primitive(),
+        return super(ContainerDependencyYamlData, ContainerDependencyYamlData).from_model(
+            ContainerDependencyYamlData,
+            model,
             **kwargs,
         )
 
@@ -110,7 +121,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data': DataObject.deny('id')
         }
 
     # * attribute: dependencies
@@ -140,23 +151,33 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'ContainerAttributeYamlData':
+    def from_data(**kwargs) -> 'ContainerAttributeYamlData':
         '''
         Initializes a new ContainerAttributeData object from YAML data.
 
+        :param deps: The dependencies data.
+        :type deps: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        '''
+        '''        
 
         # Create a new ContainerAttributeData object.
-        data = ContainerAttributeYamlData(dict(
-            **kwargs,
-        ), strict=False)
+        obj = super(
+            ContainerAttributeYamlData, 
+            ContainerAttributeYamlData
+        ).from_data(
+            ContainerAttributeYamlData,
+            **kwargs, 
+            validate=False
+        )
+    
+        # Set the dependencies.
+        for flag, dep in obj.dependencies.items():
+            dep.flag = flag
 
-        
         # Validate and return the object.
-        data.validate()
-        return data
+        obj.validate()
+        return obj
     
     # * method: from_model
     @staticmethod
@@ -170,10 +191,23 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         :type kwargs: dict
         '''
 
+        # Create the dependency data.
+        dependencies = {dep.flag: dep.to_primitive() for dep in model.dependencies}
+        
+        # Create a new model object without the dependencies.
+        data = model.to_primitive()
+        data['dependencies'] = dependencies
+
         # Create a new ContainerAttributeData object.
-        return ContainerAttributeYamlData.new(
-            id=model.id,
-            type=model.type,
-            dependencies = {dep.flag: dep for dep in model.dependencies},
+        obj = ContainerAttributeYamlData(
+            dict(
+                **data,
+                **kwargs
+            ), 
+            strict=False
         )
+
+        # Validate and return the object.
+        obj.validate()
+        return obj
     
