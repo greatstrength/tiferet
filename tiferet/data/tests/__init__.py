@@ -21,3 +21,9 @@ from ..error import Error
 from ..error import ErrorData
 from ..error import ErrorMessage
 from ..error import ErrorMessageData
+
+# * feature
+from ..feature import Feature
+from ..feature import FeatureData
+from ..feature import FeatureCommand
+from ..feature import FeatureCommandData
