@@ -103,4 +103,3 @@ def test_set_result_with_empty_list(request_context):
     # Test setting an empty list
     request_context.set_result([])
     assert request_context.result == '{}'
-    

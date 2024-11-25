@@ -10,7 +10,7 @@ from . import *
 # *** fixtures
 
 # ** fixture: error_message
-@pytest.fixture
+@pytest.fixture(scope='session')
 def error_message():
     return ErrorMessage.new(
         lang='en_US',
@@ -28,7 +28,7 @@ def formatted_error_message():
 
 
 # ** fixture: error
-@pytest.fixture
+@pytest.fixture(scope='session')
 def error(error_message):
     return Error.new(
         name='My Error',
