@@ -86,12 +86,11 @@ class ContainerContext(Model):
         
         # Add the attributes to the context.
         for attr in attrs:
-            attribute: ContainerAttribute = attributes[attr.id]
-
+            
             # If the attribute already exists, set the dependencies.
             if attr.id in attributes:
                 for dep in attr.dependencies:
-                    attribute.set_dependency(dep)
+                    attr.set_dependency(dep)
                     continue
 
             # Otherwise, add the attribute.
@@ -145,7 +144,7 @@ class ContainerContext(Model):
             dependencies[attribute_id] = self.import_dependency(attribute, flag_map[attribute.type])
 
         # Create container.
-        return container_service.create_injector(self, 
+        return container_service.create_injector( 
             self.interface_id, 
             **self.constants, 
             **dependencies, 

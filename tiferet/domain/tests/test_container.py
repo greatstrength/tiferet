@@ -18,7 +18,6 @@ def container_dependency():
         parameters={'config_file': 'test.yml'}
     )
 
-
 # ** fixture: container_attribute
 @pytest.fixture
 def container_attribute(container_dependency):
