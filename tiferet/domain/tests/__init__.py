@@ -162,3 +162,17 @@ def test_error_with_custom_id_and_code():
         error_code='CUSTOM_ERR',
         message=[ErrorMessage.new(lang='en_US', text='An error occurred.')]
     )
+
+# ** fixture: error_with_multiple_args
+@pytest.fixture
+def test_error_with_multiple_args():
+    return Error.new(
+        name="MULTI_FORMATTED_ERROR",
+        error_code="MULTI_FORMATTED_ERROR",
+        message=[
+            ErrorMessage.new(
+                lang="en_US",
+                text="An error occurred: {0} - {1}."
+            )
+        ]
+    )
