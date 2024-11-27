@@ -9,8 +9,17 @@ from ..feature import *
 
 # *** classes
 
+# ** class: TestRepository
+class TestRepository:
+    '''
+    A test repository class.
+    '''
+    
+    pass
+
+
 # ** class: TestProxy
-class TestProxy:
+class TestProxy(TestRepository):
     '''
     A test proxy class.
     '''
