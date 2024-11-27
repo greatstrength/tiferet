@@ -76,7 +76,9 @@ def error_repo(mock_error_repo, test_error, test_error_with_formatted_message, t
 # ** fixture: error_context (error)
 @pytest.fixture(scope='session')
 def error_context(error_repo):
-    return ErrorContext(error_repo=error_repo)
+    return ErrorContext(
+        error_repo=error_repo
+    )
 
 
 # ** fixture: feature_repo (feature)
