@@ -100,3 +100,65 @@ def test_feature_command_container_attribute(
             test_feature_command_core_container_dependency
         ],
     )
+
+
+# ** fixture: test_error_message
+@pytest.fixture(scope='session')
+def test_error_message():
+    return ErrorMessage.new(
+        lang='en_US',
+        text='An error occurred.'
+    )
+
+
+# ** fixture: test_formatted_error_message
+@pytest.fixture(scope='session')
+def test_formatted_error_message():
+    return ErrorMessage.new(
+        lang='en_US',
+        text='An error occurred: {}'
+    )
+
+
+
+# ** fixture: test_error
+@pytest.fixture(scope='session')
+def test_error(test_error_message):
+    return Error.new(
+        name='My Error',
+        message=[test_error_message]
+    )
+
+
+# ** fixture: test_error_with_multiple_messages
+@pytest.fixture
+def test_error_with_multiple_messages(test_error_message):
+    return Error.new(
+        name='Multi Language Error',
+        message=[
+            test_error_message,
+            ErrorMessage.new(lang='fr_FR', text='Une erreur est survenue.')
+        ]
+    )
+
+
+# ** fixture: test_error_with_formatted_message
+@pytest.fixture
+def test_error_with_formatted_message(test_formatted_error_message):
+    return Error.new(
+        name='Formatted Error',
+        message=[
+            test_formatted_error_message
+        ]
+    )
+
+
+# ** fixture: test_error_with_custom_id_and_code
+@pytest.fixture
+def test_error_with_custom_id_and_code():
+    return Error.new(
+        name='Custom Error',
+        id='CUSTOM_ERROR',
+        error_code='CUSTOM_ERR',
+        message=[ErrorMessage.new(lang='en_US', text='An error occurred.')]
+    )
