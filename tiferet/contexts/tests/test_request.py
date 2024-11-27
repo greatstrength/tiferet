@@ -6,22 +6,6 @@ import pytest
 # ** app
 from . import *
 
-# *** fixtures
-
-# ** fixture: request_context
-@pytest.fixture
-def request_context():
-    return RequestContext(
-        feature_id="test.execute_test", 
-        headers={"Content-Type": "application/json"}, 
-        data={"key": "value"}
-    )
-
-
-# ** fixture: test_model_result
-@pytest.fixture
-def test_model():   
-    return TestModel
 
 # *** tests
 
@@ -29,9 +13,9 @@ def test_model():
 def test_request_context_init(request_context):
     
     # Test initialization
-    assert request_context.feature_id == "test.execute_test"
+    assert request_context.feature_id == "test_group.test_feature"
     assert request_context.headers == {"Content-Type": "application/json"}
-    assert request_context.data == {"key": "value"}
+    assert request_context.data == {"param1": "value1", "param2": "value2"}
     assert request_context.result is None  
 
 
@@ -54,8 +38,6 @@ def test_set_result_with_dict(request_context):
 def test_set_result_with_model(request_context):
     
     # Test setting a Model as result
-    class TestModel(Model):
-        test_field = StringType(required=True)
     model_instance = TestModel(dict(test_field="test_value"))
 
     # Set the result.
