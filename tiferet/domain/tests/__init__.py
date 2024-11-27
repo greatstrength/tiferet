@@ -131,7 +131,7 @@ def test_error(test_error_message):
 
 
 # ** fixture: test_error_with_multiple_messages
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_error_with_multiple_messages(test_error_message):
     return Error.new(
         name='Multi Language Error',
@@ -143,7 +143,7 @@ def test_error_with_multiple_messages(test_error_message):
 
 
 # ** fixture: test_error_with_formatted_message
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_error_with_formatted_message(test_formatted_error_message):
     return Error.new(
         name='Formatted Error',
@@ -154,7 +154,7 @@ def test_error_with_formatted_message(test_formatted_error_message):
 
 
 # ** fixture: test_error_with_custom_id_and_code
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_error_with_custom_id_and_code():
     return Error.new(
         name='Custom Error',
@@ -163,8 +163,9 @@ def test_error_with_custom_id_and_code():
         message=[ErrorMessage.new(lang='en_US', text='An error occurred.')]
     )
 
+
 # ** fixture: error_with_multiple_args
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_error_with_multiple_args():
     return Error.new(
         name="MULTI_FORMATTED_ERROR",

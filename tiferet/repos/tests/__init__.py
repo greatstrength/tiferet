@@ -98,9 +98,9 @@ def mock_container_repo():
     return MockContainerRepository
 
 
-# ** fixture: mock_error_repository
+# ** fixture: mock_error_repo
 @pytest.fixture(scope='session')
-def mock_error_repository():
+def mock_error_repo():
     class MockErrorRepository(ErrorRepository):
         '''
         A mock error repository.
@@ -173,9 +173,9 @@ def mock_error_repository():
     return MockErrorRepository
 
 
-# ** fixture: mock_feature_repository
+# ** fixture: mock_feature_repo
 @pytest.fixture(scope='session')
-def mock_feature_repository():
+def mock_feature_repo():
     class MockFeatureRepository(FeatureRepository):
         '''
         A mock feature repository.
@@ -253,7 +253,7 @@ def mock_feature_repository():
 
 # ** mock: mock_app_repository
 @pytest.fixture(scope='session')
-def mock_app_repository():
+def mock_app_repo():
     class MockAppRepository(AppRepository):
         '''
         A mock app repository.

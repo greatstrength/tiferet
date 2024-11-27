@@ -32,7 +32,7 @@ def container_repo(mock_container_repo, test_repo_container_attribute, test_feat
     )
 
 
-# ** fixture: container_context
+# ** fixture: container_context (container)
 @pytest.fixture(scope='session')
 def container_context(container_repo):
     return ContainerContext(
@@ -41,3 +41,20 @@ def container_context(container_repo):
         feature_flag="test",
         data_flag="test"
     )
+
+
+# ** fixture: error_repo (error)
+@pytest.fixture(scope='session')
+def error_repo(mock_error_repo, test_error, test_error_with_formatted_message, test_error_with_multiple_args):
+    return mock_error_repo(
+        errors=[
+            test_error,
+            test_error_with_formatted_message,
+            test_error_with_multiple_args
+        ]
+    )
+
+# ** fixture: error_context
+@pytest.fixture(scope='session')
+def error_context(error_repo):
+    return ErrorContext(error_repo=error_repo)
