@@ -35,7 +35,7 @@ from ..feature import Feature
 
 # *** fixtures
 
-# ** fixture: container_dependency
+# ** fixture: container_dependency (container)
 @pytest.fixture(scope='session')
 def test_proxy_container_dependency():
     return ContainerDependency.new(
@@ -46,7 +46,7 @@ def test_proxy_container_dependency():
     )
 
 
-# ** fixture: test_feature_command_container_dependency
+# ** fixture: test_feature_command_container_dependency (container)
 @pytest.fixture(scope='session')
 def test_feature_command_container_dependency():
     return ContainerDependency.new(
@@ -56,7 +56,7 @@ def test_feature_command_container_dependency():
     )
 
 
-# ** fixture: test_feature_command_core_container_dependency
+# ** fixture: test_feature_command_core_container_dependency (container)
 @pytest.fixture(scope='session')
 def test_feature_command_core_container_dependency():
     return ContainerDependency.new(
@@ -66,7 +66,7 @@ def test_feature_command_core_container_dependency():
     )
 
 
-# ** fixture: test_repo_container_attribute
+# ** fixture: test_repo_container_attribute (container)
 @pytest.fixture(scope='session')
 def test_repo_container_attribute(test_proxy_container_dependency):
     return ContainerAttribute.new(
@@ -76,7 +76,7 @@ def test_repo_container_attribute(test_proxy_container_dependency):
     )
 
 
-# ** fixture: container_attribute_empty
+# ** fixture: container_attribute_empty (container)
 @pytest.fixture(scope='session')
 def container_attribute_empty():
     return ContainerAttribute.new(
@@ -86,7 +86,7 @@ def container_attribute_empty():
     )
 
 
-# ** fixture: test_feature_command_container_attribute
+# ** fixture: test_feature_command_container_attribute (container)
 @pytest.fixture(scope='session')
 def test_feature_command_container_attribute(
     test_feature_command_container_dependency, 
@@ -102,7 +102,7 @@ def test_feature_command_container_attribute(
     )
 
 
-# ** fixture: test_error_message
+# ** fixture: test_error_message (error)
 @pytest.fixture(scope='session')
 def test_error_message():
     return ErrorMessage.new(
@@ -111,7 +111,7 @@ def test_error_message():
     )
 
 
-# ** fixture: test_formatted_error_message
+# ** fixture: test_formatted_error_message (error)
 @pytest.fixture(scope='session')
 def test_formatted_error_message():
     return ErrorMessage.new(
@@ -121,7 +121,7 @@ def test_formatted_error_message():
 
 
 
-# ** fixture: test_error
+# ** fixture: test_error (error)
 @pytest.fixture(scope='session')
 def test_error(test_error_message):
     return Error.new(
@@ -130,7 +130,7 @@ def test_error(test_error_message):
     )
 
 
-# ** fixture: test_error_with_multiple_messages
+# ** fixture: test_error_with_multiple_messages (error)
 @pytest.fixture(scope='session')
 def test_error_with_multiple_messages(test_error_message):
     return Error.new(
@@ -142,7 +142,7 @@ def test_error_with_multiple_messages(test_error_message):
     )
 
 
-# ** fixture: test_error_with_formatted_message
+# ** fixture: test_error_with_formatted_message (error)
 @pytest.fixture(scope='session')
 def test_error_with_formatted_message(test_formatted_error_message):
     return Error.new(
@@ -153,7 +153,7 @@ def test_error_with_formatted_message(test_formatted_error_message):
     )
 
 
-# ** fixture: test_error_with_custom_id_and_code
+# ** fixture: test_error_with_custom_id_and_code (error)
 @pytest.fixture(scope='session')
 def test_error_with_custom_id_and_code():
     return Error.new(
@@ -164,7 +164,7 @@ def test_error_with_custom_id_and_code():
     )
 
 
-# ** fixture: error_with_multiple_args
+# ** fixture: error_with_multiple_args (error)
 @pytest.fixture(scope='session')
 def test_error_with_multiple_args():
     return Error.new(
@@ -176,4 +176,97 @@ def test_error_with_multiple_args():
                 text="An error occurred: {0} - {1}."
             )
         ]
+    )
+
+
+# ** fixture: test_feature_command (feature)
+@pytest.fixture(scope='session')
+def test_feature_command():
+    return FeatureCommand.new(
+        name='Test Feature Command',
+        attribute_id='test_feature',
+        params={'param1': 'value1', 'param2': 'value2'},
+        return_to_data=False,
+        data_key='test_key',
+        pass_on_error=False
+    )
+
+
+# ** fixture: feature_command_return_to_data (feature)
+@pytest.fixture(scope='session')
+def test_feature_command_return_to_data():
+    return FeatureCommand.new(
+        name='Test Feature Command Return To Data',
+        attribute_id='test_feature',
+        params={'param1': 'value1', 'param2': 'value2'},
+        return_to_data=True,
+        data_key='test_key',
+        pass_on_error=False
+    )
+
+
+# ** fixtures: test_feature_command_to_add (feature)
+@pytest.fixture(scope='session')
+def test_feature_command_to_add():
+    return FeatureCommand.new(
+        name='Additional Command',
+        attribute_id='test_feature_command',
+        params={'param1': 'value1'},
+        return_to_data=True,
+        data_key='additional_key',
+        pass_on_error=False
+    )
+
+
+# ** fixture: test_feature (feature)
+@pytest.fixture(scope='session')
+def test_feature(test_feature_command):
+    return Feature.new(
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        description='A test feature.',
+        commands=[test_feature_command]
+    )
+
+
+# ** fixture: test_feature_no_desc (feature)
+@pytest.fixture(scope='session')
+def test_feature_no_desc():
+    return Feature.new(
+        name='Feature with no description',
+        group_id='group',
+        feature_key='key'
+    )
+
+
+# ** fixture: test_feature_with_id (feature)
+@pytest.fixture(scope='session')
+def test_feature_with_id():
+    return Feature.new(
+        name='Feature with ID',
+        group_id='test',
+        id='test.feature_with_id'
+    )
+
+
+# ** fixture: test_feature_name_and_group_only
+@pytest.fixture(scope='session')
+def test_feature_name_and_group_only():
+    return Feature.new(
+        name='Plain Feature',
+        group_id='group'
+    )
+
+
+
+# ** fixture: test_feature_with_return_to_data (feature)
+@pytest.fixture(scope='session')
+def test_feature_with_return_to_data(test_feature_command_return_to_data):
+    return Feature.new(
+        name='Test Feature With Return To Data',
+        group_id='test_group',
+        feature_key='test_feature_with_data',
+        description='A test feature',
+        commands=[test_feature_command_return_to_data]
     )
