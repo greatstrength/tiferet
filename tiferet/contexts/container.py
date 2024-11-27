@@ -96,6 +96,11 @@ class ContainerContext(Model):
             # Otherwise, add the attribute.
             attributes[attr.id] = attr
 
+            # Add any parameters as constants.
+            for dep in attr.dependencies:
+                for key in dep.parameters:
+                    consts[key] = dep.parameters[key]
+
         # Add the constants and attributes to the context.
         super().__init__(dict(
             interface_id=interface_id,

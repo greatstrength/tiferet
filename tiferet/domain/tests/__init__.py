@@ -46,22 +46,23 @@ def test_proxy_container_dependency():
     )
 
 
+# ** fixture: test_feature_command_container_dependency
 @pytest.fixture(scope='session')
 def test_feature_command_container_dependency():
     return ContainerDependency.new(
         module_path='tiferet.commands.tests',
         class_name='TestFeatureCommand',
         flag='test',
-        parameters={'config_file': 'test.yml'}
     )
 
+
+# ** fixture: test_feature_command_core_container_dependency
 @pytest.fixture(scope='session')
 def test_feature_command_core_container_dependency():
     return ContainerDependency.new(
         module_path='tiferet.commands.tests',
         class_name='TestFeatureCommand',
         flag='core',
-        parameters={'config_file': 'core.yml'}
     )
 
 
@@ -92,7 +93,7 @@ def test_feature_command_container_attribute(
     test_feature_command_core_container_dependency
 ):
     return ContainerAttribute.new(
-        id='test_repo',
+        id='test_feature_command',
         type='feature',
         dependencies=[
             test_feature_command_container_dependency,
