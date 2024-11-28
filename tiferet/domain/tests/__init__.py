@@ -145,7 +145,6 @@ def test_formatted_error_message():
     )
 
 
-
 # ** fixture: test_error (error)
 @pytest.fixture(scope='session')
 def test_error(test_error_message):

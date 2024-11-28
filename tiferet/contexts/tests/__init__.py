@@ -14,22 +14,48 @@ from ...domain.tests import *
 from ...repos.tests import *
 
 
-# *** test_models
+# *** classes
 
-# ** test_model: test_model
+# ** class: test_model
 class TestModel(Model):
     test_field = StringType(required=True)
 
 
+# ** class: test_app_context
+class TestAppInterfaceContext(AppInterfaceContext):
+    
+    pass
+
 # *** fixtures
 
-# ** fixture: request_context
+# ** fixture: app_interface_context
+@pytest.fixture(scope="session")
+def app_interface_context(feature_context, error_context):
+    return AppInterfaceContext(
+        interface_id="test_interface",
+        app_name="Test App",
+        feature_context=feature_context,
+        error_context=error_context
+    )
+
+
+# ** fixture: request_context (request)
 @pytest.fixture(scope='session')
 def request_context():
     return RequestContext(
         feature_id="test_group.test_feature",
         headers={"Content-Type": "application/json"},
         data={"param2": "value2"}
+    )
+
+
+# ** fixture: request_context_throw_error (request)
+@pytest.fixture(scope='session')
+def request_context_throw_error():
+    return RequestContext(
+        feature_id="test_group.test_feature",
+        headers={"Content-Type": "application/json"},
+        data={"param2": "value2", "throw_error": "True"}
     )
 
 

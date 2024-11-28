@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import Any 
+from typing import Any, Tuple
 
 # ** app
 from .request import RequestContext
@@ -70,13 +70,13 @@ class AppInterfaceContext(Model):
         # Initialize the model.
         super().__init__(dict(
             interface_id=interface_id,
-            name=app_name,
-            features=feature_context,
-            errors=error_context
+            name=app_name
         ))
+        self.features = feature_context
+        self.errors = error_context
 
     # * method: parse_request
-    def parse_request(self, request: Any, **kwargs) -> RequestContext:
+    def parse_request(self, request: Any, **kwargs) -> Tuple[RequestContext, dict]:
         '''
         Parse the incoming request.
 
@@ -89,7 +89,7 @@ class AppInterfaceContext(Model):
         '''
 
         # Parse request.
-        return request
+        return request, kwargs
     
     # * method: execute_feature
     def execute_feature(self, request: RequestContext, **kwargs):
@@ -130,7 +130,7 @@ class AppInterfaceContext(Model):
         '''
         
         # Parse request.
-        request = self.parse_request(**kwargs)
+        request, kwargs = self.parse_request(**kwargs)
 
         # Execute feature context and return session.
         # Handle error and return response if triggered.

@@ -19,7 +19,7 @@ class TestFeatureCommand(object):
     def execute(self, param1: str, param2: str, throw_error: bool = False, **kwargs) -> bool:
 
         # Throw an error if requested.
-        assert throw_error == False, 'FEATURE_COMMAND_ERROR'
+        assert throw_error == False, 'MY_ERROR'
 
         # Return the result.
         return (param1, param2)

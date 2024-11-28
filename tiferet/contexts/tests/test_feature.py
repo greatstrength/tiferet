@@ -15,15 +15,6 @@ def request_context_with_return_to_data():
         data={"param2": "value2"}
     )
 
-# ** fixture: request_context_throw_error
-@pytest.fixture
-def request_context_throw_error():
-    return RequestContext(
-        feature_id="test_group.test_feature",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2", "throw_error": "True"}
-    )
-
 
 # ** fixture: request_context_pass_on_error
 @pytest.fixture
