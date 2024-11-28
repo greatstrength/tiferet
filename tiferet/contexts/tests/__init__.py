@@ -27,25 +27,29 @@ class TestModel(Model):
 @pytest.fixture(scope='session')
 def request_context():
     return RequestContext(
-        feature_id="test_group.test_feature", 
-        headers={"Content-Type": "application/json"}, 
-        data={"param1": "value1", "param2": "value2"}
+        feature_id="test_group.test_feature",
+        headers={"Content-Type": "application/json"},
+        data={"param2": "value2"}
     )
 
 
 # ** fixture: test_model_result
 @pytest.fixture
-def test_model():   
+def test_model():
     return TestModel
 
 
 # ** fixture: container_repo (container)
 @pytest.fixture(scope='session')
-def container_repo(mock_container_repo, test_repo_container_attribute, test_feature_command_container_attribute):
+def container_repo(
+    mock_container_repo,
+    test_repo_container_attribute,
+    test_feature_command_container_attribute,
+):
     return mock_container_repo(
         attributes=[
             test_repo_container_attribute,
-            test_feature_command_container_attribute
+            test_feature_command_container_attribute,
         ]
     )
 
@@ -83,11 +87,19 @@ def error_context(error_repo):
 
 # ** fixture: feature_repo (feature)
 @pytest.fixture(scope='session')
-def feature_repo(mock_feature_repo, test_feature, test_feature_with_return_to_data):
+def feature_repo(
+    mock_feature_repo,
+    test_feature,
+    test_feature_with_return_to_data,
+    test_feature_with_pass_on_error,
+    test_feature_with_throw_and_pass_on_error
+):
     return mock_feature_repo(
         features=[
             test_feature,
-            test_feature_with_return_to_data
+            test_feature_with_return_to_data,
+            test_feature_with_pass_on_error,
+            test_feature_with_throw_and_pass_on_error
         ]
     )
 
@@ -96,6 +108,6 @@ def feature_repo(mock_feature_repo, test_feature, test_feature_with_return_to_da
 @pytest.fixture(scope='session')
 def feature_context(feature_repo, container_context):
     return FeatureContext(
-        feature_repo=feature_repo, 
+        feature_repo=feature_repo,
         container_context=container_context
     )

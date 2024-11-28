@@ -77,16 +77,21 @@ class FeatureContext(Model):
                 result = handler.execute(
                     **request.data,
                     **command.params,
+                    debug=debug,
                     **kwargs)
+                
+                # Return the result to the session context if return to data is set.
+                if command.return_to_data:
+                    request.data[command.data_key] = result
+                    continue
+
+                # Set the result in the request context.
+                if result:
+                    request.set_result(result)
+
+            # Handle assertion errors if pass on error is not set.
             except AssertionError as e:
                 if not command.pass_on_error:
                     raise e 
 
-            # Return the result to the session context if return to data is set.
-            if command.return_to_data:
-                request.data[command.data_key] = result
-                continue
-
-            # Set the result in the request context.
-            if result:
-                request.set_result(result)
+            

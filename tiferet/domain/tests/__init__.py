@@ -184,8 +184,8 @@ def test_error_with_multiple_args():
 def test_feature_command():
     return FeatureCommand.new(
         name='Test Feature Command',
-        attribute_id='test_feature',
-        params={'param1': 'value1', 'param2': 'value2'},
+        attribute_id='test_feature_command',
+        params={'param1': 'value1'},
         return_to_data=False,
         data_key='test_key',
         pass_on_error=False
@@ -197,8 +197,8 @@ def test_feature_command():
 def test_feature_command_return_to_data():
     return FeatureCommand.new(
         name='Test Feature Command Return To Data',
-        attribute_id='test_feature',
-        params={'param1': 'value1', 'param2': 'value2'},
+        attribute_id='test_feature_command',
+        params={'param1': 'value1'},
         return_to_data=True,
         data_key='test_key',
         pass_on_error=False
@@ -211,12 +211,33 @@ def test_feature_command_to_add():
     return FeatureCommand.new(
         name='Additional Command',
         attribute_id='test_feature_command',
-        params={'param1': 'value1'},
-        return_to_data=True,
-        data_key='additional_key',
+        params={'param1': 'value1a'},
         pass_on_error=False
     )
 
+
+@pytest.fixture(scope='session')
+def test_feature_command_with_pass_on_error():
+    return FeatureCommand.new(
+        name='Test Feature Command With Pass On Error',
+        attribute_id='test_feature_command',
+        params={'param1': 'value1'},
+        return_to_data=False,
+        data_key='test_key',
+        pass_on_error=True
+    )
+
+
+# ** fixture: test_feature_command_with_throw_and_pass_on_error (feature)
+@pytest.fixture(scope='session')
+def test_feature_command_with_throw_and_pass_on_error():
+    return FeatureCommand.new(
+        name='Test Feature Command With Throw And Pass On Error',
+        attribute_id='test_feature_command',
+        params={'param1': 'value1', 'throw_error': 'True'},
+        return_to_data=False,
+        pass_on_error=True
+    )
 
 # ** fixture: test_feature (feature)
 @pytest.fixture(scope='session')
@@ -259,14 +280,43 @@ def test_feature_name_and_group_only():
     )
 
 
-
 # ** fixture: test_feature_with_return_to_data (feature)
 @pytest.fixture(scope='session')
 def test_feature_with_return_to_data(test_feature_command_return_to_data):
     return Feature.new(
         name='Test Feature With Return To Data',
         group_id='test_group',
-        feature_key='test_feature_with_data',
+        feature_key='test_feature_with_return_to_data',
         description='A test feature',
         commands=[test_feature_command_return_to_data]
+    )
+
+
+# ** fixture: test_feature_with_pass_on_error (feature)
+@pytest.fixture(scope='session')
+def test_feature_with_pass_on_error(test_feature_command_with_pass_on_error):
+    return Feature.new(
+        name='Test Feature With Pass On Error',
+        group_id='test_group',
+        feature_key='test_feature_with_pass_on_error',
+        description='A test feature',
+        commands=[test_feature_command_with_pass_on_error]
+    )
+
+
+# ** fixture: test_feature_with_throw_and_pass_on_error (feature)
+@pytest.fixture(scope='session')
+def test_feature_with_throw_and_pass_on_error(
+    test_feature_command_with_throw_and_pass_on_error, 
+    test_feature_command_to_add
+):
+    return Feature.new(
+        name='Test Feature With Throw And Pass On Error',
+        group_id='test_group',
+        feature_key='test_feature_with_throw_and_pass_on_error',
+        description='A test feature',
+        commands=[
+            test_feature_command_with_throw_and_pass_on_error,
+            test_feature_command_to_add
+        ]
     )
