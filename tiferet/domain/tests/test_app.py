@@ -10,33 +10,8 @@ from . import *
 
 # *** fixtures
 
-# ** fixture: app_dependency
-@pytest.fixture(scope="module")
-def app_dependency():
-    return AppDependency.new(
-        attribute_id='app_context',
-        module_path='tests.contexts.app',
-        class_name='TestAppInterfaceContext',
-    )
-
-
-# ** fixture: app_interface
-@pytest.fixture(scope="module")
-def app_interface(app_dependency):
-    return AppInterface.new(
-        id='test',
-        name='test interface',
-        description='test description',
-        feature_flag='test feature flag',
-        data_flag='test data flag',
-        dependencies=[
-            app_dependency,
-        ],
-    )
-
-
 # ** fixture: app_repository_configuration
-@pytest.fixture(scope="module")
+@pytest.fixture
 def app_repository_configuration():
     return AppRepositoryConfiguration.new()
 
@@ -60,42 +35,39 @@ def test_app_dependency_new(app_dependency):
 
     # Assert the app dependency is valid.
     assert app_dependency.attribute_id == 'app_context'
-    assert app_dependency.module_path == 'tests.contexts.app'
+    assert app_dependency.module_path == 'tiferet.contexts.tests'
     assert app_dependency.class_name == 'TestAppInterfaceContext'
 
 
 # ** test: test_app_interface_new
-def test_app_interface_new(app_interface):  
+def test_app_interface_new(test_app_interface):  
 
     # Assert the app interface is valid.
-    assert app_interface.id == 'test'
-    assert app_interface.name == 'test interface'
-    assert app_interface.description == 'test description'
-    assert app_interface.feature_flag == 'test feature flag'
-    assert app_interface.data_flag == 'test data flag'
-    assert len(app_interface.dependencies) == 1
-    assert app_interface.dependencies[0].attribute_id == 'app_context'
-    assert app_interface.dependencies[0].module_path == 'tests.contexts.app'
-    assert app_interface.dependencies[0].class_name == 'TestAppInterfaceContext'
+    assert test_app_interface.id == 'test'
+    assert test_app_interface.name == 'Test Interface'
+    assert test_app_interface.description == 'The test interface.'
+    assert test_app_interface.feature_flag == 'test'
+    assert test_app_interface.data_flag == 'test'
+    assert len(test_app_interface.dependencies) == 1
 
 
 # ** test: test_app_interface_get_dependency
-def test_app_interface_get_dependency(app_interface):
+def test_app_interface_get_dependency(test_app_interface):
 
     # Get the app dependency.
-    app_dependency = app_interface.get_dependency('app_context')
+    app_dependency = test_app_interface.get_dependency('app_context')
 
     # Assert the app dependency is valid.
     assert app_dependency.attribute_id == 'app_context'
-    assert app_dependency.module_path == 'tests.contexts.app'
+    assert app_dependency.module_path == 'tiferet.contexts.tests'
     assert app_dependency.class_name == 'TestAppInterfaceContext'
 
 
 # ** test: test_app_interface_get_dependency_invalid
-def test_app_interface_get_dependency_invalid(app_interface):
+def test_app_interface_get_dependency_invalid(test_app_interface):
 
     # Assert the app dependency is invalid.
-    assert app_interface.get_dependency('invalid') is None
+    assert test_app_interface.get_dependency('invalid') is None
 
 
 # ** test: test_app_repository_configuration_new

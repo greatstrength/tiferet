@@ -35,6 +35,31 @@ from ..feature import Feature
 
 # *** fixtures
 
+# ** fixture: app_dependency
+@pytest.fixture(scope="session")
+def app_dependency():
+    return AppDependency.new(
+        attribute_id='app_context',
+        module_path='tiferet.contexts.tests',
+        class_name='TestAppInterfaceContext',
+    )
+
+
+# ** fixture: app_interface
+@pytest.fixture(scope="session")
+def test_app_interface(app_dependency):
+    return AppInterface.new(
+        id='test',
+        name='Test Interface',
+        description='The test interface.',
+        feature_flag='test',
+        data_flag='test',
+        dependencies=[
+            app_dependency,
+        ],
+    )
+
+
 # ** fixture: container_dependency (container)
 @pytest.fixture(scope='session')
 def test_proxy_container_dependency():
