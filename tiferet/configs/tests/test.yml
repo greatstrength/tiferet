@@ -1,3 +1,12 @@
+attrs:
+  test_repo:
+    deps:
+      test:
+        class_name: TestProxy
+        module_path: tiferet.repos.tests
+    type: data
+const:
+  config_file: tiferet/configs/tests/test.yml
 errors:
   FORMATTED_ERROR:
     error_code: FORMATTED_ERROR
@@ -12,7 +21,7 @@ errors:
       text: An error occurred.
     name: My Error
   TEST_SAVE_ERROR:
-    error_code: '3560'
+    error_code: '4250'
     message:
     - lang: en_US
       text: An error occurred.

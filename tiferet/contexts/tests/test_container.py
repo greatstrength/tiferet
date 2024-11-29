@@ -20,11 +20,11 @@ def test_container_context_init(container_context):
 def test_get_dependency(container_context):
     
     # Call get_dependency with a test attribute
-    result = container_context.get_dependency("test_repo")
+    result = container_context.get_dependency(TEST_PROXY_ATTRIBUTE_ID)
 
     # Ensure the dependency was retrieved
     assert result is not None
-    assert result.config_file == 'test.yml'
+    assert result.config_file == TEST_PROXY_CONFIG_FILE_VALUE
 
 
 # ** test: test_create_injector

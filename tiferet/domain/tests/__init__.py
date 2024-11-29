@@ -33,9 +33,16 @@ from ..feature import FeatureCommand
 from ..feature import Feature
 
 
+# *** constants
+TEST_FEATURE_FLAG = 'test' #/
+TEST_DATA_FLAG = 'test' #/
+TEST_PROXY_ATTRIBUTE_ID = 'test_repo' #/
+TEST_PROXY_CONFIG_FILE_KEY = 'config_file' #/
+TEST_PROXY_CONFIG_FILE_VALUE = 'tiferet/configs/tests/test.yml' #/
+
 # *** fixtures
 
-# ** fixture: app_dependency
+# ** fixture: app_context_dependency
 @pytest.fixture(scope="session")
 def app_context_dependency():
     return AppDependency.new(
@@ -119,8 +126,8 @@ def test_app_interface(
         id='test',
         name='Test Interface',
         description='The test interface.',
-        feature_flag='test',
-        data_flag='test',
+        feature_flag=TEST_FEATURE_FLAG,
+        data_flag=TEST_DATA_FLAG,
         dependencies=[
             app_context_dependency,
             container_context_dependency,
@@ -133,6 +140,7 @@ def test_app_interface(
     )
 
 
+
 # ** fixture: container_dependency (container)
 @pytest.fixture(scope='session')
 def test_proxy_container_dependency():
@@ -140,7 +148,7 @@ def test_proxy_container_dependency():
         module_path='tiferet.repos.tests',
         class_name='TestProxy',
         flag='test',
-        parameters={'config_file': 'test.yml'}
+        parameters={TEST_PROXY_CONFIG_FILE_KEY: TEST_PROXY_CONFIG_FILE_VALUE}
     )
 
 

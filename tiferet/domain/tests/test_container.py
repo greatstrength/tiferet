@@ -14,7 +14,7 @@ def test_container_dependency_new(test_proxy_container_dependency):
     assert test_proxy_container_dependency.class_name == 'TestProxy'
     assert test_proxy_container_dependency.flag == 'test'
     assert test_proxy_container_dependency.parameters == {
-        'config_file': 'test.yml'}
+        'config_file': 'tiferet/configs/tests/test.yml'}
 
 
 # ** test: container_attribute_new
