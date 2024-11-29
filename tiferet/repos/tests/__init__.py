@@ -1,13 +1,20 @@
 # *** imports
 
+# ** core
+from typing import List, Dict
+
 # ** infra
 import pytest
 
 # ** app
-from ..app import *
-from ..container import *
-from ..error import *
-from ..feature import *
+from ...repos import *
+from ...domain.tests import *
+
+
+# *** constants
+
+# * constant: TEST_CONFIG_FILE_PATH
+TEST_CONFIG_FILE_PATH = 'tiferet/configs/tests/test.yml'
 
 
 # *** classes
@@ -303,3 +310,5 @@ def mock_app_repo():
         
     # Return the mock app repository.
     return MockAppRepository
+
+

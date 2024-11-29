@@ -100,4 +100,8 @@ class YamlProxy(object):
             start_node=lambda data: data.get('interfaces').get(id))
 
         # Return the app interface object.
-        return _data.map()
+        # If the data is None, return None.
+        try:
+            return _data.map()
+        except AttributeError:
+            return None
