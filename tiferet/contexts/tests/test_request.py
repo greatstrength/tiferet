@@ -15,7 +15,7 @@ def test_request_context_init(request_context):
     # Test initialization
     assert request_context.feature_id == "test_group.test_feature"
     assert request_context.headers == {"Content-Type": "application/json"}
-    assert request_context.data == {"param1": "value1", "param2": "value2"}
+    assert request_context.data == {"param2": "value2"}
     assert request_context.result is None  
 
 

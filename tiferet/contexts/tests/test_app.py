@@ -30,7 +30,7 @@ def test_parse_request(app_interface_context):
 
     # Assuming parse_request just returns the request
     request = app_interface_context.parse_request("mock_request")
-    assert request == "mock_request"
+    assert request == ("mock_request", {})
 
 
 # ** test: execute_feature

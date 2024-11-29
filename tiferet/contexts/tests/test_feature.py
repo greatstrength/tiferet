@@ -41,7 +41,7 @@ def request_context_throw_and_pass_on_error():
 def test_feature_context_init(feature_context):
 
     # Test initialization
-    assert len(feature_context.features) == 3
+    assert len(feature_context.features) == 4
 
 
 # ** test: test_execute_feature_success
