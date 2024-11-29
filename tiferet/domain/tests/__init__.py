@@ -37,17 +37,84 @@ from ..feature import Feature
 
 # ** fixture: app_dependency
 @pytest.fixture(scope="session")
-def app_dependency():
+def app_context_dependency():
     return AppDependency.new(
         attribute_id='app_context',
-        module_path='tiferet.contexts.tests',
-        class_name='TestAppInterfaceContext',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+    )
+
+
+# fixture: feature_context_dependency
+@pytest.fixture(scope="session")
+def feature_context_dependency():
+    return AppDependency.new(
+        attribute_id='feature_context',
+        module_path='tiferet.contexts.feature',
+        class_name='FeatureContext',
+    )
+
+
+# ** fixture: error_context_dependency
+@pytest.fixture(scope="session")
+def error_context_dependency():
+    return AppDependency.new(
+        attribute_id='error_context',
+        module_path='tiferet.contexts.error',
+        class_name='ErrorContext',
+    )
+
+
+# ** fixture: container_context_dependency
+@pytest.fixture(scope="session")
+def container_context_dependency():
+    return AppDependency.new(
+        attribute_id='container_context',
+        module_path='tiferet.contexts.container',
+        class_name='ContainerContext',
+    )
+
+# ** fixture: feature_repo_dependency
+@pytest.fixture(scope="session")
+def feature_repo_dependency():
+    return AppDependency.new(
+        attribute_id='feature_repo',
+        module_path='tiferet.repos.tests',
+        class_name='MockFeatureRepository',
+    )
+
+
+# ** fixture: error_repo_dependency
+@pytest.fixture(scope="session")
+def error_repo_dependency():
+    return AppDependency.new(
+        attribute_id='error_repo',
+        module_path='tiferet.repos.tests',
+        class_name='MockErrorRepository',
+    )
+
+
+# ** fixture: container_repo_dependency
+@pytest.fixture(scope="session")
+def container_repo_dependency():
+    return AppDependency.new(
+        attribute_id='container_repo',
+        module_path='tiferet.repos.tests',
+        class_name='MockContainerRepository',
     )
 
 
 # ** fixture: app_interface
 @pytest.fixture(scope="session")
-def test_app_interface(app_dependency):
+def test_app_interface(
+    app_context_dependency,
+    container_context_dependency,
+    feature_context_dependency,
+    error_context_dependency,
+    container_repo_dependency,
+    feature_repo_dependency,
+    error_repo_dependency
+):
     return AppInterface.new(
         id='test',
         name='Test Interface',
@@ -55,7 +122,13 @@ def test_app_interface(app_dependency):
         feature_flag='test',
         data_flag='test',
         dependencies=[
-            app_dependency,
+            app_context_dependency,
+            container_context_dependency,
+            feature_context_dependency,
+            error_context_dependency,
+            container_repo_dependency,
+            feature_repo_dependency,
+            error_repo_dependency,
         ],
     )
 

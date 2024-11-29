@@ -28,7 +28,7 @@ class EnvironmentContext(Model):
     )
 
     # * method: init
-    def __init__(self, **kwargs):
+    def __init__(self, app_repo: AppRepository):
         '''
         Initialize the environment context.
 
@@ -36,17 +36,12 @@ class EnvironmentContext(Model):
         :type kwargs: dict
         '''
 
-        # Load the app repository.
-        app_repo = self.load_app_repo()
-
         # Load the interface configuration.
         interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
 
         # Set the interfaces.
-        super().__init__(dict(
-            interfaces=interfaces,
-            **kwargs
-        ), strict=False)
+        super().__init__()
+        self.interfaces = interfaces
 
     # * method: start
     def start(self, interface_id: str, **kwargs):
@@ -66,20 +61,6 @@ class EnvironmentContext(Model):
             **kwargs
         )
 
-    # * method: load_app_repo
-    def load_app_repo(self) -> AppRepository:
-        '''
-        Load the app interface repository.
-
-        :return: The app repository.
-        :rtype: AppRepository
-        '''
-
-        # Load the app repository configuration.
-        from ..configs.app import APP_REPO
-
-        # Return the app repository.
-        return container_service.import_dependency(APP_REPO.module_path, APP_REPO.class_name)(**APP_REPO.params)
 
     # * method: load_app_context
     def load_app_context(self, interface_id: str) -> AppInterfaceContext:
