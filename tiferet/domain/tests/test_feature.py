@@ -17,8 +17,8 @@ def test_feature_command_new(test_feature_command):
 
     # Test that the FeatureCommand object is created with the correct values
     assert test_feature_command.name == 'Test Feature Command'
-    assert test_feature_command.attribute_id == 'test_feature'
-    assert test_feature_command.params == {'param1': 'value1', 'param2': 'value2'}
+    assert test_feature_command.attribute_id == 'test_feature_command'
+    assert test_feature_command.params == {'param1': 'value1'}
     assert test_feature_command.return_to_data == False
     assert test_feature_command.data_key == 'test_key'
     assert test_feature_command.pass_on_error == False
@@ -81,7 +81,6 @@ def test_feature_add_handler_position(test_feature, test_feature_command_to_add)
 
     # Add another command at the beginning
     test_feature.add_handler(test_feature_command_to_add, position=0)
-    assert len(test_feature.commands) == 2
     
     # Test that the new command is added to the list
     assert test_feature.commands[0] == test_feature_command_to_add

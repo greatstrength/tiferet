@@ -6,7 +6,6 @@ import pytest
 # ** app
 from ..app import *
 from ..container import *
-from ..env import *
 from ..error import *
 from ..feature import *
 from ..request import *
@@ -27,7 +26,7 @@ class TestModel(Model):
 
 # ** fixture: app_repo (app)
 @pytest.fixture(scope='session')
-def app_repo(mock_app_repo, test_app_interface):
+def test_app_repo(mock_app_repo, test_app_interface):
     return mock_app_repo(
         interfaces=[
             test_app_interface
@@ -76,13 +75,6 @@ def container_context(container_repo):
         data_flag="test"
     )
 
-
-# ** fixture: environment_context (env)
-@pytest.fixture(scope='session')
-def environment_context(app_repo):
-    return EnvironmentContext(
-        app_repo=app_repo
-    )
 
 # ** fixture: error_repo (error)
 @pytest.fixture(scope='session')

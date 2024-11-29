@@ -5,8 +5,8 @@ def test_import_dependency():
     Test the import_dependency function.
     '''
     # Import dependency.
-    dependency = container_service.import_dependency('tiferet.domain.app', 'AppInterface')
-    assert dependency.__name__ == 'AppInterface'
+    dependency = container_service.import_dependency('tiferet.contexts.app', 'AppInterfaceContext')
+    assert dependency.__name__ == 'AppInterfaceContext'
 
 
 def test_create_injector():
