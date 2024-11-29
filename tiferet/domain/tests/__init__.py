@@ -291,9 +291,6 @@ def test_feature_command():
         name='Test Feature Command',
         attribute_id='test_feature_command',
         params={'param1': 'value1'},
-        return_to_data=False,
-        data_key='test_key',
-        pass_on_error=False
     )
 
 

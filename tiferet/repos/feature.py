@@ -104,18 +104,14 @@ class YamlProxy(FeatureRepository):
         :return: The feature object.
         '''
 
-        # Get context group and feature key from the id.
-        group_id, feature_key = id.split('.')
-
         # Load feature data from yaml.
         _data: FeatureData = yaml_client.load(
             self.config_file,
             create_data=lambda data: FeatureData.from_data(
                 id=id,
-                group_id=group_id,
                 **data
             ),
-            start_node=lambda data: data.get('features').get('groups').get(group_id).get('features').get(feature_key)
+            start_node=lambda data: data.get('features').get(id)
         )
 
         # Return None if feature data is not found.

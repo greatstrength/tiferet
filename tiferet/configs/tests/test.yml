@@ -26,6 +26,16 @@ errors:
     - lang: en_US
       text: An error occurred.
     name: TEST_SAVE_ERROR
+features:
+  test_group.test_feature:
+    group_id: test_group
+    description: A test feature.
+    name: Test Feature
+    commands:
+      - attribute_id: test_feature_command
+        name: Test Feature Command
+        params:
+          param1: value1
 interfaces:
   test:
     app_context:
