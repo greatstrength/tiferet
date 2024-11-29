@@ -16,3 +16,16 @@ interfaces:
     feature_repo:
       module_path: tiferet.repos.tests
       class_name: MockFeatureRepository
+errors:
+  MY_ERROR:
+    name: My Error
+    error_code: MY_ERROR
+    message:
+    - lang: en_US
+      text: An error occurred.
+  FORMATTED_ERROR:
+    name: Formatted Error
+    error_code: FORMATTED_ERROR
+    message:
+    - lang: en_US
+      text: 'An error occurred: {}'

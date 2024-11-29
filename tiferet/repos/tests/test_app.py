@@ -48,7 +48,7 @@ def test_app_yaml_proxy_get_interface(test_app_yaml_proxy, test_app_interface):
 
 
 # ** test: app_yaml_proxy_get_interface_not_found
-def test_app_yaml_proxy_get_interface_not_found(test_app_yaml_proxy, test_app_interface):
+def test_app_yaml_proxy_get_interface_not_found(test_app_yaml_proxy):
 
     # Get the interface.
     interface = test_app_yaml_proxy.get_interface('not_found')
