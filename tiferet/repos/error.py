@@ -163,11 +163,11 @@ class YamlProxy(ErrorRepository):
         '''
 
         # Create updated error data.
-        error_data = ErrorData.from_model(error)
+        error_data = ErrorData.from_model(ErrorData, error)
 
         # Update the error data.
         yaml_client.save(
-            path=self.config_file,
-            data=error_data,
+            yaml_file=self.config_file,
+            data=error_data.to_primitive(),
             data_save_path=f'errors/{error.name}',
         )
