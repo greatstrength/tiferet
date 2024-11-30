@@ -22,7 +22,7 @@ class ContainerDependency(ModuleDependency):
     '''
 
     # * attribute: flag
-    flag = t.StringType(
+    flag = StringType(
         required=True,
         metadata=dict(
             description='The flag for the container dependency.'
@@ -30,8 +30,8 @@ class ContainerDependency(ModuleDependency):
     )
 
     # * attribute: parameters
-    parameters = t.DictType(
-        t.StringType,
+    parameters = DictType(
+        StringType,
         default={},
         metadata=dict(
             description='The container dependency parameters.'
@@ -51,7 +51,7 @@ class ContainerDependency(ModuleDependency):
         '''
 
         # Create and return a new ContainerDependency object.
-        super(ContainerDependency, ContainerDependency).new(
+        return super(ContainerDependency, ContainerDependency).new(
             ContainerDependency,
             **kwargs)
 
@@ -63,7 +63,7 @@ class ContainerAttribute(Entity):
     '''
 
     # * attribute: id
-    id = t.StringType(
+    id = StringType(
         required=True,
         metadata=dict(
             description='The unique identifier for the container attribute.'
@@ -71,7 +71,7 @@ class ContainerAttribute(Entity):
     )
 
     # * attribute: type
-    type = t.StringType(
+    type = StringType(
         required=True,
         choices=CONTAINER_ATTRIBUTE_TYPE_CHOICES,
         metadata=dict(
@@ -80,8 +80,8 @@ class ContainerAttribute(Entity):
     )
 
     # * attribute: dependencies
-    dependencies = t.ListType(
-        t.ModelType(ContainerDependency),
+    dependencies = ListType(
+        ModelType(ContainerDependency),
         default=[],
         metadata=dict(
             description='The container attribute dependencies.'
@@ -101,9 +101,26 @@ class ContainerAttribute(Entity):
         '''
 
         # Create and return a new ContainerAttribute object.
-        super(ContainerAttribute, ContainerAttribute).new(
+        return super(ContainerAttribute, ContainerAttribute).new(
             ContainerAttribute,
             **kwargs)
+        
+    # * method: get_dependency
+    def get_dependency(self, flag: str) -> ContainerDependency:
+        '''
+        Gets a container dependency by flag.
+
+        :param flag: The flag for the container dependency.
+        :type flag: str
+        :return: The container dependency.
+        :rtype: ContainerDependency
+        '''
+
+        # Return the dependency with the matching flag.
+        return next(
+            (dependency for dependency in self.dependencies if dependency.flag == flag),
+            None
+        )
         
     # * method: set_dependency
     def set_dependency(self, dependency: ContainerDependency):
@@ -122,20 +139,3 @@ class ContainerAttribute(Entity):
         
         # Append the dependency otherwise.
         self.dependencies.append(dependency)
-        
-    # * method: get_dependency
-    def get_dependency(self, flag: str) -> ContainerDependency:
-        '''
-        Gets a container dependency by flag.
-
-        :param flag: The flag for the container dependency.
-        :type flag: str
-        :return: The container dependency.
-        :rtype: ContainerDependency
-        '''
-
-        # Return the dependency with the matching flag.
-        return next(
-            (dependency for dependency in self.dependencies if dependency.flag == flag),
-            None
-        )

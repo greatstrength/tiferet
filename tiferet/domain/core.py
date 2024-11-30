@@ -88,6 +88,7 @@ class DataObject(Model):
     def map(self,
             type: ModelObject,
             role: str = 'to_model',
+            validate: bool = True,
             **kwargs
             ) -> ModelObject:
         '''
@@ -97,6 +98,8 @@ class DataObject(Model):
         :type type: type
         :param role: The role for the mapping.
         :type role: str
+        :param validate: True to validate the model object.
+        :type validate: bool
         :param kwargs: Additional keyword arguments for mapping.
         :type kwargs: dict
         :return: A new model object.
@@ -112,13 +115,19 @@ class DataObject(Model):
         # Map the data object to a model object.
         _object = type.new(**_data, strict=False)
 
+        # Validate if specified.
+        if validate:
+            _object.validate()
+
         # Return the model data.
         return _object
-    
+
     # ** method: from_model
     @staticmethod
     def from_model(
+        data: 'DataObject',
         model: ModelObject,
+        validate: bool = True,
         **kwargs
     ) -> 'DataObject':
         '''
@@ -126,6 +135,10 @@ class DataObject(Model):
 
         :param model: The type of model object to map from.
         :type model: type
+        :param data: The data object to map from.
+        :type data: DataObject
+        :param validate: True to validate the data object.
+        :type validate: bool
         :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new data object.
@@ -133,10 +146,35 @@ class DataObject(Model):
         '''
 
         # Create a new data object.
-        return DataObject(
-            model.new(**kwargs, strict=False),
-            strict=False,
-        )
+        obj = data(dict(
+            **model.to_primitive(),
+            **kwargs
+        ), strict=False)
+
+        # Validate the data object if specified.
+        if validate:
+            obj.validate()
+
+        # Return the data object.
+        return obj
+
+    @staticmethod
+    def from_data(
+        data: type,
+        **kwargs
+    ) -> 'DataObject':
+        '''
+        Initializes a new data object from a dictionary.
+
+        :param data: The type of data object to map from.
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new data object.
+        :rtype: DataObject
+        '''
+
+        # Create a new data object.
+        return data(dict(**kwargs), strict=False)
 
     # ** method: allow
     @staticmethod

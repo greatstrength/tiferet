@@ -77,16 +77,25 @@ def save(yaml_file: str, data: dict, data_save_path: str = None):
 
         # If the new yaml data does not exist, create it from the yaml data.
         except TypeError:
-            new_yaml_data = yaml_data[fragment]
-            continue  
+            try:
+                new_yaml_data = yaml_data[fragment]
+                continue  
+        
+            # If the fragment does not exist, create it.
+            except KeyError:
+                new_yaml_data = yaml_data[fragment] = {}
 
-        # If the fragment does not exist on 
+        # If the fragment does not exist, create it.
         except KeyError: 
             new_yaml_data[fragment] = {}
             new_yaml_data = new_yaml_data[fragment]
 
     # Update the yaml data.
-    new_yaml_data[save_path_list[-1]] = data
+    try:
+        new_yaml_data[save_path_list[-1]] = data
+    # if there is a type error because the new yaml data is None, update the yaml data directly.
+    except TypeError:
+        yaml_data[save_path_list[-1]] = data
 
     # Save the updated yaml data.
     with open(yaml_file, 'w') as file:

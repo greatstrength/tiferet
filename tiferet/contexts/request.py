@@ -62,9 +62,11 @@ class RequestContext(Model):
         '''
 
         # Set the context attributes.
-        self.feature_id = feature_id
-        self.headers = headers
-        self.data = data
+        super().__init__(dict(
+            feature_id=feature_id,
+            headers=headers,
+            data=data
+        ))
 
         # Validate the context.
         self.validate()
@@ -92,7 +94,7 @@ class RequestContext(Model):
             return
 
         # If the result is not a list, it must be a dict, so serialize it and set it.
-        if type(self.result) != list:
+        if type(result) != list:
             self.result = json.dumps(result)
             return
 

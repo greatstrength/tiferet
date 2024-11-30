@@ -28,6 +28,23 @@ class ErrorMessage(ValueObject):
         )
     )
 
+    # * method: new
+    @staticmethod
+    def new(**kwargs) -> 'ErrorMessage':
+        '''Initializes a new ErrorMessage object.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new ErrorMessage object.
+        :rtype: ErrorMessage
+        '''
+
+        # Create and return a new ErrorMessage object.
+        return super(ErrorMessage, ErrorMessage).new(
+            ErrorMessage,
+            **kwargs
+        )
+
     # * method: format
     def format(self, *args) -> str:
         '''
@@ -106,6 +123,7 @@ class Error(Entity):
 
         # Create and return a new Error object.
         return super(Error, Error).new(
+            Error,
             id=id,
             name=name,
             error_code=error_code,
