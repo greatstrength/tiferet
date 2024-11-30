@@ -35,9 +35,7 @@ def test_error_with_custom_code(test_error_message):
 
 # ** test: error_yaml_proxy_list_errors
 def test_error_yaml_proxy_list(
-    test_error_yaml_proxy, 
-    test_error, 
-    test_error_with_formatted_message
+    test_error_yaml_proxy
 ):
 
     # List the errors.

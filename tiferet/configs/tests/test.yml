@@ -21,21 +21,21 @@ errors:
       text: An error occurred.
     name: My Error
   TEST_SAVE_ERROR:
-    error_code: '4250'
+    error_code: '4012'
     message:
     - lang: en_US
       text: An error occurred.
     name: TEST_SAVE_ERROR
 features:
   test_group.test_feature:
-    group_id: test_group
-    description: A test feature.
-    name: Test Feature
     commands:
-      - attribute_id: test_feature_command
-        name: Test Feature Command
-        params:
-          param1: value1
+    - attribute_id: test_feature_command
+      name: Test Feature Command
+      params:
+        param1: value1
+    description: A test feature.
+    group_id: test_group
+    name: Test Feature
 interfaces:
   test:
     app_context:

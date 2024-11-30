@@ -34,11 +34,16 @@ from ..feature import Feature
 
 
 # *** constants
+
 TEST_FEATURE_FLAG = 'test' #/
 TEST_DATA_FLAG = 'test' #/
 TEST_PROXY_ATTRIBUTE_ID = 'test_repo' #/
 TEST_PROXY_CONFIG_FILE_KEY = 'config_file' #/
 TEST_PROXY_CONFIG_FILE_VALUE = 'tiferet/configs/tests/test.yml' #/
+TEST_PROXY_DATA_FLAG = 'test' #/
+TEST_PROXY_DEPENDENCY_TYPE = 'data' #/
+TEST_PROXY_MODULE_PATH = 'tiferet.repos.tests' #/
+TEST_PROXY_CLASS_NAME = 'TestProxy' #/
 
 # *** fixtures
 

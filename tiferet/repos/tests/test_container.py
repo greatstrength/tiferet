@@ -27,7 +27,7 @@ def test_container_yaml_proxy_list_all(test_container_yaml_proxy, test_repo_cont
     container_attributes, constants = test_container_yaml_proxy.list_all()
 
     # Verify Constants
-    assert constants.get('config_file') == 'tiferet/configs/tests/test.yml'
+    assert constants.get(TEST_PROXY_CONFIG_FILE_KEY) == TEST_PROXY_CONFIG_FILE_VALUE
 
     # Check the container attributes.
     assert container_attributes
