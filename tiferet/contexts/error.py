@@ -42,25 +42,24 @@ class ErrorContext(Model):
         self.validate()
 
     # * method: handle_error
-    def handle_error(self, execute_feature: Any) -> Tuple[bool, Any]:
+    def handle_error(self, exception: Exception, lang: str = 'en_US', **kwargs) -> Tuple[bool, Any]:
         '''
         Handle an error.
 
-        :param func: The execute feature function to handle.
-        :type func: function
+        :param exception: The exception to handle.
+        :type exception: Exception
+        :param lang: The language to use for the error message.
+        :type lang: str
         :return: Whether the error was handled.
         :rtype: bool
         '''
 
         # Execute the feature function and handle the errors.
-        try:
-            execute_feature()
-            return (False, None)
-        except AssertionError as e:
-            return (True, self.format_error_response(str(e)))
+        if isinstance(exception, AssertionError):
+            return self.format_error_response(str(exception), lang, **kwargs)
 
     # * method: format_error_response
-    def format_error_response(self, error_message: str, lang: str = 'en_US', **kwargs) -> Any:
+    def format_error_response(self, error_message: str, lang: str, **kwargs) -> Any:
         '''
         Format the error response.
 
