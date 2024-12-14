@@ -118,7 +118,7 @@ class AppInterfaceContext(Model):
         import json
 
         # Return the response.
-        return json.loads(request.result)
+        return json.loads(request.result) if request.result else ''
     
     # * method: run
     def run(self, **kwargs):
@@ -134,11 +134,11 @@ class AppInterfaceContext(Model):
 
         # Execute feature context and return session.
         # Handle error and return response if triggered.
-        has_error, message = self.errors.handle_error(lambda: self.execute_feature(request, **kwargs))
-
-        # Handle error if present.
-        if has_error:
-            return message
+        try:
+            self.execute_feature(request, **kwargs)
+        except Exception as e:
+            print('Error:', e)
+            return self.errors.handle_error(e)
 
         # Handle response.
         return self.handle_response(request)
