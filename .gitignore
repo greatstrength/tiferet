@@ -165,3 +165,6 @@ test.py
 
 # VS Code
 .vscode/
+
+# pytest
+pytest.ini
