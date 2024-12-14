@@ -1,6 +1,7 @@
 # *** imports
 
 # ** core
+import os
 from typing import Any
 
 # ** app
@@ -78,11 +79,15 @@ class ContainerContext(Model):
         :type data_flag: str
         '''
 
-        # Add the attributes as an empty dictionary.
+        # Add the attributes and constants as empty dictionaries.
         attributes = {}
+        constants = {}
         
         # Get and set attributes and constants.
         attrs, consts = container_repo.list_all()
+
+        # Parse the constants.
+        constants.update({key: self.parse_parameter(consts[key]) for key in consts})
         
         # Add the attributes to the context.
         for attr in attrs:
@@ -99,7 +104,7 @@ class ContainerContext(Model):
             # Add any parameters as constants.
             for dep in attr.dependencies:
                 for key in dep.parameters:
-                    consts[key] = dep.parameters[key]
+                    constants[key] = self.parse_parameter(dep.parameters[key])
 
         # Add the constants and attributes to the context.
         super().__init__(dict(
@@ -107,8 +112,19 @@ class ContainerContext(Model):
             feature_flag=feature_flag,
             data_flag=data_flag,
             attributes=attributes,
-            constants=consts,
+            constants=constants,
         ))
+
+    
+    # * method: parse_environment_parameter
+    def parse_parameter(self, parameter: str) -> str:
+
+        # If the parameter is an environment variable, get the value.
+        if parameter.startswith('$env.'):
+            return os.getenv(parameter[5:])
+        
+        # Otherwise, return the parameter.
+        return parameter
 
     # * method: get_dependency
     def get_dependency(self, attribute_id: str):
