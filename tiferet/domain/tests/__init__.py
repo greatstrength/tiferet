@@ -177,6 +177,15 @@ def test_feature_command_core_container_dependency():
     )
 
 
+# ** fixture: test_feature_command_with_env_var_parameter_container_dependency (container)
+@pytest.fixture(scope='session')
+def test_feature_command_with_env_var_parameter_container_dependency():
+    return ContainerDependency.new(
+        module_path='tiferet.commands.tests',
+        class_name='TestFeatureCommandWithEnvVar',
+        flag='test',
+    )
+
 # ** fixture: test_repo_container_attribute (container)
 @pytest.fixture(scope='session')
 def test_repo_container_attribute(test_proxy_container_dependency):
@@ -210,6 +219,18 @@ def test_feature_command_container_attribute(
             test_feature_command_container_dependency,
             test_feature_command_core_container_dependency
         ],
+    )
+
+
+# ** fixture: test_feature_command_with_env_var_parameter_container_attribute (container)
+@pytest.fixture(scope='session')
+def test_feature_command_with_env_var_parameter_container_attribute(
+    test_feature_command_with_env_var_parameter_container_dependency
+):
+    return ContainerAttribute.new(
+        id='test_feature_command_with_env_var_parameter',
+        type='feature',
+        dependencies=[test_feature_command_with_env_var_parameter_container_dependency]
     )
 
 
@@ -323,6 +344,17 @@ def test_feature_command_to_add():
     )
 
 
+# ** fixture: test_feature_command_with_env_var_parameter (feature)
+@pytest.fixture(scope='session')
+def test_feature_command_with_env_var_parameter():
+    return FeatureCommand.new(
+        name='Test Feature Command With Env Var Parameter',
+        attribute_id='test_feature_command_with_env_var_parameter',
+        params={'test_env_var': '$env.TEST_ENV_VAR'}
+    )
+
+
+
 @pytest.fixture(scope='session')
 def test_feature_command_with_pass_on_error():
     return FeatureCommand.new(
@@ -384,6 +416,17 @@ def test_feature_name_and_group_only():
     return Feature.new(
         name='Plain Feature',
         group_id='group'
+    )
+
+# ** fixture: test_feature_with_env_var_parameter (feature)
+@pytest.fixture(scope='session')
+def test_feature_with_env_var_parameter(test_feature_command_with_env_var_parameter):
+    return Feature.new(
+        name='Test Feature With Env Var Parameter',
+        group_id='test_group',
+        feature_key='test_feature_with_env_var_parameter',
+        description='A test feature',
+        commands=[test_feature_command_with_env_var_parameter]
     )
 
 

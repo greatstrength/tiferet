@@ -56,11 +56,13 @@ def container_repo(
     mock_container_repo,
     test_repo_container_attribute,
     test_feature_command_container_attribute,
+    test_feature_command_with_env_var_parameter_container_attribute
 ):
     return mock_container_repo(
         attributes=[
             test_repo_container_attribute,
             test_feature_command_container_attribute,
+            test_feature_command_with_env_var_parameter_container_attribute
         ]
     )
 
@@ -103,14 +105,16 @@ def feature_repo(
     test_feature,
     test_feature_with_return_to_data,
     test_feature_with_pass_on_error,
-    test_feature_with_throw_and_pass_on_error
+    test_feature_with_throw_and_pass_on_error,
+    test_feature_with_env_var_parameter
 ):
     return mock_feature_repo(
         features=[
             test_feature,
             test_feature_with_return_to_data,
             test_feature_with_pass_on_error,
-            test_feature_with_throw_and_pass_on_error
+            test_feature_with_throw_and_pass_on_error,
+            test_feature_with_env_var_parameter
         ]
     )
 
@@ -142,3 +146,14 @@ def request_context_throw_error():
         headers={"Content-Type": "application/json"},
         data={"param2": "value2", "throw_error": "True"}
     )
+
+# ** fixture: test_env_var
+@pytest.fixture
+def test_env_var():
+    '''
+    Test environment variable.
+    '''
+
+    # Return the test environment variable.
+    return os.getenv("TEST_ENV_VAR")
+

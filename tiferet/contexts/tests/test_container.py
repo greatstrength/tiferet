@@ -1,6 +1,9 @@
 # *** imports
 
-# app
+# ** core
+import os
+
+# ** app
 from . import *
 
 
@@ -14,6 +17,18 @@ def test_container_context_init(container_context):
     assert len(container_context.attributes) == 2
     assert container_context.feature_flag == "test"
     assert container_context.data_flag == "test"
+
+
+# ** test: test_parse_parameter
+def test_parse_parameter(container_context, test_env_var):
+
+    # Test parsing an environment variable
+    result = container_context.parse_parameter("$env.TEST_ENV_VAR")
+    assert result == test_env_var
+
+    # Test parsing a regular parameter
+    result = container_context.parse_parameter("test")
+    assert result == "test"
 
 
 # ** test: test_get_dependency

@@ -51,6 +51,20 @@ class FeatureContext(Model):
             features=features,
         ))
         self.container = container_context
+
+    # * method: parse_parameter
+    def parse_parameter(self, parameter: str) -> str:
+        '''
+        Parse a parameter.
+
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :return: The parsed parameter.
+        :rtype: str
+        '''
+
+        # Parse the parameter.
+        return self.container.parse_parameter(parameter)
         
     # * method: execute
     def execute(self, request: RequestContext, debug: bool = False, **kwargs):
@@ -71,12 +85,21 @@ class FeatureContext(Model):
             # Get the feature command handler instance.
             handler = self.container.get_dependency(command.attribute_id)
 
+            # Parse the command parameters
+            params = {
+                param: 
+                self.parse_parameter(
+                    command.params.get(param)
+                ) 
+                for param in command.params
+            }
+
             # Execute the handler function.
             # Handle assertion errors if pass on error is not set.
             try:
                 result = handler.execute(
                     **request.data,
-                    **command.params,
+                    **params,
                     debug=debug,
                     **kwargs)
                 
