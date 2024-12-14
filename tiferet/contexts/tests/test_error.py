@@ -16,24 +16,14 @@ def test_error_context_init(error_context, error_repo):
     assert error_context.errors["MULTI_FORMATTED_ERROR"] == error_repo.errors[2]
 
 
-# ** test: test_error_context_handle_error_no_error
-def test_error_context_handle_error_no_error(error_context):
-    
-    # Test when no error is raised
-    result = error_context.handle_error(lambda: None)
-    assert result == (False, None)
-
-
 # ** test: test_error_context_handle_error_with_error
 def test_error_context_handle_error_with_assertion_error(error_context):
     
-    # Test handling an AssertionError
-    def raise_assertion_error():
-        raise AssertionError("MY_ERROR")
+    
+    # Test handling an error with an assertion error
+    message = error_context.handle_error(AssertionError("MY_ERROR"), lang="en_US")
 
-    result = error_context.handle_error(raise_assertion_error)
-    has_error, message = result
-    assert has_error is True
+    # Check if the error message is correctly formatted
     assert message['message'] == "An error occurred."
 
 
