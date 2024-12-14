@@ -1,6 +1,9 @@
 # *** imports
 
-# app 
+# ** core
+import json
+
+# ** app 
 from . import *
 
 
@@ -42,6 +45,18 @@ def test_feature_context_init(feature_context):
 
     # Test initialization
     assert len(feature_context.features) == 4
+
+
+# ** test: test_feature_context_parse_parameter
+def test_feature_context_parse_parameter(feature_context, test_env_var):
+
+    # Test parsing a parameter
+    result = feature_context.parse_parameter("$env.TEST_ENV_VAR")
+    assert result == test_env_var
+
+    # Test parsing a regular parameter
+    result = feature_context.parse_parameter("test")
+    assert result == "test"
 
 
 # ** test: test_execute_feature_success
@@ -92,3 +107,18 @@ def test_execute_feature_with_assertion_error_thrown_and_passed_on_with_result(f
     # Assert the result.
     import json
     assert request_context_throw_and_pass_on_error.result == json.dumps(('value1a', 'value2a'))
+
+
+# ** test: test_execute_feature_with_configured_environment_variable
+def test_execute_feature_with_configured_environment_variable(feature_context, test_env_var):
+
+    # Test executing a feature with an environment variable.
+    request_context = RequestContext(
+        feature_id="test_group.test_feature_with_env_var_parameter",
+        headers={"Content-Type": "application/json"},
+        data={}
+    )
+    feature_context.execute(request_context)
+
+    # Assert the result.
+    assert request_context.result == json.dumps((True, test_env_var))
