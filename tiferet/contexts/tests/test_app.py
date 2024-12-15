@@ -15,6 +15,14 @@ def request_context_with_result(request_context):
     request_context.result = '["value1", "value2"]'
     return request_context
 
+
+# ** fixture: request_context_no_result
+@pytest.fixture
+def request_context_no_result(request_context):
+    request_context.result = None
+    return request_context
+
+
 # *** tests
 
 # ** test: app_interface_context_init
@@ -53,7 +61,18 @@ def test_handle_response(app_interface_context, request_context_with_result):
     # Ensure the response is as expected.
     assert response == ["value1", "value2"]
 
-# ** test: run
+
+# ** test: handle_response_with_no_result
+def test_handle_response_with_no_result(app_interface_context, request_context_no_result):
+
+    # Assuming handle_response just returns the result as a JSON object
+    response = app_interface_context.handle_response(request_context_no_result)
+
+    # Ensure the response is as expected.
+    assert response == None
+
+
+# ** test: run_no_error
 def test_run_no_error(app_interface_context, request_context):
     
     # Run the application interface.
@@ -63,6 +82,7 @@ def test_run_no_error(app_interface_context, request_context):
     assert result == ["value1", "value2"]
 
 
+# ** test: run_with_error
 def test_run_with_error(app_interface_context, request_context_throw_error):
     
     # Run the application interface.
