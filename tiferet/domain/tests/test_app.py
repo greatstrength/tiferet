@@ -10,23 +10,6 @@ from . import *
 
 # *** fixtures
 
-# ** fixture: app_repository_configuration
-@pytest.fixture
-def app_repository_configuration():
-    return AppRepositoryConfiguration.new()
-
-
-# ** fixture: app_repository_configuration_custom
-@pytest.fixture(scope="module")
-def app_repository_configuration_custom():
-    return AppRepositoryConfiguration.new(
-        module_path='test.module.path',
-        class_name='TestClassName',
-        params=dict(
-            test_param='test value',
-        ),
-    )
-
 
 # *** tests
 
@@ -68,22 +51,3 @@ def test_app_interface_get_dependency_invalid(test_app_interface):
 
     # Assert the app dependency is invalid.
     assert test_app_interface.get_dependency('invalid') is None
-
-
-# ** test: test_app_repository_configuration_new
-def test_app_repository_configuration_new(app_repository_configuration):
-
-    # Assert the app repository configuration is valid.
-    assert app_repository_configuration.module_path == 'tiferet.repos.app'
-    assert app_repository_configuration.class_name == 'YamlProxy'
-    assert app_repository_configuration.params == dict(
-        app_config_file='app/configs/app.yml')
-
-
-# ** test: test_app_repository_configuration_new_custom
-def test_app_repository_configuration_new_custom(app_repository_configuration_custom):
-
-    # Assert the app repository configuration is valid.
-    assert app_repository_configuration_custom.module_path == 'test.module.path'
-    assert app_repository_configuration_custom.class_name == 'TestClassName'
-    assert app_repository_configuration_custom.params == dict(test_param='test value')
