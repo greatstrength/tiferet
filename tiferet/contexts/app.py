@@ -118,7 +118,7 @@ class AppInterfaceContext(Model):
         import json
 
         # Return the response.
-        return json.loads(request.result) if request.result else ''
+        return json.loads(request.result) if request.result else None
     
     # * method: run
     def run(self, **kwargs):
