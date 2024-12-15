@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Tuple
+from typing import Any, Tuple, List
 
 # ** app
 from ..domain import *
@@ -37,9 +37,35 @@ class ErrorContext(Model):
         # Create the errors lookup from the error repository.
         errors = {error.name: error for error in error_repo.list()}
 
+        # Add custom errors.
+        errors.update({error.name: error for error in self.load_custom_errors()})
+
         # Set the errors lookup and validate.
         super().__init__(dict(errors=errors))
         self.validate()
+
+    # * method: load_custom_errors
+    def load_custom_errors(self) -> List[Error]:
+        '''
+        Load custom errors.
+
+        :return: The list of custom errors.
+        :rtype: list
+        '''
+
+        # Get custom errors.
+        return [
+            Error.new(
+                name='FEATURE_NOT_FOUND',
+                error_code='0',
+                message=[
+                    ErrorMessage.new(
+                        lang='en_US',
+                        text='The feature with ID was not found: {}'
+                    )
+                ]
+            )
+        ]
 
     # * method: handle_error
     def handle_error(self, exception: Exception, lang: str = 'en_US', **kwargs) -> Tuple[bool, Any]:
