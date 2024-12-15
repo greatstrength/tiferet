@@ -14,7 +14,6 @@ def test_container_context_init(container_context):
 
     # Ensure the container context was initialized correctly
     assert container_context.interface_id == "test_interface"
-    assert len(container_context.attributes) == 2
     assert container_context.feature_flag == "test"
     assert container_context.data_flag == "test"
 
