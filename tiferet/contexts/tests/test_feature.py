@@ -52,6 +52,17 @@ def test_feature_context_parse_parameter(feature_context, test_env_var):
     assert result == "test"
 
 
+# ** test: test_execute_feature_feature_not_found
+def test_execute_feature_feature_not_found(feature_context, request_context):
+
+    # Change the feature ID to a non-existent feature.
+    request_context.feature_id = "test_group.non_existent_feature"
+
+    # Test executing a feature that does not exist
+    with pytest.raises(AssertionError):
+        feature_context.execute(request_context)
+        
+
 # ** test: test_execute_feature_success
 def test_execute_feature_success(feature_context, request_context):
 

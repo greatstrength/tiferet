@@ -79,6 +79,9 @@ class FeatureContext(Model):
         :type kwargs: dict
         '''
 
+        # Assert the feature exists.
+        assert request.feature_id in self.features, 'FEATURE_NOT_FOUND, {}'.format(request.feature_id)
+
         # Iterate over the feature commands.
         for command in self.features[request.feature_id].commands:
 

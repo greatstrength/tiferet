@@ -10,10 +10,22 @@ from . import *
 def test_error_context_init(error_context, error_repo):
 
     # Test initialization with error repo
-    assert len(error_context.errors.values()) == 3
+    assert len(error_context.errors.values()) == 4
     assert error_context.errors["MY_ERROR"] == error_repo.errors[0]
     assert error_context.errors["FORMATTED_ERROR"] == error_repo.errors[1]
     assert error_context.errors["MULTI_FORMATTED_ERROR"] == error_repo.errors[2]
+    assert error_context.errors["FEATURE_NOT_FOUND"] == error_repo.errors[3]
+
+
+# ** test: test_error_context_load_custom_errors
+def test_error_context_load_custom_errors(error_context):
+
+    # Test loading custom errors
+    custom_errors = error_context.load_custom_errors()
+
+    # Check if the custom errors are loaded correctly
+    assert len(custom_errors) == 1
+    assert custom_errors[0].name == "FEATURE_NOT_FOUND"
 
 
 # ** test: test_error_context_handle_error_with_error
