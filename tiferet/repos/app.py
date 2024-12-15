@@ -41,8 +41,8 @@ class AppRepository(object):
         raise NotImplementedError()
 
 
-# ** proxy: yaml_proxy
-class YamlProxy(object):
+# ** proxy: app_yaml_proxy
+class AppYamlProxy(AppRepository):
 
     # * field: config_file
     config_file: str = None

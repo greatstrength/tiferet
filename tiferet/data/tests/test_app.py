@@ -51,18 +51,6 @@ def app_interface_yaml_data_custom_dependencies():
     )
 
 
-# ** fixture: app_repo_config_yaml_data
-@pytest.fixture
-def app_repo_config_yaml_data():
-    return AppRepositoryConfigurationYamlData.from_data(
-        module_path='tests.repos.test',
-        class_name='TestProxy',
-        params=dict(
-            app_config_file='app/configs/app.yml',
-        )
-    )
-
-
 # *** tests
 
 # ** test: test_app_dependency_yaml_data_from_data
@@ -117,23 +105,3 @@ def test_app_interface_yaml_data_custom_dependencies(app_interface_yaml_data_cus
     # Assert the custom app interface yaml data is valid.
     assert app_interface_yaml_data_custom_dependencies.app_context.module_path == 'custom.module'
     assert app_interface_yaml_data_custom_dependencies.container_context.module_path == 'custom.container'
-
-
-# ** test: test_app_repo_config_yaml_data_from_data
-def test_app_repo_config_yaml_data_from_data(app_repo_config_yaml_data):
-
-    # Assert the app repository configuration yaml data is valid.
-    assert app_repo_config_yaml_data.module_path == 'tests.repos.test'
-    assert app_repo_config_yaml_data.class_name == 'TestProxy'
-    assert app_repo_config_yaml_data.params.get('app_config_file') == 'app/configs/app.yml'
-
-
-# ** test: test_app_repo_config_yaml_data_map
-def test_app_repo_config_yaml_data_map(app_repo_config_yaml_data):
-
-    # Map the app repository configuration yaml data.
-    mapped_config = app_repo_config_yaml_data.map()
-    assert isinstance(mapped_config, AppRepositoryConfiguration)
-    assert mapped_config.module_path == 'tests.repos.test'
-    assert mapped_config.class_name == 'TestProxy'
-    assert mapped_config.params.get('app_config_file') == 'app/configs/app.yml'

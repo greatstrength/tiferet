@@ -6,7 +6,7 @@ from typing import Dict
 # ** app
 from ..configs import *
 from ..domain import DataObject
-from ..domain.app import AppDependency, AppInterface, AppRepositoryConfiguration
+from ..domain.app import AppDependency, AppInterface
 
 
 # *** constants
@@ -283,54 +283,3 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             **self.to_primitive('to_model'),
             **kwargs
         )
-
-
-# ** data: app_repository_configuration_yaml_data
-class AppRepositoryConfigurationYamlData(DataObject, AppRepositoryConfiguration):
-    '''
-    A YAML data representation of an app repository configuration object.
-    '''
-
-    class Options():
-        '''
-        The options for the app repository configuration data.
-        '''
-        serialize_when_none = False
-        roles = {
-            'to_model': DataObject.allow(),
-            'to_data': DataObject.allow()
-        }
-
-    # * method: new
-    @staticmethod
-    def from_data(**kwargs) -> 'AppRepositoryConfigurationYamlData':
-        '''
-        Initializes a new YAML representation of an AppRepositoryConfiguration object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppRepositoryConfigurationData object.
-        :rtype: AppRepositoryConfigurationData
-        '''
-
-        # Create a new AppRepositoryConfigurationData object.
-        return super(AppRepositoryConfigurationYamlData, AppRepositoryConfigurationYamlData).from_data(
-            AppRepositoryConfigurationYamlData,
-            **kwargs
-        )
-
-    # * method: map
-    def map(self, **kwargs) -> AppRepositoryConfiguration:
-        '''
-        Maps the app repository configuration data to an app repository configuration object.
-
-        :param role: The role for the mapping.
-        :type role: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new app repository configuration object.
-        :rtype: AppRepositoryConfiguration
-        '''
-
-        # Map the app repository configuration data.
-        return super().map(AppRepositoryConfiguration, **kwargs)

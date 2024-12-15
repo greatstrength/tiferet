@@ -38,6 +38,15 @@ def request_context_throw_and_pass_on_error():
         data={"param2": "value2a"}
     )
 
+# ** fixture: request_context_feature_not_found
+@pytest.fixture
+def request_context_feature_not_found():
+    return RequestContext(
+        feature_id="test_group.non_existent_feature",
+        headers={"Content-Type": "application/json"},
+        data={}
+    )
+
 # *** tests
 
 # ** test: test_feature_context_parse_parameter
@@ -53,14 +62,11 @@ def test_feature_context_parse_parameter(feature_context, test_env_var):
 
 
 # ** test: test_execute_feature_feature_not_found
-def test_execute_feature_feature_not_found(feature_context, request_context):
-
-    # Change the feature ID to a non-existent feature.
-    request_context.feature_id = "test_group.non_existent_feature"
+def test_execute_feature_feature_not_found(feature_context, request_context_feature_not_found):
 
     # Test executing a feature that does not exist
     with pytest.raises(AssertionError):
-        feature_context.execute(request_context)
+        feature_context.execute(request_context_feature_not_found)
         
 
 # ** test: test_execute_feature_success

@@ -6,8 +6,45 @@ from typing import Any
 
 # ** app
 from ..domain import *
-from ..services import container_service
 from ..repos.container import ContainerRepository
+
+
+# *** functions
+
+# ** function: create_injector
+def create_injector(name: str, **dependencies) -> Any:
+    '''
+    Create an injector object with the given dependencies.
+
+    :param name: The name of the injector.
+    :type name: str
+    :param dependencies: The dependencies.
+    :type dependencies: dict
+    :return: The injector object.
+    :rtype: Any
+    '''
+
+    # Create container.
+    from dependencies import Injector
+    return type(f'{name.capitalize()}Container', (Injector,), {**dependencies})
+
+
+# ** function: import_dependency
+def import_dependency(module_path: str, class_name: str) -> Any:
+    '''
+    Import an object dependency from its configured Python module.
+
+    :param module_path: The module path.
+    :type module_path: str
+    :param class_name: The class name.
+    :type class_name: str
+    :return: The dependency.
+    :rtype: Any
+    '''
+
+    # Import module.
+    from importlib import import_module
+    return getattr(import_module(module_path), class_name)
 
 
 # *** contexts
@@ -165,7 +202,7 @@ class ContainerContext(Model):
             dependencies[attribute_id] = self.import_dependency(attribute, flag_map[attribute.type])
 
         # Create container.
-        return container_service.create_injector( 
+        return create_injector( 
             self.interface_id, 
             **self.constants, 
             **dependencies, 
@@ -192,4 +229,4 @@ class ContainerContext(Model):
             dependency = attribute.get_dependency('core')
 
         # Import the dependency.
-        return container_service.import_dependency(dependency.module_path, dependency.class_name)
+        return import_dependency(dependency.module_path, dependency.class_name)

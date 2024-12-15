@@ -2,7 +2,7 @@
 
 # ** app
 from . import *
-from ...repos.app import YamlProxy as AppYamlProxy
+from ...repos.app import AppYamlProxy
 
 
 # *** fixtures
