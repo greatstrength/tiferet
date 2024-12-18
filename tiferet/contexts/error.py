@@ -113,6 +113,7 @@ class ErrorContext(Model):
         # Set error response.
         error_response = dict(
             message=error.format(lang, *error_data if error_data else []),
+            error_code=error.error_code,
             **kwargs
         )
 
