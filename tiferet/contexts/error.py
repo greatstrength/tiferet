@@ -97,17 +97,12 @@ class ErrorContext(Model):
         :rtype: Any
         '''
 
-        # Get error name and data.
-        message_tokens = error_message.split(': ')
+        # Split error message into error name and data.
+        message_tokens = error_message.split(': ', 1)
 
         # Get error name and data.
-        if len(message_tokens) == 2:
+        if len(message_tokens) > 1:
             error_name, error_data = message_tokens
-        elif len(message_tokens) > 2:
-            error_name = message_tokens[0]
-            error_data = ': '.join(message_tokens[1:])
-
-        # Otherwise set error name with no data.
         else:
             error_name = error_message
             error_data = None
