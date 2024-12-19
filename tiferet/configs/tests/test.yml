@@ -20,12 +20,6 @@ errors:
     - lang: en_US
       text: An error occurred.
     name: My Error
-  TEST_SAVE_ERROR:
-    error_code: '4012'
-    message:
-    - lang: en_US
-      text: An error occurred.
-    name: TEST_SAVE_ERROR
 features:
   test_group.test_feature:
     commands:
