@@ -58,3 +58,13 @@ def test_format_error_response_with_multiple_args(error_context):
 
     # Check if the error message is correctly formatted
     assert formatted_message['message'] == "An error occurred: This is the error - 12345."
+
+
+# ** test: test_format_error_response_with_multiple_colons
+def test_format_error_response_with_multiple_colons(error_context):
+
+    # Test formatting an error response with multiple colons
+    formatted_message = error_context.format_error_response("FORMATTED_ERROR: This is the error: 12345", lang="en_US")
+
+    # Check if the error message is correctly formatted
+    assert formatted_message['message'] == "An error occurred: This is the error: 12345"

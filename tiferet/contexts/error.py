@@ -97,10 +97,13 @@ class ErrorContext(Model):
         :rtype: Any
         '''
 
-        # Split error message.
-        try:
-            error_name, error_data = error_message.split(': ')
-        except ValueError:
+        # Split error message into error name and data.
+        message_tokens = error_message.split(': ', 1)
+
+        # Get error name and data.
+        if len(message_tokens) > 1:
+            error_name, error_data = message_tokens
+        else:
             error_name = error_message
             error_data = None
 
@@ -119,3 +122,5 @@ class ErrorContext(Model):
 
         # Return error response.
         return error_response
+
+
