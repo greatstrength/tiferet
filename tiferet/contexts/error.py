@@ -57,7 +57,7 @@ class ErrorContext(Model):
         return [
             Error.new(
                 name='FEATURE_NOT_FOUND',
-                error_code='0',
+                error_code='FEATURE_NOT_FOUND',
                 message=[
                     ErrorMessage.new(
                         lang='en_US',
