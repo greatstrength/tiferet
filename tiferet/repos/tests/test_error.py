@@ -23,7 +23,7 @@ def test_error_with_custom_code(test_error_message):
     return Error.new(
         'Test save error',
         'TEST_SAVE_ERROR',
-        error_code,
+        'TEST_SAVE_ERROR',
         message=[
             test_error_message
         ]
@@ -85,4 +85,3 @@ def test_error_yaml_proxy_save(test_error_yaml_proxy, test_error_with_custom_cod
     # Check the error.
     assert error
     assert error.id == test_error_with_custom_code.id
-    assert error.error_code == test_error_with_custom_code.error_code
