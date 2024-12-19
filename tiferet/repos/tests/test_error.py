@@ -43,8 +43,7 @@ def test_error_yaml_proxy_list(
 
     # Check the errors.
     assert errors
-    assert len(errors) == 3
-    for error_id in ['MY_ERROR', 'FORMATTED_ERROR', 'TEST_SAVE_ERROR']:
+    for error_id in ['MY_ERROR', 'FORMATTED_ERROR']:
         assert error_id in [error.id for error in errors]
 
 

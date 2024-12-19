@@ -89,4 +89,7 @@ def test_run_with_error(app_interface_context, request_context_throw_error):
     response = app_interface_context.run(request=request_context_throw_error)
 
     # Ensure the response is as expected.
-    assert response == dict(message="An error occurred.")
+    assert response == dict(
+        error_code="MY_ERROR", 
+        message="An error occurred."
+    )
