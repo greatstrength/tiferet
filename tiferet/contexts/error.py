@@ -35,10 +35,10 @@ class ErrorContext(Model):
         '''
 
         # Create the errors lookup from the error repository.
-        errors = {error.name: error for error in error_repo.list()}
+        errors = {error.id: error for error in error_repo.list()}
 
         # Add custom errors.
-        errors.update({error.name: error for error in self.load_custom_errors()})
+        errors.update({error.id: error for error in self.load_custom_errors()})
 
         # Set the errors lookup and validate.
         super().__init__(dict(errors=errors))
@@ -57,7 +57,7 @@ class ErrorContext(Model):
         return [
             Error.new(
                 name='FEATURE_NOT_FOUND',
-                error_code='0',
+                error_code='FEATURE_NOT_FOUND',
                 message=[
                     ErrorMessage.new(
                         lang='en_US',

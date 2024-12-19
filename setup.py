@@ -9,7 +9,7 @@ config = {
     'url': r'https://github.com/greatstrength/app',
     'download_url': r'https://github.com/greatstrength/app',
     'author_email': 'andrew@greatstrength.me',
-    'version': '1.0.0-alpha.17',
+    'version': '1.0.0-alpha.18',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',

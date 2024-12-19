@@ -21,7 +21,7 @@ errors:
       text: An error occurred.
     name: My Error
   TEST_SAVE_ERROR:
-    error_code: '4012'
+    error_code: TEST_SAVE_ERROR
     message:
     - lang: en_US
       text: An error occurred.
