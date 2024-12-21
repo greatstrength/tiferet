@@ -1,6 +1,7 @@
 # *** imports
 
 # ** app
+from .cache import CacheContext
 from .container import ContainerContext
 from .request import RequestContext
 from ..domain import *
@@ -30,8 +31,15 @@ class FeatureContext(Model):
         ),
     )
 
+    # * attribute: cache
+    cache = CacheContext(
+        metadata=dict(
+            description='The feature cache.'
+        )
+    )
+
     # * method: init
-    def __init__(self, feature_repo: FeatureRepository, container_context: ContainerContext):
+    def __init__(self, feature_repo: FeatureRepository, container_context: ContainerContext, cache: CacheContext = None):
         '''
         Initialize the feature context.
 
@@ -51,6 +59,7 @@ class FeatureContext(Model):
             features=features,
         ))
         self.container = container_context
+        self.cache = cache or CacheContext()
 
     # * method: parse_parameter
     def parse_parameter(self, parameter: str) -> str:
@@ -104,7 +113,12 @@ class FeatureContext(Model):
                     **request.data,
                     **params,
                     debug=debug,
+                    cache=self.cache
                     **kwargs)
+                
+                # Save the result to the cache if save to cache is set.
+                if command.save_to_cache:
+                    self.cache[command.data_key] = result
                 
                 # Return the result to the session context if return to data is set.
                 if command.return_to_data:
