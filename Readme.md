@@ -373,29 +373,8 @@ class StarshipYamlProxy(StarshipRepository):
         if ship_class:
             starships = [s for s in starships if s.ship_class == ship_class]
         return [s.map() for s in starships]
-        ```
+```
 
-Usage
-Checking if a Starship Exists:
-
-python
-repo = StarshipYamlProxy('starships.yml')
-exists = repo.exists('enterprise')
-print(f"Enterprise exists: {exists}")
-
-Retrieving a Starship:
-
-python
-enterprise = repo.get('enterprise')
-if enterprise:
-    print(f"Retrieved: {enterprise.name}, Class: {enterprise.ship_class}")
-
-Listing Starships:
-
-python
-all_fighters = repo.list(ship_class='Fighter')
-for ship in all_fighters:
-    print(f"Ship: {ship.name}, Class: {ship.ship_class}")
 
 Why This Matters
 Abstraction: Developers can interact with starships without worrying about how they're stored or retrieved, making it easy to switch data storage solutions.
@@ -899,7 +878,7 @@ This script demonstrates the use of features to manage the lifecycle of starship
 
 Here's how you might configure the container attributes for your Starship application, focusing on using flags for feature commands and data repositories:
 
-yaml
+```yaml
 attrs: 
   create_starship:
     deps:
@@ -947,6 +926,7 @@ attrs:
 
 const: 
   env: $env.STARSHIP_ENV  # Example environmental variable for configuration
+```
 
 Explanation:
 Feature Commands under 'core' Flag: 
