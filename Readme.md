@@ -288,6 +288,236 @@ Remember, these data models are part of a larger ecosystem where features, comma
 This snippet gives a more complete picture of how one data model (StarshipComponentData) works, including its methods for data transformation, which should help developers grasp the full functionality of your data persistence layer.
 
 
+## Repositories and Proxies
+
+
+Here's how you might document this repository approach for your README, keeping the explanation simple and focused on the basics:
+
+Using Repositories for Data Management in Tiferet
+Tiferet leverages repositories and their proxies to manage data, providing a layer of abstraction between your domain logic and data persistence. Here's an example with our starship application using a YAML file for data storage:
+
+StarshipRepository Interface
+An interface defines the contract for all starship repositories:
+
+python
+from typing import List
+from ..domain.starship import Starship
+
+class StarshipRepository:
+    '''
+    Starship repository interface.
+    '''
+
+    def exists(self, id: str) -> bool:
+        '''
+        Check if a starship with the given id exists.
+        '''
+        raise NotImplementedError()
+
+    def get(self, id: str) -> Starship:
+        '''
+        Retrieve a starship by its id.
+        '''
+        raise NotImplementedError()
+
+    def list(self, ship_class: str = None) -> List[Starship]:
+        '''
+        List all starships, optionally filtered by class.
+        '''
+        raise NotImplementedError()
+
+StarshipYamlProxy
+A concrete implementation that uses YAML for data storage:
+
+python
+from ..data.starship import StarshipData
+from ..clients import yaml_client
+
+class StarshipYamlProxy(StarshipRepository):
+    '''
+    YAML repository for starships.
+    '''
+
+    def __init__(self, starship_config_file: str):
+        '''
+        Initialize with the path to the YAML config file.
+        '''
+        self.config_file = starship_config_file
+
+    def exists(self, id: str) -> bool:
+        return self.get(id) is not None
+
+    def get(self, id: str) -> Starship:
+        '''
+        Load a starship from YAML.
+        '''
+        starship_data = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: StarshipData.from_data(id=id, **data),
+            start_node=lambda data: data.get('starships', {}).get(id)
+        )
+        return starship_data.map() if starship_data else None
+
+    def list(self, ship_class: str = None) -> List[Starship]:
+        '''
+        Load all starships from YAML, optionally filter by class.
+        '''
+        starships = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: [StarshipData.from_data(id=id, **starship_data) for id, starship_data in data.get('starships', {}).items()],
+            start_node=lambda data: data
+        )
+        if ship_class:
+            starships = [s for s in starships if s.ship_class == ship_class]
+        return [s.map() for s in starships]
+
+Usage
+Checking if a Starship Exists:
+
+python
+repo = StarshipYamlProxy('starships.yml')
+exists = repo.exists('enterprise')
+print(f"Enterprise exists: {exists}")
+
+Retrieving a Starship:
+
+python
+enterprise = repo.get('enterprise')
+if enterprise:
+    print(f"Retrieved: {enterprise.name}, Class: {enterprise.ship_class}")
+
+Listing Starships:
+
+python
+all_fighters = repo.list(ship_class='Fighter')
+for ship in all_fighters:
+    print(f"Ship: {ship.name}, Class: {ship.ship_class}")
+
+Why This Matters
+Abstraction: Developers can interact with starships without worrying about how they're stored or retrieved, making it easy to switch data storage solutions.
+Flexibility: The proxy pattern allows for different implementations (e.g., from YAML to database) without changing the interface or client code.
+Simplicity: For demo or development purposes, YAML files offer a straightforward way to manage and share data.
+
+For more advanced usage, including how to configure Tiferet's yaml_client or to implement other data storage solutions like databases, please refer to the advanced documentation sections or the Tiferet wiki.
+
+This documentation snippet introduces developers to the concept of repositories in Tiferet, focusing on YAML as a simple data storage method while hinting at the system's scalability to more complex storage solutions.
+
+-------
+
+
+You're absolutely right. Let's update the StarshipYamlProxy to include a save method for persisting starship data:
+
+python
+from typing import List
+from ..domain.starship import Starship
+from ..data.starship import StarshipData
+from ..clients import yaml_client
+
+class StarshipRepository:
+    '''
+    Starship repository interface.
+    '''
+
+    def exists(self, id: str) -> bool:
+        '''
+        Check if a starship with the given id exists.
+        '''
+        raise NotImplementedError()
+
+    def get(self, id: str) -> Starship:
+        '''
+        Retrieve a starship by its id.
+        '''
+        raise NotImplementedError()
+
+    def list(self, ship_class: str = None) -> List[Starship]:
+        '''
+        List all starships, optionally filtered by class.
+        '''
+        raise NotImplementedError()
+
+    def save(self, starship: Starship):
+        '''
+        Save or update a starship.
+        '''
+        raise NotImplementedError()
+
+class StarshipYamlProxy(StarshipRepository):
+    '''
+    YAML repository for starships.
+    '''
+
+    def __init__(self, starship_config_file: str):
+        '''
+        Initialize with the path to the YAML config file.
+        '''
+        self.config_file = starship_config_file
+
+    def exists(self, id: str) -> bool:
+        return self.get(id) is not None
+
+    def get(self, id: str) -> Starship:
+        '''
+        Load a starship from YAML.
+        '''
+        starship_data = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: StarshipData.from_data(id=id, **data),
+            start_node=lambda data: data.get('starships', {}).get(id)
+        )
+        return starship_data.map() if starship_data else None
+
+    def list(self, ship_class: str = None) -> List[Starship]:
+        '''
+        Load all starships from YAML, optionally filter by class.
+        '''
+        starships = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: [StarshipData.from_data(id=id, **starship_data) for id, starship_data in data.get('starships', {}).items()],
+            start_node=lambda data: data
+        )
+        if ship_class:
+            starships = [s for s in starships if s.ship_class == ship_class]
+        return [s.map() for s in starships]
+
+    def save(self, starship: Starship):
+        '''
+        Save or update a starship in YAML.
+        '''
+        # Convert Starship to StarshipData for serialization
+        starship_data = StarshipData.from_model(starship)
+        
+        # Load the current state of starships
+        all_starships = yaml_client.load(
+            self.config_file,
+            create_data=lambda data: data.get('starships', {}),
+            start_node=lambda data: data
+        )
+
+        # Update or add the starship in the dictionary
+        all_starships[starship.id] = starship_data.to_primitive(role='to_data')
+        
+        # Write the updated dictionary back to YAML
+        yaml_client.write(
+            self.config_file,
+            data={'starships': all_starships}
+        )
+
+Usage
+Saving a Starship:
+
+python
+repo = StarshipYamlProxy('starships.yml')
+new_starship = Starship.new(name="Millennium Falcon", ship_class="Freighter", ...)
+repo.save(new_starship)  # This will either update or add the starship to the YAML file
+
+Why This Matters
+CRUD Operations: Now, developers can perform Create, Read, Update, and Delete operations (though DELETE is not implemented here) on starships through the same repository interface, maintaining consistency in data management.
+Persistence: Saving allows for the persistence of changes made to starships, ensuring that the state of your application's data can be preserved between sessions or shared across environments.
+Simplicity: By abstracting the save operation, you keep the complexity of dealing with file I/O or database operations away from the core logic, enhancing maintainability.
+
+This addition completes the basic CRUD functionality for the starship example in Tiferet, demonstrating how the framework supports both reading and writing data through a consistent interface.
+
 ## Feature Commands
 
 Apps are more than just their shape as defined by Domain Models, but they also contain the necessary interactions between both the required subsystems and the user for the task at hand. Feature commands are a command object that execute such interactions.
@@ -295,5 +525,3 @@ Apps are more than just their shape as defined by Domain Models, but they also c
 #### Example
 
 Here is a list of feature commands for our Spaceship app:
-
-
