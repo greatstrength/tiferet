@@ -269,7 +269,8 @@ Serialization: Here, we've configured 'to_data' to exclude the 'id' when seriali
 
 Usage
 From Domain to Data: When you need to persist or serialize your domain objects for storage or transfer, use the from_model method:
-python
+
+```python
 starship = Starship.new(name="Enterprise", ...)
 starship_data = StarshipData.from_model(starship)
 # starship_data can now be serialized to YAML, JSON, or stored in a database
@@ -279,6 +280,7 @@ python
 starship_data = StarshipData.from_data(**data)
 starship = starship_data.map()
 # 'starship' is now a domain object ready for use
+```
 
 Why This Matters
 Flexibility: This dual-model approach allows for different representations of data based on context (domain logic vs. storage), providing control over what is persisted or transferred.
@@ -1185,3 +1187,386 @@ Contributing
 Expanding this to include more error cases or additional features would further demonstrate Tiferet's robustness in managing both successful operations and error states.
 
 This README now includes error handling, showing how errors are defined, configured, and checked for during application execution. It's a comprehensive view of how Tiferet can manage the lifecycle of operations from start to finish, including error cases.
+
+
+-----
+
+## In-memory app for Building Ships
+I catch your drift perfectly. Let's add an in-memory component management system to our existing Starship application, creating a new interface for it. Here's how we can structure this:
+
+New Feature Configuration for Component Management
+First, let's extend the features.yml with new component-related features:
+
+```yaml
+# app/configs/features.yml (add these to existing features)
+features:
+  component.create:
+    commands:
+      - name: Create Component
+        attribute_id: create_component
+    name: Create Component
+    group_id: component
+  component.list:
+    commands:
+      - name: List Components
+        attribute_id: list_components
+    name: List Components
+    group_id: component
+  component.get:
+    commands:
+      - name: Get Component
+        attribute_id: get_component
+    name: Get Component
+    group_id: component
+```
+
+New Feature Command Implementations
+Let's create command handlers for these new features:
+
+```python
+# commands/component.py
+from tiferet import FeatureCommand
+from ..domain.starship import StarshipComponent
+
+class CreateComponent(FeatureCommand):
+    def execute(self, **kwargs):
+        component = StarshipComponent.new(**kwargs)
+        # Here, we're just keeping components in memory for simplicity
+        if not hasattr(self, 'components'):
+            self.components = []
+        self.components.append(component)
+        return component
+
+class ListComponents(FeatureCommand):
+    def execute(self):
+        if not hasattr(self, 'components'):
+            return []
+        return self.components
+
+class GetComponent(FeatureCommand):
+    def execute(self, component_id):
+        if not hasattr(self, 'components'):
+            return None
+        # Assuming components have an 'id' attribute for identification
+        return next((c for c in self.components if c.id == component_id), None)
+```
+
+Update Container Configuration
+Add these new commands to the container.yml:
+
+```yaml
+# app/configs/container.yml (add these to existing attrs)
+attrs:
+  create_component:
+    deps:
+      core:
+        module_path: app.commands.component
+        class_name: CreateComponent
+    type: feature
+  list_components:
+    deps:
+      core:
+        module_path: app.commands.component
+        class_name: ListComponents
+    type: feature
+  get_component:
+    deps:
+      core:
+        module_path: app.commands.component
+        class_name: GetComponent
+    type: feature
+```
+
+New Interface Configuration
+Add a new interface for component management:
+
+```yaml
+# app/configs/interfaces.yml (add this to existing interfaces)
+interfaces:
+  component_cli:
+    name: Component CLI Interface
+```
+
+Main Application Script
+To use this new interface alongside the existing starship management:
+
+```python
+# main.py (assuming this is where you run your app)
+
+from tiferet import App
+from app.domain.starship import StarshipComponent
+
+app = App()
+
+def create_component():
+    name = input("Enter component name: ")
+    type = input("Enter component type: ")
+    power_level = int(input("Enter power level: "))
+    
+    result = app.run('component_cli', feature_id='component.create', data=dict(name=name, type=type, power_level=power_level))
+    print(f"Created component: {result.name}")
+
+def list_components():
+    components = app.run('component_cli', feature_id='component.list')
+    for component in components:
+        print(f"Component: {component.name}, Type: {component.type}, Power Level: {component.power_level}")
+
+def get_component():
+    component_id = input("Enter component ID to retrieve: ")
+    component = app.run('component_cli', feature_id='component.get', data=dict(component_id=component_id))
+    if component:
+        print(f"Component found: {component.name}, Type: {component.type}, Power Level: {component.power_level}")
+    else:
+        print("Component not found.")
+
+while True:
+    action = input("Choose action (create/list/get/starship/exit): ")
+    if action == 'exit':
+        break
+    elif action == 'create':
+        create_component()
+    elif action == 'list':
+        list_components()
+    elif action == 'get':
+        get_component()
+    elif action == 'starship':
+        # Here you would call the existing starship management functions
+        print("Starship interface not implemented in this example.")
+    else:
+        print("Invalid action.")
+```
+
+Concept Explanation
+Same App, Different Interfaces: By adding a component_cli interface, you're expanding the application's capabilities without altering its core structure. Each interface can manage its own context group (component for components, starship for starships), allowing for modular expansion of the app's functionality.
+In-Memory Management: For simplicity, we've managed components in memory, but this could easily be adapted to use a more permanent storage solution if needed.
+Integration: The main script now serves both starship and component functionalities, demonstrating how different interfaces can coexist and share the same application context.
+
+This setup illustrates how Tiferet can be used to build applications with multiple, distinct functionalities under a unified framework, promoting modularity and reuse.
+
+---
+
+## New Documentation Idea
+
+
+That's an excellent plan for structuring your Tiferet applications. Here’s how we might outline this approach:
+
+Shipbuilder App - In-Memory
+Purpose: A lightweight, in-memory application for creating and managing starships with components.
+
+Domain Models:
+Starship: An entity with attributes like name, class, speed, durability, and a list of components.
+StarshipComponent: A value object representing different parts of a starship (engines, weapons, etc.).
+
+Features:
+component.create - Create a new component.
+component.list - List all components in memory.
+starship.create - Create a new starship with components.
+starship.add_component - Add a component to an existing starship.
+
+Commands:
+CreateComponent: Adds a new component to an in-memory list.
+ListComponents: Lists all components currently in memory.
+CreateStarship: Creates a starship instance with given attributes and components.
+AddComponentToStarship: Adds a component to a starship.
+
+Interfaces:
+builder_cli: Command-line interface for building starships.
+
+Space Battle App - With Persistence
+Purpose: An application for simulating battles between starships, with data persistence for battle results and ship configurations.
+
+Domain Models:
+Battle: An entity to store battle information, including participants (ships) and outcome.
+Starship and StarshipComponent: Reuse or extend from Shipbuilder, ensuring they can be serialized for persistence.
+
+Data Models:
+BattleData: To persist battle outcomes, including references to starships or their IDs.
+StarshipData: For persisting ship configurations before battles.
+
+Features:
+battle.simulate - Simulate a battle between two starships.
+battle.list - List previous battles or battle summaries.
+battle.get - Retrieve details of a specific battle.
+
+Commands:
+SimulateBattle: Takes two starships, simulates a battle, and persists the result.
+ListBattles: Retrieves and lists battle data from storage.
+GetBattle: Fetches a specific battle by ID or other criteria.
+
+Repositories:
+BattleRepository: To save, list, and retrieve battle data.
+
+Interfaces:
+battle_cli: Command-line interface for managing and simulating battles.
+
+Implementation Strategy:
+Shipbuilder:
+Use in-memory lists or similar structures for components and starships. No need for persistence here.
+CLI for user interaction to create and manage starships.
+Space Battle App:
+Implement Battle as an entity with methods to encapsulate battle logic.
+Use YAML or another simple format for data persistence, focusing on BattleData and possibly StarshipData.
+CLI for running simulations, viewing battle history, or getting details of past battles.
+
+Integration:
+Data Transfer: When moving from Shipbuilder to Space Battle App, you could serialize the Starship (and its components) into a format (like JSON) that the Battle App can then deserialize into its domain models or data models for persistence.
+Shared Domain Models: Ensure that Starship and StarshipComponent are defined in a way that can be shared or extended between apps for consistency.
+
+This dual-app approach provides a clear separation of concerns while showcasing different aspects of Tiferet's capabilities — from in-memory manipulation to data persistence, all within a cohesive domain-driven framework. It also offers a practical example of how applications can interact, with one preparing data for another to consume and process.
+
+
+----
+
+## Updated Starship Code
+
+Thank you for the clarification and the updated FeatureContext code. Here's how the Shipbuilder app would look with these adjustments:
+
+Domain Models
+```python
+# app/domain/starship.py
+from tiferet import Entity, ValueObject, StringType, FloatType, IntegerType, ListType, ModelType
+
+class StarshipComponent(ValueObject):
+    name = StringType(required=True, metadata=dict(description='Component name.'))
+    type = StringType(required=True, metadata=dict(description='Component type.'))
+    power_level = IntegerType(required=True, metadata=dict(description='Component power level.'))
+
+    @staticmethod
+    def new(**kwargs):
+        return super().new(StarshipComponent, **kwargs)
+
+class Starship(Entity):
+    id = StringType(required=True, metadata=dict(description='Unique identifier for the starship.'))
+    name = StringType(required=True, metadata=dict(description='Starship name.'))
+    ship_class = StringType(required=True, metadata=dict(description='Starship class.'))
+    components = ListType(ModelType(StarshipComponent), default=[], metadata=dict(description='Components of the starship.'))
+    
+    @staticmethod
+    def new(**kwargs):
+        return super().new(Starship, **kwargs)
+```
+
+Feature Configuration
+```yaml
+# app/configs/features.yml
+features:
+  starship.start_building:
+    commands:
+      - name: Start Building Starship
+        attribute_id: start_building_starship
+        return_to_data: true
+        data_key: starship_id
+        save_to_cache: true
+    name: Start Building Starship
+    group_id: starship
+  starship.add_component:
+    commands:
+      - name: Add Component
+        attribute_id: add_component
+        return_to_data: false
+        save_to_cache: true
+        data_key: starship_id
+    name: Add Component to Starship
+    group_id: starship
+  starship.remove_component:
+    commands:
+      - name: Remove Component
+        attribute_id: remove_component
+        return_to_data: false
+        save_to_cache: true
+        data_key: starship_id
+    name: Remove Component from Starship
+    group_id: starship
+  starship.finalize:
+    commands:
+      - name: Finalize Starship
+        attribute_id: finalize_starship
+    name: Finalize Starship
+    group_id: starship
+```
+
+Commands
+```python
+# app/commands/starship.py
+from tiferet import FeatureCommand
+from ..domain.starship import Starship, StarshipComponent
+import uuid
+
+class StartBuildingStarship(FeatureCommand):
+    def execute(self, **kwargs):
+        starship = Starship.new(id=str(uuid.uuid4()), **kwargs)
+        return starship.id
+
+class AddComponent(FeatureCommand):
+    def execute(self, starship_id: str, component: dict, cache: dict = {}, **kwargs):
+        if starship_id not in cache:
+            raise ValueError("Starship not in cache")
+        starship = cache[starship_id]
+        component_obj = StarshipComponent.new(**component)
+        starship.components.append(component_obj)
+        cache[starship_id] = starship
+        return starship_id
+
+class RemoveComponent(FeatureCommand):
+    def execute(self, starship_id: str, component_type: str, cache: dict = {}, **kwargs):
+        if starship_id not in cache:
+            raise ValueError("Starship not in cache")
+        starship = cache[starship_id]
+        starship.components = [c for c in starship.components if c.type != component_type]
+        cache[starship_id] = starship
+        return starship_id
+
+class FinalizeStarship(FeatureCommand):
+    def execute(self, starship_id: str, cache: dict = {}, **kwargs):
+        if starship_id not in cache:
+            raise ValueError("Starship not in cache")
+        starship = cache.pop(starship_id)  # Remove from cache after finalization
+        return starship.to_primitive()
+```
+
+Main Execution (CLI)
+```python
+# main.py
+from tiferet import App
+
+app = App()
+
+def build_starship():
+    name = input("Enter starship name: ")
+    ship_class = input("Enter starship class: ")
+    starship_id = app.run('builder_cli', feature_id='starship.start_building', data=dict(name=name, ship_class=ship_class))['starship_id']
+
+    while True:
+        action = input("Add component (add), Remove component (remove), or Finalize (finalize)? ")
+        if action == 'add':
+            component = {
+                'name': input("Component name: "),
+                'type': input("Component type: "),
+                'power_level': int(input("Component power level: "))
+            }
+            app.run('builder_cli', feature_id='starship.add_component', data=dict(starship_id=starship_id, component=component))
+        elif action == 'remove':
+            component_type = input("Enter component type to remove: ")
+            app.run('builder_cli', feature_id='starship.remove_component', data=dict(starship_id=starship_id, component_type=component_type))
+        elif action == 'finalize':
+            starship = app.run('builder_cli', feature_id='starship.finalize', data=dict(starship_id=starship_id))
+            return starship
+        else:
+            print("Invalid action")
+
+while True:
+    action = input("Build a new starship? (yes/no): ")
+    if action.lower() == 'yes':
+        starship = build_starship()
+        print(f"Starship built: {starship}")
+    elif action.lower() == 'no':
+        break
+    else:
+        print("Invalid input")
+```
+
+Notes:
+App as Builder: The application itself acts as the builder by managing the lifecycle of the starship through features and commands, with the cache serving as an in-memory state for the building process.
+Starship Entity: The Starship entity now includes an id for caching purposes, and the actual building happens through modifications in the cache.
+Cache Management: Commands interact with the cache directly. The FinalizeStarship command removes the starship from the cache to invalidate it after construction is complete.
+Error Handling: Basic error checks for cache existence are included, but for a production application, you'd want more robust error handling and perhaps cache management strategies (like cache expiration).
