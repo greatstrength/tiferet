@@ -7,9 +7,9 @@ When building an app to effectively capture real-world processes in software, Do
 
 Entities are a core concept in domain modeling, representing objects that have an identity within the system. Unlike other data structures where equality might be based on attribute values, entities are primarily defined by their unique identifiers. This means that even if two entities have the same attribute values, they are considered different if their identities differ. Entities can change over time, maintaining their identity while their state might evolve. They encapsulate business logic related to their identity and state changes, making them central to business processes and workflows.
 
-Starship Example:
+#### Example:
 
-Here's a simplified version of the Starship entity without components:
+Here we have a simple example of our starship as defined by a domain model:
 
 ```python
 # *** imports
