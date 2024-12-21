@@ -168,17 +168,17 @@ class Feature(Entity):
         )
     
     # * method: add_handler
-    def add_handler(self, handler: FeatureCommand, position: int = None):
-        '''Adds a handler to the feature.
+    def add_handler(self, command: FeatureCommand, position: int = None):
+        '''Adds a command to the feature.
 
-        :param handler: The handler to add.
-        :type handler: FeatureCommand
-        :param position: The position to add the handler at.
+        :param command: The command to add.
+        :type command: FeatureCommand
+        :param position: The position to add the command at.
         :type position: int
         '''
 
-        # Add the handler to the feature.
+        # Add the command to the feature.
         if position is not None:
-            self.commands.insert(position, handler)
+            self.commands.insert(position, command)
         else:
-            self.commands.append(handler)
+            self.commands.append(command)

@@ -1,16 +1,18 @@
-from ..domain.feature import Feature
-from ..domain.feature import FeatureHandler
+# *** imports
+
+# ** app
+from ..domain.feature import Feature, FeatureCommand
 from ..repos.feature import FeatureRepository
 
 
-class AddNewFeature(object):
+class FeatureService(object):
     '''
-    Add a new feature.
+    The feature service.
     '''
 
     def __init__(self, feature_repo: FeatureRepository):
         '''
-        Initialize the command.
+        Initialize the feature service.
         
         :param feature_repo: The feature repository.
         :type feature_repo: FeatureRepository
@@ -18,6 +20,12 @@ class AddNewFeature(object):
 
         # Set the feature repository.
         self.feature_repo = feature_repo
+
+
+class AddNewFeature(FeatureService):
+    '''
+    Add a new feature.
+    '''
 
     def execute(self, **kwargs) -> Feature:
         '''
@@ -40,21 +48,10 @@ class AddNewFeature(object):
         return feature
 
 
-class AddFeatureHandler(object):
+class AddFeatureCommand(FeatureService):
     '''
     Adds a feature handler to a feature.
     '''
-
-    def __init__(self, feature_repo: FeatureRepository):
-        '''
-        Initialize the command.
-        
-        :param feature_repo: The feature repository.
-        :type feature_repo: FeatureRepository
-        '''
-
-        # Set the feature repository.
-        self.feature_repo = feature_repo
 
     def execute(self, feature_id: str, position: int = None, **kwargs):
         '''
@@ -71,7 +68,7 @@ class AddFeatureHandler(object):
         '''
 
         # Create a new feature handler instance.
-        handler = FeatureHandler.new(**kwargs)
+        handler = FeatureCommand.new(**kwargs)
 
         # Get the feature using the feature ID.
         feature = self.feature_repo.get(feature_id)

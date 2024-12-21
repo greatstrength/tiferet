@@ -2,6 +2,7 @@
 
 # ** core
 from typing import Dict, Any, Tuple
+import json
 
 # ** app
 from .request import RequestContext
@@ -80,11 +81,11 @@ class AppContext(Model):
         :return: The application interface.
         :rtype: AppInterface
         '''
-        
+
         # Import the app repository.
         app_repo = self.import_app_repo(
-            self.app_repo_module_path, 
-            self.app_repo_class_name, 
+            self.app_repo_module_path,
+            self.app_repo_class_name,
             **self.app_repo_parameters
         )
 
@@ -119,7 +120,7 @@ class AppContext(Model):
         # Return None if nothing comes up.
         except:
             return None
-        
+
     # ** method: create_injector
     def create_injector(self, app_interface: AppInterface, **kwargs) -> Any:
         '''
@@ -150,14 +151,15 @@ class AppContext(Model):
         )
 
         # Add the remaining dependencies from the app interface.
-        dependencies.update({dep.attribute_id: import_dependency(dep.module_path, dep.class_name) for dep in app_interface.dependencies})
+        dependencies.update({dep.attribute_id: import_dependency(
+            dep.module_path, dep.class_name) for dep in app_interface.dependencies})
 
         # Create the injector.
         return create_injector(app_interface.id, **dependencies, **kwargs)
 
 
 # ** context: app_interface_context
-class AppInterfaceContext(Model): 
+class AppInterfaceContext(Model):
     '''
     The application interface context is a class that is used to create and run the application interface.
     '''
@@ -220,21 +222,35 @@ class AppInterfaceContext(Model):
         self.errors = error_context
 
     # * method: parse_request
-    def parse_request(self, request: Any, **kwargs) -> Tuple[RequestContext, dict]:
+    def parse_request(self, data: Dict[str, Any], headers: Dict[str, str], **kwargs) -> Tuple[RequestContext, dict]:
         '''
         Parse the incoming request.
 
-        :param request: The incoming request.
-        :type request: Any
+        :param data: The data.
+        :type data: dict
+        :param headers: The headers.
+        :type headers: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The request context.
         :rtype: RequestContext
         '''
 
+        # Convert the values to JSON strings.
+        import json
+        
+        # Convert all values to JSON strings.
+        try:
+            data = {k: json.dumps(v) for k, v in data.items()}
+        except Exception as e:
+            assert False, 'INVALID_DATA, {}'.format(e)
+            
+        # Create the request context.
+        request = RequestContext(data, headers)
+
         # Parse request.
         return request, kwargs
-    
+
     # * method: execute_feature
     def execute_feature(self, request: RequestContext, **kwargs):
         '''
@@ -246,7 +262,7 @@ class AppInterfaceContext(Model):
 
         # Execute feature context and return session.
         self.features.execute(request, **kwargs)
-    
+
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
         '''
@@ -257,33 +273,47 @@ class AppInterfaceContext(Model):
         :return: The response.
         :rtype: Any
         '''
-        
+
         # Import the JSON module.
         import json
 
         # Return the response.
         return json.loads(request.result) if request.result else None
-    
+
     # * method: run
-    def run(self, **kwargs):
+    def run(self, 
+            feature_id: str, 
+            data: Dict[str, Any] = {}, 
+            headers: Dict[str, str] = {}, 
+            **kwargs
+        ):
         '''
         Run the application interface.
 
+        :param feature_id: The feature ID.
+        :type feature_id: str
+        :param data: The data.
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
-        
-        # Parse request.
-        request, kwargs = self.parse_request(**kwargs)
 
-        # Execute feature context and return session.
+        # Run the application interface.
         try:
+
+            # Parse request.
+            request, kwargs = self.parse_request(
+                feature_id=feature_id,
+                data=data,
+                headers=headers,
+                **kwargs)
+
+            # Execute feature context and return session.
             self.execute_feature(request, **kwargs)
+
+            # Handle response.
+            return self.handle_response(request)
 
         # Handle error and return response if triggered.
         except Exception as e:
             print('Error:', e)
             return self.errors.handle_error(e)
-
-        # Handle response.
-        return self.handle_response(request)
