@@ -1,7 +1,7 @@
 ## Building an App
 ### Domain Models
 
-Domain models are crucial in software architecture by translating business concepts and rules into concrete data structures, providing a structured representation of the domain's knowledge. Domain models help in understanding, discussing, and refining the domain language and logic, ensuring that the software reflects the real-world processes or entities it aims to represent.
+When building an app to effectively capture real-world processes in software, Domain models are crucial for translating business concepts and rules into concrete data structures, providing a structured representation of the domain's knowledge. Domain models help in understanding, discussing, and refining the domain language and logic, ensuring that the software reflects the real-world processes or entities it aims to represent.
 
 #### Entities
 
@@ -11,7 +11,7 @@ Starship Example:
 
 Here's a simplified version of the Starship entity without components:
 
-python
+```python
 # *** imports
 
 # ** infra
@@ -85,6 +85,7 @@ class Starship(Entity):
             Starship,
             **kwargs
         )
+```
 
 In this example, Starship is defined as an Entity with attributes like name, ship_class, speed, and durability. Each starship instance would have a unique id (implied by inheriting from Entity), which distinguishes it from others even if all other attributes are identical. This model captures the essence of a starship in a domain where identity is key, allowing for operations like tracking, updating, or interacting with individual starships over time.
 
