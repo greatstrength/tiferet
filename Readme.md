@@ -90,16 +90,15 @@ class Starship(Entity):
 In this example, Starship is defined as an Entity with attributes like name, ship_class, speed, and durability. Each starship instance would have a unique id (implied by inheriting from Entity), which distinguishes it from others even if all other attributes are identical. This model captures the essence of a starship in a domain where identity is key, allowing for operations like tracking, updating, or interacting with individual starships over time.
 
 
-Value Objects
-General Intro:
+### Value Objects
 
-Value Objects are another fundamental element in domain modeling, contrasting with entities by not having an inherent identity. Instead, value objects are defined by their attributes, meaning two value objects with identical attribute values are considered the same. They are immutable, ensuring that once created, their state does not change; if modification is needed, a new instance is created. Value objects are used to model concepts where the value of the object's data is more important than its identity, which is ideal for representing parts, measurements, or any concept where equality is based on value rather than reference.
+Value Objects, unlike entities that rely upon their  identity. Instead, value objects are defined by their attributes, meaning two value objects with identical attribute values are considered the same. Value objects are used to model concepts where the value of the object's data is more important than its identity, which is ideal for representing parts, measurements, or any concept where equality is based on value rather than reference.
 
-Starship Components as Value Objects:
+#### Example:
 
 Here's how StarshipComponent can be introduced as a value object:
 
-python
+```python
 # ** infra
 from tiferet import ValueObject, StringType, IntegerType
 
@@ -132,6 +131,7 @@ class StarshipComponent(ValueObject):
     def new(**kwargs) -> 'StarshipComponent':
         '''Initialize a new component.'''
         return super().new(StarshipComponent, **kwargs)
+```
 
 Behaviors with Entities
 Introducing Behaviors:
