@@ -185,3 +185,115 @@ class Starship(Entity):
 
 The add_component method allows modifying the Starship entity by adding a StarshipComponent (value object). It's an example of behavior where the entity's state changes.
 The calculate_performance uses the components to compute performance metrics. Since components are value objects, their values (like power_level) directly influence the starship's attributes (speed and durability). This method showcases how entities can use value objects to derive or compute aspects of their behavior without altering the components themselves, maintaining the immutability principle of value objects.
+
+## Data Models
+
+Data Persistence in Tiferet for Starships
+To demonstrate how Tiferet handles data persistence, we've created data models for our starship application. These models allow for seamless transitions between domain logic and data storage, ensuring both flexibility and integrity.
+
+StarshipComponentData
+Value objects like StarshipComponent don't have an inherent identity, so when we model them for data persistence, we focus on their attributes:
+
+python
+from tiferet import DataObject
+from ..domain.starship import StarshipComponent
+
+class StarshipComponentData(StarshipComponent, DataObject):
+    '''
+    A data representation of a starship component for storage.
+    '''
+
+    class Options:
+        serialize_when_none = False
+        roles = {
+            'to_model': DataObject.allow(),
+            'to_data': DataObject.allow()
+        }
+
+    def map(self, role: str = 'to_model', **kwargs):
+        '''
+        Maps the component data to a StarshipComponent domain object.
+        '''
+        return super().map(StarshipComponent, role, **kwargs)
+
+    @staticmethod
+    def from_data(**kwargs):
+        '''
+        Initializes a new StarshipComponentData object from raw data.
+        '''
+        return super(StarshipComponentData, StarshipComponentData).from_data(
+            StarshipComponentData, 
+            **kwargs
+        )
+
+    @staticmethod
+    def from_model(model: StarshipComponent, **kwargs):
+        '''
+        Initializes a new StarshipComponentData object from a StarshipComponent domain object.
+        '''
+        return DataObject.from_model(
+            StarshipComponentData, 
+            model, 
+            **kwargs
+        )
+
+Serialization: The 'to_data' role does not explicitly include 'id', reflecting that components are not identified by a unique ID but by their attributes.
+
+StarshipData
+Entities like Starship, which do have identity, require careful handling of their ID:
+
+python
+from tiferet import DataObject
+from ..domain.starship import Starship
+from .starship_component_data import StarshipComponentData
+
+class StarshipData(Starship, DataObject):
+    '''
+    A data representation of a starship for storage.
+    '''
+
+    class Options:
+        serialize_when_none = False
+        roles = {
+            'to_model': DataObject.allow(),
+            'to_data': DataObject.deny('id')
+        }
+
+    components = ListType(ModelType(StarshipComponentData), default=[], metadata=dict(description='List of components.'))
+
+    # Methods for mapping and data creation are similar to StarshipComponentData but tailored for Starship
+
+Serialization: Here, we've configured 'to_data' to exclude the 'id' when serializing for storage, allowing for scenarios where the ID might be managed differently or not needed in the data storage context.
+
+Usage
+From Domain to Data: When you need to persist or serialize your domain objects for storage or transfer, use the from_model method:
+python
+starship = Starship.new(name="Enterprise", ...)
+starship_data = StarshipData.from_model(starship)
+# starship_data can now be serialized to YAML, JSON, or stored in a database
+From Data to Domain: To load data back into domain objects for use within your application:
+python
+# Assuming 'data' is from a YAML file or similar source
+starship_data = StarshipData.from_data(**data)
+starship = starship_data.map()
+# 'starship' is now a domain object ready for use
+
+Why This Matters
+Flexibility: This dual-model approach allows for different representations of data based on context (domain logic vs. storage), providing control over what is persisted or transferred.
+Domain-Driven Design: It supports the principles of DDD by clearly delineating between domain objects and their data representations, ensuring domain logic remains pure while data is managed effectively.
+Scalability: By designing data models this way, your application can scale from simple YAML configurations to complex database schemas without altering domain logic.
+
+Remember, these data models are part of a larger ecosystem where features, commands, and contexts work together to create a fully functional application with Tiferet.
+
+This snippet gives a more complete picture of how one data model (StarshipComponentData) works, including its methods for data transformation, which should help developers grasp the full functionality of your data persistence layer.
+
+
+## Feature Commands
+
+Apps are more than just their shape as defined by Domain Models, but they also contain the necessary interactions between both the required subsystems and the user for the task at hand. Feature commands are a command object that execute such interactions.
+
+#### Example
+
+Here is a list of feature commands for our Spaceship app:
+
+
