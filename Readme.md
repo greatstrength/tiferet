@@ -1570,3 +1570,115 @@ App as Builder: The application itself acts as the builder by managing the lifec
 Starship Entity: The Starship entity now includes an id for caching purposes, and the actual building happens through modifications in the cache.
 Cache Management: Commands interact with the cache directly. The FinalizeStarship command removes the starship from the cache to invalidate it after construction is complete.
 Error Handling: Basic error checks for cache existence are included, but for a production application, you'd want more robust error handling and perhaps cache management strategies (like cache expiration).
+
+---
+
+## Ship Builder Feature Command Code and Feature Config
+
+```python
+# app/commands/starship.py
+from tiferet import FeatureCommand
+from ..domain.starship import Starship, StarshipComponent
+import uuid
+
+class StartBuildingStarship(FeatureCommand):
+    def execute(self, cache_context: CacheContext, **kwargs):
+        starship = Starship.new(id=str(uuid.uuid4()), **kwargs)
+        cache_context.set('current_starship', starship)
+
+class AddComponent(FeatureCommand):
+    def execute(self, component: dict, cache_context: CacheContext, **kwargs):
+        starship = cache_context.get('current_starship')
+        if not starship:
+            raise ValueError("Starship not in cache")
+        component_obj = StarshipComponent.new(**component)
+        starship.components.append(component_obj)
+        cache_context.set('current_starship', starship)
+
+class RemoveComponent(FeatureCommand):
+    def execute(self, component_type: str, cache_context: CacheContext, **kwargs):
+        starship = cache_context.get('current_starship')
+        if not starship:
+            raise ValueError("Starship not in cache")
+        starship.components = [c for c in starship.components if c.type != component_type]
+        cache_context.set('current_starship', starship)
+
+class FinalizeStarship(FeatureCommand):
+    def execute(self, cache_context: CacheContext, **kwargs):
+        starship = cache_context.get('current_starship')
+        if not starship:
+            raise ValueError("Starship not in cache")
+        cache_context.delete('current_starship')  # Remove from cache after finalization
+        return starship.to_primitive()  # Only this command returns something as it finalizes the starship
+```
+
+```yaml
+# app/configs/features.yml
+features:
+  starship.start_building:
+    commands:
+      - name: Start Building Starship
+        attribute_id: start_building_starship
+    name: Start Building Starship
+    group_id: starship
+  starship.add_component:
+    commands:
+      - name: Add Component
+        attribute_id: add_component
+    name: Add Component to Starship
+    group_id: starship
+  starship.remove_component:
+    commands:
+      - name: Remove Component
+        attribute_id: remove_component
+    name: Remove Component from Starship
+    group_id: starship
+  starship.finalize:
+    commands:
+      - name: Finalize Starship
+        attribute_id: finalize_starship
+    name: Finalize Starship
+    group_id: starship
+  starship.clear:
+    commands:
+      - name: Clear Ship from Builder
+        attribute_id: clear_ship_from_builder
+    name: Clear Ship from Builder
+    group_id: starship
+```
+
+## Container Attribute Configurations
+```yaml
+# app/configs/container.yml
+attrs: 
+  start_building_starship:
+    deps:
+      core:
+        module_path: app.commands.starship
+        class_name: StartBuildingStarship
+    type: feature
+  add_component:
+    deps:
+      core:
+        module_path: app.commands.starship
+        class_name: AddComponent
+    type: feature
+  remove_component:
+    deps:
+      core:
+        module_path: app.commands.starship
+        class_name: RemoveComponent
+    type: feature
+  finalize_starship:
+    deps:
+      core:
+        module_path: app.commands.starship
+        class_name: FinalizeStarship
+    type: feature
+  clear_ship_from_builder:
+    deps:
+      core:
+        module_path: app.commands.starship
+        class_name: ClearShipFromBuilder
+    type: feature
+```
