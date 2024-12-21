@@ -92,11 +92,11 @@ In this example, Starship is defined as an Entity with attributes like name, shi
 
 ### Value Objects
 
-Value Objects, unlike entities that rely upon their  identity. Instead, value objects are defined by their attributes, meaning two value objects with identical attribute values are considered the same. Value objects are used to model concepts where the value of the object's data is more important than its identity, which is ideal for representing parts, measurements, or any concept where equality is based on value rather than reference.
+Value Objects, unlike entities that rely upon their intrinsic identity. Instead, value objects are defined by their attributes, meaning two value objects with identical attribute values are considered the same. Value objects are used to model concepts where the value of the object's data is more important than its identity, which is ideal for representing parts, measurements, or any concept where equality is based on value rather than reference.
 
 #### Example:
 
-Here's how StarshipComponent can be introduced as a value object:
+Here's how we can incorporate a Value Object as a Starship Component. This component serves as the principle means of starship operation:
 
 ```python
 # ** infra
@@ -111,38 +111,45 @@ class StarshipComponent(ValueObject):
     # * attribute: name
     name = StringType(
         required=True,
-        metadata=dict(description='Component name.')
+        metadata=dict(
+            description='Component name.'
+        ),
     )
 
     # * attribute: type
     type = StringType(
         required=True,
-        metadata=dict(description='Component type (e.g., Engine, Shield, Weapon).')
+        metadata=dict(
+            description='Component type (e.g., Engine, Shield, Weapon).'
+        ),
     )
 
     # * attribute: power_level
     power_level = IntegerType(
         required=True,
-        metadata=dict(description='Component power or efficiency level.')
+        metadata=dict(
+            description='Component power or efficiency level.'
+        ),
     )
 
     # * method: new
     @staticmethod
     def new(**kwargs) -> 'StarshipComponent':
         '''Initialize a new component.'''
-        return super().new(StarshipComponent, **kwargs)
+
+        # Return a new component.
+        return super(StarshipComponent, StarshipComponent).new(StarshipComponent, **kwargs)
 ```
 
-Behaviors with Entities
-Introducing Behaviors:
+### Model Behaviors with Entities
 
 Entities not only carry data but also behavior. This behavior often involves operations that can change the state of the entity or compute results based on its state. 
 
-Performance Calculation Method:
+#### Example
 
-For our Starship entity, let's add a method to calculate performance, which leverages the components (value objects):
+For our Starship entity, let's add both a method to add a new component calculate performance, which leverages the components (value objects):
 
-python
+```python
 # ** model: starship
 class Starship(Entity):
     # ... (previous attributes)
@@ -151,14 +158,12 @@ class Starship(Entity):
     components = ListType(
         ModelType(StarshipComponent),
         default=[],
-        metadata=dict(description='Ship components.')
+        metadata=dict(
+            description='Ship components.'
+        ),
     )
 
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'Starship':
-        '''Initialize a new starship.'''
-        return super().new(Starship, **kwargs)
+    # ... (previous methods)
 
     # * method: add_component
     def add_component(self, component: StarshipComponent):
@@ -176,9 +181,7 @@ class Starship(Entity):
             'durability': self.durability + (total_power // 5)  # Durability increase
         }
 
-Explanation of Behaviors:
+```
 
-add_component: This method allows modifying the Starship entity by adding a StarshipComponent (value object). It's an example of behavior where the entity's state changes.
-calculate_performance: Here, we use the components to compute performance metrics. Since components are value objects, their values (like power_level) directly influence the starship's attributes (speed and durability). This method showcases how entities can use value objects to derive or compute aspects of their behavior without altering the components themselves, maintaining the immutability principle of value objects.
-
-This interaction between entities and value objects illustrates how domain models can encapsulate complex domain logic, providing a structured way to manage both data and behavior within the context of your application's domain.
+The add_component method allows modifying the Starship entity by adding a StarshipComponent (value object). It's an example of behavior where the entity's state changes.
+The calculate_performance uses the components to compute performance metrics. Since components are value objects, their values (like power_level) directly influence the starship's attributes (speed and durability). This method showcases how entities can use value objects to derive or compute aspects of their behavior without altering the components themselves, maintaining the immutability principle of value objects.
