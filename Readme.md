@@ -1,11 +1,9 @@
+## Building an App
+### Domain Models
 
-Domain Models
-General Intro:
+Domain models are crucial in software architecture by translating business concepts and rules into concrete data structures, providing a structured representation of the domain's knowledge. Domain models help in understanding, discussing, and refining the domain language and logic, ensuring that the software reflects the real-world processes or entities it aims to represent.
 
-Domain models are crucial in software architecture, particularly within the context of Domain-Driven Design (DDD). They translate business concepts and rules into concrete data structures, providing a structured representation of the domain's knowledge. Domain models help in understanding, discussing, and refining the domain language and logic, ensuring that the software reflects the real-world processes or entities it aims to represent. They include various elements like entities, value objects, services, and repositories, each serving a specific purpose in capturing the business domain's complexity.
-
-Entities
-General Intro:
+#### Entities
 
 Entities are a core concept in domain modeling, representing objects that have an identity within the system. Unlike other data structures where equality might be based on attribute values, entities are primarily defined by their unique identifiers. This means that even if two entities have the same attribute values, they are considered different if their identities differ. Entities can change over time, maintaining their identity while their state might evolve. They encapsulate business logic related to their identity and state changes, making them central to business processes and workflows.
 
