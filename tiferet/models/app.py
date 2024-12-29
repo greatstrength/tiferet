@@ -2,13 +2,29 @@
 
 # ** app
 from ..configs import *
-from ..domain import *
+from .core import Entity, ValueObject
 
 
 # *** models
 
 # ** model: app_dependency
-class AppDependency(ModuleDependency):
+class AppDependency(ValueObject):
+    
+    # * attribute: module_path
+    module_path = StringType(
+        required=True,
+        metadata=dict(
+            description='The module path for the app dependency.'
+        )
+    )
+
+    # * attribute: class_name
+    class_name = StringType(
+        required=True,
+        metadata=dict(
+            description='The class name for the app dependency.'
+        )
+    )
 
     # * attribute: attribute_id
     attribute_id = StringType(
@@ -17,24 +33,6 @@ class AppDependency(ModuleDependency):
             description='The attribute id for the application dependency.'
         ),
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'AppDependency':
-        '''
-        Initializes a new AppDependency object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppDependency object.
-        :rtype: AppDependency
-        '''
-
-        # Create and return a new AppDependency object.
-        return super(AppDependency, AppDependency).new(
-            AppDependency,
-            **kwargs,
-        )
 
 # ** model: app_interface
 class AppInterface(Entity):
@@ -96,24 +94,6 @@ class AppInterface(Entity):
             description='The application dependency constants.'
         ),
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'AppInterface':
-        '''
-        Initializes a new AppInterface object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppInterface object.
-        :rtype: AppInterface
-        '''
-
-        # Create and return a new AppInterface object.
-        return super(AppInterface, AppInterface).new(
-            AppInterface,
-            **kwargs
-        )
     
     # * method: get_dependency
     def get_dependency(self, attribute_id: str) -> AppDependency:
