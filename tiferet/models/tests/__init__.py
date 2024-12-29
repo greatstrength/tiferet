@@ -13,7 +13,6 @@ from ..core import ModelObject
 from ..core import Entity
 from ..core import ValueObject
 from ..core import DataObject
-from ..core import ModuleDependency
 
 # * app
 from ..app import AppDependency
@@ -46,14 +45,6 @@ TEST_PROXY_CLASS_NAME = 'TestProxy' #/
 
 # *** fixtures
 
-# ** fixture: app_context_dependency
-@pytest.fixture(scope="session")
-def app_context_dependency():
-    return AppDependency.new(
-        attribute_id='app_context',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-    )
 
 
 # fixture: feature_context_dependency
