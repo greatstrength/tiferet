@@ -1,13 +1,13 @@
 # *** imports
 
 # ** app
-from ..domain import *
+from ..configs import *
+from .core import Entity, ValueObject
 
 # *** constants
 
 # */ list[str]
 CONTAINER_ATTRIBUTE_TYPE_CHOICES = [
-    'interface',
     'feature',
     'data'
 ]
@@ -16,10 +16,26 @@ CONTAINER_ATTRIBUTE_TYPE_CHOICES = [
 # *** models
 
 # ** model: container_depenedency
-class ContainerDependency(ModuleDependency):
+class ContainerDependency(ValueObject):
     '''
     A container dependency object.
     '''
+
+     # * attribute: module_path
+    module_path = StringType(
+        required=True,
+        metadata=dict(
+            description='The module path.'
+        )
+    )
+
+    # * attribute: class_name
+    class_name = StringType(
+        required=True,
+        metadata=dict(
+            description='The class name.'
+        )
+    )
 
     # * attribute: flag
     flag = StringType(
@@ -37,23 +53,6 @@ class ContainerDependency(ModuleDependency):
             description='The container dependency parameters.'
         )
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'ContainerDependency':
-        '''
-        Initializes a new ContainerDependency object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ContainerDependency object.
-        :rtype: ContainerDependency
-        '''
-
-        # Create and return a new ContainerDependency object.
-        return super(ContainerDependency, ContainerDependency).new(
-            ContainerDependency,
-            **kwargs)
 
 
 # ** model: container_attribute
@@ -87,23 +86,6 @@ class ContainerAttribute(Entity):
             description='The container attribute dependencies.'
         )
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'ContainerAttribute':
-        '''
-        Initializes a new ContainerAttribute object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ContainerAttribute object.
-        :rtype: ContainerAttribute
-        '''
-
-        # Create and return a new ContainerAttribute object.
-        return super(ContainerAttribute, ContainerAttribute).new(
-            ContainerAttribute,
-            **kwargs)
         
     # * method: get_dependency
     def get_dependency(self, flag: str) -> ContainerDependency:
