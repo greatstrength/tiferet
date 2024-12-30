@@ -1,12 +1,9 @@
 # *** imports
 
-# ** core
-from typing import Dict
-
 # ** app
 from ..configs import *
-from ..domain import DataObject
-from ..domain.app import AppDependency, AppInterface
+from ..models import DataObject
+from ..models.app import *
 
 
 # *** constants
@@ -247,7 +244,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
                 **value)
 
         # Create a new AppInterfaceData object.
-        return super(AppInterfaceYamlData, AppInterfaceYamlData).from_data(
+        return DataObject.from_data(
             AppInterfaceYamlData,
             **dependencies,
             **kwargs

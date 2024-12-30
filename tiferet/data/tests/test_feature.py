@@ -14,7 +14,7 @@ from . import *
 def feature_command_data():
     
     # Return the feature command data.
-    return FeatureCommandData(dict(
+    return ServiceCommandData(dict(
         name='Test Feature Command',
         attribute_id='test_feature_command',
         params={},
@@ -74,7 +74,7 @@ def test_feature_command_data_map(feature_command_data):
     feature_command = feature_command_data.map()
 
     # Assert the feature command type.
-    assert isinstance(feature_command, FeatureCommand)
+    assert isinstance(feature_command, ServiceCommand)
     
     # Assert the feature command attributes.
     assert feature_command.name == 'Test Feature Command'
