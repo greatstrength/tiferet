@@ -288,26 +288,6 @@ def test_feature_command_with_throw_and_pass_on_error():
         pass_on_error=True
     )
 
-# ** fixture: test_feature (feature)
-@pytest.fixture(scope='session')
-def test_feature(test_feature_command):
-    return Feature.new(
-        name='Test Feature',
-        group_id='test_group',
-        feature_key='test_feature',
-        description='A test feature.',
-        commands=[test_feature_command]
-    )
-
-
-# ** fixture: test_feature_no_desc (feature)
-@pytest.fixture(scope='session')
-def test_feature_no_desc():
-    return Feature.new(
-        name='Feature with no description',
-        group_id='group',
-        feature_key='key'
-    )
 
 
 # ** fixture: test_feature_with_id (feature)
