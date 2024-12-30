@@ -1,7 +1,8 @@
 # *** imports
 
 # ** app
-from ..domain import *
+from ..configs import *
+from .core import Entity, ValueObject
 
 
 # *** models
@@ -57,25 +58,6 @@ class FeatureCommand(ValueObject):
             description='Whether to pass on the error if the feature handler fails.'
         )
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'FeatureCommand':
-        '''Initializes a new FeatureCommand object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FeatureCommand object.
-        '''
-
-        # Create a new FeatureCommand object.
-        obj = FeatureCommand(dict(
-            **kwargs
-        ), strict=False)
-
-        # Validate and return the new FeatureCommand object.
-        obj.validate()
-        return obj
 
 
 # ** model: feature
@@ -158,7 +140,7 @@ class Feature(Entity):
             description = name
 
         # Create and return a new Feature object.
-        return super(Feature, Feature).new(
+        return Entity.new(
             Feature,
             id=id,
             name=name,
