@@ -52,10 +52,10 @@ def test_create_injector(container_context):
 
 
 # ** test: test_import_dependency
-def test_import_dependency(container_context, test_repo_container_attribute):
+def test_import_dependency(container_context, container_attribute):
 
     # Call import_dependency with a test attribute
-    result = container_context.import_dependency(test_repo_container_attribute, "test")
+    result = container_context.import_dependency(container_attribute, "test")
 
     # Ensure the dependency was imported
     assert result is not None

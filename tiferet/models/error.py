@@ -1,7 +1,8 @@
 # *** imports 
 
 # ** core
-from ..domain import *
+from ..configs import *
+from .core import Entity, ValueObject
 
 
 # *** models
@@ -27,23 +28,6 @@ class ErrorMessage(ValueObject):
             description='The error message text.'
         )
     )
-
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'ErrorMessage':
-        '''Initializes a new ErrorMessage object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ErrorMessage object.
-        :rtype: ErrorMessage
-        '''
-
-        # Create and return a new ErrorMessage object.
-        return super(ErrorMessage, ErrorMessage).new(
-            ErrorMessage,
-            **kwargs
-        )
 
     # * method: format
     def format(self, *args) -> str:
@@ -96,7 +80,7 @@ class Error(Entity):
 
     # * method: new
     @staticmethod
-    def new(name: str, id: str = None, error_code: str = None, **kwargs) -> 'Error':
+    def new(name: str, id: str = None, error_code: str = None, message: List[ErrorMessage | Any] = [], **kwargs) -> 'Error':
         '''Initializes a new Error object.
 
         :param name: The name of the error.
@@ -105,28 +89,37 @@ class Error(Entity):
         :type id: str
         :param error_code: The error code for the error.
         :type error_code: str
+        :param message: The error message translations for the error.
+        :type message: list 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new Error object.
         '''
-
-        # Format name as upper case snake case.
-        name = name.upper().replace(' ', '_')
         
         # Set Id as the name if not provided.
         if not id:
-            id = name
+            id = name.upper().replace(' ', '_')
 
         # Set the error code as the name if not provided.
         if not error_code:
-            error_code = name
+            error_code = id
+
+        # Convert any error message dicts to ErrorMessage objects.
+        message_objs = []
+        for msg in message:
+            if isinstance(msg, ErrorMessage):
+                message_objs.append(msg)
+            elif not isinstance(msg, ErrorMessage) and isinstance(msg, dict):
+                message_objs.append(ValueObject.new(ErrorMessage, **msg))
+
 
         # Create and return a new Error object.
-        return super(Error, Error).new(
+        return Entity.new(
             Error,
             id=id,
             name=name,
             error_code=error_code,
+            message=message_objs,
             **kwargs
         )
 

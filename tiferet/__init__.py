@@ -2,4 +2,4 @@
 
 # ** app
 from .contexts import *
-from .domain import *
+from .models import *

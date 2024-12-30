@@ -5,8 +5,8 @@ from ...repos.tests import *
 
 # ** classes 
 
-# ** class: TestFeatureCommand
-class TestFeatureCommand(object):
+# ** class: TestServiceCommand
+class TestServiceCommand(object):
     '''
     A test feature command class.
     '''
@@ -26,7 +26,7 @@ class TestFeatureCommand(object):
     
 
 # ** class test_feature_command_with_env_var
-class TestFeatureCommandWithEnvVar(object):
+class TestServiceCommandWithEnvVar(object):
     '''
     A test feature command class with an environment variable.
     '''

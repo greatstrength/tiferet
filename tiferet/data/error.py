@@ -2,8 +2,8 @@
 
 # ** app
 from ..configs import *
-from ..domain import DataObject
-from ..domain.error import Error, ErrorMessage
+from ..models import DataObject
+from ..models.error import *
 
 
 # *** data

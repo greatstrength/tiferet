@@ -3,12 +3,12 @@
 # ** infra
 from schematics.types.serializable import serializable
 
-# 
-from ..domain import *
-from ..domain.feature import Feature, FeatureCommand
+# ** app
+from ..models import *
+from ..models.feature import *
 
 
-class FeatureCommandData(FeatureCommand, DataObject):
+class ServiceCommandData(ServiceCommand, DataObject):
     '''
     A data representation of a feature handler.
     '''
@@ -27,7 +27,7 @@ class FeatureCommandData(FeatureCommand, DataObject):
             'to_data': DataObject.allow()
         }
 
-    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommand:
+    def map(self, role: str = 'to_model', **kwargs) -> ServiceCommand:
         '''
         Maps the feature handler data to a feature handler object.
         
@@ -36,9 +36,9 @@ class FeatureCommandData(FeatureCommand, DataObject):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new feature handler object.
-        :rtype: f.FeatureCommand
+        :rtype: f.ServiceCommand
         '''
-        return super().map(FeatureCommand, role, **kwargs)
+        return super().map(ServiceCommand, role, **kwargs)
 
 
 class FeatureData(Feature, DataObject):
@@ -60,7 +60,7 @@ class FeatureData(Feature, DataObject):
             'to_data': DataObject.deny('feature_key', 'group_id', 'id')
         }
 
-    commands = t.ListType(t.ModelType(FeatureCommandData),
+    commands = t.ListType(t.ModelType(ServiceCommandData),
                           deserialize_from=['handlers', 'functions', 'commands'],)
     
     @serializable

@@ -1,16 +1,15 @@
 # *** imports
 
-# ** core
-from typing import Dict, Any, Tuple
-
 # ** app
+from ..configs import *
+from ..models.app import *
+from ..repos.app import *
+
+# ** app - contexts
 from .request import RequestContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .container import create_injector, import_dependency
-from ..domain import Model, StringType, DictType, ModelType
-from ..domain import AppInterface
-from ..repos import AppRepository
 
 
 # *** contexts

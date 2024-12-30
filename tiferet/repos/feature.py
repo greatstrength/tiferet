@@ -5,7 +5,7 @@ from typing import List
 
 # ** app
 from ..data.feature import FeatureData
-from ..domain.feature import Feature
+from ..models.feature import *
 from ..clients import yaml_client
 
 # *** repository

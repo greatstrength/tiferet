@@ -4,7 +4,7 @@
 from typing import List, Dict
 
 # ** app
-from ..domain.error import Error
+from ..models.error import *
 from ..clients import yaml as yaml_client
 from ..data.error import ErrorData
 

@@ -1,12 +1,9 @@
 # *** imports
 
-# ** core
-from typing import Any, Dict
-
 # ** app
 from ..configs import *
-from ..domain import DataObject
-from ..domain.container import ContainerAttribute, ContainerDependency
+from ..models import DataObject
+from ..models.container import *
 
 
 # *** data

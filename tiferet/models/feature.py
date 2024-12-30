@@ -1,13 +1,14 @@
 # *** imports
 
 # ** app
-from ..domain import *
+from ..configs import *
+from .core import Entity, ValueObject
 
 
 # *** models
 
-# ** model: feature_command
-class FeatureCommand(ValueObject):
+# ** model: service_command
+class ServiceCommand(ValueObject):
     '''
     A command object for a feature command.
     '''
@@ -58,25 +59,6 @@ class FeatureCommand(ValueObject):
         )
     )
 
-    # * method: new
-    @staticmethod
-    def new(**kwargs) -> 'FeatureCommand':
-        '''Initializes a new FeatureCommand object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FeatureCommand object.
-        '''
-
-        # Create a new FeatureCommand object.
-        obj = FeatureCommand(dict(
-            **kwargs
-        ), strict=False)
-
-        # Validate and return the new FeatureCommand object.
-        obj.validate()
-        return obj
-
 
 # ** model: feature
 class Feature(Entity):
@@ -100,6 +82,13 @@ class Feature(Entity):
         )
     )
 
+    feature_key = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The key of the feature.'
+        )
+    )
+
     # * attribute: description
     description = t.StringType(
         metadata=dict(
@@ -109,7 +98,7 @@ class Feature(Entity):
 
     # * attribute: commands
     commands = t.ListType(
-        t.ModelType(FeatureCommand),
+        t.ModelType(ServiceCommand),
         default=[],
         metadata=dict(
             description='The command handler workflow for the feature.'
@@ -158,27 +147,28 @@ class Feature(Entity):
             description = name
 
         # Create and return a new Feature object.
-        return super(Feature, Feature).new(
+        return Entity.new(
             Feature,
             id=id,
             name=name,
             group_id=group_id,
+            feature_key=feature_key,
             description=description,
             **kwargs
         )
     
-    # * method: add_handler
-    def add_handler(self, handler: FeatureCommand, position: int = None):
-        '''Adds a handler to the feature.
+    # * method: add_command
+    def add_command(self, command: ServiceCommand, position: int = None):
+        '''Adds a service command to the feature.
 
-        :param handler: The handler to add.
-        :type handler: FeatureCommand
+        :param command: The service command to add.
+        :type command: ServiceCommand
         :param position: The position to add the handler at.
         :type position: int
         '''
 
         # Add the handler to the feature.
         if position is not None:
-            self.commands.insert(position, handler)
+            self.commands.insert(position, command)
         else:
-            self.commands.append(handler)
+            self.commands.append(command)

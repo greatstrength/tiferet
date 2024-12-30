@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..domain.app import AppInterface
+from ..models.app import *
 from ..data.app import AppInterfaceYamlData
 from ..clients import yaml_client
 

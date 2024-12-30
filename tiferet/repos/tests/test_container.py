@@ -21,7 +21,7 @@ def test_container_yaml_proxy():
 # *** tests
 
 # ** test: container_yaml_proxy_list_all
-def test_container_yaml_proxy_list_all(test_container_yaml_proxy, test_repo_container_attribute):
+def test_container_yaml_proxy_list_all(test_container_yaml_proxy, container_attribute):
 
     # List all the container attributes.
     container_attributes, constants = test_container_yaml_proxy.list_all()
@@ -32,30 +32,30 @@ def test_container_yaml_proxy_list_all(test_container_yaml_proxy, test_repo_cont
     # Check the container attributes.
     assert container_attributes
     assert len(container_attributes) == 1
-    assert container_attributes[0].id == test_repo_container_attribute.id
-    assert container_attributes[0].type == test_repo_container_attribute.type
-    assert len(container_attributes[0].dependencies) == len(test_repo_container_attribute.dependencies)
+    assert container_attributes[0].id == container_attribute.id
+    assert container_attributes[0].type == container_attribute.type
+    assert len(container_attributes[0].dependencies) == len(container_attribute.dependencies)
 
 
 # ** test: container_yaml_proxy_get_attribute
-def test_container_yaml_proxy_get_attribute(test_container_yaml_proxy, test_repo_container_attribute):
+def test_container_yaml_proxy_get_attribute(test_container_yaml_proxy, container_attribute):
 
     # Get the container attribute.
-    container_attribute = test_container_yaml_proxy.get_attribute(test_repo_container_attribute.id, test_repo_container_attribute.type)
+    container_attribute = test_container_yaml_proxy.get_attribute(container_attribute.id, container_attribute.type)
 
     # Check the container attribute.
     assert container_attribute
-    assert container_attribute.id == test_repo_container_attribute.id
-    assert container_attribute.type == test_repo_container_attribute.type
-    assert len(container_attribute.dependencies) == len(test_repo_container_attribute.dependencies)
+    assert container_attribute.id == container_attribute.id
+    assert container_attribute.type == container_attribute.type
+    assert len(container_attribute.dependencies) == len(container_attribute.dependencies)
 
 
 # ** test: container_yaml_proxy_get_attribute_not_found_or_wrong_type
-def test_container_yaml_proxy_get_attribute_not_found_or_wrong_type(test_container_yaml_proxy, test_repo_container_attribute):
+def test_container_yaml_proxy_get_attribute_not_found_or_wrong_type(test_container_yaml_proxy, container_attribute):
 
     # Get the container attribute with the wrong id or type.
-    container_attribute_not_found = test_container_yaml_proxy.get_attribute('not_found', test_repo_container_attribute.type)
-    container_attribute_wrong_type = test_container_yaml_proxy.get_attribute(test_repo_container_attribute.id, 'invalid')
+    container_attribute_not_found = test_container_yaml_proxy.get_attribute('not_found', container_attribute.type)
+    container_attribute_wrong_type = test_container_yaml_proxy.get_attribute(container_attribute.id, 'invalid')
 
     # Check the container attribute is not found.
     assert not container_attribute_not_found

@@ -4,7 +4,7 @@
 from typing import List, Dict, Tuple
 
 # ** app
-from ..domain.container import ContainerAttribute
+from ..models.container import *
 from ..data.container import ContainerAttributeYamlData
 from ..clients import yaml as yaml_client
 
