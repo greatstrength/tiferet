@@ -1,8 +1,5 @@
 # *** imports
 
-# ** core
-from typing import List, Dict, Any, Tuple
-
 # ** infra
 from schematics import Model
 from schematics import types as t
