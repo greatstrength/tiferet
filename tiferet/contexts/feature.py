@@ -1,10 +1,12 @@
 # *** imports
 
 # ** app
+from ..models.feature import *
+from ..repos.feature import *
+
+# ** app - contexts
 from .container import ContainerContext
 from .request import RequestContext
-from ..domain import *
-from ..repos.feature import FeatureRepository
 
 
 # *** contexts

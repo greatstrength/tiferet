@@ -1,10 +1,7 @@
 # *** imports
 
-# ** core
-from typing import Dict
-
 # ** app
-from ..domain import *
+from ..configs import *
 
 
 # *** contexts
