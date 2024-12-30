@@ -8,7 +8,8 @@ import pytest
 
 # ** app
 from ...repos import *
-from ...domain.tests import *
+from ...models.tests import *
+from ...models import *
 
 
 # *** constants
