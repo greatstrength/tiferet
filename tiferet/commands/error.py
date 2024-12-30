@@ -1,4 +1,4 @@
-from ..domain.error import Error
+from ..models.error import *
 from ..repos.error import ErrorRepository
 
 class AddNewError(object):

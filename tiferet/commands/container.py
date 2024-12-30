@@ -1,6 +1,5 @@
-from ..repos.container import ContainerRepository
-from ..domain.container import ContainerAttribute, ContainerDependency
-from ..services import container as container_service
+from ..repos import ContainerRepository
+from ..models.container import *
 
 
 class SetContainerAttribute(object):
@@ -37,14 +36,18 @@ class SetContainerAttribute(object):
 
         # If not attribute is found, create a new one.
         if not attribute:
-            attribute = ContainerAttribute.new(
+            attribute = Entity.new(
+                ContainerAttribute,
                 id=attribute_id,
                 type=type,
                 dependencies=[ContainerDependency.new(**kwargs)])
         
         # Otherwise, create the container depenedency and add it to the attribute.
         else:
-            dependency = ContainerDependency.new(**kwargs)
+            dependency = ValueObject.new(
+                ContainerDependency,
+                **kwargs
+            )
             attribute.set_dependency(dependency)
 
         # Save the container attribute.

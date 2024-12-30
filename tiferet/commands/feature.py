@@ -1,5 +1,4 @@
-from ..domain.feature import Feature
-from ..domain.feature import FeatureHandler
+from ..models.feature import *
 from ..repos.feature import FeatureRepository
 
 
@@ -71,7 +70,10 @@ class AddFeatureHandler(object):
         '''
 
         # Create a new feature handler instance.
-        handler = FeatureHandler.new(**kwargs)
+        handler = ValueObject.new(
+            ServiceCommand,
+            **kwargs
+        )
 
         # Get the feature using the feature ID.
         feature = self.feature_repo.get(feature_id)
@@ -79,8 +81,8 @@ class AddFeatureHandler(object):
         # Assert that the feature was successfully found.
         assert feature is not None, f'FEATURE_NOT_FOUND: {feature_id}'
 
-        # Add the feature handler to the feature.
-        feature.add_handler(
+        # Add the service command to the feature.
+        feature.add_command(
             handler,
             position=position
         )
