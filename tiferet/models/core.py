@@ -113,7 +113,12 @@ class DataObject(Model):
             _data[key] = value
 
         # Map the data object to a model object.
-        _object = type.new(**_data, strict=False)
+        # Attempt to create a new model object with a custom factory method.
+        # If the factory method does not exist, employ the standard method.
+        try:
+            _object = type.new(**_data, strict=False)
+        except Exception:
+            _object = ModelObject.new(type, **_data, strict=False)
 
         # Validate if specified.
         if validate:
@@ -194,26 +199,3 @@ class DataObject(Model):
         # Create a blacklist transform.
         from schematics.transforms import blacklist
         return blacklist(*args)
-
-
-# ** model: module_dependency
-class ModuleDependency(ValueObject):
-    '''
-    A module dependency.
-    '''
-
-    # * attribute: module_path
-    module_path = StringType(
-        required=True,
-        metadata=dict(
-            description='The module path.'
-        )
-    )
-
-    # * attribute: class_name
-    class_name = StringType(
-        required=True,
-        metadata=dict(
-            description='The class name.'
-        )
-    )

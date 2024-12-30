@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from . import *
+from ..core import *
 
 
 # *** fixtures
@@ -59,16 +59,6 @@ def test_data_object():
             ),
         )
     return TestDataObject
-
-
-# ** fixture: module_dependency
-@pytest.fixture
-def module_dependency():
-    return ModuleDependency.new(
-        ModuleDependency,
-        module_path='tests.repos.test',
-        class_name='YamlProxy',
-    )
 
 
 # *** tests
@@ -148,12 +138,3 @@ def test_data_object_deny():
 
     # Assert the role is valid.
     assert role.fields == {'test'}
-
-
-# ** domain: test_module_dependency_new
-def test_module_dependency_new(module_dependency):
-
-    # Assert the module dependency is valid using the fixture.
-    assert isinstance(module_dependency, ModuleDependency)
-    assert module_dependency.module_path == 'tests.repos.test'
-    assert module_dependency.class_name == 'YamlProxy'

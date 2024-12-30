@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from . import *
+from ..error import *
 
 
 # *** fixtures

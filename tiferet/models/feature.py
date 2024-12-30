@@ -7,8 +7,8 @@ from .core import Entity, ValueObject
 
 # *** models
 
-# ** model: feature_command
-class FeatureCommand(ValueObject):
+# ** model: service_command
+class ServiceCommand(ValueObject):
     '''
     A command object for a feature command.
     '''
@@ -82,6 +82,13 @@ class Feature(Entity):
         )
     )
 
+    feature_key = t.StringType(
+        required=True,
+        metadata=dict(
+            description='The key of the feature.'
+        )
+    )
+
     # * attribute: description
     description = t.StringType(
         metadata=dict(
@@ -91,7 +98,7 @@ class Feature(Entity):
 
     # * attribute: commands
     commands = t.ListType(
-        t.ModelType(FeatureCommand),
+        t.ModelType(ServiceCommand),
         default=[],
         metadata=dict(
             description='The command handler workflow for the feature.'
@@ -145,22 +152,23 @@ class Feature(Entity):
             id=id,
             name=name,
             group_id=group_id,
+            feature_key=feature_key,
             description=description,
             **kwargs
         )
     
-    # * method: add_handler
-    def add_handler(self, handler: FeatureCommand, position: int = None):
-        '''Adds a handler to the feature.
+    # * method: add_command
+    def add_command(self, command: ServiceCommand, position: int = None):
+        '''Adds a service command to the feature.
 
-        :param handler: The handler to add.
-        :type handler: FeatureCommand
+        :param command: The service command to add.
+        :type command: ServiceCommand
         :param position: The position to add the handler at.
         :type position: int
         '''
 
         # Add the handler to the feature.
         if position is not None:
-            self.commands.insert(position, handler)
+            self.commands.insert(position, command)
         else:
-            self.commands.append(handler)
+            self.commands.append(command)
