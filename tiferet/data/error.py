@@ -43,22 +43,3 @@ class ErrorData(Error, DataObject):
             description='The error messages.'
         )
     )
-
-    # * to_primitive
-    def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
-        '''
-        Converts the data object to a primitive dictionary.
-
-        :param role: The role.
-        :type role: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The primitive dictionary.
-        :rtype: dict
-        '''
-
-        # Convert the data object to a primitive dictionary.
-        return super().to_primitive(
-            role,
-            **kwargs
-        )
