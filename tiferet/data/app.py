@@ -61,7 +61,7 @@ class AppDependencyYamlData(AppDependency, DataObject):
     # * attribute: attribute_id
     attribute_id = StringType(
         metadata=dict(
-            description='The attribute id for the application dependency.'
+            description='The attribute id for the application dependency that is not required for assembly.'
         ),
     )
 
@@ -74,58 +74,6 @@ class AppDependencyYamlData(AppDependency, DataObject):
             'to_model': DataObject.allow(),
             'to_data.yaml': DataObject.deny('attribute_id')
         }
-
-    # * method: from_data
-    @staticmethod
-    def from_data(**kwargs) -> 'AppDependencyYamlData':
-        '''
-        Initializes a new YAML representation of an AppDependency object.
-        
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppDependencyData object.
-        :rtype: AppDependencyData
-        '''
-
-        # Create a new AppDependencyData object.
-        return super(AppDependencyYamlData, AppDependencyYamlData).from_data(
-            AppDependencyYamlData,
-            **kwargs
-        )
-
-    # * method: new
-    @staticmethod
-    def from_data(**kwargs) -> 'AppDependencyYamlData':
-        '''
-        Initializes a new YAML representation of an AppDependency object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppDependencyData object.
-        :rtype: AppDependencyData
-        '''
-
-        # Create a new AppDependencyData object.
-        return super(AppDependencyYamlData, AppDependencyYamlData).from_data(
-            AppDependencyYamlData,
-            **kwargs
-        )
-
-    # * method: map
-    def map(self, **kwargs) -> AppDependency:
-        '''
-        Maps the app dependency data to an app dependency object.
-
-        :param role: The role for the mapping.
-        :type role: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new app dependency object.
-        :rtype: AppDependency
-        '''
-
-        # Map the app dependency data.
-        return super().map(AppDependency, **kwargs)
 
 
 # ** data: app_interface_yaml_data
@@ -222,7 +170,8 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
         # Add the app context to the dependencies.
         dependencies = dict(
-            app_context=AppDependencyYamlData.from_data(
+            app_context=DataObject.from_data(
+                AppDependencyYamlData,
                 attribute_id='app_context',
                 **app_context
             )
@@ -233,13 +182,15 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             
             # If the key is in the kwargs, add it and continue.
             if key in kwargs:
-                dependencies[key] = AppDependencyYamlData.from_data(
+                dependencies[key] = DataObject.from_data(
+                    AppDependencyYamlData,
                     attribute_id=key,
                     **kwargs.pop(key)) # Pop the key to avoid duplication.
                 continue
             
             # Otherwise, add the default value.
-            dependencies[key] = AppDependencyYamlData.from_data(
+            dependencies[key] = DataObject.from_data(
+                AppDependencyYamlData,
                 attribute_id=key,
                 **value)
 
@@ -265,13 +216,13 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
         # Format and map the dependencies.
         dependencies = [
-            self.app_context.map(),
-            self.container_context.map(),
-            self.feature_context.map(),
-            self.error_context.map(),
-            self.feature_repo.map(),
-            self.container_repo.map(),
-            self.error_repo.map(),
+            self.app_context.map(AppDependency),
+            self.container_context.map(AppDependency),
+            self.feature_context.map(AppDependency),
+            self.error_context.map(AppDependency),
+            self.feature_repo.map(AppDependency),
+            self.container_repo.map(AppDependency),
+            self.error_repo.map(AppDependency),
         ]
 
         # Map the app interface data.
