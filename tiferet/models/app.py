@@ -85,11 +85,7 @@ class AppInterface(Entity):
     # * attribute: constants
     constants = DictType(
         StringType,
-        default=dict(
-            container_config_file='app/configs/container.yml',
-            feature_config_file='app/configs/features.yml',
-            error_config_file='app/configs/errors.yml',
-        ),
+        default={},
         metadata=dict(
             description='The application dependency constants.'
         ),
