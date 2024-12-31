@@ -99,9 +99,18 @@ def test_app_interface_yaml_data_from_data_with_constants(app_interface_yaml_dat
 # ** test: test_app_interface_yaml_data_map
 def test_app_interface_yaml_data_map(app_interface_yaml_data):
 
+    # Map the app interface yaml data to an app interface object.
     mapped_interface = app_interface_yaml_data.map()
+
+    # Assert the mapped app interface is valid.
     assert isinstance(mapped_interface, AppInterface)
+    assert mapped_interface.id == app_interface_yaml_data.id
+    assert mapped_interface.name == app_interface_yaml_data.name
+    assert mapped_interface.data_flag == app_interface_yaml_data.data_flag
+    assert mapped_interface.name == 'Test Interface'
+    assert mapped_interface.constants == CONSTANTS_DEFAULT
+
+    # Assert the dependencies are valid.
     assert len(mapped_interface.dependencies) == 7
-    # Check if all dependencies are of type AppDependency
     for dep in mapped_interface.dependencies:
         assert isinstance(dep, AppDependency)
