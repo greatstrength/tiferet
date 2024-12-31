@@ -14,7 +14,7 @@ from ..container import *
 def container_dependency() -> ContainerDependency:
     return ValueObject.new(
         ContainerDependency,
-        module_path='tiferet.repos.tests',
+        module_path='tiferet.proxies.tests',
         class_name='TestProxy',
         flag='test',
         parameters={'config_file': 'tiferet/configs/tests/test.yml'}
