@@ -1,7 +1,10 @@
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
-from . import *
+from ..container import *
 
 
 # *** fixtures
