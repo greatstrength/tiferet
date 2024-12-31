@@ -12,6 +12,7 @@ class ServiceCommand(object):
     A service command class.
     '''
 
+    # * method: execute
     def execute(**kwargs) -> Any:
         '''
         Execute the service command.
@@ -21,7 +22,7 @@ class ServiceCommand(object):
         raise NotImplementedError()
     
 
-    # ** method: verify
+    # * method: verify
     def verify(self, expression: bool, error_code: str, *args):
         '''
         Verify an expression and raise an error if it is false.
