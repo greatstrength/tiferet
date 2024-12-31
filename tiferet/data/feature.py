@@ -4,8 +4,8 @@
 from schematics.types.serializable import serializable
 
 # ** app
-from ..models import *
 from ..models.feature import *
+from .core import DataObject
 
 
 class ServiceCommandData(ServiceCommand, DataObject):

@@ -9,6 +9,19 @@ from ..core import *
 
 # *** fixtures
 
+# ** fixture: test_model_object
+@pytest.fixture
+def test_model_object():
+    class TestModelObject(ModelObject):
+        attribute = StringType(
+            required=True,
+            metadata=dict(
+                description='The attribute.'
+            ),
+        )
+    return TestModelObject
+
+
 # ** fixture: test_data_object
 @pytest.fixture
 def test_data_object():
