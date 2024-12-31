@@ -3,7 +3,7 @@
 # ** app
 from ..configs import *
 from ..models.container import *
-from ..data import DataObject
+from .core import *
 
 
 # *** data
@@ -62,46 +62,6 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         # Validate and return the object.
         obj.validate()
         return obj
-    
-    # * method: new
-    @staticmethod
-    def from_data(**kwargs) -> 'ContainerDependencyYamlData':
-        '''
-        Initializes a new ContainerDependencyData object from YAML data.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ContainerDependencyData object.
-        :rtype: ContainerDependencyYamlData
-        '''
-
-        # Create a new ContainerDependencyData object.
-        return super(
-            ContainerDependencyYamlData, 
-            ContainerDependencyYamlData
-        ).from_data(
-            ContainerDependencyYamlData,
-            **kwargs
-        )
-    
-    # * method: from_model
-    @staticmethod
-    def from_model(model: ContainerDependency, **kwargs) -> 'ContainerDependencyYamlData':
-        '''
-        Initializes a new ContainerDependencyData object from a model object.
-
-        :param model: The container dependency model object.
-        :type model: ContainerDependency
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        '''
-
-        # Create and return a new ContainerDependencyData object.
-        return super(ContainerDependencyYamlData, ContainerDependencyYamlData).from_model(
-            ContainerDependencyYamlData,
-            model,
-            **kwargs,
-        )
 
 
 # ** data: container_attribute_yaml_data
