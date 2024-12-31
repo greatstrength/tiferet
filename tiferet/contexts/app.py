@@ -20,9 +20,9 @@ class AppContext(Model):
     # * attribute: app_repo_module_path
     app_repo_module_path = StringType(
         required=True,
-        default='tiferet.repos.app',
+        default='tiferet.proxies.app_yaml',
         metadata=dict(
-            description='The application repository module path.'
+            description='The application repository proxy module path.'
         ),
     )
 
@@ -31,7 +31,7 @@ class AppContext(Model):
         required=True,
         default='AppYamlProxy',
         metadata=dict(
-            description='The application repository class name.'
+            description='The application repository proxy class name.'
         ),
     )
 
