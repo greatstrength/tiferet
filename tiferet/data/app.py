@@ -2,8 +2,8 @@
 
 # ** app
 from ..configs import *
-from ..models import DataObject
 from ..models.app import *
+from .core import *
 
 
 # *** constants
