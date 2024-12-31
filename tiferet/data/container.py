@@ -21,7 +21,7 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.deny('params'),
+            'to_model': DataObject.deny('parameters'),
             'to_data': DataObject.deny('flag')
         }
 
@@ -34,9 +34,9 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
 
     # * attribute: parameters
     parameters = DictType(
-        StringType, 
-        default={}, 
-        serialized_name='params', 
+        StringType,
+        default={},
+        serialized_name='params',
         deserialize_from=['params'],
         metadata=dict(
             description='The parameters need to now account for new data names in the YAML format.'
@@ -54,14 +54,11 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
         '''
 
         # Map to the container dependency object.
-        obj = super().map(ContainerDependency, **kwargs, validate=False)
-    
-        # Set the parameters in due to the deserializer.
-        obj.parameters = self.parameters
-
-        # Validate and return the object.
-        obj.validate()
-        return obj
+        return super().map(
+            ContainerDependency,
+            parameters=self.parameters,
+            **kwargs
+        )
 
 
 # ** data: container_attribute_yaml_data
@@ -83,9 +80,9 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
     # * attribute: dependencies
     dependencies = DictType(
-        ModelType(ContainerDependencyYamlData), 
-        default=[], 
-        serialized_name='deps', 
+        ModelType(ContainerDependencyYamlData),
+        default=[],
+        serialized_name='deps',
         deserialize_from=['deps', 'dependencies'],
         metadata=dict(
             description='The dependencies are now a key-value pair keyed by the flags.'
@@ -102,7 +99,8 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         '''
 
         # Map to the container attribute object with the dependencies.
-        return super().map(ContainerAttribute, 
+        return super().map(
+            ContainerAttribute,
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
             **kwargs)
 
@@ -116,26 +114,24 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         :type deps: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        '''        
+        '''
+
+        # Pop the dependencies from the keyword arguments.
+        dependencies = kwargs.pop('deps', {})
+
+        # Create the dependencies.
+        dependencies = {flag: DataObject.from_data(
+            ContainerDependencyYamlData,
+            flag=flag, **dep
+        ) for flag, dep in dependencies.items()}
 
         # Create a new ContainerAttributeData object.
-        obj = super(
-            ContainerAttributeYamlData, 
-            ContainerAttributeYamlData
-        ).from_data(
+        return DataObject.from_data(
             ContainerAttributeYamlData,
-            **kwargs, 
-            validate=False
+            dependencies=dependencies,
+            **kwargs
         )
-    
-        # Set the dependencies.
-        for flag, dep in obj.dependencies.items():
-            dep.flag = flag
 
-        # Validate and return the object.
-        obj.validate()
-        return obj
-    
     # * method: from_model
     @staticmethod
     def from_model(model: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
@@ -149,8 +145,9 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         '''
 
         # Create the dependency data.
-        dependencies = {dep.flag: dep.to_primitive() for dep in model.dependencies}
-        
+        dependencies = {dep.flag: dep.to_primitive()
+                        for dep in model.dependencies}
+
         # Create a new model object without the dependencies.
         data = model.to_primitive()
         data['dependencies'] = dependencies
@@ -160,11 +157,10 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
             dict(
                 **data,
                 **kwargs
-            ), 
+            ),
             strict=False
         )
 
         # Validate and return the object.
         obj.validate()
         return obj
-    
