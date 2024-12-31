@@ -1,33 +1,38 @@
 # *** imports
 
-# ** core
-from typing import List, Dict
-
 # ** infra
+import pytest
 
 # ** app
 from . import *
-from ...repos.container import YamlProxy as ContainerYamlProxy
+from ...models.tests.test_container import *
+from ...proxies.container_yaml import *
 
 
 # *** fixtures
 
+# ** fixture: test_config_file_path
+@pytest.fixture
+def config_file_path():
+    return 'tiferet/configs/tests/test.yml'
+
+
 # ** fixture: test_container_yaml_proxy
 @pytest.fixture
-def test_container_yaml_proxy():
-    return ContainerYamlProxy(TEST_CONFIG_FILE_PATH)
+def container_yaml_proxy(config_file_path):
+    return ContainerYamlProxy(config_file_path)
 
 
 # *** tests
 
 # ** test: container_yaml_proxy_list_all
-def test_container_yaml_proxy_list_all(test_container_yaml_proxy, container_attribute):
+def test_container_yaml_proxy_list_all(container_yaml_proxy, container_attribute):
 
     # List all the container attributes.
-    container_attributes, constants = test_container_yaml_proxy.list_all()
+    container_attributes, constants = container_yaml_proxy.list_all()
 
     # Verify Constants
-    assert constants.get(TEST_PROXY_CONFIG_FILE_KEY) == TEST_PROXY_CONFIG_FILE_VALUE
+    assert constants.get('config_file') == 'tiferet/configs/tests/test.yml'
 
     # Check the container attributes.
     assert container_attributes
@@ -38,10 +43,10 @@ def test_container_yaml_proxy_list_all(test_container_yaml_proxy, container_attr
 
 
 # ** test: container_yaml_proxy_get_attribute
-def test_container_yaml_proxy_get_attribute(test_container_yaml_proxy, container_attribute):
+def test_container_yaml_proxy_get_attribute(container_yaml_proxy, container_attribute):
 
     # Get the container attribute.
-    container_attribute = test_container_yaml_proxy.get_attribute(container_attribute.id, container_attribute.type)
+    container_attribute = container_yaml_proxy.get_attribute(container_attribute.id, container_attribute.type)
 
     # Check the container attribute.
     assert container_attribute
@@ -51,11 +56,11 @@ def test_container_yaml_proxy_get_attribute(test_container_yaml_proxy, container
 
 
 # ** test: container_yaml_proxy_get_attribute_not_found_or_wrong_type
-def test_container_yaml_proxy_get_attribute_not_found_or_wrong_type(test_container_yaml_proxy, container_attribute):
+def test_container_yaml_proxy_get_attribute_not_found_or_wrong_type(container_yaml_proxy, container_attribute):
 
     # Get the container attribute with the wrong id or type.
-    container_attribute_not_found = test_container_yaml_proxy.get_attribute('not_found', container_attribute.type)
-    container_attribute_wrong_type = test_container_yaml_proxy.get_attribute(container_attribute.id, 'invalid')
+    container_attribute_not_found = container_yaml_proxy.get_attribute('not_found', container_attribute.type)
+    container_attribute_wrong_type = container_yaml_proxy.get_attribute(container_attribute.id, 'invalid')
 
     # Check the container attribute is not found.
     assert not container_attribute_not_found

@@ -21,6 +21,7 @@ def service_command() -> ServiceCommand:
     )
 
 
+# ** fixture: feature
 @pytest.fixture
 def feature() -> Feature:
     return Feature.new(

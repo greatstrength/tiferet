@@ -23,7 +23,8 @@ config = {
         'tiferet.configs',
         'tiferet.contexts',
         'tiferet.data',
-        'tiferet.domain',
+        'tiferet.models',
+        'tiferet.proxies',
         'tiferet.repos'
     ],    
     'scripts': [],
