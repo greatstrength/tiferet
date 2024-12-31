@@ -41,16 +41,7 @@ interfaces:
     app_context:
       class_name: AppInterfaceContext
       module_path: tiferet.contexts.app
-    container_repo:
-      class_name: MockContainerRepository
-      module_path: tiferet.repos.tests
     data_flag: test
     description: The test interface.
-    error_repo:
-      class_name: MockErrorRepository
-      module_path: tiferet.repos.tests
     feature_flag: test
-    feature_repo:
-      class_name: MockFeatureRepository
-      module_path: tiferet.repos.tests
     name: Test Interface
