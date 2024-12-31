@@ -20,6 +20,37 @@ def app_dependency_yaml_data():
     )
 
 
+# ** fixture: app_interface_yaml_data_raw
+@pytest.fixture
+def app_interface_yaml_data_raw():
+    return dict(
+        id='test_interface',
+        name='Test Interface',
+        data_flag='test_flag',
+        app_context=dict(
+            module_path='tests.contexts.test',
+            class_name='TestContext'
+        )
+    )
+
+
+# ** fixture: app_interface_yaml_data_raw_with_constants
+@pytest.fixture
+def app_interface_yaml_data_raw_with_constants():
+    return dict(
+        id='test_interface',
+        name='Test Interface',
+        data_flag='test_flag',
+        app_context=dict(
+            module_path='tests.contexts.test',
+            class_name='TestContext'
+        ),
+        constants=dict(
+            container_config_file='app/configs/container_2.yml',
+        )
+    )
+
+
 # ** fixture: app_interface_yaml_data
 @pytest.fixture
 def app_interface_yaml_data():
@@ -34,40 +65,35 @@ def app_interface_yaml_data():
     )
 
 
-# ** fixture: app_interface_yaml_data_custom_dependencies
-@pytest.fixture
-def app_interface_yaml_data_custom_dependencies():
-    return AppInterfaceYamlData.from_data(
-        id='custom_interface',
-        name='Custom Interface',
-        data_flag='custom_flag',
-        app_context=dict(
-            module_path='custom.module',
-            class_name='CustomClass'
-        ),
-        container_context=dict(
-            module_path='custom.container',
-            class_name='ContainerClass'
-        )
-    )
-
-
 # *** tests
 
-
 # ** test: test_app_interface_yaml_data_from_data
-def test_app_interface_yaml_data_from_data(app_interface_yaml_data):
+def test_app_interface_yaml_data_from_data(app_interface_yaml_data_raw):
+
+    # Convert the raw data to an app interface yaml data object.
+    app_interface_yaml_data = AppInterfaceYamlData.from_data(**app_interface_yaml_data_raw)
     
     # Assert the app interface yaml data is valid.
-    assert isinstance(app_interface_yaml_data.app_context,
-                      AppDependencyYamlData)
-    assert app_interface_yaml_data.app_context.attribute_id == 'app_context'
-    assert app_interface_yaml_data.feature_context.attribute_id == 'feature_context'
-    assert app_interface_yaml_data.container_context.attribute_id == 'container_context'
-    assert app_interface_yaml_data.error_context.attribute_id == 'error_context'
-    assert app_interface_yaml_data.feature_repo.attribute_id == 'feature_repo'
-    assert app_interface_yaml_data.container_repo.attribute_id == 'container_repo'
-    assert app_interface_yaml_data.error_repo.attribute_id == 'error_repo'
+    assert app_interface_yaml_data.id == 'test_interface'
+    assert app_interface_yaml_data.name == 'Test Interface'
+    assert app_interface_yaml_data.data_flag == 'test_flag'
+    assert len(app_interface_yaml_data.dependencies) == 7
+    assert app_interface_yaml_data.constants == CONSTANTS_DEFAULT
+
+
+# ** test: test_app_interface_yaml_data_from_data_with_constants
+def test_app_interface_yaml_data_from_data_with_constants(app_interface_yaml_data_raw_with_constants):
+
+    # Convert the raw data to an app interface yaml data object.
+    app_interface_yaml_data = AppInterfaceYamlData.from_data(**app_interface_yaml_data_raw_with_constants)
+    
+    # Assert the app interface yaml data is valid.
+    assert app_interface_yaml_data.id == 'test_interface'
+    assert app_interface_yaml_data.name == 'Test Interface'
+    assert app_interface_yaml_data.data_flag == 'test_flag'
+    assert len(app_interface_yaml_data.dependencies) == 7
+    assert len(app_interface_yaml_data.constants) == 3
+    assert app_interface_yaml_data.constants.get('container_config_file') == 'app/configs/container_2.yml'
 
 
 # ** test: test_app_interface_yaml_data_map
@@ -79,11 +105,3 @@ def test_app_interface_yaml_data_map(app_interface_yaml_data):
     # Check if all dependencies are of type AppDependency
     for dep in mapped_interface.dependencies:
         assert isinstance(dep, AppDependency)
-
-
-# ** test: test_app_interface_yaml_data_custom_dependencies
-def test_app_interface_yaml_data_custom_dependencies(app_interface_yaml_data_custom_dependencies):
-
-    # Assert the custom app interface yaml data is valid.
-    assert app_interface_yaml_data_custom_dependencies.app_context.module_path == 'custom.module'
-    assert app_interface_yaml_data_custom_dependencies.container_context.module_path == 'custom.container'
