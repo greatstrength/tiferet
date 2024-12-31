@@ -20,7 +20,7 @@ def test_service_command() -> ServiceCommand:
         A test service command class.
         '''
         
-        def execute(self, param1: str, param2: str, throw_error: bool = False, *error_args, **kwargs) -> Tuple[str, str]:
+        def execute(self, param1: str, param2: str, throw_error: bool = False, error_args: List[str] = [], **kwargs) -> Tuple[str, str]:
 
             # Throw an error if requested.
             if error_args:
@@ -67,6 +67,6 @@ def test_service_command_execute_with_error(test_service_command):
 
     # Execute the command with formatted error.
     try:
-        test_service_command.execute('param1', 'param2', 'err_arg1', 'err_arg2', throw_error=True)
+        test_service_command.execute('param1', 'param2', throw_error=True, error_args=['err_arg1', 'err_arg2'])
     except AssertionError as e:
         assert str(e) == 'MY_FORMATTED_ERROR: err_arg1, err_arg2'

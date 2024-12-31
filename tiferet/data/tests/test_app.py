@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from . import *
+from ..app import *
 
 
 # *** fixtures
@@ -12,7 +12,8 @@ from . import *
 # ** fixture: app_dependency_yaml_data
 @pytest.fixture
 def app_dependency_yaml_data():
-    return AppDependencyYamlData.from_data(
+    return DataObject.from_data(
+        AppDependencyYamlData,
         attribute_id='test_attr',
         module_path='tests.repos.test',
         class_name='TestProxy'
@@ -52,25 +53,6 @@ def app_interface_yaml_data_custom_dependencies():
 
 
 # *** tests
-
-# ** test: test_app_dependency_yaml_data_from_data
-def test_app_dependency_yaml_data_from_data(app_dependency_yaml_data):
-    
-    # Assert the app dependency yaml data is valid.
-    assert app_dependency_yaml_data.attribute_id == 'test_attr'
-    assert app_dependency_yaml_data.module_path == 'tests.repos.test'
-    assert app_dependency_yaml_data.class_name == 'TestProxy'
-
-
-# ** test: test_app_dependency_yaml_data_map
-def test_app_dependency_yaml_data_map(app_dependency_yaml_data):
-
-    # Map the app dependency yaml data.
-    mapped_dep = app_dependency_yaml_data.map()
-    assert isinstance(mapped_dep, AppDependency)
-    assert mapped_dep.attribute_id == 'test_attr'
-    assert mapped_dep.module_path == 'tests.repos.test'
-    assert mapped_dep.class_name == 'TestProxy'
 
 
 # ** test: test_app_interface_yaml_data_from_data

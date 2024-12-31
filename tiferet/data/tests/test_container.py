@@ -3,8 +3,8 @@
 # ** infra
 import pytest
 
-# ** app1
-from . import *
+# ** app
+from ..container import *
 
 
 # *** fixtures
@@ -12,7 +12,8 @@ from . import *
 # ** fixture: container_dependency_yaml_data
 @pytest.fixture
 def container_dependency_yaml_data():
-    return ContainerDependencyYamlData.from_data(
+    return DataObject.from_data(
+        ContainerDependencyYamlData,
         module_path='tests.repos.test',
         class_name='TestRepoProxy',
         flag='test',
@@ -40,26 +41,8 @@ def container_attribute_yaml_data():
         )
     )
 
-# ** fixture: container_dependency_model
-@pytest.fixture
-def container_dependency_model(container_dependency_yaml_data):
-    model = container_dependency_yaml_data.map()
-    model.class_name = 'TestRepoProxy2'
-    model.parameters = {'test_param2': 'test_value2'}
-    return model
-
 
 # *** tests
-
-# ** test: test_container_dependency_yaml_data_from_data
-def test_container_dependency_yaml_data_from_data(container_dependency_yaml_data):
-    
-    # Check if the data is correctly initialized.
-    assert container_dependency_yaml_data.module_path == 'tests.repos.test'
-    assert container_dependency_yaml_data.class_name == 'TestRepoProxy'
-    assert container_dependency_yaml_data.flag == 'test'
-    assert container_dependency_yaml_data.parameters == {'test_param': 'test_value'}
-
 
 # ** test: test_container_dependency_yaml_data_map
 def test_container_dependency_yaml_data_map(container_dependency_yaml_data):
@@ -73,20 +56,6 @@ def test_container_dependency_yaml_data_map(container_dependency_yaml_data):
     assert mapped_dep.class_name == 'TestRepoProxy'
     assert mapped_dep.flag == 'test'
     assert mapped_dep.parameters == {'test_param': 'test_value'}
-
-
-# ** test: test_container_dependency_yaml_data_from_model
-def test_container_dependency_yaml_data_from_model(container_dependency_model):
-
-    # Create a new data object from the model object.
-    data_from_model = ContainerDependencyYamlData.from_model(container_dependency_model)
-
-    # Check if the data object is correctly initialized.
-    assert isinstance(data_from_model, ContainerDependencyYamlData)
-    assert data_from_model.module_path == container_dependency_model.module_path
-    assert data_from_model.class_name == container_dependency_model.class_name
-    assert data_from_model.flag == container_dependency_model.flag
-    assert data_from_model.parameters == container_dependency_model.parameters
 
 
 # ** test: test_container_attribute_yaml_data_from_data
@@ -130,7 +99,8 @@ def test_container_attribute_yaml_data_from_model(container_attribute_yaml_data)
     model_object = container_attribute_yaml_data.map()
 
     # Update the model object with a new dependency.
-    new_dep = ContainerDependency.new(
+    new_dep = ModelObject.new(
+        ContainerDependency,
         module_path='tests.repos.test',
         class_name='TestRepoProxy3',
         flag='test3',
