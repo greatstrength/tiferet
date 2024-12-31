@@ -62,37 +62,3 @@ class ErrorData(Error, DataObject):
             role,
             **kwargs
         )
-
-    # * method: map
-    def map(self, **kwargs) -> Error:
-        '''
-        Maps the error data to an error object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new error object.
-        :rtype: Error
-        '''
-
-        # Map the error messages.
-        return super().map(Error,
-            **self.to_primitive('to_model'),
-            **kwargs)
-
-    # * method: from_data
-    @staticmethod
-    def from_data(**kwargs) -> 'ErrorData':
-        '''
-        Creates a new ErrorData object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ErrorData object.
-        :rtype: ErrorData
-        '''
-
-        # Create a new ErrorData object.
-        return super(ErrorData, ErrorData).from_data(
-            ErrorData, 
-            **kwargs
-        )
