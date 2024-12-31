@@ -25,19 +25,19 @@ ERROR_CONTEXT_DEFAULT = dict(
     class_name='ErrorContext',
 )
 
-FEATURE_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.feature',
-    class_name='YamlProxy',
+FEATURE_PROXY_DEFAULT = dict(
+    module_path='tiferet.proxies.feature_yaml',
+    class_name='FeatureYamlProxy',
 )
 
-CONTAINER_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.container',
-    class_name='YamlProxy',
+CONTAINER_PROXY_DEFAULT = dict(
+    module_path='tiferet.proxies.container_yaml',
+    class_name='ContainerYamlProxy',
 )
 
-ERROR_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.error',
-    class_name='YamlProxy',
+ERROR_PROXY_DEFAULT = dict(
+    module_path='tiferet.proxies.error_yaml',
+    class_name='ErrorYamlProxy',
 )
 
 # ** constant: context_list_default
@@ -45,9 +45,9 @@ CONTEXT_LIST_DEFAULT = {
     'feature_context': FEATURE_CONTEXT_DEFAULT,
     'container_context': CONTAINER_CONTEXT_DEFAULT,
     'error_context': ERROR_CONTEXT_DEFAULT,
-    'feature_repo': FEATURE_REPO_DEFAULT,
-    'container_repo': CONTAINER_REPO_DEFAULT,
-    'error_repo': ERROR_REPO_DEFAULT,
+    'feature_repo': FEATURE_PROXY_DEFAULT,
+    'container_repo': CONTAINER_PROXY_DEFAULT,
+    'error_repo': ERROR_PROXY_DEFAULT,
 }
 
 # ** constant: constants_default
