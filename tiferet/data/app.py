@@ -111,7 +111,10 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     # * method: new
     @staticmethod
     def from_data(
-        app_context: Dict[str, str], 
+        app_context: Dict[str, str] = dict(
+            module_path='tiferet.contexts.app',
+            class_name='AppInterfaceContext',
+        ), 
         constants: Dict[str, str] = {},
         **kwargs
     ) -> 'AppInterfaceYamlData':

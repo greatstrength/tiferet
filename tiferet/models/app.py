@@ -57,7 +57,6 @@ class AppInterface(Entity):
 
     # attribute: feature_flag
     feature_flag = StringType(
-        required=True,
         default='core',
         metadata=dict(
             description='The feature flag.'
@@ -66,7 +65,6 @@ class AppInterface(Entity):
 
     # attribute: data_flag
     data_flag = StringType(
-        required=True,
         metadata=dict(
             description='The data flag.'
         ),

@@ -44,16 +44,16 @@ class RequestContext(Model):
     )
 
     # * method: init
-    def __init__(self, feature_id: str, headers: Dict[str, str], data: Dict[str, str]):
+    def __init__(self, feature_id: str, data: Dict[str, str], headers: Dict[str, str]):
         '''
         Initialize the request context object.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
-        :param headers: The request headers.
-        :type headers: dict
         :param data: The request data.
         :type data: dict
+        :param headers: The request headers.
+        :type headers: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
@@ -61,8 +61,8 @@ class RequestContext(Model):
         # Set the context attributes.
         super().__init__(dict(
             feature_id=feature_id,
+            data=data,
             headers=headers,
-            data=data
         ))
 
         # Validate the context.
