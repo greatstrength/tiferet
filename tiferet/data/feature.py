@@ -45,6 +45,7 @@ class FeatureData(Feature, DataObject):
     # * attribute: commands
     commands = ListType(
         ModelType(ServiceCommandData),
+        default=[],
         deserialize_from=['handlers', 'functions', 'commands'],
         metadata=dict(
             description='The feature commands.'
