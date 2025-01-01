@@ -1,6 +1,7 @@
 # *** imports
 
 # ** app
+from ..configs import *
 from ..models.feature import *
 from ..repos.feature import *
 
@@ -44,7 +45,10 @@ class FeatureContext(Model):
         '''
 
         # Create the features.
-        features = {feature.id: feature for feature in feature_repo.list()}
+        try:
+            features = {feature.id: feature for feature in feature_repo.list()}
+        except Exception as e:
+            raise FeatureLoadingError(e)
 
         # Set the features and container.
         ## NOTE: There is a bug in the schematics library that does not allow us to initialize 
@@ -82,10 +86,14 @@ class FeatureContext(Model):
         '''
 
         # Assert the feature exists.
-        assert request.feature_id in self.features, 'FEATURE_NOT_FOUND, {}'.format(request.feature_id)
+        if request.feature_id not in self.features:
+            raise FeatureNotFoundError(request.feature_id)
+        
+        # Get the feature.
+        feature = self.features.get(request.feature_id)
 
         # Iterate over the feature commands.
-        for command in self.features[request.feature_id].commands:
+        for command in feature:
 
             # Get the feature command handler instance.
             handler = self.container.get_dependency(command.attribute_id)
@@ -118,8 +126,33 @@ class FeatureContext(Model):
                     request.set_result(result)
 
             # Handle assertion errors if pass on error is not set.
-            except AssertionError as e:
+            except TiferetError as e:
                 if not command.pass_on_error:
                     raise e 
 
-            
+
+# *** exceptions
+
+# ** exception: feature_loading_error
+class FeatureLoadingError(TiferetError):
+    '''
+    An exception thrown when the feature context fails to load the configured features.
+    '''
+
+    def __init__(self, exception: Exception):
+        super().__init__(
+            'ERROR_LOADING_FEATURES',
+            f'Error loading features: {exception}')
+
+
+# ** exception: feature_not_found_error
+class FeatureNotFoundError(TiferetError):
+    '''
+    An exception thrown when the feature is not found.
+    '''
+
+    def __init__(self, feature_id: str):
+        self.feature_id = feature_id
+        super().__init__(
+            'FEATURE_NOT_FOUND',
+            f'Feature not found: {feature_id}. Please verify that it is properly configured.')
