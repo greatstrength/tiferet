@@ -9,6 +9,7 @@ from ..repos.app import *
 from .request import RequestContext
 from .feature import FeatureContext
 from .error import ErrorContext
+from .cache import CacheContext
 from .container import create_injector, import_dependency
 
 
@@ -216,8 +217,16 @@ class AppInterfaceContext(Model):
         ),
     )
 
+    # * attribute: cache
+    cache = ModelType(
+        CacheContext,
+        metadata=dict(
+            description='The cache context.'
+        ),
+    )
+
     # * method: init
-    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
+    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, cache_context: CacheContext = CacheContext()):
         '''
         Initialize the application interface context.
 
@@ -236,6 +245,7 @@ class AppInterfaceContext(Model):
             interface_id=interface_id,
             name=app_name
         ))
+        self.cache = cache_context
         self.features = feature_context
         self.errors = error_context
 
@@ -312,7 +322,7 @@ class AppInterfaceContext(Model):
 
         # Execute feature context and return session.
         try:
-            self.execute_feature(request, **kwargs)
+            self.execute_feature(request, cache=self.cache, **kwargs)
 
         # Handle error and return response if triggered.
         except Exception as e:

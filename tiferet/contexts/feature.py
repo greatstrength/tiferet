@@ -93,7 +93,7 @@ class FeatureContext(Model):
         feature = self.features.get(request.feature_id)
 
         # Iterate over the feature commands.
-        for command in feature:
+        for command in feature.commands:
 
             # Get the feature command handler instance.
             handler = self.container.get_dependency(command.attribute_id)

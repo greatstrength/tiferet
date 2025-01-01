@@ -88,6 +88,8 @@ class FeatureYamlProxy(FeatureRepository):
             create_data=lambda data: [DataObject.from_data(
                 FeatureData,
                 id=id,
+                feature_key=id.split('.')[-1],
+                group_id=id.split('.')[0],
                 **feature_data
             ) for id, feature_data in data.items()],
             start_node=lambda data: data.get('features')
