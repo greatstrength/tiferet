@@ -57,11 +57,19 @@ class ErrorContext(Model):
         '''
 
         # Execute the feature function and handle the errors.
-        if isinstance(exception, AssertionError):
-            return self.format_error_response(str(exception), lang, **kwargs)
+        # If the exception is a TiferetError, then format the error response.
+        # Otherwise, raise the exception.
+        if isinstance(exception, TiferetError):
+            return self.format_error_response(
+                exception.error_code, 
+                lang,
+                error_data=list(exception.args), 
+                **kwargs)
+        else:
+            raise exception
 
     # * method: format_error_response
-    def format_error_response(self, error_message: str, lang: str, **kwargs) -> Any:
+    def format_error_response(self, error_code: str, lang: str, error_data: List[str] = [], **kwargs) -> Any:
         '''
         Format the error response.
 
@@ -73,25 +81,11 @@ class ErrorContext(Model):
         :rtype: Any
         '''
 
-        # Split error message into error name and data.
-        try:
-            message_tokens = error_message.split(': ', 1)
-            if len(message_tokens) > 1:
-                error_name, error_data = message_tokens
-            else:
-                error_name = error_message
-                error_data = None
-        except Exception as e:
-            raise InvalidErrorMessageError(error_message, e)
-
-        # Format error data if present.
-        error_data = error_data.split(', ') if error_data else None
-
         # Get error.
         try:
-            error = self.errors.get(error_name)
+            error = self.errors.get(error_code)
         except Exception as e:
-            raise ErrorNotFoundError(error_name)
+            raise ErrorNotFoundError(error_code)
         
         # Format the error response message.
         error_response_message = error.format(lang, *error_data if error_data else [])
@@ -133,28 +127,6 @@ class ErrorLoadingError(Exception):
         # Set the exception.
         self.exception = exception
         super().__init__(f'Error when loading errors: {exception}')
-
-
-# ** exception: invalid_error_message_error
-class InvalidErrorMessageError(Exception):
-    '''
-    The invalid error message error.
-    '''
-    
-    # * method: init
-    def __init__(self, error_message: str, exception: Exception):
-        '''
-        Initialize the invalid error message error.
-        
-        :param error_message: The error message.
-        :type error_message: str
-        :param exception: The exception.
-        :type exception: Exception
-        '''
-        
-        # Set the error message.
-        self.error_message = error_message
-        super().__init__(f'Invalid error message: {error_message} - {exception}')
 
 
 # ** exception: error_not_found_error
