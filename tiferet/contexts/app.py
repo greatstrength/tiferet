@@ -20,7 +20,6 @@ class AppContext(Model):
     # * attribute: app_repo_module_path
     app_repo_module_path = StringType(
         required=True,
-        default='tiferet.proxies.app_yaml',
         metadata=dict(
             description='The application repository proxy module path.'
         ),
@@ -29,7 +28,6 @@ class AppContext(Model):
     # * attribute: app_repo_class_name
     app_repo_class_name = StringType(
         required=True,
-        default='AppYamlProxy',
         metadata=dict(
             description='The application repository proxy class name.'
         ),
@@ -38,13 +36,35 @@ class AppContext(Model):
     # * attribute: app_repo_parameters
     app_repo_parameters = DictType(
         StringType(),
-        default=dict(
-            app_config_file='app/configs/app.yml'
-        ),
         metadata=dict(
             description='The application repository parameters.'
         ),
     )
+
+    # * method: init
+    def __init__(self,
+                 app_repo_module_path: str = 'tiferet.proxies.app_yaml',
+                 app_repo_class_name: str = 'AppYamlProxy',
+                 app_repo_parameters: Dict[str, str] = dict(
+                     app_config_file='app/configs/app.yml'
+                 )):
+        '''
+        Initialize the application context.
+
+        :param app_repo_module_path: The application repository proxy module path.
+        :type app_repo_module_path: str
+        :param app_repo_class_name: The application repository proxy class name.
+        :type app_repo_class_name: str
+        :param app_repo_parameters: The application repository parameters.
+        :type app_repo_parameters: dict
+        '''
+
+        # Initialize the model.
+        super().__init__(dict(
+            app_repo_module_path=app_repo_module_path,
+            app_repo_class_name=app_repo_class_name,
+            app_repo_parameters=app_repo_parameters
+        ))
 
     # * method: run
     def run(self, interface_id: str, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
@@ -79,11 +99,11 @@ class AppContext(Model):
         :return: The application interface.
         :rtype: AppInterface
         '''
-        
+
         # Import the app repository.
         app_repo = self.import_app_repo(
-            self.app_repo_module_path, 
-            self.app_repo_class_name, 
+            self.app_repo_module_path,
+            self.app_repo_class_name,
             **self.app_repo_parameters
         )
 
@@ -118,7 +138,7 @@ class AppContext(Model):
         # Return None if nothing comes up.
         except:
             return None
-        
+
     # ** method: create_injector
     def create_injector(self, app_interface: AppInterface, **kwargs) -> Any:
         '''
@@ -149,14 +169,15 @@ class AppContext(Model):
         )
 
         # Add the remaining dependencies from the app interface.
-        dependencies.update({dep.attribute_id: import_dependency(dep.module_path, dep.class_name) for dep in app_interface.dependencies})
+        dependencies.update({dep.attribute_id: import_dependency(
+            dep.module_path, dep.class_name) for dep in app_interface.dependencies})
 
         # Create the injector.
         return create_injector(app_interface.id, **dependencies, **kwargs)
 
 
 # ** context: app_interface_context
-class AppInterfaceContext(Model): 
+class AppInterfaceContext(Model):
     '''
     The application interface context is a class that is used to create and run the application interface.
     '''
@@ -219,21 +240,33 @@ class AppInterfaceContext(Model):
         self.errors = error_context
 
     # * method: parse_request
-    def parse_request(self, request: Any, **kwargs) -> Tuple[RequestContext, dict]:
+    def parse_request(self,
+        feature_id: str,
+        data: Dict[str, Any] = {},
+        headers: Dict[str, str] = {},
+        **kwargs
+    ) -> RequestContext:
         '''
         Parse the incoming request.
 
-        :param request: The incoming request.
-        :type request: Any
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :param feature_id: The feature ID.
+        :type feature_id: str
+        :param data: The data.
+        :type data: dict
+        :param headers: The headers.
+        :type headers: dict
         :return: The request context.
         :rtype: RequestContext
         '''
 
         # Parse request.
-        return request, kwargs
-    
+        return RequestContext(
+            feature_id=feature_id,
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
     # * method: execute_feature
     def execute_feature(self, request: RequestContext, **kwargs):
         '''
@@ -245,7 +278,7 @@ class AppInterfaceContext(Model):
 
         # Execute feature context and return session.
         self.features.execute(request, **kwargs)
-    
+
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
         '''
@@ -256,24 +289,26 @@ class AppInterfaceContext(Model):
         :return: The response.
         :rtype: Any
         '''
-        
+
         # Import the JSON module.
         import json
 
         # Return the response.
         return json.loads(request.result) if request.result else None
-    
+
     # * method: run
-    def run(self, **kwargs):
+    def run(self, feature_id: str, **kwargs):
         '''
         Run the application interface.
 
+        :param feature_id: The feature ID.
+        :type feature_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
-        
+
         # Parse request.
-        request, kwargs = self.parse_request(**kwargs)
+        request = self.parse_request(feature_id, **kwargs)
 
         # Execute feature context and return session.
         try:

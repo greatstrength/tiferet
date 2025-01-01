@@ -7,3 +7,4 @@ from abc import ABC, abstractmethod
 
 # ** app
 from .types import *
+from .errors import *

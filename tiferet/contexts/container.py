@@ -84,7 +84,6 @@ class ContainerContext(Model):
 
     # * attribute: feature_flag
     feature_flag = StringType(
-        required=True,
         default='core',
         metadata=dict(
             description='The feature flag.'
@@ -93,7 +92,6 @@ class ContainerContext(Model):
 
     # * attribute: data_flag
     data_flag = StringType(
-        required=True,
         metadata=dict(
             description='The data flag.'
         ),
