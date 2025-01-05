@@ -1,13 +1,134 @@
 # *** imports
 
-# ** core
-import os
+# infra
+import pytest
 
 # ** app
-from . import *
+from ..container import *
+
+
+# *** mocks
+class MockContainerRepository(ContainerRepository):
+
+    def __init__(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}):
+        self.attributes = attributes
+        self.constants = constants
+
+    def get_attribute(self, attribute_id, type):
+        return next((attribute for attribute in self.attributes if attribute.id == attribute_id), None)
+
+    def list_all(self):
+        return self.attributes, self.constants
+
+
+# *** fixtures
+
+# ** fixture: test_env_var
+@pytest.fixture
+def test_env_var():
+    '''
+    Test environment variable.
+    '''
+
+    # Return the test environment variable.
+    return os.getenv("TEST_ENV_VAR")
+
+
+# ** fixture: mock_container_repository_raise_error
+@pytest.fixture
+def mock_container_repository_raise_error():
+
+    class MockContainerRepository(ContainerRepository):
+
+        def get_attribute(self, attribute_id, type):
+            raise Exception("Error")
+
+        def list_all(self):
+            raise Exception("Error")
+
+
+    return MockContainerRepository
+
+# ** fixture: container_dependency
+@pytest.fixture
+def container_dependency():
+    return ValueObject.new(
+        ContainerDependency,
+        module_path='tiferet.contexts.tests.test_container',
+        class_name='MockContainerRepository',
+        flag='test',
+        parameters={},
+    )
+
+
+
+# ** fixture: test_repo_container_attribute
+@pytest.fixture
+def container_attribute(container_dependency):
+    return Entity.new(
+        ContainerAttribute,
+        id='test_dependency',
+        type='data',
+        dependencies=[container_dependency],
+    )
+
+
+# ** fixture: container_repo
+@pytest.fixture
+def container_repo(
+    container_attribute
+):
+    return MockContainerRepository(
+        attributes=[
+            container_attribute
+        ]
+    )
+
+
+# ** fixture: container_context
+@pytest.fixture
+def container_context(container_repo):
+    return ContainerContext(
+        interface_id="test_interface",
+        container_repo=container_repo,
+        feature_flag="test",
+        data_flag="test"
+    )
 
 
 # *** tests
+
+# ** test: test_create_injector_raises_failure_error
+def test_create_injector_raises_failure_error(container_context):
+
+    # Call create_injector with an invalid interface ID
+    with pytest.raises(CreateInjectorFailureError):
+        create_injector(None)
+
+
+# ** test: test_import_dependency_raises_failure_error
+def test_import_dependency_raises_failure_error():
+
+    # Call import_dependency with an invalid attribute ID
+    with pytest.raises(DependencyImportFailureError):
+        import_dependency('app.import.does_not_exist', 'ClassDoesNotExist')
+
+
+# ** test: test_container_context_init_raises_failure_error
+def test_container_context_init_raises_failure_error(mock_container_repository_raise_error):
+
+    # Create the repository.
+    repository = mock_container_repository_raise_error()
+
+    # Call ContainerContext.__init__ with an invalid interface ID
+    with pytest.raises(ContainerAttributeLoadingError):
+        ContainerContext(
+            "test_interface", 
+            repository,
+            "test",
+            "test",
+        )
+
 
 # ** test: test_container_context_init
 def test_container_context_init(container_context):
@@ -30,22 +151,30 @@ def test_parse_parameter(container_context, test_env_var):
     assert result == "test"
 
 
+# ** test: test_parse_parameter_raises_failure_error
+def test_parse_parameter_raises_failure_error(container_context):
+
+    # Call parse_parameter with an invalid parameter
+    with pytest.raises(ParameterParsingError):
+        container_context.parse_parameter("$env.does_not_exist")
+
+
 # ** test: test_get_dependency
-def test_get_dependency(container_context):
-    
+def test_get_dependency(container_context, container_attribute):
+
     # Call get_dependency with a test attribute
-    result = container_context.get_dependency(TEST_PROXY_ATTRIBUTE_ID)
+    result = container_context.get_dependency('test_dependency', attributes=[container_attribute])
 
     # Ensure the dependency was retrieved
     assert result is not None
-    assert result.config_file == TEST_PROXY_CONFIG_FILE_VALUE
+    assert isinstance(result, MockContainerRepository)
 
 
 # ** test: test_create_injector
-def test_create_injector(container_context):
+def test_create_injector(container_context, container_attribute):
 
     # Call create_injector.
-    injector = container_context.create_injector()
+    injector = container_context.create_injector(attributes=[container_attribute])
 
     # Ensure the injector was created.
     assert injector is not None
@@ -59,4 +188,12 @@ def test_import_dependency(container_context, container_attribute):
 
     # Ensure the dependency was imported
     assert result is not None
-    assert result == TestProxy
+    assert result == MockContainerRepository
+
+
+# ** test: test_import_dependency_raises_failure_error
+def test_import_dependency_raises_failure_error(container_context, container_attribute):
+
+    # Call import_dependency with an invalid attribute ID
+    with pytest.raises(DependencyNotFoundError):
+        container_context.import_dependency(container_attribute, "does_not_exist")
