@@ -1,7 +1,114 @@
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
-from . import *
+from ..error import *
+
+
+# *** classes
+
+# class: mock_error_repo
+class MockErrorRepository(ErrorRepository):
+        
+    def __init__(self, errors=[]):
+        self.errors = errors
+
+    def exists(self, id, **kwargs):
+        pass
+
+    def get(self, id):
+        pass
+
+    def list(self):
+        return self.errors
+
+    def save(self, error):
+        pass
+
+
+# *** fixtures
+
+# ** fixture: mock_error_repo_raise_error
+@pytest.fixture
+def mock_error_repo_raise_error():
+    
+    class MockErrorRepository(ErrorRepository):
+
+        def exists(self, id, **kwargs):
+            raise Exception("Error")
+
+        def get(self, id):
+            raise Exception("Error")
+
+        def list(self):
+            raise Exception("Error")
+
+        def save(self, error):
+            raise Exception("Error")
+
+    return MockErrorRepository()
+
+
+# ** fixture: error_message
+@pytest.fixture
+def error_message() -> ErrorMessage:
+    return ValueObject.new(
+        ErrorMessage,
+        lang='en_US',
+        text='An error occurred.'
+    )
+
+
+# ** fixture: formatted_error_message
+@pytest.fixture
+def formatted_error_message() -> ErrorMessage:
+    return ValueObject.new(
+        ErrorMessage,
+        lang='en_US',
+        text='An error occurred: {}'
+    )
+
+
+# ** fixture: error
+@pytest.fixture
+def error(error_message) -> Error:
+    return Error.new(
+        name='My Error',
+        message=[error_message]
+    )
+
+
+# ** fixture: error_with_formatted_message
+@pytest.fixture
+def error_with_formatted_message(formatted_error_message) -> Error:
+    return ValueObject.new(
+        Error,
+        name='My formatted error',
+        id='MY_FORMATTED_ERROR',
+        error_code='MY_FORMATTED_ERROR',
+        message=[formatted_error_message]
+    )
+
+
+# ** fixture: error_repo 
+@pytest.fixture
+def error_repo(error, error_with_formatted_message):
+    return MockErrorRepository(
+        errors=[
+            error,
+            error_with_formatted_message
+        ]
+    )
+
+
+# ** fixture: error_context 
+@pytest.fixture
+def error_context(error_repo):
+    return ErrorContext(
+        error_repo=error_repo
+    )
 
 
 # *** tests
@@ -14,57 +121,101 @@ def test_error_context_init(error_context, error_repo):
 
     # Check that the errors are loaded correctly.
     assert error_context.errors["MY_ERROR"] == error_repo.errors[0]
-    assert error_context.errors["FORMATTED_ERROR"] == error_repo.errors[1]
-    assert error_context.errors["MULTI_FORMATTED_ERROR"] == error_repo.errors[2]
+    assert error_context.errors["MY_FORMATTED_ERROR"] == error_repo.errors[1]
 
 
-# ** test: test_error_context_load_custom_errors
-def test_error_context_load_custom_errors(error_context):
+# ** test: test_error_context_init_with_error
+def test_error_context_init_with_error(mock_error_repo_raise_error):
 
-    # Test loading custom errors
-    custom_errors = error_context.load_custom_errors()
+    # Check that an error is raised when loading errors.
+    with pytest.raises(ErrorLoadingError):
+        ErrorContext(
+            error_repo=mock_error_repo_raise_error
+        )
 
-    # Check if the custom errors are loaded correctly
-    assert len(custom_errors) == 1
-    assert custom_errors[0].name == "FEATURE_NOT_FOUND"
+
+# ** test: test_format_error_response_error_not_found
+def test_format_error_response_error_not_found(error_context):
+
+    # Check that an error is raised when the error is not found.
+    with pytest.raises(ErrorNotFoundError):
+        error_context.format_error_response("ERROR_NOT_FOUND", lang="en_US")
 
 
-# ** test: test_error_context_handle_error_with_error
-def test_error_context_handle_error_with_assertion_error(error_context):
-    
-    
-    # Test handling an error with an assertion error
-    message = error_context.handle_error(AssertionError("MY_ERROR"), lang="en_US")
+# ** test: test_format_error_response_use_default_language
+def test_format_error_response_use_default_language(error_context):
+
+    # Test formatting an error response with the default language.
+    formatted_message = error_context.format_error_response("MY_ERROR", lang="es_ES")
 
     # Check if the error message is correctly formatted
-    assert message['message'] == "An error occurred."
+    assert formatted_message['message'] == "An error occurred."
 
 
 # ** test: test_format_error_response_with_args
-def test_format_error_response_with_args(error_context):
+def test_format_error_response(error_context):
 
-    # Test formatting an error response with arguments
-    formatted_message = error_context.format_error_response("FORMATTED_ERROR: This is the error.", lang="en_US")
+    # Test formatting an error response with no arguments.
+    message = error_context.format_error_response("MY_ERROR", lang="en_US")
 
     # Check if the error message is correctly formatted
+    assert message['error_code'] == "MY_ERROR"
+    assert message['message'] == "An error occurred."
+
+    # Test formatting an error response with arguments
+    formatted_message = error_context.format_error_response("MY_FORMATTED_ERROR", lang="en_US", error_data=["This is the error."])
+
+    # Check if the error message is correctly formatted
+    assert formatted_message['error_code'] == "MY_FORMATTED_ERROR"
     assert formatted_message['message'] == "An error occurred: This is the error."
 
 
-# ** test: test_format_error_response_with_multiple_args
-def test_format_error_response_with_multiple_args(error_context):
+# ** test: test_handle_error_raise_exception
+def test_handle_error_raise_exception(error_context):
 
-    # Test formatting an error response with multiple arguments
-    formatted_message = error_context.format_error_response("MULTI_FORMATTED_ERROR: This is the error, 12345", lang="en_US")
+    # Create an exception using an unknown error code.
+    exception = Exception("An error occurred.")
+
+    # Test handling an error and raising an exception
+    with pytest.raises(Exception):
+        error_context.handle_error(
+            exception, 
+            lang="en_US"
+        )
+
+
+# ** test: test_handle_error_return_formatted_error_response
+def test_handle_error_return_formatted_error_response(error_context):
+
+    # Create Tiferet Error using a known error code.
+    exception = TiferetError(
+        error_code="MY_ERROR",
+        message="An error occurred."
+    )
+
+    # Test handling an error and returning a formatted error response
+    formatted_message = error_context.handle_error(
+        exception, 
+        lang="en_US"
+    )
 
     # Check if the error message is correctly formatted
-    assert formatted_message['message'] == "An error occurred: This is the error - 12345."
+    assert formatted_message['error_code'] == "MY_ERROR"
+    assert formatted_message['message'] == "An error occurred."
 
 
-# ** test: test_format_error_response_with_multiple_colons
-def test_format_error_response_with_multiple_colons(error_context):
+# ** test: test_handle_error_raise_exception
+def test_handle_error_raise_tiferet_error_exception(error_context):
 
-    # Test formatting an error response with multiple colons
-    formatted_message = error_context.format_error_response("FORMATTED_ERROR: This is the error: 12345", lang="en_US")
+    # Create an exception using an unknown error code.
+    exception = TiferetError(
+        error_code="ERROR_NOT_FOUND",
+        message="An error occurred."
+    )
 
-    # Check if the error message is correctly formatted
-    assert formatted_message['message'] == "An error occurred: This is the error: 12345"
+    # Test handling an error and raising an exception
+    with pytest.raises(TiferetError):
+        error_context.handle_error(
+            exception, 
+            lang="en_US"
+        )
