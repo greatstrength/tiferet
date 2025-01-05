@@ -56,16 +56,19 @@ class ErrorContext(Model):
         :rtype: bool
         '''
 
-        # Execute the feature function and handle the errors.
-        # If the exception is a TiferetError, then format the error response.
-        # Otherwise, raise the exception.
-        if isinstance(exception, TiferetError):
+        # Raise the exception if it is not a Tiferet error.
+        if not isinstance(exception, TiferetError):
+            raise exception
+        
+        # Format the error response.
+        # If the error does not exist, raise the Tiferet error as an exception as it is not configured as an error.
+        try:
             return self.format_error_response(
                 exception.error_code, 
                 lang,
                 error_data=list(exception.args), 
                 **kwargs)
-        else:
+        except ErrorNotFoundError:
             raise exception
 
     # * method: format_error_response
@@ -82,19 +85,16 @@ class ErrorContext(Model):
         '''
 
         # Get error.
-        try:
-            error = self.errors.get(error_code)
-        except Exception as e:
+        # If the error does not exist, raise an error not found error.
+        error = self.errors.get(error_code, None)
+        if not error:
             raise ErrorNotFoundError(error_code)
         
         # Format the error response message.
+        # If the error message does not exist in the specified language, use the default language.
         error_response_message = error.format(lang, *error_data if error_data else [])
         if not error_response_message:
-            raise ErrorLanguageNotSupportedError(error.id, lang)
-        
-        # Verify the error code.
-        if not error.error_code:
-            raise InvalidErrorCodeError(error.id)
+            error_response_message = error.format('en_US', *error_data if error_data else [])
 
         # Set error response.
         error_response = dict(
@@ -147,46 +147,3 @@ class ErrorNotFoundError(Exception):
         # Set the error ID.
         self.error_id = error_id
         super().__init__(f'Error not found: {error_id}')
-
-
-# ** exception: error_language_not_supported_error
-class ErrorLanguageNotSupportedError(Exception):
-    '''
-    The error language not supported error.
-    '''
-    
-    # * method: init
-    def __init__(self, error_id: str, lang: str):
-        '''
-        Initialize the error language not supported error.
-        
-        :param error_id: The error ID.
-        :type error_id: str
-        :param lang: The language.
-        :type lang: str
-        '''
-        
-        # Set the error ID and language.
-        self.error_id = error_id
-        self.lang = lang
-        super().__init__(f'Error language not supported: {error_id} ({lang})')
-
-
-# ** exception: invalid_error_code_error
-class InvalidErrorCodeError(Exception):
-    '''
-    The invalid error code error.
-    '''
-    
-    # * method: init
-    def __init__(self, error_id: str):
-        '''
-        Initialize the invalid error code error.
-        
-        :param error_code: The error code.
-        :type error_code: str
-        '''
-        
-        # Set the error ID with the invalid error code.
-        self.error_id = error_id
-        super().__init__(f'Invalid error code for error: {error_id}')
