@@ -14,7 +14,7 @@ class ErrorMessage(ValueObject):
     '''
 
     # * attribute: lang
-    lang = t.StringType(
+    lang = StringType(
         required=True,
         metadata=dict(
             description='The language of the error message text.'
@@ -22,7 +22,7 @@ class ErrorMessage(ValueObject):
     )
 
     # * attribute: text
-    text = t.StringType(
+    text = StringType(
         required=True,
         metadata=dict(
             description='The error message text.'
@@ -55,7 +55,7 @@ class Error(Entity):
     '''
 
     # * attribute: name
-    name = t.StringType(
+    name = StringType(
         required=True,
         metadata=dict(
             description='The name of the error.'
@@ -63,15 +63,15 @@ class Error(Entity):
     )
 
     # * attribute: error_code
-    error_code = t.StringType(
+    error_code = StringType(
         metadata=dict(
             description='The unique code of the error.'
         )
     )
 
     # * attribute: message
-    message = t.ListType(
-        t.ModelType(ErrorMessage),
+    message = ListType(
+        ModelType(ErrorMessage),
         required=True,
         metadata=dict(
             description='The error message translations for the error.'
