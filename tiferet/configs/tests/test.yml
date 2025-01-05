@@ -28,7 +28,6 @@ features:
       params:
         param1: value1
     description: A test feature.
-    group_id: test_group
     name: Test Feature
 interfaces:
   test:
