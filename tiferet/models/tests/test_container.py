@@ -64,7 +64,7 @@ def test_container_attribute_get_dependency(
     container_dependency = container_attribute.get_dependency('test')
 
     # Assert the container dependency is valid.
-    assert container_dependency.module_path == 'tiferet.repos.tests'
+    assert container_dependency.module_path == 'tiferet.proxies.tests'
     assert container_dependency.class_name == 'TestProxy'
     assert container_dependency.flag == 'test'
 

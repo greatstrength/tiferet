@@ -28,7 +28,7 @@ class ServiceCommand(object):
     
 
     # * method: verify
-    def verify(self, expression: bool, error_code: str, *args):
+    def verify(self, expression: bool, error_code: str, message: str, *args):
         '''
         Verify an expression and raise an error if it is false.
 
@@ -41,9 +41,14 @@ class ServiceCommand(object):
         '''
 
         # Format the error message.
-        message = error_code
         if args:
             message = '{}: {}'.format(message, ', '.join(args))
 
         # Verify the expression.
-        assert expression, message
+        try:
+            assert expression
+        except AssertionError:
+            raise TiferetError(
+                message=message,
+                error_code=error_code,
+            )
