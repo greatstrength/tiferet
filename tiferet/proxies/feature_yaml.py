@@ -53,23 +53,8 @@ class FeatureYamlProxy(FeatureRepository):
         :return: The feature object.
         '''
 
-        # Load feature data from yaml.
-        _data: FeatureData = yaml_client.load(
-            self.config_file,
-            create_data=lambda data: DataObject.from_data(
-                FeatureData,
-                id=id,
-                **data
-            ),
-            start_node=lambda data: data.get('features').get(id)
-        )
-
-        # Return None if feature data is not found.
-        if not _data:
-            return None
-
-        # Return feature.
-        return _data.map()
+        # Get the feature.
+        return next((feature for feature in self.list() if feature.id == id), None)
     
     # * method: list
     def list(self, group_id: str = None) -> List[Feature]:
