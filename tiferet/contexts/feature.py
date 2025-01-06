@@ -2,8 +2,9 @@
 
 # ** app
 from ..configs import *
-from ..models.feature import *
-from ..repos.feature import *
+from ..commands import ServiceCommand
+from ..models.feature import Feature
+from ..repos.feature import FeatureRepository
 
 # ** app - contexts
 from .container import ContainerContext
@@ -57,20 +58,6 @@ class FeatureContext(Model):
             features=features,
         ))
         self.container = container_context
-
-    # * method: parse_parameter
-    def parse_parameter(self, parameter: str) -> str:
-        '''
-        Parse a parameter.
-
-        :param parameter: The parameter to parse.
-        :type parameter: str
-        :return: The parsed parameter.
-        :rtype: str
-        '''
-
-        # Parse the parameter.
-        return self.container.parse_parameter(parameter)
         
     # * method: execute
     def execute(self, request: RequestContext, debug: bool = False, **kwargs):
@@ -96,12 +83,12 @@ class FeatureContext(Model):
         for command in feature.commands:
 
             # Get the feature command handler instance.
-            handler = self.container.get_dependency(command.attribute_id)
+            handler: ServiceCommand = self.container.get_dependency(command.attribute_id)
 
             # Parse the command parameters
             params = {
                 param: 
-                self.parse_parameter(
+                self.container.parse_parameter(
                     command.params.get(param)
                 ) 
                 for param in command.params
@@ -129,6 +116,8 @@ class FeatureContext(Model):
             except TiferetError as e:
                 if not command.pass_on_error:
                     raise e 
+            finally:
+                print('Exception:', e) if 'e' in locals() else None 
 
 
 # *** exceptions
