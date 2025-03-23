@@ -105,3 +105,21 @@ class RequestContext(Model):
 
         # Serialize the result and set it.
         self.result = json.dumps(result_list)
+
+    # * method: handle_response
+    def handle_response(self, **kwargs) -> Any:
+        '''
+        Handle the response.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The response object.
+        :rtype: Any
+        '''
+
+        # Import the json module.
+        import json
+
+        # Deserialize the result.
+        # Return None if the result is None.
+        result = json.loads(self.result) if self.result else None
