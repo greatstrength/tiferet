@@ -34,7 +34,6 @@ interfaces:
     app_context:
       class_name: AppInterfaceContext
       module_path: tiferet.contexts.app
-    
     data_flag: test
     description: The test interface.
     feature_flag: test
