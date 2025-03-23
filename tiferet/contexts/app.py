@@ -220,6 +220,50 @@ class AppInterfaceContext(Model):
             headers=headers,
             **kwargs
         )
+    
+    # * method: execute_feature
+    def execute_feature(self, request: RequestContext, **kwargs):
+        '''
+        Execute the feature request.
+
+        :param request: The request context object.
+        :type
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Execute feature context.
+        self.features.execute(request, cache=self.cache, **kwargs)
+
+    # * method: handle_error
+    def handle_error(self, exception: Exception) -> Any:
+        '''
+        Handle passed exceptions as an error.
+
+        :param exception: An exception thrown during a feature request.
+        :type exception: Exception
+        :return: The error data.
+        :rtype: Any
+        '''
+        
+        print('Error:', exception)
+        return self.errors.handle_error(exception)
+    
+
+    # * method: handle_response
+    def handle_response(self, request: RequestContext):
+        '''
+        Handle the application response.
+
+        :param request: The request context object.
+        :type request: RequestContext
+        :return: The response data.
+        :rtype: dict
+        '''
+
+        # Handle the response from the request.
+        return request.handle_response()
+
 
     # * method: run
     def run(self, feature_id: str, **kwargs):
@@ -236,13 +280,11 @@ class AppInterfaceContext(Model):
         request = self.parse_request(feature_id, **kwargs)
 
         # Execute feature context and return session.
-        try:
-            self.features.execute(request, cache=self.cache, **kwargs)
-
         # Handle error and return response if triggered.
+        try:
+            self.execute_feature(request, **kwargs)
         except Exception as e:
-            print('Error:', e)
-            return self.errors.handle_error(e)
+            return self.handle_error(e)
 
         # Handle response.
         return request.handle_response()
