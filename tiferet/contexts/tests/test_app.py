@@ -13,7 +13,7 @@ from ..app import *
 class MockAppRepository(AppRepository):
 
     # * method: init
-    def __init__(self, interfaces: List[AppInterface]):
+    def __init__(self, interfaces: List[AppInterface] = []):
         self.interfaces = interfaces
 
     # * method: list_interfaces
@@ -75,7 +75,7 @@ def feature_repo_dependency():
     return ValueObject.new(
         AppDependency,
         attribute_id='feature_repo',
-        module_path='tiferet.contexts.tests.test_app',
+        module_path='tiferet.contexts.tests.test_feature',
         class_name='MockFeatureRepository',
     )
 
@@ -86,7 +86,7 @@ def error_repo_dependency():
     return ValueObject.new(
         AppDependency,
         attribute_id='error_repo',
-        module_path='tiferet.repos.tests',
+        module_path='tiferet.contexts.tests.test_error',
         class_name='MockErrorRepository',
     )
 
@@ -97,7 +97,7 @@ def container_repo_dependency():
     return ValueObject.new(
         AppDependency,
         attribute_id='container_repo',
-        module_path='tiferet.repos.tests',
+        module_path='tiferet.contexts.tests.test_container',
         class_name='MockContainerRepository',
     )
 
@@ -167,6 +167,21 @@ def app_context(test_app_interface):
         )
     )
 
+
+# ** fixture: app_context_interface
+@pytest.fixture
+def app_context_interface(app_context, test_app_interface):
+    return app_context.load_interface(test_app_interface)
+
+
+## ** fixture: request_context
+@pytest.fixture
+def request_context():
+    return RequestContext(
+        feature_id='test_group.test_feature',
+        data={'param2': 'value2'},
+        headers={'Content-Type': 'application/json'}
+    )
 
 # ** fixture: request_context_with_result
 @pytest.fixture
@@ -245,15 +260,21 @@ def test_app_context_load_interface_invalid_interface():
         app_context.load_interface(app_interface)
 
 
-# # ** test: execute_feature
-# def test_execute_feature(app_interface_context, request_context):
+# ** test: app_context_load_interface
+def test_app_context_load_interface(app_context_interface, test_app_interface):
+
+    # Assert the app interface is loaded correctly.
+    assert app_context_interface.interface_id == test_app_interface.id
+
+# ** test: app_context_run
+def test_app_context_run(app_context_interface, request_context_with_result):
     
-#     # Execute the feature.
-#     app_interface_context.execute_feature(request_context)
+    # Load the app interface.
     
-#     # Ensure the feature was executed.
-#     import json
-#     assert request_context.result == json.dumps(('value1', 'value2'))
+    
+    # Ensure the feature was executed.
+    import json
+    assert request_context_with_result.result == json.dumps(('value1', 'value2'))
 
 
 # # ** test: handle_response

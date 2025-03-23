@@ -17,7 +17,7 @@ from ..feature import *
 class MockFeatureRepository(FeatureRepository):
 
     # * method: init
-    def __init__(self, features: List[Feature]):
+    def __init__(self, features: List[Feature] = []):
         self.features = features
 
     # * method: list

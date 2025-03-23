@@ -10,7 +10,7 @@ from ..container import *
 # *** mocks
 class MockContainerRepository(ContainerRepository):
 
-    def __init__(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}):
+    def __init__(self, attributes: List[ContainerAttribute] = [], constants: Dict[str, str] = {}):
         self.attributes = attributes
         self.constants = constants
 

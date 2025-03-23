@@ -12,14 +12,14 @@ from ..error import *
 # class: mock_error_repo
 class MockErrorRepository(ErrorRepository):
         
-    def __init__(self, errors=[]):
+    def __init__(self, errors: List[Error] = []):
         self.errors = errors
 
     def exists(self, id, **kwargs):
-        pass
+        return any(error.id == id for error in self.errors)
 
     def get(self, id):
-        pass
+        return next((error for error in self.errors if error.id == id), None)
 
     def list(self):
         return self.errors

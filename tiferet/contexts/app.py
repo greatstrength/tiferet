@@ -123,7 +123,7 @@ class AppContext(Model):
             dep.module_path, dep.class_name) for dep in app_interface.dependencies})
 
         # Create the injector.
-        injector = create_injector(app_interface, **dependencies, **kwargs)
+        injector = create_injector(app_interface.name, **dependencies, **kwargs)
 
         # Load the app interface context.
         return getattr(injector, 'app_context')
