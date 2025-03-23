@@ -4,8 +4,28 @@
 import pytest
 
 # ** app
-from . import *
+from ..request import RequestContext
+from ...configs import Model, StringType
 
+
+# *** classes
+
+# ** class: TestModel
+class TestModel(Model):
+
+    test_field = StringType()
+
+
+# *** fixtures
+
+## ** fixture: request_context
+@pytest.fixture
+def request_context():
+    return RequestContext(
+        feature_id='test_group.test_feature',
+        data={'param2': 'value2'},
+        headers={'Content-Type': 'application/json'}
+    )
 
 # *** tests
 
@@ -48,12 +68,12 @@ def test_set_result_with_model(request_context):
 
 
 # ** test: test_set_result_with_list_of_models
-def test_set_result_with_list_of_models(request_context, test_model):
+def test_set_result_with_list_of_models(request_context):
     
     # Create a list of models.
     models_list = [
-        test_model(dict(test_field="value1")), 
-        test_model(dict(test_field="value2"))
+        TestModel(dict(test_field="value1")), 
+        TestModel(dict(test_field="value2"))
     ]
     request_context.set_result(models_list)
 
