@@ -18,27 +18,12 @@ from .container import create_injector, import_dependency
 # ** context: app_context
 class AppContext(Model):
 
-    # * attribute: app_repo_module_path
-    app_repo_module_path = StringType(
+    # * attribute: interfaces
+    interfaces = DictType(
+        ModelType(AppInterface),
         required=True,
         metadata=dict(
-            description='The application repository proxy module path.'
-        ),
-    )
-
-    # * attribute: app_repo_class_name
-    app_repo_class_name = StringType(
-        required=True,
-        metadata=dict(
-            description='The application repository proxy class name.'
-        ),
-    )
-
-    # * attribute: app_repo_parameters
-    app_repo_parameters = DictType(
-        StringType(),
-        metadata=dict(
-            description='The application repository parameters.'
+            description='The application interfaces.'
         ),
     )
 
@@ -46,7 +31,7 @@ class AppContext(Model):
     def __init__(self,
                  app_repo_module_path: str = 'tiferet.proxies.app_yaml',
                  app_repo_class_name: str = 'AppYamlProxy',
-                 app_repo_parameters: Dict[str, str] = dict(
+                 app_repo_parameters: Dict[str, Any] = dict(
                      app_config_file='app/configs/app.yml'
                  )):
         '''
@@ -60,121 +45,88 @@ class AppContext(Model):
         :type app_repo_parameters: dict
         '''
 
+        # Import the app repository.
+        # Raise an error if the app repository cannot be imported.
+        try:
+            app_repo: AppRepository = import_dependency(app_repo_module_path, app_repo_class_name)(**app_repo_parameters)
+        except Exception as e:
+            raise AppRepositoryImportError(e)
+
+        # Load the interfaces.
+        # Raise an error if the interfaces cannot be loaded.
+        try:
+            interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
+        except Exception as e:
+            raise AppInterfacesLoadingError(e)
+        
         # Initialize the model.
         super().__init__(dict(
-            app_repo_module_path=app_repo_module_path,
-            app_repo_class_name=app_repo_class_name,
-            app_repo_parameters=app_repo_parameters
+            interfaces=interfaces
         ))
 
     # * method: run
-    def run(self, interface_id: str, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
+    def run(self, interface_id: str, **kwargs) -> Any:
         '''
         Run the application interface.
 
         :param interface_id: The interface ID.
         :type interface_id: str
-        :param dependencies: The dependencies.
-        :type dependencies: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The response.
         :rtype: Any
         '''
 
-        # Load the interface.
-        app_interface = self.load_interface(interface_id, **dependencies)
+        # Get the app interface.
+        app_interface = self.interfaces.get(interface_id)
+
+        # Raise an error if the app interface is not found.
+        if not app_interface:
+            raise AppInterfaceNotFoundError(interface_id)
+
+        # Load the interface context
+        app_interface_context = self.load_interface(app_interface, **kwargs)
 
         # Run the interface.
-        return app_interface.run(**kwargs)
+        return app_interface_context.run(**kwargs)
 
     # * method: load_interface
-    def load_interface(self, interface_id: str, **dependencies) -> AppInterface:
+    def load_interface(self, app_interface: AppInterface, dependencies: Dict[str, Any] = {}, **kwargs) -> AppInterface:
         '''
         Load the application interface.
 
-        :param interface_id: The interface ID.
-        :type interface_id: str
+        :param app_interface: The application interface.
+        :type app_interface: AppInterface
         :param dependencies: The dependencies.
         :type dependencies: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The application interface.
         :rtype: AppInterface
         '''
 
-        # Import the app repository.
-        app_repo = self.import_app_repo(
-            self.app_repo_module_path,
-            self.app_repo_class_name,
-            **self.app_repo_parameters
-        )
-
-        # Get the app interface.
-        app_interface = app_repo.get_interface(interface_id)
-
-        # Create the injector.
-        injector = self.create_injector(app_interface, **dependencies)
-
-        # Load the app interface context.
-        return getattr(injector, 'app_context')
-
-    # * method: import_app_repo
-    def import_app_repo(self, module_path: str, class_name: str, **kwargs) -> AppRepository:
-        '''
-        Import the app repository.
-
-        :param module_path: The module path.
-        :type module_path: str
-        :param class_name: The class name.
-        :type class_name: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The app repository.
-        :rtype: AppRepository
-        '''
-
-        # Try to import the module provided.
-        try:
-            return import_dependency(module_path, class_name)(**kwargs)
-
-        # Return None if nothing comes up.
-        except:
-            return None
-
-    # ** method: create_injector
-    def create_injector(self, app_interface: AppInterface, **kwargs) -> Any:
-        '''
-        Create the injector.
-
-        :param app_interface: The app interface.
-        :type app_interface: AppInterface
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The injector.
-        :rtype: Any
-        '''
-
-        # Retrieve the app context dependency.
-        app_context = app_interface.get_dependency('app_context')
+        # Raise an error if the app interface is invalid.
+        if not app_interface.get_dependency('app_context'):
+            raise InvalidAppInterfaceError(app_interface.id)
 
         # Get the dependencies for the app interface.
-        dependencies = dict(
+        dependencies.update(dict(
             interface_id=app_interface.id,
             app_name=app_interface.name,
             feature_flag=app_interface.feature_flag,
             data_flag=app_interface.data_flag,
-            app_context=import_dependency(
-                app_context.module_path,
-                app_context.class_name,
-            ),
             **app_interface.constants
-        )
+        ))
 
         # Add the remaining dependencies from the app interface.
         dependencies.update({dep.attribute_id: import_dependency(
             dep.module_path, dep.class_name) for dep in app_interface.dependencies})
 
         # Create the injector.
-        return create_injector(app_interface.id, **dependencies, **kwargs)
+        injector = create_injector(app_interface, **dependencies, **kwargs)
+
+        # Load the app interface context.
+        return getattr(injector, 'app_context')
 
 
 # ** context: app_interface_context
@@ -269,6 +221,17 @@ class AppInterfaceContext(Model):
         :rtype: RequestContext
         '''
 
+        # Throw a data type invalid error if a value for a data key is not a string, integer, float, or boolean.
+        for key, value in data.items():
+            if not isinstance(value, (str, int, float, bool)):
+                raise InvalidRequestDataError(key, value)
+            
+        # Add app interface id and name to the headers.
+        headers.update(dict(
+            app_interface_id=self.interface_id,
+            app_name=self.name
+        ))
+
         # Parse request.
         return RequestContext(
             feature_id=feature_id,
@@ -276,35 +239,6 @@ class AppInterfaceContext(Model):
             headers=headers,
             **kwargs
         )
-
-    # * method: execute_feature
-    def execute_feature(self, request: RequestContext, **kwargs):
-        '''
-        Execute the feature context.
-
-        :param request: The request context.
-        :type request: RequestContext
-        '''
-
-        # Execute feature context and return session.
-        self.features.execute(request, **kwargs)
-
-    # * method: handle_response
-    def handle_response(self, request: RequestContext) -> Any:
-        '''
-        Handle the response.
-
-        :param request: The request context.
-        :type request: RequestContext
-        :return: The response.
-        :rtype: Any
-        '''
-
-        # Import the JSON module.
-        import json
-
-        # Return the response.
-        return json.loads(request.result) if request.result else None
 
     # * method: run
     def run(self, feature_id: str, **kwargs):
@@ -322,7 +256,7 @@ class AppInterfaceContext(Model):
 
         # Execute feature context and return session.
         try:
-            self.execute_feature(request, cache=self.cache, **kwargs)
+            self.features.execute(request, cache=self.cache, **kwargs)
 
         # Handle error and return response if triggered.
         except Exception as e:
@@ -330,4 +264,78 @@ class AppInterfaceContext(Model):
             return self.errors.handle_error(e)
 
         # Handle response.
-        return self.handle_response(request)
+        return request.handle_response()
+
+
+# *** exceptions
+
+# ** exception: app_repository_import_error
+class AppRepositoryImportError(TiferetError):
+    '''
+    An exception raised when the application repository cannot be imported.
+    '''
+
+    # * method: init
+    def __init__(self, error: Exception):
+        super().__init__(
+            message=f'The application repository could not be imported: {str(error)}',
+            error_code='APP_REPOSITORY_IMPORT_ERROR'
+        )
+
+
+# ** exception: app_interfaces_loading_error
+class AppInterfacesLoadingError(TiferetError):
+    '''
+    An exception raised when the application interfaces cannot be loaded.
+    '''
+
+    # * method: init
+    def __init__(self, error: Exception):
+        super().__init__(
+            message=f'The application interfaces could not be loaded: {str(error)}.',
+            error_code='APP_INTERFACES_LOADING_ERROR',
+        )
+
+
+# ** exception: app_interface_not_found_error
+class AppInterfaceNotFoundError(TiferetError):
+    '''
+    An exception raised when the application interface is not found.
+    '''
+
+    # * method: init
+    def __init__(self, interface_id: str):
+        super().__init__(
+            message=f'The application interface was not found: {interface_id}',
+            error_code='APP_INTERFACE_NOT_FOUND'
+        )
+
+
+# ** exception: invalid_app_interface_error
+class InvalidAppInterfaceError(TiferetError):
+    '''
+    An exception raised when the application interface has no app context dependency.
+    '''
+
+    # * method: init
+    def __init__(self, interface_id: str):
+        super().__init__(
+            message=f'The application interface is invalid: {interface_id}',
+            error_code='INVALID_APP_INTERFACE'
+        )
+
+
+
+# ** exception: invalid_request_data_error
+class InvalidRequestDataError(TiferetError):
+    '''
+    An exception raised when the request data is invalid.
+    '''
+
+    # * method: init
+    def __init__(self, data_key: str, data_value: Any):
+        super().__init__(
+        message='The request data is invalid.',
+        error_code='INVALID_REQUEST_DATA',
+        *[data_key, str(data_value)]
+    )
