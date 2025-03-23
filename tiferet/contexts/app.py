@@ -64,17 +64,19 @@ class AppContext(Model):
             interfaces=interfaces
         ))
 
-    # * method: run
-    def run(self, interface_id: str, **kwargs) -> Any:
+    # * method: load_interface
+    def load_interface(self, interface_id: str, dependencies: Dict[str, Any] = {}, **kwargs) -> AppInterface:
         '''
-        Run the application interface.
+        Load the application interface.
 
         :param interface_id: The interface ID.
         :type interface_id: str
+        :param dependencies: The dependencies.
+        :type dependencies: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The response.
-        :rtype: Any
+        :return: The application interface.
+        :rtype: AppInterface
         '''
 
         # Get the app interface.
@@ -83,27 +85,6 @@ class AppContext(Model):
         # Raise an error if the app interface is not found.
         if not app_interface:
             raise AppInterfaceNotFoundError(interface_id)
-
-        # Load the interface context
-        app_interface_context = self.load_interface(app_interface, **kwargs)
-
-        # Run the interface.
-        return app_interface_context.run(**kwargs)
-
-    # * method: load_interface
-    def load_interface(self, app_interface: AppInterface, dependencies: Dict[str, Any] = {}, **kwargs) -> AppInterface:
-        '''
-        Load the application interface.
-
-        :param app_interface: The application interface.
-        :type app_interface: AppInterface
-        :param dependencies: The dependencies.
-        :type dependencies: dict
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The application interface.
-        :rtype: AppInterface
-        '''
 
         # Raise an error if the app interface is invalid.
         if not app_interface.get_dependency('app_context'):
