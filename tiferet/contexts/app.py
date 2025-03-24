@@ -210,12 +210,12 @@ class AppInterfaceContext(Model):
                 continue
 
             # If the value is a list, dictionary, convert it to a JSON string.
-            elif isinstance(value, [list, dict]):
-                value = json.dumps(value)
+            elif isinstance(value, (list, dict)):
+                data[key] = json.dumps(value)
 
             # If the value is a model, convert it to a primitive dictionary and then to a JSON string.
             elif isinstance(value, Model):
-                value = json.dumps(value.to_primitive())
+                data[key] = json.dumps(value.to_primitive())
 
             # If the value is not a string, integer, float, boolean, list, dictionary, or model, raise an error.
             else:
@@ -372,7 +372,6 @@ class InvalidRequestDataError(TiferetError):
     # * method: init
     def __init__(self, data_key: str, data_value: Any):
         super().__init__(
-        message='The request data is invalid.',
-        error_code='INVALID_REQUEST_DATA',
-        *[data_key, str(data_value)]
+            'INVALID_REQUEST_DATA',
+            f'The request data is invalid: {data_key}={data_value}.'
     )

@@ -9,6 +9,21 @@ from ..app import *
 
 # *** classes
 
+# ** class: test_model
+class TestModel(ValueObject):
+
+    # * attribute: test_attribute
+    test_attribute = StringType(
+        required=True,
+        metadata=dict(
+            description='The test attribute.'
+        )
+    )
+
+# ** class: test_invalid_model
+class TestInvalidModel(object):
+    pass
+
 # ** class: mock_app_repo
 class MockAppRepository(AppRepository):
 
@@ -284,6 +299,65 @@ def test_app_context_interface_parse_request(app_context_interface, request_cont
     assert 'app_interface_id' in parsed_request.headers
     assert 'app_name' in parsed_request.headers
 
+
+# ** test: app_context_interface_parse_request_with_list_dict
+def test_app_context_interface_parse_request_with_list_dict(app_context_interface, request_context):
+    
+    # Parse the request.
+    parsed_request = app_context_interface.parse_request(
+        feature_id=request_context.feature_id,
+        data={
+            'test_list': ['value2', 'value3'],
+            'test_dict': {'param3': 'value3'}
+        },
+        headers=request_context.headers
+    )
+    
+    # Ensure the parsed request is as expected.
+    import json
+    assert parsed_request.feature_id == request_context.feature_id
+    assert parsed_request.data == {
+        'test_list': json.dumps(['value2', 'value3']),
+        'test_dict': json.dumps({'param3': 'value3'})
+    }
+    assert 'app_interface_id' in parsed_request.headers
+    assert 'app_name' in parsed_request.headers
+
+
+# ** test: app_context_interface_parse_request_with_model
+def test_app_context_interface_parse_request_with_model(app_context_interface, request_context):
+    
+    # Parse the request.
+    parsed_request = app_context_interface.parse_request(
+        feature_id=request_context.feature_id,
+        data={
+            'test_model': ValueObject.new(TestModel, test_attribute='value2')
+        },
+        headers=request_context.headers
+    )
+    
+    # Ensure the parsed request is as expected.
+    import json
+    assert parsed_request.feature_id == request_context.feature_id
+    assert parsed_request.data == {
+        'test_model': json.dumps({'test_attribute': 'value2'})
+    }
+    assert 'app_interface_id' in parsed_request.headers
+    assert 'app_name' in parsed_request.headers
+
+# ** test: app_context_interface_parse_request_with_invalid_model
+def test_app_context_interface_parse_request_with_invalid_model(app_context_interface, request_context):
+    
+    # Parse the request.
+    with pytest.raises(InvalidRequestDataError):
+        app_context_interface.parse_request(
+            feature_id=request_context.feature_id,
+            data={
+                'test_model': TestInvalidModel()
+            },
+            headers=request_context.headers
+        )
+    
 
 # # ** test: handle_response
 # def test_handle_response(app_interface_context, request_context_with_result):
