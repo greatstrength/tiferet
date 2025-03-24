@@ -171,7 +171,7 @@ def app_context(test_app_interface):
 # ** fixture: app_context_interface
 @pytest.fixture
 def app_context_interface(app_context, test_app_interface):
-    return app_context.load_interface(test_app_interface)
+    return app_context.load_interface(test_app_interface.id)
 
 
 ## ** fixture: request_context
@@ -227,11 +227,11 @@ def test_app_context_init(test_app_interface):
 
 
 # # ** test: app_context_load_interface_error_interface_not_found
-def test_app_context_run_error_interface_not_found(app_context):
+def test_app_context_load_interface_error_interface_not_found(app_context):
 
     # Assert the AppInterfaceNotFoundError is raised.
     with pytest.raises(AppInterfaceNotFoundError):
-        app_context.run('non_existent_interface')
+        app_context.load_interface('non_existent_interface')
 
 
 # # ** test: app_context_load_interface_invalid_interface
@@ -257,14 +257,16 @@ def test_app_context_load_interface_invalid_interface():
 
     # Assert the AppInterfaceNotFoundError is raised.
     with pytest.raises(InvalidAppInterfaceError):
-        app_context.load_interface(app_interface)
+        app_context.load_interface(app_interface.id)
 
 
 # ** test: app_context_load_interface
 def test_app_context_load_interface(app_context_interface, test_app_interface):
 
     # Assert the app interface is loaded correctly.
+    assert isinstance(app_context_interface, AppInterfaceContext)
     assert app_context_interface.interface_id == test_app_interface.id
+
 
 # ** test: app_context_run
 def test_app_context_run(app_context_interface, request_context_with_result):
