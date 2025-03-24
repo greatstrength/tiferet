@@ -268,15 +268,21 @@ def test_app_context_load_interface(app_context_interface, test_app_interface):
     assert app_context_interface.interface_id == test_app_interface.id
 
 
-# ** test: app_context_run
-def test_app_context_run(app_context_interface, request_context_with_result):
+# ** test: app_context_interface_parse_request
+def test_app_context_interface_parse_request(app_context_interface, request_context):
     
-    # Load the app interface.
+    # Parse the request.
+    parsed_request = app_context_interface.parse_request(
+        feature_id=request_context.feature_id,
+        data=request_context.data,
+        headers=request_context.headers
+    )
     
-    
-    # Ensure the feature was executed.
-    import json
-    assert request_context_with_result.result == json.dumps(('value1', 'value2'))
+    # Ensure the parsed request is as expected.
+    assert parsed_request.feature_id == request_context.feature_id
+    assert parsed_request.data == request_context.data
+    assert 'app_interface_id' in parsed_request.headers
+    assert 'app_name' in parsed_request.headers
 
 
 # # ** test: handle_response

@@ -202,9 +202,23 @@ class AppInterfaceContext(Model):
         :rtype: RequestContext
         '''
 
-        # Throw a data type invalid error if a value for a data key is not a string, integer, float, or boolean.
+        # Parse the incoming data type value.
         for key, value in data.items():
-            if not isinstance(value, (str, int, float, bool)):
+
+            # If if the value is a string, integer, float, or boolean, continue to the next iteration.
+            if isinstance(value, (str, int, float, bool)):
+                continue
+
+            # If the value is a list, dictionary, convert it to a JSON string.
+            elif isinstance(value, [list, dict]):
+                value = json.dumps(value)
+
+            # If the value is a model, convert it to a primitive dictionary and then to a JSON string.
+            elif isinstance(value, Model):
+                value = json.dumps(value.to_primitive())
+
+            # If the value is not a string, integer, float, boolean, list, dictionary, or model, raise an error.
+            else:
                 raise InvalidRequestDataError(key, value)
             
         # Add app interface id and name to the headers.
