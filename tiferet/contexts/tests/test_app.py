@@ -5,6 +5,8 @@ import pytest
 
 # ** app
 from ..app import *
+from ...models.feature import Feature
+from ...models.feature import ServiceCommand
 
 
 # *** classes
@@ -21,10 +23,14 @@ class TestModel(ValueObject):
     )
 
 # ** class: test_invalid_model
+
+
 class TestInvalidModel(object):
     pass
 
 # ** class: mock_app_repo
+
+
 class MockAppRepository(AppRepository):
 
     # * method: init
@@ -34,21 +40,21 @@ class MockAppRepository(AppRepository):
     # * method: list_interfaces
     def list_interfaces(self) -> List[AppInterface]:
         return self.interfaces
-    
+
     # * method: get_interface
     def get_interface(self, interface_id: str) -> AppInterface:
         return next((interface for interface in self.interfaces if interface.id == interface_id), None)
-    
+
 
 # ** class: mock_app_repo_error
 class MockAppRepositoryError(AppRepository):
-        
+
     def list_interfaces(self) -> List[AppInterface]:
         raise Exception('An error occurred.')
-    
+
     def get_interface(self, interface_id: str) -> AppInterface:
         raise Exception('An error occurred.')
-    
+
 
 # *** fixtures
 
@@ -85,6 +91,8 @@ def container_context_dependency():
     )
 
 # ** fixture: feature_repo_dependency
+
+
 @pytest.fixture
 def feature_repo_dependency():
     return ValueObject.new(
@@ -117,6 +125,8 @@ def container_repo_dependency():
     )
 
 # ** fixture: app_repo (app)
+
+
 @pytest.fixture
 def test_app_repo(mock_app_repo, test_app_interface):
     return mock_app_repo(
@@ -126,6 +136,8 @@ def test_app_repo(mock_app_repo, test_app_interface):
     )
 
 # ** fixture: app_interface_context (app)
+
+
 @pytest.fixture
 def app_interface_context(feature_context, error_context):
     return AppInterfaceContext(
@@ -175,21 +187,15 @@ def test_app_interface(
 def app_context(test_app_interface):
 
     return AppContext(
-        'tiferet.contexts.tests.test_app', 
-        'MockAppRepository', 
+        'tiferet.contexts.tests.test_app',
+        'MockAppRepository',
         dict(
             interfaces=[test_app_interface]
         )
     )
 
 
-# ** fixture: app_context_interface
-@pytest.fixture
-def app_context_interface(app_context, test_app_interface):
-    return app_context.load_interface(test_app_interface.id)
-
-
-## ** fixture: request_context
+# ** fixture: request_context
 @pytest.fixture
 def request_context():
     return RequestContext(
@@ -199,6 +205,8 @@ def request_context():
     )
 
 # ** fixture: request_context_with_result
+
+
 @pytest.fixture
 def request_context_with_result(request_context):
     request_context.result = '["value1", "value2"]'
@@ -210,6 +218,36 @@ def request_context_with_result(request_context):
 def request_context_no_result(request_context):
     request_context.result = None
     return request_context
+
+
+# ** fixture: features
+@pytest.fixture
+def features():
+    return [
+        Entity.new(
+            Feature,
+            name='Test Feature',
+            group_id='test_group',
+            feature_key='test_feature',
+            id='test_group.test_feature',
+            description='A test feature.',
+            commands=[ValueObject.new(
+                ServiceCommand,
+                name='Test Service Command',
+                attribute_id='test_service_command',
+                params={'param1': 'value1'},
+            )],
+        )
+    ]
+
+
+# ** fixture: app_context_interface
+@pytest.fixture
+def app_context_interface(app_context, test_app_interface, features):
+    return app_context.load_interface(test_app_interface.id,
+        dependencies={
+            'features': features
+        })
 
 
 # *** tests
@@ -227,17 +265,18 @@ def test_app_interface_context_app_interfaces_loading_error():
 
     # Assert the AppInterfacesLoadingError is raised.
     with pytest.raises(AppInterfacesLoadingError):
-        AppContext('tiferet.contexts.tests.test_app', 'MockAppRepositoryError', {})
+        AppContext('tiferet.contexts.tests.test_app',
+                   'MockAppRepositoryError', {})
 
 
 # ** test: app_context_init
 def test_app_context_init(test_app_interface):
 
     # Assert the app context is initialized correctly.
-    app_context = AppContext('tiferet.contexts.tests.test_app', 'MockAppRepository', 
-        dict(interfaces=[test_app_interface])
-    )
-    
+    app_context = AppContext('tiferet.contexts.tests.test_app', 'MockAppRepository',
+                             dict(interfaces=[test_app_interface])
+                             )
+
     assert app_context.interfaces.get('test') == test_app_interface
 
 
@@ -255,16 +294,16 @@ def test_app_context_load_interface_invalid_interface():
     # Define an invalid app interface.
     app_interface = Entity.new(
         AppInterface,
-        id='test', 
-        name='Test Interface', 
-        description='The test interface.', 
+        id='test',
+        name='Test Interface',
+        description='The test interface.',
         dependencies=[]
     )
 
     # Create a new app context.
     app_context = AppContext(
-        'tiferet.contexts.tests.test_app', 
-        'MockAppRepository', 
+        'tiferet.contexts.tests.test_app',
+        'MockAppRepository',
         dict(interfaces=[
             app_interface
         ])
@@ -285,14 +324,14 @@ def test_app_context_load_interface(app_context_interface, test_app_interface):
 
 # ** test: app_context_interface_parse_request
 def test_app_context_interface_parse_request(app_context_interface, request_context):
-    
+
     # Parse the request.
     parsed_request = app_context_interface.parse_request(
         feature_id=request_context.feature_id,
         data=request_context.data,
         headers=request_context.headers
     )
-    
+
     # Ensure the parsed request is as expected.
     assert parsed_request.feature_id == request_context.feature_id
     assert parsed_request.data == request_context.data
@@ -302,7 +341,7 @@ def test_app_context_interface_parse_request(app_context_interface, request_cont
 
 # ** test: app_context_interface_parse_request_with_list_dict
 def test_app_context_interface_parse_request_with_list_dict(app_context_interface, request_context):
-    
+
     # Parse the request.
     parsed_request = app_context_interface.parse_request(
         feature_id=request_context.feature_id,
@@ -312,7 +351,7 @@ def test_app_context_interface_parse_request_with_list_dict(app_context_interfac
         },
         headers=request_context.headers
     )
-    
+
     # Ensure the parsed request is as expected.
     import json
     assert parsed_request.feature_id == request_context.feature_id
@@ -326,7 +365,7 @@ def test_app_context_interface_parse_request_with_list_dict(app_context_interfac
 
 # ** test: app_context_interface_parse_request_with_model
 def test_app_context_interface_parse_request_with_model(app_context_interface, request_context):
-    
+
     # Parse the request.
     parsed_request = app_context_interface.parse_request(
         feature_id=request_context.feature_id,
@@ -335,7 +374,7 @@ def test_app_context_interface_parse_request_with_model(app_context_interface, r
         },
         headers=request_context.headers
     )
-    
+
     # Ensure the parsed request is as expected.
     import json
     assert parsed_request.feature_id == request_context.feature_id
@@ -346,8 +385,10 @@ def test_app_context_interface_parse_request_with_model(app_context_interface, r
     assert 'app_name' in parsed_request.headers
 
 # ** test: app_context_interface_parse_request_with_invalid_model
+
+
 def test_app_context_interface_parse_request_with_invalid_model(app_context_interface, request_context):
-    
+
     # Parse the request.
     with pytest.raises(InvalidRequestDataError):
         app_context_interface.parse_request(
@@ -357,16 +398,16 @@ def test_app_context_interface_parse_request_with_invalid_model(app_context_inte
             },
             headers=request_context.headers
         )
-    
 
-# # ** test: handle_response
-# def test_handle_response(app_interface_context, request_context_with_result):
 
-#     # Assuming handle_response just returns the result as a JSON object
-#     response = app_interface_context.handle_response(request_context_with_result)
+# # ** test: app_context_interface_execute_feature
+def test_app_context_interface_execute_feature(app_context_interface, request_context):
 
-#     # Ensure the response is as expected.
-#     assert response == ["value1", "value2"]
+    # Execute the feature.
+    app_context_interface.execute_feature(request_context)
+
+    # Ensure the result is as expected.
+    assert request_context.handle_response() == ["value1", "value2"]
 
 
 # # ** test: handle_response_with_no_result
@@ -381,22 +422,22 @@ def test_app_context_interface_parse_request_with_invalid_model(app_context_inte
 
 # # ** test: run_no_error
 # def test_run_no_error(app_interface_context, request_context):
-    
+
 #     # Run the application interface.
 #     result = app_interface_context.run(request=request_context)
-    
+
 #     # Ensure the response is as expected.
 #     assert result == ["value1", "value2"]
 
 
 # # ** test: run_with_error
 # def test_run_with_error(app_interface_context, request_context_throw_error):
-    
+
 #     # Run the application interface.
 #     response = app_interface_context.run(request=request_context_throw_error)
 
 #     # Ensure the response is as expected.
 #     assert response == dict(
-#         error_code="MY_ERROR", 
+#         error_code="MY_ERROR",
 #         message="An error occurred."
 #     )

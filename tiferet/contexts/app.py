@@ -250,22 +250,24 @@ class AppInterfaceContext(Model):
         self.features.execute(request, cache=self.cache, **kwargs)
 
     # * method: handle_error
-    def handle_error(self, exception: Exception) -> Any:
+    def handle_error(self, exception: Exception, **kwargs) -> Any:
         '''
         Handle passed exceptions as an error.
 
         :param exception: An exception thrown during a feature request.
         :type exception: Exception
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The error data.
         :rtype: Any
         '''
         
         print('Error:', exception)
-        return self.errors.handle_error(exception)
+        return self.errors.handle_error(exception, **kwargs)
     
 
     # * method: handle_response
-    def handle_response(self, request: RequestContext):
+    def handle_response(self, request: RequestContext, **kwargs) -> Any:
         '''
         Handle the application response.
 
@@ -276,7 +278,7 @@ class AppInterfaceContext(Model):
         '''
 
         # Handle the response from the request.
-        return request.handle_response()
+        return request.handle_response(**kwargs)
 
 
     # * method: run
@@ -301,7 +303,7 @@ class AppInterfaceContext(Model):
             return self.handle_error(e)
 
         # Handle response.
-        return request.handle_response()
+        return self.handle_response()
 
 
 # *** exceptions
