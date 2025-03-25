@@ -77,9 +77,6 @@ class RequestContext(Model):
         :type result: Any
         '''
 
-        # Import the json module.
-        import json
-
         # Set the result as a serialized empty dictionary if it is None.
         if not result:
             self.result = json.dumps({})
@@ -117,9 +114,6 @@ class RequestContext(Model):
         :rtype: Any
         '''
 
-        # Import the json module.
-        import json
-
         # Deserialize the result.
         # Return None if the result is None.
-        result = json.loads(self.result) if self.result else None
+        return json.loads(self.result) if self.result else None
