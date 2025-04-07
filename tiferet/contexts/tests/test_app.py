@@ -9,6 +9,8 @@ from ...models.feature import Feature
 from ...models.feature import ServiceCommand
 from ...models.container import ContainerAttribute
 from ...models.container import ContainerDependency
+from ...models.error import Error
+from ...models.error import ErrorMessage
 
 
 # *** classes
@@ -207,8 +209,6 @@ def request_context():
     )
 
 # ** fixture: request_context_with_result
-
-
 @pytest.fixture
 def request_context_with_result(request_context):
     request_context.result = '["value1", "value2"]'
@@ -271,7 +271,20 @@ def app_context_interface(app_context, test_app_interface, features, container_a
     return app_context.load_interface(test_app_interface.id,
         dependencies={
             'features': features,
-            'attributes': container_attributes
+            'attributes': container_attributes,
+            'errors': [
+                Entity.new(
+                    Error,
+                    id='MY_ERROR',
+                    error_code='MY_ERROR',
+                    name='My Error',
+                    message=[ValueObject.new(
+                        ErrorMessage,
+                        lang='en_US',
+                        text='An error occurred.'
+                    )]
+                )
+            ],
         })
 
 
@@ -409,9 +422,8 @@ def test_app_context_interface_parse_request_with_model(app_context_interface, r
     assert 'app_interface_id' in parsed_request.headers
     assert 'app_name' in parsed_request.headers
 
+
 # ** test: app_context_interface_parse_request_with_invalid_model
-
-
 def test_app_context_interface_parse_request_with_invalid_model(app_context_interface, request_context):
 
     # Parse the request.
@@ -425,7 +437,7 @@ def test_app_context_interface_parse_request_with_invalid_model(app_context_inte
         )
 
 
-# # ** test: app_context_interface_execute_feature
+# ** test: app_context_interface_execute_feature
 def test_app_context_interface_execute_feature(app_context_interface, request_context):
 
     # Execute the feature.
@@ -435,34 +447,40 @@ def test_app_context_interface_execute_feature(app_context_interface, request_co
     assert request_context.handle_response() == ["value1", "value2"]
 
 
-# # ** test: handle_response_with_no_result
-# def test_handle_response_with_no_result(app_interface_context, request_context_no_result):
+# ** test: app_context_interface_handle_error
+def test_app_context_interface_handle_error(app_context_interface):
 
-#     # Assuming handle_response just returns the result as a JSON object
-#     response = app_interface_context.handle_response(request_context_no_result)
+    # Raise and handle TiferetError.
+    try:
+        raise TiferetError(
+            error_code='MY_ERROR',
+            message='An error occurred.'
+        )
+    except TiferetError as e:
+        response = app_context_interface.handle_error(e)
 
-#     # Ensure the response is as expected.
-#     assert response == None
+    # Ensure the response is as expected.
+    assert response == dict(
+        error_code='MY_ERROR',
+        message='An error occurred.'
+    )
 
 
-# # ** test: run_no_error
-# def test_run_no_error(app_interface_context, request_context):
+# ** test: app_context_interface_handle_response_with_result
+def test_handle_response_with_result(app_context_interface, request_context_with_result):
 
-#     # Run the application interface.
-#     result = app_interface_context.run(request=request_context)
+    # Assuming handle_response just returns the result as a JSON object
+    response = app_context_interface.handle_response(request_context_with_result)
 
-#     # Ensure the response is as expected.
-#     assert result == ["value1", "value2"]
+    # Ensure the response is as expected.
+    assert response == ["value1", "value2"]
 
 
-# # ** test: run_with_error
-# def test_run_with_error(app_interface_context, request_context_throw_error):
+# ** test: app_context_interface_run
+def test_run(app_context_interface, request_context):
 
-#     # Run the application interface.
-#     response = app_interface_context.run(request=request_context_throw_error)
+    # Run the application interface.
+    result = app_context_interface.run(**request_context.to_primitive())
 
-#     # Ensure the response is as expected.
-#     assert response == dict(
-#         error_code="MY_ERROR",
-#         message="An error occurred."
-#     )
+    # Ensure the response is as expected.
+    assert result == ["value1", "value2"]
