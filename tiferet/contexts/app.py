@@ -303,7 +303,7 @@ class AppInterfaceContext(Model):
             return self.handle_error(e)
 
         # Handle response.
-        return self.handle_response()
+        return self.handle_response(request)
 
 
 # *** exceptions
