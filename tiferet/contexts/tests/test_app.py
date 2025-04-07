@@ -7,6 +7,8 @@ import pytest
 from ..app import *
 from ...models.feature import Feature
 from ...models.feature import ServiceCommand
+from ...models.container import ContainerAttribute
+from ...models.container import ContainerDependency
 
 
 # *** classes
@@ -240,13 +242,36 @@ def features():
         )
     ]
 
+# ** fixture: container_attributes
+@pytest.fixture
+def container_attributes():
+    return [
+        Entity.new(
+            ContainerAttribute,
+            id='test_service_command',
+            type='feature',
+            dependencies=[
+                ValueObject.new(
+                    ContainerDependency,
+                    module_path='tiferet.contexts.tests.test_feature',
+                    class_name='TestServiceCommand',
+                    flag='test',
+                    parameters={
+                        'param1': 'value1'
+                    }
+                )
+            ]
+        )
+    ]
+
 
 # ** fixture: app_context_interface
 @pytest.fixture
-def app_context_interface(app_context, test_app_interface, features):
+def app_context_interface(app_context, test_app_interface, features, container_attributes):
     return app_context.load_interface(test_app_interface.id,
         dependencies={
-            'features': features
+            'features': features,
+            'attributes': container_attributes
         })
 
 
