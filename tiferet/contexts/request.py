@@ -44,7 +44,7 @@ class RequestContext(Model):
     )
 
     # * method: init
-    def __init__(self, feature_id: str, data: Dict[str, str], headers: Dict[str, str], result: str = None):
+    def __init__(self, feature_id: str, data: Dict[str, str], headers: Dict[str, str], result: str = None, **kwargs):
         '''
         Initialize the request context object.
 
@@ -56,6 +56,8 @@ class RequestContext(Model):
         :type headers: dict
         :param result: The request result.
         :type result: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         '''
 
         # Set the context attributes.
