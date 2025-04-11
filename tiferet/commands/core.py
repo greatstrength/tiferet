@@ -2,8 +2,9 @@
 
 # ** app
 from ..configs import *
-from ..models import ModelObject
 from ..contexts import import_dependency
+from ..contexts.container import DependencyImportFailureError
+from ..models import ModelObject
 
 
 # *** commands
@@ -75,11 +76,21 @@ class CreateModelObject(ServiceCommand):
         :rtype: Any
         '''
 
-        # Import the class type.
-        model_type = import_dependency(
-            module_path=module_path,
-            class_name=class_name
-        )
+        
+        try:
+            # Import the class type.
+            model_type = import_dependency(
+                module_path=module_path,
+                class_name=class_name
+            )
+
+        except DependencyImportFailureError as e:
+            # Raise an error if the class type could not be imported.
+            raise InvalidModelObject(
+                module_path,
+                class_name,
+                *e.args
+            )
 
         # Create the model object.
         return ModelObject.new(
