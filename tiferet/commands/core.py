@@ -2,6 +2,8 @@
 
 # ** app
 from ..configs import *
+from ..models import ModelObject
+from ..contexts import import_dependency
 
 
 # *** commands
@@ -28,7 +30,7 @@ class ServiceCommand(object):
     
 
     # * method: verify
-    def verify(self, expression: bool, error_code: str, message: str, *args):
+    def verify(self, expression: bool, error_code: str, *args):
         '''
         Verify an expression and raise an error if it is false.
 
@@ -40,15 +42,47 @@ class ServiceCommand(object):
         :type args: tuple
         '''
 
-        # Format the error message.
-        if args:
-            message = '{}: {}'.format(message, ', '.join(args))
-
         # Verify the expression.
         try:
             assert expression
         except AssertionError:
             raise TiferetError(
-                message=message,
-                error_code=error_code,
+                error_code,
+                *args
             )
+        
+
+# ** command: create_model_object
+class CreateModelObject(ServiceCommand):
+    '''
+    A command to create a model object.
+    '''
+
+    # * method: execute
+    def execute(self, module_path: str, class_name: str, **kwargs) -> Any:
+        '''
+        Execute the create model object command.
+
+        :param module_path: The module path.
+        :type module_path: str
+        :param class_name: The class name.
+        :type class_name: str
+        :param data: The data to pass to the model object.
+        :type data: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the command.
+        :rtype: Any
+        '''
+
+        # Import the class type.
+        model_type = import_dependency(
+            module_path=module_path,
+            class_name=class_name
+        )
+
+        # Create the model object.
+        return ModelObject.new(
+            model_type,
+            **kwargs
+        )
