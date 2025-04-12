@@ -6,6 +6,23 @@ from ..models.error import *
 from ..repos.error import *
 
 
+# *** functions
+
+# ** function: raise_error
+def raise_error(error_code: str, *args):
+    '''
+    Raise an error.
+
+    :param error_code: The error code.
+    :type error_code: str
+    :param args: Additional error arguments.
+    :type args: tuple
+    '''
+
+    # Raise the error.
+    raise TiferetError(error_code, *args)
+
+
 # *** contexts
 
 # ** context: error_context
@@ -107,43 +124,3 @@ class ErrorContext(Model):
         return error_response
     
 
-# *** exceptions
-
-# ** exception: error_loading_error
-class ErrorLoadingError(Exception):
-    '''
-    The error loading errors.
-    '''
-    
-    # * method: init
-    def __init__(self, exception: Exception):
-        '''
-        Initialize the error loading errors exception.
-        
-        :param exception: The exception.
-        :type exception: Exception
-        '''
-        
-        # Set the exception.
-        self.exception = exception
-        super().__init__(f'Error when loading errors: {exception}')
-
-
-# ** exception: error_not_found_error
-class ErrorNotFoundError(Exception):
-    '''
-    The error not found error.
-    '''
-    
-    # * method: init
-    def __init__(self, error_id: str):
-        '''
-        Initialize the error not found error.
-        
-        :param error_id: The error ID.
-        :type error_id: str
-        '''
-        
-        # Set the error ID.
-        self.error_id = error_id
-        super().__init__(f'Error not found: {error_id}')
