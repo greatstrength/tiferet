@@ -113,6 +113,18 @@ def error_context(error_repo):
 
 # *** tests
 
+# ** test: test_raise_error
+def test_raise_error():
+
+    # Check that the error is raised correctly.
+    with pytest.raises(TiferetError):
+        raise_error("MY_ERROR")
+
+    # Check that the error with format arguments is raised correctly.
+    with pytest.raises(TiferetError):
+        raise_error("MY_FORMATTED_ERROR", "This is the error.")
+
+
 # ** test: test_error_context_init
 def test_error_context_init(error_context, error_repo):
 
@@ -190,7 +202,6 @@ def test_handle_error_return_formatted_error_response(error_context):
     # Create Tiferet Error using a known error code.
     exception = TiferetError(
         error_code="MY_ERROR",
-        message="An error occurred."
     )
 
     # Test handling an error and returning a formatted error response
@@ -209,8 +220,7 @@ def test_handle_error_raise_tiferet_error_exception(error_context):
 
     # Create an exception using an unknown error code.
     exception = TiferetError(
-        error_code="ERROR_NOT_FOUND",
-        message="An error occurred."
+        error_code="ERROR_NOT_FOUND"
     )
 
     # Test handling an error and raising an exception
