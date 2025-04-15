@@ -2,6 +2,7 @@
 
 # ** app
 from ..configs import *
+from ..models.settings import *
 
 
 # *** contexts
