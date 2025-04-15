@@ -1,3 +1,3 @@
 # *** imports
 
-from .core import ServiceCommand, CreateModelObject
+from .settings import *
