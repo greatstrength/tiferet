@@ -1,16 +1,7 @@
 # *** imports
 
 # ** app
-from ..configs import *
-from .core import Entity, ValueObject
-
-# *** constants
-
-# */ list[str]
-CONTAINER_ATTRIBUTE_TYPE_CHOICES = [
-    'feature',
-    'data'
-]
+from .settings import *
 
 
 # *** models
