@@ -1,9 +1,9 @@
 # *** imports
 
 # ** app
+from .settings import *
 from ..configs import *
 from ..models.app import *
-from .core import *
 
 
 # *** constants
