@@ -9,13 +9,13 @@ from ..feature import *
 
 # *** fixtures
 
-# ** fixture: feature_data_raw
+# ** fixture: feature_yaml_data_raw
 @pytest.fixture
-def feature_data():
+def feature_yaml_data():
 
     # Return the feature data.
     return DataObject.from_data(
-        FeatureData,
+        FeatureYamlData,
         **dict(
         id='test.test_feature',
         name='Test Feature',
@@ -36,14 +36,14 @@ def feature_data():
 
 # *** tests
 
-# ** test: test_feature_data_map
-def test_feature_data_map(feature_data):
+# ** test: test_feature_yaml_data_map
+def test_feature_yaml_data_map(feature_yaml_data):
     '''
     Test the feature data mapping.
     '''
     
     # Map the feature data to a feature object.
-    feature = feature_data.map()
+    feature = feature_yaml_data.map()
 
     # Assert the feature type.
     assert isinstance(feature, Feature)
