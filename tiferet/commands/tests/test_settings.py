@@ -4,9 +4,8 @@
 import pytest
 
 # ** app
-from ..core import *
-from ...models import ValueObject
-from ...contexts.container import DependencyImportFailureError
+from ..settings import *
+from ...models.settings import *
 
 
 # *** classes
@@ -84,36 +83,3 @@ def test_service_command_execute_with_error(test_service_command):
 
     # Verify the error.
     assert e.value.error_code == 'MY_FORMATTED_ERROR'
-
-
-# ** test: test_create_model_object
-def test_create_model_object():
-    '''
-    Test the create model object command.
-    '''
-
-    # Create a command object.
-    command = CreateModelObject()
-
-    # Execute the command.
-    result: TestModel = command.execute('tiferet.commands.tests.test_core', 'TestModel', test_attribute='test')
-
-    # Verify the result.
-    assert result.test_attribute == 'test'
-
-
-# ** test: test_create_model_object_invalid_import_path
-def test_create_model_object_invalid_import_path():
-    '''
-    Test the create model object command with an invalid module import path.
-    '''
-
-    # Create a command object.
-    command = CreateModelObject()
-
-    # Execute the command.
-    with pytest.raises(InvalidModelObject) as e:
-        command.execute('invalid.module.path', 'TestModel', test_attribute='test')
-
-        # Verify the error.
-        assert e.value.error_code == 'INVALID_MODEL_OBJECT'
