@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..data.container import ContainerAttribute
+from ..models.container import *
 
 
 # *** repository

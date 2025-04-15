@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..models.app import AppInterface
+from ..models.app import *
 
 
 # *** repository

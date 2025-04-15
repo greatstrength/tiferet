@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..models.error import Error
+from ..models.error import *
 
 # *** repository
 

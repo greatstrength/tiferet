@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..models.feature import Feature
+from ..models.feature import *
 
 
 # *** repository
