@@ -1,9 +1,8 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from .settings import *
 from ..models.error import *
-from .core import *
 
 
 # *** data
