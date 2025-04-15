@@ -9,6 +9,23 @@ from ..error import *
 
 # *** fixtures
 
+# ** fixture: error
+@pytest.fixture
+def error() -> Error:
+    return Error.new(
+        name='My Error',
+        id='MY_ERROR',
+        error_code='MY_ERROR',
+        message=[
+            ValueObject.new(
+                ErrorMessage,
+                lang='en_US',
+                text='An error occurred.'
+            )
+        ]
+    )
+
+
 # ** fixture: error_message
 @pytest.fixture
 def error_message() -> ErrorMessage:
@@ -17,6 +34,7 @@ def error_message() -> ErrorMessage:
         lang='en_US',
         text='An error occurred.'
     )
+
 
 # ** fixture: formatted_error_message
 @pytest.fixture
@@ -30,7 +48,7 @@ def formatted_error_message() -> ErrorMessage:
 
 # ** fixture: error
 @pytest.fixture
-def error(error_message) -> Error:
+def errors(error_message) -> Error:
     return Error.new(
         name='My Error',
         message=[error_message]
@@ -40,8 +58,7 @@ def error(error_message) -> Error:
 # ** fixture: error_with_formatted_message
 @pytest.fixture
 def error_with_formatted_message(formatted_error_message) -> Error:
-    return ValueObject.new(
-        Error,
+    return Error.new(
         name='MY_ERROR',
         id='MY_ERROR',
         error_code='MY_ERROR',
