@@ -1,8 +1,8 @@
 # *** imports
 
 # ** app
+from .settings import *
 from ..models.feature import *
-from .core import DataObject
 
 
 # *** data
