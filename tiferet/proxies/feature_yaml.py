@@ -71,7 +71,7 @@ class FeatureYamlProxy(FeatureRepository):
         features = yaml_client.load(
             self.config_file,
             create_data=lambda data: [DataObject.from_data(
-                FeatureData,
+                FeatureYamlData,
                 id=id,
                 feature_key=id.split('.')[-1],
                 group_id=id.split('.')[0],
