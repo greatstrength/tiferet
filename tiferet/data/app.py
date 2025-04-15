@@ -2,60 +2,8 @@
 
 # ** app
 from .settings import *
-from ..configs import *
 from ..models.app import *
 
-
-# *** constants
-
-# ** constant: app_dependency_default
-FEATURE_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.feature',
-    class_name='FeatureContext',
-) 
-
-# * constant: app_dependency_default
-CONTAINER_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.container',
-    class_name='ContainerContext',
-)
-
-ERROR_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.error',
-    class_name='ErrorContext',
-)
-
-FEATURE_PROXY_DEFAULT = dict(
-    module_path='tiferet.proxies.feature_yaml',
-    class_name='FeatureYamlProxy',
-)
-
-CONTAINER_PROXY_DEFAULT = dict(
-    module_path='tiferet.proxies.container_yaml',
-    class_name='ContainerYamlProxy',
-)
-
-ERROR_PROXY_DEFAULT = dict(
-    module_path='tiferet.proxies.error_yaml',
-    class_name='ErrorYamlProxy',
-)
-
-# ** constant: context_list_default
-CONTEXT_LIST_DEFAULT = {
-    'feature_context': FEATURE_CONTEXT_DEFAULT,
-    'container_context': CONTAINER_CONTEXT_DEFAULT,
-    'error_context': ERROR_CONTEXT_DEFAULT,
-    'feature_repo': FEATURE_PROXY_DEFAULT,
-    'container_repo': CONTAINER_PROXY_DEFAULT,
-    'error_repo': ERROR_PROXY_DEFAULT,
-}
-
-# ** constant: constants_default
-CONSTANTS_DEFAULT = dict(
-    container_config_file='app/configs/container.yml',
-    feature_config_file='app/configs/features.yml',
-    error_config_file='app/configs/errors.yml',
-)
 
 # *** data
 
