@@ -8,7 +8,7 @@ from ..models.error import *
 # *** data
 
 # ** data: error_message_data
-class ErrorMessageData(ErrorMessage, DataObject):
+class ErrorMessageYamlData(ErrorMessage, DataObject):
     '''
     A data representation of an error message object.
     '''
@@ -22,7 +22,7 @@ class ErrorMessageData(ErrorMessage, DataObject):
 
 
 # ** data: error_data
-class ErrorData(Error, DataObject):
+class ErrorYamlData(Error, DataObject):
     '''
     A data representation of an error object.
     '''
@@ -36,7 +36,7 @@ class ErrorData(Error, DataObject):
 
     # * attribute: message
     message = ListType(
-        ModelType(ErrorMessageData),
+        ModelType(ErrorMessageYamlData),
         required=True,
         metadata=dict(
             description='The error messages.'

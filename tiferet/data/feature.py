@@ -8,7 +8,7 @@ from ..models.feature import *
 # *** data
 
 # ** data: service_command_data
-class ServiceCommandData(ServiceCommand, DataObject):
+class ServiceCommandYamlData(ServiceCommand, DataObject):
     '''
     A data representation of a feature handler.
     '''
@@ -26,7 +26,7 @@ class ServiceCommandData(ServiceCommand, DataObject):
 
 
 # ** data: feature_data
-class FeatureData(Feature, DataObject):
+class FeatureYamlData(Feature, DataObject):
     '''
     A data representation of a feature.
     '''
@@ -44,7 +44,7 @@ class FeatureData(Feature, DataObject):
 
     # * attribute: commands
     commands = ListType(
-        ModelType(ServiceCommandData),
+        ModelType(ServiceCommandYamlData),
         default=[],
         deserialize_from=['handlers', 'functions', 'commands'],
         metadata=dict(
