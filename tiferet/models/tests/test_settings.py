@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from ..core import *
+from ..settings import *
 
 
 # *** fixtures
