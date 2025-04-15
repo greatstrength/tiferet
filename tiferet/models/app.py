@@ -1,8 +1,7 @@
 # *** imports
 
 # ** app
-from ..configs import *
-from .core import Entity, ValueObject
+from .settings import *
 
 
 # *** models
