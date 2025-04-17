@@ -102,16 +102,24 @@ def container_context(container_repo):
 def test_create_injector_raises_failure_error(container_context):
 
     # Call create_injector with an invalid interface ID
-    with pytest.raises(CreateInjectorFailureError):
+    with pytest.raises(TiferetError) as excinfo:
         create_injector(None)
+
+    # Ensure the error message is correct
+    assert excinfo.value.error_code == 'CREATE_INJECTOR_FAILED'
+    assert 'Error creating injector:' in str(excinfo.value)
 
 
 # ** test: test_import_dependency_raises_failure_error
 def test_import_dependency_raises_failure_error():
 
     # Call import_dependency with an invalid attribute ID
-    with pytest.raises(DependencyImportFailureError):
+    with pytest.raises(TiferetError) as excinfo:
         import_dependency('app.import.does_not_exist', 'ClassDoesNotExist')
+
+    # Ensure the error message is correct
+    assert excinfo.value.error_code == 'IMPORT_DEPENDENCY_FAILURE'
+    assert 'Error importing dependency:' in str(excinfo.value)
 
 
 # ** test: test_container_context_init_raises_failure_error
@@ -121,13 +129,17 @@ def test_container_context_init_raises_failure_error(mock_container_repository_r
     repository = mock_container_repository_raise_error()
 
     # Call ContainerContext.__init__ with an invalid interface ID
-    with pytest.raises(ContainerAttributeLoadingError):
+    with pytest.raises(TiferetError) as excinfo:
         ContainerContext(
             "test_interface", 
             repository,
             "test",
             "test",
         )
+
+    # Ensure the error message is correct
+    assert excinfo.value.error_code == 'CONTAINER_ATTRIBUTE_LOADING_FAILED'
+    assert 'Error loading container attributes:' in str(excinfo.value)
 
 
 # ** test: test_container_context_init
@@ -155,8 +167,12 @@ def test_parse_parameter(container_context, test_env_var):
 def test_parse_parameter_raises_failure_error(container_context):
 
     # Call parse_parameter with an invalid parameter
-    with pytest.raises(ParameterParsingError):
+    with pytest.raises(TiferetError) as excinfo:
         container_context.parse_parameter("$env.does_not_exist")
+
+    # Ensure the error message is correct
+    assert excinfo.value.error_code == 'PARAMETER_PARSING_FAILED'
+    assert 'Error parsing parameter:' in str(excinfo.value)
 
 
 # ** test: test_get_dependency
@@ -195,5 +211,9 @@ def test_import_dependency(container_context, container_attribute):
 def test_import_dependency_raises_failure_error(container_context, container_attribute):
 
     # Call import_dependency with an invalid attribute ID
-    with pytest.raises(DependencyNotFoundError):
+    with pytest.raises(TiferetError) as excinfo:
         container_context.import_dependency(container_attribute, "does_not_exist")
+
+    # Ensure the error message is correct
+    assert excinfo.value.error_code == 'DEPENDENCY_NOT_FOUND'
+    assert 'Dependency not found:' in str(excinfo.value)

@@ -6,6 +6,7 @@
 from ..configs import *
 from ..models.container import *
 from ..repos.container import *
+from .error import raise_error
 
 
 # *** functions
@@ -27,8 +28,15 @@ def create_injector(name: str, **dependencies) -> Any:
     try:
         from dependencies import Injector
         return type(f'{name.capitalize()}Container', (Injector,), {**dependencies})
+    
+    # Raise an error if the injector creation fails.
     except Exception as e:
-        raise CreateInjectorFailureError(name, e)
+        raise_error(
+            'CREATE_INJECTOR_FAILED',
+            f'Error creating injector: {name} - {e}',
+            name,
+            str(e),
+        )
 
 
 # ** function: import_dependency
@@ -48,8 +56,16 @@ def import_dependency(module_path: str, class_name: str) -> Any:
     try:
         from importlib import import_module
         return getattr(import_module(module_path), class_name)
+    
+    # Raise an error if the dependency import fails.
     except Exception as e:
-        raise DependencyImportFailureError(module_path, class_name, e)
+        raise_error(
+            'IMPORT_DEPENDENCY_FAILED',
+            f'Error importing dependency: {module_path}.{class_name} - {e}',
+            module_path,
+            class_name,
+            str(e),
+        )
 
 
 # *** contexts
@@ -126,8 +142,14 @@ class ContainerContext(Model):
         # Get and set attributes and constants.
         try:
             attrs, consts = container_repo.list_all()
+
+        # Raise an error if the container attributes fail to load.
         except Exception as e:
-            raise ContainerAttributeLoadingError(e)
+            raise_error(
+                'CONTAINER_ATTRIBUTE_LOADING_FAILED',
+                f'Error loading container attributes: {e}',
+                str(e),
+            )
 
         # Parse the constants.
         for key in consts:
@@ -172,7 +194,6 @@ class ContainerContext(Model):
         '''
 
         # Parse the parameter.
-        # Raise a ParameterParsingError if the parameter parsing fails.
         try:
             # If the parameter is an environment variable, get the value.
             # Raise an exception if the environment variable is not found.
@@ -182,8 +203,15 @@ class ContainerContext(Model):
                     raise Exception('Environment variable not found.')
                 return result
             return parameter
+        
+        # Raise an error if the parameter parsing fails.
         except Exception as e:
-            raise ParameterParsingError(parameter, e)
+            raise_error(
+                'PARAMETER_PARSING_FAILED',
+                f'Error parsing parameter: {parameter} - {e}',
+                parameter,
+                str(e)
+            )
 
     # * method: get_dependency
     def get_dependency(self, attribute_id: str, **kwargs) -> Any:
@@ -250,110 +278,12 @@ class ContainerContext(Model):
 
         # If there is still no dependency, raise an exception.
         if not dependency:
-            raise DependencyNotFoundError(attribute.id, flag)
+            raise_error(
+                'DEPENDENCY_NOT_FOUND',
+                f'Dependency not found: {attribute.id} - {flag}',
+                attribute.id,
+                flag,
+            )
 
         # Import the dependency.
         return import_dependency(dependency.module_path, dependency.class_name)
-
-
-# *** exceptions
-
-# ** exception: create_injector_failure_error
-class CreateInjectorFailureError(TiferetError):
-    '''
-    An exception for when the injector fails to create.
-    '''
-
-    # * init
-    def __init__(self, name: str, exception: Exception):
-        '''
-        Initialize the exception.
-
-        :param name: The name of the injector.
-        :type name: str
-        :param exception: The exception.
-        :type exception: Exception
-        '''
-
-        # Set the message.
-        super().__init__(
-            'CREATE_INJECTOR_FAILURE',
-            f'Error creating injector: {name} - {exception}')
-
-
-# ** exception: dependency_import_failure_error
-class DependencyImportFailureError(Exception):
-    '''
-    An exception for when a dependency fails to import.
-    '''
-
-    # * init
-    def __init__(self, module_path: str, class_name: str, exception: Exception):
-        '''
-        Initialize the exception.
-
-        :param module_path: The module path.
-        :type module_path: str
-        :param class_name: The class name.
-        :type class_name: str
-        :param exception: The exception.
-        :type exception: Exception
-        '''
-
-        # Set the message.
-        super().__init__(f'Error importing dependency: {module_path}.{class_name} - {exception}')
-
-
-# ** exception: container_attribute_loading_error
-class ContainerAttributeLoadingError(Exception):
-    '''
-    An exception for when a container attributes fail to load.
-    '''
-
-    # * init
-    def __init__(self, exception: Exception):
-        '''
-        Initialize the exception.
-
-        :param exception: The exception.
-        :type exception: Exception
-        '''
-
-        # Set the message.
-        super().__init__(f'Error loading container attributes: {exception}')
-
-
-# ** exception: parameter_parsing_error
-class ParameterParsingError(Exception):
-    '''
-    An exception thrown when the parameter parsing fails.
-    '''
-
-    def __init__(self, parameter: str, exception: Exception):
-        self.parameter = parameter
-        super().__init__(f'Error parsing parameter: {parameter} - {exception}')
-
-
-# ** exception: dependency_not_found_error
-class DependencyNotFoundError(TiferetError):
-    '''
-    An exception for when a dependency is not found.
-    '''
-
-    # * init
-    def __init__(self, attribute_id: str, flag: str):
-        '''
-        Initialize the exception.
-
-        :param error_code: The error code.
-        :type error_code: str
-        :param attribute_id: The attribute ID.
-        :type attribute_id: str
-        :param flag: The flag.
-        :type flag: str
-        '''
-
-        # Set the message.
-        super().__init__(
-            'DEPENDENCY_NOT_FOUND',
-            f'Dependency not found for container attribute with flag: {attribute_id} ({flag})')
