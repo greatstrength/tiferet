@@ -9,11 +9,12 @@ import pytest
 # ** app 
 from ...models import Entity, ValueObject
 from ..feature import *
+#from ...configs.tests.test_feature import *
 
 
 # *** classes
 
-# ** class: mock_feature_repository
+# ** class: feature_test_proxy
 class MockFeatureRepository(FeatureRepository):
 
     # * method: init
@@ -33,24 +34,6 @@ class MockFeatureRepository(FeatureRepository):
         return self.get(feature_id) is not None
     
 
-# ** class: test_service_command
-class TestServiceCommand(ServiceCommand):
-    '''
-    A test service command class.
-    '''
-    
-    def execute(self, param1: str, param2: str, throw_error: bool = False, error_args: List[str] = [], **kwargs) -> Tuple[str, str]:
-
-        # Throw an error if requested.
-        if error_args:
-            self.verify(throw_error == False, 'MY_FORMATTED_ERROR', 'An error occurred: {}', *error_args)
-        else:
-            self.verify(throw_error == False, 'MY_ERROR', 'An error occurred.')
-
-        # Return the result.
-        return (param1, param2)
-
-
 # *** fixtures
 
 # ** fixture: test_env_var
@@ -63,6 +46,13 @@ def test_env_var():
     # Return the test environment variable.
     return os.getenv("TEST_ENV_VAR")
 
+
+# ** fixture: mock_feature_repo
+@pytest.fixture
+def mock_feature_repo():
+
+    return MockFeatureRepository
+    
 
 # ** fixture: mock_fixture_repo_raise_error
 @pytest.fixture
@@ -116,7 +106,7 @@ def container_context():
                 [
                     ValueObject.new(
                         ContainerDependency,
-                        module_path='tiferet.contexts.tests.test_feature',
+                        module_path='tiferet.commands.tests.test_settings',
                         class_name='TestServiceCommand',
                         flag='test',
                         parameters={},
@@ -136,12 +126,12 @@ def container_context():
 
 # ** fixture: feature_context
 @pytest.fixture
-def feature_context(container_context):
+def feature_context(container_context, mock_feature_repo):
 
     from ...models.feature import ServiceCommand
 
     return FeatureContext(
-        feature_repo=MockFeatureRepository([
+        feature_repo=mock_feature_repo([
             Entity.new(
                 Feature,
                 name='Test Feature',

@@ -2,9 +2,9 @@
 
 # ** app
 from ..configs import *
-from ..commands import ServiceCommand
-from ..models.feature import Feature
-from ..repos.feature import FeatureRepository
+from ..commands.settings import *
+from ..models.feature import *
+from ..repos.feature import *
 
 # ** app - contexts
 from .container import ContainerContext
@@ -52,13 +52,25 @@ class FeatureContext(Model):
             raise FeatureLoadingError(e)
 
         # Set the features and container.
-        ## NOTE: There is a bug in the schematics library that does not allow us to initialize 
-        ## the feature context with the container context directly.
+        # NOTE: There is a bug in the schematics library that does not allow us to initialize
+        # the feature context with the container context directly.
         super().__init__(dict(
             features=features,
         ))
         self.container = container_context
-        
+
+    # * method: add_feature
+    def add_feature(self, feature: Feature):
+        '''
+        Add a feature to the context.
+
+        :param feature: The feature to add.
+        :type feature: Feature
+        '''
+
+        # Add the feature to the features dictionary.
+        self.features[feature.id] = feature
+
     # * method: execute
     def execute(self, request: RequestContext, debug: bool = False, **kwargs):
         '''
@@ -75,49 +87,88 @@ class FeatureContext(Model):
         # Assert the feature exists.
         if request.feature_id not in self.features:
             raise FeatureNotFoundError(request.feature_id)
-        
+
         # Get the feature.
         feature = self.features.get(request.feature_id)
 
         # Iterate over the feature commands.
         for command in feature.commands:
 
-            # Get the feature command handler instance.
-            handler: ServiceCommand = self.container.get_dependency(command.attribute_id)
+            # Get the service command handler instance.
+            handler = self.container.get_dependency(command.attribute_id)
 
             # Parse the command parameters
             params = {
-                param: 
+                param:
                 self.container.parse_parameter(
                     command.params.get(param)
-                ) 
+                )
                 for param in command.params
             }
 
-            # Execute the handler function.
-            # Handle assertion errors if pass on error is not set.
-            try:
-                result = handler.execute(
-                    **request.data,
-                    **params,
-                    debug=debug,
-                    **kwargs)
-                
-                # Return the result to the session context if return to data is set.
-                if command.return_to_data:
-                    request.data[command.data_key] = result
-                    continue
+            # Handle the command
+            return self.handle_command(
+                handler,
+                request,
+                params=params,
+                return_to_data=command.return_to_data,
+                data_key=command.data_key,
+                pass_on_error=command.pass_on_error,
+                **kwargs,
+            )
 
-                # Set the result in the request context.
-                if result:
-                    request.set_result(result)
+    # * method: handle_command
+    def handle_command(
+            self,
+            command: ServiceCommand,
+            request: RequestContext,
+            params: Dict[str, str] = None,
+            return_to_data: bool = False,
+            data_key: str = None,
+            pass_on_error: bool = False,
+            **kwargs) -> Any:
+        '''
+        Handle the command.
 
-            # Handle assertion errors if pass on error is not set.
-            except TiferetError as e:
-                if not command.pass_on_error:
-                    raise e 
-            finally:
-                print('Exception:', e) if 'e' in locals() else None 
+        :param command: The command to handle.
+        :type command: ServiceCommand
+        :param request: The request context object.
+        :type request: RequestContext
+        :param return_to_data: Whether to return the result to the data.
+        :type return_to_data: bool
+        :param data_key: The key to return the result to.
+        :type data_key: str
+        :param pass_on_error: Whether to pass on error.
+        :type pass_on_error: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the command.
+        :rtype: Any
+        '''
+
+        # Execute the handler function.
+        # Handle assertion errors if pass on error is not set.
+        try:
+            result = command.execute(
+                **request.data,
+                **params,
+                **kwargs
+            )
+
+            # Return the result to the session context if return to data is set.
+            if return_to_data:
+                request.data[data_key] = result
+
+            # Set the result in the request context.
+            if result:
+                request.set_result(result)
+
+        # Handle assertion errors if pass on error is not set.
+        except TiferetError as e:
+            if not pass_on_error:
+                raise e
+        finally:
+            print('Exception:', e) if 'e' in locals() else None
 
 
 # *** exceptions
