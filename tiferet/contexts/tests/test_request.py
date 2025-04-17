@@ -5,7 +5,7 @@ import pytest
 
 # ** app
 from ..request import RequestContext
-from ...configs import Model, StringType
+from ...models.settings import *
 
 
 # *** classes
