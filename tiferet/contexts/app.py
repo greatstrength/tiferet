@@ -1,14 +1,14 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from ..models.settings import *
 from ..models.app import *
 from ..repos.app import *
 
 # ** app - contexts
 from .request import RequestContext
 from .feature import FeatureContext
-from .error import ErrorContext
+from .error import ErrorContext, raise_error
 from .cache import CacheContext
 from .container import create_injector, import_dependency
 
@@ -50,14 +50,20 @@ class AppContext(Model):
         try:
             app_repo: AppRepository = import_dependency(app_repo_module_path, app_repo_class_name)(**app_repo_parameters)
         except Exception as e:
-            raise AppRepositoryImportError(e)
+            raise_error(
+                'APP_REPOSITORY_IMPORT_FAILED',
+                str(e)
+            )
 
         # Load the interfaces.
         # Raise an error if the interfaces cannot be loaded.
         try:
             interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
         except Exception as e:
-            raise AppInterfacesLoadingError(e)
+            raise_error(
+                'APP_INTERFACE_LOADING_FAILED',
+                str(e)
+            )
         
         # Initialize the model.
         super().__init__(dict(
@@ -84,11 +90,17 @@ class AppContext(Model):
 
         # Raise an error if the app interface is not found.
         if not app_interface:
-            raise AppInterfaceNotFoundError(interface_id)
+            raise_error(
+                'APP_INTERFACE_NOT_FOUND',
+                interface_id
+            )
 
         # Raise an error if the app interface is invalid.
         if not app_interface.get_dependency('app_context'):
-            raise InvalidAppInterfaceError(app_interface.id)
+            raise_error(
+                'APP_INTERFACE_INVALID',
+                app_interface.id,
+            )
 
         # Get the dependencies for the app interface.
         dependencies.update(dict(
@@ -219,7 +231,11 @@ class AppInterfaceContext(Model):
 
             # If the value is not a string, integer, float, boolean, list, dictionary, or model, raise an error.
             else:
-                raise InvalidRequestDataError(key, value)
+                raise_error(
+                    'REQUEST_DATA_INVALID',
+                    key,
+                    str(value)
+                )
             
         # Add app interface id and name to the headers.
         headers.update(dict(
@@ -304,76 +320,3 @@ class AppInterfaceContext(Model):
 
         # Handle response.
         return self.handle_response(request)
-
-
-# *** exceptions
-
-# ** exception: app_repository_import_error
-class AppRepositoryImportError(TiferetError):
-    '''
-    An exception raised when the application repository cannot be imported.
-    '''
-
-    # * method: init
-    def __init__(self, error: Exception):
-        super().__init__(
-            message=f'The application repository could not be imported: {str(error)}',
-            error_code='APP_REPOSITORY_IMPORT_ERROR'
-        )
-
-
-# ** exception: app_interfaces_loading_error
-class AppInterfacesLoadingError(TiferetError):
-    '''
-    An exception raised when the application interfaces cannot be loaded.
-    '''
-
-    # * method: init
-    def __init__(self, error: Exception):
-        super().__init__(
-            message=f'The application interfaces could not be loaded: {str(error)}.',
-            error_code='APP_INTERFACES_LOADING_ERROR',
-        )
-
-
-# ** exception: app_interface_not_found_error
-class AppInterfaceNotFoundError(TiferetError):
-    '''
-    An exception raised when the application interface is not found.
-    '''
-
-    # * method: init
-    def __init__(self, interface_id: str):
-        super().__init__(
-            message=f'The application interface was not found: {interface_id}',
-            error_code='APP_INTERFACE_NOT_FOUND'
-        )
-
-
-# ** exception: invalid_app_interface_error
-class InvalidAppInterfaceError(TiferetError):
-    '''
-    An exception raised when the application interface has no app context dependency.
-    '''
-
-    # * method: init
-    def __init__(self, interface_id: str):
-        super().__init__(
-            message=f'The application interface is invalid: {interface_id}',
-            error_code='INVALID_APP_INTERFACE'
-        )
-
-
-
-# ** exception: invalid_request_data_error
-class InvalidRequestDataError(TiferetError):
-    '''
-    An exception raised when the request data is invalid.
-    '''
-
-    # * method: init
-    def __init__(self, data_key: str, data_value: Any):
-        super().__init__(
-            'INVALID_REQUEST_DATA',
-            f'The request data is invalid: {data_key}={data_value}.'
-    )
