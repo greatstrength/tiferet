@@ -21,6 +21,25 @@ class TestModel(ValueObject):
         )
     )
 
+# ** class: test_service_command
+class TestServiceCommand(ServiceCommand):
+    '''
+    A test service command class.
+    '''
+
+    def execute(self, param1: str, param2: str, throw_error: bool = False, error_args: List[str] = [], **kwargs) -> Tuple[str, str]:
+
+        # Throw an error if requested.
+        if error_args:
+            self.verify(throw_error == False, 'MY_FORMATTED_ERROR',
+                        'An error occurred: {}', *error_args)
+        else:
+            self.verify(throw_error == False,
+                        'MY_ERROR', 'An error occurred.')
+
+        # Return the result.
+        return (param1, param2)
+
 
 # *** fixtures
 
@@ -30,22 +49,7 @@ def test_service_command() -> ServiceCommand:
     '''
     A test service command fixture.
     '''
-    class TestServiceCommand(ServiceCommand):
-        '''
-        A test service command class.
-        '''
-        
-        def execute(self, param1: str, param2: str, throw_error: bool = False, error_args: List[str] = [], **kwargs) -> Tuple[str, str]:
 
-            # Throw an error if requested.
-            if error_args:
-                self.verify(throw_error == False, 'MY_FORMATTED_ERROR', 'An error occurred: {}', *error_args)
-            else:
-                self.verify(throw_error == False, 'MY_ERROR', 'An error occurred.')
-
-            # Return the result.
-            return (param1, param2)
-        
     return TestServiceCommand()
 
 
@@ -73,13 +77,14 @@ def test_service_command_execute_with_error(test_service_command):
     # Execute the command.
     with pytest.raises(TiferetError) as e:
         test_service_command.execute('param1', 'param2', throw_error=True)
-    
+
     # Verify the error.
     assert e.value.error_code == 'MY_ERROR'
 
     # Execute the command with error arguments.
     with pytest.raises(TiferetError) as e:
-        test_service_command.execute('param1', 'param2', throw_error=True, error_args=['arg1', 'arg2'])
+        test_service_command.execute(
+            'param1', 'param2', throw_error=True, error_args=['arg1', 'arg2'])
 
     # Verify the error.
     assert e.value.error_code == 'MY_FORMATTED_ERROR'
