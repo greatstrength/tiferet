@@ -4,13 +4,14 @@
 import pytest
 
 # ** app
+from ...configs import *
+from ...configs.app import *
+from ...configs.tests.test_request import *
+from ...models import ModelObject
+from ...models.feature import Feature, ServiceCommand as ServiceCommandModel
+from ...models.container import *
+from ...models.error import *
 from ..app import *
-from ...models.feature import Feature
-from ...models.feature import ServiceCommand
-from ...models.container import ContainerAttribute
-from ...models.container import ContainerDependency
-from ...models.error import Error
-from ...models.error import ErrorMessage
 
 
 # *** classes
@@ -27,14 +28,10 @@ class TestModel(ValueObject):
     )
 
 # ** class: test_invalid_model
-
-
 class TestInvalidModel(object):
     pass
 
 # ** class: mock_app_repo
-
-
 class MockAppRepository(AppRepository):
 
     # * method: init
@@ -62,44 +59,46 @@ class MockAppRepositoryError(AppRepository):
 
 # *** fixtures
 
-# fixture: feature_context_dependency
+# ** fixture: app_context_dependency
 @pytest.fixture
-def feature_context_dependency():
-    return ValueObject.new(
+def app_context_dependency():
+    return ModelObject.new(
         AppDependency,
-        attribute_id='feature_context',
-        module_path='tiferet.contexts.feature',
-        class_name='FeatureContext',
-    )
-
-
-# ** fixture: error_context_dependency
-@pytest.fixture
-def error_context_dependency():
-    return ValueObject.new(
-        AppDependency,
-        attribute_id='error_context',
-        module_path='tiferet.contexts.error',
-        class_name='ErrorContext',
+        **DEFAULT_APP_INTERFACE_CONTEXT_DEPENDENCY
     )
 
 
 # ** fixture: container_context_dependency
 @pytest.fixture
 def container_context_dependency():
-    return ValueObject.new(
+    return ModelObject.new(
         AppDependency,
-        attribute_id='container_context',
-        module_path='tiferet.contexts.container',
-        class_name='ContainerContext',
+        **DEFAULT_CONTAINER_CONTEXT_DEPENDENCY
     )
 
+
+# ** fixture: error_context_dependency
+@pytest.fixture
+def error_context_dependency():
+    return ModelObject.new(
+        AppDependency,
+        **DEFAULT_ERROR_CONTEXT_DEPENDENCY
+    )
+
+
+# ** fixture: feature_context_dependency
+@pytest.fixture
+def feature_context_dependency():
+    return ModelObject.new(
+        AppDependency,
+        **DEFAULT_FEATURE_CONTEXT_DEPENDENCY
+    )
+
+
 # ** fixture: feature_repo_dependency
-
-
 @pytest.fixture
 def feature_repo_dependency():
-    return ValueObject.new(
+    return ModelObject.new(
         AppDependency,
         attribute_id='feature_repo',
         module_path='tiferet.contexts.tests.test_feature',
@@ -110,7 +109,7 @@ def feature_repo_dependency():
 # ** fixture: error_repo_dependency
 @pytest.fixture
 def error_repo_dependency():
-    return ValueObject.new(
+    return ModelObject.new(
         AppDependency,
         attribute_id='error_repo',
         module_path='tiferet.contexts.tests.test_error',
@@ -121,16 +120,15 @@ def error_repo_dependency():
 # ** fixture: container_repo_dependency
 @pytest.fixture
 def container_repo_dependency():
-    return ValueObject.new(
+    return ModelObject.new(
         AppDependency,
         attribute_id='container_repo',
         module_path='tiferet.contexts.tests.test_container',
         class_name='MockContainerRepository',
     )
 
+
 # ** fixture: app_repo (app)
-
-
 @pytest.fixture
 def test_app_repo(mock_app_repo, test_app_interface):
     return mock_app_repo(
@@ -139,9 +137,8 @@ def test_app_repo(mock_app_repo, test_app_interface):
         ]
     )
 
+
 # ** fixture: app_interface_context (app)
-
-
 @pytest.fixture
 def app_interface_context(feature_context, error_context):
     return AppInterfaceContext(
@@ -155,14 +152,15 @@ def app_interface_context(feature_context, error_context):
 # ** fixture: app_interface
 @pytest.fixture
 def test_app_interface(
+    app_context_dependency,
     container_context_dependency,
-    feature_context_dependency,
     error_context_dependency,
+    feature_context_dependency,
     container_repo_dependency,
     feature_repo_dependency,
     error_repo_dependency
 ):
-    return Entity.new(
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test Interface',
@@ -170,15 +168,10 @@ def test_app_interface(
         feature_flag='test',
         data_flag='test',
         dependencies=[
-            ValueObject.new(
-                AppDependency,
-                attribute_id='app_context',
-                module_path='tiferet.contexts.app',
-                class_name='AppInterfaceContext',
-            ),
+            app_context_dependency,
             container_context_dependency,
-            feature_context_dependency,
             error_context_dependency,
+            feature_context_dependency,
             container_repo_dependency,
             feature_repo_dependency,
             error_repo_dependency,
@@ -199,15 +192,6 @@ def app_context(test_app_interface):
     )
 
 
-# ** fixture: request_context
-@pytest.fixture
-def request_context():
-    return RequestContext(
-        feature_id='test_group.test_feature',
-        data={'param2': 'value2'},
-        headers={'Content-Type': 'application/json'}
-    )
-
 # ** fixture: request_context_with_result
 @pytest.fixture
 def request_context_with_result(request_context):
@@ -226,15 +210,15 @@ def request_context_no_result(request_context):
 @pytest.fixture
 def features():
     return [
-        Entity.new(
+        ModelObject.new(
             Feature,
             name='Test Feature',
             group_id='test_group',
             feature_key='test_feature',
             id='test_group.test_feature',
             description='A test feature.',
-            commands=[ValueObject.new(
-                ServiceCommand,
+            commands=[ModelObject.new(
+                ServiceCommandModel,
                 name='Test Service Command',
                 attribute_id='test_service_command',
                 params={'param1': 'value1'},
@@ -246,14 +230,14 @@ def features():
 @pytest.fixture
 def container_attributes():
     return [
-        Entity.new(
+        ModelObject.new(
             ContainerAttribute,
             id='test_service_command',
             type='feature',
             dependencies=[
-                ValueObject.new(
+                ModelObject.new(
                     ContainerDependency,
-                    module_path='tiferet.contexts.tests.test_feature',
+                    module_path='tiferet.commands.tests.test_settings',
                     class_name='TestServiceCommand',
                     flag='test',
                     parameters={
@@ -273,12 +257,12 @@ def app_context_interface(app_context, test_app_interface, features, container_a
             'features': features,
             'attributes': container_attributes,
             'errors': [
-                Entity.new(
+                ModelObject.new(
                     Error,
                     id='MY_ERROR',
                     error_code='MY_ERROR',
                     name='My Error',
-                    message=[ValueObject.new(
+                    message=[ModelObject.new(
                         ErrorMessage,
                         lang='en_US',
                         text='An error occurred.'
@@ -294,17 +278,19 @@ def app_context_interface(app_context, test_app_interface, features, container_a
 def test_app_interface_context_app_repository_loading_error():
 
     # Assert the AppRepositoryImportError is raised.
-    with pytest.raises(AppRepositoryImportError):
+    with pytest.raises(TiferetError) as exec_info:
         AppContext('non_existent_repo', 'NonExistentRepo')
+
+    # Verify the error code.
+    assert exec_info.value.error_code == 'APP_REPOSITORY_IMPORT_FAILED'
 
 
 # ** test: app_interface_context_app_interfaces_loading_error
 def test_app_interface_context_app_interfaces_loading_error():
 
     # Assert the AppInterfacesLoadingError is raised.
-    with pytest.raises(AppInterfacesLoadingError):
-        AppContext('tiferet.contexts.tests.test_app',
-                   'MockAppRepositoryError', {})
+    with pytest.raises(TiferetError) as exec_info:
+        AppContext('tiferet.contexts.tests.test_app', 'MockAppRepositoryError')
 
 
 # ** test: app_context_init
@@ -322,15 +308,18 @@ def test_app_context_init(test_app_interface):
 def test_app_context_load_interface_error_interface_not_found(app_context):
 
     # Assert the AppInterfaceNotFoundError is raised.
-    with pytest.raises(AppInterfaceNotFoundError):
+    with pytest.raises(TiferetError) as exec_info:
         app_context.load_interface('non_existent_interface')
+
+    # Verify the error code.
+    assert exec_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
 
 
 # # ** test: app_context_load_interface_invalid_interface
 def test_app_context_load_interface_invalid_interface():
 
     # Define an invalid app interface.
-    app_interface = Entity.new(
+    app_interface = ModelObject.new(
         AppInterface,
         id='test',
         name='Test Interface',
@@ -348,8 +337,11 @@ def test_app_context_load_interface_invalid_interface():
     )
 
     # Assert the AppInterfaceNotFoundError is raised.
-    with pytest.raises(InvalidAppInterfaceError):
+    with pytest.raises(TiferetError) as exec_info:
         app_context.load_interface(app_interface.id)
+
+    # Verify the error code.
+    assert exec_info.value.error_code == 'APP_INTERFACE_INVALID'
 
 
 # ** test: app_context_load_interface
@@ -408,7 +400,7 @@ def test_app_context_interface_parse_request_with_model(app_context_interface, r
     parsed_request = app_context_interface.parse_request(
         feature_id=request_context.feature_id,
         data={
-            'test_model': ValueObject.new(TestModel, test_attribute='value2')
+            'test_model': ModelObject.new(TestModel, test_attribute='value2')
         },
         headers=request_context.headers
     )
@@ -427,7 +419,7 @@ def test_app_context_interface_parse_request_with_model(app_context_interface, r
 def test_app_context_interface_parse_request_with_invalid_model(app_context_interface, request_context):
 
     # Parse the request.
-    with pytest.raises(InvalidRequestDataError):
+    with pytest.raises(TiferetError) as exec_info:
         app_context_interface.parse_request(
             feature_id=request_context.feature_id,
             data={
@@ -435,6 +427,8 @@ def test_app_context_interface_parse_request_with_invalid_model(app_context_inte
             },
             headers=request_context.headers
         )
+
+    exec_info.value.error_code == 'INVALID_REQUEST_DATA'
 
 
 # ** test: app_context_interface_execute_feature
@@ -453,8 +447,7 @@ def test_app_context_interface_handle_error(app_context_interface):
     # Raise and handle TiferetError.
     try:
         raise TiferetError(
-            error_code='MY_ERROR',
-            message='An error occurred.'
+            'MY_ERROR'
         )
     except TiferetError as e:
         response = app_context_interface.handle_error(e)
