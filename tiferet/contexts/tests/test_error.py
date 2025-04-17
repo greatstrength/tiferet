@@ -37,19 +37,35 @@ def mock_error_repo_raise_error():
     class MockErrorRepository(ErrorRepository):
 
         def exists(self, id, **kwargs):
-            raise Exception("Error")
+            raise Exception('Error')
 
         def get(self, id):
-            raise Exception("Error")
+            raise Exception('Error')
 
         def list(self):
-            raise Exception("Error")
+            raise Exception('Failed to load errors.')
 
         def save(self, error):
-            raise Exception("Error")
+            raise Exception('Error')
 
     return MockErrorRepository()
 
+# ** fixture: error
+@pytest.fixture
+def error() -> Error:
+    return ModelObject.new(
+        Error,
+        name='My Error',
+        id='MY_ERROR',
+        error_code='MY_ERROR',
+        message=[
+            ModelObject.new(
+                ErrorMessage,
+                lang='en_US',
+                text='An error occurred.'
+            )
+        ]
+    )
 
 # ** fixture: error_message
 @pytest.fixture
@@ -118,11 +134,11 @@ def test_raise_error():
 
     # Check that the error is raised correctly.
     with pytest.raises(TiferetError):
-        raise_error("MY_ERROR")
+        raise_error('MY_ERROR', None)
 
     # Check that the error with format arguments is raised correctly.
     with pytest.raises(TiferetError):
-        raise_error("MY_FORMATTED_ERROR", "This is the error.")
+        raise_error('MY_FORMATTED_ERROR', 'This is the error.')
 
 
 # ** test: test_error_context_init
@@ -132,67 +148,73 @@ def test_error_context_init(error_context, error_repo):
     assert len(error_context.errors.values()) > 0
 
     # Check that the errors are loaded correctly.
-    assert error_context.errors["MY_ERROR"] == error_repo.errors[0]
-    assert error_context.errors["MY_FORMATTED_ERROR"] == error_repo.errors[1]
+    assert error_context.errors['MY_ERROR'] == error_repo.errors[0]
+    assert error_context.errors['MY_FORMATTED_ERROR'] == error_repo.errors[1]
 
 
 # ** test: test_error_context_init_with_error
 def test_error_context_init_with_error(mock_error_repo_raise_error):
 
     # Check that an error is raised when loading errors.
-    with pytest.raises(ErrorLoadingError):
+    with pytest.raises(TiferetError) as excinfo:
         ErrorContext(
             error_repo=mock_error_repo_raise_error
         )
 
+    # Check that the error code is correct.
+    assert excinfo.value.error_code == 'ERROR_LOADING_FAILED'
+    assert 'Failed to load errors' in str(excinfo.value)
+
 
 # ** test: test_format_error_response_error_not_found
-def test_format_error_response_error_not_found(error_context):
+def test_handle_error_error_not_found(error_context):
 
-    # Check that an error is raised when the error is not found.
-    with pytest.raises(ErrorNotFoundError):
-        error_context.format_error_response("ERROR_NOT_FOUND", lang="en_US")
+    # Create an exception using an unknown error code.
+    exception = TiferetError(
+        error_code='UNKNOWN_ERROR'
+    )
 
+    # Test handling an error and raising an exception
+    with pytest.raises(TiferetError) as excinfo:
+        error_context.handle_error(
+            exception, 
+            lang='en_US'
+        )
 
-# ** test: test_format_error_response_use_default_language
-def test_format_error_response_use_default_language(error_context):
-
-    # Test formatting an error response with the default language.
-    formatted_message = error_context.format_error_response("MY_ERROR", lang="es_ES")
-
-    # Check if the error message is correctly formatted
-    assert formatted_message['message'] == "An error occurred."
+    # Check that the error code is correct.
+    assert excinfo.value.error_code == 'ERROR_NOT_FOUND'
+    assert 'Error not found: UNKNOWN_ERROR.' in str(excinfo.value)
 
 
 # ** test: test_format_error_response_with_args
-def test_format_error_response(error_context):
+def test_format_error_response(error_context, error, error_with_formatted_message):
 
     # Test formatting an error response with no arguments.
-    message = error_context.format_error_response("MY_ERROR", lang="en_US")
+    message = error_context.format_error_response(error, lang='en_US')
 
     # Check if the error message is correctly formatted
-    assert message['error_code'] == "MY_ERROR"
-    assert message['message'] == "An error occurred."
+    assert message['error_code'] == 'MY_ERROR'
+    assert message['message'] == 'An error occurred.'
 
     # Test formatting an error response with arguments
-    formatted_message = error_context.format_error_response("MY_FORMATTED_ERROR", lang="en_US", error_data=["This is the error."])
+    formatted_message = error_context.format_error_response(error_with_formatted_message, lang='en_US', error_data=['This is the error.'])
 
     # Check if the error message is correctly formatted
-    assert formatted_message['error_code'] == "MY_FORMATTED_ERROR"
-    assert formatted_message['message'] == "An error occurred: This is the error."
+    assert formatted_message['error_code'] == 'MY_FORMATTED_ERROR'
+    assert formatted_message['message'] == 'An error occurred: This is the error.'
 
 
 # ** test: test_handle_error_raise_exception
 def test_handle_error_raise_exception(error_context):
 
     # Create an exception using an unknown error code.
-    exception = Exception("An error occurred.")
+    exception = Exception('An error occurred.')
 
     # Test handling an error and raising an exception
     with pytest.raises(Exception):
         error_context.handle_error(
             exception, 
-            lang="en_US"
+            lang='en_US'
         )
 
 
@@ -201,18 +223,18 @@ def test_handle_error_return_formatted_error_response(error_context):
 
     # Create Tiferet Error using a known error code.
     exception = TiferetError(
-        error_code="MY_ERROR",
+        error_code='MY_ERROR',
     )
 
     # Test handling an error and returning a formatted error response
     formatted_message = error_context.handle_error(
         exception, 
-        lang="en_US"
+        lang='en_US'
     )
 
     # Check if the error message is correctly formatted
-    assert formatted_message['error_code'] == "MY_ERROR"
-    assert formatted_message['message'] == "An error occurred."
+    assert formatted_message['error_code'] == 'MY_ERROR'
+    assert formatted_message['message'] == 'An error occurred.'
 
 
 # ** test: test_handle_error_raise_exception
@@ -220,12 +242,17 @@ def test_handle_error_raise_tiferet_error_exception(error_context):
 
     # Create an exception using an unknown error code.
     exception = TiferetError(
-        error_code="ERROR_NOT_FOUND"
+        'ERROR_NOT_FOUND',
+        None,
+        '12345'
     )
 
     # Test handling an error and raising an exception
-    with pytest.raises(TiferetError):
-        error_context.handle_error(
-            exception, 
-            lang="en_US"
-        )
+    response = error_context.handle_error(
+        exception, 
+        lang='en_US'
+    )
+
+    # Check if the error message is correctly formatted
+    assert response['error_code'] == 'ERROR_NOT_FOUND'
+    assert response['message'] == 'Error not found: {"error_code": "ERROR_NOT_FOUND", "message": null, "args": ["12345"]}.'

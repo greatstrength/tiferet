@@ -9,7 +9,7 @@ from ..repos.error import *
 # *** functions
 
 # ** function: raise_error
-def raise_error(error_code: str, *args):
+def raise_error(error_code: str, message: str, *args):
     '''
     Raise an error.
 
@@ -20,7 +20,7 @@ def raise_error(error_code: str, *args):
     '''
 
     # Raise the error.
-    raise TiferetError(error_code, *args)
+    raise TiferetError(error_code, message, *args)
 
 
 # *** contexts
@@ -51,14 +51,27 @@ class ErrorContext(Model):
 
         # Create the errors lookup from the error repository.
         try:
-            errors = {error.id: error for error in error_repo.list()}
+
+            # Create the errors lookup from the hard-configured errors.
+            errors = {id: ModelObject.new(Error, **data) for id, data in ERRORS.items()}
+
+            # Iterate over the errors in the error repository.
+            for error in error_repo.list():
+                
+                # Add the error to the errors lookup.
+                errors[error.id] = error
+
+        # If the error repository fails to load, raise an error.   
         except Exception as e:
-            raise ErrorLoadingError(e)
+            raise_error(
+                'ERROR_LOADING_FAILED',
+                f'Failed to load errors: {str(e)}.',
+                str(e),
+            )
 
         # Set the errors lookup and validate.
         super().__init__(dict(errors=errors))
         self.validate()
-
 
     # * method: handle_error
     def handle_error(self, exception: Exception, lang: str = 'en_US', **kwargs) -> Any:
@@ -76,20 +89,26 @@ class ErrorContext(Model):
         # Raise the exception if it is not a Tiferet error.
         if not isinstance(exception, TiferetError):
             raise exception
+
+        # Get error.
+        # If the error does not exist, raise an error not found error.
+        error = self.errors.get(exception.error_code, None)
+        if not error:
+            raise_error(
+                'ERROR_NOT_FOUND', 
+                f'Error not found: {exception.error_code}.',
+                exception.error_code
+            )
         
         # Format the error response.
-        # If the error does not exist, raise the Tiferet error as an exception as it is not configured as an error.
-        try:
-            return self.format_error_response(
-                exception.error_code, 
-                lang,
-                error_data=list(exception.args), 
-                **kwargs)
-        except ErrorNotFoundError:
-            raise exception
+        return self.format_error_response(
+            error, 
+            lang,
+            error_data=list(exception.args), 
+            **kwargs)
 
     # * method: format_error_response
-    def format_error_response(self, error_code: str, lang: str, error_data: List[str] = [], **kwargs) -> Any:
+    def format_error_response(self, error: Error, lang: str, error_data: List[str] = [], **kwargs) -> Any:
         '''
         Format the error response.
 
@@ -100,12 +119,6 @@ class ErrorContext(Model):
         :return: The formatted error message.
         :rtype: Any
         '''
-
-        # Get error.
-        # If the error does not exist, raise an error not found error.
-        error = self.errors.get(error_code, None)
-        if not error:
-            raise ErrorNotFoundError(error_code)
         
         # Format the error response message.
         # If the error message does not exist in the specified language, use the default language.
