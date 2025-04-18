@@ -6,7 +6,6 @@ import pytest
 # ** app
 from ...configs import *
 from ...configs.app import *
-from ...configs.tests.test_request import *
 from ...models import ModelObject
 from ...models.feature import Feature, ServiceCommand as ServiceCommandModel
 from ...models.container import *
