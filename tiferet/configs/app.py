@@ -1,5 +1,18 @@
 # *** constants
 
+# ** constant: default_app_repo_module_path
+DEFAULT_APP_REPO_MODULE_PATH = 'tiferet.proxies.app_yaml'
+
+
+# ** constant: default_app_repo_class_name
+DEFAULT_APP_REPO_CLASS_NAME = 'AppYamlProxy'
+
+
+# ** constant: default_app_repo_parameters
+DEFAULT_APP_REPO_PARAMETERS = dict(
+    app_config_file='tiferet/configs/app.yml'
+)
+
 # ** constant: default_container_context_dependency
 DEFAULT_CONTAINER_CONTEXT_DEPENDENCY = dict(
     attribute_id='container_context',
