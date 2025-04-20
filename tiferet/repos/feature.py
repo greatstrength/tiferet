@@ -1,14 +1,14 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from .settings import *
 from ..models.feature import *
 
 
-# *** repository
+# *** repositories
 
 # ** interface: feature_repository
-class FeatureRepository(ABC):
+class FeatureRepository(Repository):
     '''
     Feature repository interface.
     '''
