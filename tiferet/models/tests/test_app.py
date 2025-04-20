@@ -14,7 +14,7 @@ from ...configs.tests.test_app import *
 # ** fixture: app_interface
 @pytest.fixture
 def app_interface():
-    
+
     return Entity.new(
         AppInterface,
         **TEST_APP_INTERFACE,
@@ -22,7 +22,6 @@ def app_interface():
             DEFAULT_APP_CONTEXT_DEPENDENCY,
         ],
     )
-
 
 
 # *** tests
