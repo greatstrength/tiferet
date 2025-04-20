@@ -1,197 +1,157 @@
 # *** imports
 
-# ** core
-import json
-
 # ** infra
 import pytest
 
 # ** app 
-from ...models import Entity, ValueObject
 from ..feature import *
-#from ...configs.tests.test_feature import *
+from ...models.feature import *
+from ...configs.tests.test_request import *
+from ...configs.tests.test_feature import *
+from ...configs.tests.test_container import *
 
-
-# *** classes
-
-# ** class: feature_test_proxy
-class MockFeatureRepository(FeatureRepository):
-
-    # * method: init
-    def __init__(self, features: List[Feature] = []):
-        self.features = features
-
-    # * method: list
-    def list(self) -> List[Feature]:
-        return self.features
-    
-    # * method: get
-    def get(self, feature_id: str) -> Feature:
-        return next((feature for feature in self.features if feature.id == feature_id), None)
-    
-    # * method: exists
-    def exists(self, feature_id: str) -> bool:
-        return self.get(feature_id) is not None
-    
 
 # *** fixtures
 
-# ** fixture: test_env_var
+# ** fixture: container_repo
 @pytest.fixture
-def test_env_var():
-    '''
-    Test environment variable.
-    '''
+def container_repo():
 
-    # Return the test environment variable.
-    return os.getenv("TEST_ENV_VAR")
+    from ...proxies.tests.container_mock import MockContainerProxy
 
+    return MockContainerProxy
 
-# ** fixture: mock_feature_repo
+# ** fixture: feature_repo
 @pytest.fixture
-def mock_feature_repo():
+def feature_repo():
 
-    return MockFeatureRepository
+    from ...proxies.tests.feature_mock import MockFeatureProxy
+
+    return MockFeatureProxy
+
+
+# ** fixture: feature_repo_with_errors
+@pytest.fixture
+def feature_repo_with_errors():
     
+    # Mock error feature proxy.
+    class MockErrorFeatureProxy(FeatureRepository):
 
-# ** fixture: mock_fixture_repo_raise_error
-@pytest.fixture
-def mock_feature_repo_raise_error():
-    
-    class MockFeatureRepository(FeatureRepository):
-        
         def list(self) -> List[Feature]:
-            raise Exception("Error")
-        
+            raise Exception("Failed to list features")
+
         def get(self, feature_id: str) -> Feature:
-            raise Exception("Error")
-        
+            raise Exception("Failed to get feature")
+
         def exists(self, feature_id: str) -> bool:
-            raise Exception("Error")
-    
-    return MockFeatureRepository
+            raise Exception("Checking feature existence failed")
+        
+    # Return the mock error feature proxy.
+    return MockErrorFeatureProxy()
 
 
-# ** fixture: request_context_pass_on_error
+# ** fixture: features
 @pytest.fixture
-def request_context_pass_on_error():
-    return 
+def features():
+    return [
+        ModelObject.new(
+            Feature,
+            **TEST_FEATURE
+        ),
+        ModelObject.new(
+            Feature,
+            **TEST_FEATURE_WITH_RETURN_TO_DATA,
+        ),
+        Entity.new(
+            Feature,
+            **TEST_FEATURE_WITH_THROW_ERROR,
+        ),
+        Entity.new(
+            Feature,
+            **TEST_FEATURE_WITH_PASS_ON_ERROR,
+        ),
+    ]
+
+
+# ** fixture: attributes
+@pytest.fixture
+def attributes():
+    return [
+        ModelObject.new(
+            ContainerAttribute,
+            **TEST_SERVICE_COMMAND_ATTRIBUTE
+        )
+    ]
+
+
+# ** fixture: request_context
+@pytest.fixture
+def request_context():
+    return RequestContext(
+        **TEST_REQUEST_CONTEXT,
+    )
+
+
+# ** fixture: request_context_feature_not_found
+@pytest.fixture
+def request_context_feature_not_found():
+    return RequestContext(
+        **TEST_REQUEST_FEATURE_NOT_FOUND,
+    )
+
+
+# ** fixture: request_context_with_return_to_data
+@pytest.fixture
+def request_context_with_return_to_data():
+    return RequestContext(
+        **TEST_REQUEST_WITH_RETURN_TO_DATA,
+    )
+
+
+# ** fixture: request_context_throw_error
+@pytest.fixture
+def request_context_throw_error():
+    return RequestContext(
+        **TEST_REQUEST_WITH_THROW_ERROR
+    )
+
+
+# ** fixture: request_context_with_pass_on_error
+@pytest.fixture
+def request_context_with_pass_on_error():
+    return RequestContext(
+        **TEST_REQUEST_WITH_PASS_ON_ERROR
+    )
 
 
 # ** fixture: request_context_throw_and_pass_on_error
 @pytest.fixture
 def request_context_throw_and_pass_on_error():
     return RequestContext(
-        feature_id="test_group.test_feature_with_throw_and_pass_on_error",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2a"}
+        **TEST_REQUEST_THROW_AND_PASS_ON_ERROR
     )
-
 
 
 # ** fixture: container_context
 @pytest.fixture
-def container_context():
-
-    from ..container import ContainerRepository, ContainerContext, ContainerAttribute, ContainerDependency
-
-    class MockContainerRepository(ContainerRepository):
-
-        def get_attribute(self, attribute_id, type):
-            return ValueObject.new(
-                ContainerAttribute,
-                id='test_service_command',
-                type='feature',
-                dependencies=
-                [
-                    ValueObject.new(
-                        ContainerDependency,
-                        module_path='tiferet.commands.tests.test_settings',
-                        class_name='TestServiceCommand',
-                        flag='test',
-                        parameters={},
-                    )
-                ],
-            )
-
-        def list_all(self):
-            return [self.get_attribute('test_service_command', 'feature')], {}
+def container_context(container_repo, attributes):
 
     return ContainerContext(
         interface_id="test_interface",
-        container_repo=MockContainerRepository(),
+        container_repo=container_repo(
+            attributes=attributes,
+        ),
         feature_flag="test",
+        data_flag="test",
     )
 
 
 # ** fixture: feature_context
 @pytest.fixture
-def feature_context(container_context, mock_feature_repo):
-
-    from ...models.feature import ServiceCommand
+def feature_context(container_context, feature_repo, features):
 
     return FeatureContext(
-        feature_repo=mock_feature_repo([
-            Entity.new(
-                Feature,
-                name='Test Feature',
-                group_id='test_group',
-                feature_key='test_feature',
-                id='test_group.test_feature',
-                description='A test feature.',
-                commands=[ValueObject.new(
-                    ServiceCommand,
-                    name='Test Service Command',
-                    attribute_id='test_service_command',
-                    params={'param1': 'value1'},
-                )]
-            ),
-            Entity.new(
-                Feature,
-                name='Test Feature with return to data',
-                group_id='test_group',
-                feature_key='test_feature_with_return_to_data',
-                id='test_group.test_feature_with_return_to_data',
-                description='A test feature with return to data.',
-                commands=[ValueObject.new(
-                    ServiceCommand,
-                    name='Test Service Command',
-                    attribute_id='test_service_command',
-                    params={'param1': 'value1'},
-                    return_to_data=True,
-                    data_key='test_key'
-                )]
-            ),
-            Entity.new(
-                Feature,
-                name='Test Feature with throw error',
-                group_id='test_group',
-                feature_key='test_feature_with_throw_error',
-                id='test_group.test_feature_with_throw_error',
-                description='A test feature with throw error.',
-                commands=[ValueObject.new(
-                    ServiceCommand,
-                    name='Test Service Command',
-                    attribute_id='test_service_command',
-                    params={'param1': 'value1'},
-                )]
-            ),
-            Entity.new(
-                Feature,
-                name='Test Feature with pass on error',
-                group_id='test_group',
-                feature_key='test_feature_with_pass_on_error',
-                id='test_group.test_feature_with_pass_on_error',
-                description='A test feature with pass on error.',
-                commands=[ValueObject.new(
-                    ServiceCommand,
-                    name='Test Service Command',
-                    attribute_id='test_service_command',
-                    params={'param1': 'value1'},
-                    pass_on_error=True
-                )]
-            ),
-        ]),
+        feature_repo=feature_repo(features=features),
         container_context=container_context
     )
 
@@ -199,40 +159,26 @@ def feature_context(container_context, mock_feature_repo):
 # *** tests
 
 # ** test: test_feature_context_init_error
-def test_feature_context_init_error(mock_feature_repo_raise_error):
+def test_feature_context_init_error(feature_repo_with_errors):
 
     # Create new container context.
     with pytest.raises(FeatureLoadingError):
         FeatureContext(
-            feature_repo=mock_feature_repo_raise_error(),
+            feature_repo=feature_repo_with_errors,
             container_context=None
         )
 
 
 # ** test: test_execute_feature_feature_not_found
-def test_execute_feature_feature_not_found(feature_context):
-
-    # Create new request context.
-    request = RequestContext(
-        feature_id="test_group.non_existent_feature",
-        headers={"Content-Type": "application/json"},
-        data={}
-    )
+def test_execute_feature_feature_not_found(feature_context, request_context_feature_not_found):
 
     # Test executing a feature that does not exist
     with pytest.raises(FeatureNotFoundError):
-        feature_context.execute(request)
+        feature_context.execute(request_context_feature_not_found)
         
 
 # ** test: test_execute_feature_success
-def test_execute_feature_success(feature_context):
-
-    # Create a new request context.
-    request_context = RequestContext(
-        feature_id="test_group.test_feature",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2"}
-    )
+def test_execute_feature_success(feature_context, request_context):
 
     # Test executing a feature that sets result
     feature_context.execute(request_context)
@@ -243,49 +189,29 @@ def test_execute_feature_success(feature_context):
 
 
 # ** test: test_execute_feature_with_return_to_data
-def test_execute_feature_with_return_to_data(feature_context):
+def test_execute_feature_with_return_to_data(feature_context, request_context_with_return_to_data):
     
-    # Create a new request context.
-    request = RequestContext(
-        feature_id="test_group.test_feature_with_return_to_data",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2"}
-    )
 
     # Test executing a feature that returns data.
-    feature_context.execute(request)
+    feature_context.execute(request_context_with_return_to_data)
 
     # Assert the result.
-    assert request.data.get('test_key') == ('value1', 'value2')
+    assert request_context_with_return_to_data.data.get('test_key') == ('value1', 'value2')
 
 
 # ** test: test_execute_feature_with_throw_error
-def test_execute_feature_with_throw_error(feature_context):
-
-    # Create a new request context.
-    request = RequestContext(
-        feature_id="test_group.test_feature_with_throw_error",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2", "throw_error": "True"}
-    )
+def test_execute_feature_with_throw_error(feature_context, request_context_throw_error):
 
     # Test where pass_on_error is False.
     with pytest.raises(TiferetError):
-        feature_context.execute(request)
+        feature_context.execute(request_context_throw_error)
 
 
 # ** test: test_execute_feature_with_pass_on_error
-def test_execute_feature_with_pass_on_error(feature_context):
-
-    # Create a new request context.
-    request = RequestContext(
-        feature_id="test_group.test_feature_with_pass_on_error",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2", "throw_error": "True"}
-    )
+def test_execute_feature_with_pass_on_error(feature_context, request_context_with_pass_on_error):
 
     # Test where pass_on_error is True.
-    feature_context.execute(request)
+    feature_context.execute(request_context_with_pass_on_error)
 
     # Assert the result.
-    assert request.result == None
+    assert request_context_with_pass_on_error.result == None
