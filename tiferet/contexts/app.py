@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..models.settings import *
+from ..configs import *
 from ..models.app import *
 from ..repos.app import *
 
@@ -29,11 +29,9 @@ class AppContext(Model):
 
     # * method: init
     def __init__(self,
-                 app_repo_module_path: str = 'tiferet.proxies.app_yaml',
-                 app_repo_class_name: str = 'AppYamlProxy',
-                 app_repo_parameters: Dict[str, Any] = dict(
-                     app_config_file='app/configs/app.yml'
-                 )):
+                 app_repo_module_path: str = DEFAULT_APP_REPO_MODULE_PATH,
+                 app_repo_class_name: str = DEFAULT_APP_REPO_CLASS_NAME,
+                 app_repo_parameters: Dict[str, Any] = DEFAULT_APP_REPO_PARAMETERS):
         '''
         Initialize the application context.
 
@@ -281,7 +279,6 @@ class AppInterfaceContext(Model):
         print('Error:', exception)
         return self.errors.handle_error(exception, **kwargs)
     
-
     # * method: handle_response
     def handle_response(self, request: RequestContext, **kwargs) -> Any:
         '''
@@ -295,7 +292,6 @@ class AppInterfaceContext(Model):
 
         # Handle the response from the request.
         return request.handle_response(**kwargs)
-
 
     # * method: run
     def run(self, feature_id: str, **kwargs):
