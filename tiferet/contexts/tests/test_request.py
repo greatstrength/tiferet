@@ -5,15 +5,8 @@ import pytest
 
 # ** app
 from ..request import RequestContext
+from ...configs.tests.test_request import *
 from ...models.settings import *
-
-
-# *** classes
-
-# ** class: TestModel
-class TestModel(Model):
-
-    test_field = StringType()
 
 
 # *** fixtures
@@ -22,10 +15,20 @@ class TestModel(Model):
 @pytest.fixture
 def request_context():
     return RequestContext(
-        feature_id='test_group.test_feature',
-        data={'param2': 'value2'},
-        headers={'Content-Type': 'application/json'}
+        **TEST_REQUEST_CONTEXT
     )
+
+
+# ** fixture: test_model
+@pytest.fixture
+def test_model():
+
+    class TestModel(Model):
+
+        test_field = StringType()
+
+    return TestModel
+
 
 # *** tests
 
@@ -55,10 +58,10 @@ def test_set_result_with_dict(request_context):
     request_context.set_result(test_result)
     assert request_context.result == '{"status": "ok"}'
 
-def test_set_result_with_model(request_context):
+def test_set_result_with_model(request_context, test_model):
     
     # Test setting a Model as result
-    model_instance = TestModel(dict(test_field="test_value"))
+    model_instance = test_model(dict(test_field="test_value"))
 
     # Set the result.
     request_context.set_result(model_instance)
@@ -68,12 +71,12 @@ def test_set_result_with_model(request_context):
 
 
 # ** test: test_set_result_with_list_of_models
-def test_set_result_with_list_of_models(request_context):
+def test_set_result_with_list_of_models(request_context, test_model):
     
     # Create a list of models.
     models_list = [
-        TestModel(dict(test_field="value1")), 
-        TestModel(dict(test_field="value2"))
+        test_model(dict(test_field="value1")), 
+        test_model(dict(test_field="value2"))
     ]
     request_context.set_result(models_list)
 
