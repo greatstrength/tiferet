@@ -4,20 +4,11 @@
 import pytest
 
 # ** app
+from ..app import *
 from ...models.app import *
 
 
 # *** constants
-
-# ** constant: test_app_interface
-TEST_APP_INTERFACE = dict(
-    id='test',
-    name='Test Interface',
-    description='The test interface.',
-    feature_flag='test',
-    data_flag='test'
-)
-
 
 # ** constant: test_app_repo_dependency
 TEST_APP_REPO_DEPENDENCY = dict(
@@ -48,4 +39,23 @@ TEST_CONTAINER_REPO_DEPENDENCY = dict(
     attribute_id='container_repo',
     module_path='tiferet.proxies.tests.container_mock',
     class_name='MockContainerProxy',
+)
+
+
+# ** constant: test_app_interface
+TEST_APP_INTERFACE = dict(
+    id='test',
+    name='Test Interface',
+    description='The test interface.',
+    feature_flag='test',
+    data_flag='test',
+    dependencies=[
+        DEFAULT_APP_CONTEXT_DEPENDENCY,
+        DEFAULT_ERROR_CONTEXT_DEPENDENCY,
+        DEFAULT_FEATURE_CONTEXT_DEPENDENCY,
+        DEFAULT_CONTAINER_CONTEXT_DEPENDENCY,
+        TEST_ERROR_REPO_DEPENDENCY,
+        TEST_FEATURE_REPO_DEPENDENCY,
+        TEST_CONTAINER_REPO_DEPENDENCY,
+    ],
 )
