@@ -1,6 +1,7 @@
 # *** imports
 
 # ** app
+from .settings import *
 from .app import AppRepository
 from .container import ContainerRepository
 from .error import ErrorRepository
