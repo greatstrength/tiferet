@@ -6,9 +6,7 @@ import pytest
 # ** app 
 from ..feature import *
 from ...models.feature import *
-from ...configs.tests.test_request import *
-from ...configs.tests.test_feature import *
-from ...configs.tests.test_container import *
+from ...configs.tests import *
 
 
 # *** fixtures
