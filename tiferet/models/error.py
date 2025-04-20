@@ -95,13 +95,13 @@ class Error(Entity):
         :return: A new Error object.
         '''
         
-        # Set Id as the name if not provided.
+        # Set Id as the name lower cased if not provided.
         if not id:
-            id = name.upper().replace(' ', '_')
+            id = name.lower().replace(' ', '_')
 
-        # Set the error code as the name if not provided.
+        # Set the error code as the id upper cased if not provided.
         if not error_code:
-            error_code = id
+            error_code = id.upper().replace(' ', '_')
 
         # Convert any error message dicts to ErrorMessage objects.
         message_objs = []
