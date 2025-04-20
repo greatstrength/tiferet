@@ -1,14 +1,14 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from .settings import *
 from ..models.container import *
 
 
-# *** repository
+# *** repositories
 
 # ** interface: container_repository
-class ContainerRepository(ABC):
+class ContainerRepository(Repository):
     '''
     An interface for accessing container attributes.
     '''
