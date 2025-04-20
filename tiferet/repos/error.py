@@ -1,13 +1,14 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from .settings import *
 from ..models.error import *
 
-# *** repository
+
+# *** repositories
 
 # ** interface: error_repository
-class ErrorRepository(ABC):
+class ErrorRepository(Repository):
     '''
     An interface for managing errors.
     '''
