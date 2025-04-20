@@ -1,14 +1,14 @@
 # *** imports
 
 # ** app
-from ..configs import *
+from .settings import *
 from ..models.app import *
 
 
-# *** repository
+# *** repositories
 
 # ** interface: app_repository
-class AppRepository(ABC):
+class AppRepository(Repository):
     '''
     An app repository is a class that is used to get an app interface.
     '''
