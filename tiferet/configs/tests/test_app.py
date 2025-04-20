@@ -30,7 +30,7 @@ TEST_APP_REPO_DEPENDENCY = dict(
 # ** constant: test_error_repo_dependency
 TEST_ERROR_REPO_DEPENDENCY = dict(
     attribute_id='error_repo',
-    module_path='tiferet.proxies.error_mock',
+    module_path='tiferet.proxies.tests.error_mock',
     class_name='MockErrorProxy',
 )
 
@@ -38,7 +38,7 @@ TEST_ERROR_REPO_DEPENDENCY = dict(
 # ** constant: test_feature_repo_dependency
 TEST_FEATURE_REPO_DEPENDENCY = dict(
     attribute_id='feature_repo',
-    module_path='tiferet.proxies.feature_mock',
+    module_path='tiferet.proxies.tests.feature_mock',
     class_name='MockFeatureProxy',
 )
 
@@ -46,6 +46,6 @@ TEST_FEATURE_REPO_DEPENDENCY = dict(
 # ** constant: test_container_repo_dependency
 TEST_CONTAINER_REPO_DEPENDENCY = dict(
     attribute_id='container_repo',
-    module_path='tiferet.proxies.container_mock',
+    module_path='tiferet.proxies.tests.container_mock',
     class_name='MockContainerProxy',
 )
