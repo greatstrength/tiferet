@@ -18,9 +18,6 @@ def app_interface():
     return Entity.new(
         AppInterface,
         **TEST_APP_INTERFACE,
-        dependencies=[
-            DEFAULT_APP_CONTEXT_DEPENDENCY,
-        ],
     )
 
 
