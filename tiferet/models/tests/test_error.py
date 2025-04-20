@@ -5,34 +5,36 @@ import pytest
 
 # ** app
 from ..error import *
+from ...configs.tests.test_error import *
 
 
 # *** fixtures
 
+
+# ** fixture: error_config
+@pytest.fixture
+def error_config():
+    
+    return dict(**TEST_ERROR)
+
+
 # ** fixture: error
 @pytest.fixture
-def error() -> Error:
-    return Error.new(
-        name='My Error',
-        id='MY_ERROR',
-        error_code='MY_ERROR',
-        message=[
-            ValueObject.new(
-                ErrorMessage,
-                lang='en_US',
-                text='An error occurred.'
-            )
-        ]
+def error(error_config) -> Error:
+    
+    return ModelObject.new(
+        Error,
+        **error_config
     )
 
 
 # ** fixture: error_message
 @pytest.fixture
 def error_message() -> ErrorMessage:
+    
     return ValueObject.new(
         ErrorMessage,
-        lang='en_US',
-        text='An error occurred.'
+        **TEST_ERROR_MESSAGE
     )
 
 
@@ -41,84 +43,81 @@ def error_message() -> ErrorMessage:
 def formatted_error_message() -> ErrorMessage:
     return ValueObject.new(
         ErrorMessage,
-        lang='en_US',
-        text='An error occurred: {}'
-    )
-
-
-# ** fixture: error
-@pytest.fixture
-def errors(error_message) -> Error:
-    return Error.new(
-        name='My Error',
-        message=[error_message]
+        **TEST_FORMATTED_ERROR_MESSAGE
     )
 
 
 # ** fixture: error_with_formatted_message
 @pytest.fixture
 def error_with_formatted_message(formatted_error_message) -> Error:
-    return Error.new(
-        name='MY_ERROR',
-        id='MY_ERROR',
-        error_code='MY_ERROR',
-        message=[formatted_error_message]
+    
+    return ModelObject.new(
+        Error,
+        **TEST_ERROR_WITH_FORMATTED_MESSAGE
     )
 
 
 # *** tests
 
 # ** test: test_error_message_new
-def test_error_new(error_message):
+def test_error_new(error_config, error_message):
 
+    # Remove message from the error config.
+    error_config.pop('message', None)
+    
     # Create an error message object.
     error = Error.new(
-        name='My Error',
-        id='MY_ERROR',
-        error_code='MY_ERROR_CODE',
+        **error_config,
         message=[error_message]
     )
 
     # Check if the error message object is correctly instantiated.
-    assert error.name == 'My Error'
-    assert error.id == 'MY_ERROR'
-    assert error.error_code == 'MY_ERROR_CODE'
+    assert error.name == 'Test Error'
+    assert error.id == 'test_error'
+    assert error.error_code == 'TEST_ERROR'
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
 
 # ** test: test_error_new_no_error_code
-def test_error_new_no_error_code(error_message):
+def test_error_new_no_error_code(error_config, error_message):
+
+    # Remove message and error_code from the error config.
+    error_config.pop('message', None)
+    error_config.pop('error_code', None)
 
     # Create an error message object.
     error = Error.new(
-        name='My Error',
-        id='MY_ERROR',
+        **error_config,
         message=[error_message]
     )
 
     # Check if the error message object is correctly instantiated.
-    assert error.name == 'My Error'
-    assert error.id == 'MY_ERROR'
-    assert error.error_code == 'MY_ERROR'
+    assert error.name == 'Test Error'
+    assert error.id == 'test_error'
+    assert error.error_code == 'TEST_ERROR'
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
 
 # ** test: test_error_new_no_id
-def test_error_new_no_id(error_message):
+def test_error_new_no_id(error_config, error_message):
 
+    # Remove message, id, and error code from the error config.
+    error_config.pop('message', None)
+    error_config.pop('id', None)
+    error_config.pop('error_code', None)
+    
     # Create an error message object.
     error = Error.new(
-        name='My Error',
-        error_code='MY_ERROR_CODE',
+        **error_config,
         message=[error_message]
     )
 
     # Check if the error message object is correctly instantiated.
-    assert error.name == 'My Error'
-    assert error.id == 'MY_ERROR'
-    assert error.error_code == 'MY_ERROR_CODE'
+    assert error.name == 'Test Error'
+    assert error.id == 'test_error'
+    assert error.error_code == 'TEST_ERROR'
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
