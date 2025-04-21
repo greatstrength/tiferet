@@ -5,6 +5,7 @@ import pytest
 
 # ** app
 from ..error import *
+from ...configs.tests.test_error import *
 
 
 # *** classes
@@ -50,61 +51,40 @@ def mock_error_repo_raise_error():
 
     return MockErrorRepository()
 
-# ** fixture: error
-@pytest.fixture
-def error() -> Error:
-    return ModelObject.new(
-        Error,
-        name='My Error',
-        id='MY_ERROR',
-        error_code='MY_ERROR',
-        message=[
-            ModelObject.new(
-                ErrorMessage,
-                lang='en_US',
-                text='An error occurred.'
-            )
-        ]
-    )
 
 # ** fixture: error_message
 @pytest.fixture
 def error_message() -> ErrorMessage:
-    return ValueObject.new(
+    return ModelObject.new(
         ErrorMessage,
-        lang='en_US',
-        text='An error occurred.'
+        **TEST_ERROR_MESSAGE
     )
 
 
 # ** fixture: formatted_error_message
 @pytest.fixture
 def formatted_error_message() -> ErrorMessage:
-    return ValueObject.new(
+    return ModelObject.new(
         ErrorMessage,
-        lang='en_US',
-        text='An error occurred: {}'
+        **TEST_FORMATTED_ERROR_MESSAGE
     )
 
 
 # ** fixture: error
 @pytest.fixture
-def error(error_message) -> Error:
-    return Error.new(
-        name='My Error',
-        message=[error_message]
+def error() -> Error:
+    return ModelObject.new(
+        Error,
+        **TEST_ERROR,
     )
 
 
 # ** fixture: error_with_formatted_message
 @pytest.fixture
-def error_with_formatted_message(formatted_error_message) -> Error:
+def error_with_formatted_message() -> Error:
     return ValueObject.new(
         Error,
-        name='My formatted error',
-        id='MY_FORMATTED_ERROR',
-        error_code='MY_FORMATTED_ERROR',
-        message=[formatted_error_message]
+        **TEST_ERROR_WITH_FORMATTED_MESSAGE
     )
 
 
@@ -134,11 +114,11 @@ def test_raise_error():
 
     # Check that the error is raised correctly.
     with pytest.raises(TiferetError):
-        raise_error('MY_ERROR', None)
+        raise_error('TEST_ERROR', None)
 
     # Check that the error with format arguments is raised correctly.
     with pytest.raises(TiferetError):
-        raise_error('MY_FORMATTED_ERROR', 'This is the error.')
+        raise_error('TEST_FORMATTED_ERROR', 'This is the error.')
 
 
 # ** test: test_error_context_init
@@ -148,8 +128,8 @@ def test_error_context_init(error_context, error_repo):
     assert len(error_context.errors.values()) > 0
 
     # Check that the errors are loaded correctly.
-    assert error_context.errors['MY_ERROR'] == error_repo.errors[0]
-    assert error_context.errors['MY_FORMATTED_ERROR'] == error_repo.errors[1]
+    assert error_context.errors['TEST_ERROR'] == error_repo.errors[0]
+    assert error_context.errors['TEST_FORMATTED_ERROR'] == error_repo.errors[1]
 
 
 # ** test: test_error_context_init_with_error
@@ -193,14 +173,14 @@ def test_format_error_response(error_context, error, error_with_formatted_messag
     message = error_context.format_error_response(error, lang='en_US')
 
     # Check if the error message is correctly formatted
-    assert message['error_code'] == 'MY_ERROR'
+    assert message['error_code'] == 'TEST_ERROR'
     assert message['message'] == 'An error occurred.'
 
     # Test formatting an error response with arguments
     formatted_message = error_context.format_error_response(error_with_formatted_message, lang='en_US', error_data=['This is the error.'])
 
     # Check if the error message is correctly formatted
-    assert formatted_message['error_code'] == 'MY_FORMATTED_ERROR'
+    assert formatted_message['error_code'] == 'TEST_FORMATTED_ERROR'
     assert formatted_message['message'] == 'An error occurred: This is the error.'
 
 
@@ -223,7 +203,7 @@ def test_handle_error_return_formatted_error_response(error_context):
 
     # Create Tiferet Error using a known error code.
     exception = TiferetError(
-        error_code='MY_ERROR',
+        error_code='TEST_ERROR',
     )
 
     # Test handling an error and returning a formatted error response
@@ -233,7 +213,7 @@ def test_handle_error_return_formatted_error_response(error_context):
     )
 
     # Check if the error message is correctly formatted
-    assert formatted_message['error_code'] == 'MY_ERROR'
+    assert formatted_message['error_code'] == 'TEST_ERROR'
     assert formatted_message['message'] == 'An error occurred.'
 
 
