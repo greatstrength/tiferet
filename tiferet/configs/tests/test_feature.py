@@ -24,9 +24,7 @@ TEST_FEATURE = dict(
     feature_key='test_feature',
     description='A test feature.',
     commands=[
-        dict(
-            **TEST_SERVICE_COMMAND,
-        )
+        TEST_SERVICE_COMMAND,
     ]
 )
 
@@ -39,9 +37,7 @@ TEST_FEATURE_WITH_RETURN_TO_DATA = dict(
     id='test_group.test_feature_with_return_to_data',
     description='A test feature with return to data.',
     commands=[
-        dict(
-            **TEST_SERVICE_COMMAND_WITH_RETURN_TO_DATA,
-        )
+        TEST_SERVICE_COMMAND_WITH_RETURN_TO_DATA,
     ]
 )
 
@@ -54,9 +50,7 @@ TEST_FEATURE_WITH_THROW_ERROR = dict(
     id='test_group.test_feature_with_throw_error',
     description='A test feature with throw error.',
     commands=[
-        dict(
-            **TEST_SERVICE_COMMAND,
-        )
+        TEST_SERVICE_COMMAND,
     ]
 )
 
@@ -71,7 +65,7 @@ TEST_FEATURE_WITH_PASS_ON_ERROR = dict(
     commands=[
         dict(
             **TEST_SERVICE_COMMAND,
-            pass_on_error=True
+            pass_on_error=True,
         )
     ]
 )
