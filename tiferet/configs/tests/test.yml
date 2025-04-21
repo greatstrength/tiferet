@@ -8,18 +8,18 @@ attrs:
 const:
   config_file: tiferet/configs/tests/test.yml
 errors:
-  MY_FORMATTED_ERROR:
-    error_code: MY_FORMATTED_ERROR
+  test_formatted_error:
+    error_code: TEST_FORMATTED_ERROR
     message:
     - lang: en_US
       text: 'An error occurred: {}'
-    name: My Formatted Error
-  MY_ERROR:
-    error_code: MY_ERROR
+    name: Test Formatted Error
+  test_error:
+    error_code: TEST_ERROR
     message:
     - lang: en_US
       text: An error occurred.
-    name: My Error
+    name: Test Error
 features:
   test_group.test_feature:
     commands:
