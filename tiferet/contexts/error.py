@@ -59,7 +59,7 @@ class ErrorContext(Model):
             for error in error_repo.list():
                 
                 # Add the error to the errors lookup.
-                errors[error.id] = error
+                errors[error.error_code] = error
 
         # If the error repository fails to load, raise an error.   
         except Exception as e:
