@@ -5,6 +5,7 @@ import pytest
 
 # ** app
 from ..container import *
+from ...configs.tests.test_container import *
 
 
 # *** fixtures
@@ -12,32 +13,33 @@ from ..container import *
 # ** fixture: container_dependency (container)
 @pytest.fixture
 def container_dependency() -> ContainerDependency:
-    return ValueObject.new(
+    return ModelObject.new(
         ContainerDependency,
-        module_path='tiferet.proxies.tests',
-        class_name='TestProxy',
-        flag='test',
-        parameters={'config_file': 'tiferet/configs/tests/test.yml'}
+        **TEST_CONTAINER_DEPENDENCY,
     )
 
 
 # ** fixture: test_repo_container_attribute (container)
 @pytest.fixture
-def container_attribute(container_dependency: ContainerDependency) -> ContainerAttribute:
-    return Entity.new(
+def container_attribute() -> ContainerAttribute:
+    return ModelObject.new(
         ContainerAttribute,
-        id='test_repo',
-        type='data',
-        dependencies=[container_dependency],
+        **TEST_CONTAINER_ATTRIBUTE,
     )
+
 
 # ** fixture: empty_container_attribute
 @pytest.fixture
 def empty_container_attribute() -> ContainerAttribute:
-    return Entity.new(
+    
+    container_attribute = dict(
+        **TEST_CONTAINER_ATTRIBUTE,
+    )
+    container_attribute.pop('dependencies', None)
+
+    return ModelObject.new(
         ContainerAttribute,
-        id='test_repo',
-        type='data',
+        **container_attribute,
         dependencies=[],
     )
 
