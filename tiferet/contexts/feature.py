@@ -129,7 +129,7 @@ class FeatureContext(Model):
             self,
             command: ServiceCommand,
             request: RequestContext,
-            params: Dict[str, str] = None,
+            params: Dict[str, str] = {},
             return_to_data: bool = False,
             data_key: str = None,
             pass_on_error: bool = False,
@@ -157,7 +157,7 @@ class FeatureContext(Model):
         # Handle assertion errors if pass on error is not set.
         try:
             result = command.execute(
-                **request.data,
+                **request.data if request.data else {},
                 **params,
                 **kwargs
             )
