@@ -160,19 +160,27 @@ def feature_context(container_context, feature_repo, features):
 def test_feature_context_init_error(feature_repo_with_errors):
 
     # Create new container context.
-    with pytest.raises(FeatureLoadingError):
+    with pytest.raises(TiferetError) as excinfo:
         FeatureContext(
             feature_repo=feature_repo_with_errors,
             container_context=None
         )
 
+    # Assert the error code and content.
+    assert excinfo.value.error_code == 'FEATURE_LOADING_FAILED'
+    assert 'Failed loading features:' in str(excinfo.value)
+    
 
 # ** test: test_execute_feature_feature_not_found
 def test_execute_feature_feature_not_found(feature_context, request_context_feature_not_found):
 
     # Test executing a feature that does not exist
-    with pytest.raises(FeatureNotFoundError):
+    with pytest.raises(TiferetError) as excinfo:
         feature_context.execute(request_context_feature_not_found)
+
+    # Assert the error code and content.
+    assert excinfo.value.error_code == 'FEATURE_NOT_FOUND'
+    assert 'Feature not found:' in str(excinfo.value)
         
 
 # ** test: test_execute_feature_success
