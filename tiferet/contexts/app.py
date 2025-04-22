@@ -2,8 +2,8 @@
 
 # ** app
 from ..configs import *
+from ..commands.app import *
 from ..models.app import *
-from ..repos.app import *
 
 # ** app - contexts
 from .request import RequestContext
@@ -44,28 +44,24 @@ class AppContext(Model):
         '''
 
         # Import the app repository.
-        # Raise an error if the app repository cannot be imported.
-        try:
-            app_repo: AppRepository = import_dependency(app_repo_module_path, app_repo_class_name)(**app_repo_parameters)
-        except Exception as e:
-            raise_error(
-                'APP_REPOSITORY_IMPORT_FAILED',
-                str(e)
-            )
+        app_repo = ServiceCommand.handle_command(
+            ImportAppRepository,
+            app_repo_module_path=app_repo_module_path,
+            app_repo_class_name=app_repo_class_name,
+            **app_repo_parameters
+        )
 
         # Load the interfaces.
-        # Raise an error if the interfaces cannot be loaded.
-        try:
-            interfaces = {interface.id: interface for interface in app_repo.list_interfaces()}
-        except Exception as e:
-            raise_error(
-                'APP_INTERFACE_LOADING_FAILED',
-                str(e)
+        interfaces = ServiceCommand.handle_command(
+            ListAppInterfaces,
+            dependencies=dict(
+                app_repo=app_repo
             )
+        )
         
         # Initialize the model.
         super().__init__(dict(
-            interfaces=interfaces
+            interfaces={interface.id: interface for interface in interfaces}
         ))
 
     # * method: load_interface
@@ -112,6 +108,23 @@ class AppContext(Model):
         # Add the remaining dependencies from the app interface.
         dependencies.update({dep.attribute_id: import_dependency(
             dep.module_path, dep.class_name) for dep in app_interface.dependencies})
+        
+        # Add the default dependencies if they are not already present.
+        for dep in DEFAULT_APP_CONTEXT_DEPENDENCIES:
+
+            # Convert the dependency to a model object.
+            dep_model = ModelObject.new(AppDependency, **dep)
+
+            # If the dependency is not already present, add it to the dependencies.
+            if dep_model.attribute_id not in dependencies:
+                dependencies[dep_model.attribute_id] = import_dependency(
+                    dep_model.module_path, dep_model.class_name
+                )
+
+        # Add the default app context constants to the dependencies.
+        for const in DEFAULT_APP_CONTEXT_CONSTANTS:
+            if const not in dependencies:
+                dependencies[const] = DEFAULT_APP_CONTEXT_CONSTANTS[const]
 
         # Create the injector.
         injector = create_injector(app_interface.name, **dependencies, **kwargs)
