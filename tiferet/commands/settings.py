@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..models import *
+from ..models.settings import *
 from ..contexts import raise_error
 
 
@@ -50,3 +50,29 @@ class ServiceCommand(object):
                 error_code,
                 *args
             )
+
+    # * method: handle_command
+    @staticmethod
+    def handle_command(
+            command: type,
+            dependencies: Dict[str, Any] = {},
+            **kwargs) -> Any:
+        '''
+        Handle the command.
+
+        :param command: The command to handle.
+        :type command: type
+        :param dependencies: The command dependencies.
+        :type dependencies: Dict[str, Any]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the command.
+        :rtype: Any
+        '''
+
+        # Get the command handler.
+        command_handler = command(**dependencies)
+
+        # Execute the command handler.
+        result = command_handler.execute(**kwargs)
+        return result
