@@ -2,7 +2,7 @@
 
 # ** app
 from .settings import *
-from ..models.app import *
+from ..data.app import *
 
 
 # *** repositories

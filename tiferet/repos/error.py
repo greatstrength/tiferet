@@ -2,7 +2,7 @@
 
 # ** app
 from .settings import *
-from ..models.error import *
+from ..data.error import *
 
 
 # *** repositories

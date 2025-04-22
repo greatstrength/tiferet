@@ -2,7 +2,7 @@
 
 # ** app
 from .settings import *
-from ..models.feature import *
+from ..data.feature import *
 
 
 # *** repositories
