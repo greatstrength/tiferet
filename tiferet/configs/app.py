@@ -99,3 +99,11 @@ DEFAULT_FEATURE_CONFIG_FILE = 'tiferet/configs/features.yml'
 
 # ** constant: default_error_config_file
 DEFAULT_ERROR_CONFIG_FILE = 'tiferet/configs/errors.yml'
+
+
+# ** constant: default_app_context_constants
+DEFAULT_APP_CONTEXT_CONSTANTS = dict(
+    container_config_file=DEFAULT_CONTAINER_CONFIG_FILE,
+    feature_config_file=DEFAULT_FEATURE_CONFIG_FILE,
+    error_config_file=DEFAULT_ERROR_CONFIG_FILE,
+)
