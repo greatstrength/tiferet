@@ -59,3 +59,15 @@ TEST_APP_INTERFACE = dict(
         TEST_CONTAINER_REPO_DEPENDENCY,
     ],
 )
+
+
+# ** constant: test_app_interface_yaml_data
+TEST_APP_INTERFACE_YAML_DATA = dict(
+    id='test_interface',
+    name='Test Interface',
+    data_flag='test_flag',
+    app_context=dict(
+        module_path='tests.contexts.test',
+        class_name='TestContext'
+    ),
+)
