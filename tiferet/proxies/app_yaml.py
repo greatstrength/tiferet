@@ -61,7 +61,9 @@ class AppYamlProxy(AppRepository):
         _data: AppInterface = yaml_client.load(
             self.config_file,
             create_data=lambda data: AppInterfaceYamlData.from_data(
-                id=id, **data),
+                id=id, 
+                **data
+            ),
             start_node=lambda data: data.get('interfaces').get(id))
 
         # Return the app interface object.
