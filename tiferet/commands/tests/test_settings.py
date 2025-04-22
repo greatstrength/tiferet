@@ -88,3 +88,20 @@ def test_service_command_execute_with_error(test_service_command):
 
     # Verify the error.
     assert e.value.error_code == 'TEST_FORMATTED_ERROR'
+
+
+# ** test: handle_command
+def test_handle_command(test_service_command):
+    '''
+    Test the handle command method.
+    '''
+
+    # Handle the command.
+    result = test_service_command.handle_command(
+        TestServiceCommand,
+        param1='param1',
+        param2='param2'
+    )
+
+    # Verify the result.
+    assert result == ('param1', 'param2')
