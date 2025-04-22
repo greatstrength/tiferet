@@ -5,7 +5,7 @@ import pytest
 
 # ** app 
 from ..feature import *
-from ...models.feature import *
+from ...models import *
 from ...configs.tests import *
 from ...commands.tests.test_settings import TestServiceCommand
 
