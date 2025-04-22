@@ -47,77 +47,61 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             'to_data': DataObject.deny('id')
         }
 
-    # attribute: dependencies
-    dependencies = DictType(
-        ModelType(AppDependencyYamlData),
-        default={},
+    # * attribute: container_repo
+    container_repo = ModelType(
+        AppDependencyYamlData,
         metadata=dict(
-            description='The app dependencies.'
+            description='The container repository dependency settings.'
         ),
     )
 
-    # * method: new
-    @staticmethod
-    def from_data(
-        app_context: Dict[str, str] = dict(
-            module_path='tiferet.contexts.app',
-            class_name='AppInterfaceContext',
-        ), 
-        constants: Dict[str, str] = {},
-        **kwargs
-    ) -> 'AppInterfaceYamlData':
-        '''
-        Initializes a new YAML representation of an AppInterface object.
+    # * attribute: container_context
+    container_context = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The container context dependency settings.'
+        ),
+    )
 
-        :param app_context: The app context.
-        :type app_context: Dict[str, str]
-        :param constants: The constants.
-        :type constants: Dict[str, str]
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppInterfaceData object.
-        :rtype: AppInterfaceData
-        '''
+    # * attribute: error_repo
+    error_repo = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The error repository dependency settings.'
+        ),
+    )
 
-        # Add the app context to the dependencies.
-        dependencies = dict(
-            app_context=DataObject.from_data(
-                AppDependencyYamlData,
-                attribute_id='app_context',
-                **app_context
-            )
-        )
+    # * attribute: error_context
+    error_context = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The error context dependency settings.'
+        ),
+    )
 
-        # Going through the default dependencies...
-        for key, value in CONTEXT_LIST_DEFAULT.items():
-            
-            # If the key is in the kwargs, add it and continue.
-            if key in kwargs:
-                dependencies[key] = DataObject.from_data(
-                    AppDependencyYamlData,
-                    attribute_id=key,
-                    **kwargs.pop(key)) # Pop the key to avoid duplication.
-                continue
-            
-            # Otherwise, add the default value.
-            dependencies[key] = DataObject.from_data(
-                AppDependencyYamlData,
-                attribute_id=key,
-                **value)
-            
-        # Add the default constants to the contants.
-        for key, value in CONSTANTS_DEFAULT.items():
-            if key in constants:
-                continue
-            constants[key] = value
+    # * attribute: feature_repo
+    feature_repo = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The feature repository dependency settings.'
+        ),
+    )
 
-        # Create a new AppInterfaceData object.
-        return DataObject.from_data(
-            AppInterfaceYamlData,
-            dependencies=dependencies,
-            constants=constants,
-            **kwargs
-        )
+    # * attribute: feature_context
+    feature_context = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The feature context dependency settings.'
+        ),
+    )
+
+    # * attribute: dependencies
+    app_context = ModelType(
+        AppDependencyYamlData,
+        metadata=dict(
+            description='The app interface context dependency settings.'
+        ),
+    )
 
     # * method: map
     def map(self, **kwargs) -> AppInterface:
@@ -132,9 +116,28 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         :rtype: AppInterface
         '''
 
+        # Create the dependencies list.
+        dependencies = []
+
+        # Add the dependencies to the list if they are not None.
+        if self.container_repo:
+            dependencies.append(self.container_repo.map(AppDependency, attribute_id='container_repo'))
+        if self.container_context:
+            dependencies.append(self.container_context.map(AppDependency, attribute_id='container_context'))
+        if self.error_repo:
+            dependencies.append(self.error_repo.map(AppDependency, attribute_id='error_repo'))
+        if self.error_context:
+            dependencies.append(self.error_context.map(AppDependency, attribute_id='error_context'))
+        if self.feature_repo:
+            dependencies.append(self.feature_repo.map(AppDependency, attribute_id='feature_repo'))
+        if self.feature_context:
+            dependencies.append(self.feature_context.map(AppDependency, attribute_id='feature_context'))
+        if self.app_context:
+            dependencies.append(self.app_context.map(AppDependency, attribute_id='app_context'))
+
         # Map the app interface data.
         return super().map(AppInterface,
-            dependencies=[dep.map(AppDependency, attribute_id=key) for key, dep in self.dependencies.items()],
+            dependencies=dependencies,
             **self.to_primitive('to_model'),
             **kwargs
         )
