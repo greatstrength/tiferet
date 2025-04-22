@@ -37,7 +37,8 @@ class AppYamlProxy(AppRepository):
         interfaces = yaml_client.load(
             self.config_file,
             create_data=lambda data: [
-                AppInterfaceYamlData.from_data(
+                DataObject.from_data(
+                    AppInterfaceYamlData,
                     id=interface_id,
                     **record
                 ).map() for interface_id, record in data.items()],
@@ -60,7 +61,8 @@ class AppYamlProxy(AppRepository):
         # Load the app interface data from the yaml configuration file.
         _data: AppInterface = yaml_client.load(
             self.config_file,
-            create_data=lambda data: AppInterfaceYamlData.from_data(
+            create_data=lambda data: DataObject.from_data(
+                AppInterfaceYamlData,
                 id=id, 
                 **data
             ),
