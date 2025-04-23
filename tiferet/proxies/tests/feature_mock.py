@@ -1,8 +1,7 @@
 # *** imports
 
 # ** app
-from ...models.feature import *
-from ...repos import FeatureRepository
+from ...contracts.feature import *
 
 
 # *** mocks

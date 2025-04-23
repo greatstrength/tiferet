@@ -1,8 +1,7 @@
 # *** imports
 
 # ** app
-from ...models.app import *
-from ...repos import AppRepository
+from ...contracts.app import *
 
 
 # *** mocks

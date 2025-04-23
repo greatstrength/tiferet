@@ -1,8 +1,7 @@
 # *** imports
 
 # ** app
-from ...models.error import *
-from ...repos import ErrorRepository
+from ...contracts.error import *
 
 
 # *** mocks

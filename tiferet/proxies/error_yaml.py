@@ -2,8 +2,7 @@
 
 # ** app
 from ..clients import yaml_client
-from ..data.error import *
-from ..repos.error import *
+from ..contracts.error import *
 
 
 # *** proxies

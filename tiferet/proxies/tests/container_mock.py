@@ -1,8 +1,7 @@
 # *** imports
 
 # ** app
-from ...models.container import *
-from ...repos import ContainerRepository
+from ...contracts.container import *
 
 
 # *** mocks

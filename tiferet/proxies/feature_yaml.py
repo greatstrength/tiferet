@@ -1,9 +1,8 @@
 # *** imports
 
 # ** app
-from ..data.feature import *
 from ..clients import yaml_client
-from ..repos.feature import *
+from ..contracts.feature import *
 
 
 # *** proxies

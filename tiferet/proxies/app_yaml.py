@@ -2,8 +2,7 @@
 
 # ** app
 from ..clients import yaml_client
-from ..data.app import *
-from ..repos.app import *
+from ..contracts.app import *
 
 
 # ** proxy: app_yaml_proxy
