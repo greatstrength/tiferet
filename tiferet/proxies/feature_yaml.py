@@ -1,8 +1,13 @@
 # *** imports
 
+# ** core
+from typing import List
+
 # ** app
 from ..clients import yaml_client
-from ..contracts.feature import *
+from ..contracts.feature import Feature, FeatureRepository
+from ..data import DataObject
+from ..data.feature import FeatureYamlData
 
 
 # *** proxies
