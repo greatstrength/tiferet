@@ -6,12 +6,12 @@ from ..models.settings import *
 from ..contexts import raise_error
 
 
-# *** commands
+# *** classes
 
-# ** command: service_commandå
-class ServiceCommand(object):
+# ** class: command
+class Command(object):
     '''
-    A service command class.
+    A base class for an app command object.
     '''
 
     # * method: execute
@@ -51,14 +51,14 @@ class ServiceCommand(object):
                 *args
             )
 
-    # * method: handle_command
+    # * method: handle
     @staticmethod
-    def handle_command(
+    def handle(
             command: type,
             dependencies: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
-        Handle the command.
+        Handle an app command instance.
 
         :param command: The command to handle.
         :type command: type
