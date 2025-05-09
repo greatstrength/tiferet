@@ -2,7 +2,7 @@
 
 # ** app
 from .settings import *
-from ..repos.app import *
+from ..contracts.app import AppRepository
 from ..contexts import import_dependency
 
 
@@ -10,7 +10,7 @@ from ..contexts import import_dependency
 
 
 # ** command: import_app_repository
-class ImportAppRepository(ServiceCommand):
+class ImportAppRepository(Command):
     '''
     A command to import the app repository.
     '''
@@ -45,7 +45,7 @@ class ImportAppRepository(ServiceCommand):
         # Handle the import error.
         # Raise an error if the import fails.
         except TiferetError as e:
-            raise_error(
+            raise TiferetError(
                 'APP_REPOSITORY_IMPORT_FAILED',
                 f'Failed to import app repository: {e}.',
                 str(e)
@@ -53,7 +53,7 @@ class ImportAppRepository(ServiceCommand):
 
 
 # ** command: list_app_interfaces
-class ListAppInterfaces(ServiceCommand):
+class ListAppInterfaces(Command):
     '''
     A command to list the app interfaces.
     '''
@@ -70,7 +70,7 @@ class ListAppInterfaces(ServiceCommand):
         self.app_repo = app_repo
 
     # * method: execute
-    def execute(self, **kwargs) -> List[AppInterface]:
+    def execute(self, **kwargs):
         '''
         Execute the command.
 
@@ -84,7 +84,7 @@ class ListAppInterfaces(ServiceCommand):
         try:
             return self.app_repo.list_interfaces()
         except Exception as e:
-            raise_error(
+            raise TiferetError(
                 'APP_INTERFACE_LOADING_FAILED',
                 f'Failed to load app interfaces: {e}.',
                 str(e)
