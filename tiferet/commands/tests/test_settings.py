@@ -22,7 +22,7 @@ class TestModel(ValueObject):
     )
 
 # ** class: test_service_command
-class TestServiceCommand(ServiceCommand):
+class TestServiceCommand(Command):
     '''
     A test service command class.
     '''
@@ -45,7 +45,7 @@ class TestServiceCommand(ServiceCommand):
 
 # ** fixture: test_service_command
 @pytest.fixture
-def test_service_command() -> ServiceCommand:
+def test_service_command() -> Command:
     '''
     A test service command fixture.
     '''
@@ -62,7 +62,7 @@ def test_service_command_execute(test_service_command):
     '''
 
     # Execute the command.
-    result: ServiceCommand = test_service_command.execute('param1', 'param2')
+    result: Command = test_service_command.execute('param1', 'param2')
 
     # Verify the result.
     assert result == ('param1', 'param2')
@@ -91,13 +91,13 @@ def test_service_command_execute_with_error(test_service_command):
 
 
 # ** test: handle_command
-def test_handle_command(test_service_command):
+def test_handle_command():
     '''
     Test the handle command method.
     '''
 
     # Handle the command.
-    result = test_service_command.handle_command(
+    result = Command.handle(
         TestServiceCommand,
         param1='param1',
         param2='param2'

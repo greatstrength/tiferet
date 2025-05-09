@@ -47,7 +47,7 @@ class Command(object):
         try:
             assert expression
         except AssertionError:
-            TiferetError(
+            raise TiferetError(
                 error_code,
                 *args
             )
