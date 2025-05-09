@@ -1,9 +1,10 @@
 # *** imports
 
+# ** core
+from typing import Dict, Any
+
 # ** app
-from ..configs import *
-from ..models.settings import *
-from ..contexts import raise_error
+from ..configs import TiferetError
 
 
 # *** classes
@@ -46,7 +47,7 @@ class Command(object):
         try:
             assert expression
         except AssertionError:
-            raise_error(
+            TiferetError(
                 error_code,
                 *args
             )
