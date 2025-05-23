@@ -14,6 +14,14 @@ DEFAULT_APP_REPO_PARAMETERS = dict(
 )
 
 
+# ** constant: default_app_manager
+DEFAULT_APP_MANAGER_SETTINGS = dict(
+    repo_module_path=DEFAULT_APP_REPO_MODULE_PATH,
+    repo_class_name=DEFAULT_APP_REPO_CLASS_NAME,
+    repo_params=DEFAULT_APP_REPO_PARAMETERS
+)
+
+
 # ** constant: default_container_repo_dependency
 DEFAULT_CONTAINER_REPO_DEPENDENCY = dict(
     attribute_id='container_repo',
