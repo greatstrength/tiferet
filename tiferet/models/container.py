@@ -31,6 +31,7 @@ class ContainerDependency(ValueObject):
     # * attribute: flag
     flag = StringType(
         required=True,
+        default=FLAG_DEFAULT_VALUE,
         metadata=dict(
             description='The flag for the container dependency.'
         )

@@ -2,6 +2,7 @@
 
 # ** core
 from typing import List, Dict, Tuple, Any
+import json
 
 # ** infra
 from schematics import Model
@@ -10,11 +11,16 @@ from schematics import types as t
 
 # *** constants
 
+# ** constant: flag_default_value
+FLAG_DEFAULT_VALUE = 'default'
+
+
 # ** constant: container_attribute_type_choices
 CONTAINER_ATTRIBUTE_TYPE_CHOICES = [
     'feature',
     'data'
 ]
+
 
 # *** classes
 
