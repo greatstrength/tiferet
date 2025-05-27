@@ -1,11 +1,55 @@
 # *** imports
 
+# ** core
+from typing import List, Dict, Any
+
 # ** app
 from .settings import *
-from ..data.app import *
 
 
-# *** repositories
+# *** contracts
+
+# ** contract: app_settings
+class AppSettings(ModelContract):
+    '''
+    An app settings contract is a class that defines the settings for an app instance.
+    '''
+
+    class AppDependency(ModelContract):
+        '''
+        An app dependency contract is a class that defines the dependencies for an app instance.
+        '''
+
+        # * attribute: module_path
+        module_path: str
+
+        # * attribute: class_name
+        class_name: str
+
+        # * attribute: attribute_id
+        attribute_id: str
+
+    # * attribute: id
+    id: str
+
+    # * attribute: name
+    name: str
+
+    # * attribute: description
+    description: str
+
+    # * attribute: feature_flag
+    feature_flag: str
+
+    # * attribute: data_flag
+    data_flag: str
+
+    # * attribute: dependencies
+    dependencies: List[AppDependency]
+
+    # * attribute: constants
+    constants: Dict[str, Any]
+
 
 # ** interface: app_repository
 class AppRepository(Repository):
@@ -13,28 +57,28 @@ class AppRepository(Repository):
     An app repository is a class that is used to get an app interface.
     '''
 
-    # * method: list_interfaces
+    # * method: get_settings
     @abstractmethod
-    def list_interfaces(self) -> List[AppInterface]:
+    def get_settings(self, app_name: str) -> AppSettings:
         '''
-        List all app interfaces.
+        Get the app instance settings by name.
 
-        :return: The list of app interfaces.
-        :rtype: List[AppInterface]
+        :param app_name: The name of the app. 
+        :type app_name: str
+        :return: The app interface.
+        :rtype: AppInterface
         '''
         # Not implemented.
         raise NotImplementedError()
-
-    # * method: get_interface
+    
+    # * method: list_settings
     @abstractmethod
-    def get_interface(self, id: str) -> AppInterface:
+    def list_settings(self) -> list[AppSettings]:
         '''
-        Get the app interface.
+        List all app instance settings.
 
-        :param id: The app interface id.
-        :type id: str
-        :return: The app interface.
-        :rtype: AppInterface
+        :return: A list of app settings.
+        :rtype: list[AppSettings]
         '''
         # Not implemented.
         raise NotImplementedError()
