@@ -32,9 +32,9 @@ class AppDependencyYamlData(AppDependency, DataObject):
 
 
 # ** data: app_interface_yaml_data
-class AppInterfaceYamlData(AppInterface, DataObject):
+class AppSettingsYamlData(AppSettings, DataObject):
     '''
-    A data representation of an app interface object.
+    A data representation of an app settings object.
     '''
 
     class Options():
@@ -104,7 +104,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> AppInterface:
+    def map(self, **kwargs) -> AppSettings:
         '''
         Maps the app interface data to an app interface object.
 
@@ -136,7 +136,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             dependencies.append(self.app_context.map(AppDependency, attribute_id='app_context'))
 
         # Map the app interface data.
-        return super().map(AppInterface,
+        return super().map(AppSettings,
             dependencies=dependencies,
             **self.to_primitive('to_model'),
             **kwargs
