@@ -2,6 +2,8 @@
 
 # ** app
 from ..clients import yaml_client
+from ..data import DataObject
+from ..data.app import AppSettingsYamlData
 from ..contracts.app import *
 
 
@@ -23,51 +25,51 @@ class AppYamlProxy(AppRepository):
         # Set the configuration file.
         self.config_file = app_config_file
 
-    # * method: list_interfaces
-    def list_interfaces(self) -> list[AppInterface]:
+    # * method: list_settings
+    def list_settings(self) -> list[AppSettings]:
         '''
-        List all app interfaces.
+        List all app instance settings.
 
-        :return: The list of app interfaces.
-        :rtype: list[AppInterface]
+        :return: A list of app settings.
+        :rtype: list[AppSettings]
         '''
 
-        # Load the app interface data from the yaml configuration file and map it to the app interface object.
-        interfaces = yaml_client.load(
+        # Load the app settings data from the yaml configuration file and map it to the app settings object.
+        settings = yaml_client.load(
             self.config_file,
             create_data=lambda data: [
                 DataObject.from_data(
-                    AppInterfaceYamlData,
-                    id=interface_id,
+                    AppSettingsYamlData,
+                    id=app_name,
                     **record
-                ).map() for interface_id, record in data.items()],
+                ) .map() for app_name, record in data.items()],
             start_node=lambda data: data.get('interfaces'))
 
         # Return the list of app interface objects.
-        return interfaces
+        return settings
 
-    # * method: get_interface
-    def get_interface(self, id: str) -> AppInterface:
+    # * method: get_settings
+    def get_settings(self, app_name: str) -> AppSettings:
         '''
-        Get the app interface.
+        Get the app instance settings by name.
 
-        :param id: The app interface id.
-        :type id: str
-        :return: The app interface.
-        :rtype: AppInterface
+        :param app_name: The name of the app.
+        :type app_name: str
+        :return: The app settings.
+        :rtype: AppSettings
         '''
 
-        # Load the app interface data from the yaml configuration file.
-        _data: AppInterface = yaml_client.load(
+        # Load the app settings data from the yaml configuration file.
+        _data: AppSettings = yaml_client.load(
             self.config_file,
             create_data=lambda data: DataObject.from_data(
-                AppInterfaceYamlData,
-                id=id, 
+                AppSettingsYamlData,
+                id=app_name, 
                 **data
             ),
-            start_node=lambda data: data.get('interfaces').get(id))
+            start_node=lambda data: data.get('interfaces').get(app_name))
 
-        # Return the app interface object.
+        # Return the app settings object.
         # If the data is None, return None.
         try:
             return _data.map()

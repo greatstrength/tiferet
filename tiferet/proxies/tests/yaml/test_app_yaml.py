@@ -28,21 +28,21 @@ def app_yaml_proxy(app_config_file):
 @pytest.fixture
 def app_interface():
     return ModelObject.new(
-        AppInterface,
+        AppSettings,
         **TEST_APP_INTERFACE,
     )
 
 
 # *** tests
 
-# ** test: app_yaml_proxy_list_interfaces
-def test_app_yaml_proxy_list_interfaces(app_yaml_proxy, app_interface):
+# ** test: app_yaml_proxy_list_settings
+def test_app_yaml_proxy_list_settings(app_yaml_proxy, app_interface):
     '''
     Test the app YAML proxy list interfaces method.
     '''
     
     # List the interfaces.
-    interfaces = app_yaml_proxy.list_interfaces()
+    interfaces = app_yaml_proxy.list_settings()
     
     # Check the interfaces.
     assert interfaces
@@ -51,14 +51,14 @@ def test_app_yaml_proxy_list_interfaces(app_yaml_proxy, app_interface):
     assert interfaces[0].name == app_interface.name
 
 
-# ** test: app_yaml_proxy_get_interface
-def test_app_yaml_proxy_get_interface(app_yaml_proxy, app_interface):
+# ** test: app_yaml_proxy_get_settings
+def test_app_yaml_proxy_get_settings(app_yaml_proxy, app_interface):
     '''
-    Test the app YAML proxy get interface method.
+    Test the app YAML proxy get settings method.
     '''
 
     # Get the interface.
-    interface = app_yaml_proxy.get_interface(app_interface.id)
+    interface = app_yaml_proxy.get_settings(app_interface.id)
 
     # Check the interface.
     assert interface
@@ -72,10 +72,10 @@ def test_app_yaml_proxy_get_interface(app_yaml_proxy, app_interface):
 
 
 # ** test: app_yaml_proxy_get_interface_not_found
-def test_app_yaml_proxy_get_interface_not_found(app_yaml_proxy):
+def test_app_yaml_proxy_get_settings_not_found(app_yaml_proxy):
 
     # Get the interface.
-    interface = app_yaml_proxy.get_interface('not_found')
+    interface = app_yaml_proxy.get_settings('not_found')
 
     # Check the interface.
     assert not interface
