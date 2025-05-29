@@ -11,23 +11,23 @@ from ...configs.tests.test_app import *
 
 # *** fixtures
 
-# ** fixture: app_interface
+# ** fixture: app_settings
 @pytest.fixture
-def app_interface():
+def app_settings():
 
     return Entity.new(
-        AppInterface,
-        **TEST_APP_INTERFACE,
+        AppSettings,
+        **TEST_APP_SETTINGS,
     )
 
 
 # *** tests
 
-# ** test: test_app_interface_get_dependency
-def test_app_interface_get_dependency(app_interface):
+# ** test: test_app_settings_get_dependency
+def test_app_settings_get_dependency(app_settings):
 
     # Get the app dependency.
-    app_dependency = app_interface.get_dependency('app_context')
+    app_dependency = app_settings.get_dependency('app_context')
 
     # Assert the app dependency is valid.
     assert app_dependency.attribute_id == DEFAULT_APP_CONTEXT_DEPENDENCY.get('attribute_id')
@@ -35,8 +35,8 @@ def test_app_interface_get_dependency(app_interface):
     assert app_dependency.class_name == DEFAULT_APP_CONTEXT_DEPENDENCY.get('class_name')
 
 
-# ** test: test_app_interface_get_dependency_invalid
-def test_app_interface_get_dependency_invalid(app_interface):
+# ** test: test_app_settings_get_dependency_invalid
+def test_app_settings_get_dependency_invalid(app_settings):
 
     # Assert the app dependency is invalid.
-    assert app_interface.get_dependency('invalid') is None
+    assert app_settings.get_dependency('invalid') is None

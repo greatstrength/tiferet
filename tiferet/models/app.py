@@ -34,7 +34,7 @@ class AppDependency(ValueObject):
     )
 
 # ** model: app_interface
-class AppInterface(Entity):
+class AppSettings(Entity):
     '''
     The base application interface object.
     '''
