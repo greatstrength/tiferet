@@ -2,33 +2,44 @@
 
 # ** app
 from .settings import *
+from ..configs import (
+    DEFAULT_APP_CONTEXT_DEPENDENCIES,
+    DEFAULT_APP_CONTEXT_CONSTANTS
+)
+from ..models import ModelObject
+from ..models.app import AppSettings, AppDependency
 from ..contracts.app import AppRepository
-from ..contexts import import_dependency
+from ..contexts import import_dependency, create_injector
 
 
 # *** commands:
 
-
-# ** command: import_app_repository
-class ImportAppRepository(Command):
+# ** command: load_app_settings
+class LoadAppSettings(Command):
     '''
-    A command to import the app repository.
+    A command to load the app settings from a repository.
     '''
 
     # * method: execute
     def execute(self,
-                app_repo_module_path: str,
-                app_repo_class_name: str,
+                repo_module_path: str,
+                repo_class_name: str,
+                repo_params: Dict[str, Any] = {},
+                app_name: str = None,
                 **kwargs
-                ) -> AppRepository:
+                ) -> AppSettings:
         '''
         Execute the command.
 
-        :param app_repo_module_path: The app repository module path.
-        :type app_repo_module_path: str
-        :param app_repo_class_name: The app repository class name.
-        :type app_repo_class_name: str
-        :param kwargs: The command arguments.
+        :param repo_module_path: The app repository module path.
+        :type repo_module_path: str
+        :param repo_class_name: The app repository class name.
+        :type repo_class_name: str
+        :param repo_params: The app repository parameters.
+        :type repo_params: dict
+        :param app_name: The name of the app to load settings for.
+        :type app_name: str
+        :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: None
         '''
@@ -37,10 +48,10 @@ class ImportAppRepository(Command):
         try:
             
             # Import the app repository class.
-            return import_dependency(
-                app_repo_module_path, 
-                app_repo_class_name
-            )(**kwargs)
+            app_repo: AppRepository = import_dependency(
+                repo_module_path, 
+                repo_class_name
+            )(**repo_params, **kwargs)
         
         # Handle the import error.
         # Raise an error if the import fails.
@@ -50,42 +61,84 @@ class ImportAppRepository(Command):
                 f'Failed to import app repository: {e}.',
                 str(e)
             )
+        
+        try:
+            # Retrieve the app settings.
+            settings: AppSettings = app_repo.get_settings(
+                app_name=app_name
+            )
+            
+        # Handle the app settings retrieval error should a critical error occur in the repository.
+        except Exception as e:
+            raise TiferetError(
+                'APP_SETTINGS_LOADING_FAILED',
+                f'Failed to load app settings: {e}.',
+                str(e)
+            )
+        
+        # Return the app settings.
+        return settings
 
 
-# ** command: list_app_interfaces
-class ListAppInterfaces(Command):
+# ** command: load_app_instance
+class LoadAppInstance(Command):
     '''
-    A command to list the app interfaces.
+    A command to load an app instance from a repository.
     '''
-
-    def __init__(self, app_repo: AppRepository):
-        '''
-        Initialize the command.
-
-        :param app_repo: The app repository.
-        :type app_repo: AppRepository
-        '''
-
-        # Set the app repository.
-        self.app_repo = app_repo
 
     # * method: execute
-    def execute(self, **kwargs):
+    def execute(self,
+                settings: AppSettings,
+                dependencies: Dict[str, Any] = {},
+                **kwargs
+                ) -> AppSettings:
         '''
         Execute the command.
 
-        :param kwargs: The command arguments.
+        :param repo_module_path: The app repository module path.
+        :type repo_module_path: str
+        :param repo_class_name: The app repository class name.
+        :type repo_class_name: str
+        :param repo_params: The app repository parameters.
+        :type repo_params: dict
+        :param app_name: The name of the app to load settings for.
+        :type app_name: str
+        :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The command result.
-        :rtype: List[AppInterface]
-        '''
+        :return: None
+        '''    
 
-        # List the app interfaces.
-        try:
-            return self.app_repo.list_interfaces()
-        except Exception as e:
-            raise TiferetError(
-                'APP_INTERFACE_LOADING_FAILED',
-                f'Failed to load app interfaces: {e}.',
-                str(e)
-            )
+        # Get the dependencies for the app interface.
+        dependencies.update(dict(
+            app_name=settings.name,
+            feature_flag=settings.feature_flag,
+            data_flag=settings.data_flag,
+            **settings.constants
+        ))
+
+        # Add the remaining dependencies from the app interface.
+        dependencies.update({dep.attribute_id: import_dependency(
+            dep.module_path, dep.class_name) for dep in settings.dependencies})
+        
+        # Add the default dependencies if they are not already present.
+        for dep in DEFAULT_APP_CONTEXT_DEPENDENCIES:
+
+            # Convert the dependency to a model object.
+            dep_model = ModelObject.new(AppDependency, **dep)
+
+            # If the dependency is not already present, add it to the dependencies.
+            if dep_model.attribute_id not in dependencies:
+                dependencies[dep_model.attribute_id] = import_dependency(
+                    dep_model.module_path, dep_model.class_name
+                )
+
+        # Add the default app context constants to the dependencies.
+        for const in DEFAULT_APP_CONTEXT_CONSTANTS:
+            if const not in dependencies:
+                dependencies[const] = DEFAULT_APP_CONTEXT_CONSTANTS[const]
+
+        # Create the injector.
+        injector = create_injector(settings.name, **dependencies, **kwargs)
+
+        # Load the app interface context.
+        return getattr(injector, 'app_context')
