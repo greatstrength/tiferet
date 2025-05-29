@@ -10,13 +10,13 @@ from ...contracts.app import *
 class MockAppProxy(AppRepository):
 
     # * method: init
-    def __init__(self, interfaces: List[AppInterface] = []):
-        self.interfaces = interfaces
+    def __init__(self, settings: List[AppSettings] = []):
+        self.settings = settings
 
-    # * method: list_interfaces
-    def list_interfaces(self) -> List[AppInterface]:
-        return self.interfaces
+    # * method: list_settings
+    def list_settings(self) -> List[AppSettings]:
+        return self.settings
 
-    # * method: get_interface
-    def get_interface(self, interface_id: str) -> AppInterface:
-        return next((interface for interface in self.interfaces if interface.id == interface_id), None)
+    # * method: get_settings
+    def get_settings(self, app_name: str) -> AppSettings:
+        return next((settings for settings in self.settings if settings.id == app_name), None)

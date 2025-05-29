@@ -29,7 +29,7 @@ def app_yaml_proxy(app_config_file):
 def app_interface():
     return ModelObject.new(
         AppSettings,
-        **TEST_APP_INTERFACE,
+        **TEST_APP_SETTINGS,
     )
 
 
