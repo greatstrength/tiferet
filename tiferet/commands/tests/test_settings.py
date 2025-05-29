@@ -22,7 +22,7 @@ class TestModel(ValueObject):
     )
 
 # ** class: test_service_command
-class TestServiceCommand(Command):
+class TestCommand(Command):
     '''
     A test service command class.
     '''
@@ -50,7 +50,7 @@ def test_service_command() -> Command:
     A test service command fixture.
     '''
 
-    return TestServiceCommand()
+    return TestCommand()
 
 
 # *** tests
@@ -98,7 +98,7 @@ def test_handle_command():
 
     # Handle the command.
     result = Command.handle(
-        TestServiceCommand,
+        TestCommand,
         param1='param1',
         param2='param2'
     )
