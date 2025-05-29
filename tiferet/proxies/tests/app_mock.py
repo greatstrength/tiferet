@@ -20,3 +20,15 @@ class MockAppProxy(AppRepository):
     # * method: get_settings
     def get_settings(self, app_name: str) -> AppSettings:
         return next((settings for settings in self.settings if settings.id == app_name), None)
+
+
+# ** mock: mock_app_proxy_with_errors
+class MockAppProxyWithErrors(AppRepository):
+
+    # * method: list_settings
+    def list_settings(self) -> List[AppSettings]:
+        raise Exception("Failed to list app settings")
+
+    # * method: get_settings
+    def get_settings(self, app_name: str) -> AppSettings:
+        raise Exception(f"Failed to get settings for app {app_name}")
