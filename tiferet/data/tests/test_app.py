@@ -10,19 +10,19 @@ from ...configs.tests.test_app import *
 
 # *** fixtures
 
-# ** fixture: app_interface_yaml_data
+# ** fixture: app_settings_yaml_data
 @pytest.fixture
 def app_settings_yaml_data():
 
     return DataObject.from_data(
         AppSettingsYamlData,
-        **TEST_APP_INTERFACE_YAML_DATA,
+        **TEST_APP_SETTINGS_YAML_DATA,
     )
 
 
 # *** tests
 
-# ** test: test_app_interface_yaml_data_map
+# ** test: test_app_settings_yaml_data_map
 def test_app_settings_yaml_data_map(app_settings_yaml_data):
 
     # Map the app interface yaml data to an app interface object.
