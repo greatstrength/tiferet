@@ -1,6 +1,4 @@
 # *** imports
 
 # ** app
-from .contexts import *
-from .models import *
-from .commands import *
+from .configs import AppManager as App
