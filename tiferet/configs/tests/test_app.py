@@ -42,8 +42,8 @@ TEST_CONTAINER_REPO_DEPENDENCY = dict(
 )
 
 
-# ** constant: test_app_interface
-TEST_APP_INTERFACE = dict(
+# ** constant: test_app_settings
+TEST_APP_SETTINGS = dict(
     id='test',
     name='Test Interface',
     description='The test interface.',
@@ -61,8 +61,8 @@ TEST_APP_INTERFACE = dict(
 )
 
 
-# ** constant: test_app_interface_yaml_data
-TEST_APP_INTERFACE_YAML_DATA = dict(
+# ** constant: test_app_settings_yaml_data
+TEST_APP_SETTINGS_YAML_DATA = dict(
     id='test_interface',
     name='Test Interface',
     data_flag='test_flag',

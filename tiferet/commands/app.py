@@ -10,6 +10,7 @@ from ..models import ModelObject
 from ..models.app import AppSettings, AppDependency
 from ..contracts.app import AppRepository
 from ..contexts import import_dependency, create_injector
+from ..contexts.app import AppContext
 
 
 # *** commands:
@@ -80,8 +81,8 @@ class LoadAppSettings(Command):
         return settings
 
 
-# ** command: load_app_instance
-class LoadAppInstance(Command):
+# ** command: load_app_context
+class LoadAppContext(Command):
     '''
     A command to load an app instance from a repository.
     '''
@@ -91,7 +92,7 @@ class LoadAppInstance(Command):
                 settings: AppSettings,
                 dependencies: Dict[str, Any] = {},
                 **kwargs
-                ) -> AppSettings:
+                ) -> AppContext:
         '''
         Execute the command.
 
@@ -140,5 +141,11 @@ class LoadAppInstance(Command):
         # Create the injector.
         injector = create_injector(settings.name, **dependencies, **kwargs)
 
-        # Load the app interface context.
-        return getattr(injector, 'app_context')
+        try:
+            return getattr(injector, 'app_context')
+        except Exception as e:
+            raise TiferetError(
+                'APP_CONTEXT_LOADING_FAILED',
+                f'Failed to load app context: {e}.',
+                str(e)
+            )

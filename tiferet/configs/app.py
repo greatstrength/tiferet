@@ -82,7 +82,7 @@ DEFAULT_APP_REPO_DEPENDENCY = dict(
 DEFAULT_APP_CONTEXT_DEPENDENCY = dict(
     attribute_id='app_context',
     module_path='tiferet.contexts.app',
-    class_name='AppInterfaceContext',
+    class_name='AppContext',
 )
 
 # ** constant: default_app_context_dependencies

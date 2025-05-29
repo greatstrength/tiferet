@@ -8,6 +8,19 @@ from ..app import *
 from ...configs.tests import TEST_APP_SETTINGS
 
 
+# *** classes
+
+# ** class: mock_app_context
+class MockErrorAppContext(AppContext):
+    """
+    Mock implementation of AppContext for error testing purposes.
+    """
+
+    def __init__(self, does_not_resolve: str):
+
+        self.does_not_resolve = does_not_resolve
+
+
 # *** fixtures
 
 # ** fixture: load_app_settings_cmd
@@ -56,6 +69,29 @@ def repo_params(app_settings):
     return dict(
         settings=[app_settings]
     )
+
+
+# ** load_app_context_cmd
+@pytest.fixture
+def load_app_context_cmd():
+
+    return LoadAppContext()
+
+
+# ** fixture: app_settings_with_error
+@pytest.fixture
+def app_settings_with_error(app_settings):
+    
+    
+    app_context = next(dep for dep in app_settings.dependencies if dep.attribute_id == 'app_context')
+    app_context.module_path = 'tiferet.commands.tests.test_app'
+    app_context.class_name = 'MockErrorAppContext'
+
+    return ModelObject.new(
+        AppSettings,
+        **app_settings.to_primitive(),
+    )
+
 
 # *** tests
 
@@ -114,3 +150,34 @@ def test_load_app_settings_success(
     assert settings.description == app_settings.description
     assert settings.feature_flag == app_settings.feature_flag
     assert settings.data_flag == app_settings.data_flag
+
+
+# ** test: load_app_instance_cmd_execute
+def test_load_app_instance_cmd_execute(
+    load_app_context_cmd,
+    app_settings
+):
+    # Execute the command to load the app context.
+    context = load_app_context_cmd.execute(
+        settings=app_settings,
+    )
+    
+    # Assert the returned settings are as expected.
+    assert isinstance(context, AppContext)
+
+
+# ** test: load_app_instance_cmd_execute_with_error
+def test_load_app_instance_cmd_execute_with_error(
+    load_app_context_cmd,
+    app_settings_with_error
+):
+    # Execute the command to load the app context with an error.
+    with pytest.raises(TiferetError) as exc_info:
+        load_app_context_cmd.execute(
+            settings=app_settings_with_error,
+        )
+    
+    # Assert the error code and message.
+    assert exc_info.value.error_code == 'APP_CONTEXT_LOADING_FAILED'
+    assert 'Failed to load app context' in str(exc_info.value)
+    
