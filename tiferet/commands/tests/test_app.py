@@ -152,8 +152,8 @@ def test_load_app_settings_success(
     assert settings.data_flag == app_settings.data_flag
 
 
-# ** test: load_app_instance_cmd_execute
-def test_load_app_instance_cmd_execute(
+# ** test: load_app_context_cmd_execute
+def test_load_app_context_cmd_execute(
     load_app_context_cmd,
     app_settings
 ):
@@ -166,8 +166,48 @@ def test_load_app_instance_cmd_execute(
     assert isinstance(context, AppContext)
 
 
-# ** test: load_app_instance_cmd_execute_with_error
-def test_load_app_instance_cmd_execute_with_error(
+# ** test: load_app_context_cmd_execute_no_settings
+def test_load_app_context_cmd_execute_no_settings(
+    load_app_context_cmd
+):
+    # Execute the command to load the app context without settings.
+    with pytest.raises(TiferetError) as exc_info:
+        load_app_context_cmd.execute(
+            settings=None,
+        )
+    
+    # Assert the error code and message.
+    assert exc_info.value.error_code == 'APP_SETTINGS_NOT_FOUND'
+
+
+# ** test: load_app_context_cmd_execute_invalid_settings
+def test_load_app_context_cmd_execute_invalid_settings(
+    load_app_context_cmd
+):
+    
+    # Create an invalid app settings object.
+    settings = ModelObject.new(
+        AppSettings,
+        id='invalid',
+        name='InvalidApp',
+        description='This is an invalid app settings object.',
+        feature_flag='test',
+        data_flag='test',
+        dependencies=[],
+    )
+
+    # Execute the command to load the app context with invalid settings.
+    with pytest.raises(TiferetError) as exc_info:
+        load_app_context_cmd.execute(
+            settings=settings,
+        )
+    
+    # Assert the error code and message.
+    assert exc_info.value.error_code == 'APP_SETTINGS_INVALID'
+
+
+# ** test: load_app_context_cmd_execute_with_error
+def test_load_app_context_cmd_execute_with_error(
     load_app_context_cmd,
     app_settings_with_error
 ):

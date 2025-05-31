@@ -107,7 +107,20 @@ class LoadAppContext(Command):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: None
-        '''    
+        '''  
+
+        # Raise an error if the settings are not provided.
+        if not settings:
+            raise TiferetError(
+                'APP_SETTINGS_NOT_FOUND'
+            )  
+
+        # Raise an error if the app interface is invalid.
+        if not settings.get_dependency('app_context'):
+            raise TiferetError(
+                'APP_SETTINGS_INVALID',
+                settings.id,
+            )
 
         # Get the dependencies for the app interface.
         dependencies.update(dict(
