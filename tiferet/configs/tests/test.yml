@@ -7,6 +7,12 @@ attrs:
     type: data
 const:
   config_file: tiferet/configs/tests/test.yml
+contexts:
+  test:
+    data_flag: test
+    description: The test app.
+    feature_flag: test
+    name: Test App
 errors:
   test_formatted_error:
     error_code: TEST_FORMATTED_ERROR
@@ -29,12 +35,3 @@ features:
         param1: value1
     description: A test feature.
     name: Test Feature
-interfaces:
-  test:
-    app_context:
-      class_name: AppInterfaceContext
-      module_path: tiferet.contexts.app
-    data_flag: test
-    description: The test interface.
-    feature_flag: test
-    name: Test Interface
