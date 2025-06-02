@@ -55,8 +55,8 @@ class AppSettingsYamlData(AppSettings, DataObject):
         ),
     )
 
-    # * attribute: container_context
-    container_context = ModelType(
+    # * attribute: container_service
+    container_service = ModelType(
         AppDependencyYamlData,
         metadata=dict(
             description='The container context dependency settings.'
@@ -71,8 +71,8 @@ class AppSettingsYamlData(AppSettings, DataObject):
         ),
     )
 
-    # * attribute: error_context
-    error_context = ModelType(
+    # * attribute: error_service
+    error_service = ModelType(
         AppDependencyYamlData,
         metadata=dict(
             description='The error context dependency settings.'
@@ -87,8 +87,8 @@ class AppSettingsYamlData(AppSettings, DataObject):
         ),
     )
 
-    # * attribute: feature_context
-    feature_context = ModelType(
+    # * attribute: feature_service
+    feature_service = ModelType(
         AppDependencyYamlData,
         metadata=dict(
             description='The feature context dependency settings.'
@@ -122,16 +122,16 @@ class AppSettingsYamlData(AppSettings, DataObject):
         # Add the dependencies to the list if they are not None.
         if self.container_repo:
             dependencies.append(self.container_repo.map(AppDependency, attribute_id='container_repo'))
-        if self.container_context:
-            dependencies.append(self.container_context.map(AppDependency, attribute_id='container_context'))
+        if self.container_service:
+            dependencies.append(self.container_service.map(AppDependency, attribute_id='container_service'))
         if self.error_repo:
             dependencies.append(self.error_repo.map(AppDependency, attribute_id='error_repo'))
-        if self.error_context:
-            dependencies.append(self.error_context.map(AppDependency, attribute_id='error_context'))
+        if self.error_service:
+            dependencies.append(self.error_service.map(AppDependency, attribute_id='error_service'))
         if self.feature_repo:
             dependencies.append(self.feature_repo.map(AppDependency, attribute_id='feature_repo'))
-        if self.feature_context:
-            dependencies.append(self.feature_context.map(AppDependency, attribute_id='feature_context'))
+        if self.feature_service:
+            dependencies.append(self.feature_service.map(AppDependency, attribute_id='feature_service'))
         if self.app_context:
             dependencies.append(self.app_context.map(AppDependency, attribute_id='app_context'))
 
