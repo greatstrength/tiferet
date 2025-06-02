@@ -33,6 +33,16 @@ class AppDependency(ValueObject):
         ),
     )
 
+    # * attribute: parameters
+    parameters = DictType(
+        StringType,
+        default={},
+        metadata=dict(
+            description='The parameters for the application dependency.'
+        ),
+    )
+
+
 # ** model: app_settings
 class AppSettings(Entity):
     '''

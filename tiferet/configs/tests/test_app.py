@@ -45,8 +45,8 @@ TEST_CONTAINER_REPO_DEPENDENCY = dict(
 # ** constant: test_app_settings
 TEST_APP_SETTINGS = dict(
     id='test',
-    name='Test Interface',
-    description='The test interface.',
+    name='Test App',
+    description='The test app.',
     feature_flag='test',
     data_flag='test',
     dependencies=[
@@ -69,5 +69,13 @@ TEST_APP_SETTINGS_YAML_DATA = dict(
     app_context=dict(
         module_path='tests.contexts.test',
         class_name='TestContext'
+    ),
+    container_service=dict(
+        module_path='tiferet.proxies.tests.container_mock',
+        class_name='MockContainerProxy',
+        parameters=dict(
+            container_id='test_container',
+            container_name='Test Container',
+        )
     ),
 )

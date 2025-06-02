@@ -20,15 +20,47 @@ class AppDependencyYamlData(AppDependency, DataObject):
         ),
     )
 
+    # * attribute: parameters
+    parameters = DictType(
+        StringType,
+        default={},
+        serialized_name='params',
+        deserialize_from=['params', 'parameters'],
+        metadata=dict(
+            description='The parameters for the application dependency that are not required for assembly.'
+        ),
+    )
+
     class Options():
         '''
         The options for the app dependency data.
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('parameters', 'attribute_id'),
             'to_data.yaml': DataObject.deny('attribute_id')
         }
+
+    # * method: map
+    def map(self, **kwargs) -> AppDependency:
+        '''
+        Maps the app dependency data to an app dependency object.
+
+        :param role: The role for the mapping.
+        :type role: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new app dependency object.
+        :rtype: AppDependency
+        '''
+
+        # Map to the app dependency object.
+        return super().map(
+            AppDependency,
+            parameters=self.parameters,
+            **self.to_primitive('to_model'),
+            **kwargs
+        )
 
 
 # ** data: app_interface_yaml_data
@@ -121,19 +153,19 @@ class AppSettingsYamlData(AppSettings, DataObject):
 
         # Add the dependencies to the list if they are not None.
         if self.container_repo:
-            dependencies.append(self.container_repo.map(AppDependency, attribute_id='container_repo'))
+            dependencies.append(self.container_repo.map(attribute_id='container_repo'))
         if self.container_service:
-            dependencies.append(self.container_service.map(AppDependency, attribute_id='container_service'))
+            dependencies.append(self.container_service.map(attribute_id='container_service'))
         if self.error_repo:
-            dependencies.append(self.error_repo.map(AppDependency, attribute_id='error_repo'))
+            dependencies.append(self.error_repo.map(attribute_id='error_repo'))
         if self.error_service:
-            dependencies.append(self.error_service.map(AppDependency, attribute_id='error_service'))
+            dependencies.append(self.error_service.map(attribute_id='error_service'))
         if self.feature_repo:
-            dependencies.append(self.feature_repo.map(AppDependency, attribute_id='feature_repo'))
+            dependencies.append(self.feature_repo.map(attribute_id='feature_repo'))
         if self.feature_service:
-            dependencies.append(self.feature_service.map(AppDependency, attribute_id='feature_service'))
+            dependencies.append(self.feature_service.map(attribute_id='feature_service'))
         if self.app_context:
-            dependencies.append(self.app_context.map(AppDependency, attribute_id='app_context'))
+            dependencies.append(self.app_context.map(attribute_id='app_context'))
 
         # Map the app interface data.
         return super().map(AppSettings,
