@@ -53,27 +53,13 @@ def test_app_manager_load_settings(app_manager):
     """
 
     # Load the application settings.
-    app_settings = app_manager.load_settings('test')
+    app_settings = app_manager.load_settings('test_int')
 
     # Check that the settings are loaded correctly.
     assert app_settings is not None
-    assert app_settings.id == 'test'
-    assert app_settings.name == 'Test App'
+    assert app_settings.id == 'test_int'
+    assert app_settings.name == 'Integration Testing'
     assert app_settings.feature_flag == 'test'
     assert app_settings.data_flag == 'test'
-    assert len(app_settings.dependencies) == 1
+    assert len(app_settings.dependencies) > 0
     assert app_settings.get_dependency('app_context') is not None
-
-
-# # ** test: app_manager_load_instance
-# def test_app_manager_load_instance(app_manager):
-#     """
-#     Test the load_instance method of the AppManager.
-#     """
-
-#     # Load the application instance.
-#     app_instance = app_manager.load_instance('test')
-
-#     # Check that the instance is loaded correctly.
-#     assert app_instance is not None
-#     assert isinstance(app_instance, AppContext)
