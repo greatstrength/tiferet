@@ -33,7 +33,7 @@ class AppDependency(ValueObject):
         ),
     )
 
-# ** model: app_interface
+# ** model: app_settings
 class AppSettings(Entity):
     '''
     The base application interface object.
@@ -87,6 +87,31 @@ class AppSettings(Entity):
             description='The application dependency constants.'
         ),
     )
+
+    def add_dependency(self, module_path: str, class_name: str, attribute_id: str):
+        '''
+        Add a dependency to the application interface.
+
+        :param module_path: The module path for the app dependency.
+        :type module_path: str
+        :param class_name: The class name for the app dependency.
+        :type class_name: str
+        :param attribute_id: The attribute id for the application dependency.
+        :type attribute_id: str
+        :return: The added dependency.
+        :rtype: AppDependency
+        '''
+
+        # Create a new AppDependency object.
+        dependency = ModelObject.new(
+            AppDependency,
+            module_path=module_path,
+            class_name=class_name,
+            attribute_id=attribute_id
+        )
+
+        # Add the dependency to the list of dependencies.
+        self.dependencies.append(dependency)
     
     # * method: get_dependency
     def get_dependency(self, attribute_id: str) -> AppDependency:
