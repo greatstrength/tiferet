@@ -1,4 +1,4 @@
 # *** imports
 
 # ** app
-from .configs import AppManager as App
+from .main import AppManager as App
