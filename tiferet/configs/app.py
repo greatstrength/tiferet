@@ -85,6 +85,7 @@ DEFAULT_APP_CONTEXT_DEPENDENCY = dict(
     class_name='AppContext',
 )
 
+
 # ** constant: default_app_context_dependencies
 DEFAULT_APP_CONTEXT_DEPENDENCIES = [
     DEFAULT_CONTAINER_CONTEXT_DEPENDENCY,
