@@ -177,7 +177,7 @@ def test_load_app_context_cmd_execute_no_settings(
         )
     
     # Assert the error code and message.
-    assert exc_info.value.error_code == 'APP_SETTINGS_NOT_FOUND'
+    assert exc_info.value.error_code == 'APP_SETTINGS_NOT_PROVIDED'
 
 
 # ** test: load_app_context_cmd_execute_invalid_settings

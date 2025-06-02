@@ -4,7 +4,8 @@
 from .settings import *
 from ..configs import (
     DEFAULT_APP_CONTEXT_DEPENDENCIES,
-    DEFAULT_APP_CONTEXT_CONSTANTS
+    DEFAULT_APP_CONTEXT_CONSTANTS,
+    DEFAULT_APP_CONTEXT_DEPENDENCY
 )
 from ..models import ModelObject
 from ..models.app import AppSettings, AppDependency
@@ -68,6 +69,17 @@ class LoadAppSettings(Command):
             settings: AppSettings = app_repo.get_settings(
                 app_name=app_name
             )
+
+            # Raise an error if the settings are not found.
+            if not settings:
+                raise TiferetError(
+                    'APP_SETTINGS_NOT_FOUND',
+                    f'App settings for {app_name} not found.'
+                )
+
+            # If the default app context is not set, set it to the default dependency.
+            if not settings.get_dependency('app_context'):
+                settings.add_dependency(**DEFAULT_APP_CONTEXT_DEPENDENCY)
             
         # Handle the app settings retrieval error should a critical error occur in the repository.
         except Exception as e:
@@ -112,7 +124,8 @@ class LoadAppContext(Command):
         # Raise an error if the settings are not provided.
         if not settings:
             raise TiferetError(
-                'APP_SETTINGS_NOT_FOUND'
+                'APP_SETTINGS_NOT_PROVIDED',
+                'App settings must be provided to load the app context.'
             )  
 
         # Raise an error if the app interface is invalid.
