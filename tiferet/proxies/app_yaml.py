@@ -43,7 +43,7 @@ class AppYamlProxy(AppRepository):
                     id=app_name,
                     **record
                 ) .map() for app_name, record in data.items()],
-            start_node=lambda data: data.get('interfaces'))
+            start_node=lambda data: data.get('contexts'))
 
         # Return the list of app interface objects.
         return settings
@@ -67,7 +67,7 @@ class AppYamlProxy(AppRepository):
                 id=app_name, 
                 **data
             ),
-            start_node=lambda data: data.get('interfaces').get(app_name))
+            start_node=lambda data: data.get('contexts').get(app_name))
 
         # Return the app settings object.
         # If the data is None, return None.

@@ -8,11 +8,19 @@ attrs:
 const:
   config_file: tiferet/configs/tests/test.yml
 contexts:
-  test:
+  test_app_yaml_proxy:
+    data_flag: test_app_yaml_proxy
+    description: The context for testing the app yaml proxy.
+    feature_flag: test_app_yaml_proxy
+    name: 'Test App YAML Proxy'
+    app_context:
+      module_path: tiferet.contexts.app
+      class_name: AppContext
+  test_int:
     data_flag: test
-    description: The test app.
+    description: The test for the app manager integration testing.
     feature_flag: test
-    name: Test App
+    name: Integration Testing
 errors:
   test_formatted_error:
     error_code: TEST_FORMATTED_ERROR

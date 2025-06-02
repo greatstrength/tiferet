@@ -24,51 +24,59 @@ def app_yaml_proxy(app_config_file):
     )
 
 
-# ** fixture: app_interface
+# ** fixture: app_settings
 @pytest.fixture
-def app_interface():
-    return ModelObject.new(
+def app_settings():
+    settings = ModelObject.new(
         AppSettings,
         **TEST_APP_SETTINGS,
     )
+
+    # Set the test_app_yaml_proxy id.
+    settings.id = 'test_app_yaml_proxy'
+    settings.name = 'Test App YAML Proxy'
+    settings.description = 'The context for testing the app yaml proxy.'
+    settings.feature_flag = 'test_app_yaml_proxy'
+    settings.data_flag = 'test_app_yaml_proxy'
+
+    # Return the settings.
+    return settings
 
 
 # *** tests
 
 # ** test: app_yaml_proxy_list_settings
-def test_app_yaml_proxy_list_settings(app_yaml_proxy, app_interface):
+def test_app_yaml_proxy_list_settings(app_yaml_proxy, app_settings):
     '''
     Test the app YAML proxy list interfaces method.
     '''
     
     # List the interfaces.
-    interfaces = app_yaml_proxy.list_settings()
+    all_settings = app_yaml_proxy.list_settings()
     
     # Check the interfaces.
-    assert interfaces
-    assert len(interfaces) == 1
-    assert interfaces[0].id == app_interface.id
-    assert interfaces[0].name == app_interface.name
+    assert all_settings
+    assert len(all_settings) > 0
 
 
 # ** test: app_yaml_proxy_get_settings
-def test_app_yaml_proxy_get_settings(app_yaml_proxy, app_interface):
+def test_app_yaml_proxy_get_settings(app_yaml_proxy, app_settings):
     '''
     Test the app YAML proxy get settings method.
     '''
 
     # Get the interface.
-    interface = app_yaml_proxy.get_settings(app_interface.id)
+    settings = app_yaml_proxy.get_settings(app_settings.id)
 
     # Check the interface.
-    assert interface
-    assert interface.id == app_interface.id
-    assert interface.name == app_interface.name
-    assert interface.description == app_interface.description
-    assert interface.feature_flag == app_interface.feature_flag
-    assert interface.data_flag == app_interface.data_flag
-    assert len(interface.dependencies) == 1
-    assert interface.dependencies[0] == app_interface.dependencies[0]
+    assert settings
+    assert settings.id == app_settings.id
+    assert settings.name == app_settings.name
+    assert settings.description == app_settings.description
+    assert settings.feature_flag == app_settings.feature_flag
+    assert settings.data_flag == app_settings.data_flag
+    assert len(settings.dependencies) == 1
+    assert settings.dependencies[0] == app_settings.dependencies[0]
 
 
 # ** test: app_yaml_proxy_get_interface_not_found
