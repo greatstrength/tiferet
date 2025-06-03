@@ -78,4 +78,7 @@ TEST_APP_SETTINGS_YAML_DATA = dict(
             container_name='Test Container',
         )
     ),
+    constants=dict(
+        test_const='123',
+    ),
 )

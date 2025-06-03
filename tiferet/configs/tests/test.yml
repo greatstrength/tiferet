@@ -16,11 +16,18 @@ contexts:
     app_context:
       module_path: tiferet.contexts.app
       class_name: AppContext
+    const:
+      test_const: '123'
   test_int:
     data_flag: test
     description: The test for the app manager integration testing.
     feature_flag: test
     name: Integration Testing
+    container_service:
+      module_path: tiferet.contexts.container
+      class_name: ContainerContext
+    const:
+      container_config_file: tiferet/configs/tests/test.yml
 errors:
   test_formatted_error:
     error_code: TEST_FORMATTED_ERROR

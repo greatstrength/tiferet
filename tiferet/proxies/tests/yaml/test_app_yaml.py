@@ -77,6 +77,8 @@ def test_app_yaml_proxy_get_settings(app_yaml_proxy, app_settings):
     assert settings.data_flag == app_settings.data_flag
     assert len(settings.dependencies) == 1
     assert settings.dependencies[0] == app_settings.dependencies[0]
+    assert settings.constants
+    assert settings.constants['test_const'] == '123'
 
 
 # ** test: app_yaml_proxy_get_interface_not_found

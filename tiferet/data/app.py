@@ -75,7 +75,7 @@ class AppSettingsYamlData(AppSettings, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.deny('dependencies'),
+            'to_model': DataObject.deny('dependencies', 'constants'),
             'to_data': DataObject.deny('id')
         }
 
@@ -131,7 +131,18 @@ class AppSettingsYamlData(AppSettings, DataObject):
     app_context = ModelType(
         AppDependencyYamlData,
         metadata=dict(
-            description='The app interface context dependency settings.'
+            description='The app context instance dependency settings.'
+        ),
+    )
+
+    # * attribute: constants
+    constants = DictType(
+        StringType,
+        default={},
+        serialized_name='const',
+        deserialize_from=['constants', 'const'],
+        metadata=dict(
+            description='The constants for the app settings.'
         ),
     )
 
@@ -170,6 +181,7 @@ class AppSettingsYamlData(AppSettings, DataObject):
         # Map the app interface data.
         return super().map(AppSettings,
             dependencies=dependencies,
+            constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs
         )

@@ -47,3 +47,7 @@ def test_app_settings_yaml_data_map(app_settings_yaml_data):
     for param in dep.parameters:
         assert param in ['container_id', 'container_name']
 
+    # Assert that the constants are correctly set.
+    assert app_settings.constants
+    assert app_settings.constants['test_const'] == '123'
+
