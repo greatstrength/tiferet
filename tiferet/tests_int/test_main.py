@@ -63,3 +63,18 @@ def test_app_manager_load_settings(app_manager):
     assert app_settings.data_flag == 'test'
     assert len(app_settings.dependencies) > 0
     assert app_settings.get_dependency('app_context') is not None
+
+
+# ** test: app_manager_load_instance
+def test_app_manager_load_instance(app_manager):
+    """
+    Test the load_instance method of the AppManager.
+    """
+
+    # Load an instance of the application.
+    app_context = app_manager.load_instance('test_int')
+
+    # Check that the application context is loaded correctly.
+    assert app_context
+    assert isinstance(app_context, AppContext)
+    assert app_context.name == 'Integration Testing'

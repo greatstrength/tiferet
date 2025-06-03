@@ -28,6 +28,8 @@ contexts:
       class_name: ContainerContext
     const:
       container_config_file: tiferet/configs/tests/test.yml
+      feature_config_file: tiferet/configs/tests/test.yml
+      error_config_file: tiferet/configs/tests/test.yml
 errors:
   test_formatted_error:
     error_code: TEST_FORMATTED_ERROR
