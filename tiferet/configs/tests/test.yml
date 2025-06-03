@@ -1,12 +1,11 @@
-attrs:
-  test_repo:
+attrs: 
+  test_service_command:
+    type: feature
     deps:
       test:
-        class_name: TestProxy
-        module_path: tiferet.repos.tests
-    type: data
-const:
-  config_file: tiferet/configs/tests/test.yml
+        module_path: tiferet.commands.tests.test_settings
+        class_name: TestCommand
+const: {}
 contexts:
   test_app_yaml_proxy:
     data_flag: test_app_yaml_proxy

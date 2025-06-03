@@ -1,11 +1,12 @@
 # *** imports
 
 # ** core
+import os
 
 # ** app
 from ..configs import *
 from ..models.container import *
-from ..repos.container import *
+from ..contracts.container import *
 from .error import raise_error
 
 
@@ -76,11 +77,11 @@ class ContainerContext(Model):
     A container context is a class that is used to create a container object.
     '''
 
-    # * attribute: interface_id
-    interface_id = StringType(
+    # * attribute: app_name
+    app_name = StringType(
         required=True,
         metadata=dict(
-            description='The interface ID.'
+            description='The name of the application instance.'
         ),
     )
 
@@ -119,12 +120,12 @@ class ContainerContext(Model):
     )
 
     # * method: init
-    def __init__(self, interface_id: str, container_repo: ContainerRepository, feature_flag: str = 'core', data_flag: str = None):
+    def __init__(self, app_name: str, container_repo: ContainerRepository, feature_flag: str = 'core', data_flag: str = None):
         '''
         Initialize the container context.
 
-        :param interface_id: The interface ID.
-        :type interface_id: str
+        :param app_name: The name of the application instance.
+        :type app_name: str
         :param container_repo: The container repository.
         :type container_repo: ContainerRepository
         :param interface_flag: The interface flag.
@@ -175,7 +176,7 @@ class ContainerContext(Model):
 
         # Add the constants and attributes to the context.
         super().__init__(dict(
-            interface_id=interface_id,
+            app_name=app_name,
             feature_flag=feature_flag,
             data_flag=data_flag,
             attributes=attributes,
@@ -254,8 +255,8 @@ class ContainerContext(Model):
             dependencies[attribute_id] = self.import_dependency(attribute, flag_map[attribute.type])
 
         # Create container.
-        return create_injector( 
-            self.interface_id, 
+        return create_injector(
+            self.app_name,
             **self.constants, 
             **dependencies, 
             **kwargs)

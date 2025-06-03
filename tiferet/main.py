@@ -74,3 +74,28 @@ class AppManager(object):
             dependencies=dependencies,
             **kwargs
         )
+
+    # * method: execute_feature
+    def execute_feature(self, app_name: str, feature_id: str, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
+        '''
+        Execute a feature of the application.
+
+        :param app_name: The name of the application.
+        :type app_name: str
+        :param feature_id: The ID of the feature to execute.
+        :type feature_id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the feature execution.
+        :rtype: Any
+        '''
+
+        # Load the application instance.
+        instance = self.load_instance(app_name, dependencies)
+
+        # Execute the feature in the application instance.
+        try:
+            return instance.execute_feature(feature_id, **kwargs)
+        except Exception as e:
+            # Handle any exceptions that occur during feature execution.
+            return instance.handle_error(e, **kwargs)

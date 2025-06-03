@@ -44,6 +44,18 @@ def app_manager(app_manager_settings):
     )
 
 
+# ** fixture: feature_service
+@pytest.fixture
+def feature_service():
+    """
+    Fixture to provide a mock feature service.
+    """
+
+    # Create a mock feature service.
+    from tiferet.services.feature import FeatureWorkflowService
+    return FeatureWorkflowService()
+
+
 # *** tests
 
 # ** test: app_manager_load_settings
@@ -78,3 +90,17 @@ def test_app_manager_load_instance(app_manager):
     assert app_context
     assert isinstance(app_context, AppContext)
     assert app_context.name == 'Integration Testing'
+
+
+# ** test: app_manager_execute_feature
+def test_app_manager_execute_feature(app_manager, feature_service):
+    """
+    Test the execute_feature method of the AppManager.
+    """
+
+    # Execute a feature of the application.
+    result = app_manager.execute_feature('test_int', 'test_group.test_feature', param2='value2', feature_service=feature_service)
+
+    # Check that the feature execution returns the expected result.
+    assert result
+    assert result == ['value1', 'value2']
