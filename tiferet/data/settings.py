@@ -4,6 +4,15 @@
 from ..models.settings import *
 
 
+# *** constants
+
+# ** constant: default_module_path
+DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
+
+# ** constant: default_class_name
+DEFAULT_CLASS_NAME = 'AppContext'
+
+
 # *** classes
 
 # ** class: data_object
