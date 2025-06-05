@@ -48,10 +48,10 @@ def app_settings():
 # ** test: app_yaml_proxy_list_settings
 def test_app_yaml_proxy_list_settings(app_yaml_proxy, app_settings):
     '''
-    Test the app YAML proxy list interfaces method.
+    Test the app YAML proxy list settings method.
     '''
     
-    # List the interfaces.
+    # List the settings.
     all_settings = app_yaml_proxy.list_settings()
     
     # Check the interfaces.
@@ -75,10 +75,12 @@ def test_app_yaml_proxy_get_settings(app_yaml_proxy, app_settings):
     assert settings.description == app_settings.description
     assert settings.feature_flag == app_settings.feature_flag
     assert settings.data_flag == app_settings.data_flag
-    assert len(settings.dependencies) == 1
-    assert settings.dependencies[0] == app_settings.dependencies[0]
+    assert len(settings.attributes) == 1
+    assert settings.attributes[0].attribute_id == 'test_attribute'
+    assert settings.attributes[0].module_path == 'test_module_path'
+    assert settings.attributes[0].class_name == 'test_class_name'
     assert settings.constants
-    assert settings.constants['test_const'] == '123'
+    assert settings.constants['test_const'] == 'test_const_value'
 
 
 # ** test: app_yaml_proxy_get_interface_not_found
