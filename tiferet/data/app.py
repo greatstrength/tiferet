@@ -7,8 +7,8 @@ from ..models.app import *
 
 # *** data
 
-# ** data: app_dependency_yaml_data
-class AppDependencyYamlData(AppDependency, DataObject):
+# ** data: app_attribute_yaml_data
+class AppAttributeYamlData(AppAttribute, DataObject):
     '''
     A YAML data representation of an app dependency object.
     '''
@@ -42,12 +42,12 @@ class AppDependencyYamlData(AppDependency, DataObject):
         }
 
     # * method: map
-    def map(self, **kwargs) -> AppDependency:
+    def map(self, attribute_id: str, **kwargs) -> AppAttribute:
         '''
         Maps the app dependency data to an app dependency object.
 
-        :param role: The role for the mapping.
-        :type role: str
+        :param attribute_id: The id for the application attribute.
+        :type attribute_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new app dependency object.
@@ -56,7 +56,8 @@ class AppDependencyYamlData(AppDependency, DataObject):
 
         # Map to the app dependency object.
         return super().map(
-            AppDependency,
+            AppAttribute,
+            attribute_id=attribute_id,
             parameters=self.parameters,
             **self.to_primitive('to_model'),
             **kwargs
@@ -75,63 +76,38 @@ class AppSettingsYamlData(AppSettings, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.deny('dependencies', 'constants'),
-            'to_data': DataObject.deny('id')
+            'to_model': DataObject.deny('attributes', 'constants'),
+            'to_data.yaml': DataObject.deny('id')
         }
 
-    # * attribute: container_repo
-    container_repo = ModelType(
-        AppDependencyYamlData,
+    # * attribute: module_path
+    module_path = StringType(
+        default='tiferet.contexts.app',
+        serialized_name='module',
+        deserialize_from=['module_path', 'module'],
         metadata=dict(
-            description='The container repository dependency settings.'
+            description='The app context module path for the app settings.'
         ),
     )
 
-    # * attribute: container_service
-    container_service = ModelType(
-        AppDependencyYamlData,
+    # * attribute: class_name
+    class_name = StringType(
+        default='AppContext',
+        serialized_name='class',
+        deserialize_from=['class_name', 'class'],
         metadata=dict(
-            description='The container context dependency settings.'
+            description='The class name for the app context.'
         ),
     )
 
-    # * attribute: error_repo
-    error_repo = ModelType(
-        AppDependencyYamlData,
+    # * attribute: attributes
+    attributes = DictType(
+        ModelType(AppAttributeYamlData),
+        default={},
+        serialized_name='attrs',
+        deserialize_from=['attrs', 'attributes'],
         metadata=dict(
-            description='The error repository dependency settings.'
-        ),
-    )
-
-    # * attribute: error_service
-    error_service = ModelType(
-        AppDependencyYamlData,
-        metadata=dict(
-            description='The error context dependency settings.'
-        ),
-    )
-
-    # * attribute: feature_repo
-    feature_repo = ModelType(
-        AppDependencyYamlData,
-        metadata=dict(
-            description='The feature repository dependency settings.'
-        ),
-    )
-
-    # * attribute: feature_service
-    feature_service = ModelType(
-        AppDependencyYamlData,
-        metadata=dict(
-            description='The feature context dependency settings.'
-        ),
-    )
-
-    # * attribute: dependencies
-    app_context = ModelType(
-        AppDependencyYamlData,
-        metadata=dict(
-            description='The app context instance dependency settings.'
+            description='The app instance attributes.'
         ),
     )
 
@@ -159,28 +135,9 @@ class AppSettingsYamlData(AppSettings, DataObject):
         :rtype: AppInterface
         '''
 
-        # Create the dependencies list.
-        dependencies = []
-
-        # Add the dependencies to the list if they are not None.
-        if self.container_repo:
-            dependencies.append(self.container_repo.map(attribute_id='container_repo'))
-        if self.container_service:
-            dependencies.append(self.container_service.map(attribute_id='container_service'))
-        if self.error_repo:
-            dependencies.append(self.error_repo.map(attribute_id='error_repo'))
-        if self.error_service:
-            dependencies.append(self.error_service.map(attribute_id='error_service'))
-        if self.feature_repo:
-            dependencies.append(self.feature_repo.map(attribute_id='feature_repo'))
-        if self.feature_service:
-            dependencies.append(self.feature_service.map(attribute_id='feature_service'))
-        if self.app_context:
-            dependencies.append(self.app_context.map(attribute_id='app_context'))
-
         # Map the app interface data.
         return super().map(AppSettings,
-            dependencies=dependencies,
+            attributes=[attr.map(attribute_id=attr.attribute_id) for attr in self.attributes.values()],
             constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs
