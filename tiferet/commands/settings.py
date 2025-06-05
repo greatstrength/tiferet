@@ -28,7 +28,23 @@ class Command(object):
 
         # Not implemented.
         raise NotImplementedError()
-    
+
+    # * method: raise_error
+    def raise_error(self, error_code: str, *args):
+        '''
+        Raise an error with the given error code and arguments.
+
+        :param error_code: The error code.
+        :type error_code: str
+        :param args: Additional error arguments.
+        :type args: tuple
+        '''
+
+        # Raise the TiferetError with the given error code and arguments.
+        raise TiferetError(
+            error_code,
+            *args
+        )    
 
     # * method: verify
     def verify(self, expression: bool, error_code: str, *args):
@@ -47,7 +63,7 @@ class Command(object):
         try:
             assert expression
         except AssertionError:
-            raise TiferetError(
+            self.raise_error(
                 error_code,
                 *args
             )
