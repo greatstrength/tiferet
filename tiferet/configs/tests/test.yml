@@ -23,10 +23,6 @@ contexts:
     description: The test for the app manager integration testing.
     feature_flag: test
     name: Integration Testing
-    attrs:
-      container_service:
-        module_path: tiferet.contexts.container
-        class_name: ContainerContext
     const:
       container_config_file: tiferet/configs/tests/test.yml
       feature_config_file: tiferet/configs/tests/test.yml
