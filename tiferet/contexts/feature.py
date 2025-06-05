@@ -13,6 +13,10 @@ from ..commands.feature import Command, ParseRequest
 
 # ** context: feature_context
 class FeatureContext(object):
+    '''
+    The feature context is a class that is used to manage features in the application.
+    It provides methods to parse requests, get features, add features, and execute feature requests.
+    '''
 
     # * attribute: features
     features: Dict[str, Feature] = {}
