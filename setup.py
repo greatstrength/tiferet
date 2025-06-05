@@ -6,10 +6,10 @@ except:
 config = {
     'description': 'A multi-purpose application framework embodying beauty in form.',
     'author': 'Andrew Shatz',
-    'url': r'https://github.com/greatstrength/app',
-    'download_url': r'https://github.com/greatstrength/app',
+    'url': r'https://github.com/greatstrength/tiferet',
+    'download_url': r'https://github.com/greatstrength/tiferet',
     'author_email': 'andrew@greatstrength.me',
-    'version': '1.0.0-alpha.19',
+    'version': '2.0.0-alpha.0',
     'license': 'BSD 3',
     'install_requires': [
         'schematics>=2.1.1',
@@ -18,14 +18,15 @@ config = {
     ],
     'packages': [
         'tiferet',
-        'tiferet.clients',
-        'tiferet.commands',
         'tiferet.configs',
         'tiferet.contexts',
-        'tiferet.data',
+        'tiferet.handlers',
         'tiferet.models',
+        'tiferet.commands',
+        'tiferet.contracts',
+        'tiferet.data',
         'tiferet.proxies',
-        'tiferet.repos'
+        'tiferet.clients',
     ],    
     'scripts': [],
     'name': 'tiferet',
