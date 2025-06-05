@@ -40,9 +40,9 @@ class AppYamlProxy(AppRepository):
             create_data=lambda data: [
                 DataObject.from_data(
                     AppSettingsYamlData,
-                    id=app_name,
+                    id=app_id,
                     **record
-                ) .map() for app_name, record in data.items()],
+                ) .map() for app_id, record in data.items()],
             start_node=lambda data: data.get('contexts'))
 
         # Return the list of app interface objects.
