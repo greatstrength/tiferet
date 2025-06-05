@@ -76,13 +76,13 @@ class AppSettingsYamlData(AppSettings, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.deny('attributes', 'constants'),
+            'to_model': DataObject.deny('attributes', 'constants', 'module_path', 'class_name'),
             'to_data.yaml': DataObject.deny('id')
         }
 
     # * attribute: module_path
     module_path = StringType(
-        default='tiferet.contexts.app',
+        default=DEFAULT_MODULE_PATH,
         serialized_name='module',
         deserialize_from=['module_path', 'module'],
         metadata=dict(
@@ -92,7 +92,7 @@ class AppSettingsYamlData(AppSettings, DataObject):
 
     # * attribute: class_name
     class_name = StringType(
-        default='AppContext',
+        default=DEFAULT_CLASS_NAME,
         serialized_name='class',
         deserialize_from=['class_name', 'class'],
         metadata=dict(
@@ -137,7 +137,9 @@ class AppSettingsYamlData(AppSettings, DataObject):
 
         # Map the app interface data.
         return super().map(AppSettings,
-            attributes=[attr.map(attribute_id=attr.attribute_id) for attr in self.attributes.values()],
+            module_path=self.module_path,
+            class_name=self.class_name,
+            attributes=[attr.map(attribute_id=attr_id) for attr_id, attr in self.attributes.items()],
             constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs

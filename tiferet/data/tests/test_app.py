@@ -16,7 +16,24 @@ def app_settings_yaml_data():
 
     return DataObject.from_data(
         AppSettingsYamlData,
-        **TEST_APP_SETTINGS_YAML_DATA,
+        id='app_yaml_data',
+        name='Test App YAML Data',
+        module_path=DEFAULT_MODULE_PATH,
+        class_name=DEFAULT_CLASS_NAME,
+        feature_flag='test_app_yaml_data',
+        data_flag='test_app_yaml_data',
+        attributes=dict(
+            test_attribute=dict(
+                module_path='test_module_path',
+                class_name='test_class_name',
+                parameters=dict(
+                    test_param='test_value',
+                )
+            )
+        ),
+        constants=dict(
+            test_const='test_const_value',
+        )
     )
 
 
@@ -32,22 +49,28 @@ def test_app_settings_yaml_data_map(app_settings_yaml_data):
     assert isinstance(app_settings, AppSettings)
     assert app_settings.id == app_settings_yaml_data.id
     assert app_settings.name == app_settings_yaml_data.name
+    assert app_settings.feature_flag == app_settings_yaml_data.feature_flag
     assert app_settings.data_flag == app_settings_yaml_data.data_flag
 
-    # Assert the mapped app interface has the correct dependencies.
-    assert len(app_settings.dependencies) == 2
-    dep = next(dep for dep in app_settings.dependencies if dep.attribute_id == 'app_context')
-    assert isinstance(dep, AppDependency)
-    assert dep.module_path == app_settings_yaml_data.app_context.module_path
-    assert dep.class_name == app_settings_yaml_data.app_context.class_name
+    # Assert that the module path and class name are correctly set.
+    assert app_settings.module_path == DEFAULT_MODULE_PATH
+    assert app_settings.class_name == DEFAULT_CLASS_NAME
 
-    # Assert that the mapped app dependency contains the correct parameters.
-    dep = next(dep for dep in app_settings.dependencies if dep.attribute_id == 'container_service')
-    assert isinstance(dep, AppDependency)
-    for param in dep.parameters:
-        assert param in ['container_id', 'container_name']
+    # Assert that the mapped app attribute contains the correct data.
+    dep = next(
+        dep for dep in app_settings.attributes if dep.attribute_id == 'test_attribute')
+    assert dep is not None
+    assert isinstance(dep, AppAttribute)
+    assert dep.module_path == 'test_module_path'
+    assert dep.class_name == 'test_class_name'
+
+    # Assert that the parameters are correctly set.
+    param = next(
+        (p for p in dep.parameters if p == 'test_param'), None)
+    assert param is not None
+    assert param == 'test_param'
+    assert dep.parameters['test_param'] == 'test_value'
 
     # Assert that the constants are correctly set.
     assert app_settings.constants
-    assert app_settings.constants['test_const'] == '123'
-
+    assert app_settings.constants['test_const'] == 'test_const_value'
