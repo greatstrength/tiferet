@@ -4,11 +4,10 @@
 from .settings import *
 from ..configs import (
     DEFAULT_APP_CONTEXT_DEPENDENCIES,
-    DEFAULT_APP_CONTEXT_CONSTANTS,
-    DEFAULT_APP_CONTEXT_DEPENDENCY
+    DEFAULT_APP_CONTEXT_CONSTANTS
 )
 from ..models import ModelObject
-from ..models.app import AppSettings, AppDependency
+from ..models.app import AppSettings, AppAttribute
 from ..contracts.app import AppRepository
 from ..contexts import import_dependency, create_injector
 from ..contexts.app import AppContext
@@ -48,13 +47,13 @@ class LoadAppSettings(Command):
 
         # Import the app repository.
         try:
-            
+
             # Import the app repository class.
             app_repo: AppRepository = import_dependency(
-                repo_module_path, 
+                repo_module_path,
                 repo_class_name
             )(**repo_params, **kwargs)
-        
+
         # Handle the import error.
         # Raise an error if the import fails.
         except TiferetError as e:
@@ -63,24 +62,13 @@ class LoadAppSettings(Command):
                 f'Failed to import app repository: {e}.',
                 str(e)
             )
-        
+
         try:
             # Retrieve the app settings.
             settings: AppSettings = app_repo.get_settings(
                 app_name=app_name
             )
 
-            # Raise an error if the settings are not found.
-            if not settings:
-                raise TiferetError(
-                    'APP_SETTINGS_NOT_FOUND',
-                    f'App settings for {app_name} not found.'
-                )
-
-            # If the default app context is not set, set it to the default dependency.
-            if not settings.get_dependency('app_context'):
-                settings.add_dependency(**DEFAULT_APP_CONTEXT_DEPENDENCY)
-            
         # Handle the app settings retrieval error should a critical error occur in the repository.
         except Exception as e:
             raise TiferetError(
@@ -88,7 +76,14 @@ class LoadAppSettings(Command):
                 f'Failed to load app settings: {e}.',
                 str(e)
             )
-        
+
+        # Raise an error if the settings are not found.
+        if not settings:
+            raise TiferetError(
+                'APP_SETTINGS_NOT_FOUND',
+                f'App settings for {app_name} not found.'
+            )
+
         # Return the app settings.
         return settings
 
@@ -119,20 +114,13 @@ class LoadAppContext(Command):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: None
-        '''  
+        '''
 
         # Raise an error if the settings are not provided.
         if not settings:
             raise TiferetError(
                 'APP_SETTINGS_NOT_PROVIDED',
                 'App settings must be provided to load the app context.'
-            )  
-
-        # Raise an error if the app interface is invalid.
-        if not settings.get_dependency('app_context'):
-            raise TiferetError(
-                'APP_SETTINGS_INVALID',
-                settings.id,
             )
 
         # Get the dependencies for the app interface.
@@ -143,15 +131,22 @@ class LoadAppContext(Command):
             **settings.constants
         ))
 
+        # Add the app context dependency from the settings.
+        dependencies.update(dict(
+            app_context=import_dependency(
+                settings.module_path, settings.class_name
+            ))
+        )
+
         # Add the remaining dependencies from the app interface.
         dependencies.update({dep.attribute_id: import_dependency(
-            dep.module_path, dep.class_name) for dep in settings.dependencies})
-        
+            dep.module_path, dep.class_name) for dep in settings.attributes})
+
         # Add the default dependencies if they are not already present.
         for dep in DEFAULT_APP_CONTEXT_DEPENDENCIES:
 
             # Convert the dependency to a model object.
-            dep_model = ModelObject.new(AppDependency, **dep)
+            dep_model = ModelObject.new(AppAttribute, **dep)
 
             # If the dependency is not already present, add it to the dependencies.
             if dep_model.attribute_id not in dependencies:

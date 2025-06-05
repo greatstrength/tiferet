@@ -5,7 +5,6 @@ import pytest
 
 # ** app
 from ..app import *
-from ...configs.tests import TEST_APP_SETTINGS
 
 
 # *** classes
@@ -59,7 +58,20 @@ def repo_class_name_with_error():
 def app_settings():
     return ModelObject.new(
         AppSettings,
-        **TEST_APP_SETTINGS,
+        id='test_app',
+        name='Test App',
+        description='This is a test application settings object.',
+        feature_flag='test_feature',
+        data_flag='test_data',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[
+            dict(
+                attribute_id='container_service',
+                module_path='tiferet.handlers.container',
+                class_name='DependencyHandler',
+            ),
+        ]
     )
 
 
@@ -138,7 +150,7 @@ def test_load_app_settings_success(
     app_settings
 ):
     settings = load_app_settings_cmd.execute(
-        app_name='test',
+        app_name='test_app',
         repo_module_path=repo_module_path,
         repo_class_name=repo_class_name,
         repo_params=repo_params
@@ -160,6 +172,9 @@ def test_load_app_context_cmd_execute(
     # Execute the command to load the app context.
     context = load_app_context_cmd.execute(
         settings=app_settings,
+        dependencies=dict(
+            features=[]
+        )
     )
     
     # Assert the returned settings are as expected.
@@ -179,31 +194,6 @@ def test_load_app_context_cmd_execute_no_settings(
     # Assert the error code and message.
     assert exc_info.value.error_code == 'APP_SETTINGS_NOT_PROVIDED'
 
-
-# ** test: load_app_context_cmd_execute_invalid_settings
-def test_load_app_context_cmd_execute_invalid_settings(
-    load_app_context_cmd
-):
-    
-    # Create an invalid app settings object.
-    settings = ModelObject.new(
-        AppSettings,
-        id='invalid',
-        name='InvalidApp',
-        description='This is an invalid app settings object.',
-        feature_flag='test',
-        data_flag='test',
-        dependencies=[],
-    )
-
-    # Execute the command to load the app context with invalid settings.
-    with pytest.raises(TiferetError) as exc_info:
-        load_app_context_cmd.execute(
-            settings=settings,
-        )
-    
-    # Assert the error code and message.
-    assert exc_info.value.error_code == 'APP_SETTINGS_INVALID'
 
 
 # ** test: load_app_context_cmd_execute_with_error
