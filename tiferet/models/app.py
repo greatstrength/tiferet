@@ -6,8 +6,8 @@ from .settings import *
 
 # *** models
 
-# ** model: app_dependency
-class AppDependency(ValueObject):
+# ** model: app_attribute
+class AppAttribute(ValueObject):
     
     # * attribute: module_path
     module_path = StringType(
@@ -55,7 +55,23 @@ class AppSettings(Entity):
         metadata=dict(
             description='The name of the application interface.'
         ),
+    )  
+
+    # * attribute: module_path
+    module_path = StringType(
+        required=True,
+        metadata=dict(
+            description='The module path for the application instance context.'
+        ),
     )
+
+    # * attribute: class_name
+    class_name = StringType(
+        required=True,
+        metadata=dict(
+            description='The class name for the application instance context.'
+        ),
+    ) 
 
     # * attribute: description
     description = StringType(
@@ -66,7 +82,7 @@ class AppSettings(Entity):
 
     # attribute: feature_flag
     feature_flag = StringType(
-        default='core',
+        default='default',
         metadata=dict(
             description='The feature flag.'
         ),
@@ -74,18 +90,19 @@ class AppSettings(Entity):
 
     # attribute: data_flag
     data_flag = StringType(
+        default='default',
         metadata=dict(
             description='The data flag.'
         ),
     )
 
-    # * attribute: dependencies
-    dependencies = ListType(
-        ModelType(AppDependency),
+    # * attribute: attributes
+    attributes = ListType(
+        ModelType(AppAttribute),
         required=True,
         default=[],
         metadata=dict(
-            description='The application interface dependencies.'
+            description='The application instance attributes.'
         ),
     )
 
@@ -98,7 +115,8 @@ class AppSettings(Entity):
         ),
     )
 
-    def add_dependency(self, module_path: str, class_name: str, attribute_id: str):
+    # * method: add_attribute
+    def add_attribute(self, module_path: str, class_name: str, attribute_id: str):
         '''
         Add a dependency to the application interface.
 
@@ -106,7 +124,7 @@ class AppSettings(Entity):
         :type module_path: str
         :param class_name: The class name for the app dependency.
         :type class_name: str
-        :param attribute_id: The attribute id for the application dependency.
+        :param attribute_id: The id for the application attribute.
         :type attribute_id: str
         :return: The added dependency.
         :rtype: AppDependency
@@ -114,17 +132,17 @@ class AppSettings(Entity):
 
         # Create a new AppDependency object.
         dependency = ModelObject.new(
-            AppDependency,
+            AppAttribute,
             module_path=module_path,
             class_name=class_name,
             attribute_id=attribute_id
         )
 
         # Add the dependency to the list of dependencies.
-        self.dependencies.append(dependency)
+        self.attributes.append(dependency)
     
-    # * method: get_dependency
-    def get_dependency(self, attribute_id: str) -> AppDependency:
+    # * method: get_attribute
+    def get_attribute(self, attribute_id: str) -> AppAttribute:
         '''
         Get the dependency by attribute id.
 
@@ -135,5 +153,5 @@ class AppSettings(Entity):
         '''
 
         # Get the dependency by attribute id.
-        return next((dep for dep in self.dependencies if dep.attribute_id == attribute_id), None)
+        return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
     
