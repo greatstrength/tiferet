@@ -1,13 +1,69 @@
 # *** imports
 
+# ** core
+from typing import List, Dict, Any
+
 # ** app
 from .settings import *
-from ..data.feature import *
 
 
-# *** repositories
+# *** contacts
 
-# ** interface: feature_repository
+# ** contract: request
+class Request(ModelContract):
+    '''
+    Request contract for feature execution.
+    '''
+
+    # * attribute: feature_id
+    feature_id: str
+
+    # * attribute: headers
+    headers: Dict[str, str]
+
+    # * attribute: data
+    data: Dict[str, Any]
+
+    # * attribute: debug
+    debug: bool
+
+    # * attribute: result
+    result: str
+
+
+# ** contract: feature_command
+class FeatureCommand(ModelContract):
+    '''
+    Feature command contract.
+    '''
+
+    # * attribute: id
+    id: str
+
+    # * attribute: name
+    name: str
+
+    # * attribute: description
+    description: str
+
+    # * attribute: parameters
+    parameters: Dict[str, Any]
+
+
+# ** contract: feature
+class Feature(ModelContract):
+    '''
+    Feature contract.
+    '''
+
+    # * attribute: id
+    id: str
+
+    # * attribute: commands
+    commands: List[FeatureCommand]
+
+
+# ** contract: feature_repository
 class FeatureRepository(Repository):
     '''
     Feature repository interface.
@@ -35,7 +91,7 @@ class FeatureRepository(Repository):
         :param id: The feature id.
         :type id: str
         :return: The feature object.
-        :rtype: Feature
+        :rtype: Any
         '''
         raise NotImplementedError()
 
@@ -49,5 +105,34 @@ class FeatureRepository(Repository):
         :type group_id: str
         :return: The list of features.
         :rtype: List[Feature]
+        '''
+        raise NotImplementedError()
+    
+
+
+# ** contract: feature_service
+class FeatureService(Service):
+    '''
+    Feature service contract.
+    '''
+
+    # * method: execute
+    @abstractmethod
+    def execute(self, feature: Feature, request: Request, **kwargs) -> Any:
+        '''
+        Execute the feature service.
+
+        :param feature: The feature to execute.
+        :type feature: Any
+        :param data: The data to send with the request.
+        :type data: dict
+        :param headers: The headers to send with the request.
+        :type headers: dict
+        :param debug: Whether to enable debug mode.
+        :type debug: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the service execution.
+        :rtype: Any
         '''
         raise NotImplementedError()
