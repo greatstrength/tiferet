@@ -2,25 +2,8 @@
 
 # ** app
 from ..configs import *
+from ..commands import *
 from ..models.error import *
-from ..repos.error import *
-
-
-# *** functions
-
-# ** function: raise_error
-def raise_error(error_code: str, message: str, *args):
-    '''
-    Raise an error.
-
-    :param error_code: The error code.
-    :type error_code: str
-    :param args: Additional error arguments.
-    :type args: tuple
-    '''
-
-    # Raise the error.
-    raise TiferetError(error_code, message, *args)
 
 
 # *** contexts
@@ -32,46 +15,21 @@ class ErrorContext(Model):
     '''
 
     # * attribute: errors
-    errors = DictType(
-        ModelType(Error),
-        required=True,
-        metadata=dict(
-            description='The errors lookup.'
-        )
-    )
+    errors: Dict[str, Error]
 
     # * method: init
-    def __init__(self, error_repo: ErrorRepository):
+    def __init__(self, errors: List[Error]):
         '''
         Initialize the error context object.
         
-        :param error_repo: The error repository.
-        :type error_repo: ErrorRepository
+        :param errors: The list of errors to initialize the context with.
+        :type errors: List[Error]
         '''
 
-        # Create the errors lookup from the error repository.
-        try:
-
-            # Create the errors lookup from the hard-configured errors.
-            errors = {id: ModelObject.new(Error, **data) for id, data in ERRORS.items()}
-
-            # Iterate over the errors in the error repository.
-            for error in error_repo.list():
-                
-                # Add the error to the errors lookup.
-                errors[error.error_code] = error
-
-        # If the error repository fails to load, raise an error.   
-        except Exception as e:
-            raise_error(
-                'ERROR_LOADING_FAILED',
-                f'Failed to load errors: {str(e)}.',
-                str(e),
-            )
-
-        # Set the errors lookup and validate.
-        super().__init__(dict(errors=errors))
-        self.validate()
+        # Add the errors to the context.
+        self.errors = {
+            error.error_code: error for error in errors
+        }
 
     # * method: handle_error
     def handle_error(self, exception: Exception, lang: str = 'en_US', **kwargs) -> Any:
@@ -94,7 +52,7 @@ class ErrorContext(Model):
         # If the error does not exist, raise an error not found error.
         error = self.errors.get(exception.error_code, None)
         if not error:
-            raise_error(
+            raise_error.execute(
                 'ERROR_NOT_FOUND', 
                 f'Error not found: {exception.error_code}.',
                 exception.error_code
@@ -121,19 +79,8 @@ class ErrorContext(Model):
         '''
         
         # Format the error response message.
-        # If the error message does not exist in the specified language, use the default language.
-        error_response_message = error.format(lang, *error_data if error_data else [])
-        if not error_response_message:
-            error_response_message = error.format('en_US', *error_data if error_data else [])
-
-        # Set error response.
-        error_response = dict(
-            message=error_response_message,
-            error_code=error.error_code,
+        return error.format_response(
+            lang,
+            *error_data,
             **kwargs
         )
-
-        # Return error response.
-        return error_response
-    
-
