@@ -14,23 +14,19 @@ class CacheContext(Model):
     '''
 
     # * attribute: cache
-    cache = DictType(
-        StringType(),
-        default={},
-        metadata=dict(
-            description='The cache storage.'
-        )
-    )
+    cache = Dict[str, Any]
 
     # * method: init
-    def __init__(self, initial_cache: Dict[str, Any] = None):
+    def __init__(self, cache: Dict[str, Any] = {}):
         '''
-        Initialize the CacheContext.
+        Initialize the cache context.
 
-        :param initial_cache: An optional initial state for the cache.
-        :type initial_cache: dict
+        :param cache: An optional initial cache dictionary.
+        :type cache: dict
         '''
-        super().__init__(dict(cache=initial_cache or {}))
+
+        # Initialize the cache with the provided dictionary.
+        self.cache = cache
 
     # * method: get
     def get(self, key: str) -> Any:
