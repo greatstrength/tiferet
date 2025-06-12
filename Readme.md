@@ -468,3 +468,103 @@ To run the calculator, ensure your tiferet_app virtual environment is activated 
 ```bash
 python basic_calc
 ```
+
+### Running the Calculator as a CLI
+For a flexible and scriptable interface, the calculator includes a command-line interface (CLI) implemented in calc_cli.py at the project root. This script complements the basic_calc.py test script, which remains available for debugging and simple feature execution. The calc_cli.py script leverages Tiferet’s App class to execute features defined in app/configs/config.yaml, accepting command-line arguments for operations, input values, and locale selection. It supports all calculator features: addition (calc.add), subtraction (calc.subtract), multiplication (calc.multiply), division (calc.divide), exponentiation (calc.exp), and square root (calc.sqrt).
+The calc_cli.py script uses Python’s argparse to define subcommands for each feature, with required arguments -a (first number) and -b (second number, except for sqrt). An optional --locale flag selects the error message language (en_US or es_ES, defaulting to en_US). The script executes the specified feature in the basic_calc context, returning a Number object whose format() method yields the result as an integer or float.
+
+Create calc_cli.py with the following content:
+```python
+import argparse
+from tiferet import App, TiferetError
+
+def main():
+    """Parse CLI arguments and execute the calculator feature."""
+    parser = argparse.ArgumentParser(description="Basic Calculator CLI using Tiferet")
+    parser.add_argument('--config', default='app/configs/config.yaml', help='Path to config file')
+    parser.add_argument('--locale', default='en_US', choices=['en_US', 'es_ES'], help='Language for error messages')
+
+    subparsers = parser.add_subparsers(dest='operation', required=True, help='Calculator operation')
+
+    # Define subcommands for each feature
+    operations = [
+        ('add', 'Add two numbers', True),
+        ('subtract', 'Subtract one number from another', True),
+        ('multiply', 'Multiply two numbers', True),
+        ('divide', 'Divide one number by another', True),
+        ('exp', 'Raise one number to the power of another', True),
+        ('sqrt', 'Calculate the square root of a number', False),
+    ]
+
+    for op, help_text, needs_b in operations:
+        subparser = subparsers.add_parser(op, help=help_text)
+        subparser.add_argument('-a', required=True, help='First number')
+        if needs_b:
+            subparser.add_argument('-b', required=True, help='Second number')
+
+    args = parser.parse_args()
+
+    # Create app instance
+    app = App(config_file=args.config)
+
+    # Map operation to feature ID
+    feature_map = {
+        'add': 'calc.add',
+        'subtract': 'calc.subtract',
+        'multiply': 'calc.multiply',
+        'divide': 'calc.divide',
+        'exp': 'calc.exp',
+        'sqrt': 'calc.sqrt',
+    }
+    feature_id = feature_map[args.operation]
+
+    # Prepare feature parameters
+    params = {'a': str(args.a)}
+    if args.operation != 'sqrt':
+        params['b'] = str(args.b)
+
+    try:
+        # Execute feature with locale
+        result = app.execute_feature('basic_calc', feature_id, locale=args.locale, **params)
+
+        # Display result
+        if args.operation == 'sqrt':
+            print(f"√{args.a} = {result.format()}")
+        else:
+            op_symbol = {'add': '+', 'subtract': '-', 'multiply': '*', 'divide': '/', 'exp': '^'}[args.operation]
+            print(f"{args.a} {op_symbol} {args.b} = {result.format()}")
+    except TiferetError as e:
+        print(f"Error: {e.message}")
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+
+if __name__ == '__main__':
+    main()
+```
+
+Run the CLI with commands like:
+```bash
+# Add two numbers (default en_US)
+python calc_cli.py add -a 1 -b 2
+# Output: 1 + 2 = 3
+
+# Calculate square root (en_US)
+python calc_cli.py sqrt -a 4
+# Output: √4 = 2.0
+
+# Invalid input (es_ES)
+python calc_cli.py add -a abc -b 2 --locale es_ES
+# Output: Error: El valor abc debe ser un número
+
+# Division by zero (en_US)
+python calc_cli.py divide -a 5 -b 0
+# Output: Error: Cannot divide by zero
+```
+
+The calc_cli.py script is scriptable and integrates easily with shell scripts or external systems, making it a versatile interface for the calculator. For quick testing or debugging, use basic_calc.py, which executes a single feature (e.g., calc.add) with hardcoded values. The CLI’s argument-driven design allows precise control over operations, with error messages tailored to the selected locale, showcasing Tiferet’s multilingual capabilities.
+
+## Conclusion
+This tutorial has woven together the elegance of Tiferet’s Domain-Driven Design framework to create a robust and extensible basic calculator. From defining the immutable Number model to crafting command classes for arithmetic and validation, configuring features and errors, and launching the application via both a test script (basic_calc.py) and a CLI (calc_cli.py), you’ve experienced Tiferet’s balance of clarity and power. The configuration-driven approach, with dependency injection and multilingual error handling, embodies the Kabbalistic beauty of purposeful design, making the calculator both functional and a joy to develop.
+
+With the foundation laid, you can extend this application in many directions. Consider adding a terminal user interface (TUI) in a new script, calc_tui.py, to wrap calc_cli.py for interactive menu-driven operation. Explore a scientific calculator context (sci_calc) with advanced features like trigonometric functions, reusing the Number model or introducing new ones. Or integrate the calculator into larger systems, leveraging Tiferet’s modularity for domains like financial modeling or data processing. Whatever path you choose, Tiferet’s graceful framework will guide you to solutions that resonate with both purpose and precision.
+To continue your journey, try running additional features with calc_cli.py, experiment with new feature configurations in app/configs/config.yaml, or dive into Tiferet’s documentation for advanced DDD techniques. The beauty of Tiferet lies in its ability to transform complexity into clarity—may your creations reflect this harmony.
