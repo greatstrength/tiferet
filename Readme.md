@@ -20,7 +20,7 @@ Run the installer, ensuring you check "Add Python 3.10 to PATH," then click "Ins
 #### macOS
 
 Download the Python 3.10 installer from python.org.
-Open the .pkg file and follow the installation prompts.
+Open the `.pkg` file and follow the installation prompts.
 
 #### Linux (Ubuntu/Debian)
 ```bash
@@ -36,10 +36,10 @@ sudo apt install python3.10
 python3.10 --version
 ```
 
-You should see Python 3.10.x if successful.
+You should see `Python 3.10.x` if successful.
 
 ### Setting Up a Virtual Environment
-To keep your project dependencies organized, create a virtual environment named tiferet_app for your calculator application:
+To keep your project dependencies organized, create a virtual environment named `tiferet_app` for your calculator application:
 
 #### Create the Environment
 
@@ -65,13 +65,16 @@ tiferet_app\Scripts\activate
 source tiferet_app/bin/activate
 ```
 
-Your terminal should display (tiferet_app), confirming the environment is active. You can now install Tiferet and other dependencies without affecting your system’s Python setup.
-Deactivate the Environment
+Your terminal should display `(tiferet_app)`, confirming the environment is active. You can now install Tiferet and other dependencies without affecting your system’s Python setup.
+
+#### Deactivate the Environment
 When finished, deactivate the environment with:
+```bash
 deactivate
+```
 
 ## Your First Calculator App
-With your tiferet_app virtual environment activated, you're ready to install Tiferet and start building your calculator application. Follow these steps to set up your project and begin crafting with Tiferet’s elegant approach.
+With your `tiferet_app` virtual environment activated, you're ready to install Tiferet and start building your calculator application. Follow these steps to set up your project and begin crafting with Tiferet’s elegant approach.
 
 ### Installing Tiferet
 Install the Tiferet package using pip in your activated virtual environment:
@@ -90,6 +93,7 @@ Create a project directory structure to organize your calculator application:
 ```plaintext
 project_root/
 ├── basic_calc.py
+├── calc_cli.py
 └── app/
     ├── commands/
     │   ├── __init__.py
@@ -103,15 +107,15 @@ project_root/
         └── calc.py
 ```
 
-The app/models/ directory will house the calculator’s domain model, app/commands/ will contain command classes for operations and validations, and app/configs/ will store configuration files. The basic_calc.py script at the root will initialize and run the application. While the app directory name is customizable for package releases, we recommend retaining it for internal or proprietary projects to maintain simplicity and consistency.
+The `app/models/` directory will house the calculator’s domain model, `app/commands/` will contain command classes for operations and validations, and `app/configs/` will store configuration files. The `basic_calc.py` script at the root will initialize and run the application for purposes of testing and debugging. The adjacent `calc_cli.py` script initializes and runs the app as a CLI that can integrate with other scripts or external systems. While the `app` directory name is customizable for package releases, we recommend retaining it for internal or proprietary projects to maintain simplicity and consistency.
 
 ## Crafting the Calculator Application
 With Tiferet installed and your project structured, it’s time to bring your calculator application to life. We’ll start by defining the domain model, then create command classes for arithmetic and validation, configure the application’s behavior through container attributes, features, errors, and context, and finally initialize and demonstrate the app with a script. This sequence showcases Tiferet’s harmonious design, weaving together models, commands, and configurations with grace.
 
-### Defining the Number Model in models/calc.py
-The calculator’s numerical values are represented by a Number value object, defined in app/models/calc.py. This model encapsulates a string-based numerical value, validated to ensure it represents an integer or float, and provides a method to format it as a number.
+### Defining the Number Model in `models/calc.py`
+The calculator’s numerical values are represented by a `Number` value object, defined in `app/models/calc.py`. This model encapsulates a string-based numerical value, validated to ensure it represents an integer or float, and provides a method to format it as a number.
 
-Create app/models/calc.py with the following content:
+Create `app/models/calc.py` with the following content:
 
 ```python
 from tiferet.models import *
@@ -120,6 +124,7 @@ class Number(ValueObject):
     '''
     A value object representing a numerical value in the calculator domain.
     '''
+
     value = StringType(
         required=True,
         regex=r'^-?\d*\.?\d*$',
@@ -134,6 +139,8 @@ class Number(ValueObject):
 
         :return: True if the value contains a decimal point and valid digits, False otherwise.
         '''
+
+        # Verify that the value contains a decimal point and digits.
         return '.' in self.value and self.value.strip('-.').replace('.', '').isdigit()
 
     def format(self) -> int | float:
@@ -142,21 +149,25 @@ class Number(ValueObject):
 
         :return: An integer if the value represents a whole number, otherwise a float.
         '''
+
+        # Return the value as a float if the value is a float.
         if self.is_float():
             return float(self.value)
+
+        # Otherwise return the value as an int.
         return int(self.value)
 ```
 
-The Number class uses Tiferet’s ValueObject to ensure immutability, with a StringType attribute validated by a regex to accept integers and floats (e.g., "123", "-123.45", ".123"). The is_float method checks for decimal points, and format converts the string to an int or float, enabling arithmetic operations.
+The `Number` class uses Tiferet’s `ValueObject` to ensure immutability, with a `StringType` attribute validated by a regex to accept integers and floats (e.g., `"123"`, `"-123.45"`, `".123"`). The `is_float` method checks for decimal points, and `format` converts the string to an `int` or `float`, enabling arithmetic operations.
 
-### Defining Command Classes in commands/calc.py and commands/valid.py
-Next, we define command classes to perform arithmetic operations and input validation. Arithmetic commands (AddNumber, SubtractNumber, MultiplyNumber, DivideNumber, ExponentiateNumber) are in app/commands/calc.py, while the validation command (ValidateNumber) is in app/commands/valid.py. All inherit from Tiferet’s Command base class, using the static Command.handle method for execution.
+### Defining Command Classes in `commands/calc.py` and `commands/valid.py`
+Next, we define command classes to perform arithmetic operations and input validation. Arithmetic commands (`AddNumber`, `SubtractNumber`, `MultiplyNumber`, `DivideNumber`, `ExponentiateNumber`) are in `app/commands/calc.py`, while the validation command (`ValidateNumber`) is in `app/commands/valid.py`. All inherit from Tiferet’s `Command` base class, using the static `Command.handle` method for execution.
 
-#### Arithmetic Commands in commands/calc.py
-Create app/commands/calc.py with the following content:
+#### Arithmetic Commands in `commands/calc.py`
+Create `app/commands/calc.py` with the following content:
 
 ```python
-from ..commands import Command
+from . import Command
 from ..models import ModelObject
 from ..models.calc import Number
 
@@ -175,6 +186,8 @@ class AddNumber(Command):
         :return: A Number object representing the sum of a and b.
         :rtype: Number
         '''
+
+        # Add `a` and `b`.
         return ModelObject.new(Number, value=str(a.format() + b.format()))
 
 class SubtractNumber(Command):
@@ -192,6 +205,8 @@ class SubtractNumber(Command):
         :return: A Number object representing the difference of a and b.
         :rtype: Number
         '''
+
+        # Subtract `b` from `a`.
         return ModelObject.new(Number, value=str(a.format() - b.format()))
 
 class MultiplyNumber(Command):
@@ -209,6 +224,8 @@ class MultiplyNumber(Command):
         :return: A Number object representing the product of a and b.
         :rtype: Number
         '''
+
+        # Multiply `a` and `b`.
         return ModelObject.new(Number, value=str(a.format() * b.format()))
 
 class DivideNumber(Command):
@@ -226,7 +243,11 @@ class DivideNumber(Command):
         :return: A Number object representing the quotient of a and b.
         :rtype: Number
         '''
+
+        # Verify that the denominator value is not zero.
         self.verify(b.format() != 0, 'DIVISION_BY_ZERO')
+
+        # Divide `a` by `b`
         return ModelObject.new(Number, value=str(a.format() / b.format()))
 
 class ExponentiateNumber(Command):
@@ -244,16 +265,18 @@ class ExponentiateNumber(Command):
         :return: A Number object representing a raised to the power of b.
         :rtype: Number
         '''
+
+        # Exponentiate `a` by `b`.
         return ModelObject.new(Number, value=str(a.format() ** b.format()))
 ```
 
-These commands perform arithmetic operations on Number objects, using format() to extract numerical values and ModelObject.new to return results as new Number objects. The DivideNumber command includes a verify check to prevent division by zero, referencing a configured error.
+These commands perform arithmetic operations on `Number` objects, using `format()` to extract numerical values and `ModelObject.new` to return results as new `Number` objects. The `DivideNumber` command includes a `verify` check through the `Command` base class to prevent division by zero, referencing a configured error.
 
-#### Validation Command in commands/valid.py
+#### Validation Command in `commands/valid.py`
 Create app/commands/valid.py with the following content:
 
 ```python
-from ..commands import Command
+from . import Command
 from ..models.calc import Number
 
 class ValidateNumber(Command):
@@ -268,18 +291,22 @@ class ValidateNumber(Command):
         :type value: str
         :raises TiferetError: If the value cannot be a Number.
         '''
+
+        # Create a new Number model object from the value string.
         try:
             ModelObject.new(Number, value=str(value))
+
+        # Raise error if the input is not a valid number.
         except Exception as e:
-            self.verify(False, 'INVALID_INPUT', value)
+            self.raise_error('INVALID_INPUT', value)
 ```
 
-The ValidateNumber command ensures inputs can be converted to Number objects, raising a configured error for invalid values.
+The `ValidateNumber` command ensures inputs can be converted to `Number` objects, raising a configured error using the `raise_error` method from the `Command` base class for invalid values.
 
-### Configuring the Application in configs/config.yaml
-The calculator’s behavior is defined in app/configs/config.yaml, which configures container attributes, features, errors, and the application context. This centralized configuration enables Tiferet’s dependency injection container to orchestrate commands and features gracefully.
+### Configuring the Application in `configs/config.yaml`
+The calculator’s behavior is defined in `app/configs/config.yaml`, which configures container attributes, features, errors, and the application context. This centralized configuration enables Tiferet’s dependency injection container to orchestrate commands and features gracefully.
 
-Create app/configs/config.yaml with the following content:
+Create `app/configs/config.yaml` with the following content:
 
 ```yaml
 attrs:
@@ -309,13 +336,11 @@ features:
     commands:
       - attribute_id: validate_number_cmd
         name: Validate `a` input
-        return_to_data: true
         data_key: a
         params:
           value: $r.a
       - attribute_id: validate_number_cmd
         name: Validate `b` input
-        return_to_data: true
         data_key: b
         params:
           value: $r.b
@@ -327,7 +352,6 @@ features:
     commands:
       - attribute_id: validate_number_cmd
         name: Validate `a` input
-        return_to_data: true
         data_key: a
         params:
           value: $r.a
@@ -413,6 +437,7 @@ features:
 errors:
   invalid_input:
     name: Invalid Numeric Input
+    error_code: INVALID_INPUT
     message:
       - lang: en_US
         text: 'Value {} must be a number'
@@ -420,6 +445,7 @@ errors:
         text: 'El valor {} debe ser un número'
   division_by_zero:
     name: Division By Zero
+    error_code: DIVISION_BY_ZERO
     message:
       - lang: en_US
         text: 'Cannot divide by zero'
@@ -436,18 +462,19 @@ contexts:
       error_config_file: 'app/configs/config.yaml'
 ```
 
-attrs: Defines container attributes for dependency injection, mapping to command classes (e.g., add_number_cmd to AddNumber).
+attrs: Defines container attributes for dependency injection, mapping to command classes (e.g., `add_number_cmd` to `AddNumber`).
 
 
-features: Configures feature workflows, sequencing validation and arithmetic commands (e.g., calc.add validates a and b, then adds them). The calc.sqrt feature reuses exponentiate_number_cmd with b: "0.5" for square roots.
+features: Configures feature workflows, sequencing validation and arithmetic commands (e.g., `calc.add` validates `a` and `b`, then adds them). The `calc.sqrt` feature reuses `exponentiate_number_cmd` with `b: "0.5"` for square roots.
 
-errors: Specifies error messages for invalid_input and division_by_zero, supporting en_US and es_ES for multilingual extensibility.
+errors: Specifies error messages for `invalid_input` and `division_by_zero`, supporting `en_US` and `es_ES` for multilingual extensibility.
 
-contexts: Defines the basic_calc application instance, linking to the configuration file for container, features, and errors.
+contexts: Defines the `basic_calc` application instance, linking to the configuration file for container, features, and errors.
 
-### Initializing and Demonstrating the Calculator in basic_calc.py
-Finally, we initialize the calculator with an initializer script, basic_calc.py, at the project root. This script uses Tiferet’s App class to load the basic_calc context and execute features, demonstrating the calculator’s functionality.
-Create basic_calc.py with the following content:
+### Initializing and Demonstrating the Calculator in `basic_calc.py`
+Finally, we initialize the calculator with an initializer script, `basic_calc.py`, at the project root. This script uses Tiferet’s `App` class to load the `basic_calc` context and execute features, demonstrating the calculator’s functionality.
+
+Create `basic_calc.py` with the following content:
 
 ```python
 from tiferet import App
@@ -464,7 +491,7 @@ print(f'{a} + {b} = {addition.format()}')
 ```
 
 ### Demonstrating the Calculator
-To run the calculator, ensure your tiferet_app virtual environment is activated and Tiferet is installed. Execute the initializer script:
+To run the calculator, ensure your `tiferet_app` virtual environment is activated and Tiferet is installed. Execute the initializer script:
 ```bash
 python basic_calc
 ```
@@ -561,10 +588,11 @@ python calc_cli.py divide -a 5 -b 0
 # Output: Error: Cannot divide by zero
 ```
 
-The calc_cli.py script is scriptable and integrates easily with shell scripts or external systems, making it a versatile interface for the calculator. For quick testing or debugging, use basic_calc.py, which executes a single feature (e.g., calc.add) with hardcoded values. The CLI’s argument-driven design allows precise control over operations, with error messages tailored to the selected locale, showcasing Tiferet’s multilingual capabilities.
+The `calc_cli.py` script is scriptable and integrates easily with shell scripts or external systems, making it a versatile interface for the calculator. For quick testing or debugging, use `basic_calc.py`, which executes a single feature (e.g., `calc.add`) with hardcoded values. The CLI’s argument-driven design allows precise control over operations, with error messages tailored to the selected locale, showcasing Tiferet’s multilingual capabilities.
 
 ## Conclusion
-This tutorial has woven together the elegance of Tiferet’s Domain-Driven Design framework to create a robust and extensible basic calculator. From defining the immutable Number model to crafting command classes for arithmetic and validation, configuring features and errors, and launching the application via both a test script (basic_calc.py) and a CLI (calc_cli.py), you’ve experienced Tiferet’s balance of clarity and power. The configuration-driven approach, with dependency injection and multilingual error handling, embodies the Kabbalistic beauty of purposeful design, making the calculator both functional and a joy to develop.
+This tutorial has woven together the elegance of Tiferet’s Domain-Driven Design framework to create a robust and extensible basic calculator. From defining the immutable `Number` model to crafting command classes for arithmetic and validation, configuring features and errors, and launching the application via both a test script (`basic_calc.py`) and a CLI (`calc_cli.py`), you’ve experienced Tiferet’s balance of clarity and power. The configuration-driven approach, with dependency injection and multilingual error handling, embodies the Kabbalistic beauty of purposeful design, making the calculator both functional and a joy to develop.
 
-With the foundation laid, you can extend this application in many directions. Consider adding a terminal user interface (TUI) in a new script, calc_tui.py, to wrap calc_cli.py for interactive menu-driven operation. Explore a scientific calculator context (sci_calc) with advanced features like trigonometric functions, reusing the Number model or introducing new ones. Or integrate the calculator into larger systems, leveraging Tiferet’s modularity for domains like financial modeling or data processing. Whatever path you choose, Tiferet’s graceful framework will guide you to solutions that resonate with both purpose and precision.
-To continue your journey, try running additional features with calc_cli.py, experiment with new feature configurations in app/configs/config.yaml, or dive into Tiferet’s documentation for advanced DDD techniques. The beauty of Tiferet lies in its ability to transform complexity into clarity—may your creations reflect this harmony.
+With the foundation laid, you can extend this application in many directions. Consider adding a terminal user interface (TUI) in a new script, `calc_tui.py`, to wrap `calc_cli.py` for interactive menu-driven operation. Explore a scientific calculator context (`sci_calc`) with advanced features like trigonometric functions, reusing the `Number` model or introducing new ones. Add custom formula storage using repositories and data proxies to save and execute user-defined expressions, enhancing the calculator’s flexibility. Or integrate the calculator into larger systems, leveraging Tiferet’s modularity for domains like financial modeling or data processing. Whatever path you choose, Tiferet’s graceful framework will guide you to solutions that resonate with both purpose and precision.
+
+To continue your journey, try running additional features with `calc_cli.py`, experiment with new feature configurations in `app/configs/config.yaml`, or dive into Tiferet’s documentation for advanced DDD techniques. The beauty of Tiferet lies in its ability to transform complexity into clarity—may your creations reflect the harmony of nature.
