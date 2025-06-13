@@ -2,12 +2,58 @@
 
 # ** app
 from .settings import *
+from ..handlers.feature import FeatureService
 
 
 # *** models
 
-# ** model: service_command
-class ServiceCommand(ValueObject):
+# ** model: request
+class Request(ValueObject):
+    '''
+    A request object.
+    '''
+
+    # * attribute: headers
+    headers = DictType(
+        StringType(),
+        metadata=dict(
+            description='The request headers.'
+        )
+    )
+
+    # * attribute: data
+    data = DictType(
+        StringType(),
+        metadata=dict(
+            description='The request data.'
+        )
+    )
+
+    # * attribute: result
+    result = StringType(
+        metadata=dict(
+            description='The request result.'
+        )
+    )
+
+    # * method: handle_response
+    def handle_response(self, **kwargs) -> Any:
+        '''
+        Handle the response.
+
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The response object.
+        :rtype: Any
+        '''
+
+        # Deserialize the result.
+        # Return None if the result is None.
+        return json.loads(self.result) if self.result else None
+
+
+# ** model: feature_command
+class FeatureCommand(ValueObject):
     '''
     A command object for a feature command.
     '''
@@ -97,7 +143,7 @@ class Feature(Entity):
 
     # * attribute: commands
     commands = t.ListType(
-        t.ModelType(ServiceCommand),
+        t.ModelType(FeatureCommand),
         default=[],
         metadata=dict(
             description='The command handler workflow for the feature.'
@@ -157,7 +203,7 @@ class Feature(Entity):
         )
     
     # * method: add_command
-    def add_command(self, command: ServiceCommand, position: int = None):
+    def add_command(self, command: FeatureCommand, position: int = None):
         '''Adds a service command to the feature.
 
         :param command: The service command to add.
@@ -171,3 +217,24 @@ class Feature(Entity):
             self.commands.insert(position, command)
         else:
             self.commands.append(command)
+
+    
+    # * method: execute
+    def execute(self, feature_service: FeatureService, request: Request, **kwargs) -> Any:
+        '''
+        Execute the feature request.
+
+        :param feature_service: The feature service handler.
+        :type feature_service: FeatureService
+        :param request: The request object.
+        :type request: Request
+        :param container: The container object.
+        :type container: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the command.
+        :rtype: Any
+        '''
+
+        # Execute the feature service.
+        return feature_service.execute(self, request, **kwargs)
