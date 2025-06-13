@@ -7,6 +7,8 @@ import pytest
 from ..configs.app import DEFAULT_APP_MANAGER_SETTINGS
 from ..main import AppManager
 from ..contexts.app import AppContext
+from ..handlers.feature import FeatureHandler
+from ..handlers.container import DependencyInjectorHandler
 
 
 # *** fixtures
@@ -44,16 +46,25 @@ def app_manager(app_manager_settings):
     )
 
 
+# ** fixture: container_service
+@pytest.fixture
+def container_service():
+    """
+    Fixture to provide a mock container service.
+    """
+
+    # Create and return an instance of DependencyInjectorHandler.
+    return DependencyInjectorHandler()
+
 # ** fixture: feature_service
 @pytest.fixture
-def feature_service():
+def feature_service(container_service):
     """
     Fixture to provide a mock feature service.
     """
 
-    # Create a mock feature service.
-    from tiferet.services.feature import FeatureWorkflowService
-    return FeatureWorkflowService()
+    # Create and return an instance of FeatureHandler.
+    return FeatureHandler(container_service=container_service)
 
 
 # *** tests
@@ -73,8 +84,8 @@ def test_app_manager_load_settings(app_manager):
     assert app_settings.name == 'Integration Testing'
     assert app_settings.feature_flag == 'test'
     assert app_settings.data_flag == 'test'
-    assert len(app_settings.dependencies) > 0
-    assert app_settings.get_dependency('app_context') is not None
+    assert app_settings.module_path == 'tiferet.contexts.app'
+    assert app_settings.class_name == 'AppContext'
 
 
 # ** test: app_manager_load_instance

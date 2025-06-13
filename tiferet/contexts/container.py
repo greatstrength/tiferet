@@ -7,7 +7,7 @@ import os
 from ..configs import *
 from ..models.container import *
 from ..contracts.container import *
-from .error import raise_error
+from ..commands import *
 
 
 # *** functions
@@ -32,7 +32,7 @@ def create_injector(name: str, **dependencies) -> Any:
     
     # Raise an error if the injector creation fails.
     except Exception as e:
-        raise_error(
+        raise_error.execute(
             'CREATE_INJECTOR_FAILED',
             f'Error creating injector: {name} - {e}',
             name,
@@ -60,7 +60,7 @@ def import_dependency(module_path: str, class_name: str) -> Any:
     
     # Raise an error if the dependency import fails.
     except Exception as e:
-        raise_error(
+        raise_error.execute(
             'IMPORT_DEPENDENCY_FAILED',
             f'Error importing dependency: {module_path}.{class_name} - {e}',
             module_path,
@@ -146,7 +146,7 @@ class ContainerContext(Model):
 
         # Raise an error if the container attributes fail to load.
         except Exception as e:
-            raise_error(
+            raise_error.execute(
                 'CONTAINER_ATTRIBUTE_LOADING_FAILED',
                 f'Error loading container attributes: {e}',
                 str(e),
@@ -207,7 +207,7 @@ class ContainerContext(Model):
         
         # Raise an error if the parameter parsing fails.
         except Exception as e:
-            raise_error(
+            raise_error.execute(
                 'PARAMETER_PARSING_FAILED',
                 f'Error parsing parameter: {parameter} - {e}',
                 parameter,
@@ -279,7 +279,7 @@ class ContainerContext(Model):
 
         # If there is still no dependency, raise an exception.
         if not dependency:
-            raise_error(
+            raise_error.execute(
                 'DEPENDENCY_NOT_FOUND',
                 f'Dependency not found: {attribute.id} - {flag}',
                 attribute.id,

@@ -8,7 +8,7 @@ from ..models.feature import *
 # *** data
 
 # ** data: service_command_data
-class ServiceCommandYamlData(ServiceCommand, DataObject):
+class ServiceCommandYamlData(FeatureCommand, DataObject):
     '''
     A data representation of a feature handler.
     '''
@@ -68,6 +68,6 @@ class FeatureYamlData(Feature, DataObject):
         # Map the feature data to a feature object.
         return super().map(
             Feature,
-            commands=[command.map(ServiceCommand) for command in self.commands],
+            commands=[command.map(FeatureCommand) for command in self.commands],
             **kwargs
         )

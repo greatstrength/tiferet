@@ -57,7 +57,7 @@ class FeatureContext(object):
         :rtype: Request
         '''
 
-        # Use the command to parse the request.\
+        # Use the command to parse the request.
         return Command.handle(
             ParseRequest,
             data=data,
@@ -69,6 +69,7 @@ class FeatureContext(object):
     def get_feature(self, feature_id: str) -> Feature:
         '''
         Get the feature by ID.
+
         :param feature_id: The feature ID.
         :type feature_id: str
         :return: The feature object.
@@ -98,27 +99,29 @@ class FeatureContext(object):
         self.features[feature.id] = feature
 
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, data: Dict[str, Any], headers: Dict[str, str] = {}, debug: bool = False, **kwargs):
+    def execute_feature(self, feature_id: str, data: Dict[str, Any], headers: Dict[str, str] = {}, debug: bool = False, **kwargs) -> Any:
         '''
         Execute the feature request.
         
         :param request: The request context object.
-        :type request: r.RequestContext
+        :type request: Request
         :param debug: Debug flag.
         :type debug: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
+        :return: The result of the feature execution.
+        :rtype: Any
         '''
 
         # Get the feature by ID.
-        request = self.parse_request(
+        request: Request = self.parse_request(
             data=data,
             headers=headers,
             **kwargs
         )
 
         # Get the feature from the context.
-        feature = self.get_feature(feature_id)
+        feature: Feature = self.get_feature(feature_id)
 
         # Execute the feature with the request.
         return feature.execute(

@@ -12,9 +12,9 @@ from . import *
 
 # ** fixture: feature_command
 @pytest.fixture
-def service_command() -> ServiceCommand:
+def service_command() -> FeatureCommand:
     return ValueObject.new(
-        ServiceCommand,
+        FeatureCommand,
         name='Test Service Command',
         attribute_id='test_service_command',
         params={'param1': 'value1'},
@@ -114,7 +114,7 @@ def test_feature_add_command_position(feature, service_command):
     
     # Create a new command and add it at the beginning.
     new_command = ValueObject.new(
-        ServiceCommand,
+        FeatureCommand,
         name='New Service Command',
         attribute_id='new_service_command',
         params={'param1': 'value1'},

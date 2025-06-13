@@ -18,47 +18,25 @@ from .cache import CacheContext
 # *** contexts
 
 # ** context: app_context
-class AppContext(Model):
+class AppContext(object):
     '''
     The application interface context is a class that is used to create and run the application interface.
     '''
 
     # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The application name.'
-        ),
-    )
+    name: str
 
-    # * field: features
-    features = ModelType(
-        FeatureContext,
-        required=True,
-        metadata=dict(
-            description='The feature context.'
-        ),
-    )
+    # * attribute: features
+    features: FeatureContext
 
-    # * field: errors
-    errors = ModelType(
-        ErrorContext,
-        required=True,
-        metadata=dict(
-            description='The error context.'
-        ),
-    )
+    # * attribute: errors
+    errors: ErrorContext
 
     # * attribute: cache
-    cache = ModelType(
-        CacheContext,
-        metadata=dict(
-            description='The cache context.'
-        ),
-    )
+    cache: CacheContext = CacheContext()
 
     # * method: init
-    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, cache_context: CacheContext = CacheContext()):
+    def __init__(self, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, cache_context: CacheContext = None):
         '''
         Initialize the application interface context.
 
@@ -72,11 +50,14 @@ class AppContext(Model):
         :type error_context: ErrorContext
         '''
 
-        # Initialize the model.
-        super().__init__(dict(
-            name=app_name
-        ))
-        self.cache = cache_context
+        # Set the application name.
+        self.name = app_name
+
+        # Set the cache context if provided.
+        if cache_context:
+            self.cache = cache_context
+
+        # Set the feature and error contexts.
         self.features = feature_context
         self.errors = error_context
 
@@ -85,8 +66,7 @@ class AppContext(Model):
         feature_id: str,
         data: Dict[str, Any] = {},
         headers: Dict[str, str] = {},
-        **kwargs
-    ) -> Request:
+        **kwargs) -> Request:
         '''
         Parse the incoming request.
 
@@ -125,16 +105,17 @@ class AppContext(Model):
             
         # Add app interface id and name to the headers.
         headers.update(dict(
+            feature_id=feature_id,
             app_session_id=str(uuid4()),
             app_name=self.name
         ))
 
         # Parse request.
-        return Request(
+        return ModelObject.new(
+            Request,
             feature_id=feature_id,
             data=data,
-            headers=headers,
-            **kwargs
+            headers=headers
         )
     
     # * method: execute_feature
@@ -152,7 +133,7 @@ class AppContext(Model):
         request = self.parse_request(feature_id, **kwargs)
 
         # Execute feature context.
-        self.features.execute(request, cache=self.cache, **kwargs)
+        self.features.execute_feature(request, cache=self.cache, **kwargs)
 
         # Handle the response from the request.
         return request.handle_response(**kwargs)

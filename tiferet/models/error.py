@@ -122,8 +122,8 @@ class Error(Entity):
             **kwargs
         )
 
-    # * method: format
-    def format(self, lang: str = 'en_US', *args) -> str:
+    # * method: format_message
+    def format_message(self, lang: str = 'en_US', *args) -> str:
         '''
         Formats the error message text for the specified language.
 
@@ -144,3 +144,28 @@ class Error(Entity):
 
             # Format the error message text.
             return msg.format(*args)
+        
+    # * method: format_response
+    def format_response(self, lang: str = 'en_US', *args, **kwargs) -> Any:
+        '''
+        Formats the error response for the specified language.
+
+        :param lang: The language of the error message text.
+        :type lang: str
+        :param args: The format arguments for the error message text.
+        :type args: tuple
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The formatted error response.
+        :rtype: dict
+        '''
+
+        # Format the error message text.
+        error_message = self.format_message(lang, *args)
+
+        # Return the formatted error response.
+        return dict(
+            error_code=self.error_code,
+            message=error_message,
+            **kwargs
+        )

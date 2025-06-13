@@ -5,9 +5,10 @@ import pytest
 
 # ** app 
 from ..feature import *
-from ...models import *
+from ...models.container import ContainerAttribute
 from ...configs.tests import *
-from ...commands.tests.test_settings import TestServiceCommand
+from ...commands.tests.test_settings import TestCommand
+from ...handlers.feature import FeatureHandler
 
 
 # *** fixtures
@@ -86,7 +87,7 @@ def attributes():
 # ** fixture: request_context
 @pytest.fixture
 def request_context():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_CONTEXT,
     )
 
@@ -94,7 +95,7 @@ def request_context():
 # ** fixture: request_context_feature_not_found
 @pytest.fixture
 def request_context_feature_not_found():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_FEATURE_NOT_FOUND,
     )
 
@@ -102,7 +103,7 @@ def request_context_feature_not_found():
 # ** fixture: request_context_with_return_to_data
 @pytest.fixture
 def request_context_with_return_to_data():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_WITH_RETURN_TO_DATA,
     )
 
@@ -110,7 +111,7 @@ def request_context_with_return_to_data():
 # ** fixture: request_context_throw_error
 @pytest.fixture
 def request_context_throw_error():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_WITH_THROW_ERROR
     )
 
@@ -118,7 +119,7 @@ def request_context_throw_error():
 # ** fixture: request_context_with_pass_on_error
 @pytest.fixture
 def request_context_with_pass_on_error():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_WITH_PASS_ON_ERROR
     )
 
@@ -126,7 +127,7 @@ def request_context_with_pass_on_error():
 # ** fixture: request_context_throw_and_pass_on_error
 @pytest.fixture
 def request_context_throw_and_pass_on_error():
-    return RequestContext(
+    return Request(
         **TEST_REQUEST_THROW_AND_PASS_ON_ERROR
     )
 
@@ -159,7 +160,13 @@ def feature_context(container_context, feature_repo, features):
 @pytest.fixture
 def command():
     
-    return TestServiceCommand()
+    return TestCommand()
+
+
+# ** fixture: feature_handler
+@pytest.fixture
+def feature_handler():
+    return FeatureHandler()
 
 
 # *** tests
@@ -192,55 +199,14 @@ def test_execute_feature_feature_not_found(feature_context, request_context_feat
         
 
 # ** test: test_execute_feature_success
-def test_execute_feature_success(feature_context, request_context):
+def test_execute_feature_success(feature_context, request_context, feature_handler):
 
     # Test executing a feature that sets result
-    feature_context.execute(request_context)
+    feature_context.execute(
+        request_context, 
+        feature_service=feature_handler
+    )
 
     # Assert the result.
     import json
     assert request_context.result == json.dumps(('value1', 'value2'))
-
-
-# ** test: test_execute_feature_with_return_to_data
-def test_execute_feature_with_return_to_data(feature_context, command, request_context_with_return_to_data):
-    
-
-    # Test executing a feature that returns data.
-    feature_context.handle_command(
-        command, 
-        request_context_with_return_to_data, 
-        params=dict(param1='value1'),
-        return_to_data=True,
-        data_key='test_key'
-    )
-
-    # Assert the result.
-    assert request_context_with_return_to_data.data.get('test_key') == ('value1', 'value2')
-
-
-# ** test: test_execute_feature_with_throw_error
-def test_execute_feature_with_throw_error(feature_context, command, request_context_throw_error):
-
-    # Test where pass_on_error is False.
-    with pytest.raises(TiferetError):
-        feature_context.handle_command(
-            command,
-            request_context_throw_error,
-            params=dict(param1='value1')
-        )
-
-
-# ** test: test_execute_feature_with_pass_on_error
-def test_execute_feature_with_pass_on_error(feature_context, command, request_context_with_pass_on_error):
-
-    # Test where pass_on_error is True.
-    feature_context.handle_command(
-        command,
-        request_context_with_pass_on_error,
-        params=dict(param1='value1'),
-        pass_on_error=True
-    )
-
-    # Assert the result.
-    assert request_context_with_pass_on_error.result == None

@@ -8,23 +8,23 @@ DEFAULT_APP_MANAGER_SETTINGS = dict(
 )
 
 
-# ** constant: default_container_service_dependency
-DEFAULT_CONTAINER_SERVICE_DEPENDENCY = dict(
-    attribute_id='container_context',
-    module_path='tiferet.contexts.container',
-    class_name='ContainerContext',
+# ** constant: default_container_service_attribute
+DEFAULT_CONTAINER_CONTEXT_ATTRIBUTE = dict(
+    attribute_id='container_service',
+    module_path='tiferet.handlers.container',
+    class_name='DependencyInjectorHandler',
 )
 
 
-# ** constant: error_service_dependency
-DEFAULT_ERROR_SERVICE_DEPENDENCY = dict(
+# ** constant: error_context_attribute
+DEFAULT_ERROR_CONTEXT_ATTRIBUTE = dict(
     attribute_id='error_context',
     module_path='tiferet.contexts.error',
     class_name='ErrorContext',
 )
 
 
-# ** constant: default_feature_service_dependency
+# ** constant: default_feature_service_attribute
 DEFAULT_FEATURE_SERVICE_DEPENDENCY = dict(
     attribute_id='feature_context',
     module_path='tiferet.contexts.feature',
@@ -32,18 +32,10 @@ DEFAULT_FEATURE_SERVICE_DEPENDENCY = dict(
 )
 
 
-# ** constant: default_app_context_dependency
-DEFAULT_APP_CONTEXT_DEPENDENCY = dict(
-    attribute_id='app_context',
-    module_path='tiferet.contexts.app',
-    class_name='AppContext',
-)
-
-
 # ** constant: default_app_context_dependencies
 DEFAULT_APP_CONTEXT_DEPENDENCIES = [
-    DEFAULT_CONTAINER_SERVICE_DEPENDENCY,
-    DEFAULT_ERROR_SERVICE_DEPENDENCY,
+    DEFAULT_CONTAINER_CONTEXT_ATTRIBUTE,
+    DEFAULT_ERROR_CONTEXT_ATTRIBUTE,
     DEFAULT_FEATURE_SERVICE_DEPENDENCY,
     dict(
         attribute_id='container_repo',
