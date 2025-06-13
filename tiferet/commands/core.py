@@ -89,6 +89,27 @@ class ImportDependency(Command):
             )
 
 
+# ** command: raise_error
+class RaiseError(Command):
+    '''
+    A command to raise an error with a specific message.
+    '''
+
+    # * method: execute
+    def execute(self, error_code: str, message: str = None, *args) -> None:
+        '''
+        Execute the command.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param args: Additional arguments for the error message.
+        :type args: tuple
+        '''
+
+        # Raise an error with the specified code and arguments.
+        raise TiferetError(error_code, message, *args)
+
+
 # *** command_variables
 
 # ** command_variable: parse_parameter
@@ -96,3 +117,6 @@ parse_parameter = ParseParameter()
 
 # ** command_variable: import_dependency
 import_dependency = ImportDependency()
+
+# ** command_variable: raise_error
+raise_error = RaiseError()
