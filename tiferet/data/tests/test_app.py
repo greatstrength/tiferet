@@ -5,7 +5,6 @@ import pytest
 
 # ** app
 from ..app import *
-from ...configs.tests.test_app import *
 
 
 # *** fixtures
