@@ -3,6 +3,8 @@
 # ** infra
 from schematics import types as t
 
+# ** app
+from .settings import *
 
 # *** config
 
