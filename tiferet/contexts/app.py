@@ -5,6 +5,7 @@ from typing import Dict, Any, Tuple
 
 # ** app
 from .request import RequestContext
+from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .container import create_injector, import_dependency
@@ -196,8 +197,11 @@ class AppInterfaceContext(Model):
         ),
     )
 
+    # * attribute: cache
+    cache: CacheContext
+
     # * method: init
-    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
+    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, cache: CacheContext = None):
         '''
         Initialize the application interface context.
 
@@ -209,6 +213,8 @@ class AppInterfaceContext(Model):
         :type feature_context: FeatureContext
         :param error_context: The error context.
         :type error_context: ErrorContext
+        :param cache: The cache context.
+        :type cache: CacheContext
         '''
 
         # Initialize the model.
@@ -218,6 +224,7 @@ class AppInterfaceContext(Model):
         ))
         self.features = feature_context
         self.errors = error_context
+        self.cache = cache if cache else CacheContext()
 
     # * method: parse_request
     def parse_request(self, request: Any, **kwargs) -> Tuple[RequestContext, dict]:
@@ -245,7 +252,7 @@ class AppInterfaceContext(Model):
         '''
 
         # Execute feature context and return session.
-        self.features.execute(request, **kwargs)
+        self.features.execute(request, cache=self.cache, **kwargs)
     
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
