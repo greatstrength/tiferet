@@ -5,7 +5,7 @@ from typing import Dict
 
 # ** app
 from ..configs import *
-from ..domain import DataObject
+from ..data import DataObject
 from ..domain.app import AppDependency, AppInterface
 
 
