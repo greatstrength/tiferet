@@ -4,7 +4,8 @@
 from schematics.types.serializable import serializable
 
 # 
-from ..domain import *
+from ..data import DataObject
+from ..models import *
 from ..domain.feature import Feature, FeatureCommand
 
 
@@ -60,7 +61,7 @@ class FeatureData(Feature, DataObject):
             'to_data': DataObject.deny('feature_key', 'group_id', 'id')
         }
 
-    commands = t.ListType(t.ModelType(FeatureCommandData),
+    commands = ListType(ModelType(FeatureCommandData),
                           deserialize_from=['handlers', 'functions', 'commands'],)
     
     @serializable
