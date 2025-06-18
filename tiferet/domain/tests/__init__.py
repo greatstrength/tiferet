@@ -12,7 +12,6 @@ from ...configs import StringType
 from ..core import ModelObject
 from ..core import Entity
 from ..core import ValueObject
-from ..core import DataObject
 from ..core import ModuleDependency
 
 # * app
