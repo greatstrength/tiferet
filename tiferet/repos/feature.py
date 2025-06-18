@@ -6,60 +6,11 @@ from typing import List
 # ** app
 from ..data.feature import FeatureData
 from ..domain.feature import Feature
+from ..contracts.feature import FeatureRepository
 from ..clients import yaml_client
-
-# *** repository
-
-# ** interface: feature_repository
-class FeatureRepository(object):
-    '''
-    Feature repository interface.
-    '''
-
-    # * method: exists
-    def exists(self, id: str) -> bool:
-        '''
-        Verifies if the feature exists.
-
-        :param id: The feature id.
-        :type id: str
-        :return: Whether the feature exists.
-        :rtype: bool
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
-    # * method: get
-    def get(self, id: str) -> Feature:
-        '''
-        Get the feature by id.
-
-        :param id: The feature id.
-        :type id: str
-        :return: The feature object.
-        :rtype: f.Feature
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
-    # * method: list
-    def list(self, group_id: str = None) -> List[Feature]:
-        '''
-        List the features.
-
-        :param group_id: The group id.
-        :type group_id: str
-        :return: The list of features.
-        :rtype: list
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
     
 
-# ** repository: yaml_proxy
+# ** proxy: yaml_proxy
 class YamlProxy(FeatureRepository):
     '''
     Yaml repository for features.
