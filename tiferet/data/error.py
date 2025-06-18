@@ -2,7 +2,7 @@
 
 # ** app
 from ..configs import *
-from ..domain import DataObject
+from ..data import DataObject
 from ..domain.error import Error, ErrorMessage
 
 
