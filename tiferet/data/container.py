@@ -1,22 +1,23 @@
 # *** imports
 
 # ** app
-from ..configs import *
 from ..data import DataObject
-from ..domain.container import ContainerAttribute, ContainerDependency
+from ..models.settings import *
+from ..domain.container import ContainerAttribute, ContainerDependency as FlaggedDependency
+from ..contracts.container import ContainerAttribute as ContainerAttributeContract, FlaggedDependency as FlaggedDependencyContract
 
 
 # *** data
 
-# ** data: container_dependency_yaml_data
-class ContainerDependencyYamlData(ContainerDependency, DataObject):
+# ** data: flagged_dependency_yaml_data
+class ContainerDependencyYamlData(FlaggedDependency, DataObject):
     '''
-    A data representation of a container dependency object.
+    A data representation of a flagged dependency object.
     '''
 
     class Options():
         '''
-        The options for the container dependency data.
+        The options for the flagged dependency data.
         '''
 
         serialize_when_none = False
@@ -44,17 +45,18 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> ContainerDependency:
+    def map(self, **kwargs) -> FlaggedDependencyContract:
         '''
-        Maps the container dependency data to a container dependency object.
+        Maps the flagged dependency data to a flagged dependency object.
 
         :param role: The role for the mapping.
         :type role: str
-        :return: A new container dependency object.
+        :return: A new flagged dependency object.
+        :rtype: FlaggedDependencyContract
         '''
 
         # Map to the container dependency object.
-        obj = super().map(ContainerDependency, **kwargs, validate=False)
+        obj = super().map(FlaggedDependency, **kwargs, validate=False)
     
         # Set the parameters in due to the deserializer.
         obj.parameters = self.parameters
@@ -67,15 +69,15 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     @staticmethod
     def from_data(**kwargs) -> 'ContainerDependencyYamlData':
         '''
-        Initializes a new ContainerDependencyData object from YAML data.
+        Initializes a new ContainerDependencyYamlData object from YAML data.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new ContainerDependencyData object.
+        :return: A new ContainerDependencyYamlData object.
         :rtype: ContainerDependencyYamlData
         '''
 
-        # Create a new ContainerDependencyData object.
+        # Create a new ContainerDependencyYamlData object.
         return super(
             ContainerDependencyYamlData, 
             ContainerDependencyYamlData
@@ -86,17 +88,17 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     
     # * method: from_model
     @staticmethod
-    def from_model(model: ContainerDependency, **kwargs) -> 'ContainerDependencyYamlData':
+    def from_model(model: FlaggedDependency, **kwargs) -> 'ContainerDependencyYamlData':
         '''
-        Initializes a new ContainerDependencyData object from a model object.
+        Initializes a new ContainerDependencyYamlData object from a model object.
 
-        :param model: The container dependency model object.
-        :type model: ContainerDependency
+        :param model: The flagged dependency model object.
+        :type model: FlaggedDependency
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Create and return a new ContainerDependencyData object.
+        # Create and return a new FlaggedDependencyYamlData object.
         return super(ContainerDependencyYamlData, ContainerDependencyYamlData).from_model(
             ContainerDependencyYamlData,
             model,
@@ -133,12 +135,14 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> ContainerAttribute:
+    def map(self, **kwargs) -> ContainerAttributeContract:
         '''
         Maps the container attribute data to a container attribute object.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
+        :return: A container attribute model contract.
+        :rtype: ContainerAttributeContract
         '''
 
         # Map to the container attribute object with the dependencies.
@@ -150,7 +154,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
     @staticmethod
     def from_data(**kwargs) -> 'ContainerAttributeYamlData':
         '''
-        Initializes a new ContainerAttributeData object from YAML data.
+        Initializes a new ContainerAttributeYamlData object from YAML data.
 
         :param deps: The dependencies data.
         :type deps: dict
@@ -158,7 +162,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         :type kwargs: dict
         '''        
 
-        # Create a new ContainerAttributeData object.
+        # Create a new ContainerAttributeYamlData object.
         obj = super(
             ContainerAttributeYamlData, 
             ContainerAttributeYamlData
@@ -180,7 +184,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
     @staticmethod
     def from_model(model: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
         '''
-        Initializes a new ContainerAttributeData object from a model object.
+        Initializes a new ContainerAttributeYamlData object from a model object.
 
         :param model: The container attribute model object.
         :type model: ContainerAttribute
@@ -195,7 +199,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         data = model.to_primitive()
         data['dependencies'] = dependencies
 
-        # Create a new ContainerAttributeData object.
+        # Create a new ContainerAttributeYamlData object.
         obj = ContainerAttributeYamlData(
             dict(
                 **data,
@@ -207,4 +211,3 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         # Validate and return the object.
         obj.validate()
         return obj
-    
