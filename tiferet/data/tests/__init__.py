@@ -11,7 +11,7 @@ from ..app import AppDependencyYamlData
 # * container
 from ..container import ContainerAttribute
 from ..container import ContainerAttributeYamlData
-from ..container import ContainerDependency
+from ..container import FlaggedDependency
 from ..container import ContainerDependencyYamlData
 
 # * error

@@ -68,7 +68,7 @@ def test_container_dependency_yaml_data_map(container_dependency_yaml_data):
     mapped_dep = container_dependency_yaml_data.map()
    
     # Check if the mapped object is of the correct type.
-    assert isinstance(mapped_dep, ContainerDependency)
+    assert isinstance(mapped_dep, FlaggedDependency)
     assert mapped_dep.module_path == 'tests.repos.test'
     assert mapped_dep.class_name == 'TestRepoProxy'
     assert mapped_dep.flag == 'test'
@@ -117,7 +117,7 @@ def test_container_attribute_yaml_data_map(container_attribute_yaml_data):
 
     # Check if all dependencies are of type ContainerDependency
     for dep in mapped_attr.dependencies:
-        assert isinstance(dep, ContainerDependency)
+        assert isinstance(dep, FlaggedDependency)
         assert dep.module_path == 'tests.repos.test'
         assert dep.class_name in ['TestRepoProxy', 'TestRepoProxy2']
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}]
@@ -130,7 +130,7 @@ def test_container_attribute_yaml_data_from_model(container_attribute_yaml_data)
     model_object = container_attribute_yaml_data.map()
 
     # Update the model object with a new dependency.
-    new_dep = ContainerDependency.new(
+    new_dep = FlaggedDependency.new(
         module_path='tests.repos.test',
         class_name='TestRepoProxy3',
         flag='test3',
