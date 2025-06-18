@@ -5,6 +5,7 @@ from schematics.types.serializable import serializable
 
 # 
 from ..data import DataObject
+from ..contracts.feature import Feature as FeatureContract, FeatureCommand as FeatureCommandContract
 from ..models import *
 from ..domain.feature import Feature, FeatureCommand
 
@@ -28,7 +29,7 @@ class FeatureCommandData(FeatureCommand, DataObject):
             'to_data': DataObject.allow()
         }
 
-    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommand:
+    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommandContract:
         '''
         Maps the feature handler data to a feature handler object.
         
@@ -73,7 +74,7 @@ class FeatureData(Feature, DataObject):
         # Return the feature key.
         return self.id.split('.')[-1]
 
-    def map(self, role: str = 'to_model', **kwargs) -> Feature:
+    def map(self, role: str = 'to_model', **kwargs) -> FeatureContract:
         '''
         Maps the feature data to a feature object.
 
