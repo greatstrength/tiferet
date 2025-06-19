@@ -105,8 +105,8 @@ class FeatureCommand(ValueObject):
         )
     )
 
-    # * attribute: params
-    params = DictType(
+    # * attribute: parameters
+    parameters = DictType(
         StringType(),
         default={},
         metadata=dict(
@@ -239,12 +239,12 @@ class Feature(Entity):
         '''Adds a service command to the feature.
 
         :param command: The service command to add.
-        :type command: ServiceCommand
+        :type command: FeatureCommand
         :param position: The position to add the handler at.
         :type position: int
         '''
 
-        # Add the handler to the feature.
+        # Add the feature command to the feature.
         if position is not None:
             self.commands.insert(position, command)
         else:

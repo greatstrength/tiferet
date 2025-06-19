@@ -58,7 +58,7 @@ def test_feature_command_data_init(feature_command_data):
     # Assert the feature command data attributes.
     assert feature_command_data.name == 'Test Feature Command'
     assert feature_command_data.attribute_id == 'test_feature_command'
-    assert feature_command_data.params == {}
+    assert feature_command_data.parameters == {}
     assert feature_command_data.return_to_data == True
     assert feature_command_data.data_key == 'test_data'
     assert feature_command_data.pass_on_error == True
@@ -79,7 +79,7 @@ def test_feature_command_data_map(feature_command_data):
     # Assert the feature command attributes.
     assert feature_command.name == 'Test Feature Command'
     assert feature_command.attribute_id == 'test_feature_command'
-    assert feature_command.params == {}
+    assert feature_command.parameters == {}
     assert feature_command.return_to_data == True
     assert feature_command.data_key == 'test_data'
     assert feature_command.pass_on_error == True
@@ -102,7 +102,7 @@ def test_feature_data_from_data(feature_data):
     feature_command_data = feature_data.commands[0]
     assert feature_command_data.name == 'Test Feature Command'
     assert feature_command_data.attribute_id == 'test_feature_command'
-    assert feature_command_data.params == {}
+    assert feature_command_data.parameters == {}
     assert feature_command_data.return_to_data == True
     assert feature_command_data.data_key == 'test_data'
     assert feature_command_data.pass_on_error == True
@@ -130,7 +130,7 @@ def test_feature_data_map(feature_data):
     feature_command = feature.commands[0]
     assert feature_command.name == 'Test Feature Command'
     assert feature_command.attribute_id == 'test_feature_command'
-    assert feature_command.params == {}
+    assert feature_command.parameters == {}
     assert feature_command.return_to_data == True
     assert feature_command.data_key == 'test_data'
     assert feature_command.pass_on_error == True

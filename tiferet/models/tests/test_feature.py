@@ -11,12 +11,12 @@ from ..feature import *
 
 # ** fixture: feature_command
 @pytest.fixture
-def service_command() -> FeatureCommand:
+def feature_command() -> FeatureCommand:
     return ValueObject.new(
         FeatureCommand,
         name='Test Service Command',
-        attribute_id='test_service_command',
-        params={'param1': 'value1'},
+        attribute_id=' test_feature_command',
+        parameters={'param1': 'value1'},
     )
 
 
@@ -32,7 +32,7 @@ def feature() -> Feature:
 # *** tests
 
 # ** test: test_feature_new
-def test_feature_new(service_command):
+def test_feature_new(feature_command):
 
     # Create new feature with all attributes.
     feature = Feature.new(
@@ -41,7 +41,7 @@ def test_feature_new(service_command):
         feature_key='test_feature',
         id='test_group.test_feature',
         description='A test feature.',
-        commands=[service_command],
+        commands=[feature_command],
     )
 
     # Test that the feature is created correctly.
@@ -51,7 +51,7 @@ def test_feature_new(service_command):
     assert feature.id == 'test_group.test_feature'
     assert feature.description == 'A test feature.'
     assert len(feature.commands) == 1
-    assert feature.commands[0] == service_command
+    assert feature.commands[0] == feature_command
 
 
 # ** test: test_feature_new_no_description
@@ -95,28 +95,28 @@ def test_feature_new_name_and_group_only():
 
 
 # ** test: test_feature_add_service_command
-def test_feature_add_service_command(feature, service_command):
+def test_feature_add_service_command(feature, feature_command):
 
     # Add another command
-    feature.add_command(service_command)
+    feature.add_command(feature_command)
     assert len(feature.commands) == 1
     
     # Test that the new command is added to the list
-    assert feature.commands[0] == service_command
+    assert feature.commands[0] == feature_command
 
 
 # ** test: test_feature_add_command_position
-def test_feature_add_command_position(feature, service_command):
+def test_feature_add_command_position(feature, feature_command):
 
     # Add a command at the beginning
-    feature.add_command(service_command)
+    feature.add_command(feature_command)
     
     # Create a new command and add it at the beginning.
     new_command = ValueObject.new(
         FeatureCommand,
         name='New Service Command',
-        attribute_id='new_service_command',
-        params={'param1': 'value1'},
+        attribute_id='new_feature_command',
+        parameters={'param1': 'value1'},
     )
     feature.add_command(new_command, 0)
 
