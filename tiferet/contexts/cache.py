@@ -14,8 +14,9 @@ class CacheContext(object):
     '''
     A context for managing cache operations within Tiferet applications.
     '''
-    # * attribute: cache
-    cache = Dict[str, Any]
+    
+    # * attribute: cache (private)
+    _cache = Dict[str, Any]
 
     # * method: init
     def __init__(self, cache: Dict[str, Any] = {}):
@@ -26,7 +27,7 @@ class CacheContext(object):
         '''
 
         # Initialize the cache with the provided dictionary.
-        self.cache = cache
+        self._cache = cache
 
     # * method: get
     def get(self, key: str) -> Any:
@@ -39,7 +40,7 @@ class CacheContext(object):
         '''
 
         # Return the item from the cache.
-        return self.cache.get(key)
+        return self._cache.get(key)
 
     # * method: set
     def set(self, key: str, value: Any):
@@ -52,7 +53,7 @@ class CacheContext(object):
         '''
 
         # Store the value in the cache.
-        self.cache[key] = value
+        self._cache[key] = value
 
     # * method: delete
     def delete(self, key: str):
@@ -63,7 +64,7 @@ class CacheContext(object):
         '''
 
         # Remove the item from the cache.
-        self.cache.pop(key, None)
+        self._cache.pop(key, None)
 
     # * method: clear
     def clear(self):
@@ -72,4 +73,4 @@ class CacheContext(object):
         '''
 
         # Clear the cache.
-        self.cache.clear()
+        self._cache.clear()
