@@ -24,7 +24,7 @@ def cache_context():
 # ** test: test_init_with_initial_cache
 def test_init_with_initial_cache(initial_cache):
     cache = CacheContext(initial_cache)
-    assert cache.cache == initial_cache, "Cache should initialize with given data"
+    assert cache._cache == initial_cache, "Cache should initialize with given data"
 
 # ** test: test_init_without_initial_cache
 def test_init_without_initial_cache(cache_context):
