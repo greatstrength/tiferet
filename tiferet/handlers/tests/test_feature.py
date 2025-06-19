@@ -143,7 +143,7 @@ def test_feature_handler_get_feature_from_repo(feature_handler, feature_repo, fe
     assert len(retrieved_feature.commands) == len(feature.commands)
     assert retrieved_feature.commands[0].name == feature.commands[0].name
     assert retrieved_feature.commands[0].attribute_id == feature.commands[0].attribute_id
-    assert retrieved_feature.commands[0].parameters == feature.commands[0].params
+    assert retrieved_feature.commands[0].parameters == feature.commands[0].parameters
 
     # Assert that the feature is cached after retrieval.
     assert cache_service.get(feature.id) is not None
