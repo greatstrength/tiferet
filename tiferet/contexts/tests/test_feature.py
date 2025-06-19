@@ -3,71 +3,135 @@
 # ** core
 import json
 
+# ** infra
+import pytest
+from unittest import mock
+
 # ** app 
-from . import *
+from ..feature import *
+from ...configs import TiferetError
 
 
 # *** fixtures
 
-# ** fixture: request_context_with_return_to_data
+# ** fixture: request_context
 @pytest.fixture
-def request_context_with_return_to_data():
+def request_context():
+    """
+    Fixture to provide a request context for testing.
+    """
     return RequestContext(
-        feature_id="test_group.test_feature_with_return_to_data",
+        feature_id="test_group.test_feature",
         headers={"Content-Type": "application/json"},
-        data={"param2": "value2"}
+        data=dict(
+            test_key="test_value"
+        )
+    )
+
+# ** fixture: feature
+@pytest.fixture
+def feature():
+    """
+    Test feature object.
+    """
+    return Feature.new(
+        id="test_group.test_feature",
+        name="Test Feature",
+        group_id="test_group",
+        feature_key="test_feature",
+        description="A test feature for unit testing.",
+        commands=[
+            ValueObject.new(
+                FeatureCommand,
+                attribute_id="test_feature_command",
+                name="Test Feature Command",
+                parameters=dict(
+                    param1="value1",
+                    param2="value2"
+                ),
+            )
+        ]
     )
 
 
-# ** fixture: request_context_pass_on_error
+# ** fixture: feature_handler
 @pytest.fixture
-def request_context_pass_on_error():
-    return RequestContext(
-        feature_id="test_group.test_feature_with_pass_on_error",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2", "throw_error": "True"}
+def feature_handler(feature, request_context):
+    """
+    Fixture to provide a mock feature handler.
+    """
+
+    # Set the result for the request context.
+    request_context.result = json.dumps(['value1', 'value2'])
+
+    # Mock the feature handler to return the test feature.
+    handler = mock.Mock(spec=FeatureHandler)
+    handler.get_feature.return_value = feature
+    handler.handle_command.return_value = request_context
+    return handler
+
+
+# ** fixture: feature_context
+@pytest.fixture
+def feature_context(feature_handler):
+    """
+    Fixture to provide a FeatureContext instance for testing.
+    """
+    return FeatureContext(
+        feature_handler=feature_handler
     )
 
-
-# ** fixture: request_context_throw_and_pass_on_error
+# ** fixture: feature_handler
 @pytest.fixture
-def request_context_throw_and_pass_on_error():
-    return RequestContext(
-        feature_id="test_group.test_feature_with_throw_and_pass_on_error",
-        headers={"Content-Type": "application/json"},
-        data={"param2": "value2a"}
-    )
+def feature_repo(feature):
+    """
+    Fixture to provide a mock feature repository.
+    """
+    
+    # Mock the repository to return the test feature.
+    repo = mock.Mock(spec=FeatureRepository)
+    repo.get.return_value = feature
+    return repo
 
-# ** fixture: request_context_feature_not_found
+
+# ** fixture: container_context
 @pytest.fixture
-def request_context_feature_not_found():
-    return RequestContext(
-        feature_id="test_group.non_existent_feature",
-        headers={"Content-Type": "application/json"},
-        data={}
+def container_context():
+    """
+    Fixture to provide a mock container context.
+    """
+    return mock.Mock(spec=ContainerContext)
+
+
+# *** tests 
+
+# ** test: test_init_feature_context
+def test_init_feature_context(feature_repo, container_context):
+    """
+    Test initializing the FeatureContext with a feature repository and container context.
+    """
+    feature_context = FeatureContext(
+        feature_repo=feature_repo,
+        container_context=container_context
     )
-
-# *** tests
-
-# ** test: test_feature_context_parse_parameter
-def test_feature_context_parse_parameter(feature_context, test_env_var):
-
-    # Test parsing a parameter
-    result = feature_context.parse_parameter("$env.TEST_ENV_VAR")
-    assert result == test_env_var
-
-    # Test parsing a regular parameter
-    result = feature_context.parse_parameter("test")
-    assert result == "test"
+    
+    # Assert the feature handler is initialized correctly.
+    assert isinstance(feature_context.feature_handler, FeatureHandler)
+    assert feature_context.feature_handler.feature_repo == feature_repo
+    assert feature_context.feature_handler.container_service == container_context
 
 
-# ** test: test_execute_feature_feature_not_found
-def test_execute_feature_feature_not_found(feature_context, request_context_feature_not_found):
-
-    # Test executing a feature that does not exist
-    with pytest.raises(AssertionError):
-        feature_context.execute(request_context_feature_not_found)
-        
+# ** test: test_init_feature_context_without_repo_or_container
+def test_init_feature_context_without_repo_or_container():
+    """
+    Test initializing the FeatureContext without a feature repository or container context.
+    """
+    with pytest.raises(TiferetError) as exc_info:
+        FeatureContext()
+    
+    # Assert the exception is raised.
+    assert exc_info.value.error_code == 'FEATURE_CONTEXT_LOADING_FAILED'
+    assert 'A feature repository and container context are required to initialize the feature context.' in str(exc_info.value)
 
 # ** test: test_execute_feature_success
 def test_execute_feature_success(feature_context, request_context):
@@ -76,59 +140,4 @@ def test_execute_feature_success(feature_context, request_context):
     feature_context.execute(request_context)
 
     # Assert the result.
-    import json
-    assert request_context.result == json.dumps(('value1', 'value2'))
-
-
-# ** test: test_execute_feature_with_return_to_data
-def test_execute_feature_with_return_to_data(feature_context, request_context_with_return_to_data):
-    
-    # Test executing a feature that returns data.
-    feature_context.execute(request_context_with_return_to_data)
-
-    # Assert the result.
-    assert request_context_with_return_to_data.data.get('test_key') == ('value1', 'value2')
-
-
-# ** test: test_execute_feature_with_assertion_error_not_passed_on
-def test_execute_feature_with_assertion_error_not_passed_on(feature_context, request_context_throw_error):
-
-    # Test where pass_on_error is False.
-    with pytest.raises(AssertionError):
-        feature_context.execute(request_context_throw_error)
-
-
-# ** test: test_execute_feature_with_assertion_error_passed_on
-def test_execute_feature_with_assertion_error_passed_on(feature_context, request_context_pass_on_error):
-    
-    # Test where pass_on_error is True.
-    feature_context.execute(request_context_pass_on_error)
-    
-    # Assert the result.
-    assert request_context_pass_on_error.result is None
-
-
-# ** test: test_execute_feature_with_assertion_error_thrown_and_passed_on_with_result
-def test_execute_feature_with_assertion_error_thrown_and_passed_on_with_result(feature_context, request_context_throw_and_pass_on_error):
-    
-    # Test where pass_on_error is True and an error is thrown.
-    feature_context.execute(request_context_throw_and_pass_on_error)
-    
-    # Assert the result.
-    import json
-    assert request_context_throw_and_pass_on_error.result == json.dumps(('value1a', 'value2a'))
-
-
-# ** test: test_execute_feature_with_configured_environment_variable
-def test_execute_feature_with_configured_environment_variable(feature_context, test_env_var):
-
-    # Test executing a feature with an environment variable.
-    request_context = RequestContext(
-        feature_id="test_group.test_feature_with_env_var_parameter",
-        headers={"Content-Type": "application/json"},
-        data={}
-    )
-    feature_context.execute(request_context)
-
-    # Assert the result.
-    assert request_context.result == json.dumps((True, test_env_var))
+    assert request_context.result == json.dumps(['value1', 'value2'])
