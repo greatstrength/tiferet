@@ -2,6 +2,7 @@
 
 # ** core
 from typing import List, Dict, Any
+from abc import abstractmethod
 
 # ** app
 from .settings import *
@@ -26,6 +27,16 @@ class Request(ModelContract):
 
     # * attribute: result
     result: str
+
+    # * method: set_result
+    def set_result(self, result: Any):
+        '''
+        Set the result of the request.
+
+        :param result: The result to set.
+        :type result: Any
+        '''
+        raise NotImplementedError('The set_result method must be implemented by the request model.')
 
 
 # ** contract: feature_command
@@ -83,7 +94,7 @@ class FeatureRepository(Repository):
         :return: Whether the feature exists.
         :rtype: bool
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('The exists method must be implemented by the feature repository.')
 
     # * method: get
     @abstractmethod
@@ -96,7 +107,7 @@ class FeatureRepository(Repository):
         :return: The feature object.
         :rtype: Any
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('The get method must be implemented by the feature repository.')
 
     # * method: list
     @abstractmethod
@@ -109,7 +120,7 @@ class FeatureRepository(Repository):
         :return: The list of features.
         :rtype: List[Feature]
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('The list method must be implemented by the feature repository.')
     
 
 
@@ -119,23 +130,34 @@ class FeatureService(Service):
     Feature service contract.
     '''
 
-    # * method: execute
+    # * method: get_feature
     @abstractmethod
-    def execute(self, feature: Feature, request: Request, **kwargs) -> Any:
+    def get_feature(self, feature_id: str) -> Feature:
         '''
-        Execute the feature service.
+        Get a feature by its ID.
 
-        :param feature: The feature to execute.
-        :type feature: Any
-        :param data: The data to send with the request.
-        :type data: dict
-        :param headers: The headers to send with the request.
-        :type headers: dict
-        :param debug: Whether to enable debug mode.
-        :type debug: bool
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The result of the service execution.
+        :param feature_id: The ID of the feature to retrieve.
+        :type feature_id: str
+        :return: The feature object.
+        :rtype: Feature
+        '''
+        raise NotImplementedError('The get_feature method must be implemented by the feature service.')
+    
+    # * method: handle_command
+    @abstractmethod
+    def handle_command(
+            self,
+            feature_command: FeatureCommand,
+            request: Request,
+            **kwargs) -> Any:
+        '''
+        Handle the command.
+
+        :param feature_command: The feature command to execute.
+        :type feature_command: FeatureCommand
+        :param request: The request object.
+        :type request: Request
+        :return: The result of the command execution.
         :rtype: Any
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('The handle_command method must be implemented by the feature service.')

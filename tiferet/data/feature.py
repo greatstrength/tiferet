@@ -25,9 +25,20 @@ class FeatureCommandData(FeatureCommand, DataObject):
 
         # Define the roles for the feature handler data.
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('parameters'),
             'to_data': DataObject.allow()
         }
+
+    # * attributes
+    parameters = DictType(
+        StringType(),
+        default={},
+        serialized_name='params',
+        deserialize_from=['params', 'parameters'],
+        metadata=dict(
+            description='The parameters for the feature.'
+        )
+    )
 
     def map(self, role: str = 'to_model', **kwargs) -> FeatureCommandContract:
         '''
@@ -40,7 +51,10 @@ class FeatureCommandData(FeatureCommand, DataObject):
         :return: A new feature handler object.
         :rtype: f.FeatureCommand
         '''
-        return super().map(FeatureCommand, role, **kwargs)
+        return super().map(FeatureCommand, 
+            role, 
+            parameters=self.parameters,
+            **kwargs)
 
 
 class FeatureData(Feature, DataObject):
@@ -61,7 +75,8 @@ class FeatureData(Feature, DataObject):
             'to_model': DataObject.deny('feature_key'),
             'to_data': DataObject.deny('feature_key', 'group_id', 'id')
         }
-
+    
+    # * attributes
     commands = ListType(ModelType(FeatureCommandData),
                           deserialize_from=['handlers', 'functions', 'commands'],)
     
@@ -89,6 +104,9 @@ class FeatureData(Feature, DataObject):
         # Map the feature data to a feature object.
         return super().map(Feature, role, 
             feature_key=self.feature_key,
+            commands=[
+                command.map(role, **kwargs) for command in self.commands
+            ],
             **kwargs
         )
 

@@ -36,7 +36,7 @@ def feature() -> Feature:
                 dict(
                     attribute_id='test_feature_command',
                     name='Test Feature Command',
-                    params={'param1': 'value1'},
+                    parameters={'param1': 'value1'},
                 )
             ]
         )
