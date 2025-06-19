@@ -311,7 +311,8 @@ def test_error_with_multiple_args():
 # ** fixture: test_feature_command (feature)
 @pytest.fixture(scope='session')
 def test_feature_command():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Test Feature Command',
         attribute_id='test_feature_command',
         params={'param1': 'value1'},
@@ -321,7 +322,8 @@ def test_feature_command():
 # ** fixture: feature_command_return_to_data (feature)
 @pytest.fixture(scope='session')
 def test_feature_command_return_to_data():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Test Feature Command Return To Data',
         attribute_id='test_feature_command',
         params={'param1': 'value1'},
@@ -334,7 +336,8 @@ def test_feature_command_return_to_data():
 # ** fixtures: test_feature_command_to_add (feature)
 @pytest.fixture(scope='session')
 def test_feature_command_to_add():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Additional Command',
         attribute_id='test_feature_command',
         params={'param1': 'value1a'},
@@ -345,7 +348,8 @@ def test_feature_command_to_add():
 # ** fixture: test_feature_command_with_env_var_parameter (feature)
 @pytest.fixture(scope='session')
 def test_feature_command_with_env_var_parameter():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Test Feature Command With Env Var Parameter',
         attribute_id='test_feature_command_with_env_var_parameter',
         params={'test_env_var': '$env.TEST_ENV_VAR'}
@@ -355,7 +359,8 @@ def test_feature_command_with_env_var_parameter():
 
 @pytest.fixture(scope='session')
 def test_feature_command_with_pass_on_error():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Test Feature Command With Pass On Error',
         attribute_id='test_feature_command',
         params={'param1': 'value1'},
@@ -368,7 +373,8 @@ def test_feature_command_with_pass_on_error():
 # ** fixture: test_feature_command_with_throw_and_pass_on_error (feature)
 @pytest.fixture(scope='session')
 def test_feature_command_with_throw_and_pass_on_error():
-    return FeatureCommand.new(
+    return ValueObject.new(
+        FeatureCommand,
         name='Test Feature Command With Throw And Pass On Error',
         attribute_id='test_feature_command',
         params={'param1': 'value1', 'throw_error': 'True'},
