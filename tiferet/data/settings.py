@@ -4,8 +4,17 @@
 from typing import Any
 
 # ** app
-from ..contracts import ModelContract
-from ..models import Model, ModelObject
+from ..contracts.settings import ModelContract
+from ..models.settings import *
+
+
+# *** constants
+
+# ** constant: default_module_path
+DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
+
+# ** constant: default_class_name
+DEFAULT_CLASS_NAME = 'AppContext'
 
 
 # *** classes
