@@ -49,6 +49,7 @@ class ParseParameter(Command):
         except Exception as e:
             self.raise_error(
                 'PARAMETER_PARSING_FAILED',
+                f'Failed to parse parameter: {parameter}. Error: {str(e)}',
                 parameter,
                 str(e)
             )
