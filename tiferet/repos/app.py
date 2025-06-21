@@ -1,45 +1,12 @@
 # *** imports
 
 # ** app
-from ..domain.app import AppInterface
 from ..data.app import AppInterfaceYamlData
+from ..contracts.app import AppRepository, AppInterface
 from ..clients import yaml_client
 
 
-# *** repository
-
-# ** interface: app_repository
-class AppRepository(object):
-    '''
-    An app repository is a class that is used to get an app interface.
-    '''
-
-    # * method: list_interfaces
-    def list_interfaces(self) -> list[AppInterface]:
-        '''
-        List all app interfaces.
-
-        :return: The list of app interfaces.
-        :rtype: list[AppInterface]
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
-    # * method: get_interface
-    def get_interface(self, id: str) -> AppInterface:
-        '''
-        Get the app interface.
-
-        :param id: The app interface id.
-        :type id: str
-        :return: The app interface.
-        :rtype: AppInterface
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
+# *** proxies
 
 # ** proxy: app_yaml_proxy
 class AppYamlProxy(AppRepository):
@@ -65,7 +32,7 @@ class AppYamlProxy(AppRepository):
         List all app interfaces.
 
         :return: The list of app interfaces.
-        :rtype: list[AppInterface]
+        :rtype: List[AppInterface]
         '''
 
         # Load the app interface data from the yaml configuration file and map it to the app interface object.
