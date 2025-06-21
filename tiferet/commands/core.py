@@ -38,17 +38,18 @@ class ParseParameter(Command):
                 # Raise an exception if the environment variable is not found.
                 if not result:
                     raise Exception('Environment variable not found.')
-                
+
                 # Return the result if the environment variable is found.
                 return result
-            
+
             # Return the parameter as is if it is not an environment variable.
             return parameter
-        
+
         # Raise an error if the parameter parsing fails.
         except Exception as e:
             self.raise_error(
                 'PARAMETER_PARSING_FAILED',
+                f'Failed to parse parameter: {parameter}. Error: {str(e)}',
                 parameter,
                 str(e)
             )
@@ -78,11 +79,12 @@ class ImportDependency(Command):
         # Import module.
         try:
             return getattr(import_module(module_path), class_name)
-        
+
         # Raise an error if the dependency import fails.
         except Exception as e:
             self.raise_error(
                 'IMPORT_DEPENDENCY_FAILED',
+                f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
                 module_path,
                 class_name,
                 str(e),
