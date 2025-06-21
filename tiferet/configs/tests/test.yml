@@ -36,20 +36,14 @@ features:
     description: A test feature.
     name: Test Feature
 interfaces:
-  test:
-    app_context:
-      class_name: AppInterfaceContext
-      module_path: tiferet.contexts.app
-    container_repo:
-      class_name: MockContainerRepository
-      module_path: tiferet.repos.tests
-    data_flag: test
-    description: The test interface.
-    error_repo:
-      class_name: MockErrorRepository
-      module_path: tiferet.repos.tests
-    feature_flag: test
-    feature_repo:
-      class_name: MockFeatureRepository
-      module_path: tiferet.repos.tests
-    name: Test Interface
+  test_app_yaml_proxy:
+    attrs:
+      test_attribute:
+        class_name: test_class_name
+        module_path: test_module_path
+    const:
+      test_const: test_const_value
+    data_flag: test_app_yaml_proxy
+    description: The context for testing the app yaml proxy.
+    feature_flag: test_app_yaml_proxy
+    name: Test App YAML Proxy
