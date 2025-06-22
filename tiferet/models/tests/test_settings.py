@@ -65,19 +65,31 @@ def test_model_object_new(test_model_object):
 def test_entity_new(test_entity):
 
     # Create a new entity using the fixture.
-    entity = Entity.new(test_entity, id='test')
+    entity = Entity.new(test_entity, 
+        id='test',
+        name='Test Entity',
+        description='This is a test entity.'
+    )
 
     # Assert the entity is valid.
     assert isinstance(entity, test_entity)
     assert entity.id == 'test'
+    assert entity.name == 'Test Entity'
+    assert entity.description == 'This is a test entity.'
 
 
 # ** domain: test_value_object_new
 def test_value_object_new(test_value_object):
 
     # Create a new value object using the fixture.
-    value_object = ValueObject.new(test_value_object, attribute='test')
+    value_object = ValueObject.new(test_value_object, 
+        attribute='test',
+        name='Test Value Object',
+        description='This is a test value object.'
+    )
 
     # Assert the value object is valid.
     assert isinstance(value_object, test_value_object)
     assert value_object.attribute == 'test'
+    assert value_object.name == 'Test Value Object'
+    assert value_object.description == 'This is a test value object.'
