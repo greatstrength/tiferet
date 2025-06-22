@@ -33,7 +33,7 @@ class ErrorMessage(ModelContract):
         :return: The formatted error message text.
         :rtype: str
         '''
-        raise NotImplementedError('The format method must be implemented by the error message service.')
+        raise NotImplementedError('The format method must be implemented by the error message.')
 
 
 # ** contract: error
@@ -67,7 +67,7 @@ class Error(ModelContract):
         :return: The formatted error message text.
         :rtype: str
         '''
-        raise NotImplementedError('The format_message method must be implemented by the error service.')
+        raise NotImplementedError('The format_message method must be implemented by the error.')
 
     # * method: format_response
     @abstractmethod
@@ -84,7 +84,7 @@ class Error(ModelContract):
         :return: The formatted error response.
         :rtype: Dict[str, Any]
         '''
-        raise NotImplementedError('The format_response method must be implemented by the error service.')
+        raise NotImplementedError('The format_response method must be implemented by the error.')
 
     # * method: set_message
     @abstractmethod
@@ -97,7 +97,7 @@ class Error(ModelContract):
         :param text: The error message text.
         :type text: str
         '''
-        raise NotImplementedError('The set_message method must be implemented by the error service.')
+        raise NotImplementedError('The set_message method must be implemented by the error.')
 
 
 # ** contract: error_repository
@@ -119,7 +119,7 @@ class ErrorRepository(ModelContract):
         :return: Whether the error exists.
         :rtype: bool
         '''
-        raise NotImplementedError('The exists method must be implemented by the error repository service.')
+        raise NotImplementedError('The exists method must be implemented by the error repository.')
 
     # * method: get
     @abstractmethod
@@ -132,7 +132,7 @@ class ErrorRepository(ModelContract):
         :return: The error object.
         :rtype: Error
         '''
-        raise NotImplementedError('The get method must be implemented by the error repository service.')
+        raise NotImplementedError('The get method must be implemented by the error repository.')
 
     # * method: list
     @abstractmethod
@@ -143,7 +143,7 @@ class ErrorRepository(ModelContract):
         :return: The list of error objects.
         :rtype: List[Error]
         '''
-        raise NotImplementedError('The list method must be implemented by the error repository service.')
+        raise NotImplementedError('The list method must be implemented by the error repository.')
 
     # * method: save
     @abstractmethod
@@ -154,4 +154,4 @@ class ErrorRepository(ModelContract):
         :param error: The error.
         :type error: Error
         '''
-        raise NotImplementedError('The save method must be implemented by the error repository service.')
+        raise NotImplementedError('The save method must be implemented by the error repository.')
