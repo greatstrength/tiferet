@@ -75,6 +75,20 @@ class ModelObject(Model):
     A domain model object.
     '''
 
+    # ** attribute: name
+    name = StringType(
+        metadata=dict(
+            description='The name of the object.'
+        )
+    )
+
+    # ** attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the object.'
+        )
+    )
+
     # * method: new
     @staticmethod
     def new(
@@ -111,6 +125,14 @@ class ModelObject(Model):
         return _object
 
 
+# ** model: value_object
+class ValueObject(ModelObject):
+    '''
+    A domain model value object.
+    '''
+    pass
+
+
 # ** class: entity
 class Entity(ModelObject):
     '''
@@ -124,12 +146,3 @@ class Entity(ModelObject):
             description='The entity unique identifier.'
         )
     )
-
-
-# ** model: value_object
-class ValueObject(ModelObject):
-    '''
-    A domain model value object.
-    '''
-
-    pass

@@ -166,13 +166,6 @@ class Feature(Entity):
         )
     )
 
-    # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the feature.'
-        )
-    )
-
     # * attribute: commands
     commands = ListType(
         ModelType(FeatureCommand),

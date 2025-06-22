@@ -71,13 +71,6 @@ class AppInterface(Entity):
         metadata=dict(
             description='The class name for the application instance context.'
         ),
-    ) 
-
-    # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the application interface.'
-        ),
     )
 
     # attribute: feature_flag
