@@ -4,55 +4,41 @@
 import pytest
 
 # ** app
-from . import *
+from ..error import *
 
 
 # *** fixtures
 
-# ** fixture: error_message_data
+# ** fixture: error_message
 @pytest.fixture
-def error_message_data():
+def error_message():
     '''
     Provides an error message data fixture.
     '''
-    return ErrorMessageData(
-        super(ErrorMessageData, ErrorMessageData).new(
-            lang='en',
-            text='Test error message.'
-        )
+
+    return ValueObject.new(
+        ErrorMessage,
+        lang='en',
+        text='Test error message.'
     )
 
 
 # ** fixture: error_data
 @pytest.fixture
-def error_data(error_message_data):
+def error_data(error_message):
     '''
     Provides an error data fixture.
     '''
+
     return ErrorData.from_data(
         id='TEST_ERROR',
         name='TEST_ERROR',
         error_code='TEST_ERROR',
-        message=[error_message_data]
+        message=[error_message]
     )
 
 
 # *** tests
-
-# ** test: error_message_data_to_primitive
-def test_error_message_data_to_primitive(error_message_data):
-
-    # Convert the error message data to a primitive.
-    primitive = error_message_data.to_primitive()
-
-    # Assert the primitive is a dictionary.
-    assert isinstance(primitive, dict)
-
-    # Assert the primitive values are correct.
-    assert primitive.pop('id', None) is None
-    assert primitive.get('lang') == 'en'
-    assert primitive.get('text') == 'Test error message.'
-
 
 # ** test: error_data_from_data
 def test_error_data_from_data(error_data):

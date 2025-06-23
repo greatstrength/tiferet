@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from abc import abstractmethod
 
 # ** app
-from .settings import ModelContract
+from .settings import *
 
 
 # *** contracts
@@ -101,7 +101,7 @@ class Error(ModelContract):
 
 
 # ** contract: error_repository
-class ErrorRepository(ModelContract):
+class ErrorRepository(Repository):
     '''
     Contract for an error repository to manage error objects.
     '''

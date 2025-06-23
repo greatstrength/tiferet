@@ -6,8 +6,7 @@ from schematics.types.serializable import serializable
 # 
 from ..data import DataObject
 from ..contracts.feature import Feature as FeatureContract, FeatureCommand as FeatureCommandContract
-from ..models import *
-from ..domain.feature import Feature, FeatureCommand
+from ..models.feature import *
 
 
 class FeatureCommandData(FeatureCommand, DataObject):
