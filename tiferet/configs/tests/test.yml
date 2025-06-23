@@ -1,31 +1,16 @@
 attrs:
-  test_repo:
+  test_container:
+    class_name: TestContainer
+    module_path: tiferet.containers.tests
     deps:
       test:
         class_name: TestProxy
-        module_path: tiferet.repos.tests
+        module_path: tiferet.proxies.tests
+        params:
+          param1: value1
     type: data
 const:
   config_file: tiferet/configs/tests/test.yml
-errors:
-  FORMATTED_ERROR:
-    error_code: FORMATTED_ERROR
-    message:
-    - lang: en_US
-      text: 'An error occurred: {}'
-    name: Formatted Error
-  MY_ERROR:
-    error_code: MY_ERROR
-    message:
-    - lang: en_US
-      text: An error occurred.
-    name: My Error
-  TEST_SAVE_ERROR:
-    error_code: TEST_SAVE_ERROR
-    message:
-    - lang: en_US
-      text: An error occurred.
-    name: TEST_SAVE_ERROR
 features:
   test_group.test_feature:
     commands:
