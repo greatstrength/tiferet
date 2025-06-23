@@ -1,16 +1,18 @@
 # *** imports
 
 # ** app
-from ..data import DataObject
-from ..models.settings import *
-from ..domain.container import ContainerAttribute, ContainerDependency as FlaggedDependency
-from ..contracts.container import ContainerAttribute as ContainerAttributeContract, FlaggedDependency as FlaggedDependencyContract
+from ..data import *
+from ..models.container import *
+from ..contracts.container import (
+    ContainerAttribute as ContainerAttributeContract, 
+    FlaggedDependency as FlaggedDependencyContract
+)
 
 
 # *** data
 
 # ** data: flagged_dependency_yaml_data
-class ContainerDependencyYamlData(FlaggedDependency, DataObject):
+class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
     '''
     A data representation of a flagged dependency object.
     '''
@@ -67,7 +69,7 @@ class ContainerDependencyYamlData(FlaggedDependency, DataObject):
     
     # * method: new
     @staticmethod
-    def from_data(**kwargs) -> 'ContainerDependencyYamlData':
+    def from_data(**kwargs) -> 'FlaggedDependencyYamlData':
         '''
         Initializes a new ContainerDependencyYamlData object from YAML data.
 
@@ -79,16 +81,16 @@ class ContainerDependencyYamlData(FlaggedDependency, DataObject):
 
         # Create a new ContainerDependencyYamlData object.
         return super(
-            ContainerDependencyYamlData, 
-            ContainerDependencyYamlData
+            FlaggedDependencyYamlData, 
+            FlaggedDependencyYamlData
         ).from_data(
-            ContainerDependencyYamlData,
+            FlaggedDependencyYamlData,
             **kwargs
         )
     
     # * method: from_model
     @staticmethod
-    def from_model(model: FlaggedDependency, **kwargs) -> 'ContainerDependencyYamlData':
+    def from_model(model: FlaggedDependency, **kwargs) -> 'FlaggedDependencyYamlData':
         '''
         Initializes a new ContainerDependencyYamlData object from a model object.
 
@@ -99,8 +101,8 @@ class ContainerDependencyYamlData(FlaggedDependency, DataObject):
         '''
 
         # Create and return a new FlaggedDependencyYamlData object.
-        return super(ContainerDependencyYamlData, ContainerDependencyYamlData).from_model(
-            ContainerDependencyYamlData,
+        return super(FlaggedDependencyYamlData, FlaggedDependencyYamlData).from_model(
+            FlaggedDependencyYamlData,
             model,
             **kwargs,
         )
@@ -125,7 +127,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
     # * attribute: dependencies
     dependencies = DictType(
-        ModelType(ContainerDependencyYamlData), 
+        ModelType(FlaggedDependencyYamlData), 
         default=[], 
         serialized_name='deps', 
         deserialize_from=['deps', 'dependencies'],
