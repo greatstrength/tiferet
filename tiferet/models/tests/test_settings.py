@@ -50,7 +50,7 @@ def test_value_object():
 
 # *** tests
 
-# ** domain: test_model_object_new
+# ** test: model_object_new
 def test_model_object_new(test_model_object):
     
     # Create a new model object using the fixture.
@@ -61,7 +61,7 @@ def test_model_object_new(test_model_object):
     assert model_object.attribute == 'test'
 
 
-# ** domain: test_entity_new
+# ** test: entity_new
 def test_entity_new(test_entity):
 
     # Create a new entity using the fixture.
@@ -78,7 +78,7 @@ def test_entity_new(test_entity):
     assert entity.description == 'This is a test entity.'
 
 
-# ** domain: test_value_object_new
+# ** test: value_object_new
 def test_value_object_new(test_value_object):
 
     # Create a new value object using the fixture.
