@@ -18,7 +18,9 @@ class ImportAppRepository(Command):
     def execute(self,
                 app_repo_module_path: str = 'tiferet.proxies.app.yaml',
                 app_repo_class_name: str = 'AppYamlProxy',
-                app_repo_params: Dict[str, Any] = {},
+                app_repo_params: Dict[str, Any] = dict(
+                    app_config_file='app/configs/app.yml'
+                ),
                 **kwargs
                 ) -> AppRepository:
         '''
@@ -39,14 +41,11 @@ class ImportAppRepository(Command):
 
         # Import the app repository.
         try:
-
-            # Import the app repository class.
             return import_dependency.execute(
                 app_repo_module_path,
                 app_repo_class_name
             )(**app_repo_params)
 
-        # Handle the import error.
         # Raise an error if the import fails.
         except TiferetError as e:
             self.raise_error(
