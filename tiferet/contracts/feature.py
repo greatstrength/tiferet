@@ -130,6 +130,21 @@ class FeatureService(Service):
     Feature service contract.
     '''
 
+    # * method: parse_parameter
+    @abstractmethod
+    def parse_parameter(self, parameter: str, request: Request = None) -> str:
+        '''
+        Parse a parameter.
+
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request object containing data for parameter parsing.
+        :type request: Request
+        :return: The parsed parameter.
+        :rtype : str
+        '''
+        raise NotImplementedError('The parse_parameter method must be implemented by the feature service.')
+
     # * method: get_feature
     @abstractmethod
     def get_feature(self, feature_id: str) -> Feature:
@@ -142,22 +157,3 @@ class FeatureService(Service):
         :rtype: Feature
         '''
         raise NotImplementedError('The get_feature method must be implemented by the feature service.')
-    
-    # * method: handle_command
-    @abstractmethod
-    def handle_command(
-            self,
-            feature_command: FeatureCommand,
-            request: Request,
-            **kwargs) -> Any:
-        '''
-        Handle the command.
-
-        :param feature_command: The feature command to execute.
-        :type feature_command: FeatureCommand
-        :param request: The request object.
-        :type request: Request
-        :return: The result of the command execution.
-        :rtype: Any
-        '''
-        raise NotImplementedError('The handle_command method must be implemented by the feature service.')
