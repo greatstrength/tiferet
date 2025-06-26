@@ -155,3 +155,23 @@ class ErrorRepository(Repository):
         :type error: Error
         '''
         raise NotImplementedError('The save method must be implemented by the error repository.')
+    
+
+# ** contract: error_service
+class ErrorService(Service):
+    '''
+    Contract for an error service to handle error operations.
+    '''
+
+    # * method: load_errors
+    @abstractmethod
+    def load_errors(self, configured_errors: List[Error] = []) -> List[Error]:
+        '''
+        Load errors by their codes.
+
+        :param configured_errors: The list of hard-coded errors to load.
+        :type configured_errors: List[Error]
+        :return: The list of loaded errors.
+        :rtype: List[Error]
+        '''
+        raise NotImplementedError('The load_errors method must be implemented by the error service.')
