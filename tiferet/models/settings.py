@@ -1,22 +1,93 @@
 # *** imports
 
-# ** core
-from typing import Any
-
 # ** infra
-from schematics import Model
-
-# ** app
-from ..configs import *
+from schematics import Model, types as t
 
 
-# *** models
+# *** classes
 
-# ** model: model_object
+# ** class: string_type
+class StringType(t.StringType):
+    '''
+    A string type.
+    '''
+
+    pass
+
+
+# ** class: integer_type
+class IntegerType(t.IntType):
+    '''
+    An integer type.
+    '''
+
+    pass
+
+
+# ** class: float_type
+class FloatType(t.FloatType):
+    '''
+    A float type.
+    '''
+
+    pass
+
+
+# ** class: boolean_type
+class BooleanType(t.BooleanType):
+    '''
+    A boolean type.
+    '''
+
+    pass
+
+
+# ** class: list_type
+class ListType(t.ListType):
+    '''
+    A list type.
+    '''
+
+    pass
+
+
+# ** class: dict_type
+class DictType(t.DictType):
+    '''
+    A dictionary type.
+    '''
+
+    pass
+
+
+# ** class: model_type
+class ModelType(t.ModelType):
+    '''
+    A model type.
+    '''
+
+    pass
+
+
+# ** class: model_object
 class ModelObject(Model):
     '''
     A domain model object.
     '''
+
+    # ** attribute: name
+    name = StringType(
+        metadata=dict(
+            description='The name of the object.'
+        )
+    )
+
+    # ** attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the object.'
+        )
+    )
 
     # * method: new
     @staticmethod
@@ -25,7 +96,7 @@ class ModelObject(Model):
         validate: bool = True,
         strict: bool = True,
         **kwargs
-    ) -> Any:
+    ) -> 'ModelObject':
         '''
         Initializes a new model object.
 
@@ -38,11 +109,11 @@ class ModelObject(Model):
         :param kwargs: Keyword arguments.
         :type kwargs: dict
         :return: A new model object.
-        :rtype: Any
+        :rclass: ModelObject
         '''
 
         # Create a new model object.
-        _object = model_type(dict(
+        _object: ModelObject = model_type(dict(
             **kwargs
         ), strict=strict)
 

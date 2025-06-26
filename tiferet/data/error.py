@@ -2,25 +2,12 @@
 
 # ** app
 from ..configs import *
-from ..domain import DataObject
-from ..domain.error import Error, ErrorMessage
+from ..data import DataObject
+from ..models.error import *
+from ..contracts.error import Error as ErrorContract
 
 
 # *** data
-
-# ** data: error_message_data
-class ErrorMessageData(ErrorMessage, DataObject):
-    '''
-    A data representation of an error message object.
-    '''
-
-    class Options():
-        serialize_when_none = False
-        roles = {
-            'to_data': DataObject.allow(),
-            'to_model': DataObject.allow()
-        }
-
 
 # ** data: error_data
 class ErrorData(Error, DataObject):
@@ -31,13 +18,13 @@ class ErrorData(Error, DataObject):
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data': DataObject.deny('id'),
-            'to_model': DataObject.allow()
+            'to_data': DataObject.deny('id', 'message'),
+            'to_model': DataObject.deny('message')
         }
 
     # * attribute: message
     message = ListType(
-        ModelType(ErrorMessageData),
+        ModelType(ErrorMessage),
         required=True,
         metadata=dict(
             description='The error messages.'
@@ -58,13 +45,17 @@ class ErrorData(Error, DataObject):
         '''
 
         # Convert the data object to a primitive dictionary.
-        return super().to_primitive(
-            role,
-            **kwargs
-        )
+        return dict(
+            **super().to_primitive(
+                role,
+                **kwargs
+            ),
+            message=[msg.to_primitive() for msg in self.message]
+        ) 
+        
 
     # * method: map
-    def map(self, **kwargs) -> Error:
+    def map(self, **kwargs) -> ErrorContract:
         '''
         Maps the error data to an error object.
 

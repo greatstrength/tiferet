@@ -4,53 +4,12 @@
 from typing import List, Dict, Tuple
 
 # ** app
-from ..domain.container import ContainerAttribute
 from ..data.container import ContainerAttributeYamlData
+from ..contracts.container import ContainerRepository, ContainerAttribute
 from ..clients import yaml as yaml_client
 
 
-# *** repository
-
-# * interface: container_repository
-class ContainerRepository(object):
-    '''
-    Container repository interface.
-    '''
-
-    # * field: role
-    read_role: str = None
-
-    # * field: write_role
-    write_role: str = None
-
-    # * method: get_attribute
-    def get_attribute(self, attribute_id: str, type: str) -> ContainerAttribute:
-        '''
-        Get the container attribute.
-
-        :param attribute_id: The attribute id.
-        :type attribute_id: str
-        :param type: The container attribute type.
-        :type type: str
-        :return: The container attribute.
-        :rtype: ContainerAttribute
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
-    # * method: list_all
-    def list_all(self) -> Tuple[List[ContainerAttribute], List[str]]:
-        '''
-        List all the container attributes and constants.
-
-        :return: The list of container attributes and constants.
-        :rtype: List[ContainerAttribute]
-        '''
-
-        # Not implemented.
-        raise NotImplementedError()
-
+# *** proxies
 
 # ** proxy: yaml_proxy
 class YamlProxy(ContainerRepository):

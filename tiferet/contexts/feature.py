@@ -2,36 +2,28 @@
 
 # ** app
 from .container import ContainerContext
+from .cache import CacheContext
 from .request import RequestContext
-from ..domain import *
+from ..models.feature import *
 from ..repos.feature import FeatureRepository
+from ..handlers.feature import FeatureHandler
+from ..commands import parse_parameter, raise_error
 
 
 # *** contexts
 
 # ** context: feature_context
-class FeatureContext(Model):
+class FeatureContext(object):
 
-    # * attribute: features
-    features = DictType(
-        ModelType(Feature),
-        required=True,
-        metadata=dict(
-            description='The features lookup.'
-        )
-    )
-
-    # * attribute: container
-    container = ModelType(
-        ContainerContext,
-        required=True,
-        metadata=dict(
-            description='The container context.'
-        ),
-    )
+    # * attribute: feature_handler
+    feature_handler: FeatureHandler
 
     # * method: init
-    def __init__(self, feature_repo: FeatureRepository, container_context: ContainerContext):
+    def __init__(self, 
+            feature_repo: FeatureRepository = None, 
+            container_context: ContainerContext = None, 
+            cache: CacheContext = None,
+            feature_handler: FeatureHandler = None):
         '''
         Initialize the feature context.
 
@@ -41,18 +33,25 @@ class FeatureContext(Model):
         :type container_context: ContainerContext
         '''
 
-        # Create the features.
-        features = {feature.id: feature for feature in feature_repo.list()}
+        # Create the feature handler.
+        if feature_handler:
+            self.feature_handler = feature_handler
 
-        # Set the features and container.
-        ## NOTE: There is a bug in the schematics library that does not allow us to initialize 
-        ## the feature context with the container context directly.
-        super().__init__(dict(
-            features=features,
-        ))
-        self.container = container_context
+        # If the feature handler is not provided, create it from the feature repository and container context.
+        elif not feature_repo or not container_context:
+            raise_error.execute(
+                'FEATURE_CONTEXT_LOADING_FAILED',
+                'A feature repository and container context are required to initialize the feature context.')
+        
+        # Create the feature handler with the provided repository and container context.
+        else:  
+            self.feature_handler = FeatureHandler(
+                feature_repo=feature_repo,
+                container_service=container_context,
+                cache=cache if cache else CacheContext()
+            )
 
-    # * method: parse_parameter
+    # * method: parse_parameter (obsolete)
     def parse_parameter(self, parameter: str) -> str:
         '''
         Parse a parameter.
@@ -64,7 +63,7 @@ class FeatureContext(Model):
         '''
 
         # Parse the parameter.
-        return self.container.parse_parameter(parameter)
+        return parse_parameter.execute(parameter)
         
     # * method: execute
     def execute(self, request: RequestContext, debug: bool = False, **kwargs):
@@ -79,45 +78,30 @@ class FeatureContext(Model):
         :type kwargs: dict
         '''
 
-        # Assert the feature exists.
-        assert request.feature_id in self.features, 'FEATURE_NOT_FOUND, {}'.format(request.feature_id)
+        # Convert the request context to a request object.
+        # This is necessary to prevent breaking changes for version 1. (warning)
+        request_obj: Request = ValueObject.new(
+            Request,
+            headers=request.headers,
+            data=request.data,
+        )
 
-        # Iterate over the feature commands.
-        for command in self.features[request.feature_id].commands:
+        # Get the feature and check if it exists.
+        # If it does not exist, raise an error.
+        feature = self.feature_handler.get_feature(request.feature_id)
 
-            # Get the feature command handler instance.
-            handler = self.container.get_dependency(command.attribute_id)
+        # Loop through the feature commands and handle them.
+        for command in feature.commands:
 
-            # Parse the command parameters
-            params = {
-                param: 
-                self.parse_parameter(
-                    command.params.get(param)
-                ) 
-                for param in command.params
-            }
+            # Execute the feature handler.
+            self.feature_handler.handle_command(
+                feature_command=command,
+                request=request_obj,
+                debug=debug,
+                **kwargs
+            )
 
-            # Execute the handler function.
-            # Handle assertion errors if pass on error is not set.
-            try:
-                result = handler.execute(
-                    **request.data,
-                    **params,
-                    debug=debug,
-                    **kwargs)
-                
-                # Return the result to the session context if return to data is set.
-                if command.return_to_data:
-                    request.data[command.data_key] = result
-                    continue
-
-                # Set the result in the request context.
-                if result:
-                    request.set_result(result)
-
-            # Handle assertion errors if pass on error is not set.
-            except AssertionError as e:
-                if not command.pass_on_error:
-                    raise e 
+        # Return the result from the request.
+        return request_obj.handle_response() if request_obj.result else None
 
             

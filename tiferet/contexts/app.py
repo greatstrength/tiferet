@@ -5,10 +5,10 @@ from typing import Dict, Any, Tuple
 
 # ** app
 from .request import RequestContext
+from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .container import create_injector, import_dependency
-from ..domain import Model, StringType, DictType, ModelType
 from ..domain import AppInterface
 from ..repos import AppRepository
 
@@ -16,36 +16,36 @@ from ..repos import AppRepository
 # *** contexts
 
 # ** context: app_context
-class AppContext(Model):
+class AppContext(object):
 
     # * attribute: app_repo_module_path
-    app_repo_module_path = StringType(
-        required=True,
-        default='tiferet.repos.app',
-        metadata=dict(
-            description='The application repository module path.'
-        ),
-    )
+    app_repo_module_path: str
 
     # * attribute: app_repo_class_name
-    app_repo_class_name = StringType(
-        required=True,
-        default='AppYamlProxy',
-        metadata=dict(
-            description='The application repository class name.'
-        ),
-    )
+    app_repo_class_name: str
 
     # * attribute: app_repo_parameters
-    app_repo_parameters = DictType(
-        StringType(),
-        default=dict(
-            app_config_file='app/configs/app.yml'
-        ),
-        metadata=dict(
-            description='The application repository parameters.'
-        ),
-    )
+    app_repo_parameters: Dict[str, str]
+
+    # * method: init
+    def __init__(self, 
+                 app_repo_module_path: str = 'tiferet.repos.app',
+                 app_repo_class_name: str = 'AppYamlProxy',
+                 app_repo_parameters: Dict[str, str] = {'app_config_file': 'app/configs/app.yml'}):
+        '''
+        Initialize the application context.
+        :param app_repo_module_path: The application repository module path.
+        :type app_repo_module_path: str
+        :param app_repo_class_name: The application repository class name.
+        :type app_repo_class_name: str
+        :param app_repo_parameters: The application repository parameters.
+        :type app_repo_parameters: Dict[str, str]
+        '''
+        
+        # Assign instance variables for repository configuration.
+        self.app_repo_module_path = app_repo_module_path
+        self.app_repo_class_name = app_repo_class_name
+        self.app_repo_parameters = app_repo_parameters
 
     # * method: run
     def run(self, interface_id: str, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
@@ -157,47 +157,25 @@ class AppContext(Model):
 
 
 # ** context: app_interface_context
-class AppInterfaceContext(Model): 
+class AppInterfaceContext(object): 
     '''
     The application interface context is a class that is used to create and run the application interface.
     '''
 
     # * attribute: interface_id
-    interface_id = StringType(
-        required=True,
-        metadata=dict(
-            description='The interface ID.'
-        ),
-    )
+    interface_id: str
 
     # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The application name.'
-        ),
-    )
+    name: str
 
-    # * field: features
-    features = ModelType(
-        FeatureContext,
-        required=True,
-        metadata=dict(
-            description='The feature context.'
-        ),
-    )
+    # * attribute: features
+    features: FeatureContext
 
-    # * field: errors
-    errors = ModelType(
-        ErrorContext,
-        required=True,
-        metadata=dict(
-            description='The error context.'
-        ),
-    )
+    # * attribute: cache
+    cache: CacheContext
 
     # * method: init
-    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext):
+    def __init__(self, interface_id: str, app_name: str, feature_context: FeatureContext, error_context: ErrorContext, cache: CacheContext = None):
         '''
         Initialize the application interface context.
 
@@ -209,15 +187,16 @@ class AppInterfaceContext(Model):
         :type feature_context: FeatureContext
         :param error_context: The error context.
         :type error_context: ErrorContext
+        :param cache: The cache context.
+        :type cache: CacheContext
         '''
 
-        # Initialize the model.
-        super().__init__(dict(
-            interface_id=interface_id,
-            name=app_name
-        ))
+        # Assign instance variables.
+        self.interface_id = interface_id
+        self.name = app_name
         self.features = feature_context
         self.errors = error_context
+        self.cache = cache if cache else CacheContext()
 
     # * method: parse_request
     def parse_request(self, request: Any, **kwargs) -> Tuple[RequestContext, dict]:
@@ -245,7 +224,7 @@ class AppInterfaceContext(Model):
         '''
 
         # Execute feature context and return session.
-        self.features.execute(request, **kwargs)
+        self.features.execute(request, cache=self.cache, **kwargs)
     
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:
