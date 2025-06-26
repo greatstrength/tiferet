@@ -2,7 +2,6 @@
 
 # ** app
 from ..commands import *
-from ..commands.dependencies import create_injector, Injector
 from ..contracts.container import *
 
 

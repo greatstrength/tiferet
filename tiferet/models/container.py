@@ -74,13 +74,6 @@ class ContainerAttribute(Entity):
         )
     )
 
-    # * attribute: type (obsolete)
-    type = StringType(
-        metadata=dict(
-            description='The type of container attribute.'
-        )
-    )
-
     # * attribute: dependencies
     dependencies = ListType(
         ModelType(FlaggedDependency),
