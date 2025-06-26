@@ -74,6 +74,15 @@ class ContainerAttribute(Entity):
         )
     )
 
+    # * attribute: parameters
+    parameters = DictType(
+        StringType,
+        default={},
+        metadata=dict(
+            description='The container attribute parameters.'
+        )
+    )
+
     # * attribute: dependencies
     dependencies = ListType(
         ModelType(FlaggedDependency),
@@ -84,21 +93,28 @@ class ContainerAttribute(Entity):
     )
         
     # * method: get_dependency
-    def get_dependency(self, flag: str) -> FlaggedDependency:
+    def get_dependency(self, *flags) -> FlaggedDependency:
         '''
         Gets a flagged container dependency by flag.
 
-        :param flag: The flag for the flagged container dependency.
-        :type flag: str
-        :return: The container dependency.
-        :rtype: ContainerDependency
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
+        :return: The flagged container dependency that matches the first provided flag.
+        :rtype: FlaggedDependency
         '''
 
-        # Return the dependency with the matching flag.
-        return next(
-            (dependency for dependency in self.dependencies if dependency.flag == flag),
-            None
-        )
+        # Return the first dependency that matches any of the provided flags.
+        # Input flags are assumed ordinal in priority, so the first match is returned.
+        for flag in flags:
+            match = next(
+                (dependency for dependency in self.dependencies if dependency.flag == flag),
+                None
+            )
+            if match:
+                return match
+        
+        # Return None if no dependency matches the flags.
+        return None
         
     # * method: set_dependency
     def set_dependency(self, dependency: FlaggedDependency):
