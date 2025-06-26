@@ -103,7 +103,6 @@ def test_container_attribute_yaml_data_from_data(container_attribute_yaml_data):
 
     # Check if the data is correctly initialized.
     assert container_attribute_yaml_data.id == 'test_repo'
-    assert container_attribute_yaml_data.type == 'data'
     assert len(container_attribute_yaml_data.dependencies) == 2
     
     # Check if dependencies are correctly initialized
@@ -122,7 +121,6 @@ def test_container_attribute_yaml_data_map(container_attribute_yaml_data):
     mapped_attr = container_attribute_yaml_data.map()
     assert isinstance(mapped_attr, ContainerAttribute)
     assert mapped_attr.id == 'test_repo'
-    assert mapped_attr.type == 'data'
     assert len(mapped_attr.dependencies) == 2
 
     # Check if all dependencies are of type ContainerDependency
@@ -156,7 +154,6 @@ def test_container_attribute_yaml_data_from_model(container_attribute_yaml_data)
     # Assert the data object is valid.
     assert isinstance(data_object, ContainerAttributeYamlData)
     assert data_object.id == 'test_repo'
-    assert data_object.type == 'data'
     assert len(data_object.dependencies) == 3
 
     # Check if all dependencies are of type ContainerDependencyYamlData

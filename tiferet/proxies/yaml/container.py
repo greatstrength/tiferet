@@ -30,14 +30,12 @@ class ContainerYamlProxy(ContainerRepository):
         self.config_file = container_config_file
 
     # * method: get_attribute
-    def get_attribute(self, attribute_id: str, type: str = None) -> ContainerAttribute:
+    def get_attribute(self, attribute_id: str) -> ContainerAttribute:
         '''
         Get the attribute from the yaml file.
 
         :param attribute_id: The attribute id.
         :type attribute_id: str
-        :param type: The attribute type. (obsolete, will be removed in v2)
-        :type type: str
         :return: The container attribute.
         :rtype: ContainerAttribute
         '''
@@ -52,7 +50,7 @@ class ContainerYamlProxy(ContainerRepository):
 
         # If the data is None or the type does not match, return None.
         # Remove the type logic later, as the type parameter will be removed in v2 (obsolete).
-        if data is None or (type is not None and data.type != type):
+        if data is None:
             return None
         
         # Return the attribute.

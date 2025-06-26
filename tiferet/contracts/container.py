@@ -72,14 +72,14 @@ class ContainerRepository(Repository):
 
     # * method: get_attribute
     @abstractmethod
-    def get_attribute(self, attribute_id: str, type: str) -> ContainerAttribute:
+    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
         '''
         Get the attribute from the container repository.
 
         :param attribute_id: The attribute id.
         :type attribute_id: str
-        :param type: The attribute type.
-        :type type: str
+        :param flag: An optional flag to filter the attribute.
+        :type flag: str
         :return: The container attribute.
         :rtype: ContainerAttribute
         '''
@@ -98,24 +98,33 @@ class ContainerRepository(Repository):
 
 
 # ** contract: container_service
-class ContainerService(object):
+class ContainerService(Service):
     '''
     An interface for accessing container dependencies.
     '''
 
-    # * method: get_dependency
+   # * method: list_all
     @abstractmethod
-    def get_dependency(self, app_id: str, attribute_id: str, **kwargs) -> Any:
+    def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
         '''
-        Get the attribute dependency from the container.
+        List all container attributes and constants.
 
-        :param app_id: The application instance id.
-        :type app_id: str
-        :param attribute_id: The attribute id.
-        :type attribute_id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The attribute dependency.
-        :rtype: Any
+        :return: A tuple containing a list of container attributes and a dictionary of constants.
+        :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
+        '''
+        raise NotImplementedError()
+    
+    # * method: get_dependency_type
+    @abstractmethod
+    def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:
+        '''
+        Get the type of a container attribute.
+
+        :param attribute: The container attribute.
+        :type attribute: ContainerAttribute
+        :param flags: Optional list of flags to filter the dependency type.
+        :type flags: List[str]
+        :return: The type of the container attribute.
+        :rtype: type
         '''
         raise NotImplementedError()
