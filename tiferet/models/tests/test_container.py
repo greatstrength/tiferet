@@ -12,6 +12,8 @@ from ..container import *
 # ** fixture: flagged_dependency
 @pytest.fixture
 def flagged_dependency() -> FlaggedDependency:
+    """Fixture to create a FlaggedDependency instance for testing."""
+
     return ValueObject.new(
         FlaggedDependency,
         module_path='tiferet.proxies.tests',
@@ -19,6 +21,25 @@ def flagged_dependency() -> FlaggedDependency:
         flag='test_alpha',
         parameters=dict(
             test_param='test_value',
+            param1='value1',
+        )
+    )
+
+
+# ** fixture: flagged_dependency_to_add
+@pytest.fixture
+def flagged_dependency_to_add() -> FlaggedDependency:
+    """Fixture to create a new flagged dependency for testing."""
+
+    # Create a new flagged dependency.
+    return ValueObject.new(
+        FlaggedDependency,
+        module_path='tiferet.proxies.tests',
+        class_name='BetaTestProxy',
+        flag='test_beta',
+        parameters=dict(
+            test_param='test_value',
+            param2='value2'
         )
     )
 
@@ -26,6 +47,9 @@ def flagged_dependency() -> FlaggedDependency:
 # ** fixture: container_attribute
 @pytest.fixture
 def container_attribute(flagged_dependency) -> ContainerAttribute:
+    """Fixture to create a ContainerAttribute instance for testing."""
+
+    # Create a container attribute with a flagged dependency.
     return Entity.new(
         ContainerAttribute,
         id='test_repo',
@@ -33,7 +57,11 @@ def container_attribute(flagged_dependency) -> ContainerAttribute:
         class_name='TestProxy',
         dependencies=[
             flagged_dependency
-        ]
+        ],
+        parameters=dict(
+            test_param='test_value',
+            param0='value0'
+        )
     )
 
 
@@ -87,6 +115,7 @@ def test_container_attribute_set_dependency_exists(
     assert dependency.flag == flagged_dependency.flag
     assert dependency.parameters == dict(
         test_param='test_value',
+        param1='value1',
         test_param_2='test_value_2'
     )
 
@@ -94,23 +123,39 @@ def test_container_attribute_set_dependency_exists(
 # ** test: test_container_attribute_set_dependency_new
 def test_container_attribute_set_dependency_new(
     container_attribute,
+    flagged_dependency_to_add
 ):
     """Test that the container attribute can set a new flagged dependency."""
 
-    # Create new beta flagged dependency.
-    beta_dependency = ValueObject.new(
-        FlaggedDependency,
-        module_path='tiferet.proxies.tests',
-        class_name='BetaTestProxy',
-        flag='test_beta',
-        parameters=dict(
-            test_param='test_value',
-        )
-    )
-
     # Set the beta dependency.
-    container_attribute.set_dependency(beta_dependency)
+    container_attribute.set_dependency(flagged_dependency_to_add)
 
     # Verify that the beta dependency is set.
     assert len(container_attribute.dependencies) == 2
-    assert container_attribute.get_dependency('test_beta') == beta_dependency
+    assert container_attribute.get_dependency('test_beta') == flagged_dependency_to_add
+
+
+# ** test: container_attribute_get_dependency_muliple_flags
+def test_container_attribute_get_dependency_multiple_flags(
+    container_attribute,
+    flagged_dependency,
+    flagged_dependency_to_add
+):
+    """Test that the container attribute can retrieve a flagged dependency with multiple flags."""
+
+    # Set the beta dependency.
+    container_attribute.set_dependency(flagged_dependency_to_add)
+
+    # Assert that the test_alpha dependency is returned.
+    dependency = container_attribute.get_dependency('test_alpha', 'test_beta')
+    assert dependency.module_path == flagged_dependency.module_path
+    assert dependency.class_name == flagged_dependency.class_name
+    assert dependency.flag == flagged_dependency.flag
+    assert dependency.parameters == flagged_dependency.parameters
+
+    # Assert that the test_beta dependency is returned when flipping the order.
+    dependency = container_attribute.get_dependency('test_beta', 'test_alpha')
+    assert dependency.module_path == flagged_dependency_to_add.module_path
+    assert dependency.class_name == flagged_dependency_to_add.class_name
+    assert dependency.flag == flagged_dependency_to_add.flag
+    assert dependency.parameters == flagged_dependency_to_add.parameters
