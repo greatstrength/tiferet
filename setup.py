@@ -22,6 +22,7 @@ config = {
         'tiferet.commands',
         'tiferet.configs',
         'tiferet.contexts',
+        'tiferet.contracts',
         'tiferet.data',
         'tiferet.domain',
         'tiferet.repos'
