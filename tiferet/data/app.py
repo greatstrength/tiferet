@@ -1,70 +1,35 @@
 # *** imports
 
-# ** core
-from typing import Dict
-
 # ** app
-from ..configs import *
-from ..domain import DataObject
-from ..domain.app import AppDependency, AppInterface
+from .settings import *
+from ..models.app import *
+from ..contracts.app import AppAttribute as AppAttributeContract
+from ..contracts.app import AppInterface as AppInterfaceContract
 
-
-# *** constants
-
-# ** constant: app_dependency_default
-FEATURE_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.feature',
-    class_name='FeatureContext',
-) 
-
-# * constant: app_dependency_default
-CONTAINER_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.container',
-    class_name='ContainerContext',
-)
-
-ERROR_CONTEXT_DEFAULT = dict(
-    module_path='tiferet.contexts.error',
-    class_name='ErrorContext',
-)
-
-FEATURE_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.feature',
-    class_name='YamlProxy',
-)
-
-CONTAINER_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.container',
-    class_name='YamlProxy',
-)
-
-ERROR_REPO_DEFAULT = dict(
-    module_path='tiferet.repos.error',
-    class_name='YamlProxy',
-)
-
-# ** constant: context_list_default
-CONTEXT_LIST_DEFAULT = {
-    'feature_context': FEATURE_CONTEXT_DEFAULT,
-    'container_context': CONTAINER_CONTEXT_DEFAULT,
-    'error_context': ERROR_CONTEXT_DEFAULT,
-    'feature_repo': FEATURE_REPO_DEFAULT,
-    'container_repo': CONTAINER_REPO_DEFAULT,
-    'error_repo': ERROR_REPO_DEFAULT,
-}
 
 # *** data
 
-# ** data: app_dependency_yaml_data
-class AppDependencyYamlData(AppDependency, DataObject):
+# ** data: app_attribute_yaml_data
+class AppAttributeYamlData(AppAttribute, DataObject):
     '''
-    A YAML data representation of an app dependency object.
+    A YAML data representation of an app dependency attribute object.
     '''
 
     # * attribute: attribute_id
     attribute_id = StringType(
         metadata=dict(
-            description='The attribute id for the application dependency.'
+            description='The attribute id for the application dependency that is not required for assembly.'
+        ),
+    )
+
+    # * attribute: parameters
+    parameters = DictType(
+        StringType,
+        default={},
+        serialized_name='params',
+        deserialize_from=['params', 'parameters'],
+        metadata=dict(
+            description='The parameters for the application dependency that are not required for assembly.'
         ),
     )
 
@@ -74,67 +39,37 @@ class AppDependencyYamlData(AppDependency, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('parameters', 'attribute_id'),
             'to_data.yaml': DataObject.deny('attribute_id')
         }
 
-    # * method: from_data
-    @staticmethod
-    def from_data(**kwargs) -> 'AppDependencyYamlData':
-        '''
-        Initializes a new YAML representation of an AppDependency object.
-        
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppDependencyData object.
-        :rtype: AppDependencyData
-        '''
-
-        # Create a new AppDependencyData object.
-        return super(AppDependencyYamlData, AppDependencyYamlData).from_data(
-            AppDependencyYamlData,
-            **kwargs
-        )
-
-    # * method: new
-    @staticmethod
-    def from_data(**kwargs) -> 'AppDependencyYamlData':
-        '''
-        Initializes a new YAML representation of an AppDependency object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppDependencyData object.
-        :rtype: AppDependencyData
-        '''
-
-        # Create a new AppDependencyData object.
-        return super(AppDependencyYamlData, AppDependencyYamlData).from_data(
-            AppDependencyYamlData,
-            **kwargs
-        )
-
     # * method: map
-    def map(self, **kwargs) -> AppDependency:
+    def map(self, attribute_id: str, **kwargs) -> AppAttributeContract:
         '''
         Maps the app dependency data to an app dependency object.
 
-        :param role: The role for the mapping.
-        :type role: str
+        :param attribute_id: The id for the app dependency attribute.
+        :type attribute_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new app dependency object.
-        :rtype: AppDependency
+        :return: A new app attribute dependency contract.
+        :rtype: AppAttributeContract
         '''
 
-        # Map the app dependency data.
-        return super().map(AppDependency, **kwargs)
+        # Map to the app dependency object.
+        return super().map(
+            AppAttribute,
+            attribute_id=attribute_id,
+            parameters=self.parameters,
+            **self.to_primitive('to_model'),
+            **kwargs
+        )
 
 
 # ** data: app_interface_yaml_data
 class AppInterfaceYamlData(AppInterface, DataObject):
     '''
-    A data representation of an app interface object.
+    A data representation of an app interface settings object.
     '''
 
     class Options():
@@ -143,143 +78,71 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.deny('app_context', 'container_context', 'feature_context', 'error_context', 'feature_repo', 'container_repo', 'error_repo'),
-            'to_data': DataObject.deny('id')
+            'to_model': DataObject.deny('attributes', 'constants', 'module_path', 'class_name'),
+            'to_data.yaml': DataObject.deny('id')
         }
 
-    # attribute: app_context
-    app_context = ModelType(
-        AppDependencyYamlData,
-        required=True,
+    # * attribute: module_path
+    module_path = StringType(
+        default=DEFAULT_MODULE_PATH,
+        serialized_name='module',
+        deserialize_from=['module_path', 'module'],
         metadata=dict(
-            description='The application context dependency.'
+            description='The app context module path for the app settings.'
         ),
     )
 
-    # * attribute: feature_context
-    feature_context = ModelType(
-        AppDependencyYamlData,
-        required=True,
+    # * attribute: class_name
+    class_name = StringType(
+        default=DEFAULT_CLASS_NAME,
+        serialized_name='class',
+        deserialize_from=['class_name', 'class'],
         metadata=dict(
-            description='The feature context dependency.'
+            description='The class name for the app context.'
         ),
     )
 
-    # * attribute: container_context
-    container_context = ModelType(
-        AppDependencyYamlData,
-        required=True,
+    # * attribute: attributes
+    attributes = DictType(
+        ModelType(AppAttributeYamlData),
+        default={},
+        serialized_name='attrs',
+        deserialize_from=['attrs', 'attributes'],
         metadata=dict(
-            description='The container context dependency.'
+            description='The app instance attributes.'
         ),
     )
 
-    # * attribute: error_context
-    error_context = ModelType(
-        AppDependencyYamlData,
-        required=True,
+    # * attribute: constants
+    constants = DictType(
+        StringType,
+        default={},
+        serialized_name='const',
+        deserialize_from=['constants', 'const'],
         metadata=dict(
-            description='The error context dependency.'
+            description='The constants for the app settings.'
         ),
     )
-
-    # * attribute: feature_repo
-    feature_repo = ModelType(
-        AppDependencyYamlData,
-        required=True,
-        metadata=dict(
-            description='The feature repository dependency.'
-        ),
-    )
-
-    # * attribute: container_repo
-    container_repo = ModelType(
-        AppDependencyYamlData,
-        required=True,
-        metadata=dict(
-            description='The container repository dependency.'
-        ),
-    )
-
-    # * attribute: error_repo
-    error_repo = ModelType(
-        AppDependencyYamlData,
-        required=True,
-        metadata=dict(
-            description='The error repository dependency.'
-        ),
-    )
-
-    # * method: new
-    @staticmethod
-    def from_data(app_context: Dict[str, str],
-        **kwargs) -> 'AppInterfaceYamlData':
-        '''
-        Initializes a new YAML representation of an AppInterface object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new AppInterfaceData object.
-        :rtype: AppInterfaceData
-        '''
-
-        # Add the app context to the dependencies.
-        dependencies = dict(
-            app_context=AppDependencyYamlData.from_data(
-                attribute_id='app_context',
-                **app_context
-            )
-        )
-
-        # Going through the default dependencies...
-        for key, value in CONTEXT_LIST_DEFAULT.items():
-            
-            # If the key is in the kwargs, add it and continue.
-            if key in kwargs:
-                dependencies[key] = AppDependencyYamlData.from_data(
-                    attribute_id=key,
-                    **kwargs.pop(key)) # Pop the key to avoid duplication.
-                continue
-            
-            # Otherwise, add the default value.
-            dependencies[key] = AppDependencyYamlData.from_data(
-                attribute_id=key,
-                **value)
-
-        # Create a new AppInterfaceData object.
-        return super(AppInterfaceYamlData, AppInterfaceYamlData).from_data(
-            AppInterfaceYamlData,
-            **dependencies,
-            **kwargs
-        )
 
     # * method: map
-    def map(self, **kwargs) -> AppInterface:
+    def map(self, **kwargs) -> AppInterfaceContract:
         '''
-        Maps the app interface data to an app interface object.
+        Maps the app interface data to an app interface contract.
 
         :param role: The role for the mapping.
         :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new app interface object.
-        :rtype: AppInterface
+        :return: A new app interface contract.
+        :rtype: AppInterfaceContract
         '''
-
-        # Format and map the dependencies.
-        dependencies = [
-            self.app_context.map(),
-            self.container_context.map(),
-            self.feature_context.map(),
-            self.error_context.map(),
-            self.feature_repo.map(),
-            self.container_repo.map(),
-            self.error_repo.map(),
-        ]
 
         # Map the app interface data.
         return super().map(AppInterface,
-            dependencies=dependencies,
+            module_path=self.module_path,
+            class_name=self.class_name,
+            attributes=[attr.map(attribute_id=attr_id) for attr_id, attr in self.attributes.items()],
+            constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs
         )

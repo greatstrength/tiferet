@@ -4,8 +4,9 @@
 from schematics.types.serializable import serializable
 
 # 
-from ..domain import *
-from ..domain.feature import Feature, FeatureCommand
+from ..data import DataObject
+from ..contracts.feature import Feature as FeatureContract, FeatureCommand as FeatureCommandContract
+from ..models.feature import *
 
 
 class FeatureCommandData(FeatureCommand, DataObject):
@@ -23,11 +24,22 @@ class FeatureCommandData(FeatureCommand, DataObject):
 
         # Define the roles for the feature handler data.
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('parameters'),
             'to_data': DataObject.allow()
         }
 
-    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommand:
+    # * attributes
+    parameters = DictType(
+        StringType(),
+        default={},
+        serialized_name='params',
+        deserialize_from=['params', 'parameters'],
+        metadata=dict(
+            description='The parameters for the feature.'
+        )
+    )
+
+    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommandContract:
         '''
         Maps the feature handler data to a feature handler object.
         
@@ -38,7 +50,10 @@ class FeatureCommandData(FeatureCommand, DataObject):
         :return: A new feature handler object.
         :rtype: f.FeatureCommand
         '''
-        return super().map(FeatureCommand, role, **kwargs)
+        return super().map(FeatureCommand, 
+            role, 
+            parameters=self.parameters,
+            **kwargs)
 
 
 class FeatureData(Feature, DataObject):
@@ -59,8 +74,9 @@ class FeatureData(Feature, DataObject):
             'to_model': DataObject.deny('feature_key'),
             'to_data': DataObject.deny('feature_key', 'group_id', 'id')
         }
-
-    commands = t.ListType(t.ModelType(FeatureCommandData),
+    
+    # * attributes
+    commands = ListType(ModelType(FeatureCommandData),
                           deserialize_from=['handlers', 'functions', 'commands'],)
     
     @serializable
@@ -72,7 +88,7 @@ class FeatureData(Feature, DataObject):
         # Return the feature key.
         return self.id.split('.')[-1]
 
-    def map(self, role: str = 'to_model', **kwargs) -> Feature:
+    def map(self, role: str = 'to_model', **kwargs) -> FeatureContract:
         '''
         Maps the feature data to a feature object.
 
@@ -87,6 +103,9 @@ class FeatureData(Feature, DataObject):
         # Map the feature data to a feature object.
         return super().map(Feature, role, 
             feature_key=self.feature_key,
+            commands=[
+                command.map(role, **kwargs) for command in self.commands
+            ],
             **kwargs
         )
 
