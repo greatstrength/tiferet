@@ -3,7 +3,9 @@
 # ** core
 import json
 
+
 # *** classes
+
 
 # ** class: tiferet_error
 class TiferetError(Exception):
@@ -25,12 +27,11 @@ class TiferetError(Exception):
 
         # Set the error code and arguments.
         self.error_code = error_code
-        self.args = args
 
+        # Initialize base exception with error data.
         super().__init__(
             json.dumps(dict(
                 error_code=error_code,
                 message=message,
-                args=args
-            ))
+            )), *args
         )
