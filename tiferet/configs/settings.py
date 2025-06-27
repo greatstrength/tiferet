@@ -6,6 +6,7 @@ import json
 
 # *** classes
 
+
 # ** class: tiferet_error
 class TiferetError(Exception):
     '''
