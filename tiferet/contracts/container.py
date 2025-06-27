@@ -44,24 +44,24 @@ class ContainerAttribute(ModelContract):
     # * attribute: class_name
     class_name: str
 
-    # * attribute: type
-    type: str
+    # * attribute: parameters
+    parameters: Dict[str, Any]
 
     # * attribute: dependencies
     dependencies: List[FlaggedDependency]
 
     # * method: get_dependency
     @abstractmethod
-    def get_dependency(self, flag: str) -> FlaggedDependency:
+    def get_dependency(self, *flags) -> FlaggedDependency:
         '''
         Gets a container dependency by flag.
 
-        :param flag: The flag for the container dependency.
-        :type flag: str
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
         :return: The container dependency.
         :rtype: FlaggedDependency
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('get_dependency method must be implemented in the ContainerAttribute class.')
 
 
 # ** contract: container_repository
@@ -83,7 +83,7 @@ class ContainerRepository(Repository):
         :return: The container attribute.
         :rtype: ContainerAttribute
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('get_attribute method must be implemented in the ContainerRepository class.')
 
     # * method: list_all
     @abstractmethod
@@ -94,7 +94,7 @@ class ContainerRepository(Repository):
         :return: The list of container attributes and constants.
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('list_all method must be implemented in the ContainerRepository class.')
 
 
 # ** contract: container_service
@@ -112,7 +112,24 @@ class ContainerService(Service):
         :return: A tuple containing a list of container attributes and a dictionary of constants.
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
+    
+     # * method: load_constants
+    @abstractmethod
+    def load_constants(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
+        '''
+        Load constants from the container attributes.
+
+        :param attributes: The list of container attributes.
+        :type attributes: List[ContainerAttribute]
+        :param constants: The dictionary of constants.
+        :type constants: Dict[str, str]
+        :param flags: Optional list of flags to filter the constants.
+        :type flags: List[str]
+        :return: A dictionary of constants.
+        :rtype: Dict[str, str]
+        '''
+        raise NotImplementedError('load_constants method must be implemented in the ContainerService class.')
     
     # * method: get_dependency_type
     @abstractmethod
@@ -127,4 +144,4 @@ class ContainerService(Service):
         :return: The type of the container attribute.
         :rtype: type
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('get_dependency_type method must be implemented in the ContainerService class.')
