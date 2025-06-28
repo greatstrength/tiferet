@@ -46,6 +46,41 @@ class ContainerHandler(ContainerService):
         # Return the attributes and constants.
         return attributes, constants
     
+    # * method: load_constants
+    def load_constants(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
+        '''
+        Load constants from the container attributes.
+
+        :param attributes: The list of container attributes.
+        :type attributes: List[ContainerAttribute]
+        :param constants: The dictionary of constants.
+        :type constants: Dict[str, str]
+        :return: A dictionary of constants.
+        :rtype: Dict[str, str]
+        '''
+
+        # Raise an error if there are no attributes provided.
+        if not attributes:
+            raise_error.execute(
+                'CONTAINER_ATTRIBUTES_NOT_FOUND',
+                'No container attributes provided to load the container.',
+            )
+
+        # If constants are provided, clean the parameters using the parse_parameter command.
+        constants = {k: parse_parameter.execute(v) for k, v in constants.items()}
+
+        # Iterate through each attribute to clean parameter dictionaries.
+        # For each attribute, parse its parameters and add them to the constants dictionary.
+        # For each dependency, parse its parameters and add them to the constants dictionary.
+        for attr in attributes:
+            constants.update({k: parse_parameter.execute(v) for k, v in attr.parameters.items()})
+            dependency = attr.get_dependency(flags)
+            if dependency:
+                constants.update({k: parse_parameter.execute(v) for k, v in dependency.parameters.items()})
+
+        # Return the updated constants dictionary.
+        return constants
+    
     # * method: get_dependency_type
     def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:
         '''
