@@ -62,16 +62,28 @@ class ContainerYamlProxy(ContainerRepository):
         List all the container attributes and constants.
 
         :return: The list of container attributes and constants.
-        :rtype: List[ContainerAttribute]
+        :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
+
+        # Define create data function to parse the YAML file.
+        def create_data(data):
+            
+            # Create a list of ContainerAttributeYamlData objects from the YAML data.
+            attrs = [
+                ContainerAttributeYamlData.from_data(id=id, **attr_data)
+                for id, attr_data in data.get('attrs', {}).items()
+            ] if data.get('attrs') else []
+
+            # Get the constants from the YAML data.
+            consts = data.get('const', {}) if data.get('const') else {}
+
+            # Return the parsed attributes and constants.
+            return attrs, consts
 
         # Load the attribute data from the yaml configuration file.
         attr_data, consts = yaml_client.load(
             self.config_file,
-            create_data=lambda data: (
-                [ContainerAttributeYamlData.from_data(id=id, **attr_data) for id, attr_data in data.get('attrs', {}).items()],
-                data.get('const', {}),
-            ),
+            create_data=create_data
         )
 
         # Return the list of container attributes.
