@@ -121,18 +121,29 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
+            'to_model': DataObject.deny('params'),
             'to_data': DataObject.deny('id')
         }
 
     # * attribute: dependencies
     dependencies = DictType(
         ModelType(FlaggedDependencyYamlData), 
-        default=[], 
+        default={}, 
         serialized_name='deps', 
         deserialize_from=['deps', 'dependencies'],
         metadata=dict(
             description='The dependencies are now a key-value pair keyed by the flags.'
+        ),
+    )
+
+    # * attribute: parameters
+    parameters = DictType(
+        StringType, 
+        default={}, 
+        serialized_name='params', 
+        deserialize_from=['params'],
+        metadata=dict(
+            description='The default parameters for the container attribute.'
         ),
     )
 
@@ -150,6 +161,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         # Map to the container attribute object with the dependencies.
         return super().map(ContainerAttribute, 
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
+            parameters=self.parameters,
             **kwargs)
 
     # * method: new
