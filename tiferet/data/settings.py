@@ -14,7 +14,7 @@ from ..models.settings import *
 DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
 
 # ** constant: default_class_name
-DEFAULT_CLASS_NAME = 'AppContext'
+DEFAULT_CLASS_NAME = 'AppInterfaceContext'
 
 
 # *** classes

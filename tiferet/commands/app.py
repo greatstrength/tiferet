@@ -16,7 +16,7 @@ class ImportAppRepository(Command):
 
     # * method: execute
     def execute(self,
-                app_repo_module_path: str = 'tiferet.proxies.app.yaml',
+                app_repo_module_path: str = 'tiferet.proxies.yaml.app',
                 app_repo_class_name: str = 'AppYamlProxy',
                 app_repo_params: Dict[str, Any] = dict(
                     app_config_file='app/configs/app.yml'
@@ -41,7 +41,7 @@ class ImportAppRepository(Command):
 
         # Import the app repository.
         try:
-            return import_dependency.execute(
+            result = import_dependency.execute(
                 app_repo_module_path,
                 app_repo_class_name
             )(**app_repo_params)
@@ -53,6 +53,9 @@ class ImportAppRepository(Command):
                 f'Failed to import app repository: {e}.',
                 str(e)
             )
+
+        # Return the imported app repository.
+        return result
 
 
 # ** command: get_app_interface
