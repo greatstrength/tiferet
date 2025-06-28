@@ -3,11 +3,9 @@
 # ** app
 from .container import ContainerContext
 from .cache import CacheContext
-from .request import RequestContext
-from ..models.feature import *
-from ..repos.feature import FeatureRepository
-from ..handlers.feature import FeatureHandler
-from ..commands import parse_parameter, raise_error
+from ..handlers.feature import FeatureService
+from ..models.feature import Request
+from ..commands import *
 
 
 # *** contexts
@@ -15,93 +13,148 @@ from ..commands import parse_parameter, raise_error
 # ** context: feature_context
 class FeatureContext(object):
 
-    # * attribute: feature_handler
-    feature_handler: FeatureHandler
+    # * attribute: container
+    container: ContainerContext
+
+    # * attribute: cache
+    cache: CacheContext
+
+    # * attribute: feature_service
+    feature_service: FeatureService
 
     # * method: init
     def __init__(self, 
-            feature_repo: FeatureRepository = None, 
-            container_context: ContainerContext = None, 
-            cache: CacheContext = None,
-            feature_handler: FeatureHandler = None):
+            feature_service: FeatureService,
+            container: ContainerContext,
+            cache: CacheContext = None):
         '''
         Initialize the feature context.
 
-        :param feature_repo: The feature repository.
-        :type feature_repo: FeatureRepository
-        :param container_context: The container context.
-        :type container_context: ContainerContext
+        :param feature_service: The feature service to use for executing feature requests.
+        :type feature_service: FeatureService
+        :param container: The container context for dependency injection.
+        :type container: ContainerContext
+        :param cache: The cache context to use for caching feature data.
+        :type cache: CacheContext
         '''
 
-        # Create the feature handler.
-        if feature_handler:
-            self.feature_handler = feature_handler
+        # Assign the attributes.
+        self.feature_service = feature_service
+        self.container = container
+        self.cache = cache if cache else CacheContext()
 
-        # If the feature handler is not provided, create it from the feature repository and container context.
-        elif not feature_repo or not container_context:
+    # * method: load_feature_command
+    def load_feature_command(self, attribute_id: str) -> Command:
+        '''
+        Load a feature command by its attribute ID from the container.
+
+        :param attribute_id: The attribute ID of the command to load.
+        :type attribute_id: str
+        :return: The command object.
+        :rtype: Command
+        '''
+
+        # Attempt to retrieve the command from the container.
+        try:
+            return self.container.get_dependency(attribute_id)
+        
+        # If the command is not found, raise an error.
+        except Exception as e:
             raise_error.execute(
-                'FEATURE_CONTEXT_LOADING_FAILED',
-                'A feature repository and container context are required to initialize the feature context.')
-        
-        # Create the feature handler with the provided repository and container context.
-        else:  
-            self.feature_handler = FeatureHandler(
-                feature_repo=feature_repo,
-                container_service=container_context,
-                cache=cache if cache else CacheContext()
-            )
-
-    # * method: parse_parameter (obsolete)
-    def parse_parameter(self, parameter: str) -> str:
+                'FEATURE_COMMAND_LOADING_FAILED',
+                f'Failed to load feature command attribute: {attribute_id}. Ensure the container attributes is configured with the appropriate default settings/flags.',
+                attribute_id,
+                str(e)
+        )
+            
+    # * method: handle_command
+    def handle_command(self,
+        command: Command, 
+        request: Request,
+        data_key: str = None,
+        pass_on_error: bool = False,
+        **kwargs
+    ):
         '''
-        Parse a parameter.
-
-        :param parameter: The parameter to parse.
-        :type parameter: str
-        :return: The parsed parameter.
-        :rtype: str
-        '''
-
-        # Parse the parameter.
-        return parse_parameter.execute(parameter)
+        Handle the execution of a command with the provided request and command-handling options.
         
-    # * method: execute
-    def execute(self, request: RequestContext, debug: bool = False, **kwargs):
-        '''
-        Execute the feature request.
-        
+        :param command: The command to execute.
+        :type command: Command
         :param request: The request context object.
-        :type request: r.RequestContext
+        :type request: Request
         :param debug: Debug flag.
         :type debug: bool
+        :param data_key: Optional key to store the result in the request data.
+        :type data_key: str
+        :param pass_on_error: If True, pass on the error instead of raising it.
+        :type pass_on_error: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Convert the request context to a request object.
-        # This is necessary to prevent breaking changes for version 1. (warning)
-        request_obj: Request = ValueObject.new(
-            Request,
-            headers=request.headers,
-            data=request.data,
-        )
-
-        # Get the feature and check if it exists.
-        # If it does not exist, raise an error.
-        feature = self.feature_handler.get_feature(request.feature_id)
-
-        # Loop through the feature commands and handle them.
-        for command in feature.commands:
-
-            # Execute the feature handler.
-            self.feature_handler.handle_command(
-                feature_command=command,
-                request=request_obj,
-                debug=debug,
+        # Execute the command with the request data and parameters, and optional contexts.
+        try:
+            result = command.execute(
+                **request.data,
                 **kwargs
             )
+        except Exception as e:
+            if not pass_on_error:
+                raise e
+        finally:
+            print(f'Command {command.attribute_id} execution failed: {e}' if 'e' in locals() else '')
 
-        # Return the result from the request.
-        return request_obj.handle_response() if request_obj.result else None
+        # If a data key is provided, store the result in the request data.
+        if data_key:
+            request.data[data_key] = result
+
+        # Otherwise, set the result.
+        else:
+            request.set_result(result)
+
+        
+    # * method: execute_feature
+    def execute_feature(self, feature_id: str, request: Request, **kwargs):
+        '''
+        Execute a feature by its ID with the provided request.
+        
+        :param request: The request object.
+        :type request: Request
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Try to get the feature by its id from the cache.
+        # If it does not exist, retrieve it from the feature handler and cache it.
+        feature = self.cache.get(feature_id)
+        if not feature:
+            feature = self.feature_service.get_feature(feature_id)
+            self.cache.set(feature_id, feature)
+
+        # Load the command dependencies from the container for the feature.
+        commands = [
+            self.load_feature_command(cmd.attribute_id)
+            for cmd in feature.commands
+        ]
+              
+        # Execute the feature with the request and commands.
+        for index, cmd in enumerate(commands):
+
+            # Parse the command parameters
+            params = {
+                param: self.feature_service.parse_parameter(value, request)
+                for param, value in feature.commands[index].parameters.items()
+            }
+
+            # Execute the command with the request data and parameters.
+            self.handle_command(
+                cmd,
+                request,
+                **params,
+                features=self.feature_service,
+                container=self.container,
+                cache=self.cache,
+                **kwargs
+            )
 
             
