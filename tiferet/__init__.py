@@ -1,7 +1,6 @@
 # *** imports
 
 # ** app
-from .contracts import *
+from .contexts.app import AppContext as App
 from .commands import *
-from .contexts import *
-from .domain import *
+from .contracts import *
