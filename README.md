@@ -156,8 +156,8 @@ Next, we define command classes to perform arithmetic operations and input valid
 Create app/commands/calc.py with the following content:
 
 ```python
-from ..commands import Command
-from ..models import ModelObject
+from tiferet.commands import *
+
 from ..models.calc import Number
 
 class AddNumber(Command):
@@ -253,7 +253,7 @@ These commands perform arithmetic operations on Number objects, using format() t
 Create app/commands/valid.py with the following content:
 
 ```python
-from ..commands import Command
+from tiferet.commands import *
 from ..models.calc import Number
 
 class ValidateNumber(Command):
