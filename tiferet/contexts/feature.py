@@ -101,8 +101,6 @@ class FeatureContext(object):
         except Exception as e:
             if not pass_on_error:
                 raise e
-        finally:
-            print(f'Command {command.attribute_id} execution failed: {e}' if 'e' in locals() else '')
 
         # If a data key is provided, store the result in the request data.
         if data_key:
@@ -140,21 +138,25 @@ class FeatureContext(object):
         # Execute the feature with the request and commands.
         for index, cmd in enumerate(commands):
 
+            # Get the feature command from the feature.
+            feature_command = feature.commands[index]
+
             # Parse the command parameters
             params = {
                 param: self.feature_service.parse_parameter(value, request)
-                for param, value in feature.commands[index].parameters.items()
+                for param, value in feature_command.parameters.items()
             }
 
             # Execute the command with the request data and parameters.
             self.handle_command(
                 cmd,
                 request,
+                data_key=feature_command.data_key,
+                pass_on_error=feature_command.pass_on_error,
                 **params,
                 features=self.feature_service,
                 container=self.container,
                 cache=self.cache,
                 **kwargs
             )
-
             
