@@ -164,7 +164,7 @@ class AddNumber(Command):
     '''
     A command to perform addition of two numbers.
     '''
-    def execute(self, a: Number, b: Number) -> Number:
+    def execute(self, a: Number, b: Number, **kwargs) -> Number:
         '''
         Execute the addition command.
 
@@ -172,16 +172,23 @@ class AddNumber(Command):
         :type a: Number
         :param b: A Number object representing the second number.
         :type b: Number
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A Number object representing the sum of a and b.
         :rtype: Number
         '''
-        return ModelObject.new(Number, value=str(a.format() + b.format()))
+
+        # Add formatted values of a and b.
+        result = a.format() + b.format()
+
+        # Return a new Number object with the result.
+        return result
 
 class SubtractNumber(Command):
     '''
     A command to perform subtraction of two numbers.
     '''
-    def execute(self, a: Number, b: Number) -> Number:
+    def execute(self, a: Number, b: Number, **kwargs) -> Number:
         '''
         Execute the subtraction command.
 
@@ -189,16 +196,23 @@ class SubtractNumber(Command):
         :type a: Number
         :param b: A Number object representing the second number.
         :type b: Number
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A Number object representing the difference of a and b.
         :rtype: Number
         '''
-        return ModelObject.new(Number, value=str(a.format() - b.format()))
+        
+        # Subtract formatted values of b from a.
+        result = a.format() - b.format()
+
+        # Return a new Number object with the result.
+        return result
 
 class MultiplyNumber(Command):
     '''
     A command to perform multiplication of two numbers.
     '''
-    def execute(self, a: Number, b: Number) -> Number:
+    def execute(self, a: Number, b: Number, **kwargs) -> Number:
         '''
         Execute the multiplication command.
 
@@ -206,16 +220,23 @@ class MultiplyNumber(Command):
         :type a: Number
         :param b: A Number object representing the second number.
         :type b: Number
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A Number object representing the product of a and b.
         :rtype: Number
         '''
-        return ModelObject.new(Number, value=str(a.format() * b.format()))
+        
+        # Multiply the formatted values of a and b.
+        result = a.format() * b.format()
+
+        # Return a new Number object with the result.
+        return result
 
 class DivideNumber(Command):
     '''
     A command to perform division of two numbers.
     '''
-    def execute(self, a: Number, b: Number) -> Number:
+    def execute(self, a: Number, b: Number, **kwargs) -> Number:
         '''
         Execute the division command.
 
@@ -223,17 +244,26 @@ class DivideNumber(Command):
         :type a: Number
         :param b: A Number object representing the second number, must be non-zero.
         :type b: Number
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A Number object representing the quotient of a and b.
         :rtype: Number
         '''
+        # Check if b is zero to avoid division by zero.
         self.verify(b.format() != 0, 'DIVISION_BY_ZERO')
-        return ModelObject.new(Number, value=str(a.format() / b.format()))
+
+        # Divide the formatted values of a by b.
+        result = a.format() / b.format()
+
+        # Return a new Number object with the result.
+        return result
+
 
 class ExponentiateNumber(Command):
     '''
     A command to perform exponentiation of two numbers.
     '''
-    def execute(self, a: Number, b: Number) -> Number:
+    def execute(self, a: Number, b: Number, **kwargs) -> Number:
         '''
         Execute the exponentiation command.
 
@@ -241,10 +271,17 @@ class ExponentiateNumber(Command):
         :type a: Number
         :param b: A Number object representing the exponent.
         :type b: Number
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A Number object representing a raised to the power of b.
         :rtype: Number
         '''
-        return ModelObject.new(Number, value=str(a.format() ** b.format()))
+        
+        # Exponentiate the formatted value of a by b.
+        result = a.format() ** b.format()
+
+        # Return a new Number object with the result.
+        return result
 ```
 
 These commands perform arithmetic operations on Number objects, using format() to extract numerical values and ModelObject.new to return results as new Number objects. The DivideNumber command includes a verify check to prevent division by zero, referencing a configured error.
@@ -254,22 +291,25 @@ Create app/commands/valid.py with the following content:
 
 ```python
 from tiferet.commands import *
+
 from ..models.calc import Number
 
 class ValidateNumber(Command):
     '''
     A command to validate that a value can be a Number object.
     '''
-    def execute(self, value: str) -> None:
+    def execute(self, value: str, **kwargs) -> None:
         '''
         Validate that the input value can be used to create a Number object.
 
         :param value: Any string value to validate.
         :type value: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :raises TiferetError: If the value cannot be a Number.
         '''
         try:
-            ModelObject.new(Number, value=str(value))
+            return ModelObject.new(Number, value=str(value))
         except Exception as e:
             self.verify(False, 'INVALID_INPUT', value)
 ```
