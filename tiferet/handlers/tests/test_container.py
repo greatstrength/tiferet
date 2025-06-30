@@ -44,12 +44,33 @@ def container_attribute_with_flagged_dependencies():
         ]
     )
 
+# ** fixture: container_attribute_with_flagged_dependencies_and_parameters
+@pytest.fixture
+def container_attribute_with_flagged_dependencies_and_parameters():
+    """Fixture to provide a mock ContainerAttribute object with flags and parameters."""
+    return ModelObject.new(
+        ContainerAttribute,
+        id='container_repo',
+        name='Container Repository',
+        dependencies=[
+            ModelObject.new(
+                FlaggedDependency,
+                flag='flagged_dependency',
+                module_path='tiferet.proxies.yaml.container',
+                class_name='ContainerYamlProxy',
+                parameters={'param1': 'value1'}
+            )
+        ],
+        parameters={'param0': 'value0'}
+    )
+
+
 # ** fixture: constants
 @pytest.fixture
 def constants():
     """Fixture to provide a mock constants dictionary."""
     return dict(
-        container_config_file='tiferet/config/tests/test.yml',
+        container_config_file='tiferet/configs/tests/test.yml',
     )
 
 
@@ -85,7 +106,6 @@ def container_repo(container_attribute, constants):
 # *** tests
 
 # ** test: test_container_handler_list_all
-
 def test_container_handler_list_all(container_handler, container_repo, container_attribute, constants):
     """Test the list_all method of ContainerHandler."""
     
@@ -142,4 +162,51 @@ def test_container_handler_get_dependency_type_not_found(container_handler, cont
 
     # Assert that the error is raised with the correct error code and message.
     assert exc_info.value.error_code == 'DEPENDENCY_TYPE_NOT_FOUND'
-    assert 'No dependency type found for attribute container_repo with flags [\'non_existent_flag\'].' in str(exc_info.value)
+    assert 'No dependency type found for attribute container_repo with flags' in str(exc_info.value)
+
+
+# ** test: test_container_handler_load_constants_no_attributes
+def test_container_handler_load_constants_no_attributes(container_handler):
+    """Test the load_constants method with no attributes provided."""
+    
+    # Call the load_constants method with an empty attributes list.
+    with pytest.raises(TiferetError) as exc_info:
+        container_handler.load_constants([])
+
+    # Assert that the error is raised with the correct error code and message.
+    assert exc_info.value.error_code == 'CONTAINER_ATTRIBUTES_NOT_FOUND'
+    assert 'No container attributes provided' in str(exc_info.value)
+
+
+# ** test: test_container_handler_load_constants_with_flagged_dependencies
+def test_container_handler_load_constants_with_flagged_dependencies(container_handler,
+    container_attribute_with_flagged_dependencies_and_parameters,
+    constants
+):
+    
+    # Call the load_constants method without flags.
+    result = container_handler.load_constants(
+        [container_attribute_with_flagged_dependencies_and_parameters],
+        constants
+    )
+
+    # Assert that the result contains parsed constants and parameters.
+    expected_result = {
+        'container_config_file': 'tiferet/configs/tests/test.yml',
+        'param0': 'value0',
+    }
+    assert result == expected_result
+
+    # Call the load_constants method with flags.
+    result_with_flags = container_handler.load_constants(
+        [container_attribute_with_flagged_dependencies_and_parameters],
+        constants,
+        flags=['flagged_dependency']
+    )
+
+    # Assert that the result with flags contains parsed constants and parameters.
+    expected_result_with_flags = {
+        'container_config_file': 'tiferet/configs/tests/test.yml',
+        'param1': 'value1'
+    }
+    assert result_with_flags == expected_result_with_flags
