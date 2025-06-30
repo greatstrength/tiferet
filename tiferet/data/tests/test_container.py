@@ -31,17 +31,23 @@ def container_attribute_yaml_data():
     return ContainerAttributeYamlData.from_data(
         id='test_repo',
         type='data',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
         deps=dict(
             test=dict(
                 module_path='tests.repos.test',
                 class_name='TestRepoProxy',
-                parameters={'test_param': 'test_value'}
+                params={'test_param': 'test_value'}
             ),
             test2=dict(
                 module_path='tests.repos.test',
                 class_name='TestRepoProxy2',
-                parameters={'param2': 'value2'}
+                params={'param2': 'value2'}
             )
+        ),
+        params=dict(
+            test_param='test_value',
+            param0='value0'
         )
     )
 
@@ -121,6 +127,9 @@ def test_container_attribute_yaml_data_map(container_attribute_yaml_data):
     mapped_attr = container_attribute_yaml_data.map()
     assert isinstance(mapped_attr, ContainerAttribute)
     assert mapped_attr.id == 'test_repo'
+    assert mapped_attr.module_path == 'tests.repos.test'
+    assert mapped_attr.class_name == 'DefaultTestRepoProxy'
+    assert mapped_attr.parameters == {'test_param': 'test_value', 'param0': 'value0'}
     assert len(mapped_attr.dependencies) == 2
 
     # Check if all dependencies are of type ContainerDependency
