@@ -22,10 +22,8 @@ class ContainerHandler(ContainerService):
         '''
         Initialize the container handler.
 
-        :param name: The name of the container.
-        :type name: str
-        :param dependencies: The dependencies.
-        :type dependencies: dict
+        :param container_repo: The container repository to use for managing container attributes.
+        :type container_repo: ContainerRepository
         '''
         
         # Assign the container repository.
@@ -69,14 +67,19 @@ class ContainerHandler(ContainerService):
         # If constants are provided, clean the parameters using the parse_parameter command.
         constants = {k: parse_parameter.execute(v) for k, v in constants.items()}
 
-        # Iterate through each attribute to clean parameter dictionaries.
-        # For each attribute, parse its parameters and add them to the constants dictionary.
-        # For each dependency, parse its parameters and add them to the constants dictionary.
+        # Iterate through each attribute.
         for attr in attributes:
-            constants.update({k: parse_parameter.execute(v) for k, v in attr.parameters.items()})
-            dependency = attr.get_dependency(flags)
+
+            # If flags are provided, check for dependencies with those flags.
+            dependency = attr.get_dependency(*flags)
+
+            # Update the constants dictionary with the parsed parameters from the dependency or the attribute itself.
             if dependency:
                 constants.update({k: parse_parameter.execute(v) for k, v in dependency.parameters.items()})
+
+            # If no dependency is found, use the attribute's parameters.
+            else:
+                constants.update({k: parse_parameter.execute(v) for k, v in attr.parameters.items()})
 
         # Return the updated constants dictionary.
         return constants
