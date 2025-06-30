@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+import os
+
 # ** infra
 import pytest
 
@@ -39,6 +42,7 @@ def container_attribute():
         ]
     )
 
+
 # ** fixture: container_yaml_proxy
 @pytest.fixture
 def container_yaml_proxy(read_config_file_path):
@@ -48,6 +52,29 @@ def container_yaml_proxy(read_config_file_path):
 
 
 # *** tests
+
+# ** test: container_yaml_proxy_list_all_empty
+def test_container_yaml_proxy_list_all_empty(container_yaml_proxy):
+
+    # Create new config file with no container attributess.
+    file_path = 'tiferet/configs/tests/test_empty.yml'
+    with open(file_path, 'w') as f:
+        f.write('attrs:\n')
+        f.write('const:\n')
+
+    # Replace the config file path in the proxy.
+    container_yaml_proxy.config_file = file_path
+
+    # List all the container attributes.
+    container_attributes, constants = container_yaml_proxy.list_all()
+
+    # Verify that the attributes is an empty list and constants is an empty dict.
+    assert container_attributes == []
+    assert constants == {}
+
+    # Clean up the empty config file.
+    os.remove(file_path)
+
 
 # ** test: container_yaml_proxy_list_all
 def test_container_yaml_proxy_list_all(container_yaml_proxy, container_attribute):
@@ -93,4 +120,3 @@ def test_container_yaml_proxy_get_attribute(container_yaml_proxy, container_attr
         assert dependency.class_name == container_attribute.dependencies[i].class_name
         assert dependency.flag == container_attribute.dependencies[i].flag
         assert dependency.parameters == container_attribute.dependencies[i].parameters
-
