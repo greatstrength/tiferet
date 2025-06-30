@@ -98,9 +98,14 @@ class FeatureContext(object):
                 **request.data,
                 **kwargs
             )
+
+        # If an error occurs during command execution, handle it based on the pass_on_error flag.
         except Exception as e:
             if not pass_on_error:
                 raise e
+            
+            # Set the result to None if passing on the error.
+            result = None
 
         # If a data key is provided, store the result in the request data.
         if data_key:
