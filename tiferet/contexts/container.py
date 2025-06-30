@@ -120,15 +120,6 @@ class ContainerContext(Model):
             injector=injector,
             dependency_name=attribute_id,
         )
-        
-        # Raise an error if the dependency is not found.
-        if not dependency:
-            raise_error.execute(
-                'CONTAINER_DEPENDENCY_NOT_FOUND',
-                f'Dependency with ID {attribute_id} not found in container with flags {flags}.',
-                attribute_id,
-                flags
-            )
 
         # Return the dependency.
         return dependency
