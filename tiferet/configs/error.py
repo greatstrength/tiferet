@@ -101,4 +101,12 @@ ERRORS = [
             dict(lang='en_US', text='Feature with ID {} not found.')
         ]
     ),
+    dict(
+        id='app_error',
+        name='App Error',
+        error_code='APP_ERROR',
+        message=[
+            dict(lang='en_US', text='An error occurred in the app: {}')
+        ]
+    )
 ]
