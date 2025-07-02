@@ -7,118 +7,49 @@ from typing import Dict, Any
 from .feature import FeatureContext
 from .error import ErrorContext
 from ..models.feature import Request
+from ..models.app import *
+from ..handlers.app import (
+    AppService,
+    AppHandler,
+    AppRepository,
+)
 from ..commands import (
     Command,
-    ModelObject,
-    import_dependency,
     TiferetError
 )
-from ..commands.app import (
-    AppInterface,
-    AppRepository,
-    ImportAppRepository
-)
-from ..commands.dependencies import create_injector, Injector
+from ..commands.app import GetAppInterface
 
 
 # *** contexts
 
 # ** context: app_context
 class AppContext(object):
+    '''
+    The application context is a class that is used to create and run the application instance.
+    '''
 
     # * attribute: settings
     settings: Dict[str, Any]
 
+    # * attribute: app_service
+    app_service: AppService
+
     # * method: init
-    def __init__(self, settings: Dict[str, Any] = {}):
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
         '''
         Initialize the application context.
         
         :param settings: The application settings.
         :type settings: dict
+        :param app_service: The application service to use for executing app requests.
+        :type app_service: AppService
         '''
         
-        # Assign settings attribute.
+        # Assign the settings and app service.
         self.settings = settings
+        self.app_service = app_service
 
-    # * method: import_app_repo
-    def import_app_repo(self) -> AppRepository:
-        '''
-        Import the app repository.
-
-        :param module_path: The module path.
-        :type module_path: str
-        :param class_name: The class name.
-        :type class_name: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The app repository.
-        :rtype: AppRepository
-        '''
-
-        # Run and return the import app repository command.
-        return Command.handle(
-            ImportAppRepository,
-            **self.settings
-        )
-    
-    # * method: get_interface_settings
-    def get_interface_settings(self, interface_id: str) -> AppInterface:
-        '''
-        Get the settings for the application interface.
-
-        :param interface_id: The interface ID.
-        :type interface_id: str
-        :return: The application interface settings.
-        :rtype: AppInterface
-        '''
-
-        # Import the app repository.
-        app_repo = self.import_app_repo()
-
-        # Get the app interface.
-        return app_repo.get_interface(interface_id)
-
-    # ** method: create_app_injector
-    def create_app_injector(self, app_interface: AppInterface) -> Injector:
-        '''
-        Create the app dependency injector.
-
-        :param app_interface: The app interface.
-        :type app_interface: AppInterface
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The dependencies injector.
-        :rtype: Injector
-        '''
-
-        # Retrieve the app context dependency.
-        dependencies = dict(
-            app_context=import_dependency.execute(
-                app_interface.module_path,
-                app_interface.class_name,
-            )
-        )
-
-        # Add the remaining app context attributes.
-        for attr in app_interface.attributes:
-            dependencies[attr.attribute_id] = import_dependency.execute(
-                attr.module_path,
-                attr.class_name,
-            )
-
-        # Create the injector.
-        injector = create_injector.execute(
-            app_interface.id, 
-            dependencies,
-            interface_id=app_interface.id,
-            **app_interface.constants
-        )
-
-        # Return the injector.
-        return injector
-    
-       # * method: load_interface
+    # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
         '''
         Load the application interface.
@@ -129,14 +60,31 @@ class AppContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Get the app interface.
-        app_interface = self.get_interface_settings(interface_id)
+        # Load the app repository.
+        app_repo: AppRepository = self.app_service.load_app_repository(**self.settings)
 
-        # Create the app injector.
-        injector = self.create_app_injector(app_interface)
+        # Get the app interface settings.
+        app_interface = Command.handle(
+            GetAppInterface,
+            dependencies=dict(
+                app_repo=app_repo
+            ),
+            interface_id=interface_id
+        )
+        
+        # Create the app interface context.
+        app_interface_context = self.app_service.load_app_instance(app_interface)
 
-        # Load the app interface context.
-        return getattr(injector, 'app_context')
+        # Verify that the app interface context is valid.
+        if not isinstance(app_interface_context, AppInterfaceContext):
+            raise TiferetError(
+                'APP_INTERFACE_INVALID',
+                f'App context for interface is not valid: {interface_id}.',
+                interface_id
+            )
+        
+        # Return the app interface context.
+        return app_interface_context
 
     # * method: run
     def run(self,
@@ -195,8 +143,6 @@ class AppInterfaceContext(object):
 
         :param interface_id: The interface ID.
         :type interface_id: str
-        :param app_name: The application name.
-        :type app_name: str
         :param features: The feature context.
         :type features: FeatureContext
         :param errors: The error context.
@@ -267,9 +213,14 @@ class AppInterfaceContext(object):
         :return: The error response.
         :rtype: Any
         '''
-        
-        # Print the error to the console.
-        print('Error:', error)
+
+        # If the error is not a TiferetError, wrap it in one.
+        if not isinstance(error, TiferetError):
+            error = TiferetError(
+                'APP_ERROR',
+                f'An error occurred in the app: {str(error)}',
+                str(error)
+            )
 
         # Handle the error and return the response.
         return self.errors.handle_error(error)
