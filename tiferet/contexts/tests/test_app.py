@@ -2,94 +2,402 @@
 
 # ** infra
 import pytest
+from unittest import mock
 
 # ** app
-from . import *
+from ..app import *
 
 
 # *** fixtures
 
-# ** fixture: request_context_with_result
+# ** app_interface
 @pytest.fixture
-def request_context_with_result(request_context):
-    request_context.result = '["value1", "value2"]'
-    return request_context
+def app_interface():
+    '''
+    Fixture to create a mock AppInterface instance.
+    
+    :return: A mock instance of AppInterface.
+    :rtype: AppInterface
+    '''
+    # Create a test AppInterface instance.
+    return Entity.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        description='The test app.',
+        feature_flag='test',
+        data_flag='test',
+        attributes=[
+            ValueObject.new(
+                AppAttribute,
+                attribute_id='test_attribute',
+                module_path='test_module_path',
+                class_name='test_class_name',
+            ),
+        ],
+    )
 
 
-# ** fixture: request_context_no_result
+# ** fixture: app_repo
 @pytest.fixture
-def request_context_no_result(request_context):
-    request_context.result = None
-    return request_context
+def app_repo(app_interface):
+    """
+    Fixture to create a mock AppRepository instance.
+    
+    :return: A mock instance of AppRepository.
+    :rtype: AppRepository
+    """
+    
+    # Create a mock AppRepository instance.
+    app_repo = mock.Mock(spec=AppRepository)
 
+    # Set the return value for the get_interface method.
+    app_repo.get_interface.return_value = app_interface
+    
+    # Return the mock AppRepository instance.
+    return app_repo
+
+
+# ** fixture: feature_context
+@pytest.fixture
+def feature_context():
+    """
+    Fixture to create a mock FeatureContext instance.
+    
+    :return: A mock instance of FeatureContext.
+    :rtype: FeatureContext
+    """
+    
+    # Create a mock FeatureContext instance.
+    feature_context = mock.Mock(spec=FeatureContext)
+
+    # Mock the execute_feature method to return a specific response.
+    feature_context.execute_feature.return_value = None
+
+    # Return the mock FeatureContext instance.
+    return feature_context
+
+
+# ** fixture: error_context
+@pytest.fixture
+def error_context():
+    """
+    Fixture to create a mock ErrorContext instance.
+    
+    :return: A mock instance of ErrorContext.
+    :rtype: ErrorContext
+    """
+    
+    # Create a mock ErrorContext instance.
+    error_context = mock.Mock(spec=ErrorContext)
+
+    # Mock the handle_error method to return a specific formatted message.
+    error_context.handle_error.return_value = dict(
+        error_code='TEST_ERROR',
+        message='This is a test error message.',
+    )
+
+    # Return the mock ErrorContext instance.
+    return error_context
+
+
+# ** fixture: app_interface_context
+@pytest.fixture
+def app_interface_context(app_interface, feature_context, error_context):
+    """
+    Fixture to create a mock AppInterfaceContext instance.
+    
+    :return: A mock instance of AppInterfaceContext.
+    :rtype: AppInterfaceContext
+    """
+    
+    # Create a mock AppInterfaceContext instance.
+    return AppInterfaceContext(
+        interface_id=app_interface.id,
+        features=feature_context,
+        errors=error_context
+    )
+
+
+# ** fixture: app_service
+@pytest.fixture
+def app_service(app_repo, app_interface_context):
+    """Fixture to provide a mock app service."""
+    
+    # Create a mock app service.
+    service = mock.Mock(spec=AppService)
+
+    # Set the return value for the load_app_repository method.
+    service.load_app_repository.return_value = app_repo
+
+    # Set the return value for the load_app_instance method.
+    service.load_app_instance.return_value = app_interface_context
+
+    # Return the mock app service.
+    return service
+
+
+# ** fixture: app_context
+@pytest.fixture
+def app_context(app_service):
+
+    return AppContext(
+        dict(
+            app_repo_module_path='tiferet.proxies.yaml.app',
+            app_repo_class_name='AppYamlProxy',
+            app_repo_params=dict(
+                app_config_file='tiferet/configs/app.yaml',
+            )
+        ),
+        app_service
+    )
+    
 
 # *** tests
 
-# ** test: app_interface_context_init
-def test_app_interface_context_init(app_interface_context):
-
-    # Assert the interface_id and name are set correctly.
-    assert app_interface_context.interface_id == "test_interface"
-    assert app_interface_context.name == "Test App"
-
-
-# ** test: parse_request
-def test_parse_request(app_interface_context):
-
-    # Assuming parse_request just returns the request
-    request = app_interface_context.parse_request("mock_request")
-    assert request == ("mock_request", {})
-
-
-# ** test: execute_feature
-def test_execute_feature(app_interface_context, request_context):
+# ** test: app_context_load_interface
+def test_app_context_load_interface(app_context, app_interface):
+    """
+    Test the load_interface method of AppContext.
     
-    # Execute the feature.
-    app_interface_context.execute_feature(request_context)
+    :param app_context: The AppContext instance.
+    :type app_context: AppContext
+    :param app_interface: The AppInterface instance.
+    :type app_interface: AppInterface
+    """
     
-    # Ensure the feature was executed.
-    import json
-    assert request_context.result == json.dumps(('value1', 'value2'))
-
-
-# ** test: handle_response
-def test_handle_response(app_interface_context, request_context_with_result):
-
-    # Assuming handle_response just returns the result as a JSON object
-    response = app_interface_context.handle_response(request_context_with_result)
-
-    # Ensure the response is as expected.
-    assert response == ["value1", "value2"]
-
-
-# ** test: handle_response_with_no_result
-def test_handle_response_with_no_result(app_interface_context, request_context_no_result):
-
-    # Assuming handle_response just returns the result as a JSON object
-    response = app_interface_context.handle_response(request_context_no_result)
-
-    # Ensure the response is as expected.
-    assert response == None
-
-
-# ** test: run_no_error
-def test_run_no_error(app_interface_context, request_context):
+    # Load the app interface using the app context.
+    result = app_context.load_interface(app_interface.id)
     
-    # Run the application interface.
-    result = app_interface_context.run(request=request_context)
+    # Assert that the result is an instance of AppInterfaceContext.
+    assert result
+    assert isinstance(result, AppInterfaceContext)
+
+
+# ** test: app_context_load_interface_invalid
+def test_app_context_load_interface_invalid(app_context, app_service):
+    """
+    Test loading an invalid app interface.
     
-    # Ensure the response is as expected.
-    assert result == ["value1", "value2"]
+    :param app_context: The AppContext instance.
+    :type app_context: AppContext
+    :param app_service: The mock app service.
+    :type app_service: AppService
+    """
 
-
-# ** test: run_with_error
-def test_run_with_error(app_interface_context, request_context_throw_error):
+    # Create invalid app interface context.
+    class InvalidContext(object):
+        def __init__(self, *args, **kwargs):
+            pass
     
-    # Run the application interface.
-    response = app_interface_context.run(request=request_context_throw_error)
+    # Mock the load_app_instance method to return an invalid app interface context.
+    app_service.load_app_instance.return_value = InvalidContext()
 
-    # Ensure the response is as expected.
-    assert response == dict(
-        error_code="MY_ERROR", 
-        message="An error occurred."
+    # Attempt to load an invalid interface and assert that it raises an error.
+    with pytest.raises(TiferetError) as exc_info:
+        app_context.load_interface('invalid_interface_id')
+
+    # Assert that the error message is as expected.
+    assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
+    assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
+
+
+# ** test: app_interface_context_parse_request
+def test_app_interface_context_parse_request(app_interface_context):
+    """
+    Test parsing a request using the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    """
+
+    
+    # Parse the request using the app interface context.
+    request = app_interface_context.parse_request(headers={
+        'Content-Type': 'application/json',
+    },
+    data={
+        'key': 'value',
+        'param': 'test_param'
+    })
+    
+    # Assert that the parsed request is not None and has the expected attributes.
+    assert request is not None
+    assert isinstance(request, Request)
+    assert request.headers.get('interface_id') == app_interface_context.interface_id
+    assert request.data.get('key') == 'value'
+    assert request.data.get('param') == 'test_param'
+
+
+# ** test: app_interface_context_execute_feature
+def test_app_interface_context_execute_feature(app_interface_context, feature_context):
+    """
+    Test executing a feature using the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    """
+
+    # Create a new request object.
+    request = ModelObject.new(Request, 
+        headers={
+            'Content-Type': 'application/json', 
+            'interface_id': app_interface_context.interface_id
+        },
+        data={"key": "value"})
+
+    # Execute a feature using the app interface context.
+    app_interface_context.execute_feature('test_group.test_feature', request)
+
+    # Assert that the feature id is set correctly to the request headers.
+    assert request.headers.get('feature_id') == 'test_group.test_feature'
+
+
+# ** test: app_interface_context_handle_error
+def test_app_interface_context_handle_error(app_interface_context, error_context):
+    """
+    Test handling an error using the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
+    """
+
+    # Create a new Tiferet Error object.
+    error = TiferetError(
+        error_code='TEST_ERROR',
+        message='This is a test error message.'
     )
+
+    # Handle an error using the app interface context.
+    error_response = app_interface_context.errors.handle_error(
+        error
+    )
+
+    # Assert that the error response contains the expected error code and message.
+    assert error_response['error_code'] == 'TEST_ERROR'
+    assert error_response['message'] == 'This is a test error message.'
+
+
+# ** test: app_interface_context_handle_error_invalid
+def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
+    """
+    Test handling an invalid error using the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    """
+
+    # Create an invalid error object.
+    invalid_error = Exception("This is an invalid error.")
+
+    # Mock the ErrorContext to raise a TiferetError when handling an invalid error.
+    error_context.handle_error.return_value = {
+        'error_code': 'APP_ERROR',
+        'message': 'An error occurred in the app: This is an invalid error.'
+    }
+
+    # Handle the invalid error using the app interface context.
+    error_response = app_interface_context.handle_error(invalid_error)
+
+    # Assert that the error response contains a generic error code and message.
+    assert error_response['error_code'] == 'APP_ERROR'
+    assert 'An error occurred in the app' in error_response['message']
+
+
+# ** test: app_interface_context_handle_response
+def test_app_interface_context_handle_response(app_interface_context):
+    """
+    Test handling a response using the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    """
+
+    # Create a mock request with a response data.
+    request: Request = ModelObject.new(Request, 
+        headers={'Content-Type': 'application/json'},
+        data={"key": "value"})
+    
+    # Set the request result to simulate a successful response.
+    request.set_result({
+        'status': 'success',
+        'data': {"key": "value"}
+    })
+
+    # Handle the response using the app interface context.
+    response = app_interface_context.handle_response(request)
+
+    # Assert that the response is not None and has the expected attributes.
+    assert response is not None
+    assert isinstance(response, dict)
+    assert response.get('status') == 'success'
+    assert response.get('data') == {"key": "value"}
+
+
+# ** test: app_interface_context_run
+def test_app_interface_context_run(app_interface_context):
+    """
+    Test running the AppInterfaceContext.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    """
+
+    # Run the app interface context.
+    app_interface_context.run('test_group.test_feature', 
+        headers={
+            'Content-Type': 'application/json',
+            'interface_id': app_interface_context.interface_id
+        }, 
+        data={
+            'key': 'value',
+            'param': 'test_param'
+        }
+    )
+
+
+# ** test: app_interface_context_run_invalid
+def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context):
+    """
+    Test running the AppInterfaceContext with an invalid feature.
+    
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    """
+
+    # Mock the execute_feature method to raise an error for an invalid feature.
+    feature_context.execute_feature.side_effect = TiferetError(
+        error_code='FEATURE_NOT_FOUND',
+        message='Feature not found: invalid_group.invalid_feature.'
+    )
+
+    # Mock the ErrorContext to handle the error and return a formatted message.
+    error_context.handle_error.return_value = {
+        'error_code': 'FEATURE_NOT_FOUND',
+        'message': 'Feature not found: invalid_group.invalid_feature.'
+    }
+
+    # Attempt to run an invalid feature and assert that it raises an error.
+    response = app_interface_context.run(
+        'invalid_group.invalid_feature',
+        headers={
+            'Content-Type': 'application/json',
+            'interface_id': app_interface_context.interface_id
+        },
+        data={
+            'key': 'value',
+            'param': 'test_param'
+        }
+    )
+
+    # Assert that the formatted error message is as expected.
+    assert response['error_code'] == 'FEATURE_NOT_FOUND'
+    assert 'Feature not found: invalid_group.invalid_feature.' in response['message']
