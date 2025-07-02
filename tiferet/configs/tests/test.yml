@@ -8,7 +8,6 @@ attrs:
         module_path: tiferet.proxies.tests
         params:
           param1: value1
-    type: data
 const:
   config_file: tiferet/configs/tests/test.yml
 errors:
