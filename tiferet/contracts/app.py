@@ -77,7 +77,7 @@ class AppRepository(Repository):
         :rtype: AppInterface
         '''
         # Not implemented.
-        raise NotImplementedError()
+        raise NotImplementedError('get_interface method is required for AppRepository.')
     
     # * method: list_interfaces
     @abstractmethod
@@ -89,4 +89,51 @@ class AppRepository(Repository):
         :rtype: List[AppInterface]
         '''
         # Not implemented.
-        raise NotImplementedError()
+        raise NotImplementedError('list_interfaces method is required for AppRepository.')
+    
+
+# ** interface: app_service
+class AppService(Service):
+    '''
+    An app service is a class that is used to manage app interfaces.
+    '''
+
+    # * method: load_app_repository
+    @abstractmethod
+    def load_app_repository(self, 
+        app_repo_module_path: str,
+        app_repo_class_name: str,
+        app_repo_params: Dict[str, Any],
+        **kwargs
+    ) -> AppRepository:
+        '''
+        Execute the command.
+
+        :param app_repo_module_path: The application repository module path.
+        :type app_repo_module_path: str
+        :param app_repo_class_name: The application repository class name.
+        :type app_repo_class_name: str
+        :param app_repo_params: The application repository parameters.
+        :type app_repo_params: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The application repository instance.
+        :rtype: AppRepository
+        '''
+        # Not implemented.
+        raise NotImplementedError('load_app_repository method is required for AppService.')
+    
+
+    # * method: load_app_instance
+    def load_app_instance(self, app_interface: AppInterface) -> Any:
+        '''
+        Create the app dependency injector.
+
+        :param app_interface: The app interface.
+        :type app_interface: AppInterface
+        :return: The app instance.
+        :rtype: Any
+        '''
+        # Not implemented.
+        raise NotImplementedError('load_app_instance method is required for AppService.')
+    
