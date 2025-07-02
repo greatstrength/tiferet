@@ -8,6 +8,9 @@ from .settings import *
 
 # ** model: app_attribute
 class AppAttribute(ValueObject):
+    '''
+    An app dependency attribute that defines the dependency attributes for an app interface.
+    '''
     
     # * attribute: module_path
     module_path = StringType(
