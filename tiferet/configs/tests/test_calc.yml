@@ -58,33 +58,14 @@ interfaces:
       container_repo:
         class_name: ContainerYamlProxy
         module_path: tiferet.proxies.yaml.container
+        params:
+          container_config_file: tiferet/configs/tests/test_calc.yml
       feature_repo:
         class_name: FeatureYamlProxy
         module_path: tiferet.proxies.yaml.feature
-      error_repo:
-        class_name: ErrorYamlProxy
-        module_path: tiferet.proxies.yaml.error
-      feature_service:
-        class_name: FeatureHandler
-        module_path: tiferet.handlers.feature
-      container_service:
-        class_name: ContainerHandler
-        module_path: tiferet.handlers.container
-      error_service:
-        class_name: ErrorHandler
-        module_path: tiferet.handlers.error
-      container:
-        class_name: ContainerContext
-        module_path: tiferet.contexts.container
-      features:
-        class_name: FeatureContext
-        module_path: tiferet.contexts.feature
-      errors:
-        class_name: ErrorContext
-        module_path: tiferet.contexts.error
+        params:
+          feature_config_file: tiferet/configs/tests/test_calc.yml
     const:
-      container_config_file: tiferet/configs/tests/test_calc.yml
-      feature_config_file: tiferet/configs/tests/test_calc.yml
       error_config_file: tiferet/configs/tests/test_calc.yml
     description: The interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator
