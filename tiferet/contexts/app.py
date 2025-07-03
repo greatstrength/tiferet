@@ -6,6 +6,7 @@ from typing import Dict, Any
 # ** app
 from .feature import FeatureContext
 from .error import ErrorContext
+from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models.feature import Request
 from ..models.app import *
 from ..handlers.app import (
@@ -71,9 +72,16 @@ class AppContext(object):
             ),
             interface_id=interface_id
         )
+
+        # Retrieve the default attributes from the configuration.
+        default_attrs = [ModelObject.new(
+            AppAttribute,
+            **attr_data,
+            validate=False
+        ) for attr_data in DEFAULT_ATTRIBUTES]
         
         # Create the app interface context.
-        app_interface_context = self.app_service.load_app_instance(app_interface)
+        app_interface_context = self.app_service.load_app_instance(app_interface, default_attrs=default_attrs)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
