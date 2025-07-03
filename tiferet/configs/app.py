@@ -1,0 +1,59 @@
+# *** configs
+
+# ** config: default_attributes
+DEFAULT_ATTRIBUTES = [
+    dict(
+        attribute_id='container_repo',
+        module_path='tiferet.proxies.yaml.container',
+        class_name='ContainerYamlProxy',
+        parameters=dict(
+            container_config_file='app/configs/container.yml'
+        )
+    ),
+    dict(
+        attribute_id='feature_repo',
+        module_path='tiferet.proxies.yaml.feature',
+        class_name='FeatureYamlProxy',
+        parameters=dict(
+            feature_config_file='app/configs/feature.yml'
+        )
+    ),
+    dict(
+        attribute_id='error_repo',
+        module_path='tiferet.proxies.yaml.error',
+        class_name='ErrorYamlProxy',
+        parameters=dict(
+            error_config_file='app/configs/error.yml'
+        )
+    ),
+    dict(
+        attribute_id='container_service',
+        module_path='tiferet.handlers.container',
+        class_name='ContainerHandler',
+    ),
+    dict(
+        attribute_id='feature_service',
+        module_path='tiferet.handlers.feature',
+        class_name='FeatureHandler',
+    ),
+    dict(
+        attribute_id='error_service',
+        module_path='tiferet.handlers.error',
+        class_name='ErrorHandler',
+    ),
+    dict(
+        attribute_id='container',
+        module_path='tiferet.contexts.container',
+        class_name='ContainerContext',
+    ),
+    dict(
+        attribute_id='features',
+        module_path='tiferet.contexts.feature',
+        class_name='FeatureContext',
+    ),
+    dict(
+        attribute_id='errors',
+        module_path='tiferet.contexts.error',
+        class_name='ErrorContext',
+    ),
+]
