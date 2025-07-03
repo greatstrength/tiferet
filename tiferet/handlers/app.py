@@ -63,12 +63,14 @@ class AppHandler(AppService):
         return result
     
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: AppInterface) -> Any:
+    def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute] = []) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface.
         :type app_interface: AppInterface
+        :param default_attrs: The default configured attributes for the app.
+        :type default_attrs: List[AppAttribute]
         :return: The app instance.
         :rtype: Any
         '''
@@ -81,19 +83,34 @@ class AppHandler(AppService):
             )
         )
 
-        # Add the remaining app context attributes.
+        # Add the remaining app context attributes and parameters to the dependencies.
         for attr in app_interface.attributes:
             dependencies[attr.attribute_id] = import_dependency.execute(
                 attr.module_path,
                 attr.class_name,
             )
+            for param, value in attr.parameters.items():
+                dependencies[param] = value
+
+        # Add the default attributes and parameters to the dependencies if they do not already exist in the dependencies.
+        for attr in default_attrs:
+            if attr.attribute_id not in dependencies:
+                dependencies[attr.attribute_id] = import_dependency.execute(
+                    attr.module_path,
+                    attr.class_name,
+                )
+                for param, value in attr.parameters.items():
+                    dependencies[param] = value
+
+
+        # Add the constants from the app interface to the dependencies.
+        dependencies.update(app_interface.constants)
 
         # Create the injector.
         injector = create_injector.execute(
             app_interface.id, 
             dependencies,
-            interface_id=app_interface.id,
-            **app_interface.constants
+            interface_id=app_interface.id
         )
 
         # Return the app interface context.
