@@ -1,18 +1,18 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Tuple
+from typing import Any, List, Tuple, Dict
 
 # ** app
+from .core import *
 from ...data.container import ContainerAttributeYamlData
 from ...contracts.container import ContainerRepository, ContainerAttribute
-from ...clients import yaml as yaml_client
 
 
 # *** proxies
 
 # ** proxy: container_yaml_proxy
-class ContainerYamlProxy(ContainerRepository):
+class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
     '''
     Yaml proxy for container attributes.
     '''
@@ -27,7 +27,35 @@ class ContainerYamlProxy(ContainerRepository):
         '''
 
         # Set the container configuration file.
-        self.config_file = container_config_file
+        super().__init__(container_config_file)
+
+    # * method: load_yaml
+    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+        '''
+        Load data from the YAML configuration file.
+        :param start_node: The starting node in the YAML file.
+        :type start_node: str
+        :param create_data: A callable to create data objects from the loaded data.
+        :type create_data: callable
+        :return: The loaded data.
+        :rtype: Any
+        '''
+
+        # Load the YAML file contents using the yaml config proxy.
+        try:
+            return super().load_yaml(
+                start_node=start_node,
+                create_data=create_data
+            )
+        
+        # Raise an error if the loading fails.
+        except (Exception, TiferetError) as e:
+            raise_error.execute(
+                'CONTAINER_CONFIG_LOADING_FAILED',
+                f'Unable to load container configuration file {self.config_file}: {e}.',
+                self.config_file,
+                str(e)
+            )
 
     # * method: get_attribute
     def get_attribute(self, attribute_id: str) -> ContainerAttribute:
@@ -41,8 +69,7 @@ class ContainerYamlProxy(ContainerRepository):
         '''
 
         # Load the attribute data from the yaml configuration file.
-        data = yaml_client.load(
-            self.config_file,
+        data = self.load_yaml(
             create_data=lambda data: ContainerAttributeYamlData.from_data(
                 id=attribute_id, **data),
             start_node=lambda data: data.get('attrs').get(attribute_id),
@@ -81,8 +108,7 @@ class ContainerYamlProxy(ContainerRepository):
             return attrs, consts
 
         # Load the attribute data from the yaml configuration file.
-        attr_data, consts = yaml_client.load(
-            self.config_file,
+        attr_data, consts = self.load_yaml(
             create_data=create_data
         )
 
