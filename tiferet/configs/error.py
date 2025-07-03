@@ -108,5 +108,45 @@ ERRORS = [
         message=[
             dict(lang='en_US', text='An error occurred in the app: {}')
         ]
+    ),
+    dict(
+        id='config_file_not_found',
+        name='Configuration File Not Found',
+        error_code='CONFIG_FILE_NOT_FOUND',
+        message=[
+            dict(lang='en_US', text='Configuration file {} not found.')
+        ]
+    ),
+    dict(
+        id='app_config_loading_failed',
+        name='App Configuration Loading Failed',
+        error_code='APP_CONFIG_LOADING_FAILED',
+        message=[
+            dict(lang='en_US', text='Unable to load app configuration file {}: {}.')
+        ]
+    ),
+    dict(
+        id='container_config_loading_failed',
+        name='Container Configuration Loading Failed',
+        error_code='CONTAINER_CONFIG_LOADING_FAILED',
+        message=[
+            dict(lang='en_US', text='Unable to load container configuration file {}: {}.')
+        ]
+    ),
+    dict(
+        id='feature_config_loading_failed',
+        name='Feature Configuration Loading Failed',
+        error_code='FEATURE_CONFIG_LOADING_FAILED',
+        message=[
+            dict(lang='en_US', text='Unable to load feature configuration file {}: {}.')
+        ]
+    ),
+    dict(
+        id='error_config_loading_failed',
+        name='Error Configuration Loading Failed',
+        error_code='ERROR_CONFIG_LOADING_FAILED',
+        message=[
+            dict(lang='en_US', text='Unable to load error configuration file {}: {}.')
+        ]
     )
 ]
