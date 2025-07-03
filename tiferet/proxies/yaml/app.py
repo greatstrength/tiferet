@@ -1,19 +1,20 @@
 # *** imports
 
+# ** core
+from typing import Any
+
 # ** app
+from .core import *
 from ...data import DataObject
 from ...data.app import AppInterfaceYamlData
 from ...contracts.app import AppRepository, AppInterface
-from ...clients import yaml_client
 
 
 # *** proxies
 
 # ** proxy: app_yaml_proxy
-class AppYamlProxy(AppRepository):
+class AppYamlProxy(AppRepository, YamlConfigurationProxy):
 
-    # * field: config_file
-    config_file: str = None
 
     # * method: init
     def __init__(self, app_config_file: str):
@@ -25,7 +26,35 @@ class AppYamlProxy(AppRepository):
         '''
 
         # Set the configuration file.
-        self.config_file = app_config_file
+        super().__init__(app_config_file)
+
+    # * method: load_yaml
+    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+        '''
+        Load data from the YAML configuration file.
+        :param start_node: The starting node in the YAML file.
+        :type start_node: str
+        :param create_data: A callable to create data objects from the loaded data.
+        :type create_data: callable
+        :return: The loaded data.
+        :rtype: Any
+        '''
+
+        # Load the YAML file contents using the yaml config proxy.
+        try:
+            return super().load_yaml(
+                start_node=start_node,
+                create_data=create_data
+            )
+        
+        # Raise an error if the loading fails.
+        except (Exception, TiferetError) as e:
+            raise_error.execute(
+                'APP_CONFIG_LOADING_FAILED',
+                f'Unable to load app configuration file {self.config_file}: {e}.',
+                self.config_file,
+                str(e)
+            )
 
     # * method: list_interfaces
     def list_interfaces(self) -> list[AppInterface]:
@@ -37,8 +66,7 @@ class AppYamlProxy(AppRepository):
         '''
 
         # Load the app interface data from the yaml configuration file and map it to the app interface object.
-        interfaces = yaml_client.load(
-            self.config_file,
+        interfaces = self.load_yaml(
             create_data=lambda data: [
                 DataObject.from_data(
                     AppInterfaceYamlData,
@@ -62,14 +90,14 @@ class AppYamlProxy(AppRepository):
         '''
 
         # Load the app interface data from the yaml configuration file.
-        _data: AppInterface = yaml_client.load(
-            self.config_file,
+        _data: AppInterface = self.load_yaml(
             create_data=lambda data: DataObject.from_data(
                 AppInterfaceYamlData,
                 id=id, 
                 **data
             ),
-            start_node=lambda data: data.get('interfaces').get(id))
+            start_node=lambda data: data.get('interfaces').get(id)
+        )
 
         # Return the app interface object.
         # If the data is None, return None.
