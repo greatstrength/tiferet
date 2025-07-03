@@ -4,6 +4,7 @@
 import pytest
 
 # ** app
+from ....configs import TiferetError
 from ....models.feature import *
 from ...yaml.feature import FeatureYamlProxy
 
@@ -44,6 +45,38 @@ def feature() -> Feature:
 
 
 # *** tests
+
+# ** test: int_feature_yaml_proxy_load_yaml
+def test_int_feature_yaml_proxy_load_yaml(feature_yaml_proxy, feature):
+    '''
+    Test the feature YAML proxy load YAML method.
+    '''
+
+    # Load the YAML file.
+    data = feature_yaml_proxy.load_yaml()
+
+    # Check the loaded features.
+    assert data
+    assert data.get('features')
+    assert len(data['features']) > 0
+
+# ** test: int_feature_yaml_proxy_load_yaml_file_not_found
+def test_int_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy):
+    '''
+    Test the feature YAML proxy load YAML method with a file not found error.
+    '''
+
+    # Set a non-existent configuration file.
+    feature_yaml_proxy.config_file = 'non_existent_file.yml'
+
+    # Attempt to load the YAML file.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_yaml_proxy.load_yaml()
+
+    # Verify the error message.
+    assert exc_info.value.error_code == 'FEATURE_CONFIG_LOADING_FAILED'
+    assert 'Unable to load feature configuration file' in str(exc_info.value)
+
 
 # ** test: int_feature_yaml_proxy_get
 def test_int_feature_yaml_proxy_get(feature_yaml_proxy, feature):
