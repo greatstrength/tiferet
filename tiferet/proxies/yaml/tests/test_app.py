@@ -4,6 +4,7 @@
 import pytest
 
 # ** app
+from ....configs import TiferetError
 from ..app import *
 
 
@@ -29,6 +30,38 @@ def app_id():
 
 
 # *** tests
+
+# ** test: app_yaml_proxy_load_yaml
+def test_app_yaml_proxy_load_yaml(app_yaml_proxy):
+    '''
+    Test the app YAML proxy load YAML method.
+    '''
+
+    # Load the YAML file.
+    data = app_yaml_proxy.load_yaml()
+
+    # Check the loaded data.
+    assert data
+    assert data.get('interfaces')
+    assert len(data['interfaces']) > 0
+
+# ** test: app_yaml_proxy_load_yaml_file_not_found
+def test_app_yaml_proxy_load_yaml_file_not_found(app_yaml_proxy):
+    '''
+    Test the app YAML proxy load YAML method with a file not found error.
+    '''
+
+    # Set a non-existent configuration file.
+    app_yaml_proxy.config_file = 'non_existent_file.yml'
+
+    # Attempt to load the YAML file.
+    with pytest.raises(TiferetError) as exc_info:
+        app_yaml_proxy.load_yaml()
+
+    # Check the exception message.
+    assert exc_info.value.error_code == 'APP_CONFIG_LOADING_FAILED'
+    assert 'Unable to load app configuration file' in str(exc_info.value)
+
 
 # ** test: app_yaml_proxy_list_interfaces
 def test_app_yaml_proxy_list_interfaces(app_yaml_proxy):
