@@ -8,6 +8,7 @@ import pytest, yaml
 
 # ** app
 from ..error import *
+from ....configs import TiferetError
 from ....models.error import *
 
 
@@ -60,6 +61,39 @@ def errors():
 
 
 # *** tests
+
+# ** test_int: error_yaml_proxy_load_yaml
+def test_int_error_yaml_proxy_load_yaml(error_yaml_proxy, errors):
+    """
+    Test the error YAML proxy load YAML method.
+    """
+
+    # Load the YAML file.
+    data = error_yaml_proxy.load_yaml()
+
+    # Check the loaded data.
+    assert data
+    assert data.get('errors')
+    assert len(data['errors']) > 0
+
+
+# ** test_int: error_yaml_proxy_load_yaml_file_not_found
+def test_int_error_yaml_proxy_load_yaml_file_not_found(error_yaml_proxy):
+    """
+    Test the error YAML proxy load YAML method with a file not found error.
+    """
+
+    # Set a non-existent configuration file.
+    error_yaml_proxy.config_file = 'non_existent_file.yml'
+
+    # Attempt to load the YAML file.
+    with pytest.raises(TiferetError) as exc_info:
+        error_yaml_proxy.load_yaml()
+
+    # Check the exception message.
+    assert exc_info.value.error_code == 'ERROR_CONFIG_LOADING_FAILED'
+    assert 'Unable to load error configuration file' in str(exc_info.value)
+
 
 # ** test_int: error_yaml_proxy_list_errors
 def test_int_error_yaml_proxy_list(
