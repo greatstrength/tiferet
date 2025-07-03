@@ -1,10 +1,10 @@
 # *** imports
 
 # ** core
-from typing import List
+from typing import Any, List
 
 # ** app
-from ...clients import yaml_client
+from .core import *
 from ...contracts.feature import Feature, FeatureRepository
 from ...data import DataObject
 from ...data.feature import FeatureData as FeatureYamlData
@@ -13,7 +13,7 @@ from ...data.feature import FeatureData as FeatureYamlData
 # *** proxies
 
 # ** proxies: feature_yaml_proxy
-class FeatureYamlProxy(FeatureRepository):
+class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
     '''
     Yaml repository for features.
     '''
@@ -28,7 +28,35 @@ class FeatureYamlProxy(FeatureRepository):
         '''
 
         # Set the base path.
-        self.config_file = feature_config_file
+        super().__init__(feature_config_file)
+
+    # * method: load_yaml
+    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+        '''
+        Load data from the YAML configuration file.
+        :param start_node: The starting node in the YAML file.
+        :type start_node: str
+        :param create_data: A callable to create data objects from the loaded data.
+        :type create_data: callable
+        :return: The loaded data.
+        :rtype: Any
+        '''
+
+        # Load the YAML file contents using the yaml config proxy.
+        try:
+            return super().load_yaml(
+                start_node=start_node,
+                create_data=create_data
+            )
+        
+        # Raise an error if the loading fails.
+        except (Exception, TiferetError) as e:
+            raise_error.execute(
+                'FEATURE_CONFIG_LOADING_FAILED',
+                f'Unable to load feature configuration file {self.config_file}: {e}.',
+                self.config_file,
+                str(e)
+            )
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -72,8 +100,7 @@ class FeatureYamlProxy(FeatureRepository):
         '''
 
         # Load all feature data from yaml.
-        features = yaml_client.load(
-            self.config_file,
+        features = self.load_yaml(
             create_data=lambda data: [DataObject.from_data(
                 FeatureYamlData,
                 id=id,
