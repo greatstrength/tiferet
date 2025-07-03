@@ -8,6 +8,7 @@ import pytest
 
 # ** app
 from ..container import ContainerYamlProxy
+from ....configs import TiferetError
 from ....models.container import *
 
 
@@ -52,6 +53,37 @@ def container_yaml_proxy(read_config_file_path):
 
 
 # *** tests
+
+# ** test: container_yaml_proxy_load_yaml
+def test_container_yaml_proxy_load_yaml(container_yaml_proxy):
+    """Test the load_yaml method of the ContainerYamlProxy."""
+
+    # Load the YAML file.
+    data = container_yaml_proxy.load_yaml()
+
+    # Check the loaded data.
+    assert data
+    assert data.get('attrs')
+    assert len(data['attrs']) > 0
+    assert data.get('const')
+    assert isinstance(data['const'], dict)
+
+
+# ** test: container_yaml_proxy_load_yaml_file_not_found
+def test_container_yaml_proxy_load_yaml_file_not_found(container_yaml_proxy):
+    """Test the load_yaml method with a file not found error."""
+
+    # Set a non-existent configuration file.
+    container_yaml_proxy.config_file = 'non_existent_file.yml'
+
+    # Attempt to load the YAML file.
+    with pytest.raises(TiferetError) as exc_info:
+        container_yaml_proxy.load_yaml()
+
+    # Verify the error message.
+    assert exc_info.value.error_code == 'CONTAINER_CONFIG_LOADING_FAILED'
+    assert 'Unable to load container configuration file' in str(exc_info.value)
+
 
 # ** test: container_yaml_proxy_list_all_empty
 def test_container_yaml_proxy_list_all_empty(container_yaml_proxy):
