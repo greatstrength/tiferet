@@ -24,6 +24,8 @@ class AppAttribute(ModelContract):
     # * attribute: attribute_id
     attribute_id: str
 
+    # * attribute: parameters
+    parameters: Dict[str, str]
 
 # ** contract: app_interface
 class AppInterface(ModelContract):
@@ -58,7 +60,6 @@ class AppInterface(ModelContract):
     # * attribute: constants
     constants: Dict[str, Any]
 
-
 # ** interface: app_repository
 class AppRepository(Repository):
     '''
@@ -90,7 +91,6 @@ class AppRepository(Repository):
         '''
         # Not implemented.
         raise NotImplementedError('list_interfaces method is required for AppRepository.')
-    
 
 # ** interface: app_service
 class AppService(Service):
@@ -123,14 +123,16 @@ class AppService(Service):
         # Not implemented.
         raise NotImplementedError('load_app_repository method is required for AppService.')
     
-
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: AppInterface) -> Any:
+    @abstractmethod
+    def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute]) -> Any:
         '''
         Create the app dependency injector.
 
         :param app_interface: The app interface.
         :type app_interface: AppInterface
+        :param default_attrs: The default configured attributes for the app.
+        :type default_attrs: List[AppAttribute]
         :return: The app instance.
         :rtype: Any
         '''
