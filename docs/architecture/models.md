@@ -1,17 +1,18 @@
 # Tiferet Models Documentation
 
-This document serves as an educational guide for human and AI developers to understand, define, and use domain models in the Tiferet framework, a modular, configuration-driven platform inspired by Domain-Driven Design (DDD) and the Kabbalistic principle of beauty in balance. Using the `tiferet-calculator-app`, it explains domain models, their static and functional artifacts, the distinction between entities and value objects, and how to define, instantiate, and test models, with practical code examples including artifact comments and proper attribute spacing.
-
+This document serves as an educational guide for human and AI developers to understand, define, and use domain models in the Tiferet framework, a modular, configuration-driven platform inspired by Domain-Driven Design (DDD) and the Kabbalistic principle of beauty in balance. Using the `tiferet-calculator-app`, it explains domain models, their static and functional artifacts, the distinction between entities and value objects, and how to define, instantiate, and test models, with practical code examples and formatting.
 ## What Are Domain Models?
 
-Domain models in Tiferet are immutable objects that encapsulate the data and logic of an application’s domain, such as numeric values or calculations in the `tiferet-calculator-app`. Built on `tiferet.models.ValueObject` or `tiferet.models.Entity` (from `tiferet/models/settings.py`), they ensure immutability, type safety, and validation using Tiferet types (e.g., `StringType`, `ModelType`). Models form the foundation of Tiferet’s DDD approach, balancing simplicity and robustness to represent domain concepts like calculator inputs or results.
+In Domain-Driven Design (DDD), domain models are the conceptual heart of an application, encapsulating the core data, behavior, and rules of the problem domain to create a shared, structured representation that aligns technical implementation with business needs. They enable developers and stakeholders to collaborate effectively by modeling real-world concepts—such as calculations or numeric inputs in the `tiferet-calculator-app`—in a way that is both precise and expressive, driving the application’s logic and ensuring consistency. In Tiferet, domain models are immutable objects built on `ValueObject` or `Entity` base classes, leveraging types like `StringType` and `ModelType` to enforce immutability, type safety, and robust validation. These models form the foundation of Tiferet’s DDD approach, balancing simplicity and rigor to represent domain concepts like calculator inputs or results, seamlessly integrating with configurations, commands, and contexts to create elegant, modular applications.
 
 ### Entities vs. Value Objects
 
 - **Entities**:
 
   - **Definition**: Models with a unique identity, defined by a required `id` attribute (e.g., `StringType(required=True)`). They represent domain objects where tracking individual instances matters, such as a specific calculation instance for auditing.
+
   - **Characteristics**: Inherit from `Entity`, extending `ModelObject` with a mandatory `id`. Immutable per instance but trackable across operations.
+
   - **Example** (in `app/models/calc.py`):
 
     ```python
@@ -55,13 +56,12 @@ Domain models in Tiferet are immutable objects that encapsulate the data and log
                 description='Result as a string.'
             )
         )
-    
+        
         # * method: set_result
-        def set_result(self, result: str = None)
+        def set_result(self, result: str = None):
             '''
             Sets the result of the calculation.
             '''
-
             # Set the result as a string if not None.
             if result:
                 self.result = str(result)
@@ -69,7 +69,7 @@ Domain models in Tiferet are immutable objects that encapsulate the data and log
             # Set the default value if None.
             else:
                 self.result = ''
-            
+        
         # * method: add
         def add(self):
             '''
@@ -118,7 +118,9 @@ Domain models in Tiferet are immutable objects that encapsulate the data and log
 - **Value Objects**:
 
   - **Definition**: Models without unique identity, defined by their attribute values. Two value objects with identical attributes are interchangeable.
+
   - **Characteristics**: Inherit from `ValueObject`, focusing on data and behavior (e.g., formatting numbers). Fully immutable and lack an `id`.
+
   - **Example** (in `app/models/calc.py`):
 
     ```python
@@ -154,30 +156,18 @@ Domain models in Tiferet are immutable objects that encapsulate the data and log
             if self.is_float():
                 return float(self.value)
             return int(self.value)
-    
-        # * method: set_result
-        def set_result(self, result: str = None)
-            '''
-            Sets the result of the calculation.
-            '''
-
-            # Set the result as a string if not None.
-            if result:
-                self.result = str(result)
-            
-            # Set the default value if None.
-            else:
-                self.result = ''
     ```
 
 ## Static and Functional Artifacts
 
-Domain models consist of static attributes and functional methods, leveraging types from `tiferet/models/settings.py`:
+Domain models consist of static attributes and functional methods, leveraging Tiferet types:
 
 - **Static Artifacts (Attributes)**:
 
-  - **Definition**: Attributes use Tiferet types (e.g., `StringType`, `ModelType`) with validation rules like `required=True`, regex, or choices. For example, `StringType(regex=r'^-?\d*\.?\d*$')` ensures valid numeric strings.
-  - **Purpose**: Represent core properties, such as `value` in `Number` or `a_num: ModelType(Number)` in `Calculation`. Metadata (e.g., `description`) aids documentation.
+  - **Definition**: Attributes represent the model’s state, capturing the current values of its properties, which may change based on the situation (e.g., `result` in `Calculation` updated after an operation). They use Tiferet types (e.g., `StringType`, `ModelType`) with validation rules (e.g., `required=True`, `regex`, `default=''`) to define the ideal or “model” state, embodying “what is good” or expected behavior for the domain.
+
+  - **Purpose**: Attributes like `value` in `Number` or `a_num` and `result` in `Calculation` store and validate domain data, ensuring consistency and correctness. For example, `result: StringType(default='')` ensures an empty string as the initial state, updated only through valid operations.
+
   - **Example** (from `Calculation` in `app/models/calc.py`):
 
     ```python
@@ -210,6 +200,7 @@ Domain models consist of static attributes and functional methods, leveraging ty
     
     # * attribute: result
     result = StringType(
+        default='',
         metadata=dict(
             description='Result as a string.'
         )
@@ -218,11 +209,26 @@ Domain models consist of static attributes and functional methods, leveraging ty
 
 - **Functional Artifacts (Methods)**:
 
-  - **Definition**: The static `new()` method (from `ModelObject`) creates validated instances, with optional `validate` and `strict` parameters. Custom methods (e.g., `format` in `Number`, `add` in `Calculation`) encapsulate domain logic.
-  - **Purpose**: `new()` enables instantiation (e.g., `ModelObject.new(Number, value="123.45")`), while custom methods handle operations like calculations or formatting.
+  - **Definition**: Methods manage and adjust the model’s state according to domain-specific intentions, either by modifying internal state (e.g., updating `result` via `set_result`) or incorporating external data (e.g., from command inputs).
+
+  - **Purpose**: Methods like `add` or `set_result` in `Calculation` perform operations (e.g., addition) and update attributes (e.g., `result`) to reflect the domain’s intent, ensuring controlled state changes within the model’s immutable framework.
+
   - **Example** (from `Calculation` in `app/models/calc.py`):
 
     ```python
+    # * method: set_result
+    def set_result(self, result: str = None):
+        '''
+        Sets the result of the calculation.
+        '''
+        # Set the result as a string if not None.
+        if result:
+            self.result = str(result)
+        
+        # Set the default value if None.
+        else:
+            self.result = ''
+    
     # * method: add
     def add(self):
         '''
@@ -232,7 +238,7 @@ Domain models consist of static attributes and functional methods, leveraging ty
         result = self.a_num.format() + self.b_num.format()
         
         # Set the result.
-        self.result = str(result)
+        self.set_result(result)
     
     # * method: subtract
     def subtract(self):
@@ -243,7 +249,7 @@ Domain models consist of static attributes and functional methods, leveraging ty
         result = self.a_num.format() - self.b_num.format()
         
         # Set the result.
-        self.result = str(result)
+        self.set_result(result)
     
     # * method: multiply
     def multiply(self):
@@ -254,7 +260,7 @@ Domain models consist of static attributes and functional methods, leveraging ty
         result = self.a_num.format() * self.b_num.format()
         
         # Set the result.
-        self.result = str(result)
+        self.set_result(result)
     
     # * method: exponentiate
     def exponentiate(self):
@@ -265,7 +271,7 @@ Domain models consist of static attributes and functional methods, leveraging ty
         result = self.a_num.format() ** self.b_num.format()
         
         # Set the result.
-        self.result = str(result)
+        self.set_result(result)
     ```
 
 ## Using Domain Models in Tiferet
@@ -274,13 +280,13 @@ The following subsections detail how to define, instantiate, and test models lik
 
 ### Defining Models
 
-- **Where**: Place models in `app/models/` (e.g., `app/models/calc.py`).
-- **How**: Inherit from `ValueObject` for value objects (e.g., `Number`) or `Entity` for entities (e.g., `Calculation`). Use Tiferet types (e.g., `StringType`, `ModelType`) with validation rules (e.g., `regex`, `required=True`). Include artifact comments (e.g., `# * attribute: value`) and space attributes with blank lines. Add methods for domain logic (e.g., `Calculation.add`).
-- **Example**: The `Number` and `Calculation` models in `app/models/calc.py` (shown above) include artifact comments, spaced attributes, and calculation methods.
+- **How**: Inherit from `ValueObject` for value objects (e.g., `Number`) or `Entity` for entities (e.g., `Calculation`). Use Tiferet types (e.g., `StringType`, `ModelType`) with validation rules (e.g., `regex`, `required=True`, `default=''`). Add methods for domain logic (e.g., `Calculation.add`).
+- **Example**: The `Number` and `Calculation` models in `app/models/calc.py` (shown above) include spaced attributes and calculation methods.
 
 ### Instantiating Models
 
-- **How**: Use `ModelObject.new(model_type, **kwargs, validate=True, strict=True)` to create instances. Set `validate=False` for trusted configurations to reduce overhead. Import `ModelObject` from `tiferet.models` and application-specific models under a `# ** app` artifact group.
+- **How**: Use `ModelObject.new(model_type, **kwargs, validate=True, strict=True)` to create instances. Set `validate=False` for trusted configurations to reduce overhead. Import `ModelObject` from `tiferet.models`.
+
 - **Example** (in `app/basic_calc.py`):
 
   ```python
@@ -310,7 +316,8 @@ The following subsections detail how to define, instantiate, and test models lik
 
 ### Testing Models
 
-- **How**: Test models with `pytest` in `app/models/tests/test_calc.py`, verifying instantiation and methods. Use `pytest` and `tiferet.models` imports, with application-specific models under a `# ** app` artifact group using `from ..calc import *`. Follow the structure of `tiferet/models/tests/test_settings.py` with fixtures and tests.
+- **How**: Test models with `pytest` in `app/models/tests/test_calc.py`, verifying instantiation and methods. Use `pytest` and `tiferet.models` imports along with application-specific models using `from ..calc import *`. Follow a structured approach with fixtures and tests.
+
 - **Example** (in `app/models/tests/test_calc.py`):
 
   ```python
@@ -354,4 +361,4 @@ The following subsections detail how to define, instantiate, and test models lik
 
 ## Conclusion
 
-Tiferet’s domain models, exemplified by `Number` (value object) and `Calculation` (entity), embody the framework’s philosophy of beauty in balance. By defining models with clear validation, instantiating them with `ModelObject.new`, and testing them with `pytest`, developers can ensure robust, modular applications like `tiferet-calculator-app`. These models, with their artifact comments and calculation methods, reflect Tiferet’s elegant, configuration-driven design.
+Tiferet’s domain models, exemplified by `Number` (value object) and `Calculation` (entity), embody the framework’s philosophy of beauty in balance. By defining models with clear validation and state management, instantiating them with `ModelObject.new`, and testing them with `pytest`, developers can ensure robust, modular applications like `tiferet-calculator-app`. These models, with their state-managing methods, reflect Tiferet’s elegant, configuration-driven design.
