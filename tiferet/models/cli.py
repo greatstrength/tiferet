@@ -114,6 +114,27 @@ class CliArgument(ValueObject):
         # Return argument
         return argument
     
+    # * method: get_type
+    def get_type(self) -> str | int | float:
+        '''
+        Get the type of the argument.
+
+        :return: The type of the argument.
+        :rtype: str | int | float
+        '''
+
+        # Map the type string to a Python type.
+        if self.type == 'str':
+            return str
+        elif self.type == 'int':
+            return int
+        elif self.type == 'float':
+            return float
+        
+        # If the type is not recognized, return str as a default.
+        else:
+            return str
+    
 # ** model: cli_command
 class CliCommand(Entity):
     '''
@@ -193,3 +214,34 @@ class CliCommand(Entity):
             description=description,
             arguments=arguments
         )
+    
+    # * method: has_argument
+    def has_argument(self, flags: List[str]) -> bool:
+        '''
+        Check if the command has an argument with the given flags.
+
+        :param flags: The flags to check for.
+        :type flags: List[str]
+        :return: True if the command has the argument, False otherwise.
+        :rtype: bool
+        '''
+        
+        # Loop through the flags and check if any of them match the flags of an existing argument
+        for flag in flags:
+            if any([argument for argument in self.arguments if flag in argument.name_or_flags]):
+                return True
+            
+        # Return False if no argument was found
+        return False
+    
+    # * method: add_argument
+    def add_argument(self, argument: CliArgument):
+        '''
+        Add an argument to the command.
+
+        :param argument: The argument to add.
+        :type argument: CliArgument
+        '''
+
+        # Append the argument to the command's arguments list.
+        self.arguments.append(argument)

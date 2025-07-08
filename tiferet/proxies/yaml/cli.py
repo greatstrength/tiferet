@@ -1,14 +1,15 @@
 # *** imports
 
 # ** core
-from typing import Any
+from typing import Any, List
 
 # ** app
 from . import *
 from ...data.cli import *
 from ...contracts.cli import (
     CliRepository,
-    CliCommand as CliCommandContract
+    CliCommand as CliCommandContract,
+    CliArgument as CliArgumentContract
 )
 
 # *** proxies
@@ -76,7 +77,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
 
         # Load the YAML data for the command.
         yaml_data: CliCommandYamlData = self.load_yaml(
-            start_node=lambda data: data.get('commands', {}).get(command_id, {}),
+            start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(command_id, {}),
             create_data=lambda data: DataObject.from_data(
                 CliCommandYamlData, 
                 id=command_id, 
@@ -86,3 +87,24 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
 
         # Return the command object created from the YAML data.
         return yaml_data.map()
+    
+    # * method: get_parent_arguments
+    def get_parent_arguments(self) -> List[CliArgumentContract]:
+        '''
+        Get the parent arguments for the CLI commands.
+
+        :return: A list of parent arguments.
+        :rtype: List[CliArgumentContract]
+        '''
+
+        # Load the YAML data for the parent arguments.
+        result: List[CliArgument] = self.load_yaml(
+            start_node=lambda data: data.get('cli', {}).get('parent_args', []),
+            create_data=lambda data: ModelObject.new(
+                CliArgument,
+                **data
+            )
+        )
+
+        # Return the result if it exists, otherwise return an empty list.
+        return result if result else []
