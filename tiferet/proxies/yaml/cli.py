@@ -88,6 +88,28 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
         # Return the command object created from the YAML data.
         return yaml_data.map()
     
+    # * method: get_commands
+    def get_commands(self) -> List[CliCommandContract]:
+        '''
+        Get all commands available in the CLI service.
+
+        :return: A list of CLI commands.
+        :rtype: List[CliCommandContract]
+        '''
+
+        # Load the YAML data for the commands.
+        result: List[CliCommand] = self.load_yaml(
+            start_node=lambda data: data.get('cli', {}).get('cmds', []),
+            create_data=lambda data: [DataObject.from_data(
+                CliCommandYamlData,
+                id=id,
+                **cmd_data
+            ) for id, cmd_data in data.items()]
+        )
+
+        # Return the result if it exists, otherwise return an empty list.
+        return [cmd.map() for cmd in result] if result else []
+    
     # * method: get_parent_arguments
     def get_parent_arguments(self) -> List[CliArgumentContract]:
         '''

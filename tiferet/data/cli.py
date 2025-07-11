@@ -7,7 +7,7 @@ from ..models.cli import *
 # *** data
 
 # ** data: cli_command_yaml_data
-class CliCommandYamlData(CliArgument, DataObject):
+class CliCommandYamlData(CliCommand, DataObject):
     '''
     Represents the YAML data for a CLI command.
     '''
@@ -31,7 +31,10 @@ class CliCommandYamlData(CliArgument, DataObject):
 
     # * attribute: arguments
     arguments = ListType(
-        CliArgument,
+        ModelType(CliArgument),
+        serialized_name='args',
+        deserialize_from=['args', 'arguments'],
+        default=[],
         metadata=dict(
             description='A list of arguments for the command.'
         )
@@ -71,7 +74,7 @@ class CliCommandYamlData(CliArgument, DataObject):
         '''
 
         # Map the data to a CLI command object.
-        return CliCommand(
-            id=self.id,
+        return ModelObject.new(
+            CliCommand,
             **self.to_primitive('to_model')
         )
