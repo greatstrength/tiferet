@@ -1,0 +1,77 @@
+cli:
+  cmds:
+    test_calc.add_number: 
+      group_key: test-calc
+      key: add-number
+      description: Adds two numbers.
+      args:
+        - name_or_flags: 
+            - a
+            - --a
+          description: The first number to add.
+          required: true
+        - name_or_flags: 
+            - b
+            - --b
+          description: The second number to add.
+          required: true
+      name: Add Number Command
+    test_calc.subtract_number:
+      group_key: test-calc
+      key: subtract-number
+      description: Subtracts two numbers.
+      args:
+        - name_or_flags: 
+            - a
+            - --a
+          description: The number to subtract from.
+          required: true
+        - name_or_flags: 
+            - b
+            - --b
+          description: The number to subtract.
+          required: true
+      name: Subtract Number Command
+    test_calc.multiply_number:
+      group_key: test-calc
+      key: multiply-number
+      description: Multiplies two numbers.
+      args:
+        - name_or_flags: 
+            - a
+            - --a
+          description: The first number to multiply.
+          required: true
+        - name_or_flags: 
+            - b
+            - --b
+          description: The second number to multiply.   
+          required: true
+      name: Multiply Number Command
+    test_calc.divide_number:
+      group_key: test-calc
+      key: divide-number
+      description: Divides two numbers.
+      args:
+        - name_or_flags: 
+            - a
+            - --a
+          description: The numerator.
+          required: true
+        - name_or_flags: 
+            - b
+            - --b
+          description: The denominator.
+          required: true
+      name: Divide Number Command
+    test_calc.square_number:
+      group_key: test-calc
+      key: square-number
+      description: Squares a number.
+      args:
+        - name_or_flags: 
+            - a
+            - --a
+          description: The number to square.
+          required: true
+      name: Square Number Command
