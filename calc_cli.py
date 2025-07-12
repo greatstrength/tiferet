@@ -17,4 +17,5 @@ app = App(settings=dict(
 calc_cli = app.load_interface('test_calc_cli')
 
 # Run the CLI interface according to the provided arguments.
-result = calc_cli.run()
+if __name__ == '__main__':
+    calc_cli.run()

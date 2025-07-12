@@ -6,6 +6,8 @@ import sys
 # ** app
 from .app import *
 from ..handlers.cli import CliService
+from ..models.cli import CliRequest
+from ..commands import raise_error
 
 # *** contexts
 
@@ -44,8 +46,8 @@ class CliContext(AppInterfaceContext):
             errors=errors
         )
 
-        # * method: parse_request
-    def parse_request(self) -> Request:
+    # * method: parse_request
+    def parse_request(self) -> CliRequest:
         '''
         Parse the command line arguments and return a Request object.
 
@@ -53,25 +55,50 @@ class CliContext(AppInterfaceContext):
         :rtype: Request
         '''
 
-        # Retrieve the command from the CLI service.
-        cli_command = self.cli_service.get_command(
-            group=sys.argv[1].replace('-', '_'), 
-            command=sys.argv[2].replace('-', '_')
-        )
+        # Retrieve the command map from the CLI service.
+        cli_commands = self.cli_service.get_commands()
 
         # Parse the command line arguments for the CLI command.
-        parsed_arguments = self.cli_service.parse_arguments(cli_command)
+        data = self.cli_service.parse_arguments(cli_commands)
 
-        # Format the headers for the request.
+        # Create the default headers for the request.
         headers = dict(
-            cli_command=cli_command.key,
-            cli_group=cli_command.group_key
+            interface_id=self.interface_id
         )
 
-        # Create and return the Request object with the parsed arguments and headers.
-        return super().parse_request(
+        # Create a CliRequest object with the parsed data and headers.
+        return ModelObject.new(
+            CliRequest,
+            data=data,
             headers=headers,
-            data=parsed_arguments
+            command_group=data.pop('group'),
+            command_key=data.pop('command')
         )
 
-       
+    # * method: run
+    def run(self) -> Any:
+        '''
+        Run the CLI context by parsing the request and executing the command.
+
+        :return: The result of the command execution.
+        :rtype: Any
+        '''
+
+        # Parse the request and execute the feature.
+        # Handle any TiferetError exceptions that may occur during request parsing or execution.
+        try:
+            cli_request = self.parse_request()
+            self.execute_feature(
+                feature_id=cli_request.to_feature_id(),
+                request=cli_request
+            )
+        except TiferetError as e:
+            print(self.handle_error(e), file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(e)
+            sys.exit(2)
+        
+
+        # Return the result of the command execution.
+        print(cli_request.handle_response())

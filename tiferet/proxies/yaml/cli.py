@@ -122,10 +122,10 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
         # Load the YAML data for the parent arguments.
         result: List[CliArgument] = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
-            create_data=lambda data: ModelObject.new(
+            create_data=lambda data: [ModelObject.new(
                 CliArgument,
-                **data
-            )
+                **arg_data
+            ) for arg_data in data]
         )
 
         # Return the result if it exists, otherwise return an empty list.
