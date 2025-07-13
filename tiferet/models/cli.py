@@ -43,10 +43,9 @@ class CliRequest(Request):
 
         # Format the feature ID as 'command_group.command_key'.
         return '{}.{}'.format(
-            self.command_group.replace('_', '-'),
-            self.command_key.replace('_', '-')
+            self.command_group.replace('-', '_'),
+            self.command_key.replace('-', '_')
         )
-
 
 # ** model: cli_argument
 class CliArgument(ValueObject):

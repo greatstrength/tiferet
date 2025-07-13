@@ -57,6 +57,12 @@ class CliCommand(ModelContract):
     # * attribute: name
     name: str
 
+    # * attribute: key
+    key: str
+
+    # * attribute: group_key
+    group_key: str
+
     # * attribute: description
     description: str
 
@@ -64,6 +70,7 @@ class CliCommand(ModelContract):
     arguments: List[CliArgument]
 
     # * method: has_argument
+    @abstractmethod
     def has_argument(self, flags: List[str]) -> bool:
         '''
         Check if the command has an argument with the given flags.
@@ -76,6 +83,7 @@ class CliCommand(ModelContract):
         raise NotImplementedError('has_argument method must be implemented in the CliCommand contract.')
     
     # * method: add_argument
+    @abstractmethod
     def add_argument(self, cli_argument: CliArgument):
         '''
         Add an argument to the command.
@@ -92,18 +100,16 @@ class CliRepository(Repository):
     It provides methods to retrieve and manipulate CLI commands and their arguments.
     '''
 
-    # * method: get_command
+    # * method: get_commands
     @abstractmethod
-    def get_command(self, command_id: str) -> CliCommand:
+    def get_commands(self) -> List[CliCommand]:
         '''
-        Get a command by its unique identifier.
+        Get all commands available in the CLI repository.
 
-        :param command_id: The unique identifier of the command.
-        :type command_id: str
-        :return: The command object.
-        :rtype: CliCommand
+        :return: A list of CLI commands.
+        :rtype: List[CliCommand]
         '''
-        raise NotImplementedError('get_command method must be implemented in the CLI repository.')
+        raise NotImplementedError('get_commands method must be implemented in the CLI repository.')
 
     # * method: get_parent_arguments
     @abstractmethod
@@ -122,20 +128,16 @@ class CliService(Service):
     The CLI service interface is used to manage the command line interface of the application.
     '''
 
-    # * method: get_command
+    # * method: get_commands
     @abstractmethod
-    def get_command(self, group: str, command: str) -> CliCommand:
+    def get_commands(self) -> Dict[str, CliCommand]:
         '''
-        Get a command by its group and name.
+        Get all commands available in the CLI service mapped by their group keys.
 
-        :param group: The group of the command.
-        :type group: str
-        :param command: The name of the command.
-        :type command: str
-        :return: The command object.
-        :rtype: CliCommand
+        :return: A dictionary of CLI commands mapped by their group keys.
+        :rtype: Dict[str, CliCommand]
         '''
-        raise NotImplementedError('get_command method must be implemented in the CLI service.')
+        raise NotImplementedError('get_commands method must be implemented in the CLI service.')
     
     # * method: parse_arguments
     @abstractmethod

@@ -31,72 +31,107 @@ class CliHandler(CliService):
         # Set the CLI repository.
         self.cli_repository = cli_repository
 
-
-    # * method: get_command
-    def get_command(self, group: str, command: str) -> CliCommand:
+    # * method: get_commands
+    def get_commands(self) -> Dict[str, CliCommand]:
         '''
-        Get a command by its group and name.
+        Get all commands available in the CLI service mapped by their group keys.
 
-        :param group: The group of the command.
-        :type group: str
-        :param command: The name of the command.
-        :type command: str
-        :return: The command object.
-        :rtype: CliCommand
+        :return: A dictionary of CLI commands mapped by their group keys.
+        :rtype: Dict[str, CliCommand]
         '''
-        
-        # Format the command ID.
-        command_id = f'{group}.{command}'
 
-        # Retrieve the command from the repository.
-        command = self.cli_repository.get_command(command_id)
+        # Retrieve the commands from the CLI repository.
+        cli_commands = self.cli_repository.get_commands()
 
-        # If the command is not found, raise an error.
-        if not command:
-            raise_error.execute(
-                'CLI_COMMAND_NOT_FOUND',
-                f'Command {command_id} not found.',
-                command_id
-            )
+        # Create a map of commands by their group keys.
+        command_map = {}
+        for command in cli_commands:
 
-        # Return the command.
-        return command
+            # If the group key is not set within the map, add the command to a list before adding it to the map.
+            if command.group_key not in command_map:
+                command_map[command.group_key] = [command]
+
+            # Otherwise, append the command to the existing list for that group key.
+            else:
+                command_map[command.group_key].append(command)
+
+        # Return the command map.
+        return command_map
     
     # * method: parse_arguments
-    def parse_arguments(self, cli_command: CliCommand) -> Dict[str, Any]:
+    def parse_arguments(self, cli_commands: Dict[str, CliCommand]) -> Dict[str, Any]:
         '''
-        Parse the command line arguments for a given CLI command.
-
-        :param cli_command: The CLI command to parse arguments for.
-        :type cli_command: CliCommand
-        :return: A dictionary of parsed arguments.
-        :rtype: Dict[str, Any]
+        Parse the command line arguments for a list of CLI commands.
         '''
-
-         # Create an argument parser.
-        parser = argparse.ArgumentParser(
-            description=cli_command.description
-        )
 
         # Retrieve the parent arguments from the CLI repository.
-        # Add the parent arguments to the command if they do not already exist.
         parent_arguments = self.cli_repository.get_parent_arguments()
-        for argument in parent_arguments:
-            if not cli_command.has_argument(argument.name_or_flags):
-                cli_command.add_argument(argument)
 
-        # Add the cli command arguments to the parser.
-        for argument in cli_command.arguments:
-            parser.add_argument(
-                *argument.name_or_flags,
-                help=argument.description,
-                type=argument.get_type(),
-                default=argument.default,
-                required=argument.required,
-                nargs=argument.nargs,
-                choices=argument.choices,
-                action=argument.action
+         # Create an argument parser.
+        parser = argparse.ArgumentParser()
+
+        # Add command subparsers for the command group.
+        group_subparsers = parser.add_subparsers(dest='group')
+
+        # Loop through the command map and create a parser for each command.
+        for group_key in cli_commands:
+
+            # Create a subparser for the command group.
+            group_subparser = group_subparsers.add_parser(
+                group_key,
+                help=f'Commands for the {group_key} group.'
             )
+
+            # Get the CLI commands from the map.
+            cli_group_commands = cli_commands[group_key]
+
+            # Create a subparser for each command in the group.
+            cmd_subparsers = group_subparser.add_subparsers(dest='command')
+
+            # Loop through each CLI command in the group.
+            for cli_command in cli_group_commands:
+
+                # Create a subparser for the CLI command.
+                cli_command_parser = cmd_subparsers.add_parser(
+                    cli_command.key,
+                    help=cli_command.description
+                )
+
+                # Add the CLI command arguments to the command parser.
+                for argument in cli_command.arguments:
+
+                    # Create the argument data for the command parser.
+                    args = dict(
+                        help=argument.description,
+                        type=argument.get_type(),
+                        default=argument.default,
+                        nargs=argument.nargs,
+                        choices=argument.choices,
+                        action=argument.action
+                    )
+
+                    # Add the required flag if the value is set.
+                    if argument.required is not None:
+                        args['required'] = argument.required
+
+                    cli_command_parser.add_argument(
+                        *argument.name_or_flags,
+                        **args
+                    )
+
+                # Add the parent arguments to the command parser if they are not already present in the command.
+                for argument in parent_arguments:
+                    if not cli_command.has_argument(argument.name_or_flags):
+                        cli_command_parser.add_argument(
+                            *argument.name_or_flags,
+                            help=argument.description,
+                            type=argument.get_type(),
+                            default=argument.default,
+                            required=argument.required,
+                            nargs=argument.nargs,
+                            choices=argument.choices,
+                            action=argument.action
+                        )
 
         # Return the parsed arguments as a dictionary.
         return vars(parser.parse_args())

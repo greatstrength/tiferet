@@ -7,14 +7,10 @@ cli:
       args:
         - name_or_flags: 
             - a
-            - --a
           description: The first number to add.
-          required: true
         - name_or_flags: 
             - b
-            - --b
           description: The second number to add.
-          required: true
       name: Add Number Command
     test_calc.subtract_number:
       group_key: test-calc
@@ -23,14 +19,10 @@ cli:
       args:
         - name_or_flags: 
             - a
-            - --a
           description: The number to subtract from.
-          required: true
         - name_or_flags: 
             - b
-            - --b
           description: The number to subtract.
-          required: true
       name: Subtract Number Command
     test_calc.multiply_number:
       group_key: test-calc
@@ -39,14 +31,10 @@ cli:
       args:
         - name_or_flags: 
             - a
-            - --a
           description: The first number to multiply.
-          required: true
         - name_or_flags: 
             - b
-            - --b
-          description: The second number to multiply.   
-          required: true
+          description: The second number to multiply.  
       name: Multiply Number Command
     test_calc.divide_number:
       group_key: test-calc
@@ -55,14 +43,10 @@ cli:
       args:
         - name_or_flags: 
             - a
-            - --a
           description: The numerator.
-          required: true
         - name_or_flags: 
             - b
-            - --b
           description: The denominator.
-          required: true
       name: Divide Number Command
     test_calc.square_number:
       group_key: test-calc
@@ -71,7 +55,5 @@ cli:
       args:
         - name_or_flags: 
             - a
-            - --a
           description: The number to square.
-          required: true
       name: Square Number Command

@@ -150,14 +150,6 @@ ERRORS = [
         ]
     ),
     dict(
-        id='cli_command_not_provided',
-        name='CLI Command Not Provided',
-        error_code='CLI_COMMAND_NOT_PROVIDED',
-        message=[
-            dict(lang='en_US', text='Command group and command positional arguments are required.')
-        ]
-    ),
-    dict(
         id='cli_config_loading_failed',
         name='CLI Configuration Loading Failed',
         error_code='CLI_CONFIG_LOADING_FAILED',
