@@ -44,3 +44,25 @@ interfaces:
     description: The context for testing the app yaml proxy.
     feature_flag: test_app_yaml_proxy
     name: Test App YAML Proxy
+cli:
+  cmds:
+    test_group.test_feature:
+      group_key: test-group
+      key: test-feature
+      description: A test feature command.
+      args:
+        - name_or_flags: 
+            - --arg1
+            - -a
+          description: Argument 1
+        - name_or_flags: 
+            - --arg2
+            - -b
+          description: Argument 2
+      name: Test Feature Command
+  parent_args:
+    - name_or_flags: 
+        - --parent-arg
+        - -p
+      description: Parent argument
+      required: true

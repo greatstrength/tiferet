@@ -53,14 +53,26 @@ class CliCommandYamlData(CliCommand, DataObject):
         :rtype: dict
         '''
 
+
         # Convert the data object to a primitive dictionary.
-        return dict(
-            **super().to_primitive(
-                role,
-                **kwargs
-            ),
-            args=[arg.to_primitive() for arg in self.arguments]
-        ) 
+        if role == 'to_data':
+            return dict(
+                **super().to_primitive(
+                    role,
+                    **kwargs
+                ),
+                args=[arg.to_primitive() for arg in self.arguments]
+            ) 
+        
+        # Convert the data object to a model dictionary.
+        elif role == 'to_model':
+            return dict(
+                **super().to_primitive(
+                    role,
+                    **kwargs
+                ),
+                arguments=[arg.to_primitive() for arg in self.arguments]
+            )
     
     # * method: map
     def map(self, **kwargs) -> CliCommand:
