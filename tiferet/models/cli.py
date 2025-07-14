@@ -114,44 +114,6 @@ class CliArgument(ValueObject):
             description='The action to be taken when the argument is encountered.'
         ),
     )
-
-    # * method: new
-    @staticmethod
-    def new(name: str, help: str, type: str = None, flags: List[str] = [], positional: bool = False, default: str = None, required: bool = False, nargs: str = None, choices: List[str] = None, action: str = None):
-
-        # Format name or flags parameter
-        name = name.lower().replace('_', '-').replace(' ', '-')
-
-        # If the argument is not positional, it should be prefixed with '--' and flags should be prefixed with '-'.
-        if not positional:
-            name = '--{}'.format(name)
-            if flags:
-                flags = ['-{}'.format(flag.replace('_', '-')) for flag in flags]
-        
-        # Create the name or flags list.
-        name_or_flags = [name]
-        if flags:
-            name_or_flags.extend(flags)
-
-        # Format required parameter.
-        if positional or required == False:
-            required = None
-
-        # Create the argument object
-        argument = ModelObject.new(
-            CliArgument,
-            name_or_flags=name_or_flags,
-            description=help,
-            type=type,
-            default=default,
-            required=required,
-            nargs=nargs,
-            choices=choices,
-            action=action,
-        )
-
-        # Return argument
-        return argument
     
     # * method: get_type
     def get_type(self) -> str | int | float:
@@ -241,7 +203,7 @@ class CliCommand(Entity):
         '''
 
         # Create the command id from the formatted group key and key.
-        id = '{}.{}'.format(group_key, key)
+        id = '{}.{}'.format(group_key.replace('-', '_'), key.replace('-', '_'))
 
         # Create and return the command object.
         return ModelObject.new(
