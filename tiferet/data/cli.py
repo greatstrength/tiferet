@@ -18,7 +18,7 @@ class CliCommandYamlData(CliCommand, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_data': DataObject.deny('id'),
+            'to_data': DataObject.deny('id', 'arguments'),
             'to_model': DataObject.deny('arguments')
         }
 
@@ -59,7 +59,7 @@ class CliCommandYamlData(CliCommand, DataObject):
                 role,
                 **kwargs
             ),
-            arguments=[arg.to_primitive() for arg in self.arguments]
+            args=[arg.to_primitive() for arg in self.arguments]
         ) 
     
     # * method: map
