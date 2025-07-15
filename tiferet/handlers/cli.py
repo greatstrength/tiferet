@@ -4,7 +4,6 @@
 import argparse
 
 # ** app
-from ..commands import raise_error
 from ..contracts.cli import *
 
 # *** handlers
@@ -16,20 +15,20 @@ class CliHandler(CliService):
     It provides methods to retrieve and manipulate CLI commands and their arguments.
     '''
 
-    # * attribute: cli_repository
-    cli_repository: CliRepository
+    # * attribute: cli_repo
+    cli_repo: CliRepository
 
     # * init
-    def __init__(self, cli_repository: CliRepository):
+    def __init__(self, cli_repo: CliRepository):
         '''
         Initialize the CLI handler with a CLI repository.
 
-        :param cli_repository: The CLI repository to use.
-        :type cli_repository: CliRepository
+        :param cli_repo: The CLI repository to use.
+        :type cli_repo: CliRepository
         '''
         
         # Set the CLI repository.
-        self.cli_repository = cli_repository
+        self.cli_repo = cli_repo
 
     # * method: get_commands
     def get_commands(self) -> Dict[str, CliCommand]:
@@ -41,7 +40,7 @@ class CliHandler(CliService):
         '''
 
         # Retrieve the commands from the CLI repository.
-        cli_commands = self.cli_repository.get_commands()
+        cli_commands = self.cli_repo.get_commands()
 
         # Create a map of commands by their group keys.
         command_map = {}
@@ -65,7 +64,7 @@ class CliHandler(CliService):
         '''
 
         # Retrieve the parent arguments from the CLI repository.
-        parent_arguments = self.cli_repository.get_parent_arguments()
+        parent_arguments = self.cli_repo.get_parent_arguments()
 
          # Create an argument parser.
         parser = argparse.ArgumentParser()
