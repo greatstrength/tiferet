@@ -83,20 +83,28 @@ class CliContext(AppInterfaceContext):
         :rtype: Any
         '''
 
-        # Parse the request and execute the feature.
-        # Handle any TiferetError exceptions that may occur during request parsing or execution.
+        # Attempt to parse the command line request.
         try:
             cli_request = self.parse_request()
+
+        # Handle any exceptions that may occur during request parsing.
+        except Exception as e:
+            print(e, file=sys.stderr)
+            sys.exit(2)
+
+
+        # Handle any TiferetError exceptions that may occur during request parsing or execution.
+        try:
             self.execute_feature(
                 feature_id=cli_request.to_feature_id(),
                 request=cli_request
             )
+        
+        # 
         except TiferetError as e:
             print(self.handle_error(e), file=sys.stderr)
             sys.exit(1)
-        except Exception as e:
-            print(e)
-            sys.exit(2)
+        
         
 
         # Return the result of the command execution.

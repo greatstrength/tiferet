@@ -76,7 +76,7 @@ interfaces:
       cli_service:
         class_name: CliHandler
         module_path: tiferet.handlers.cli
-      cli_repository:
+      cli_repo:
         class_name: CliYamlProxy
         module_path: tiferet.proxies.yaml.cli
         params:
