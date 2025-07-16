@@ -139,7 +139,7 @@ class Entity(ModelObject):
     A domain model entity.
     '''
 
-    # ** attribute: id
+    # * attribute: id
     id = StringType(
         required=True,
         metadata=dict(

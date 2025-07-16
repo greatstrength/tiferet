@@ -1,0 +1,27 @@
+logging:
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    simple:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+    console:
+      class_name: StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
+    file:
+      class_name: FileHandler
+      level: DEBUG
+      formatter: simple
+      filename: app.log
+      mode: a
+  loggers:
+    my_app:
+      level: DEBUG
+      handlers: [console, file]
+      propagate: false
+  root:
+    level: WARNING
+    handlers: [console]
