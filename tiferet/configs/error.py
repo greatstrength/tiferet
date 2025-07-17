@@ -148,5 +148,21 @@ ERRORS = [
         message=[
             dict(lang='en_US', text='Unable to load error configuration file {}: {}.')
         ]
+    ),
+    dict(
+        id='cli_config_loading_failed',
+        name='CLI Configuration Loading Failed',
+        error_code='CLI_CONFIG_LOADING_FAILED',
+        message=[
+            dict(lang='en_US', text='Unable to load CLI configuration file {}: {}.')
+        ]
+    ),
+    dict(
+        id='cli_command_not_found',
+        name='CLI Command Not Found',
+        error_code='CLI_COMMAND_NOT_FOUND',
+        message=[
+            dict(lang='en_US', text='Command {} not found.')
+        ]
     )
 ]
