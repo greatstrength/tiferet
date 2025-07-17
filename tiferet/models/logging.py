@@ -8,8 +8,16 @@ from .settings import *
 # ** model: formatter
 class Formatter(Entity):
     '''
-    A value object representing a logging formatter configuration.
+    An entity representing a logging formatter configuration.
     '''
+
+    # * attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier of the formatter.'
+        )
+    )
 
     # * attribute: name
     name = StringType(
@@ -44,8 +52,16 @@ class Formatter(Entity):
 # ** model: handler
 class Handler(Entity):
     '''
-    A value object representing a logging handler configuration.
+    An entity representing a logging handler configuration.
     '''
+
+    # * attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier of the handler.'
+        )
+    )
 
     # * attribute: name
     name = StringType(
@@ -112,8 +128,16 @@ class Handler(Entity):
 # ** model: logger
 class Logger(Entity):
     '''
-    A value object representing a logger configuration.
+    An entity representing a logger configuration.
     '''
+
+    # * attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier of the logger.'
+        )
+    )
 
     # * attribute: name
     name = StringType(

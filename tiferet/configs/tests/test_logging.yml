@@ -1,6 +1,4 @@
 logging:
-  version: 1
-  disable_existing_loggers: false
   formatters:
     simple:
       format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -22,6 +20,7 @@ logging:
       level: DEBUG
       handlers: [console, file]
       propagate: false
-  root:
-    level: WARNING
-    handlers: [console]
+    root:
+      level: WARNING
+      handlers: [console]
+      is_root: true
