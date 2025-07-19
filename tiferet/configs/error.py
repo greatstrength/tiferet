@@ -164,4 +164,20 @@ ERRORS = [
             dict(lang='en_US', text='Command {} not found.')
         ]
     ),
+    dict(
+        id='logging_config_failed',
+        name='Logging Configuration Failed',
+        error_code='LOGGING_CONFIG_FAILED',
+        message=[
+            dict(lang='en_US', text='Failed to configure logging: {}.')
+        ]
+    ),
+    dict(
+        id='logger_creation_failed',
+        name='Logger Creation Failed',
+        error_code='LOGGER_CREATION_FAILED',
+        message=[
+            dict(lang='en_US', text='Failed to create logger with ID {}: {}.')
+        ]
+    ),
 ]

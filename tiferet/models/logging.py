@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import Any, Dict
+
 # ** app
 from .settings import *
 
@@ -48,6 +51,19 @@ class Formatter(Entity):
             description='The date format for log timestamps.'
         )
     )
+
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the formatter configuration into a dictionary.
+
+        :return: The formatted formatter configuration.
+        :rtype: Dict[str, Any]
+        '''
+        return {
+            'format': self.format,
+            'datefmt': self.datefmt
+        }
 
 # ** model: handler
 class Handler(Entity):
@@ -125,6 +141,25 @@ class Handler(Entity):
         )
     )
 
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the handler configuration into a dictionary.
+
+        :return: The formatted handler configuration.
+        :rtype: Dict[str, Any]
+        '''
+        config = {
+            'class': f'{self.module_path}.{self.class_name}',
+            'level': self.level,
+            'formatter': self.formatter
+        }
+        if self.stream:
+            config['stream'] = self.stream
+        if self.filename:
+            config['filename'] = self.filename
+        return config
+
 # ** model: logger
 class Logger(Entity):
     '''
@@ -187,3 +222,17 @@ class Logger(Entity):
             description='Whether this is the root logger.'
         )
     )
+
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the logger configuration into a dictionary.
+
+        :return: The formatted logger configuration.
+        :rtype: Dict[str, Any]
+        '''
+        return {
+            'level': self.level,
+            'handlers': self.handlers,
+            'propagate': self.propagate
+        }

@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 import logging
 
 # ** app
@@ -18,17 +18,15 @@ class FormatterContract(ModelContract):
     # * attribute: id
     id: str
 
-    # * attribute: name
-    name: str
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the formatter configuration into a dictionary.
 
-    # * attribute: description
-    description: str
-
-    # * attribute: format
-    format: str
-
-    # * attribute: datefmt
-    datefmt: str
+        :return: The formatted formatter configuration.
+        :rtype: Dict[str, Any]
+        '''
+        raise NotImplementedError('The format_config method must be implemented by the formatter contract.')
 
 # ** contract: handler
 class HandlerContract(ModelContract):
@@ -39,29 +37,15 @@ class HandlerContract(ModelContract):
     # * attribute: id
     id: str
 
-    # * attribute: name
-    name: str
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the handler configuration into a dictionary.
 
-    # * attribute: description
-    description: str
-
-    # * attribute: module_path
-    module_path: str
-
-    # * attribute: class_name
-    class_name: str
-
-    # * attribute: level
-    level: str
-
-    # * attribute: formatter
-    formatter: str
-
-    # * attribute: stream
-    stream: str
-
-    # * attribute: filename
-    filename: str
+        :return: The formatted handler configuration.
+        :rtype: Dict[str, Any]
+        '''
+        raise NotImplementedError('The format_config method must be implemented by the handler contract.')
 
 # ** contract: logger
 class LoggerContract(ModelContract):
@@ -72,23 +56,18 @@ class LoggerContract(ModelContract):
     # * attribute: id
     id: str
 
-    # * attribute: name
-    name: str
-
-    # * attribute: description
-    description: str
-
-    # * attribute: level
-    level: str
-
-    # * attribute: handlers
-    handlers: List[str]
-
-    # * attribute: propagate
-    propagate: bool
-
     # * attribute: is_root
     is_root: bool
+
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Format the logger configuration into a dictionary.
+
+        :return: The formatted logger configuration.
+        :rtype: Dict[str, Any]
+        '''
+        raise NotImplementedError('The format_config method must be implemented by the logger contract.')
 
 # ** contract: logging_repository
 class LoggingRepository(Repository):
@@ -98,7 +77,7 @@ class LoggingRepository(Repository):
 
     # * method: list_all
     @abstractmethod
-    def list_all(self) -> Tuple[FormatterContract, HandlerContract, LoggerContract]:
+    def list_all(self) -> Tuple[List[FormatterContract], List[HandlerContract], List[LoggerContract]]:
         '''
         List all logging configurations.
 

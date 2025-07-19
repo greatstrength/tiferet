@@ -10,7 +10,7 @@ logging:
       formatter: simple
       stream: ext://sys.stdout
     file:
-      class_name: FileHandler
+      class_name: logging.FileHandler
       level: DEBUG
       formatter: simple
       filename: app.log
