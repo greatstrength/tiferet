@@ -201,7 +201,7 @@ class Logger(Entity):
     # * attribute: handlers
     handlers = ListType(
         StringType(),
-        required=True,
+        default=[],
         metadata=dict(
             description='List of handler ids for the logger.'
         )

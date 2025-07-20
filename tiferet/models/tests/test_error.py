@@ -6,7 +6,6 @@ import pytest
 # ** app
 from ..error import *
 
-
 # *** fixtures
 
 # ** fixture: error_message
@@ -15,13 +14,11 @@ def error_message() -> ErrorMessage:
     '''
     Fixture to create a basic error message object.
     '''
-
     return ValueObject.new(
         ErrorMessage,
         lang='en_US',
         text='An error occurred.'
     )
-
 
 # ** fixture: formatted_error_message
 @pytest.fixture
@@ -29,7 +26,6 @@ def formatted_error_message() -> ErrorMessage:
     '''
     Fixture to create a formatted error message object.
     '''
-
     return ValueObject.new(
         ErrorMessage,
         lang='en_US',
@@ -42,7 +38,6 @@ def error(error_message) -> Error:
     '''
     Fixture to create a basic error object.
     '''
-    
     return Error.new(
         name='Test Error',
         error_code='TEST_ERROR',
@@ -51,14 +46,12 @@ def error(error_message) -> Error:
         ]
     )
 
-
 # ** fixture: error_with_formatted_message
 @pytest.fixture
 def error_with_formatted_message(formatted_error_message) -> Error:
     '''
     Fixture to create an error object with a formatted message.
     '''
-    
     return Error.new(
         name='Test Formatted Error',
         error_code='TEST_FORMATTED_ERROR',
@@ -67,13 +60,13 @@ def error_with_formatted_message(formatted_error_message) -> Error:
         ]
     )
 
-
 # *** tests
 
-# ** test: test_error_message_new
-def test_error_new(error_message):
-
-
+# ** test: error_new_success
+def test_error_new_success(error_message):
+    '''
+    Test successful instantiation of an Error object with explicit parameters.
+    '''
     # Create an error message object.
     error = Error.new(
         id='test_error',
@@ -95,10 +88,11 @@ def test_error_new(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_new_no_id
-def test_error_new_no_id(error_message):
-
+# ** test: error_new_default_id
+def test_error_new_default_id(error_message):
+    '''
+    Test Error instantiation with default id and error_code generation.
+    '''
     # Create an error message object with no ID.
     error = Error.new(
         name='Test Error',
@@ -113,10 +107,11 @@ def test_error_new_no_id(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_new_raw_message_data
-def test_error_new_raw_message_data(error_message):
-
+# ** test: error_new_raw_message
+def test_error_new_raw_message(error_message):
+    '''
+    Test Error instantiation with raw message data conversion.
+    '''
     # Create an error message object.
     error = Error.new(
         name='Test Error',
@@ -130,36 +125,39 @@ def test_error_new_raw_message_data(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_message_format
-def test_error_message_format(error_message, formatted_error_message):
-
+# ** test: error_message_format_basic
+def test_error_message_format_basic(error_message, formatted_error_message):
+    '''
+    Test basic and formatted message formatting for ErrorMessage.
+    '''
     # Test basic formatting
     assert error_message.format() == 'An error occurred.'
     # Test formatting with arguments
     assert formatted_error_message.format('Check for bugs.') == 'An error occurred: Check for bugs.'
 
-
-# ** test: test_error_format_method
-def test_error_format_method(error, error_with_formatted_message):
-   
+# ** test: error_format_message_basic
+def test_error_format_message_basic(error, error_with_formatted_message):
+    '''
+    Test basic and formatted message formatting for Error.
+    '''
     # Test formatting with arguments
     assert error.format_message('en_US') == 'An error occurred.'
-
     # Test formatting with arguments
     assert error_with_formatted_message.format_message('en_US', 'Check for bugs.') == 'An error occurred: Check for bugs.'
 
-
-# ** test: test_error_format_method_unsupported_lang
-def test_error_format_method_unsupported_lang(error):
-
+# ** test: error_format_message_unsupported_lang
+def test_error_format_message_unsupported_lang(error):
+    '''
+    Test Error format_message with an unsupported language.
+    '''
     # Test formatting with unsupported language
-    assert error.format_message('fr_FR') == None
+    assert error.format_message('fr_FR') is None
 
-
-# ** test: test_error_format_response
-def test_error_format_response(error, error_with_formatted_message):
-
+# ** test: error_format_response_basic
+def test_error_format_response_basic(error, error_with_formatted_message):
+    '''
+    Test basic and formatted response formatting for Error.
+    '''
     # Test formatting the error response
     response = error.format_response('en_US')
     
@@ -174,23 +172,22 @@ def test_error_format_response(error, error_with_formatted_message):
     assert formatted_response['error_code'] == 'TEST_FORMATTED_ERROR'
     assert formatted_response['message'] == 'An error occurred: Check for bugs.'
 
-
-# ** test: test_error_format_response_unsupported_lang
+# ** test: error_format_response_unsupported_lang
 def test_error_format_response_unsupported_lang(error):
-    
+    '''
+    Test Error format_response with an unsupported language.
+    '''
     # Test formatting the error response with unsupported language
     response = error.format_response('fr_FR')
 
     # Verify that the response is None.
-    assert not response
+    assert response is None
 
-
-# ** test: test_error_set_message
-def test_error_set_message(error):
+# ** test: error_set_message_update
+def test_error_set_message_update(error):
     '''
-    Test setting a new error message for a specific language.
+    Test updating an existing error message for a specific language.
     '''
-
     # Set a new message for the 'en_US' language.
     error.set_message('en_US', 'A new error occurred.')
 
@@ -199,13 +196,11 @@ def test_error_set_message(error):
     assert error.message[0].lang == 'en_US'
     assert error.message[0].text == 'A new error occurred.'
 
-
-# ** test: test_error_set_message_new_lang
+# ** test: error_set_message_new_lang
 def test_error_set_message_new_lang(error):
     '''
-    Test setting a new error message for a new language.
+    Test adding a new error message for a new language.
     '''
-
     # Set a new message for the 'fr_FR' language.
     error.set_message('fr_FR', 'Une nouvelle erreur est survenue.')
 
