@@ -29,20 +29,43 @@ class LoggingHandler(LoggingService):
         '''
         self.logging_repo = logging_repo
 
-    # * method: create_logger
-    def create_logger(self, logger_id: str) -> logging.Logger:
+    # * method: list_all
+    def list_all(self) -> Tuple[List[FormatterContract], List[HandlerContract], List[LoggerContract]]:
         '''
-        Create a logger instance for the specified logger ID.
+        List all formatter, handler, and logger configurations.
 
-        :param logger_id: The ID of the logger configuration to create.
-        :type logger_id: str
-        :return: The native logger instance.
-        :rtype: logging.Logger
+        :return: A tuple of formatter, handler, and logger configurations.
+        :rtype: Tuple[List[FormatterContract], List[HandlerContract], List[LoggerContract]]
         '''
-        # Get the logging configurations from the logging repository.
-        formatters, handlers, loggers = self.logging_repo.list_all()
+        # Retrieve all logging configurations from the repository.
+        return self.logging_repo.list_all()
+    
+    # * method: format_config
+    def format_config(
+        self,
+        formatters: List[FormatterContract],
+        handlers: List[HandlerContract],
+        loggers: List[LoggerContract],
+        version: int = 1,
+        disable_existing_loggers: bool = False
+    ) -> Dict[str, Any]:
+        '''
+        Format the logging configurations into a dictionary.
 
-        # Check for root logger presence.
+        :param formatters: List of formatter configurations.
+        :type formatters: List[FormatterContract]
+        :param handlers: List of handler configurations.
+        :type handlers: List[HandlerContract]
+        :param loggers: List of logger configurations.
+        :type loggers: List[LoggerContract]
+        :param version: The version of the logging configuration format.
+        :type version: int
+        :param disable_existing_loggers: Whether to disable existing loggers.
+        :type disable_existing_loggers: bool
+        :return: The formatted logging configurations.
+        :rtype: Dict[str, Any]
+        '''
+        # Get the root logger configuration and ensure it exists.
         root_logger = next((logger for logger in loggers if logger.is_root), None)
         if not root_logger:
             raise_error.execute(
@@ -51,19 +74,29 @@ class LoggingHandler(LoggingService):
                 'No root logger'
             )
 
-        # Format the configurations dictionary.
-        config = dict(
-            version=1,
-            disable_existing_loggers=False,
+        # Format the configurations into a dictionary.
+        return dict(
+            version=version,
+            disable_existing_loggers=disable_existing_loggers,
             formatters={formatter.id: formatter.format_config() for formatter in formatters},
             handlers={handler.id: handler.format_config() for handler in handlers},
             loggers={logger.id: logger.format_config() for logger in loggers if not logger.is_root},
-            root=root_logger.format_config() if root_logger else None
+            root=next((logger.format_config() for logger in loggers if logger.is_root), None)
         )
 
+    # * method: create_logger
+    def create_logger(self, logger_id: str, logging_config: Dict[str, Any]) -> logging.Logger:
+        '''
+        Create a logger instance for the specified logger ID.
+
+        :param logger_id: The ID of the logger configuration to create.
+        :type logger_id: str
+        :return: The native logger instance.
+        :rtype: logging.Logger
+        '''
         # Configure the logging system with the formatted configurations.
         try:
-            logging.config.dictConfig(config)
+            logging.config.dictConfig(logging_config)
         except Exception as e:
             raise_error.execute(
                 'LOGGING_CONFIG_FAILED',

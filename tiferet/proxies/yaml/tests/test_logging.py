@@ -104,7 +104,7 @@ def test_logging_yaml_proxy_load_yaml_error():
     assert 'Unable to load logging configuration file' in str(exc_info.value)
 
 # ** test: logging_yaml_proxy_list_all_success
-def test_logging_yaml_proxy_list_all_success(logging_yaml_proxy, yaml_data):
+def test_logging_yaml_proxy_list_all_success(logging_yaml_proxy):
     '''
     Test successful listing of all logging configurations by LoggingYamlProxy.
     '''

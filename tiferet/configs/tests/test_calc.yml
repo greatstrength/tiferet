@@ -67,11 +67,13 @@ interfaces:
           feature_config_file: tiferet/configs/tests/test_calc.yml
     const:
       error_config_file: tiferet/configs/tests/test_calc.yml
+      logging_config_file: tiferet/configs/tests/test_calc.yml
     description: The interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator
   test_calc_cli:
     module_path: tiferet.contexts.cli
     class_name: CliContext
+    logger_id: debug
     attrs:
       cli_service:
         class_name: CliHandler
@@ -85,7 +87,8 @@ interfaces:
       container_config_file: tiferet/configs/tests/test_calc.yml
       feature_config_file: tiferet/configs/tests/test_calc.yml
       error_config_file: tiferet/configs/tests/test_calc.yml
+      logging_config_file: tiferet/configs/tests/test_calc.yml
     description: The CLI interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator CLI
-    
+logging: {}
 

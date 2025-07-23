@@ -21,7 +21,7 @@ class CliContext(AppInterfaceContext):
     cli_service: CliService
 
     # * init
-    def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, cli_service: CliService):
+    def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, logging: LoggingContext, cli_service: CliService):
         '''
         Initialize the CLI context with a CLI service.
 
@@ -31,6 +31,8 @@ class CliContext(AppInterfaceContext):
         :type features: FeatureContext
         :param errors: The error context.
         :type errors: ErrorContext
+        :param logging: The logging context.
+        :type logging: LoggingContext
         :param cli_service: The CLI service to use.
         :type cli_service: CliService
         '''
@@ -42,7 +44,8 @@ class CliContext(AppInterfaceContext):
         super().__init__(
             interface_id=interface_id,
             features=features,
-            errors=errors
+            errors=errors,
+            logging=logging
         )
 
     # * method: parse_request
@@ -83,18 +86,25 @@ class CliContext(AppInterfaceContext):
         :rtype: Any
         '''
 
+        # Create a logger for the CLI context.
+        logger = self.logging.build_logger()
+
         # Attempt to parse the command line request.
         try:
+            logger.info('Parsing CLI request...')
             cli_request = self.parse_request()
 
         # Handle any exceptions that may occur during request parsing.
         except Exception as e:
+            logger.error(f'Error parsing CLI request: {e}')
             print(e, file=sys.stderr)
             sys.exit(2)
 
 
         # Handle any TiferetError exceptions that may occur during request parsing or execution.
         try:
+            logger.info(f'Executing feature for CLI request: {cli_request.to_feature_id()}')
+            logger.debug(f'CLI request data: {cli_request.to_primitive()}')
             self.execute_feature(
                 feature_id=cli_request.to_feature_id(),
                 request=cli_request
@@ -102,10 +112,12 @@ class CliContext(AppInterfaceContext):
         
         # 
         except TiferetError as e:
+            logger.error(f'Error executing CLI feature: {e}')
             print(self.handle_error(e), file=sys.stderr)
             sys.exit(1)
         
         
 
         # Return the result of the command execution.
+        logger.info('CLI request executed successfully.')
         print(cli_request.handle_response())

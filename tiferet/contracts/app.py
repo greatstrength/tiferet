@@ -48,6 +48,9 @@ class AppInterface(ModelContract):
     # * attribute: description
     description: str
 
+    # * attribute: logger_id
+    logger_id: str
+
     # * attribute: feature_flag
     feature_flag: str
 

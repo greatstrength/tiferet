@@ -76,6 +76,14 @@ class AppInterface(Entity):
         ),
     )
 
+    # * logger_id
+    logger_id = StringType(
+        default='default',
+        metadata=dict(
+            description='The logger ID for the application instance.'
+        ),
+    )
+
     # attribute: feature_flag
     feature_flag = StringType(
         default='default',

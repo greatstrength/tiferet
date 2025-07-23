@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+import logging
+
 # ** infra
 import pytest
 from unittest import mock
@@ -102,10 +105,29 @@ def error_context():
     # Return the mock ErrorContext instance.
     return error_context
 
+# ** fixture: logging_context
+@pytest.fixture
+def logging_context():
+    """
+    Fixture to create a mock LoggingContext instance.
+    
+    :return: A mock instance of LoggingContext.
+    :rtype: LoggingContext
+    """
+    
+    # Create a mock LoggingContext instance.
+    logging_context = mock.Mock(spec=LoggingContext)
+
+    # Mock the get_logger method to return a mock logger.
+    logging_context.build_logger.return_value = mock.Mock(spec=logging.Logger)
+
+    # Return the mock LoggingContext instance.
+    return logging_context
+
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context):
+def app_interface_context(app_interface, feature_context, error_context, logging_context):
     """
     Fixture to create a mock AppInterfaceContext instance.
     
@@ -117,7 +139,8 @@ def app_interface_context(app_interface, feature_context, error_context):
     return AppInterfaceContext(
         interface_id=app_interface.id,
         features=feature_context,
-        errors=error_context
+        errors=error_context,
+        logging=logging_context,
     )
 
 

@@ -75,12 +75,13 @@ class AppHandler(AppService):
         :rtype: Any
         '''
 
-         # Retrieve the app context dependency.
+         # Retrieve the app context dependency and logger id.
         dependencies = dict(
             app_context=import_dependency.execute(
                 app_interface.module_path,
                 app_interface.class_name,
-            )
+            ),
+            logger_id=app_interface.logger_id,
         )
 
         # Add the remaining app context attributes and parameters to the dependencies.

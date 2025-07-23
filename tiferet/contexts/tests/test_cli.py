@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-import sys
+import logging
 
 # ** infra
 import pytest
@@ -78,9 +78,20 @@ def error_context():
 
     return mock.Mock(spec=ErrorContext)
 
+# ** fixture: logging_context
+@pytest.fixture
+def logging_context():
+    """
+    Fixture to create a mock logging context.
+    """
+
+    logging_context = mock.Mock()
+    logging_context.logger = mock.Mock(spec=logging.getLogger())
+    return logging_context
+
 # ** fixture: cli_context
 @pytest.fixture
-def cli_context(cli_service, feature_context, error_context):
+def cli_context(cli_service, feature_context, error_context, logging_context):
     """
     Fixture to create a CLI context with the provided CLI service, feature context, and error context.
     """
@@ -89,7 +100,8 @@ def cli_context(cli_service, feature_context, error_context):
         interface_id='test_cli',
         features=feature_context,
         errors=error_context,
-        cli_service=cli_service
+        cli_service=cli_service,
+        logging=logging_context
     )
 
 # *** tests
