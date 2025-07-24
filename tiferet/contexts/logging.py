@@ -4,11 +4,7 @@
 import logging
 
 # ** app
-from ..configs.logging import (
-    DEFAULT_FORMATTERS,
-    DEFAULT_HANDLERS,
-    DEFAULT_LOGGERS,
-)
+from ..configs.logging import *
 from ..models.logging import *
 from ..handlers.logging import LoggingService
 
