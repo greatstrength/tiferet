@@ -100,18 +100,19 @@ class LoggingHandler(LoggingService):
         except Exception as e:
             raise_error.execute(
                 'LOGGING_CONFIG_FAILED',
-                'Failed to configure logging: {}.',
+                'Failed to configure logging: {e}.',
                 str(e)
             )
 
         # Return the logger instance by its ID.
         try:
             logger = logging.getLogger(logger_id)
-        except:
+        except Exception as e:
             raise_error.execute(
                 'LOGGER_CREATION_FAILED',
-                'Failed to create logger with ID {}: {}.',
-                logger_id, 'Logger not configured with handlers'
+                f'Failed to create logger with ID {logger_id}: {e}.',
+                logger_id, 
+                str(e)
             )
 
         return logger
