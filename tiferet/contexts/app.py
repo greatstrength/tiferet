@@ -275,14 +275,18 @@ class AppInterfaceContext(object):
         logger = self.logging.build_logger()
         
         # Parse request.
-        logger.info(f'Parsing request for feature: {feature_id}')
+        logger.debug(f'Parsing request for feature: {feature_id}')
         request = self.parse_request(headers, data)
 
         # Execute feature context and return session.
         try:
             logger.info(f'Executing feature: {feature_id}')
             logger.debug(f'Executing feature: {feature_id} with request: {request.to_primitive()}')
-            self.execute_feature(feature_id, request, **kwargs)
+            self.execute_feature(
+                feature_id=feature_id, 
+                request=request, 
+                logger=logger,
+                **kwargs)
 
         # Handle error and return response if triggered.
         except TiferetError as e:

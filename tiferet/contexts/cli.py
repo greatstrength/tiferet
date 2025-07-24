@@ -91,7 +91,7 @@ class CliContext(AppInterfaceContext):
 
         # Attempt to parse the command line request.
         try:
-            logger.info('Parsing CLI request...')
+            logger.debug('Parsing CLI request...')
             cli_request = self.parse_request()
 
         # Handle any exceptions that may occur during request parsing.
@@ -101,23 +101,23 @@ class CliContext(AppInterfaceContext):
             sys.exit(2)
 
 
-        # Handle any TiferetError exceptions that may occur during request parsing or execution.
+        # Attempt to execute the feature for the parsed CLI request.
         try:
-            logger.info(f'Executing feature for CLI request: {cli_request.to_feature_id()}')
+            feature_id = cli_request.to_feature_id()
+            logger.info(f'Executing feature for CLI request: {feature_id}')
             logger.debug(f'CLI request data: {cli_request.to_primitive()}')
             self.execute_feature(
-                feature_id=cli_request.to_feature_id(),
-                request=cli_request
+                feature_id=feature_id,
+                request=cli_request,
+                logger=logger,
             )
         
-        # 
+        # Handle any TiferetError exceptions that may occur during feature execution.
         except TiferetError as e:
-            logger.error(f'Error executing CLI feature: {e}')
+            logger.error(f'Error executing CLI feature {feature_id}: {e}')
             print(self.handle_error(e), file=sys.stderr)
             sys.exit(1)
         
-        
-
         # Return the result of the command execution.
-        logger.info('CLI request executed successfully.')
+        logger.debug('CLI request executed successfully.')
         print(cli_request.handle_response())
