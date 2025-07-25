@@ -76,6 +76,14 @@ class AppInterface(Entity):
         ),
     )
 
+    # * logger_id
+    logger_id = StringType(
+        default='default',
+        metadata=dict(
+            description='The logger ID for the application instance.'
+        ),
+    )
+
     # attribute: feature_flag
     feature_flag = StringType(
         default='default',
@@ -150,4 +158,3 @@ class AppInterface(Entity):
 
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
-    
