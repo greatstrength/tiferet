@@ -1,12 +1,15 @@
 # *** imports
 
+# ** core
+import logging
+from typing import Any
+
 # ** infra
 import pytest
 from unittest import mock
 
 # ** app
 from ..app import *
-
 
 # *** fixtures
 
@@ -39,7 +42,6 @@ def app_interface():
         ],
     )
 
-
 # ** fixture: app_repo
 @pytest.fixture
 def app_repo(app_interface):
@@ -59,7 +61,6 @@ def app_repo(app_interface):
     # Return the mock AppRepository instance.
     return app_repo
 
-
 # ** fixture: feature_context
 @pytest.fixture
 def feature_context():
@@ -78,7 +79,6 @@ def feature_context():
 
     # Return the mock FeatureContext instance.
     return feature_context
-
 
 # ** fixture: error_context
 @pytest.fixture
@@ -102,10 +102,28 @@ def error_context():
     # Return the mock ErrorContext instance.
     return error_context
 
+# ** fixture: logging_context
+@pytest.fixture
+def logging_context():
+    """
+    Fixture to create a mock LoggingContext instance.
+    
+    :return: A mock instance of LoggingContext.
+    :rtype: LoggingContext
+    """
+    
+    # Create a mock LoggingContext instance.
+    logging_context = mock.Mock(spec=LoggingContext)
+
+    # Mock the build_logger method to return a mock logger.
+    logging_context.build_logger.return_value = mock.Mock(spec=logging.Logger)
+
+    # Return the mock LoggingContext instance.
+    return logging_context
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context):
+def app_interface_context(app_interface, feature_context, error_context, logging_context):
     """
     Fixture to create a mock AppInterfaceContext instance.
     
@@ -117,9 +135,9 @@ def app_interface_context(app_interface, feature_context, error_context):
     return AppInterfaceContext(
         interface_id=app_interface.id,
         features=feature_context,
-        errors=error_context
+        errors=error_context,
+        logging=logging_context,
     )
-
 
 # ** fixture: app_service
 @pytest.fixture
@@ -138,11 +156,9 @@ def app_service(app_repo, app_interface_context):
     # Return the mock app service.
     return service
 
-
 # ** fixture: app_context
 @pytest.fixture
 def app_context(app_service):
-
     return AppContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
@@ -153,7 +169,6 @@ def app_context(app_service):
         ),
         app_service
     )
-    
 
 # *** tests
 
@@ -175,7 +190,6 @@ def test_app_context_load_interface(app_context, app_interface):
     assert result
     assert isinstance(result, AppInterfaceContext)
 
-
 # ** test: app_context_load_interface_invalid
 def test_app_context_load_interface_invalid(app_context, app_service):
     """
@@ -186,7 +200,7 @@ def test_app_context_load_interface_invalid(app_context, app_service):
     :param app_service: The mock app service.
     :type app_service: AppService
     """
-
+    
     # Create invalid app interface context.
     class InvalidContext(object):
         def __init__(self, *args, **kwargs):
@@ -203,7 +217,6 @@ def test_app_context_load_interface_invalid(app_context, app_service):
     assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
     assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
 
-
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):
     """
@@ -212,7 +225,6 @@ def test_app_interface_context_parse_request(app_interface_context):
     :param app_interface_context: The AppInterfaceContext instance.
     :type app_interface_context: AppInterfaceContext
     """
-
     
     # Parse the request using the app interface context.
     request = app_interface_context.parse_request(headers={
@@ -230,7 +242,6 @@ def test_app_interface_context_parse_request(app_interface_context):
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
 
-
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
     """
@@ -241,7 +252,7 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
     """
-
+    
     # Create a new request object.
     request = ModelObject.new(Request, 
         headers={
@@ -256,7 +267,6 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     # Assert that the feature id is set correctly to the request headers.
     assert request.headers.get('feature_id') == 'test_group.test_feature'
 
-
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
     """
@@ -267,7 +277,7 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
     """
-
+    
     # Create a new Tiferet Error object.
     error = TiferetError(
         error_code='TEST_ERROR',
@@ -283,7 +293,6 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     assert error_response['error_code'] == 'TEST_ERROR'
     assert error_response['message'] == 'This is a test error message.'
 
-
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
     """
@@ -292,7 +301,7 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     :param app_interface_context: The AppInterfaceContext instance.
     :type app_interface_context: AppInterfaceContext
     """
-
+    
     # Create an invalid error object.
     invalid_error = Exception("This is an invalid error.")
 
@@ -309,7 +318,6 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     assert error_response['error_code'] == 'APP_ERROR'
     assert 'An error occurred in the app' in error_response['message']
 
-
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
     """
@@ -318,7 +326,7 @@ def test_app_interface_context_handle_response(app_interface_context):
     :param app_interface_context: The AppInterfaceContext instance.
     :type app_interface_context: AppInterfaceContext
     """
-
+    
     # Create a mock request with a response data.
     request: Request = ModelObject.new(Request, 
         headers={'Content-Type': 'application/json'},
@@ -339,16 +347,17 @@ def test_app_interface_context_handle_response(app_interface_context):
     assert response.get('status') == 'success'
     assert response.get('data') == {"key": "value"}
 
-
 # ** test: app_interface_context_run
-def test_app_interface_context_run(app_interface_context):
+def test_app_interface_context_run(app_interface_context, logging_context: LoggingContext):
     """
     Test running the AppInterfaceContext.
     
     :param app_interface_context: The AppInterfaceContext instance.
     :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
     """
-
+    
     # Run the app interface context.
     app_interface_context.run('test_group.test_feature', 
         headers={
@@ -360,10 +369,16 @@ def test_app_interface_context_run(app_interface_context):
             'param': 'test_param'
         }
     )
-
+    
+    # Assert that the logger was created and used. -- new
+    logging_context.build_logger()
+    logger = logging_context.build_logger.return_value
+    # logger.debug.assert_called_with('Parsing request for feature: test_group.test_feature')
+    logger.info.assert_called_with('Executing feature: test_group.test_feature')
+    logger.debug.assert_called()
 
 # ** test: app_interface_context_run_invalid
-def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context):
+def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
     """
     Test running the AppInterfaceContext with an invalid feature.
     
@@ -371,8 +386,10 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     :type app_interface_context: AppInterfaceContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
     """
-
+    
     # Mock the execute_feature method to raise an error for an invalid feature.
     feature_context.execute_feature.side_effect = TiferetError(
         error_code='FEATURE_NOT_FOUND',
@@ -401,3 +418,10 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     # Assert that the formatted error message is as expected.
     assert response['error_code'] == 'FEATURE_NOT_FOUND'
     assert 'Feature not found: invalid_group.invalid_feature.' in response['message']
+    
+    # Assert that the logger was created and used for error logging. -- new
+    logging_context.build_logger.assert_called_once()
+    logger = logging_context.build_logger.return_value
+    logger.error.assert_called_with(
+        'Error executing feature invalid_group.invalid_feature: {"error_code": "FEATURE_NOT_FOUND", "message": "Feature not found: invalid_group.invalid_feature."}'
+    )
