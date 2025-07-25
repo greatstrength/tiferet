@@ -6,7 +6,6 @@ from typing import List, Dict, Any
 # ** app
 from .settings import *
 
-
 # *** contracts
 
 # ** contract: app_attribute
@@ -47,6 +46,9 @@ class AppInterface(ModelContract):
 
     # * attribute: description
     description: str
+
+    # * attribute: logger_id
+    logger_id: str
 
     # * attribute: feature_flag
     feature_flag: str
@@ -138,4 +140,3 @@ class AppService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('load_app_instance method is required for AppService.')
-    
