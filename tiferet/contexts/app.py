@@ -6,6 +6,7 @@ from typing import Dict, Any
 # ** app
 from .feature import FeatureContext
 from .error import ErrorContext
+from .logging import LoggingContext
 from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models.feature import Request
 from ..models.app import *
@@ -144,8 +145,11 @@ class AppInterfaceContext(object):
     # * attribute: errors
     errors: ErrorContext
 
+    # * attribute: logging
+    logging: LoggingContext
+
     # * method: init
-    def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext):
+    def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, logging: LoggingContext):
         '''
         Initialize the application interface context.
 
@@ -161,6 +165,7 @@ class AppInterfaceContext(object):
         self.interface_id = interface_id
         self.features = features
         self.errors = errors
+        self.logging = logging
 
     # * method: parse_request
     def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> Request:
@@ -265,17 +270,29 @@ class AppInterfaceContext(object):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
+
+        # Create the logger for the app interface context.
+        logger = self.logging.build_logger()
         
         # Parse request.
+        logger.debug(f'Parsing request for feature: {feature_id}')
         request = self.parse_request(headers, data)
 
         # Execute feature context and return session.
         try:
-            self.execute_feature(feature_id, request, **kwargs)
+            logger.info(f'Executing feature: {feature_id}')
+            logger.debug(f'Executing feature: {feature_id} with request: {request.to_primitive()}')
+            self.execute_feature(
+                feature_id=feature_id, 
+                request=request, 
+                logger=logger,
+                **kwargs)
 
         # Handle error and return response if triggered.
         except TiferetError as e:
+            logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e)
 
         # Handle response.
+        logger.info(f'Feature {feature_id} executed successfully, handling response.')
         return self.handle_response(request)
