@@ -27,6 +27,14 @@ DEFAULT_ATTRIBUTES = [
         )
     ),
     dict(
+        attribute_id='logging_repo',
+        module_path='tiferet.proxies.yaml.logging',
+        class_name='LoggingYamlProxy',
+        parameters=dict(
+            logging_config_file='app/configs/logging.yml'
+        )
+    ),
+    dict(
         attribute_id='container_service',
         module_path='tiferet.handlers.container',
         class_name='ContainerHandler',
@@ -42,6 +50,11 @@ DEFAULT_ATTRIBUTES = [
         class_name='ErrorHandler',
     ),
     dict(
+        attribute_id='logging_service',
+        module_path='tiferet.handlers.logging',
+        class_name='LoggingHandler',
+    ),
+    dict(
         attribute_id='container',
         module_path='tiferet.contexts.container',
         class_name='ContainerContext',
@@ -55,5 +68,10 @@ DEFAULT_ATTRIBUTES = [
         attribute_id='errors',
         module_path='tiferet.contexts.error',
         class_name='ErrorContext',
+    ),
+    dict(
+        attribute_id='logging',
+        module_path='tiferet.contexts.logging',
+        class_name='LoggingContext',
     ),
 ]
