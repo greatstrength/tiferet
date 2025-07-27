@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Tiferet is a Python framework that elegantly distills Domain-Driven Design (DDD) into a practical, powerful tool. Drawing inspiration from the Kabbalistic concept of beauty in balance, Tiferet weaves purpose and functionality into software that not only performs but resonates deeply with its intended vision. As a cornerstone for crafting diverse applications, Tiferet empowers developers to build solutions with clarity, grace, and thoughtful design.
+Tiferet is a Python framework that elegantly distills Domain-Driven Design (DDD) into a practical, powerful tool. Drawing inspiration from the concept of beauty in balance as expressed in Kabbalah, Tiferet weaves purpose and functionality into software that not only performs but resonates deeply with its intended vision. As a cornerstone for crafting diverse applications, Tiferet empowers developers to build solutions with clarity, grace, and thoughtful design.
 
-Tiferet embraces the complexity of real-world processes through DDD, transforming intricate business logic and evolving requirements into clear, manageable models. Far from merely navigating this labyrinth, Tiferet provides a graceful path to craft software that reflects its intended purpose with wisdom and precision, embodying the Kabbalistic beauty of balanced form and function. This tutorial guides you through building a simple calculator application, demonstrating how Tiferet harmonizes code and concept. By defining a domain model, command classes, and feature-driven configurations, you’ll create a robust and extensible calculator that resonates with Tiferet’s philosophy.
+Tiferet embraces the complexity of real-world processes through DDD, transforming intricate business logic and evolving requirements into clear, manageable models. Far from merely navigating this labyrinth, Tiferet provides a graceful path to craft software that reflects its intended purpose with wisdom and precision, embodying beauty and balance in form and function. This tutorial guides you through building a simple calculator application, demonstrating how Tiferet harmonizes code and concept. By defining commands and their configurations, you’ll create a robust and extensible calculator that resonates with Tiferet’s philosophy.
 
 ## Getting Started with Tiferet
 Embark on your Tiferet journey with a few simple steps to set up your Python environment. Whether you're new to Python or a seasoned developer, these instructions will prepare you to craft a calculator application with grace and precision.
@@ -95,232 +95,260 @@ project_root/
     ├── commands/
     │   ├── __init__.py
     │   ├── calc.py
-    │   └── valid.py
-    ├── configs/
-    │   ├── __init__.py
-    │   └── config.yml
-    └── models/
+    │   └── settings.py
+    └── configs/
         ├── __init__.py
-        └── calc.py
+        ├── app.yml
+        ├── cli.yml
+        ├── container.yml
+        ├── error.yml
+        ├── feature.yml
+        └── logging.yml
 ```
 
-The `app/models/` directory will house the calculator’s domain model, `app/commands/` will contain command classes for operations and validations, and `app/configs/` will store configuration files. The `basic_calc.py` script at the root will initialize and run the application. While the app directory name is customizable for package releases, we recommend retaining it for internal or proprietary projects to maintain simplicity and consistency. The `calc_cli.py` script is a versatile scriptable interface that integrates easily with shell scripts or external systems.
+The `app/commands/` directory holds command classes for arithmetic operations (`calc.py`) and input validation (`settings.py`). The `app/configs/` directory contains configuration files for application settings (`app.yml`), CLI commands (`cli.yml`), dependency injection (`container.yml`), error handling (`error.yml`), feature workflows (`feature.yml`), and logging (`logging.yml`). The `basic_calc.py` script at the root initializes and runs the application. We recommend keeping the `app` directory name for internal projects to ensure consistency, though it can be customized for package releases. The `calc_cli.py` script provides a flexible command-line interface, easily integrated with shell scripts or external systems.
 
 ## Crafting the Calculator Application
-With Tiferet installed and your project structured, it’s time to bring your calculator application to life. We’ll start by defining the domain model, then create command classes for arithmetic and validation, configure the application’s behavior through container attributes, features, errors, and context, and finally initialize and demonstrate the app with a script. This sequence showcases Tiferet’s harmonious design, weaving together models, commands, and configurations with grace.
+With Tiferet installed and your project structured, it’s time to build your calculator application. This section guides you through creating a base command for numeric validation, defining arithmetic commands, and setting up the application’s behavior with configurations. By weaving together commands and configurations, you’ll experience Tiferet’s elegant design, harmonizing functionality with clarity and precision.
 
-### Defining the Number Model in `models/calc.py`
-The calculator’s numerical values are represented by a `Number` value object, defined in `app/models/calc.py`. This model encapsulates a string-based numerical value, validated to ensure it represents an integer or float, and provides a method to format it as a number.
+### Defining Base and Arithmetic Command Classes
+Start by creating command classes for numeric validation and arithmetic operations. The `BasicCalcCommand` in `app/commands/settings.py` provides validation logic, while arithmetic commands (`AddNumber`, `SubtractNumber`, `MultiplyNumber`, `DivideNumber`, `ExponentiateNumber`) in `app/commands/calc.py` perform calculations. All arithmetic commands inherit from `BasicCalcCommand`, which extends Tiferet’s `Command` class, ensuring robust numeric validation and core command functionality.
 
-Create `app/models/calc.py` with the following content:
+#### Base Command in commands/settings.py
+Numeric validation is critical to ensure the calculator handles inputs correctly, preventing errors from invalid data. The `BasicCalcCommand` class centralizes validation logic, making it reusable across all arithmetic commands by converting string inputs to integers or floats.
 
-```python
-from tiferet.models import *
-
-class Number(ValueObject):
-    '''
-    A value object representing a numerical value in the calculator domain.
-    '''
-    value = StringType(
-        required=True,
-        regex=r'^-?\d*\.?\d*$',
-        metadata=dict(
-            description='A string representing an integer or float (e.g., "123", "-123.45", "0123", ".123", "123.").'
-        )
-    )
-
-    def is_float(self) -> bool:
-        '''
-        Check if the value is formatted as a float.
-
-        :return: True if the value contains a decimal point and valid digits, False otherwise.
-        '''
-        return '.' in self.value and self.value.strip('-.').replace('.', '').isdigit()
-
-    def format(self) -> int | float:
-        '''
-        Convert the string value to an integer or float.
-
-        :return: An integer if the value represents a whole number, otherwise a float.
-        '''
-        if self.is_float():
-            return float(self.value)
-        return int(self.value)
-```
-
-The Number class uses Tiferet’s ValueObject to ensure immutability, with a `StringType` attribute validated by a regex to accept integers and floats (e.g., `"123"`, `"-123.45"`, `".123"`). The is_float method checks for decimal points, and format converts the string to an int or float, enabling arithmetic operations.
-
-### Defining Command Classes in commands/calc.py and commands/valid.py
-Next, we define command classes to perform arithmetic operations and input validation. Arithmetic commands (`AddNumber`, `SubtractNumber`, `MultiplyNumber`, `DivideNumber`, `ExponentiateNumber`) are in `app/commands/calc.py`, while the validation command (`ValidateNumber`) is in `app/commands/valid.py`. All inherit from Tiferet’s Command base class, using the static `Command.handle` method for execution.
-
-#### Arithmetic Commands in commands/calc.py
-Create `app/commands/calc.py` with the following content:
+Create `app/commands/settings.py` with the following contents:
 
 ```python
+# *** imports
+
+# ** infra
 from tiferet.commands import *
 
-from ..models.calc import Number
+# *** commands
 
-class AddNumber(Command):
-    '''
-    A command to perform addition of two numbers.
-    '''
-    def execute(self, a: Number, b: Number, **kwargs) -> Number:
-        '''
-        Execute the addition command.
-
-        :param a: A Number object representing the first number.
-        :type a: Number
-        :param b: A Number object representing the second number.
-        :type b: Number
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A Number object representing the sum of a and b.
-        :rtype: Number
-        '''
-
-        # Add formatted values of a and b.
-        result = a.format() + b.format()
-
-        # Return a new Number object with the result.
-        return result
-
-class SubtractNumber(Command):
-    '''
-    A command to perform subtraction of two numbers.
-    '''
-    def execute(self, a: Number, b: Number, **kwargs) -> Number:
-        '''
-        Execute the subtraction command.
-
-        :param a: A Number object representing the first number.
-        :type a: Number
-        :param b: A Number object representing the second number.
-        :type b: Number
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A Number object representing the difference of a and b.
-        :rtype: Number
-        '''
-        
-        # Subtract formatted values of b from a.
-        result = a.format() - b.format()
-
-        # Return a new Number object with the result.
-        return result
-
-class MultiplyNumber(Command):
-    '''
-    A command to perform multiplication of two numbers.
-    '''
-    def execute(self, a: Number, b: Number, **kwargs) -> Number:
-        '''
-        Execute the multiplication command.
-
-        :param a: A Number object representing the first number.
-        :type a: Number
-        :param b: A Number object representing the second number.
-        :type b: Number
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A Number object representing the product of a and b.
-        :rtype: Number
-        '''
-        
-        # Multiply the formatted values of a and b.
-        result = a.format() * b.format()
-
-        # Return a new Number object with the result.
-        return result
-
-class DivideNumber(Command):
-    '''
-    A command to perform division of two numbers.
-    '''
-    def execute(self, a: Number, b: Number, **kwargs) -> Number:
-        '''
-        Execute the division command.
-
-        :param a: A Number object representing the first number.
-        :type a: Number
-        :param b: A Number object representing the second number, must be non-zero.
-        :type b: Number
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A Number object representing the quotient of a and b.
-        :rtype: Number
-        '''
-        # Check if b is zero to avoid division by zero.
-        self.verify(b.format() != 0, 'DIVISION_BY_ZERO')
-
-        # Divide the formatted values of a by b.
-        result = a.format() / b.format()
-
-        # Return a new Number object with the result.
-        return result
-
-
-class ExponentiateNumber(Command):
-    '''
-    A command to perform exponentiation of two numbers.
-    '''
-    def execute(self, a: Number, b: Number, **kwargs) -> Number:
-        '''
-        Execute the exponentiation command.
-
-        :param a: A Number object representing the base number.
-        :type a: Number
-        :param b: A Number object representing the exponent.
-        :type b: Number
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A Number object representing a raised to the power of b.
-        :rtype: Number
-        '''
-        
-        # Exponentiate the formatted value of a by b.
-        result = a.format() ** b.format()
-
-        # Return a new Number object with the result.
-        return result
-```
-
-These commands perform arithmetic operations on `Number` objects, using `format()` to extract numerical values and `ModelObject.new` to return results as new `Number` objects. The `DivideNumber` command includes a verify check to prevent division by zero, referencing a configured error.
-
-#### Validation Command in `commands/valid.py`
-Create `app/commands/valid.py` with the following content:
-
-```python
-from tiferet.commands import *
-
-from ..models.calc import Number
-
-class ValidateNumber(Command):
+# ** command: basic_calc_command
+class BasicCalcCommand(Command):
     '''
     A command to validate that a value can be a Number object.
     '''
-    def execute(self, value: str, **kwargs) -> None:
+    
+    # * method: verify_number
+    def verify_number(self, value: str) -> int | float:
         '''
-        Validate that the input value can be used to create a Number object.
-
-        :param value: Any string value to validate.
+        Verify that the value can be converted to an integer or float.
+        
+        :param value: The value to verify.
         :type value: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :raises TiferetError: If the value cannot be a Number.
+        :return: The numeric value as an integer or float.
+        :rtype: int | float
         '''
-        try:
-            return ModelObject.new(Number, value=str(value))
-        except Exception as e:
-            self.verify(False, 'INVALID_INPUT', value)
+        
+        # Check if the value is a valid number.
+        is_valid = isinstance(value, str) and (value.isdigit() or (value.replace('.', '', 1).isdigit() and value.count('.') < 2))
+
+        # Verify the value.
+        self.verify(
+            is_valid,
+            'INVALID_INPUT',
+            f"Invalid number: {value}",
+            value
+        )
+
+        # If valid, return the value as a float or int.
+        if '.' in value:
+            return float(value)
+        return int(value)
 ```
 
-The `ValidateNumber` command ensures inputs can be converted to `Number` objects, raising a configured error for invalid values.
+The `BasicCalcCommand` extends Tiferet’s `Command` class, providing a `verify_number` method that validates string inputs and returns them as `int` or `float`. It raises an `INVALID_INPUT` error for invalid inputs, ensuring all arithmetic commands inherit robust validation.
 
-### Configuring the Application in `configs/config.yml`
-The calculator’s behavior is defined in `app/configs/config.yml`, which configures container attributes, features, errors, and the application context. This centralized configuration enables Tiferet’s dependency injection container to orchestrate commands and features gracefully.
+#### Arithmetic Commands in commands/calc.py
+The arithmetic commands are the heart of the calculator, delivering core mathematical operations: addition, subtraction, multiplication, division, and exponentiation. These commands leverage Python’s numeric capabilities, processing validated inputs to produce precise results.
 
-Create `app/configs/config.yml` with the following content:
+Create `app/commands/calc.py` with the following content:
+
+```python
+# *** imports
+
+# ** core
+from typing import Any
+
+# ** infra
+from tiferet.commands import *
+
+# ** app
+from .settings import BasicCalcCommand
+
+# *** commands
+
+# ** command: add_number
+class AddNumber(BasicCalcCommand):
+    '''
+    A command to perform addition of two numbers.
+    '''
+    def execute(self, a: Any, b: Any, **kwargs) -> int | float:
+        '''
+        Execute the addition command.
+
+        :param a: A number representing the first operand.
+        :type a: Any
+        :param b: A number representing the second operand.
+        :type b: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The sum of a and b.
+        :rtype: int | float
+        '''
+        # Verify numeric inputs
+        a_verified = self.verify_number(str(a))
+        b_verified = self.verify_number(str(b))
+
+        # Add verified values of a and b.
+        result = a_verified + b_verified
+
+        # Return the result.
+        return result
+
+# ** command: subtract_number
+class SubtractNumber(BasicCalcCommand):
+    '''
+    A command to perform subtraction of two numbers.
+    '''
+    def execute(self, a: Any, b: Any, **kwargs) -> int | float:
+        '''
+        Execute the subtraction command.
+
+        :param a: A number representing the first operand.
+        :type a: Any
+        :param b: A number representing the second operand.
+        :type b: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The difference of a and b.
+        :rtype: int | float
+        '''
+        # Verify numeric inputs
+        a_verified = self.verify_number(str(a))
+        b_verified = self.verify_number(str(b))
+
+        # Subtract verified values of b from a.
+        result = a_verified - b_verified
+
+        # Return the result.
+        return result
+
+# ** command: multiply_number
+class MultiplyNumber(BasicCalcCommand):
+    '''
+    A command to perform multiplication of two numbers.
+    '''
+    def execute(self, a: Any, b: Any, **kwargs) -> int | float:
+        '''
+        Execute the multiplication command.
+
+        :param a: A number representing the first operand.
+        :type a: Any
+        :param b: A number representing the second operand.
+        :type b: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The product of a and b.
+        :rtype: int | float
+        '''
+        # Verify numeric inputs
+        a_verified = self.verify_number(str(a))
+        b_verified = self.verify_number(str(b))
+
+        # Multiply the verified values of a and b.
+        result = a_verified * b_verified
+
+        # Return the result.
+        return result
+
+# ** command: divide_number
+class DivideNumber(BasicCalcCommand):
+    '''
+    A command to perform division of two numbers.
+    '''
+    def execute(self, a: Any, b: Any, **kwargs) -> int | float:
+        '''
+        Execute the division command.
+
+        :param a: A number representing the numerator.
+        :type a: Any
+        :param b: A number representing the denominator, must be non-zero.
+        :type b: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The quotient of a and b.
+        :rtype: int | float
+        '''
+        # Verify numeric inputs
+        a_verified = self.verify_number(str(a))
+        b_verified = self.verify_number(str(b))
+
+        # Check if b is zero to avoid division by zero.
+        self.verify(b_verified != 0, 'DIVISION_BY_ZERO')
+
+        # Divide the verified values of a by b.
+        result = a_verified / b_verified
+
+        # Return the result.
+        return result
+
+# ** command: exponentiate_number
+class ExponentiateNumber(BasicCalcCommand):
+    '''
+    A command to perform exponentiation of two numbers.
+    '''
+    def execute(self, a: Any, b: Any, **kwargs) -> int | float:
+        '''
+        Execute the exponentiation command.
+
+        :param a: A number representing the base.
+        :type a: Any
+        :param b: A number representing the exponent.
+        :type b: Any
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of a raised to the power of b.
+        :rtype: int | float
+        '''
+        # Verify numeric inputs
+        a_verified = self.verify_number(str(a))
+        b_verified = self.verify_number(str(b))
+
+        # Exponentiate the verified value of a by b.
+        result = a_verified ** b_verified
+
+        # Return the result.
+        return result
+```
+
+These commands perform arithmetic operations on flexible input values, validated by `BasicCalcCommand.verify_number` to ensure they are valid integers or floats. The method converts string inputs to `int` or `float` before computation, returning the result as a numeric value. The `DivideNumber` command includes a check to prevent division by zero, raising a configured `DIVISION_BY_ZERO` error if needed.
+
+### Configuring the Calculator Application
+With command classes defined, it’s time to configure the Tiferet application to recognize and orchestrate them, enabling seamless user interaction through features and interfaces. This section guides you through setting up the application interface (`app/configs/app.yml`), defining command classes as container attributes (`app/configs/container.yml`), specifying error messages (`app/configs/error.yml`), and organizing features (`app/configs/feature.yml`). These configurations weave together Tiferet’s dependency injection and feature-driven design, ensuring a robust and extensible calculator.
+
+#### Configuring the App Interface in `configs/app.yml`
+Define the calculator’s user interface in `app/configs/app.yml` to specify the interface type and its core attributes. This configuration enables Tiferet to initialize the application with default settings, supporting multiple interfaces for flexible command execution.
+
+Create `app/configs/app.yml` with the following content:
+
+```yaml
+interfaces:
+  basic_calc:
+    name: Basic Calculator
+    description: Perform basic calculator operations
+```
+
+The `interfaces` section configures the `basic_calc` interface with a name and description, using Tiferet’s default settings to streamline application setup. This setup aligns with the project structure, preparing the calculator for command and feature integration.
+
+#### Configuring the Container in `configs/container.yml`
+Expose command classes to Tiferet by defining them as container attributes in `app/configs/container.yml`. This configuration maps each command to its module and class, enabling dependency injection for seamless feature execution.
+
+Create the `app/configs/container.yml` with the following content:
 
 ```yaml
 attrs:
@@ -339,108 +367,16 @@ attrs:
   exponentiate_number_cmd:
     module_path: app.commands.calc
     class_name: ExponentiateNumber
-  validate_number_cmd:
-    module_path: app.commands.valid
-    class_name: ValidateNumber
+```
 
-features:
-  calc.add:
-    name: 'Add Number'
-    description: 'Adds one number to another'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Validate `b` input
-        data_key: b
-        params:
-          value: $r.b
-      - attribute_id: add_number_cmd
-        name: Add `a` and `b`
-  calc.subtract:
-    name: 'Subtract Number'
-    description: 'Subtracts one number from another'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Validate `b` input
-        data_key: b
-        params:
-          value: $r.b
-      - attribute_id: subtract_number_cmd
-        name: Subtract `b` from `a`
-  calc.multiply:
-    name: 'Multiply Number'
-    description: 'Multiplies one number by another'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Validate `b` input
-        data_key: b
-        params:
-          value: $r.b
-      - attribute_id: multiply_number_cmd
-        name: Multiply `a` and `b`
-  calc.divide:
-    name: 'Divide Number'
-    description: 'Divides one number by another'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Validate `b` input
-        data_key: b
-        params:
-          value: $r.b
-      - attribute_id: divide_number_cmd
-        name: Divide `a` by `b`
-  calc.exp:
-    name: 'Exponentiate Number'
-    description: 'Raises one number to the power of another'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Validate `b` input
-        data_key: b
-        params:
-          value: $r.b
-      - attribute_id: exponentiate_number_cmd
-        name: Raise `a` to the power of `b`
-  calc.sqrt:
-    name: 'Square Root'
-    description: 'Calculates the square root of a number'
-    commands:
-      - attribute_id: validate_number_cmd
-        name: Validate `a` input
-        data_key: a
-        params:
-          value: $r.a
-      - attribute_id: validate_number_cmd
-        name: Convert `b` to number
-        data_key: b
-        params:
-          value: '0.5'
-      - attribute_id: exponentiate_number_cmd
-        name: Calculate square root of `a`
+The `attrs` section lists each command with a unique identifier (ending in `_cmd`), specifying its module path and class name. This setup ensures Tiferet can instantiate and execute the calculator’s arithmetic commands efficiently.
 
+#### Configuring the Errors in `configs/error.yml`
+Handle errors gracefully by defining error messages in `app/configs/error.yml`. This configuration specifies error codes and multilingual messages, ensuring clear feedback for invalid inputs or operations.
+
+Create `app/configs/error.yml` with the following content:
+
+```yaml
 errors:
   invalid_input:
     name: Invalid Numeric Input
@@ -456,24 +392,58 @@ errors:
         text: 'Cannot divide by zero'
       - lang: es_ES
         text: 'No se puede dividir por cero'
-
-interfaces:
-  basic_calc:
-    name: Basic Calculator
-    description: Perform basic calculator operations
-    const:
-      container_config_file: 'app/configs/config.yml'
-      feature_config_file: 'app/configs/config.yml'
-      error_config_file: 'app/configs/config.yml'
 ```
 
-`attrs`: Defines container attributes for dependency injection, mapping to command classes (e.g., `add_number_cmd` to `AddNumber`).
+The `errors` section defines `invalid_input` for failed numeric validations and `division_by_zero` for division errors, supporting English (`en_US`) and Spanish (`es_ES`) messages. This configuration enhances user experience with localized, precise error handling.
 
-`features`: Configures feature workflows, sequencing validation and arithmetic commands (e.g., `calc.add` validates `a` and `b`, then adds them). The `calc.sqrt` feature reuses `exponentiate_number_cmd` with `b: "0.5"` for square roots.
+#### Configuring the Features in `configs/feature.yml`
+Orchestrate command execution by defining features in `app/configs/feature.yml`. This configuration organizes arithmetic operations into reusable workflows, mapping each feature to its corresponding command for streamlined execution.
 
-`errors`: Specifies error messages for `invalid_input` and `division_by_zero`, supporting `en_US` and `es_ES` for multilingual extensibility.
+Create `app/configs/feature.yml` with the following content:
 
-`interfaces`: Defines the `basic_calc` interface instance, linking to the configuration file for container, features, and errors.
+```yaml
+features:
+  calc.add:
+    name: 'Add Number'
+    description: 'Adds one number to another'
+    commands:
+      - attribute_id: add_number_cmd
+        name: Add `a` and `b`
+  calc.subtract:
+    name: 'Subtract Number'
+    description: 'Subtracts one number from another'
+    commands:
+      - attribute_id: subtract_number_cmd
+        name: Subtract `b` from `a`
+  calc.multiply:
+    name: 'Multiply Number'
+    description: 'Multiplies one number by another'
+    commands:
+      - attribute_id: multiply_number_cmd
+        name: Multiply `a` and `b`
+  calc.divide:
+    name: 'Divide Number'
+    description: 'Divides one number by another'
+    commands:
+      - attribute_id: divide_number_cmd
+        name: Divide `a` by `b`
+  calc.exp:
+    name: 'Exponentiate Number'
+    description: 'Raises one number to the power of another'
+    commands:
+      - attribute_id: exponentiate_number_cmd
+        name: Raise `a` to the power of `b`
+  calc.sqrt:
+    name: 'Square Root'
+    description: 'Calculates the square root of a number'
+    commands:
+      - attribute_id: exponentiate_number_cmd
+        name: Calculate square root of `a`
+        params:
+          b: '0.5'  # Square root is equivalent to raising to the power of 0.5
+```
+
+The `features` section maps each operation (e.g., `calc.add`, `calc.sqrt`) to its command via `attribute_id`, with descriptive names and parameters. The `calc.sqrt` feature reuses `exponentiate_number_cmd` with a fixed `b` value of `0.5`, showcasing Tiferet’s flexible workflow design.
 
 ### Initializing and Demonstrating the Calculator in basic_calc.py
 Finally, we initialize the calculator with an initializer script, `basic_calc.py`, at the project root. This script uses Tiferet’s App class to load the `basic_calc` context and execute features, demonstrating the calculator’s functionality.
@@ -512,102 +482,41 @@ To run the calculator, ensure your `tiferet_app` virtual environment is activate
 python basic_calc
 ```
 
-### Running the Calculator as a CLI
+## The Calculator as a CLI App
 For a flexible and scriptable interface, the calculator includes a command-line interface (CLI) implemented in `calc_cli.py` at the project root. This script complements the `basic_calc.py` test script, which remains available for debugging and simple feature execution. The `calc_cli.py` script leverages Tiferet’s App class to execute features defined in `app/configs/config.yml`, accepting command-line arguments for operations and input values. It supports all calculator features: addition (calc.add), subtraction (calc.subtract), multiplication (`calc.multiply`), division (`calc.divide`), exponentiation (`calc.exp`), and square root (`calc.sqrt`).
-The `calc_cli.py` script uses Python’s argparse to define subcommands for each feature, with required arguments `-a` (first number) and `-b` (second number, except for sqrt). The script executes the specified feature in the `basic_calc` context, returning the result as an integer or float.
+The `calc_cli.py` script uses Python’s argparse to define subcommands for each feature, with positional arguments `a` (first number) and `b` (second number, except for sqrt). The script executes the specified feature in the `basic_calc` context, returning the result as an integer or float.
 
+### Configure CLI Commands in configs/cli.yml
+The CLI commands are defined in `configs/cli.yml`, where 
+
+### Creating the CLI Script
 Create `calc_cli.py` with the following content:
 ```python
-import argparse
-from tiferet import App, TiferetError
+from tiferet import App
 
-def main():
-    """Parse CLI arguments and execute the calculator feature."""
-    parser = argparse.ArgumentParser(description="Basic Calculator CLI using Tiferet")
-    parser.add_argument('--config', default='app/configs/config.yml', help='Path to config file')
+# Create new app (manager) instance.
+app = App()
 
-    subparsers = parser.add_subparsers(dest='operation', required=True, help='Calculator operation')
+# Load the CLI app instance.
+cli = app.load_interface('calc_cli')
 
-    # Define subcommands for each feature
-    operations = [
-        ('add', 'Add two numbers', True),
-        ('subtract', 'Subtract one number from another', True),
-        ('multiply', 'Multiply two numbers', True),
-        ('divide', 'Divide one number by another', True),
-        ('exp', 'Raise one number to the power of another', True),
-        ('sqrt', 'Calculate the square root of a number', False),
-    ]
-
-    for op, help_text, needs_b in operations:
-        subparser = subparsers.add_parser(op, help=help_text)
-        subparser.add_argument('-a', required=True, help='First number')
-        if needs_b:
-            subparser.add_argument('-b', required=True, help='Second number')
-
-    args = parser.parse_args()
-
-    # Map operation to feature ID
-    feature_map = {
-        'add': 'calc.add',
-        'subtract': 'calc.subtract',
-        'multiply': 'calc.multiply',
-        'divide': 'calc.divide',
-        'exp': 'calc.exp',
-        'sqrt': 'calc.sqrt',
-    }
-    feature_id = feature_map[args.operation]
-
-    # Prepare feature parameters
-    params = {'a': str(args.a)}
-    if args.operation != 'sqrt':
-        params['b'] = str(args.b)
-
-    # Create app instance
-    # # Assume the default app settings is defined in a YAML file
-    settings = dict(
-        app_repo_module_path='tiferet.proxies.yaml.app',
-        app_repo_class_name='AppYamlProxy',
-        app_repo_params=dict(
-            app_config_file=args.config,
-        )
-    )
-    app = App(settings)
-
-    try:
-        # Execute feature with locale
-        result = app.run('basic_calc', feature_id, data=params)
-
-        # Display result
-        if args.operation == 'sqrt':
-            print(f"√{args.a} = {result}")
-        else:
-            op_symbol = {'add': '+', 'subtract': '-', 'multiply': '*', 'divide': '/', 'exp': '^'}[args.operation]
-            print(f"{args.a} {op_symbol} {args.b} = {result}")
-    except TiferetError as e:
-        print(f"Error: {e.message}")
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-
+# Run the CLI app.
 if __name__ == '__main__':
-    main()
+    cli.run()
 ```
 
 Run the CLI with commands like:
 ```bash
 # Add two numbers (default en_US)
-python calc_cli.py add -a 1 -b 2
-# Output: 1 + 2 = 3
+python calc_cli.py add 1 2
+# Output: 3
 
 # Calculate square root (en_US)
-python calc_cli.py sqrt -a 4
-# Output: √4 = 2.0
-
-# Invalid input (es_ES)
-python calc_cli.py add -a abc -b 2 --locale es_ES
-# Output: Error: El valor abc debe ser un número
+python calc_cli.py sqrt 4
+# Output: 2.0
 
 # Division by zero (en_US)
-python calc_cli.py divide -a 5 -b 0
+python calc_cli.py divide 5 0
 # Output: Error: Cannot divide by zero
 ```
 
