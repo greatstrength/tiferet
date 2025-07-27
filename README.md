@@ -446,51 +446,156 @@ features:
 The `features` section maps each operation (e.g., `calc.add`, `calc.sqrt`) to its command via `attribute_id`, with descriptive names and parameters. The `calc.sqrt` feature reuses `exponentiate_number_cmd` with a fixed `b` value of `0.5`, showcasing Tiferet’s flexible workflow design.
 
 ### Initializing and Demonstrating the Calculator in basic_calc.py
-Finally, we initialize the calculator with an initializer script, `basic_calc.py`, at the project root. This script uses Tiferet’s App class to load the `basic_calc` context and execute features, demonstrating the calculator’s functionality.
+Bring the Tiferet calculator to life with `basic_calc.py`, a script that initializes the application and demonstrates its arithmetic prowess. This script leverages Tiferet’s `App` class to load the `basic_calc` interface and execute features, showcasing robust calculations and error handling.
+
 Create `basic_calc.py` with the following content:
 
 ```python
-from tiferet import App
+from tiferet import App, TiferetError
 
-# Create new app (manager) instance.
-app = App(dict(
-    app_repo_module_path='tiferet.proxies.yaml.app',
-    app_repo_class_name='AppYamlProxy',
-    app_repo_params=dict(
-        app_config_file='app/configs/config.yml',
-    )
-))
+# Initialize the Tiferet application with configuration settings.
+app = App()
 
-# Execute the add feature to add the values.
-a = 1
-b = 2
-addition = app.run(
-    'basic_calc', 
-    'calc.add', 
-    data=dict(
-        a=a,
-        b=b,
-    )
-)
+# Define test cases for calculator features.
+test_cases = [
+    ('calc.add', dict(a=1, b=2), '{} + {} = {}'),
+    ('calc.subtract', dict(a=5, b=3), '{} - {} = {}'),
+    ('calc.multiply', dict(a=4, b=3), '{} * {} = {}'),
+    ('calc.divide', dict(a=8, b=2), '{} / {} = {}'),
+    ('calc.divide', dict(a=8, b=0), '{} / {} = {}'),  # Expect error
+    ('calc.exp', dict(a=2, b=3), '{} ** {} = {}'),
+    ('calc.sqrt', dict(a=16), '√{} = {}')
+]
 
-print(f'{a} + {b} = {addition}')
+# Execute each test case, demonstrating calculator features.
+for feature_id, data, format_str in test_cases:
+    a, b = data.get('a'), data.get('b', None)
+    try:
+        result = app.run('basic_calc', feature_id, data=data)
+        print(format_str.format(a, b if b is not None else a, result))
+    except TiferetError as e:
+        print(f'Error: {e.message}')
 ```
+
+The `basic_calc.py` script initializes the Tiferet application with settings from `app/configs/app.yml`, executes a series of test cases for arithmetic features, and handles errors gracefully. It demonstrates the calculator’s core functionality, from addition to square root, with clear output formatting.
 
 ### Demonstrating the Calculator
-To run the calculator, ensure your `tiferet_app` virtual environment is activated and Tiferet is installed. Execute the initializer script:
+
+Run the calculator to see its features in action, ensuring Tiferet’s power is fully unleashed. Activate your `tiferet_app` virtual environment and confirm Tiferet is installed, then execute the script to observe the results.
+
+Execute the following command:
+
 ```bash
-python basic_calc
+python basic_calc.py
 ```
 
+This command runs `basic_calc.py`, producing output for each arithmetic operation and error case, leveraging configurations from `app/configs/` to deliver precise, user-friendly results.
+
 ## The Calculator as a CLI App
-For a flexible and scriptable interface, the calculator includes a command-line interface (CLI) implemented in `calc_cli.py` at the project root. This script complements the `basic_calc.py` test script, which remains available for debugging and simple feature execution. The `calc_cli.py` script leverages Tiferet’s App class to execute features defined in `app/configs/config.yml`, accepting command-line arguments for operations and input values. It supports all calculator features: addition (calc.add), subtraction (calc.subtract), multiplication (`calc.multiply`), division (`calc.divide`), exponentiation (`calc.exp`), and square root (`calc.sqrt`).
-The `calc_cli.py` script uses Python’s argparse to define subcommands for each feature, with positional arguments `a` (first number) and `b` (second number, except for sqrt). The script executes the specified feature in the `basic_calc` context, returning the result as an integer or float.
+Unleash the calculator’s full potential with a dynamic command-line interface (CLI) powered by Tiferet’s `CliContext`. Implemented in `calc_cli.py` at the project root, this script offers a scriptable, user-friendly interface that complements the `basic_calc.py` test script for debugging. Leveraging Tiferet’s `App` class and `CliContext`, it executes features defined in `app/configs/feature.yml`, accepting command-line arguments for operations like addition (`calc.add`), subtraction (`calc.subtract`), multiplication (`calc.multiply`), division (`calc.divide`), exponentiation (`calc.exp`), and square root (`calc.sqrt`). This CLI interface seamlessly integrates with shell scripts and external systems, showcasing Tiferet’s flexibility in runtime environments.
 
 ### Configure CLI Commands in configs/cli.yml
-The CLI commands are defined in `configs/cli.yml`, where 
+Define the CLI’s command structure in `app/configs/cli.yml` to enable `CliContext` to parse user inputs. This configuration specifies commands, their arguments, and descriptions, ensuring intuitive interaction with the calculator’s features.
+
+Create `app/configs/cli.yml` with the following content:
+
+```yaml
+cli:
+  cmds:
+    calc.add:
+      group_key: calc
+      key: add
+      description: Adds two numbers.
+      args:
+        - name_or_flags:
+            - a
+          description: The first number to add.
+        - name_or_flags:
+            - b
+          description: The second number to add.
+      name: Add Number Command
+    calc.subtract:
+      group_key: calc
+      key: subtract
+      description: Subtracts one number from another.
+      args:
+        - name_or_flags:
+            - a
+          description: The number to subtract from.
+        - name_or_flags:
+            - b
+          description: The number to subtract.
+      name: Subtract Number Command
+    calc.multiply:
+      group_key: calc
+      key: multiply
+      description: Multiplies two numbers.
+      args:
+        - name_or_flags:
+            - a
+          description: The first number to multiply.
+        - name_or_flags:
+            - b
+          description: The second number to multiply.
+      name: Multiply Number Command
+    calc.divide:
+      group_key: calc
+      key: divide
+      description: Divides one number by another.
+      args:
+        - name_or_flags:
+            - a
+          description: The numerator.
+        - name_or_flags:
+            - b
+          description: The denominator.
+      name: Divide Number Command
+    calc.sqrt:
+      group_key: calc
+      key: sqrt
+      description: Calculates the square root of a number.
+      args:
+        - name_or_flags:
+            - a
+          description: The number to square root.
+      name: Square Root Command
+```
+
+The `cli.cmds` section maps each feature (e.g., `calc.add`) to its command group (`calc`), key (e.g., `add`), and arguments (`a`, `b`), enabling `CliContext` to parse inputs and execute features with precision.
+
+### Configuring the CLI Interface in configs/app.yml
+Enable the CLI interface by adding the `calc_cli` interface to `app/configs/app.yml`. This configuration integrates `CliContext` with its dependencies, `CliYamlProxy` and `CliHandler`, to manage command-line interactions.
+
+Add the `calc_cli` interface to the `interfaces` section:
+
+```yaml
+interfaces:
+  basic_calc:
+    name: Basic Calculator
+    description: Perform basic calculator operations
+  calc_cli:
+    name: Calculator CLI
+    description: Perform basic calculator operations via CLI
+    module_path: tiferet.contexts.cli
+    class_name: CliContext
+    attrs:
+      cli_repo:
+        module_path: tiferet.proxies.yaml.cli
+        class_name: CliYamlProxy
+        params:
+          cli_config_file: app/configs/cli.yml
+      cli_service:
+        module_path: tiferet.handlers.cli
+        class_name: CliHandler
+```
+
+The `calc_cli` interface specifies `CliContext` as its implementation, with `cli_repo` and `cli_service` attributes linking to `CliYamlProxy` (loading `cli.yml`) and `CliHandler` for command processing. This setup ensures robust CLI functionality within Tiferet’s ecosystem.
 
 ### Creating the CLI Script
+Craft a streamlined CLI script in `calc_cli.py` to initialize and run the calculator’s command-line interface. This script uses Tiferet’s `App` class to load the `calc_cli` interface, powered by `CliContext`, for seamless command execution.
+
 Create `calc_cli.py` with the following content:
+
 ```python
 from tiferet import App
 
@@ -505,25 +610,30 @@ if __name__ == '__main__':
     cli.run()
 ```
 
+The `calc_cli.py` script initializes the `App`, loads the `calc_cli` interface, and executes commands via `CliContext`, with error handling to ensure user-friendly feedback for invalid inputs or operations.
+
+### Demonstrating the CLI Calculator
+Experience the calculator’s CLI in action by running commands that showcase its arithmetic and error-handling capabilities. Ensure the `tiferet_app` virtual environment is activated and Tiferet is installed, then execute the script with feature-specific arguments.
+
 Run the CLI with commands like:
+
 ```bash
-# Add two numbers (default en_US)
-python calc_cli.py add 1 2
-# Output: 3
+# Add two numbers
+python calc_cli.py calc add 1 2
+# Output: 1 + 2 = 3
 
-# Calculate square root (en_US)
-python calc_cli.py sqrt 4
-# Output: 2.0
+# Calculate square root
+python calc_cli.py calc sqrt 4
+# Output: √4 = 2.0
 
-# Division by zero (en_US)
-python calc_cli.py divide 5 0
+# Division by zero
+python calc_cli.py calc divide 5 0
 # Output: Error: Cannot divide by zero
 ```
 
-The `calc_cli.py` script is scriptable and integrates easily with shell scripts or external systems, making it a versatile interface for the calculator. For quick testing or debugging, use `basic_calc.py`, which executes a single feature (e.g., `calc.add`) with hardcoded values. The CLI’s argument-driven design allows precise control over operations, showcasing Tiferet's flexibility in run-time environments.
+The `calc_cli.py` script offers a versatile, scriptable interface that integrates effortlessly with shell scripts or external systems, powered by `CliContext` for robust command execution. For quick testing or debugging, use `basic_calc.py` to run individual features with predefined values, while the CLI provides precise, argument-driven control.
 
 ## Conclusion
-This tutorial has woven together the elegance of Tiferet’s Domain-Driven Design framework to create a robust and extensible basic calculator. From defining the immutable Number model to crafting command classes for arithmetic and validation, configuring features and errors, and launching the application via both a test script (`basic_calc.py`) and a CLI (`calc_cli.py`), you’ve experienced Tiferet’s balance of clarity and power. The configuration-driven approach, with dependency injection and multilingual error handling, embodies the Kabbalistic beauty of purposeful design, making the calculator both functional and a joy to develop.
+Embark on a journey of elegance and precision with Tiferet’s Domain-Driven Design framework, as this tutorial has crafted a robust calculator application. You’ve defined arithmetic and validation commands in `app/commands/calc.py` and `app/commands/settings.py`, orchestrated them with configurations in `app/configs/app.yml`, `app/configs/feature.yml`, and `app/configs/cli.yml`, and brought them to life through `basic_calc.py` and the `CliContext`-powered `calc_cli.py`. This configuration-driven approach, enriched with dependency injection and multilingual error handling, reflects Tiferet’s harmonious balance of clarity and power, making development both functional and delightful.
 
-With the foundation laid, you can extend this application in many directions. Consider adding a terminal user interface (TUI) in a new script, `calc_tui.py`, to wrap `calc_cli.py` for interactive menu-driven operation. Explore a scientific calculator context (`sci_calc`) with advanced features like trigonometric functions, reusing the `Number` model or introducing new ones. Or integrate the calculator into larger systems, leveraging Tiferet’s modularity for domains like financial modeling or data processing. Whatever path you choose, Tiferet’s graceful framework will guide you to solutions that resonate with both purpose and precision.
-To continue your journey, try running additional features with `calc_cli.py`, experiment with new feature configurations in `app/configs/config.yml`, or dive into Tiferet’s documentation for advanced DDD techniques. The beauty of Tiferet lies in its ability to transform complexity into clarity—may your creations reflect this harmony.
+Extend your calculator’s potential with Tiferet’s modular design. Create a terminal user interface (TUI) in `calc_tui.py`, leveraging `CliContext` for interactive operation, or define a scientific calculator interface (`sci_calc`) in `app/configs/app.yml` with advanced features like trigonometric functions. Integrate the calculator into larger systems, such as financial modeling, by adding new commands and features in `app/configs/feature.yml`. Experiment with `calc_cli.py` to test additional operations, tweak configurations in `app/configs/`, or explore Tiferet’s documentation for advanced DDD techniques. Let Tiferet’s graceful framework guide you to solutions that resonate with purpose and precision, transforming complexity into clarity.
