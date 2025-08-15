@@ -9,7 +9,7 @@ from unittest import mock
 
 # ** app
 from ..cli import CliContext, CliService
-from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError
+from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError, RequestContext
 from ...models.cli import *
 
 # *** fixtures
@@ -112,17 +112,18 @@ def test_cli_context_parse_request(cli_context):
     request = cli_context.parse_request()
     
     # Check the request type.
-    assert isinstance(request, CliRequest)
+    assert isinstance(request, RequestContext)
     
     # Check the command group and key.
-    assert request.command_group == 'test-group'
-    assert request.command_key == 'test-feature'
+    assert request.feature_id == 'test_group.test_feature'
     
     # Check the parsed data.
     assert request.data['arg1'] == 'default_value'
     
     # Check the headers.
     assert request.headers['interface_id'] == 'test_cli'
+    assert request.headers['command_group'] == 'test-group'
+    assert request.headers['command_key'] == 'test-feature'
 
 # ** test: cli_context_run
 def test_cli_context_run(cli_context, logging_context):

@@ -22,13 +22,14 @@ class AppHandler(AppService):
     '''
 
     # * method: load_app_repository
-    def load_app_repository(self, app_repo_module_path: str = 'tiferet.proxies.yaml.app',
-                app_repo_class_name: str = 'AppYamlProxy',
-                app_repo_params: Dict[str, Any] = dict(
-                    app_config_file='app/configs/app.yml'
-                ),
-                **kwargs
-                ) -> AppRepository:
+    def load_app_repository(self, 
+        app_repo_module_path: str = 'tiferet.proxies.yaml.app',
+        app_repo_class_name: str = 'AppYamlProxy',
+        app_repo_params: Dict[str, Any] = dict(
+            app_config_file='app/configs/app.yml'
+        ),
+        **kwargs
+        ) -> AppRepository:
         '''
         Execute the command.
 
@@ -63,7 +64,11 @@ class AppHandler(AppService):
         return result
     
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute] = []) -> Any:
+    def load_app_instance(self, 
+        app_interface: AppInterface, 
+        default_attrs: List[AppAttribute] = [], 
+        default_const: Dict[str, str] = {}
+        ) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
@@ -106,6 +111,9 @@ class AppHandler(AppService):
 
         # Add the constants from the app interface to the dependencies.
         dependencies.update(app_interface.constants)
+
+        # Add the default constants to the dependencies if they do not already exist in the dependencies.
+        dependencies.update(default_const)
 
         # Create the injector.
         injector = create_injector.execute(

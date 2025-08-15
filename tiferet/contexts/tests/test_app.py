@@ -2,7 +2,6 @@
 
 # ** core
 import logging
-from typing import Any
 
 # ** infra
 import pytest
@@ -28,7 +27,7 @@ def app_interface():
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppContext',
+        class_name='AppInterfaceContext',
         description='The test app.',
         feature_flag='test',
         data_flag='test',
@@ -159,7 +158,7 @@ def app_service(app_repo, app_interface_context):
 # ** fixture: app_context
 @pytest.fixture
 def app_context(app_service):
-    return AppContext(
+    return AppManagerContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
             app_repo_class_name='AppYamlProxy',
@@ -175,10 +174,10 @@ def app_context(app_service):
 # ** test: app_context_load_interface
 def test_app_context_load_interface(app_context, app_interface):
     """
-    Test the load_interface method of AppContext.
+    Test the load_interface method of AppManagerContext.
     
-    :param app_context: The AppContext instance.
-    :type app_context: AppContext
+    :param app_context: The AppManagerContext instance.
+    :type app_context: AppManagerContext
     :param app_interface: The AppInterface instance.
     :type app_interface: AppInterface
     """
@@ -195,8 +194,8 @@ def test_app_context_load_interface_invalid(app_context, app_service):
     """
     Test loading an invalid app interface.
     
-    :param app_context: The AppContext instance.
-    :type app_context: AppContext
+    :param app_context: The AppManagerContext instance.
+    :type app_context: AppManagerContext
     :param app_service: The mock app service.
     :type app_service: AppService
     """
@@ -237,7 +236,7 @@ def test_app_interface_context_parse_request(app_interface_context):
     
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None
-    assert isinstance(request, Request)
+    assert isinstance(request, RequestContext)
     assert request.headers.get('interface_id') == app_interface_context.interface_id
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
@@ -254,12 +253,13 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     """
     
     # Create a new request object.
-    request = ModelObject.new(Request, 
+    request = RequestContext(
         headers={
             'Content-Type': 'application/json', 
             'interface_id': app_interface_context.interface_id
         },
-        data={"key": "value"})
+        data={"key": "value"}
+    )
 
     # Execute a feature using the app interface context.
     app_interface_context.execute_feature('test_group.test_feature', request)
@@ -328,15 +328,16 @@ def test_app_interface_context_handle_response(app_interface_context):
     """
     
     # Create a mock request with a response data.
-    request: Request = ModelObject.new(Request, 
+    request = RequestContext( 
         headers={'Content-Type': 'application/json'},
-        data={"key": "value"})
+        data={"key": "value"}
+    )
     
     # Set the request result to simulate a successful response.
-    request.set_result({
+    request.result = {
         'status': 'success',
         'data': {"key": "value"}
-    })
+    }
 
     # Handle the response using the app interface context.
     response = app_interface_context.handle_response(request)
