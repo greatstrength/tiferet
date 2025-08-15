@@ -6,6 +6,7 @@ from unittest import mock
 
 # ** app
 from ..feature import *
+from ...contexts.request import RequestContext
 from ...models.feature import *
 
 
@@ -54,8 +55,7 @@ def feature_handler(feature_repo):
 def request_with_data():
     """Fixture to provide a request object with data."""
 
-    return ModelObject.new(
-        Request,
+    return RequestContext(
         data=dict(
             const_value='test_value',
         )

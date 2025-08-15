@@ -126,7 +126,7 @@ def test_feature_context_handle_command(feature_context, test_command):
     """Test handling a command in the FeatureContext."""
     
     # Create a mock request.
-    request = ModelObject.new(Request, data={"key": "value"})
+    request = RequestContext(data={"key": "value"})
     
     # Handle the command using the feature context.
     feature_context.handle_command(test_command, request)
@@ -141,7 +141,7 @@ def test_feature_context_handle_command_with_error(feature_context, test_command
     """Test handling a command that raises an error in the FeatureContext."""
     
     # Create a mock request that will raise an error.
-    request = ModelObject.new(Request, data={'key': None})
+    request = RequestContext(data={'key': None})
     
     # Attempt to handle the command and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
@@ -157,7 +157,7 @@ def test_feature_context_handle_command_with_data_key(feature_context, test_comm
     """Test handling a command with a data key in the FeatureContext."""
     
     # Create a mock request with a data key.
-    request = ModelObject.new(Request, data={"key": "value"})
+    request = RequestContext(data={"key": "value"})
     
     # Handle the command using the feature context.
     feature_context.handle_command(test_command, request, data_key="response_data")
@@ -171,7 +171,7 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
     """Test handling a command with pass_on_error in the FeatureContext."""
     
     # Create a mock request that will raise an error.
-    request = ModelObject.new(Request, data={'key': None})
+    request = RequestContext(data={'key': None})
     
     # Handle the command with pass_on_error set to True.
     feature_context.handle_command(test_command, request, pass_on_error=True)
@@ -195,7 +195,7 @@ def test_feature_context_execute_feature(feature_context, feature_service, featu
     feature_service.get_feature.return_value = feature
 
     # Create a mock request.
-    request = ModelObject.new(Request, data={"key": "value"})
+    request = RequestContext(data={"key": "value"})
 
     # Execute the feature using the feature context.
     feature_context.execute_feature(feature.id, request)
@@ -225,7 +225,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     feature_service.parse_parameter.return_value = 'value'
 
     # Create a mock request.
-    request = ModelObject.new(Request, data={"key": "value"})
+    request = RequestContext(data={"key": "value"})
 
     # Execute the feature using the feature context with a data key.
     feature_context.cache.clear()  # Clear the cache to ensure fresh execution.
@@ -252,7 +252,7 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
     feature_service.get_feature.return_value = feature
 
     # Create a mock request that will raise an error.
-    request = ModelObject.new(Request, data={'key': None})
+    request = RequestContext(data={'key': None})
 
     # Execute the feature using the feature context.
     feature_context.cache.clear()  # Clear the cache to ensure fresh execution.
