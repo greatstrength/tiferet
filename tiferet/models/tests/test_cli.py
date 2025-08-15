@@ -8,19 +8,6 @@ from ..cli import *
 
 # *** fixtures
 
-# ** fixture: cli_request
-@pytest.fixture
-def cli_request() -> CliRequest:
-    '''
-    Fixture to provide a sample CLI request for testing.
-    This request is used to test the conversion to a feature ID.
-    '''
-    return ModelObject.new(
-        CliRequest,
-        command_group='test-group',
-        command_key='test-feature'
-    )
-
 # ** fixture: cli_argument
 @pytest.fixture
 def cli_argument() -> CliArgument:
@@ -60,17 +47,6 @@ def cli_command() -> CliCommand:
     )
 
 # *** tests
-
-# ** test: cli_request_to_feature_id
-def test_cli_request_to_feature_id(cli_request: CliRequest):
-    '''
-    Test the conversion of a CLI request to a feature ID.
-    '''
-    # Convert the CLI request to a feature ID.
-    feature_id = cli_request.to_feature_id()
-    
-    # Assert that the feature ID is correctly formatted in snake_case.
-    assert feature_id == 'test_group.test_feature'
 
 # ** test: cli_argument_get_type_str
 def test_cli_argument_get_type_str(cli_argument: CliArgument):

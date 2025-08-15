@@ -5,45 +5,8 @@ from typing import List
 
 # ** app
 from .settings import *
-from .feature import Request
 
 # *** models
-
-# ** model: cli_request
-class CliRequest(Request):
-    '''
-    Represents a request for a command line command.
-    This request is used to identify a specific command in the CLI context.
-    '''
-    
-    # * attribute: command_group
-    command_group = StringType(
-        required=True,
-        metadata=dict(
-            description='The group of the command being requested. This is typically used to modularly group commands by functional context in a configuration file.'
-        )
-    )
-    
-    # * attribute: command_key
-    command_key = StringType(
-        required=True,
-        metadata=dict(
-            description='The unique key of the command being requested. This is typically used to identify the command in a configuration file.'
-        )
-    )
-    
-    # * method: to_feature_id
-    def to_feature_id(self) -> str:
-        '''
-        Convert the request to a feature ID.
-        :return: The feature ID.
-        :rtype: str
-        '''
-        # Format the feature ID as 'command_group.command_key'.
-        return '{}.{}'.format(
-            self.command_group.replace('-', '_'),
-            self.command_key.replace('-', '_')
-        )
 
 # ** model: cli_argument
 class CliArgument(ValueObject):
