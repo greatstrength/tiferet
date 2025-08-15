@@ -7,8 +7,8 @@ from typing import Dict, Any
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
+from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
-from ..models.feature import Request
 from ..models.app import *
 from ..handlers.app import (
     AppService,
@@ -37,7 +37,7 @@ class AppManagerContext(object):
     # * attribute: app_service
     app_service: AppService
 
-    # * method: init
+    # * init
     def __init__(self, settings: Dict[str, Any], app_service: AppService = AppHandler()):
         '''
         Initialize the AppManagerContext with an application service.
@@ -131,51 +131,6 @@ class AppManagerContext(object):
             debug=debug,
             **kwargs
         )
-    
-# ** context: app_request_context
-class AppRequestContext(object):
-
-    # * attribute: session_id
-    session_id: str
-
-    # * attribute: feature_id
-    feature_id: str
-
-    # * attribute: headers
-    headers: Dict[str, str]
-
-    # * attribute: data
-    data: Dict[str, Any]
-
-    # * attribute: result
-    result: Any
-
-    # * handle_response
-    def handle_response(self) -> Any:
-        '''
-        Handle the response from the request.
-
-        :return: The response.
-        :rtype: Any
-        '''
-
-        # If the result is None, return None.
-        if self.result is None:
-            return None
-
-        # If the result is a ModelObject, return its primitive representation.
-        if isinstance(self.result, ModelObject):
-            return self.result.to_primitive()
-        
-        # If the result is a dictionary, return it as is.
-        if isinstance(self.result, dict):
-            return self.result
-        
-        # If the result is a list, check to see if it contains ModelObjects.
-        if isinstance(self.result, list):
-
-            # If it does, convert each item to a primitive dictionary.
-            return [item.to_primitive() if isinstance(item, ModelObject) else item for item in self.result]
 
 # ** context: app_interface_context
 class AppInterfaceContext(object): 
@@ -195,7 +150,7 @@ class AppInterfaceContext(object):
     # * attribute: logging
     logging: LoggingContext
 
-    # * method: init
+    # * init
     def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, logging: LoggingContext):
         '''
         Initialize the application interface context.
@@ -215,7 +170,7 @@ class AppInterfaceContext(object):
         self.logging = logging
 
     # * method: parse_request
-    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> Request:
+    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None) -> RequestContext:
         '''
         Parse the incoming request.
 
@@ -223,8 +178,10 @@ class AppInterfaceContext(object):
         :type headers: dict
         :param data: The request data.
         :type data: dict
-        :return: The parsed request.
-        :rtype: Request
+        :param feature_id: The feature identifier if provided.
+        :type feature_id: str
+        :return: The parsed request as a request context.
+        :rtype: RequestContext
         '''
 
         # Add the interface id to the request headers.
@@ -232,25 +189,25 @@ class AppInterfaceContext(object):
             interface_id=self.interface_id,
         ))
 
-        # Create the request model object.
-        request = ModelObject.new(
-            Request,
+        # Create the request context object.
+        request = RequestContext(
             headers=headers,
             data=data,
+            feature_id=feature_id,
         )
 
         # Return the request model object.
         return request
     
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: Request, **kwargs):
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute the feature context.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
-        :param request: The request.
-        :type request: Request
+        :param request: The request context object.
+        :type request: RequestContext
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
@@ -286,7 +243,7 @@ class AppInterfaceContext(object):
         return self.errors.handle_error(error)
 
     # * method: handle_response
-    def handle_response(self, request: Request) -> Any:
+    def handle_response(self, request: RequestContext) -> Any:
         '''
         Handle the response from the request.
 
@@ -328,7 +285,7 @@ class AppInterfaceContext(object):
         # Execute feature context and return session.
         try:
             logger.info(f'Executing feature: {feature_id}')
-            logger.debug(f'Executing feature: {feature_id} with request: {request.to_primitive()}')
+            logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(
                 feature_id=feature_id, 
                 request=request, 
@@ -351,5 +308,6 @@ class AppContext(AppManagerContext):
     It is kept for backward compatibility but should not be used in new code.
     '''
 
-    def __init__(self, app_service: AppService = AppHandler()):
-        super().__init__(app_service)
+    # * init
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
+        super().__init__(settings, app_service)
