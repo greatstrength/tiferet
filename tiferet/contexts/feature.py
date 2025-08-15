@@ -3,8 +3,8 @@
 # ** app
 from .container import ContainerContext
 from .cache import CacheContext
+from .request import RequestContext
 from ..handlers.feature import FeatureService
-from ..models.feature import Request
 from ..commands import *
 
 
@@ -70,7 +70,7 @@ class FeatureContext(object):
     # * method: handle_command
     def handle_command(self,
         command: Command, 
-        request: Request,
+        request: RequestContext,
         data_key: str = None,
         pass_on_error: bool = False,
         **kwargs
@@ -81,7 +81,7 @@ class FeatureContext(object):
         :param command: The command to execute.
         :type command: Command
         :param request: The request context object.
-        :type request: Request
+        :type request: RequestContext
         :param debug: Debug flag.
         :type debug: bool
         :param data_key: Optional key to store the result in the request data.
@@ -113,16 +113,16 @@ class FeatureContext(object):
 
         # Otherwise, set the result.
         else:
-            request.set_result(result)
+            request.result = result
 
         
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: Request, **kwargs):
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute a feature by its ID with the provided request.
         
-        :param request: The request object.
-        :type request: Request
+        :param request: The request context object.
+        :type request: RequestContext
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
