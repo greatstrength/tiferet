@@ -24,10 +24,11 @@ from ..commands.app import GetAppInterface
 
 # *** contexts
 
-# ** context: app_context
-class AppContext(object):
+# ** context: app_manager_context
+class AppManagerContext(object):
     '''
-    The application context is a class that is used to create and run the application instance.
+    The AppManagerContext is responsible for managing the application context.
+    It provides methods to load the application interface and run features.
     '''
 
     # * attribute: settings
@@ -37,18 +38,20 @@ class AppContext(object):
     app_service: AppService
 
     # * method: init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
+    def __init__(self, settings: Dict[str, Any], app_service: AppService = AppHandler()):
         '''
-        Initialize the application context.
-        
+        Initialize the AppManagerContext with an application service.
+
         :param settings: The application settings.
         :type settings: dict
-        :param app_service: The application service to use for executing app requests.
+        :param app_service: The application service to use.
         :type app_service: AppService
         '''
-        
-        # Assign the settings and app service.
+
+        # Set the settings.
         self.settings = settings
+
+        # Set the app service.
         self.app_service = app_service
 
     # * method: load_interface
@@ -94,7 +97,7 @@ class AppContext(object):
         
         # Return the app interface context.
         return app_interface_context
-
+    
     # * method: run
     def run(self,
             interface_id: str,
@@ -128,7 +131,51 @@ class AppContext(object):
             debug=debug,
             **kwargs
         )
+    
+# ** context: app_request_context
+class AppRequestContext(object):
 
+    # * attribute: session_id
+    session_id: str
+
+    # * attribute: feature_id
+    feature_id: str
+
+    # * attribute: headers
+    headers: Dict[str, str]
+
+    # * attribute: data
+    data: Dict[str, Any]
+
+    # * attribute: result
+    result: Any
+
+    # * handle_response
+    def handle_response(self) -> Any:
+        '''
+        Handle the response from the request.
+
+        :return: The response.
+        :rtype: Any
+        '''
+
+        # If the result is None, return None.
+        if self.result is None:
+            return None
+
+        # If the result is a ModelObject, return its primitive representation.
+        if isinstance(self.result, ModelObject):
+            return self.result.to_primitive()
+        
+        # If the result is a dictionary, return it as is.
+        if isinstance(self.result, dict):
+            return self.result
+        
+        # If the result is a list, check to see if it contains ModelObjects.
+        if isinstance(self.result, list):
+
+            # If it does, convert each item to a primitive dictionary.
+            return [item.to_primitive() if isinstance(item, ModelObject) else item for item in self.result]
 
 # ** context: app_interface_context
 class AppInterfaceContext(object): 
@@ -296,3 +343,13 @@ class AppInterfaceContext(object):
         # Handle response.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
         return self.handle_response(request)
+
+# ** context: app_context (obsolete)
+class AppContext(AppManagerContext):
+    '''
+    The AppContext is an obsolete class that extends the AppManagerContext.
+    It is kept for backward compatibility but should not be used in new code.
+    '''
+
+    def __init__(self, app_service: AppService = AppHandler()):
+        super().__init__(app_service)
