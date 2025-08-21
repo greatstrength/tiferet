@@ -49,6 +49,24 @@ def test_request_context_handle_response_none(request_context):
     # Check that the response is None.
     assert response is None
 
+# ** test: request_context_handle_response_primitive
+def test_request_context_handle_response_primitive(request_context):
+    """
+    Test handling a response that is a primitive type in the RequestContext.
+    
+    :param request_context: The RequestContext instance.
+    :type request_context: RequestContext
+    """
+
+    # Set the request context result to a primitive type.
+    request_context.result = 'test_string'
+
+    # Handle the response with a primitive type.
+    response = request_context.handle_response()
+    
+    # Check that the response is as expected.
+    assert response == 'test_string'
+
 # ** test: request_context_handle_response_data
 def test_request_context_handle_response_data(request_context):
     """

@@ -81,3 +81,6 @@ class RequestContext(object):
 
             # If it does, convert each item to a primitive dictionary.
             return [item.to_primitive() if isinstance(item, ModelObject) else item for item in self.result]
+        
+        # Otherwise, return the result as is.
+        return self.result
