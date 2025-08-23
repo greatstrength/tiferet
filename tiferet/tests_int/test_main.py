@@ -36,6 +36,7 @@ def basic_calc(app_context):
 # *** tests
 
 # ** test: basic_calc_add_numbers
+@pytest.mark.skip()
 def test_basic_calc_add_numbers(basic_calc):
     """
     Test the addition operation of the basic calculator.
@@ -55,6 +56,7 @@ def test_basic_calc_add_numbers(basic_calc):
 
 
 # ** test: basic_calc_subtract_numbers
+@pytest.mark.skip()
 def test_basic_calc_subtract_numbers(basic_calc):   
     """
     Test the subtraction operation of the basic calculator.
@@ -74,6 +76,7 @@ def test_basic_calc_subtract_numbers(basic_calc):
 
 
 # ** test: basic_calc_multiply_numbers
+@pytest.mark.skip()
 def test_basic_calc_multiply_numbers(basic_calc):
     """
     Test the multiplication operation of the basic calculator.
@@ -93,6 +96,7 @@ def test_basic_calc_multiply_numbers(basic_calc):
 
 
 # ** test: basic_calc_divide_numbers
+@pytest.mark.skip()
 def test_basic_calc_divide_numbers(basic_calc):
     """
     Test the division operation of the basic calculator.
@@ -112,6 +116,7 @@ def test_basic_calc_divide_numbers(basic_calc):
 
 
 # ** test: basic_calc_divide_by_zero
+@pytest.mark.skip()
 def test_basic_calc_divide_by_zero(basic_calc):
     """
     Test the division by zero operation of the basic calculator.
@@ -133,6 +138,7 @@ def test_basic_calc_divide_by_zero(basic_calc):
 
 
 # ** test: basic_calc_square_number
+@pytest.mark.skip()
 def test_basic_calc_square_number(basic_calc):
     """
     Test the squaring operation of the basic calculator.

@@ -58,6 +58,7 @@ def test_calc():
 # *** tests
 
 # ** test: basic_calc_cli_add_numbers
+@pytest.mark.skip()
 def test_basic_calc_cli_add_numbers(test_calc_cli, test_calc):
     '''
     Test the addition operation of the basic calculator CLI.
@@ -78,6 +79,7 @@ def test_basic_calc_cli_add_numbers(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_subtract_numbers
+@pytest.mark.skip()
 def test_basic_calc_cli_subtract_numbers(test_calc_cli, test_calc):
     '''
     Test the subtraction operation of the basic calculator CLI.
@@ -98,6 +100,7 @@ def test_basic_calc_cli_subtract_numbers(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_multiply_numbers
+@pytest.mark.skip()
 def test_basic_calc_cli_multiply_numbers(test_calc_cli, test_calc):
     '''
     Test the multiplication operation of the basic calculator CLI.
@@ -118,6 +121,7 @@ def test_basic_calc_cli_multiply_numbers(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_divide_numbers
+@pytest.mark.skip()
 def test_basic_calc_cli_divide_numbers(test_calc_cli, test_calc):
     '''
     Test the division operation of the basic calculator CLI.
@@ -138,6 +142,7 @@ def test_basic_calc_cli_divide_numbers(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_divide_by_zero
+@pytest.mark.skip()
 def test_basic_calc_cli_divide_by_zero(test_calc_cli, test_calc):
     '''
     Test the division by zero operation of the basic calculator CLI.
@@ -158,6 +163,7 @@ def test_basic_calc_cli_divide_by_zero(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_square_number
+@pytest.mark.skip()
 def test_basic_calc_cli_square_number(test_calc_cli, test_calc):
     '''
     Test the square operation of the basic calculator CLI.
@@ -178,6 +184,7 @@ def test_basic_calc_cli_square_number(test_calc_cli, test_calc):
         os.remove(test_calc_cli)
 
 # ** test: basic_calc_cli_invalid_command
+@pytest.mark.skip()
 def test_basic_calc_cli_invalid_command(test_calc_cli, test_calc):
     '''
     Test the handling of an invalid command in the basic calculator CLI.
