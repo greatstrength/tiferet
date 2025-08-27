@@ -155,9 +155,9 @@ def app_service(app_repo, app_interface_context):
     # Return the mock app service.
     return service
 
-# ** fixture: app_context
+# ** fixture: app_manager_context
 @pytest.fixture
-def app_context(app_service):
+def app_manager_context(app_service):
     return AppManagerContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
@@ -171,31 +171,31 @@ def app_context(app_service):
 
 # *** tests
 
-# ** test: app_context_load_interface
-def test_app_context_load_interface(app_context, app_interface):
+# ** test: app_manager_context_load_interface
+def test_app_manager_context_load_interface(app_manager_context, app_interface):
     """
     Test the load_interface method of AppManagerContext.
     
-    :param app_context: The AppManagerContext instance.
-    :type app_context: AppManagerContext
+    :param app_manager_context: The AppManagerContext instance.
+    :type app_manager_context: AppManagerContext
     :param app_interface: The AppInterface instance.
     :type app_interface: AppInterface
     """
     
     # Load the app interface using the app context.
-    result = app_context.load_interface(app_interface.id)
+    result = app_manager_context.load_interface(app_interface.id)
     
     # Assert that the result is an instance of AppInterfaceContext.
     assert result
     assert isinstance(result, AppInterfaceContext)
 
-# ** test: app_context_load_interface_invalid
-def test_app_context_load_interface_invalid(app_context, app_service):
+# ** test: app_manager_context_load_interface_invalid
+def test_app_manager_context_load_interface_invalid(app_manager_context, app_service):
     """
     Test loading an invalid app interface.
     
-    :param app_context: The AppManagerContext instance.
-    :type app_context: AppManagerContext
+    :param app_manager_context: The AppManagerContext instance.
+    :type app_manager_context: AppManagerContext
     :param app_service: The mock app service.
     :type app_service: AppService
     """
@@ -210,7 +210,7 @@ def test_app_context_load_interface_invalid(app_context, app_service):
 
     # Attempt to load an invalid interface and assert that it raises an error.
     with pytest.raises(TiferetError) as exc_info:
-        app_context.load_interface('invalid_interface_id')
+        app_manager_context.load_interface('invalid_interface_id')
 
     # Assert that the error message is as expected.
     assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
