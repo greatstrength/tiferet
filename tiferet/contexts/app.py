@@ -7,8 +7,8 @@ from typing import Dict, Any
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
+from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
-from ..models.feature import Request
 from ..models.app import *
 from ..handlers.app import (
     AppService,
@@ -27,7 +27,8 @@ from ..commands.app import GetAppInterface
 # ** context: app_context
 class AppContext(object):
     '''
-    The application context is a class that is used to create and run the application instance.
+    The AppContext is responsible for managing the application context.
+    It provides methods to load the application interface and run features.
     '''
 
     # * attribute: settings
@@ -36,19 +37,21 @@ class AppContext(object):
     # * attribute: app_service
     app_service: AppService
 
-    # * method: init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
+    # * init
+    def __init__(self, settings: Dict[str, Any], app_service: AppService = AppHandler()):
         '''
-        Initialize the application context.
-        
+        Initialize the AppManagerContext with an application service.
+
         :param settings: The application settings.
         :type settings: dict
-        :param app_service: The application service to use for executing app requests.
+        :param app_service: The application service to use.
         :type app_service: AppService
         '''
-        
-        # Assign the settings and app service.
+
+        # Set the settings.
         self.settings = settings
+
+        # Set the app service.
         self.app_service = app_service
 
     # * method: load_interface
@@ -94,7 +97,7 @@ class AppContext(object):
         
         # Return the app interface context.
         return app_interface_context
-
+    
     # * method: run
     def run(self,
             interface_id: str,
@@ -129,7 +132,6 @@ class AppContext(object):
             **kwargs
         )
 
-
 # ** context: app_interface_context
 class AppInterfaceContext(object): 
     '''
@@ -148,7 +150,7 @@ class AppInterfaceContext(object):
     # * attribute: logging
     logging: LoggingContext
 
-    # * method: init
+    # * init
     def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, logging: LoggingContext):
         '''
         Initialize the application interface context.
@@ -168,7 +170,7 @@ class AppInterfaceContext(object):
         self.logging = logging
 
     # * method: parse_request
-    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> Request:
+    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None) -> RequestContext:
         '''
         Parse the incoming request.
 
@@ -176,8 +178,10 @@ class AppInterfaceContext(object):
         :type headers: dict
         :param data: The request data.
         :type data: dict
-        :return: The parsed request.
-        :rtype: Request
+        :param feature_id: The feature identifier if provided.
+        :type feature_id: str
+        :return: The parsed request as a request context.
+        :rtype: RequestContext
         '''
 
         # Add the interface id to the request headers.
@@ -185,25 +189,25 @@ class AppInterfaceContext(object):
             interface_id=self.interface_id,
         ))
 
-        # Create the request model object.
-        request = ModelObject.new(
-            Request,
+        # Create the request context object.
+        request = RequestContext(
             headers=headers,
             data=data,
+            feature_id=feature_id,
         )
 
         # Return the request model object.
         return request
     
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: Request, **kwargs):
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute the feature context.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
-        :param request: The request.
-        :type request: Request
+        :param request: The request context object.
+        :type request: RequestContext
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
@@ -239,7 +243,7 @@ class AppInterfaceContext(object):
         return self.errors.handle_error(error)
 
     # * method: handle_response
-    def handle_response(self, request: Request) -> Any:
+    def handle_response(self, request: RequestContext) -> Any:
         '''
         Handle the response from the request.
 
@@ -281,7 +285,7 @@ class AppInterfaceContext(object):
         # Execute feature context and return session.
         try:
             logger.info(f'Executing feature: {feature_id}')
-            logger.debug(f'Executing feature: {feature_id} with request: {request.to_primitive()}')
+            logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(
                 feature_id=feature_id, 
                 request=request, 
