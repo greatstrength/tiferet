@@ -9,7 +9,7 @@ from unittest import mock
 
 # ** app
 from ..cli import CliContext, CliService
-from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError
+from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError, RequestContext
 from ...models.cli import *
 
 # *** fixtures
@@ -79,7 +79,7 @@ def error_context():
 def logging_context():
     """
     Fixture to create a mock logging context.
-    
+
     :return: A mock instance of LoggingContext.
     :rtype: LoggingContext
     """
@@ -110,25 +110,26 @@ def test_cli_context_parse_request(cli_context):
     """
     # Parse the request.
     request = cli_context.parse_request()
-    
+
     # Check the request type.
-    assert isinstance(request, CliRequest)
-    
+    assert isinstance(request, RequestContext)
+
     # Check the command group and key.
-    assert request.command_group == 'test-group'
-    assert request.command_key == 'test-feature'
-    
+    assert request.feature_id == 'test_group.test_feature'
+
     # Check the parsed data.
     assert request.data['arg1'] == 'default_value'
-    
+
     # Check the headers.
     assert request.headers['interface_id'] == 'test_cli'
+    assert request.headers['command_group'] == 'test-group'
+    assert request.headers['command_key'] == 'test-feature'
 
 # ** test: cli_context_run
 def test_cli_context_run(cli_context, logging_context):
     """
     Test the run method of the CLI context.
-    
+
     :param cli_context: The CliContext instance.
     :type cli_context: CliContext
     :param logging_context: The mock LoggingContext instance.
@@ -136,16 +137,16 @@ def test_cli_context_run(cli_context, logging_context):
     """
     # Run the CLI context.
     result = cli_context.run()
-    
+
     # Check that the feature was executed.
     cli_context.features.execute_feature.assert_called_once()
-    
+
     # Check that the result is None (as per the mock).
     assert result is None
-    
+
     # Check that no errors were logged.
     cli_context.errors.handle_error.assert_not_called()
-    
+
     # Assert that the logger was created and used. -- new
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
@@ -157,7 +158,7 @@ def test_cli_context_run(cli_context, logging_context):
 def test_cli_context_run_with_parse_request_error(cli_context, cli_service, logging_context):
     """
     Test the run method of the CLI context when there is an error in parsing the request.
-    
+
     :param cli_context: The CliContext instance.
     :type cli_context: CliContext
     :param cli_service: The mock CliService instance.
@@ -167,14 +168,14 @@ def test_cli_context_run_with_parse_request_error(cli_context, cli_service, logg
     """
     # Mock the parse_arguments method to raise an exception.
     cli_service.parse_arguments.side_effect = Exception("Parsing error")
-    
+
     # Run the CLI context and capture the output.
     with pytest.raises(SystemExit) as exc_info:
         cli_context.run()
-    
+
     # Check that the exit code is 2 (as per the error handling).
     assert exc_info.value.code == 2
-    
+
     # Assert that the logger was created and used for error logging. -- new
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
@@ -185,7 +186,7 @@ def test_cli_context_run_with_parse_request_error(cli_context, cli_service, logg
 def test_cli_context_run_with_feature_error(cli_context, feature_context, logging_context):
     """
     Test the run method of the CLI context when there is an error in executing the feature.
-    
+
     :param cli_context: The CliContext instance.
     :type cli_context: CliContext
     :param feature_context: The mock FeatureContext instance.
@@ -198,14 +199,14 @@ def test_cli_context_run_with_feature_error(cli_context, feature_context, loggin
         'FEATURE_EXECUTION_FAILED',
         'Feature execution failed'
     )
-    
+
     # Run the CLI context and capture the output.
     with pytest.raises(SystemExit) as exc_info:
         cli_context.run()
-    
+
     # Check that the exit code is 1 (as per the error handling).
     assert exc_info.value.code == 1
-    
+
     # Assert that the logger was created and used for error logging. -- new
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
