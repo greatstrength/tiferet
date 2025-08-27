@@ -6,7 +6,6 @@ import sys
 # ** app
 from .app import *
 from ..handlers.cli import CliService
-from ..models.cli import CliRequest
 
 # *** contexts
 
@@ -49,12 +48,12 @@ class CliContext(AppInterfaceContext):
         )
 
     # * method: parse_request
-    def parse_request(self) -> CliRequest:
+    def parse_request(self) -> RequestContext:
         '''
         Parse the command line arguments and return a Request object.
 
-        :return: The parsed request.
-        :rtype: Request
+        :return: The parsed request context.
+        :rtype: RequestContext
         '''
 
         # Retrieve the command map from the CLI service.
@@ -63,18 +62,20 @@ class CliContext(AppInterfaceContext):
         # Parse the command line arguments for the CLI command.
         data = self.cli_service.parse_arguments(cli_commands)
 
-        # Create the default headers for the request.
-        headers = dict(
-            interface_id=self.interface_id
+        # Fashion the feature id from the command group and key.
+        feature_id = '{}.{}'.format(
+            data.get('group').replace('-', '_'),
+            data.get('command').replace('-', '_')
         )
 
-        # Create a CliRequest object with the parsed data and headers.
-        return ModelObject.new(
-            CliRequest,
+        # Create a RequestContext object with the parsed data and headers.
+        return super().parse_request(
+            headers=dict(
+                command_group=data.get('group'),
+                command_key=data.get('command'),
+            ),
             data=data,
-            headers=headers,
-            command_group=data.pop('group'),
-            command_key=data.pop('command')
+            feature_id=feature_id,
         )
 
     # * method: run
@@ -100,21 +101,19 @@ class CliContext(AppInterfaceContext):
             print(e, file=sys.stderr)
             sys.exit(2)
 
-
         # Attempt to execute the feature for the parsed CLI request.
         try:
-            feature_id = cli_request.to_feature_id()
-            logger.info(f'Executing feature for CLI request: {feature_id}')
-            logger.debug(f'CLI request data: {cli_request.to_primitive()}')
+            logger.info(f'Executing feature for CLI request: {cli_request.feature_id}')
+            logger.debug(f'CLI request data: {cli_request.data}')
             self.execute_feature(
-                feature_id=feature_id,
+                feature_id=cli_request.feature_id,
                 request=cli_request,
                 logger=logger,
             )
         
         # Handle any TiferetError exceptions that may occur during feature execution.
         except TiferetError as e:
-            logger.error(f'Error executing CLI feature {feature_id}: {e}')
+            logger.error(f'Error executing CLI feature {cli_request.feature_id}: {e}')
             print(self.handle_error(e), file=sys.stderr)
             sys.exit(1)
         
