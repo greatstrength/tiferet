@@ -109,8 +109,8 @@ def test_request_context_handle_response_model_object(request_context):
     response = request_context.handle_response()
     
     # Check that the response is a ModelObject and has the expected data.
-    assert isinstance(response, dict)
-    assert response.get('key') == 'value'
+    assert isinstance(response, ModelObject)
+    assert response.key == 'value'
 
 # ** test: request_context_handle_response_list
 def test_request_context_handle_response_list(request_context):
@@ -160,5 +160,5 @@ def test_request_context_handle_response_model_list(request_context):
     # Check that the response is a list and contains ModelObjects with expected names.
     assert isinstance(response, list)
     assert len(response) == 2
-    assert response[0].get('name') == 'item1'
-    assert response[1].get('name') == 'item2'
+    assert response[0].name == 'item1'
+    assert response[1].name == 'item2'

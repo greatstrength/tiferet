@@ -4,9 +4,6 @@
 from typing import Dict, Any
 from uuid import uuid4
 
-# ** app
-from ..models import ModelObject
-
 # *** contexts
 
 # ** context: request_context
@@ -63,24 +60,6 @@ class RequestContext(object):
         :return: The response.
         :rtype: Any
         '''
-
-        # If the result is None, return None.
-        if self.result is None:
-            return None
-
-        # If the result is a ModelObject, return its primitive representation.
-        if isinstance(self.result, ModelObject):
-            return self.result.to_primitive()
         
-        # If the result is a dictionary, return it as is.
-        if isinstance(self.result, dict):
-            return self.result
-        
-        # If the result is a list, check to see if it contains ModelObjects.
-        if isinstance(self.result, list):
-
-            # If it does, convert each item to a primitive dictionary.
-            return [item.to_primitive() if isinstance(item, ModelObject) else item for item in self.result]
-        
-        # Otherwise, return the result as is.
+        # Return the result by default.
         return self.result
