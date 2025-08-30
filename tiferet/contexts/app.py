@@ -21,13 +21,12 @@ from ..commands import (
 )
 from ..commands.app import GetAppInterface
 
-
 # *** contexts
 
-# ** context: app_context
-class AppContext(object):
+# ** context: app_manager_context
+class AppManagerContext(object):
     '''
-    The AppContext is responsible for managing the application context.
+    The AppManagerContext is responsible for managing the application context.
     It provides methods to load the application interface and run features.
     '''
 
@@ -300,3 +299,14 @@ class AppInterfaceContext(object):
         # Handle response.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
         return self.handle_response(request)
+
+# ** context: app_context (obsolete)
+class AppContext(AppManagerContext):
+    '''
+    The AppContext is an obsolete class that extends the AppManagerContext.
+    It is kept for backward compatibility but should not be used in new code.
+    '''
+
+    # * init
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
+        super().__init__(settings, app_service)
