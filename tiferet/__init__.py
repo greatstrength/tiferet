@@ -1,6 +1,6 @@
 # *** imports
 
 # ** app
-from .contexts.app import AppContext as App
+from .contexts.app import AppManagerContext as App
 from .commands import *
 from .contracts import *
