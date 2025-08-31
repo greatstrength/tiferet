@@ -4,9 +4,6 @@
 from typing import Dict, Any
 from uuid import uuid4
 
-# ** app
-from ..models import ModelObject
-
 # *** contexts
 
 # ** context: request_context
@@ -44,17 +41,16 @@ class RequestContext(object):
 
         # Set the session id or generate a new one if not provided.
         self.session_id = session_id if session_id else str(uuid4())
-        
+
         # Set the feature id or None if not provided.
         self.feature_id = feature_id if feature_id else None
-        
+
         # Set the headers and data.
         self.headers = headers
         self.data = data
 
         # Initialize the result to None.
         self.result = None
-
 
     # * handle_response
     def handle_response(self) -> Any:
@@ -65,23 +61,5 @@ class RequestContext(object):
         :rtype: Any
         '''
 
-        # If the result is None, return None.
-        if self.result is None:
-            return None
-
-        # If the result is a ModelObject, return its primitive representation.
-        if isinstance(self.result, ModelObject):
-            return self.result.to_primitive()
-        
-        # If the result is a dictionary, return it as is.
-        if isinstance(self.result, dict):
-            return self.result
-        
-        # If the result is a list, check to see if it contains ModelObjects.
-        if isinstance(self.result, list):
-
-            # If it does, convert each item to a primitive dictionary.
-            return [item.to_primitive() if isinstance(item, ModelObject) else item for item in self.result]
-        
-        # Otherwise, return the result as is.
+        # Return the result by default.
         return self.result

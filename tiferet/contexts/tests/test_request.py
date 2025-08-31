@@ -13,7 +13,7 @@ from ..request import *
 @pytest.fixture
 def request_context():
     """Fixture to provide a mock RequestContext."""
-    
+
     # Create a mock RequestContext.
     request_context = RequestContext(
         data=dict(
@@ -25,7 +25,7 @@ def request_context():
         ),
         feature_id='test_group.test_feature'
     )
-    
+
     # Return the mock RequestContext.
     return request_context
 
@@ -35,7 +35,7 @@ def request_context():
 def test_request_context_handle_response_none(request_context):
     """
     Test handling a response that is None in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
@@ -45,7 +45,7 @@ def test_request_context_handle_response_none(request_context):
 
     # Handle a None response.
     response = request_context.handle_response()
-    
+
     # Check that the response is None.
     assert response is None
 
@@ -53,7 +53,7 @@ def test_request_context_handle_response_none(request_context):
 def test_request_context_handle_response_primitive(request_context):
     """
     Test handling a response that is a primitive type in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
@@ -63,7 +63,7 @@ def test_request_context_handle_response_primitive(request_context):
 
     # Handle the response with a primitive type.
     response = request_context.handle_response()
-    
+
     # Check that the response is as expected.
     assert response == 'test_string'
 
@@ -71,7 +71,7 @@ def test_request_context_handle_response_primitive(request_context):
 def test_request_context_handle_response_data(request_context):
     """
     Test handling a response with data in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
@@ -81,7 +81,7 @@ def test_request_context_handle_response_data(request_context):
 
     # Handle the response with data.
     response = request_context.handle_response()
-    
+
     # Check that the response is as expected.
     assert response == {'key': 'value'}
 
@@ -89,14 +89,14 @@ def test_request_context_handle_response_data(request_context):
 def test_request_context_handle_response_model_object(request_context):
     """
     Test handling a response that is a ModelObject in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
 
     # Create a ModelObject to simulate a response.
     class Data(ModelObject):
-        
+
         key = StringType(
             default='default_value',
             required=True
@@ -107,16 +107,16 @@ def test_request_context_handle_response_model_object(request_context):
 
     # Handle the response with a ModelObject.
     response = request_context.handle_response()
-    
+
     # Check that the response is a ModelObject and has the expected data.
-    assert isinstance(response, dict)
-    assert response.get('key') == 'value'
+    assert isinstance(response, ModelObject)
+    assert response.key == 'value'
 
 # ** test: request_context_handle_response_list
 def test_request_context_handle_response_list(request_context):
     """
     Test handling a response that is a list in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
@@ -126,7 +126,7 @@ def test_request_context_handle_response_list(request_context):
 
     # Handle the response with a list.
     response = request_context.handle_response()
-    
+
     # Check that the response is a list and has the expected items.
     assert isinstance(response, list)
     assert response == ['item1', 'item2', 'item3']
@@ -135,14 +135,14 @@ def test_request_context_handle_response_list(request_context):
 def test_request_context_handle_response_model_list(request_context):
     """
     Test handling a response that is a list of ModelObjects in the RequestContext.
-    
+
     :param request_context: The RequestContext instance.
     :type request_context: RequestContext
     """
 
     # Create a ModelObject to simulate a response.
     class Item(ModelObject):
-        
+
         name = StringType(
             default='default_name',
             required=True
@@ -156,9 +156,9 @@ def test_request_context_handle_response_model_list(request_context):
 
     # Handle the response with a list of ModelObjects.
     response = request_context.handle_response()
-    
+
     # Check that the response is a list and contains ModelObjects with expected names.
     assert isinstance(response, list)
     assert len(response) == 2
-    assert response[0].get('name') == 'item1'
-    assert response[1].get('name') == 'item2'
+    assert response[0].name == 'item1'
+    assert response[1].name == 'item2'
