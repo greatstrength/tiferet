@@ -35,24 +35,24 @@ def test_execute_not_implemented(command):
         command.execute()
 
 # ** test: test_raise_error_basic
-def test_raise_error_basic(command):
+def test_raise_error_basic():
     '''Test raising a TiferetError with basic parameters.'''
 
     # Raise error with code and message, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        command.raise_error('TEST_ERROR', 'An error has occurred.')
+        Command.raise_error('TEST_ERROR', 'An error has occurred.')
 
     # Verify error code and message.
     assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
     assert 'An error has occurred.' in str(exc_info.value), 'Should include the provided message'
 
 # ** test: test_raise_error_with_args
-def test_raise_error_with_args(command):
+def test_raise_error_with_args():
     '''Test raising a TiferetError with additional arguments.'''
 
     # Raise error with code, message, and args, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        command.raise_error('TEST_ERROR', 'An error has occurred.', 'arg1', 'arg2')
+        Command.raise_error('TEST_ERROR', 'An error has occurred.', 'arg1', 'arg2')
    
     # Verify error code, message, and additional arguments.
     assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'

@@ -43,11 +43,32 @@ class Command(object):
         '''
 
         # Raise the TiferetError with the given error code and arguments.
+        Command.raise_error(
+            error_code,
+            message,
+            *args
+        )  
+    
+    # * method: raise_error
+    @staticmethod
+    def raise_error(error_code: str, message: str = None, *args):
+        '''
+        Raise an error with the given error code and arguments.
+
+        :param error_code: The error code.
+        :type error_code: str
+        :param message: The error message.
+        :type message: str
+        :param args: Additional error arguments.
+        :type args: tuple
+        '''
+
+        # Raise the TiferetError with the given error code and arguments.
         raise TiferetError(
             error_code,
             message,
             *args
-        )    
+        )
 
     # * method: verify
     def verify(self, expression: bool, error_code: str, message: str = None, *args):
