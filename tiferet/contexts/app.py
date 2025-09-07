@@ -9,7 +9,7 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
-from ..models.app import *
+from ..models.app import AppInterface
 from ..handlers.app import (
     AppService,
     AppHandler,
@@ -53,6 +53,36 @@ class AppManagerContext(object):
         # Set the app service.
         self.app_service = app_service
 
+    # * method: get_app_interface
+    def get_app_interface(self, interface_id: str) -> AppInterface:
+        '''
+        Get the application interface by its ID.
+
+        :param interface_id: The interface ID.
+        :type interface_id: str
+        :return: The application interface.
+        :rtype: AppInterface
+        '''
+
+        # Load the app repository.
+        app_repo: AppRepository = self.app_service.load_app_repository(**self.settings)
+
+        # Get the app interface settings.
+        app_interface: AppInterface = Command.handle(
+            GetAppInterface,
+            dependencies=dict(
+                app_repo=app_repo
+            ),
+            interface_id=interface_id
+        )
+
+        # Retrieve the default attributes that do not contain the same attribute id as an existing attribute.
+        attribute_ids = [attr.attribute_id for attr in app_interface.attributes]
+        [app_interface.add_attribute(**attr_data) for attr_data in DEFAULT_ATTRIBUTES if not attr_data.get('attribute_id') in attribute_ids]
+
+        # Return the app interface.
+        return app_interface
+
     # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
         '''
@@ -64,27 +94,11 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Load the app repository.
-        app_repo: AppRepository = self.app_service.load_app_repository(**self.settings)
-
         # Get the app interface settings.
-        app_interface = Command.handle(
-            GetAppInterface,
-            dependencies=dict(
-                app_repo=app_repo
-            ),
-            interface_id=interface_id
-        )
-
-        # Retrieve the default attributes from the configuration.
-        default_attrs = [ModelObject.new(
-            AppAttribute,
-            **attr_data,
-            validate=False
-        ) for attr_data in DEFAULT_ATTRIBUTES]
+        app_interface = self.get_app_interface(interface_id)
         
         # Create the app interface context.
-        app_interface_context = self.app_service.load_app_instance(app_interface, default_attrs=default_attrs)
+        app_interface_context = self.app_service.load_app_instance(app_interface)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):

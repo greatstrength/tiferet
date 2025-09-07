@@ -8,6 +8,7 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...models import ModelObject
 from ..app import *
 
 # *** fixtures
@@ -22,7 +23,7 @@ def app_interface():
     :rtype: AppInterface
     '''
     # Create a test AppInterface instance.
-    return Entity.new(
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -32,8 +33,7 @@ def app_interface():
         feature_flag='test',
         data_flag='test',
         attributes=[
-            ValueObject.new(
-                AppAttribute,
+            dict(
                 attribute_id='test_attribute',
                 module_path='test_module_path',
                 class_name='test_class_name',
@@ -170,6 +170,35 @@ def app_manager_context(app_service):
     )
 
 # *** tests
+
+# ** test: app_manager_context_get_app_interface
+def test_app_manager_context_get_app_interface(app_manager_context, app_repo, app_interface):
+    """
+    Test the get_app_interface method of AppManagerContext.
+
+    :param app_manager_context: The AppManagerContext instance.
+    :type app_manager_context: AppManagerContext
+    :param app_repo: The mock AppRepository instance.
+    :type app_repo: AppRepository
+    :param app_interface: The mock AppInterface instance.
+    :type app_interface: AppInterface
+    """
+
+    # Get the app interface using the app manager context.
+    result = app_manager_context.get_app_interface(app_interface.id)
+
+    # Assert that the result is the same as the mock app interface.
+    assert result.id == app_interface.id
+    assert result.name == app_interface.name
+    assert result.module_path == app_interface.module_path
+    assert result.class_name == app_interface.class_name
+    assert result.description == app_interface.description
+    assert result.feature_flag == app_interface.feature_flag
+    assert result.data_flag == app_interface.data_flag
+    assert any(attr.attribute_id == 'test_attribute' for attr in result.attributes)
+
+    # Assert that the get_interface method was called with the correct argument.
+    app_repo.get_interface.assert_called_once_with(app_interface.id)
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context, app_interface):
