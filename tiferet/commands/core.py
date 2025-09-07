@@ -84,7 +84,7 @@ class ImportDependency(Command):
         except Exception as e:
             self.raise_error(
                 'IMPORT_DEPENDENCY_FAILED',
-                f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
+                f'Failed to import dependency: {class_name} from module {module_path}. Error: {str(e)}',
                 module_path,
                 class_name,
                 str(e),
