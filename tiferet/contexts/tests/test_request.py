@@ -13,7 +13,7 @@ from ..request import *
 @pytest.fixture
 def request_context():
     """Fixture to provide a mock RequestContext."""
-    
+
     # Create a mock RequestContext.
     request_context = RequestContext(
         data=dict(
@@ -25,7 +25,7 @@ def request_context():
         ),
         feature_id='test_group.test_feature'
     )
-    
+
     # Return the mock RequestContext.
     return request_context
 
