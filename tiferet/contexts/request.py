@@ -60,6 +60,6 @@ class RequestContext(object):
         :return: The response.
         :rtype: Any
         '''
-        
+
         # Return the result by default.
         return self.result
