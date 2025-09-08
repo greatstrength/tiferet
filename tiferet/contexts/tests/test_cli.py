@@ -113,10 +113,10 @@ def test_cli_context_parse_request(cli_context):
 
     # Check the request type.
     assert isinstance(request, RequestContext)
-    
+
     # Check the command group and key.
     assert request.feature_id == 'test_group.test_feature'
-    
+
     # Check the parsed data.
     assert request.data['arg1'] == 'default_value'
 
