@@ -101,7 +101,6 @@ class CliContext(AppInterfaceContext):
             print(e, file=sys.stderr)
             sys.exit(2)
 
-
         # Attempt to execute the feature for the parsed CLI request.
         try:
             logger.info(f'Executing feature for CLI request: {cli_request.feature_id}')

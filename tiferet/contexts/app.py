@@ -21,7 +21,6 @@ from ..commands import (
 )
 from ..commands.app import GetAppInterface
 
-
 # *** contexts
 
 # ** context: app_manager_context

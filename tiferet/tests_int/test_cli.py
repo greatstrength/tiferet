@@ -40,10 +40,10 @@ calc_cli = app.load_interface('test_calc_cli')
 # Run the CLI interface according to the provided arguments.
 if __name__ == '__main__':
     calc_cli.run()'''
-    
+
     with open('test_calc_cli.py', 'w') as f:
         f.write(script)
-    
+
     return 'test_calc_cli.py'
 
 # ** fixture: test_calc
@@ -69,11 +69,11 @@ def test_basic_calc_cli_add_numbers(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the result is as expected.
     assert result.returncode == 0, f"Command failed with return code {result.returncode}"
     assert result.stdout.strip() == '8', f"Expected output '8', got '{result.stdout.strip()}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -90,11 +90,11 @@ def test_basic_calc_cli_subtract_numbers(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the result is as expected.
     assert result.returncode == 0, f"Command failed with return code {result.returncode}"
     assert result.stdout.strip() == '2', f"Expected output '2', got '{result.stdout.strip()}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -111,11 +111,11 @@ def test_basic_calc_cli_multiply_numbers(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the result is as expected.
     assert result.returncode == 0, f"Command failed with return code {result.returncode}"
     assert result.stdout.strip() == '15', f"Expected output '15', got '{result.stdout.strip()}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -132,11 +132,11 @@ def test_basic_calc_cli_divide_numbers(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the result is as expected.
     assert result.returncode == 0, f"Command failed with return code {result.returncode}"
     assert result.stdout.strip() == '2.0', f"Expected output '2.0', got '{result.stdout.strip()}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -153,11 +153,11 @@ def test_basic_calc_cli_divide_by_zero(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the command fails with an error message.
     assert result.returncode != 0, f"Command should have failed but returned {result.returncode}"
     assert "DIVISION_BY_ZERO" in result.stderr, f"Expected error message about division by zero, got '{result.stderr}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -174,11 +174,11 @@ def test_basic_calc_cli_square_number(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the result is as expected.
     assert result.returncode == 0, f"Command failed with return code {result.returncode}"
     assert result.stdout.strip() == '16', f"Expected output '16', got '{result.stdout.strip()}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)
@@ -195,11 +195,11 @@ def test_basic_calc_cli_invalid_command(test_calc_cli, test_calc):
         capture_output=True,
         text=True
     )
-    
+
     # Assert that the command fails with an error message.
     assert result.returncode != 0, f"Command should have failed but returned {result.returncode}"
     assert "error: argument command: invalid choice" in result.stderr, f"Expected error message about command not found, got '{result.stderr}'"
-    
+
     # Remove the temporary file created for the CLI script.
     if os.path.exists(test_calc_cli):
         os.remove(test_calc_cli)

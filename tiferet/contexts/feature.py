@@ -7,7 +7,6 @@ from .request import RequestContext
 from ..handlers.feature import FeatureService
 from ..commands import *
 
-
 # *** contexts
 
 # ** context: feature_context
@@ -115,7 +114,6 @@ class FeatureContext(object):
         else:
             request.result = result
 
-        
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -164,4 +162,3 @@ class FeatureContext(object):
                 cache=self.cache,
                 **kwargs
             )
-            

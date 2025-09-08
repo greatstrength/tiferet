@@ -41,10 +41,10 @@ class RequestContext(object):
 
         # Set the session id or generate a new one if not provided.
         self.session_id = session_id if session_id else str(uuid4())
-        
+
         # Set the feature id or None if not provided.
         self.feature_id = feature_id if feature_id else None
-        
+
         # Set the headers and data.
         self.headers = headers
         self.data = data
