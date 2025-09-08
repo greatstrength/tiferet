@@ -175,7 +175,7 @@ def app_manager_context(app_service):
 def test_app_manager_context_load_interface(app_manager_context, app_interface):
     """
     Test the load_interface method of AppManagerContext.
-    
+
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
     :param app_interface: The AppInterface instance.
@@ -184,7 +184,7 @@ def test_app_manager_context_load_interface(app_manager_context, app_interface):
 
     # Load the app interface using the app context.
     result = app_manager_context.load_interface(app_interface.id)
-    
+
     # Assert that the result is an instance of AppInterfaceContext.
     assert result
     assert isinstance(result, AppInterfaceContext)
@@ -193,7 +193,7 @@ def test_app_manager_context_load_interface(app_manager_context, app_interface):
 def test_app_manager_context_load_interface_invalid(app_manager_context, app_service):
     """
     Test loading an invalid app interface.
-    
+
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
     :param app_service: The mock app service.
@@ -332,7 +332,7 @@ def test_app_interface_context_handle_response(app_interface_context):
         headers={'Content-Type': 'application/json'},
         data={"key": "value"}
     )
-    
+
     # Set the request result to simulate a successful response.
     request.result = {
         'status': 'success',
