@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..commands import Command
+from ..commands import raise_error
 
 # *** classes
 
@@ -24,8 +24,8 @@ class ServiceHandler(object):
         :type args: tuple
         '''
 
-        # Use the Command class to raise the error.
-        Command.raise_error(
+        # Use the raise_error command class to raise the error.
+        raise_error.execute(
             error_code,
             message,
             *args
