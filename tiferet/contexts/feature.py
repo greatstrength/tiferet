@@ -26,7 +26,7 @@ class FeatureContext(object):
     feature_service: FeatureService
 
     # * attribute: feature_handler
-    handler: FeatureHandler
+    feature_handler: FeatureHandler
 
 
     # * method: init
@@ -47,7 +47,7 @@ class FeatureContext(object):
 
         # Assign the attributes.
         self.feature_service = feature_service
-        self.handler = feature_service
+        self.feature_handler = feature_service
         self.container = container
         self.cache = cache if cache else CacheContext()
 
@@ -66,7 +66,7 @@ class FeatureContext(object):
         # If it does not exist, retrieve it from the feature handler and cache it.
         feature = self.cache.get(feature_id)
         if not feature:
-            feature = self.handler.get_feature(feature_id)
+            feature = self.feature_handler.get_feature(feature_id)
             self.cache.set(feature_id, feature)
 
         # Return the feature.
@@ -101,7 +101,6 @@ class FeatureContext(object):
         '''
         Parse a parameter.
 
-        
         :param parameter: The parameter to parse.
         :type parameter: str:
         param request: The request object containing data for parameter parsing.
