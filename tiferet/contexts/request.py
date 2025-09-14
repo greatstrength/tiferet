@@ -79,5 +79,6 @@ class RequestContext(object):
         if data_key:
             self.data[data_key] = result
 
-        # Set the result.
-        self.result = result
+        # Otherwise set the result.
+        else:
+            self.result = result
