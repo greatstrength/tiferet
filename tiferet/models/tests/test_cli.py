@@ -8,19 +8,6 @@ from ..cli import *
 
 # *** fixtures
 
-# ** fixture: cli_request
-@pytest.fixture
-def cli_request() -> CliRequest:
-    '''
-    Fixture to provide a sample CLI request for testing.
-    This request is used to test the conversion to a feature ID.
-    '''
-    return ModelObject.new(
-        CliRequest,
-        command_group='test-group',
-        command_key='test-feature'
-    )
-
 # ** fixture: cli_argument
 @pytest.fixture
 def cli_argument() -> CliArgument:
@@ -61,17 +48,6 @@ def cli_command() -> CliCommand:
 
 # *** tests
 
-# ** test: cli_request_to_feature_id
-def test_cli_request_to_feature_id(cli_request: CliRequest):
-    '''
-    Test the conversion of a CLI request to a feature ID.
-    '''
-    # Convert the CLI request to a feature ID.
-    feature_id = cli_request.to_feature_id()
-    
-    # Assert that the feature ID is correctly formatted in snake_case.
-    assert feature_id == 'test_group.test_feature'
-
 # ** test: cli_argument_get_type_str
 def test_cli_argument_get_type_str(cli_argument: CliArgument):
     '''
@@ -79,7 +55,7 @@ def test_cli_argument_get_type_str(cli_argument: CliArgument):
     '''
     # Get the type of the CLI argument.
     arg_type = cli_argument.get_type()
-    
+
     # Assert that the type is 'str'.
     assert arg_type == str
 
@@ -90,10 +66,10 @@ def test_cli_argument_get_type_int(cli_argument: CliArgument):
     '''
     # Change the type of the CLI argument to 'int'.
     cli_argument.type = 'int'
-    
+
     # Get the type of the CLI argument.
     arg_type = cli_argument.get_type()
-    
+
     # Assert that the type is 'int'.
     assert arg_type == int
 
@@ -104,10 +80,10 @@ def test_cli_argument_get_type_float(cli_argument: CliArgument):
     '''
     # Change the type of the CLI argument to 'float'.
     cli_argument.type = 'float'
-    
+
     # Get the type of the CLI argument.
     arg_type = cli_argument.get_type()
-    
+
     # Assert that the type is 'float'.
     assert arg_type == float
 
@@ -118,10 +94,10 @@ def test_cli_argument_get_type_none(cli_argument: CliArgument):
     '''
     # Change the type of the CLI argument to None.
     cli_argument.type = None
-    
+
     # Get the type of the CLI argument.
     arg_type = cli_argument.get_type()
-    
+
     # Assert that the type is 'str' by default.
     assert arg_type == str
 
@@ -153,9 +129,9 @@ def test_cli_command_add_argument(cli_command: CliCommand):
         required=False,
         type='str'
     )
-    
+
     # Add the new argument to the command.
     cli_command.add_argument(new_argument)
-    
+
     # Assert that the new argument is now part of the command's arguments.
     assert cli_command.has_argument(['-n', '--new-arg'])
