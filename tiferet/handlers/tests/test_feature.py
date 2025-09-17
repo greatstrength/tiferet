@@ -6,8 +6,8 @@ from unittest import mock
 
 # ** app
 from ..feature import *
+from ...contexts.request import RequestContext
 from ...models.feature import *
-
 
 # *** fixtures
 
@@ -16,7 +16,6 @@ from ...models.feature import *
 def feature_repo():
     """Fixture to provide a mock FeatureRepository."""
     return mock.Mock(spec=FeatureRepository)
-
 
 # ** fixture: feature
 @pytest.fixture
@@ -38,7 +37,6 @@ def feature():
         ],
     )
 
-
 # ** fixture: feature_handler
 @pytest.fixture
 def feature_handler(feature_repo):
@@ -48,19 +46,16 @@ def feature_handler(feature_repo):
         feature_repo=feature_repo,
     )
 
-
 # ** fixture: request_with_data
 @pytest.fixture
 def request_with_data():
     """Fixture to provide a request object with data."""
 
-    return ModelObject.new(
-        Request,
+    return RequestContext(
         data=dict(
             const_value='test_value',
         )
     )
-
 
 # *** tests
 
@@ -74,7 +69,6 @@ def test_feature_handler_parse_parameter(feature_handler, request_with_data):
     # Assert that the parsed value is correct.
     assert parsed_value == 'test_value'
 
-
 # ** test: test_feature_handler_parse_parameter_invalid_request
 def test_feature_handler_parse_parameter_invalid_request(feature_handler):
     """Test that the feature handler raises an error when the request is None."""
@@ -87,7 +81,6 @@ def test_feature_handler_parse_parameter_invalid_request(feature_handler):
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
     assert 'Request data is not available for parameter parsing.' in str(exc_info.value)
 
-
 # ** test: test_feature_handler_parse_parameter_not_found
 def test_feature_handler_parse_parameter_not_found(feature_handler, request_with_data):
     """Test that the feature handler raises an error when a parameter is not found in the request data."""
@@ -99,7 +92,6 @@ def test_feature_handler_parse_parameter_not_found(feature_handler, request_with
     # Assert that the error message is correct.
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
     assert 'Parameter $r.non_existent_param not found in request data.' in str(exc_info.value)
-
 
 # ** test: test_feature_handler_get_feature_not_found
 def test_feature_handler_get_feature_not_found(feature_handler, feature_repo):
@@ -115,7 +107,6 @@ def test_feature_handler_get_feature_not_found(feature_handler, feature_repo):
     # Assert that the error message is correct.
     assert exc_info.value.error_code == 'FEATURE_NOT_FOUND'
     assert 'Feature not found: non_existent_feature' in str(exc_info.value)
-
 
 # ** test: test_feature_handler_get_feature_from_repo
 def test_feature_handler_get_feature_from_repo(feature_handler, feature_repo, feature):
@@ -137,3 +128,4 @@ def test_feature_handler_get_feature_from_repo(feature_handler, feature_repo, fe
     assert retrieved_feature.commands[0].name == feature.commands[0].name
     assert retrieved_feature.commands[0].attribute_id == feature.commands[0].attribute_id
     assert retrieved_feature.commands[0].parameters == feature.commands[0].parameters
+
