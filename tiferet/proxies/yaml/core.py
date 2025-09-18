@@ -17,7 +17,7 @@ class YamlConfigurationProxy(object):
     '''
 
     # * field: config_file
-    config_file: str = None
+    config_file: str
 
     # * method: init
     def __init__(self, config_file: str):
