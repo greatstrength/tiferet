@@ -9,11 +9,24 @@ from ..contracts.error import (
 )
 
 class AddNewError(object):
+    '''
+    Add a new error.
+    '''
 
+    # * init
     def __init__(self, error_repo: ErrorRepository):
         self.error_repo = error_repo
 
+    # * method: execute
     def execute(self, **kwargs) -> Error:
+        '''
+        Execute the command to add a new error.
+
+        :param kwargs: The keyword arguments for the new error.
+        :type kwargs: dict
+        :return: The new error.
+        :rtype: Error
+        '''
 
         # Create a new error.
         error: Error = Error.new(**kwargs)
