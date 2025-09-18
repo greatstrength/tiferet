@@ -93,7 +93,6 @@ def test_feature_data_from_data(feature_data):
     
     # Assert the feature data attributes.
     assert feature_data.name == 'Test Feature'
-    assert feature_data.feature_key == 'test_feature'
     assert feature_data.description == 'This is a test feature.'
     assert feature_data.group_id == 'test'
     assert len(feature_data.commands) == 1
@@ -122,6 +121,7 @@ def test_feature_data_map(feature_data):
     
     # Assert the feature attributes.
     assert feature.name == 'Test Feature'
+    assert feature.feature_key == 'test_feature'
     assert feature.description == 'This is a test feature.'
     assert feature.group_id == 'test'
     assert len(feature.commands) == 1

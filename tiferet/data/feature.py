@@ -5,7 +5,10 @@ from schematics.types.serializable import serializable
 
 # 
 from ..data import DataObject
-from ..contracts.feature import Feature as FeatureContract, FeatureCommand as FeatureCommandContract
+from ..contracts.feature import (
+    FeatureContract,
+    FeatureCommandContract
+)
 from ..models.feature import *
 
 
@@ -39,19 +42,16 @@ class FeatureCommandData(FeatureCommand, DataObject):
         )
     )
 
-    def map(self, role: str = 'to_model', **kwargs) -> FeatureCommandContract:
+    def map(self, **kwargs) -> FeatureCommandContract:
         '''
         Maps the feature handler data to a feature handler object.
         
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new feature handler object.
         :rtype: f.FeatureCommand
         '''
-        return super().map(FeatureCommand, 
-            role, 
+        return super().map(FeatureCommand,
             parameters=self.parameters,
             **kwargs)
 
@@ -76,24 +76,16 @@ class FeatureData(Feature, DataObject):
         }
     
     # * attributes
-    commands = ListType(ModelType(FeatureCommandData),
-                          deserialize_from=['handlers', 'functions', 'commands'],)
-    
-    @serializable
-    def feature_key(self):
-        '''
-        Gets the feature key.
-        '''
+    commands = ListType(
+        ModelType(FeatureCommandData),
+        deserialize_from=['handlers', 'functions', 'commands'],
+    )
 
-        # Return the feature key.
-        return self.id.split('.')[-1]
 
-    def map(self, role: str = 'to_model', **kwargs) -> FeatureContract:
+    def map(self, **kwargs) -> FeatureContract:
         '''
         Maps the feature data to a feature object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new feature object.
@@ -101,10 +93,11 @@ class FeatureData(Feature, DataObject):
         '''
 
         # Map the feature data to a feature object.
-        return super().map(Feature, role, 
-            feature_key=self.feature_key,
+        return super().map(
+            Feature, 
+            feature_key=self.id.split('.')[-1],
             commands=[
-                command.map(role, **kwargs) for command in self.commands
+                command.map(**kwargs) for command in self.commands
             ],
             **kwargs
         )
