@@ -4,10 +4,13 @@
 from typing import Any, List
 
 # ** app
-from .core import *
 from ...contracts.feature import Feature, FeatureRepository
 from ...data import DataObject
 from ...data.feature import FeatureData as FeatureYamlData
+from .core import (
+    YamlConfigurationProxy,
+    raise_error
+)
 
 
 # *** proxies
@@ -50,7 +53,7 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'FEATURE_CONFIG_LOADING_FAILED',
                 f'Unable to load feature configuration file {self.config_file}: {e}.',

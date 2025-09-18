@@ -1,16 +1,19 @@
 # *** imports
 
 # ** core
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 # ** app
-from .core import *
 from ...data.logging import LoggingSettingsData
 from ...contracts.logging import (
     LoggingRepository,
     FormatterContract,
     HandlerContract,
     LoggerContract
+)
+from .core import (
+    YamlConfigurationProxy,
+    raise_error
 )
 
 # *** proxies
@@ -54,7 +57,7 @@ class LoggingYamlProxy(LoggingRepository, YamlConfigurationProxy):
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'LOGGING_CONFIG_LOADING_FAILED',
                 f'Unable to load logging configuration file {self.config_file}: {e}.',

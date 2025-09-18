@@ -4,12 +4,15 @@
 from typing import Any, List
 
 # ** app
-from . import *
 from ...data.cli import *
 from ...contracts.cli import (
     CliRepository,
     CliCommand as CliCommandContract,
     CliArgument as CliArgumentContract
+)
+from .core import (
+    YamlConfigurationProxy,
+    raise_error
 )
 
 # *** proxies
@@ -49,7 +52,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
                 create_data=create_data
             )
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'CLI_CONFIG_LOADING_FAILED',
                 f'Unable to load CLI configuration file {self.config_file}: {e}.',

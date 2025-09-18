@@ -4,9 +4,12 @@
 from typing import Any, List, Tuple, Dict
 
 # ** app
-from .core import *
 from ...data.container import ContainerAttributeYamlData
 from ...contracts.container import ContainerRepository, ContainerAttribute
+from .core import (
+    YamlConfigurationProxy,
+    raise_error
+)
 
 
 # *** proxies
@@ -49,7 +52,7 @@ class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'CONTAINER_CONFIG_LOADING_FAILED',
                 f'Unable to load container configuration file {self.config_file}: {e}.',

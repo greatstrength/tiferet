@@ -4,10 +4,13 @@
 from typing import Any
 
 # ** app
-from .core import *
 from ...data import DataObject
 from ...data.app import AppInterfaceYamlData
 from ...contracts.app import AppRepository, AppInterface
+from .core import (
+    YamlConfigurationProxy,
+    raise_error
+)
 
 
 # *** proxies
@@ -48,7 +51,7 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'APP_CONFIG_LOADING_FAILED',
                 f'Unable to load app configuration file {self.config_file}: {e}.',

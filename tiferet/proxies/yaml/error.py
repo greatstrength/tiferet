@@ -53,7 +53,7 @@ class ErrorYamlProxy(ErrorRepository, YamlConfigurationProxy):
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'ERROR_CONFIG_LOADING_FAILED',
                 f'Unable to load error configuration file {self.config_file}: {e}.',
