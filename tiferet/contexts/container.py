@@ -5,10 +5,11 @@ from typing import Any, List
 
 # ** app
 from .cache import CacheContext
-from ..handlers.container import ContainerService
+from ..handlers.container import (
+    ContainerHandler,
+)
 from ..commands import *
 from ..commands.dependencies import *
-
 
 # *** contexts
 
@@ -21,12 +22,11 @@ class ContainerContext(Model):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: container_service
-    container_service: ContainerService
-
+    # * attribute: container_handler
+    container_handler: ContainerHandler
 
     # * method: init
-    def __init__(self, container_service: ContainerService, cache: CacheContext = None):
+    def __init__(self, container_handler: ContainerHandler = None, cache: CacheContext = None):
         '''
         Initialize the container context.
 
@@ -37,8 +37,10 @@ class ContainerContext(Model):
         '''
 
         # Assign the attributes.
-        self.container_service = container_service
         self.cache = cache if cache else CacheContext()
+
+        # Set the container handler.
+        self.container_handler = container_handler
     
     # * method: create_cache_key
     def create_cache_key(self, flags: List[str] = None) -> str:
@@ -76,16 +78,16 @@ class ContainerContext(Model):
             return cached_injector
 
         # Get all attributes and constants from the container service.
-        attributes, constants = self.container_service.list_all()
+        attributes, constants = self.container_handler.list_all()
 
         # Load constants from the attributes.
-        constants = self.container_service.load_constants(attributes, constants, flags)
+        constants = self.container_handler.load_constants(attributes, constants, flags)
 
         # Create the dependencies for the injector.
         dependencies = {}
         for attr in attributes:
             try:
-                dependencies[attr.id] = self.container_service.get_dependency_type(attr, flags)
+                dependencies[attr.id] = self.container_handler.get_dependency_type(attr, flags)
             except TiferetError as e:
                 raise e
                     
