@@ -2,25 +2,12 @@
 
 # ** app
 from ..configs import *
-from ..domain import DataObject
-from ..domain.error import Error, ErrorMessage
+from ..data import DataObject
+from ..models.error import *
+from ..contracts.error import Error as ErrorContract
 
 
 # *** data
-
-# ** data: error_message_data
-class ErrorMessageData(ErrorMessage, DataObject):
-    '''
-    A data representation of an error message object.
-    '''
-
-    class Options():
-        serialize_when_none = False
-        roles = {
-            'to_data.yaml': DataObject.allow('id'),
-            'to_object.yaml': DataObject.allow()
-        }
-
 
 # ** data: error_data
 class ErrorData(Error, DataObject):
@@ -31,26 +18,47 @@ class ErrorData(Error, DataObject):
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data.yaml': DataObject.deny('id'),
-            'to_object.yaml': DataObject.allow()
+            'to_data': DataObject.deny('id', 'message'),
+            'to_model': DataObject.deny('message')
         }
 
     # * attribute: message
     message = ListType(
-        ModelType(ErrorMessageData),
+        ModelType(ErrorMessage),
         required=True,
         metadata=dict(
             description='The error messages.'
         )
     )
 
+    # * to_primitive
+    def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
+        '''
+        Converts the data object to a primitive dictionary.
+
+        :param role: The role.
+        :type role: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The primitive dictionary.
+        :rtype: dict
+        '''
+
+        # Convert the data object to a primitive dictionary.
+        return dict(
+            **super().to_primitive(
+                role,
+                **kwargs
+            ),
+            message=[msg.to_primitive() for msg in self.message]
+        ) 
+        
+
     # * method: map
-    def map(self, role: str = 'to_object.yaml', **kwargs):
+    def map(self, **kwargs) -> ErrorContract:
         '''
         Maps the error data to an error object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new error object.
@@ -58,11 +66,13 @@ class ErrorData(Error, DataObject):
         '''
 
         # Map the error messages.
-        return super().map(Error, role, **kwargs)
+        return super().map(Error,
+            **self.to_primitive('to_model'),
+            **kwargs)
 
-    # * method: new
+    # * method: from_data
     @staticmethod
-    def new(**kwargs) -> 'ErrorData':
+    def from_data(**kwargs) -> 'ErrorData':
         '''
         Creates a new ErrorData object.
 
@@ -73,27 +83,7 @@ class ErrorData(Error, DataObject):
         '''
 
         # Create a new ErrorData object.
-        return ErrorData(
-            super(ErrorData, ErrorData).new(**kwargs)
-        )
-
-    # * method: from_yaml_data
-
-    @staticmethod
-    def from_yaml_data(id: str, **kwargs):
-        '''
-        Initializes a new ErrorData object from yaml data.
-
-        :param id: The unique identifier for the error.
-        :type id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ErrorData object.
-        :rtype: ErrorData
-        '''
-
-        # Create a new ErrorData object.
-        return ErrorData.new(
-            id=id,
+        return super(ErrorData, ErrorData).from_data(
+            ErrorData, 
             **kwargs
         )

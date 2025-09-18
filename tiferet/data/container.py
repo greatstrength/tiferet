@@ -1,28 +1,31 @@
 # *** imports
 
 # ** app
-from ..configs import *
-from ..domain import DataObject
-from ..domain.container import ContainerAttribute, ContainerDependency
+from ..data import *
+from ..models.container import *
+from ..contracts.container import (
+    ContainerAttribute as ContainerAttributeContract, 
+    FlaggedDependency as FlaggedDependencyContract
+)
 
 
 # *** data
 
-# ** data: container_dependency_yaml_data
-class ContainerDependencyYamlData(ContainerDependency, DataObject):
+# ** data: flagged_dependency_yaml_data
+class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
     '''
-    A data representation of a container dependency object.
+    A data representation of a flagged dependency object.
     '''
 
     class Options():
         '''
-        The options for the container dependency data.
+        The options for the flagged dependency data.
         '''
 
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('flag')
+            'to_model': DataObject.deny('params'),
+            'to_data': DataObject.deny('flag')
         }
 
     # * attribute: flag
@@ -36,7 +39,7 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     parameters = DictType(
         StringType, 
         default={}, 
-        serialize_name='params', 
+        serialized_name='params', 
         deserialize_from=['params'],
         metadata=dict(
             description='The parameters need to now account for new data names in the YAML format.'
@@ -44,54 +47,63 @@ class ContainerDependencyYamlData(ContainerDependency, DataObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> ContainerDependency:
+    def map(self, **kwargs) -> FlaggedDependencyContract:
         '''
-        Maps the container dependency data to a container dependency object.
+        Maps the flagged dependency data to a flagged dependency object.
 
         :param role: The role for the mapping.
         :type role: str
-        :return: A new container dependency object.
+        :return: A new flagged dependency object.
+        :rtype: FlaggedDependencyContract
         '''
 
         # Map to the container dependency object.
-        return super().map(ContainerDependency, **kwargs)
+        obj = super().map(FlaggedDependency, **kwargs, validate=False)
+    
+        # Set the parameters in due to the deserializer.
+        obj.parameters = self.parameters
+
+        # Validate and return the object.
+        obj.validate()
+        return obj
     
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'ContainerDependencyYamlData':
+    def from_data(**kwargs) -> 'FlaggedDependencyYamlData':
         '''
-        Initializes a new ContainerDependencyData object from YAML data.
+        Initializes a new ContainerDependencyYamlData object from YAML data.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new ContainerDependencyData object.
+        :return: A new ContainerDependencyYamlData object.
         :rtype: ContainerDependencyYamlData
         '''
 
         # Create a new ContainerDependencyYamlData object.
-        data = ContainerDependencyYamlData(dict(
-            **kwargs,
-        ), strict=False)
-
-        # Validate and return the object.
-        data.validate()
-        return data
+        return super(
+            FlaggedDependencyYamlData, 
+            FlaggedDependencyYamlData
+        ).from_data(
+            FlaggedDependencyYamlData,
+            **kwargs
+        )
     
     # * method: from_model
     @staticmethod
-    def from_model(model: ContainerDependency, **kwargs) -> 'ContainerDependencyYamlData':
+    def from_model(model: FlaggedDependency, **kwargs) -> 'FlaggedDependencyYamlData':
         '''
-        Initializes a new ContainerDependencyData object from a model object.
+        Initializes a new ContainerDependencyYamlData object from a model object.
 
-        :param model: The container dependency model object.
-        :type model: ContainerDependency
+        :param model: The flagged dependency model object.
+        :type model: FlaggedDependency
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Create and return a new ContainerDependencyData object.
-        return ContainerDependencyYamlData.new(
-            **model.to_primitive(),
+        # Create and return a new FlaggedDependencyYamlData object.
+        return super(FlaggedDependencyYamlData, FlaggedDependencyYamlData).from_model(
+            FlaggedDependencyYamlData,
+            model,
             **kwargs,
         )
 
@@ -109,60 +121,84 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id')
+            'to_model': DataObject.deny('params'),
+            'to_data': DataObject.deny('id')
         }
 
     # * attribute: dependencies
     dependencies = DictType(
-        ModelType(ContainerDependencyYamlData), 
-        default=[], 
-        serialize_name='deps', 
+        ModelType(FlaggedDependencyYamlData), 
+        default={}, 
+        serialized_name='deps', 
         deserialize_from=['deps', 'dependencies'],
         metadata=dict(
             description='The dependencies are now a key-value pair keyed by the flags.'
         ),
     )
 
+    # * attribute: parameters
+    parameters = DictType(
+        StringType, 
+        default={}, 
+        serialized_name='params', 
+        deserialize_from=['params'],
+        metadata=dict(
+            description='The default parameters for the container attribute.'
+        ),
+    )
+
     # * method: map
-    def map(self, **kwargs) -> ContainerAttribute:
+    def map(self, **kwargs) -> ContainerAttributeContract:
         '''
         Maps the container attribute data to a container attribute object.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
+        :return: A container attribute model contract.
+        :rtype: ContainerAttributeContract
         '''
 
         # Map to the container attribute object with the dependencies.
         return super().map(ContainerAttribute, 
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
+            parameters=self.parameters,
             **kwargs)
 
     # * method: new
     @staticmethod
-    def new(**kwargs) -> 'ContainerAttributeYamlData':
+    def from_data(**kwargs) -> 'ContainerAttributeYamlData':
         '''
-        Initializes a new ContainerAttributeData object from YAML data.
+        Initializes a new ContainerAttributeYamlData object from YAML data.
 
+        :param deps: The dependencies data.
+        :type deps: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        '''
+        '''        
 
-        # Create a new ContainerAttributeData object.
-        data = ContainerAttributeYamlData(dict(
-            **kwargs,
-        ), strict=False)
+        # Create a new ContainerAttributeYamlData object.
+        obj = super(
+            ContainerAttributeYamlData, 
+            ContainerAttributeYamlData
+        ).from_data(
+            ContainerAttributeYamlData,
+            **kwargs, 
+            validate=False
+        )
+    
+        # Set the dependencies.
+        for flag, dep in obj.dependencies.items():
+            dep.flag = flag
 
-        
         # Validate and return the object.
-        data.validate()
-        return data
+        obj.validate()
+        return obj
     
     # * method: from_model
     @staticmethod
     def from_model(model: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
         '''
-        Initializes a new ContainerAttributeData object from a model object.
+        Initializes a new ContainerAttributeYamlData object from a model object.
 
         :param model: The container attribute model object.
         :type model: ContainerAttribute
@@ -170,10 +206,22 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         :type kwargs: dict
         '''
 
-        # Create a new ContainerAttributeData object.
-        return ContainerAttributeYamlData.new(
-            id=model.id,
-            type=model.type,
-            dependencies = {dep.flag: dep for dep in model.dependencies},
+        # Create the dependency data.
+        dependencies = {dep.flag: dep.to_primitive() for dep in model.dependencies}
+        
+        # Create a new model object without the dependencies.
+        data = model.to_primitive()
+        data['dependencies'] = dependencies
+
+        # Create a new ContainerAttributeYamlData object.
+        obj = ContainerAttributeYamlData(
+            dict(
+                **data,
+                **kwargs
+            ), 
+            strict=False
         )
-    
+
+        # Validate and return the object.
+        obj.validate()
+        return obj

@@ -1,0 +1,68 @@
+attrs:
+  test_container:
+    class_name: TestContainer
+    module_path: tiferet.containers.tests
+    deps:
+      test:
+        class_name: TestProxy
+        module_path: tiferet.proxies.tests
+        params:
+          param1: value1
+const:
+  config_file: tiferet/configs/tests/test.yml
+errors:
+  test_error:
+    error_code: TEST_ERROR
+    message:
+    - lang: en_US
+      text: An error occurred.
+    name: Test Error
+  test_formatted_error:
+    error_code: TEST_FORMATTED_ERROR
+    message:
+    - lang: en_US
+      text: 'An error occurred: {}.'
+    name: Test Formatted Error
+features:
+  test_group.test_feature:
+    commands:
+    - attribute_id: test_feature_command
+      name: Test Feature Command
+      params:
+        param1: value1
+    description: A test feature.
+    name: Test Feature
+interfaces:
+  test_app_yaml_proxy:
+    attrs:
+      test_attribute:
+        class_name: test_class_name
+        module_path: test_module_path
+    const:
+      test_const: test_const_value
+    data_flag: test_app_yaml_proxy
+    description: The context for testing the app yaml proxy.
+    feature_flag: test_app_yaml_proxy
+    name: Test App YAML Proxy
+cli:
+  cmds:
+    test_group.test_feature:
+      group_key: test-group
+      key: test-feature
+      description: A test feature command.
+      args:
+        - name_or_flags: 
+            - --arg1
+            - -a
+          description: Argument 1
+        - name_or_flags: 
+            - --arg2
+            - -b
+          description: Argument 2
+      name: Test Feature Command
+  parent_args:
+    - name_or_flags: 
+        - --parent-arg
+        - -p
+      description: Parent argument
+      required: true
