@@ -80,6 +80,7 @@ class CliArgument(ValueObject):
     def get_type(self) -> str | int | float:
         '''
         Get the type of the argument.
+
         :return: The type of the argument.
         :rtype: str | int | float
         '''
@@ -147,6 +148,7 @@ class CliCommand(Entity):
     def new(group_key: str, key: str, name: str, description: str = None, arguments: List[CliArgument] = []) -> 'CliCommand':
         '''
         Create a new command.
+
         :param group_key: The group key for the command.
         :type group_key: str
         :param key: The unique key for the command.
@@ -179,6 +181,7 @@ class CliCommand(Entity):
     def has_argument(self, flags: List[str]) -> bool:
         '''
         Check if the command has an argument with the given flags.
+
         :param flags: The flags to check for.
         :type flags: List[str]
         :return: True if the command has the argument, False otherwise.
@@ -197,6 +200,7 @@ class CliCommand(Entity):
     def add_argument(self, argument: CliArgument):
         '''
         Add an argument to the command.
+
         :param argument: The argument to add.
         :type argument: CliArgument
         '''
