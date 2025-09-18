@@ -76,6 +76,19 @@ class Feature(ModelContract):
     # * attribute: commands
     commands: List[FeatureCommand]
 
+    # * method: add_command
+    @abstractmethod
+    def add_command(self, command: FeatureCommand, position: int = None) -> None:
+        '''
+        Add a command to the feature.
+
+        :param command: The command to add.
+        :type command: FeatureCommand
+        :param position: The position to insert the command at. If None, append to the end.
+        :type position: int
+        '''
+        raise NotImplementedError('The add_command method must be implemented by the feature model.')
+
 
 # ** contract: feature_repository
 class FeatureRepository(Repository):
