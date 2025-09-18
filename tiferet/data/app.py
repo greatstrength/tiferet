@@ -146,3 +146,23 @@ class AppInterfaceYamlData(AppInterface, DataObject):
             **self.to_primitive('to_model'),
             **kwargs
         )
+
+    # * method: from_model
+    @staticmethod
+    def from_model(app_interface: AppInterface, **kwargs) -> 'AppInterfaceYamlData':
+        '''
+        Creates an AppInterfaceYamlData object from an AppInterfaceContract object.
+        :param app_interface: The app interface contract.
+        :type app_interface: AppInterfaceContract
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new AppInterfaceYamlData object.
+        :rtype: AppInterfaceYamlData
+        '''
+
+        # Create a new AppInterfaceYamlData object from the model.
+        return DataObject.from_model(
+            AppInterfaceYamlData,
+            attributes={attr.attribute_id: DataObject.from_model(AppAttributeYamlData, attr) for attr in app_interface.attributes},
+            **kwargs
+        )
