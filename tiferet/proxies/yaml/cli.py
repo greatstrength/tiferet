@@ -23,21 +23,23 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
     The YAML proxy for the CLI configuration.
     This proxy is used to manage the command line interface configuration in YAML format.
     '''
-    
+
     # * method: init
     def __init__(self, cli_config_file: str):
         '''
         Initialize the CLI YAML proxy.
+
         :param cli_config_file: The path to the CLI configuration file.
         :type cli_config_file: str
         '''
         # Initialize the base class with the provided configuration file.
         super().__init__(cli_config_file)
-    
+
     # * method: load_yaml
     def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
         '''
         Load data from the YAML configuration file.
+
         :param start_node: The starting node in the YAML file.
         :type start_node: callable
         :param create_data: A callable to create data objects from the loaded data.
@@ -45,12 +47,14 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
         :return: The loaded data.
         :rtype: Any
         '''
+
         # Load the YAML file contents using the yaml config proxy.
         try:
             return super().load_yaml(
                 start_node=start_node,
                 create_data=create_data
             )
+
         # Raise an error if the loading fails.
         except Exception as e:
             raise_error.execute(
@@ -64,11 +68,13 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
     def get_command(self, command_id: str) -> CliCommandContract:
         '''
         Get a command by its group and name.
+
         :param command_id: The unique identifier for the command.
         :type command_id: str
         :return: The command object.
         :rtype: CliCommandContract
         '''
+
         # Load the YAML data for the command.
         yaml_data: CliCommandYamlData = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(command_id, {}),
