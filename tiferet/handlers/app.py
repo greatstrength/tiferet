@@ -50,13 +50,14 @@ class AppHandler(AppService):
             self.app_repo = self.load_app_repository()
 
     # * method: load_app_repository
-    def load_app_repository(self, app_repo_module_path: str = 'tiferet.proxies.yaml.app',
-                app_repo_class_name: str = 'AppYamlProxy',
-                app_repo_params: Dict[str, Any] = dict(
-                    app_config_file='app/configs/app.yml'
-                ),
-                **kwargs
-                ) -> AppRepository:
+    def load_app_repository(
+        self, app_repo_module_path: str = 'tiferet.proxies.yaml.app',
+        app_repo_class_name: str = 'AppYamlProxy',
+        app_repo_params: Dict[str, Any] = dict(
+            app_config_file='app/configs/app.yml'
+        ),
+        **kwargs
+    ) -> AppRepository:
         '''
         Execute the command.
 
