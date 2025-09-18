@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import List, Dict, Any
 
 # ** app
 from ..commands import (
@@ -10,13 +10,16 @@ from ..commands import (
     raise_error
 )
 from ..commands.dependencies import create_injector, get_dependency
-from ..contracts.app import *
+from ..contracts.app import (
+    AppInterfaceContract,
+    AppRepository
+)
 
 
 # *** handlers
 
 # ** handler: app_handler
-class AppHandler(AppService):
+class AppHandler(object):
     '''
     An app handler is a class that is used to manage app interfaces.
     '''
@@ -63,7 +66,7 @@ class AppHandler(AppService):
         return result
     
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute] = []) -> Any:
+    def load_app_instance(self, app_interface: AppInterfaceContract, default_attrs: List[AppInterfaceContract] = []) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
