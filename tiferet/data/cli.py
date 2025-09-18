@@ -45,6 +45,7 @@ class CliCommandYamlData(CliCommand, DataObject):
     def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
         '''
         Converts the data object to a primitive dictionary.
+
         :param role: The role.
         :type role: str
         :param kwargs: Additional keyword arguments.
@@ -77,6 +78,7 @@ class CliCommandYamlData(CliCommand, DataObject):
     def map(self, **kwargs) -> CliCommand:
         '''
         Maps the YAML data to a CLI command object.
+
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new CLI command object.
