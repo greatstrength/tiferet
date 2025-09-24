@@ -6,4 +6,4 @@ from .commands import *
 from .contracts import *
 
 # *** version
-__version__ = '1.1.2b1'
+__version__ = '1.1.2'
