@@ -162,3 +162,37 @@ def test_request_context_handle_response_model_list(request_context):
     assert len(response) == 2
     assert response[0].name == 'item1'
     assert response[1].name == 'item2'
+
+# ** test: request_context_set_result
+def test_request_context_set_result(request_context):
+    """
+    Test setting the result in the RequestContext.
+
+    :param request_context: The RequestContext instance.
+    :type request_context: RequestContext
+    """
+
+    # Set a new result in the request context.
+    new_result = {'new_key': 'new_value'}
+    request_context.set_result(new_result)
+
+    # Check that the result has been updated correctly.
+    assert request_context.result == new_result
+
+# ** test: request_context_set_result_with_data_key
+def test_request_context_set_result_with_data_key(request_context):
+    """
+    Test setting the result in the RequestContext with a specific data key.
+
+    :param request_context: The RequestContext instance.
+    :type request_context: RequestContext
+    """
+
+    # Set a new result in the request context with a specific data key.
+    new_result = 'specific_value'
+    data_key = 'specific_key'
+    request_context.set_result(new_result, data_key=data_key)
+
+    # Check that the result has been updated correctly in the data dictionary.
+    assert request_context.result == None
+    assert request_context.data[data_key] == new_result
