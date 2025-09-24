@@ -1,0 +1,49 @@
+[project]
+name = "tiferet"
+dynamic = ["version"]  # Mark version as dynamic
+description = "A multi-purpose application framework embodying beauty in form."
+authors = [
+    { name = "Andrew Shatz, Great Strength Systems", email = "andrew@greatstrength.me" }
+]
+license = { text = "BSD-3-Clause" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "schematics>=2.1.1",
+    "pyyaml>=6.0.1",
+    "dependencies>=7.7.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/greatstrength/tiferet"
+Repository = "https://github.com/greatstrength/tiferet"
+Download = "https://github.com/greatstrength/tiferet"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3.3",
+    "pytest_env>=1.1.5"
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "tiferet",
+    "tiferet.clients",
+    "tiferet.commands",
+    "tiferet.configs",
+    "tiferet.contexts",
+    "tiferet.contracts",
+    "tiferet.data",
+    "tiferet.handlers",
+    "tiferet.models",
+    "tiferet.proxies",
+    "tiferet.proxies.yaml"
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "tiferet.__version__" }
