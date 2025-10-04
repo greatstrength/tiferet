@@ -25,36 +25,6 @@ The `AppManagerContext` initializes the application, loading Configurations and 
 ### Context Hierarchy
 The following diagram illustrates the Context hierarchy and their interactions:
 
-```mermaid
-graph TD
-    A[Initializer Scripts<br>basic_calc.py, calc_cli.py] --> B[AppManagerContext<br>(App)]
-    B --> C[AppInterfaceContext<br>e.g., CliContext, FlaskApiContext]
-    C --> D[FeatureContext]
-    C --> E[ErrorContext]
-    C --> F[LoggingContext]
-    D --> G[ContainerContext]
-    D --> H[RequestContext]
-    D --> I[CacheContext]
-    E --> I
-    G --> I
-    G --> J[Run Command<br>e.g., AddNumber]
-    D --> J[Execute Feature]
-    E --> K[Handle TiferetError]
-    F --> L[Log Events]
-    style B fill:#bbf,stroke:#333
-    style C fill:#bbf,stroke:#333
-    style D fill:#bbf,stroke:#333
-    style E fill:#bbf,stroke:#333
-    style F fill:#bbf,stroke:#333
-    style G fill:#bbf,stroke:#333
-    style H fill:#bbf,stroke:#333
-    style I fill:#bbf,stroke:#333
-```
-
-- **AppManagerContext**: Initializes the application, loading Configurations and creating `AppInterfaceContext` instances.
-- **AppInterfaceContext**: Base for user-facing Contexts (e.g., `CliContext`), managing feature execution, errors, and logging.
-- **Lower-Level Contexts**: Support specific functions, integrated via dependency injection.
-
 ### Example: Calculator Application
 In the calculator application ([app/commands/calc.py](https://github.com/greatstrength/tiferet/blob/main/app/commands/calc.py)), Contexts enable scripted (`basic_calc.py`) and CLI (`calc_cli.py`) interactions:
 - **CliContext**: Parses CLI inputs (e.g., `python calc_cli.py calc add 1 2`), creates a `RequestContext`, and executes `calc.add` via `FeatureContext`.
