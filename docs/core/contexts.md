@@ -1,11 +1,3 @@
----
-title: Contexts in Tiferet
-framework: Tiferet
-version: 1.0.0
-repo: https://github.com/greatstrength/tiferet
-keywords: [contexts, appinterfacecontext, clicontext, featurecontext, containercontext, errorcontext, cachecontext, requestcontext, loggingcontext, structured code]
----
-
 # Contexts in Tiferet
 
 Contexts are a core component of the Tiferet framework, representing the structural "body" of an application in runtime "graph space." While Initializer Scripts control the timing, execution, and procedure of the app, Contexts define its shape and behavior, encapsulating user interactions, internal orchestration, and supporting services. In Tiferet, Contexts and Handlers are the only components safely accessible to Initializer Scripts at runtime, making their methods and attributes extensible for developers (human or AI). This document explores the structured code design behind Contexts, how to write them, and how to test them, using the calculator application as an example.
