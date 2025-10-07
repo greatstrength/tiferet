@@ -207,25 +207,60 @@ Consistent spacing enhances readability:
 ### Best Practices
 
 - Use artifact comments consistently across all modules.
-
 - Write clear, RST-formatted docstrings for all components.
-
 - Indent parameters for methods with >3 parameters.
-
 - Break methods into commented snippets for logical steps.
-
 - Maintain one empty line between all elements (snippets, methods, attributes, classes, sections/components).
 
-## Writing Extensible Contexts
+## Creating New and Extending Existing Code
 
-Contexts, as the "body" of the application, are designed to be extensible, with methods and attributes accessible to Initializer Scripts (e.g., `calc_cli.py`). The structured code style ensures developers can extend Contexts for new interfaces (e.g., CLI, web) while maintaining consistency.
+To create new functionality or extend existing behavior in Tiferet, developers can add or modify methods in component classes, such as `FeatureContext`, while adhering to the structured code guidelines. Methods are designed to be accessible to Initializer Scripts, allowing developers (human or AI) to tailor functionality to the application’s domain. Below are steps to add a new method or extend an existing one, using `feature.py` as an example.
 
+1. **Update `feature.py`**:
+   - Add new methods under `# * method: <method_name>` or modify existing methods, following the artifact comment structure.
+   - Ensure methods align with domain needs, use type hints, and include RST-formatted docstrings.
+   - Example: Add a new method to validate feature parameters:
+
+     ```python
+     # * method: validate_feature_params
+     def validate_feature_params(self, feature_id: str, request: RequestContext) -> bool:
+         '''
+         Validate feature parameters exist in the request.
+
+         :param feature_id: The feature ID to validate.
+         :type feature_id: str
+         :param request: The request context with parameters.
+         :type request: RequestContext
+         :return: Whether all parameters are valid.
+         :rtype: bool
+         '''
+
+         # Load the feature.
+         feature = self.load_feature(feature_id)
+
+         # Check each parameter exists in the request.
+         for cmd in feature.commands:
+             for param in cmd.parameters.values():
+                 if param.startswith('$r.') and not request.data.get(param[3:]):
+                     return False
+
+         # Return True if all parameters are valid.
+         return True
+     ```
+
+2. **Best Practices**:
+   - Place one empty line between the docstring and the first code snippet, and between snippets within the method.
+   - Use `# * method: <method_name>` to label new or modified methods.
+   - Include `**kwargs` for flexibility if the method may be extended further.
+   - Align method logic with the domain (e.g., parameter validation for feature execution).
+   - Test the method using Tiferet’s structured test style (see `tests/feature.py`).
 
 ## Testing Contexts
 
 Testing ensures Contexts adhere to Tiferet’s structured code style and function correctly. Tests use `pytest` and `unittest.mock` to isolate dependencies and cover success, error, and edge cases.
 
 ### Example: Testing the Feature Context
+
 From `tiferet/contexts/tests/test_feature.py`:
 
 ```python
@@ -271,7 +306,8 @@ def test_feature_context_load_feature_command(feature_context, test_command):
 - Test all methods and attributes under `# *` comments.
 - Verify docstring compliance and snippet behavior (e.g., cache operations).
 - Use parameterized tests for edge cases (e.g., missing features).
-- Maintain one empty line between artifact comments, fixtures, tests, and snippets.
+- Maintain one empty line between artifact comments, fixtures, tests, snippets, and after docstrings.
 
 ## Conclusion
-Tiferet’s structured code style, with its hierarchical artifact comments and formatting conventions, ensures code is consistent, extensible, and AI-parsable. By organizing imports, components, and subcomponents with `# ***`, `# **`, and `# *` comments, and adhering to docstring, indentation, snippet, and spacing rules, developers can write maintainable Contexts and other components. This style supports Tiferet’s philosophy of balance, enabling easy extension for new features.
+
+Tiferet’s structured code style, with its hierarchical artifact comments (`# ***`, `# **`, `# *`) and formatting conventions (docstrings, indentation, snippets, spacing), ensures code is consistent, extensible, and AI-parsable. By organizing imports, exports, components, fixtures, and tests, and adhering to clear formatting rules, developers can write maintainable code for any application. 
