@@ -1,4 +1,6 @@
-# *** imports
+"""Tiferet Version and Global Exports"""
+
+# *** exports
 
 # ** app
 from .contexts import AppManagerContext as App
