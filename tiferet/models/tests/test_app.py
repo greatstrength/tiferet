@@ -1,11 +1,15 @@
+
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ...models.app import *
-
+from ...models import (
+    ModelObject,
+    AppInterface
+)
 
 # *** fixtures
 
@@ -26,7 +30,7 @@ def app_attribute():
 @pytest.fixture
 def app_interface(app_attribute):
 
-    return Entity.new(
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test App',
