@@ -13,7 +13,7 @@ from ..commands.dependencies import *
 # *** contexts
 
 # ** contexts: container_context
-class ContainerContext(Model):
+class ContainerContext(object):
     '''
     A container context is a class that is used to create a container object.
     '''
