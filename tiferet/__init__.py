@@ -1,14 +1,14 @@
+"""Tiferet Version and Global Exports"""
+
 # *** exports
 
 # ** app
-# Export the main application context and related modules.
-# Use a try-except block to avoid import errors on build systems.
-try:
-    from .contexts.app import AppManagerContext as App
-    from .commands import *
-    from .contracts import *
-except:
-    pass
+from .contexts import AppManagerContext as App
+from .models import *
+from .commands import *
+from .contracts import *
+from .data import *
+from .proxies import *
 
 # *** version
-__version__ = '1.1.2'
+__version__ = '1.1.3'
