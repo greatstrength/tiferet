@@ -1,3 +1,5 @@
+"""Tiferet App Context Tests"""
+
 # *** imports
 
 # ** core
@@ -8,7 +10,22 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..app import *
+from ..app import (
+    AppRepository,
+    FeatureContext,
+    ErrorContext,
+    LoggingContext,
+    RequestContext,
+    AppInterfaceContext,
+    AppManagerContext,
+    TiferetError,
+    AppService,
+)
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
+)
 
 # *** fixtures
 
@@ -22,7 +39,7 @@ def app_interface():
     :rtype: AppInterface
     '''
     # Create a test AppInterface instance.
-    return Entity.new(
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -32,7 +49,7 @@ def app_interface():
         feature_flag='test',
         data_flag='test',
         attributes=[
-            ValueObject.new(
+            ModelObject.new(
                 AppAttribute,
                 attribute_id='test_attribute',
                 module_path='test_module_path',
@@ -158,6 +175,16 @@ def app_service(app_repo, app_interface_context):
 # ** fixture: app_manager_context
 @pytest.fixture
 def app_manager_context(app_service):
+    """
+    Fixture to provide an AppManagerContext instance.
+
+    :param app_service: The mock app service.
+    :type app_service: AppService
+    :return: An instance of AppManagerContext.
+    :rtype: AppManagerContext
+    """
+
+    # Return the AppManagerContext instance.
     return AppManagerContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
@@ -232,7 +259,9 @@ def test_app_interface_context_parse_request(app_interface_context):
     data={
         'key': 'value',
         'param': 'test_param'
-    })
+    },
+    feature_id='test_group.test_feature')
+    
 
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None
@@ -240,6 +269,7 @@ def test_app_interface_context_parse_request(app_interface_context):
     assert request.headers.get('interface_id') == app_interface_context.interface_id
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
+    request.feature_id == 'test_group.test_feature'
 
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):

@@ -1,3 +1,5 @@
+"""Tiferet App Contexts"""
+
 # *** imports
 
 # ** core
@@ -9,7 +11,10 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
-from ..models.app import *
+from ..models import (
+    ModelObject,
+    AppAttribute,
+)
 from ..handlers.app import (
     AppService,
     AppHandler,
@@ -279,7 +284,7 @@ class AppInterfaceContext(object):
         
         # Parse request.
         logger.debug(f'Parsing request for feature: {feature_id}')
-        request = self.parse_request(headers, data)
+        request = self.parse_request(headers, data, feature_id)
 
         # Execute feature context and return session.
         try:
