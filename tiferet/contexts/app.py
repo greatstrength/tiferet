@@ -42,7 +42,7 @@ class AppManagerContext(object):
     app_service: AppService
 
     # * init
-    def __init__(self, settings: Dict[str, Any], app_service: AppService = AppHandler()):
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
         '''
         Initialize the AppManagerContext with an application service.
 
