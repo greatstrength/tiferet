@@ -120,4 +120,3 @@ class ContainerContext(object):
 
         # Return the dependency.
         return dependency
-
