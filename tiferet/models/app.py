@@ -1,17 +1,25 @@
+"""Tiferet App Models"""
+
 # *** imports
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelObject,
+    StringType,
+    ListType,
+    DictType,
+    ModelType,
+)
+from .settings import Entity, ValueObject # Keep this until we refactor all usages.
 
 # *** models
 
 # ** model: app_attribute
-class AppAttribute(ValueObject):
+class AppAttribute(ModelObject):
     '''
     An app dependency attribute that defines the dependency attributes for an app interface.
     '''
-    
+
     # * attribute: module_path
     module_path = StringType(
         required=True,
@@ -45,12 +53,18 @@ class AppAttribute(ValueObject):
         ),
     )
 
-
 # ** model: app_interface
-class AppInterface(Entity):
+class AppInterface(ModelObject):
     '''
     The base application interface object.
     '''
+
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier for the application interface.'
+        ),
+    )
 
     # * attribute: name
     name = StringType(
@@ -135,7 +149,7 @@ class AppInterface(Entity):
         '''
 
         # Create a new AppDependency object.
-        dependency = ValueObject.new(
+        dependency = ModelObject.new(
             AppAttribute,
             module_path=module_path,
             class_name=class_name,
@@ -144,7 +158,7 @@ class AppInterface(Entity):
 
         # Add the dependency to the list of dependencies.
         self.attributes.append(dependency)
-    
+
     # * method: get_attribute
     def get_attribute(self, attribute_id: str) -> AppAttribute:
         '''
