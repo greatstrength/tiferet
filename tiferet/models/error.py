@@ -4,13 +4,18 @@
 from typing import List, Any
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelObject,
+    StringType,
+    ListType,
+    ModelType,
+)
+from .settings import * # Keep this until we refactor all usages.
 
 # *** models
 
 # ** model: error_message
-class ErrorMessage(ValueObject):
+class ErrorMessage(ModelObject):
     '''
     An error message object.
     '''
@@ -51,10 +56,18 @@ class ErrorMessage(ValueObject):
 
 
 # ** model: error
-class Error(Entity):
+class Error(ModelObject):
     '''
     An error object.
     '''
+
+    # * attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier of the error.'
+        )
+    )
 
     # * attribute: name
     name = StringType(
@@ -112,11 +125,11 @@ class Error(Entity):
             if isinstance(msg, ErrorMessage):
                 message_objs.append(msg)
             elif not isinstance(msg, ErrorMessage) and isinstance(msg, dict):
-                message_objs.append(ValueObject.new(ErrorMessage, **msg))
+                message_objs.append(ModelObject.new(ErrorMessage, **msg))
 
 
         # Create and return a new Error object.
-        return Entity.new(
+        return ModelObject.new(
             Error,
             id=id,
             name=name,
@@ -196,7 +209,7 @@ class Error(Entity):
         
         # If not, create a new ErrorMessage object and add it to the message list.
         self.message.append(
-            ValueObject.new(
+            ModelObject.new(
                 ErrorMessage,
                 lang=lang,
                 text=text

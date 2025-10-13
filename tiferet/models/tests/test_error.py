@@ -15,9 +15,13 @@ from ..error import *
 def error_message() -> ErrorMessage:
     '''
     Fixture to create a basic error message object.
+
+    :return: The ErrorMessage instance.
+    :rtype: ErrorMessage
     '''
 
-    return ValueObject.new(
+    # Create the error message object.
+    return ModelObject.new(
         ErrorMessage,
         lang='en_US',
         text='An error occurred.'
@@ -28,9 +32,13 @@ def error_message() -> ErrorMessage:
 def formatted_error_message() -> ErrorMessage:
     '''
     Fixture to create a formatted error message object.
+
+    :return: The ErrorMessage instance.
+    :rtype: ErrorMessage
     '''
 
-    return ValueObject.new(
+    # Create the formatted error message object.
+    return ModelObject.new(
         ErrorMessage,
         lang='en_US',
         text='An error occurred: {}'
@@ -38,11 +46,17 @@ def formatted_error_message() -> ErrorMessage:
 
 # ** fixture: error
 @pytest.fixture
-def error(error_message) -> Error:
+def error(error_message: ErrorMessage) -> Error:
     '''
     Fixture to create a basic error object.
+
+    :param error_message: The error message to associate with the error.
+    :type error_message: ErrorMessage
+    :return: The Error instance.
+    :rtype: Error
     '''
     
+    # Create the error object.
     return Error.new(
         name='Test Error',
         error_code='TEST_ERROR',
@@ -53,11 +67,17 @@ def error(error_message) -> Error:
 
 # ** fixture: error_with_formatted_message
 @pytest.fixture
-def error_with_formatted_message(formatted_error_message) -> Error:
+def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error:
     '''
     Fixture to create an error object with a formatted message.
+
+    :param formatted_error_message: The formatted error message to associate with the error.
+    :type formatted_error_message: ErrorMessage
+    :return: The Error instance.
+    :rtype: Error
     '''
     
+    # Create the error object.
     return Error.new(
         name='Test Formatted Error',
         error_code='TEST_FORMATTED_ERROR',
@@ -69,9 +89,12 @@ def error_with_formatted_message(formatted_error_message) -> Error:
 # *** tests
 
 # ** test: error_message_new
-def test_error_new(error_message):
+def test_error_message_new(error_message: ErrorMessage):
     '''
     Test creating a new error message object.
+
+    :param error_message: The error message to test.
+    :type error_message: ErrorMessage
     '''
 
     # Create an error message object.
@@ -80,7 +103,7 @@ def test_error_new(error_message):
         name='Test Error',
         error_code='TEST_ERROR',
         message=[
-            ValueObject.new(
+            ModelObject.new(
                 ErrorMessage,
                 lang='en_US',
                 text='An error occurred.'
@@ -96,9 +119,12 @@ def test_error_new(error_message):
     assert error.message[0] == error_message
 
 # ** test: error_new_no_id
-def test_error_new_no_id(error_message):
+def test_error_new_no_id(error_message: ErrorMessage):
     '''
     Test creating a new error message object without specifying an ID.
+
+    :param error_message: The error message to test.
+    :type error_message: ErrorMessage
     '''
 
     # Create an error message object with no ID.
@@ -116,9 +142,12 @@ def test_error_new_no_id(error_message):
     assert error.message[0] == error_message
 
 # ** test: error_new_raw_message_data
-def test_error_new_raw_message_data(error_message):
+def test_error_new_raw_message_data(error_message: ErrorMessage):
     '''
     Test creating a new error message object with raw message data.
+
+    :param error_message: The error message to test.
+    :type error_message: ErrorMessage
     '''
 
     # Create an error message object.
@@ -135,9 +164,17 @@ def test_error_new_raw_message_data(error_message):
     assert error.message[0] == error_message
 
 # ** test: error_message_format
-def test_error_message_format(error_message, formatted_error_message):
+def test_error_message_format(
+        error_message: ErrorMessage,
+        formatted_error_message: ErrorMessage
+    ):
     '''
     Test the format method of an error message.
+
+    :param error_message: The basic error message to test.
+    :type error_message: ErrorMessage
+    :param formatted_error_message: The formatted error message to test.
+    :type formatted_error_message: ErrorMessage
     '''
 
     # Test basic formatting
@@ -146,9 +183,17 @@ def test_error_message_format(error_message, formatted_error_message):
     assert formatted_error_message.format('Check for bugs.') == 'An error occurred: Check for bugs.'
 
 # ** test: error_format_method
-def test_error_format_method(error, error_with_formatted_message):
+def test_error_format_method(
+        error: Error,
+        error_with_formatted_message: Error
+    ):
     '''
     Test the format method of an error.
+
+    :param error: The basic error to test.
+    :type error: Error
+    :param error_with_formatted_message: The error with a formatted message to test.
+    :type error_with_formatted_message: Error
     '''
 
     # Test formatting with arguments
@@ -158,18 +203,29 @@ def test_error_format_method(error, error_with_formatted_message):
     assert error_with_formatted_message.format_message('en_US', 'Check for bugs.') == 'An error occurred: Check for bugs.'
 
 # ** test: error_format_method_unsupported_lang
-def test_error_format_method_unsupported_lang(error):
+def test_error_format_method_unsupported_lang(error: Error):
     '''
     Test the format method of an error with an unsupported language.
+
+    :param error: The basic error to test.
+    :type error: Error
     '''
 
     # Test formatting with unsupported language
     assert error.format_message('fr_FR') == None
 
 # ** test: error_format_response
-def test_error_format_response(error, error_with_formatted_message):
+def test_error_format_response(
+        error: Error,
+        error_with_formatted_message: Error
+    ):
     '''
     Test the format_response method of an error.
+
+    :param error: The basic error to test.
+    :type error: Error
+    :param error_with_formatted_message: The error with a formatted message to test.
+    :type error_with_formatted_message: Error
     '''
 
     # Test formatting the error response
@@ -188,10 +244,14 @@ def test_error_format_response(error, error_with_formatted_message):
 
 
 # ** test: error_format_response_unsupported_lang
-def test_error_format_response_unsupported_lang(error):
+def test_error_format_response_unsupported_lang(error: Error):
     '''
     Test the format_response method of an error with an unsupported language.
+
+    :param error: The basic error to test.
+    :type error: Error
     '''
+
     # Test formatting the error response with unsupported language
     response = error.format_response('fr_FR')
 
@@ -200,9 +260,12 @@ def test_error_format_response_unsupported_lang(error):
 
 
 # ** test: error_set_message
-def test_error_set_message(error):
+def test_error_set_message(error: Error):
     '''
     Test setting a new error message for a specific language.
+
+    :param error: The error to test.
+    :type error: Error
     '''
 
     # Set a new message for the 'en_US' language.
@@ -215,9 +278,12 @@ def test_error_set_message(error):
 
 
 # ** test: error_set_message_new_lang
-def test_error_set_message_new_lang(error):
+def test_error_set_message_new_lang(error: Error):
     '''
     Test setting a new error message for a new language.
+
+    :param error: The error to test.
+    :type error: Error
     '''
 
     # Set a new message for the 'fr_FR' language.
