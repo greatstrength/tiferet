@@ -1,15 +1,23 @@
+"""Tiferet CLI Models"""
+
 # *** imports
 
 # ** core
 from typing import List
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelObject,
+    StringType,
+    BooleanType,
+    ListType,
+    ModelType,
+)
 
 # *** models
 
 # ** model: cli_argument
-class CliArgument(ValueObject):
+class CliArgument(ModelObject):
     '''
     Represents a command line argument.
     '''
@@ -97,10 +105,18 @@ class CliArgument(ValueObject):
             return str
 
 # ** model: cli_command
-class CliCommand(Entity):
+class CliCommand(ModelObject):
     '''
     Represents a command line command.
     '''
+
+    # * attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier for the command, typically formatted as "group_key.key".'
+        )
+    )
 
     # * attribute: name
     name = StringType(
@@ -147,6 +163,7 @@ class CliCommand(Entity):
     def new(group_key: str, key: str, name: str, description: str = None, arguments: List[CliArgument] = []) -> 'CliCommand':
         '''
         Create a new command.
+
         :param group_key: The group key for the command.
         :type group_key: str
         :param key: The unique key for the command.
@@ -179,6 +196,7 @@ class CliCommand(Entity):
     def has_argument(self, flags: List[str]) -> bool:
         '''
         Check if the command has an argument with the given flags.
+
         :param flags: The flags to check for.
         :type flags: List[str]
         :return: True if the command has the argument, False otherwise.
@@ -197,6 +215,7 @@ class CliCommand(Entity):
     def add_argument(self, argument: CliArgument):
         '''
         Add an argument to the command.
+
         :param argument: The argument to add.
         :type argument: CliArgument
         '''
