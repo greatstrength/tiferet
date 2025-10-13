@@ -1,12 +1,22 @@
+"""Tiferet Feature Models"""
+
 # *** imports
 
 # ** app
-from .settings import *
+from .settings import * # Keep this until we refactor all usages.
+from .settings import (
+    ModelObject,
+    StringType,
+    BooleanType,
+    DictType,
+    ListType,
+    ModelType,
+)
 
 # *** models
 
 # ** model: feature_command
-class FeatureCommand(ValueObject):
+class FeatureCommand(ModelObject):
     '''
     A command object for a feature command.
     '''
@@ -59,10 +69,18 @@ class FeatureCommand(ValueObject):
     )
 
 # ** model: feature
-class Feature(Entity):
+class Feature(ModelObject):
     '''
     A feature object.
     '''
+
+    # attribute: id
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier of the feature.'
+        )
+    )
 
     # * attribute: name
     name = StringType(
