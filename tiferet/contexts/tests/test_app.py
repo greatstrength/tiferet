@@ -261,7 +261,6 @@ def test_app_interface_context_parse_request(app_interface_context):
         'param': 'test_param'
     },
     feature_id='test_group.test_feature')
-    
 
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None

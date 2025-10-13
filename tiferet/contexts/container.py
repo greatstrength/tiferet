@@ -9,7 +9,6 @@ from ..handlers.container import ContainerService
 from ..commands import *
 from ..commands.dependencies import *
 
-
 # *** contexts
 
 # ** contexts: container_context
@@ -23,7 +22,6 @@ class ContainerContext(object):
 
     # * attribute: container_service
     container_service: ContainerService
-
 
     # * method: init
     def __init__(self, container_service: ContainerService, cache: CacheContext = None):
@@ -39,7 +37,7 @@ class ContainerContext(object):
         # Assign the attributes.
         self.container_service = container_service
         self.cache = cache if cache else CacheContext()
-    
+
     # * method: create_cache_key
     def create_cache_key(self, flags: List[str] = None) -> str:
         '''
@@ -88,7 +86,6 @@ class ContainerContext(object):
                 dependencies[attr.id] = self.container_service.get_dependency_type(attr, flags)
             except TiferetError as e:
                 raise e
-                    
 
         # Create the injector with the dependencies and constants.
         injector = create_injector.execute(
@@ -102,7 +99,7 @@ class ContainerContext(object):
 
         # Return the injector.
         return injector
-    
+
     # * method: get_dependency
     def get_dependency(self, attribute_id: str, flags: List[str] = []) -> Any:
         '''
