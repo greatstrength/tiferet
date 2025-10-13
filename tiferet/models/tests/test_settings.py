@@ -13,7 +13,6 @@ from ..settings import (
     StringType,
 )
 
-
 # *** fixtures
 
 # ** fixture: test_model_object
@@ -37,7 +36,6 @@ def test_model_object() -> ModelObject:
 
     # Return the class.
     return TestModelObject
-
 
 # ** fixture: test_entity
 @pytest.fixture

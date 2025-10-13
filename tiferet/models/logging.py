@@ -1,3 +1,5 @@
+"""Tiferet Logging Models"""
+
 # *** imports
 
 # ** core

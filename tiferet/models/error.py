@@ -1,4 +1,6 @@
-# *** imports 
+"""Tiferet Error Models"""
+
+# *** imports
 
 # ** core
 from typing import List, Any
