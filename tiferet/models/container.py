@@ -1,13 +1,20 @@
+"""Tiferet Container Models"""
+
 # *** imports
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelObject,
+    StringType,
+    DictType,
+    ListType,
+    ModelType,
+)
 
 # *** models
 
 # ** model: flagged_dependency
-class FlaggedDependency(ValueObject):
+class FlaggedDependency(ModelObject):
     '''
     A flagged container dependency object.
     '''
@@ -45,9 +52,8 @@ class FlaggedDependency(ValueObject):
         )
     )
 
-
 # ** model: container_attribute
-class ContainerAttribute(Entity):
+class ContainerAttribute(ModelObject):
     '''
     An attribute that defines container injectior behavior.
     '''
