@@ -1,3 +1,5 @@
+"""Tiferet Error Models Tests"""
+
 # *** imports 
 
 # ** infra
@@ -5,7 +7,6 @@ import pytest
 
 # ** app
 from ..error import *
-
 
 # *** fixtures
 
@@ -21,7 +22,6 @@ def error_message() -> ErrorMessage:
         lang='en_US',
         text='An error occurred.'
     )
-
 
 # ** fixture: formatted_error_message
 @pytest.fixture
@@ -51,7 +51,6 @@ def error(error_message) -> Error:
         ]
     )
 
-
 # ** fixture: error_with_formatted_message
 @pytest.fixture
 def error_with_formatted_message(formatted_error_message) -> Error:
@@ -67,12 +66,13 @@ def error_with_formatted_message(formatted_error_message) -> Error:
         ]
     )
 
-
 # *** tests
 
-# ** test: test_error_message_new
+# ** test: error_message_new
 def test_error_new(error_message):
-
+    '''
+    Test creating a new error message object.
+    '''
 
     # Create an error message object.
     error = Error.new(
@@ -95,9 +95,11 @@ def test_error_new(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_new_no_id
+# ** test: error_new_no_id
 def test_error_new_no_id(error_message):
+    '''
+    Test creating a new error message object without specifying an ID.
+    '''
 
     # Create an error message object with no ID.
     error = Error.new(
@@ -113,9 +115,11 @@ def test_error_new_no_id(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_new_raw_message_data
+# ** test: error_new_raw_message_data
 def test_error_new_raw_message_data(error_message):
+    '''
+    Test creating a new error message object with raw message data.
+    '''
 
     # Create an error message object.
     error = Error.new(
@@ -130,35 +134,43 @@ def test_error_new_raw_message_data(error_message):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
-
-# ** test: test_error_message_format
+# ** test: error_message_format
 def test_error_message_format(error_message, formatted_error_message):
+    '''
+    Test the format method of an error message.
+    '''
 
     # Test basic formatting
     assert error_message.format() == 'An error occurred.'
     # Test formatting with arguments
     assert formatted_error_message.format('Check for bugs.') == 'An error occurred: Check for bugs.'
 
-
-# ** test: test_error_format_method
+# ** test: error_format_method
 def test_error_format_method(error, error_with_formatted_message):
-   
+    '''
+    Test the format method of an error.
+    '''
+
     # Test formatting with arguments
     assert error.format_message('en_US') == 'An error occurred.'
 
     # Test formatting with arguments
     assert error_with_formatted_message.format_message('en_US', 'Check for bugs.') == 'An error occurred: Check for bugs.'
 
-
-# ** test: test_error_format_method_unsupported_lang
+# ** test: error_format_method_unsupported_lang
 def test_error_format_method_unsupported_lang(error):
+    '''
+    Test the format method of an error with an unsupported language.
+    '''
 
     # Test formatting with unsupported language
     assert error.format_message('fr_FR') == None
 
-
-# ** test: test_error_format_response
+# ** test: error_format_response
 def test_error_format_response(error, error_with_formatted_message):
+    '''
+    Test the format_response method of an error.
+    '''
 
     # Test formatting the error response
     response = error.format_response('en_US')
@@ -175,9 +187,11 @@ def test_error_format_response(error, error_with_formatted_message):
     assert formatted_response['message'] == 'An error occurred: Check for bugs.'
 
 
-# ** test: test_error_format_response_unsupported_lang
+# ** test: error_format_response_unsupported_lang
 def test_error_format_response_unsupported_lang(error):
-    
+    '''
+    Test the format_response method of an error with an unsupported language.
+    '''
     # Test formatting the error response with unsupported language
     response = error.format_response('fr_FR')
 
@@ -185,7 +199,7 @@ def test_error_format_response_unsupported_lang(error):
     assert not response
 
 
-# ** test: test_error_set_message
+# ** test: error_set_message
 def test_error_set_message(error):
     '''
     Test setting a new error message for a specific language.
@@ -200,7 +214,7 @@ def test_error_set_message(error):
     assert error.message[0].text == 'A new error occurred.'
 
 
-# ** test: test_error_set_message_new_lang
+# ** test: error_set_message_new_lang
 def test_error_set_message_new_lang(error):
     '''
     Test setting a new error message for a new language.

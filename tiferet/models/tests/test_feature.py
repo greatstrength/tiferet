@@ -1,28 +1,46 @@
+"""Tiferet Feature Model Tests."""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..feature import *
-
+from ..feature import (
+    ModelObject,
+    Feature,
+    FeatureCommand,
+)
 
 # *** fixtures
 
 # ** fixture: feature_command
 @pytest.fixture
 def feature_command() -> FeatureCommand:
-    return ValueObject.new(
+    '''
+    Fixture to create a FeatureCommand instance for testing.
+
+    :return: The FeatureCommand instance.
+    :rtype: FeatureCommand
+    '''
+
+    return ModelObject.new(
         FeatureCommand,
         name='Test Service Command',
         attribute_id=' test_feature_command',
         parameters={'param1': 'value1'},
     )
 
-
 # ** fixture: feature
 @pytest.fixture
 def feature() -> Feature:
+    '''
+    Fixture to create a Feature instance for testing.
+
+    :return: The Feature instance.
+    :rtype: Feature
+    '''
+
     return Feature.new(
         name='Test Feature',
         group_id='test_group',
@@ -31,8 +49,14 @@ def feature() -> Feature:
 
 # *** tests
 
-# ** test: test_feature_new
-def test_feature_new(feature_command):
+# ** test: feature_new
+def test_feature_new(feature_command: FeatureCommand):
+    '''
+    Fixture to create a Feature instance for testing.
+
+    :param feature_command: The feature command to add to the feature.
+    :type feature_command: FeatureCommand
+    '''
 
     # Create new feature with all attributes.
     feature = Feature.new(
@@ -54,8 +78,11 @@ def test_feature_new(feature_command):
     assert feature.commands[0] == feature_command
 
 
-# ** test: test_feature_new_no_description
+# ** test: feature_new_no_description
 def test_feature_new_no_description():
+    '''
+    Test creating a Feature instance without a description.
+    '''
     
     # Create new feature with no description.
     feature = Feature.new(
@@ -75,7 +102,7 @@ def test_feature_new_no_description():
     assert len(feature.commands) == 0
 
 
-# ** test: test_feature_new_name_and_group_only
+# ** test: feature_new_name_and_group_only
 def test_feature_new_name_and_group_only():
 
     # Create the feature with only the name and group ID.
@@ -94,8 +121,19 @@ def test_feature_new_name_and_group_only():
     assert len(feature.commands) == 0
 
 
-# ** test: test_feature_add_service_command
-def test_feature_add_service_command(feature, feature_command):
+# ** test: feature_add_service_command
+def test_feature_add_service_command(
+        feature: Feature,
+        feature_command: FeatureCommand
+    ):
+    '''
+    Test adding a FeatureCommand to a Feature.
+
+    :param feature: The feature to add the command to.
+    :type feature: Feature
+    :param feature_command: The feature command to add.
+    :type feature_command: FeatureCommand
+    '''
 
     # Add another command
     feature.add_command(feature_command)
@@ -105,14 +143,17 @@ def test_feature_add_service_command(feature, feature_command):
     assert feature.commands[0] == feature_command
 
 
-# ** test: test_feature_add_command_position
-def test_feature_add_command_position(feature, feature_command):
+# ** test: feature_add_command_position
+def test_feature_add_command_position(
+        feature: Feature,
+        feature_command: FeatureCommand
+    ):
 
     # Add a command at the beginning
     feature.add_command(feature_command)
     
     # Create a new command and add it at the beginning.
-    new_command = ValueObject.new(
+    new_command = ModelObject.new(
         FeatureCommand,
         name='New Service Command',
         attribute_id='new_feature_command',

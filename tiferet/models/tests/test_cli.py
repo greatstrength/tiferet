@@ -1,10 +1,16 @@
+"""Tiferet CLI Models Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..cli import *
+from ..cli import (
+    ModelObject,
+    CliArgument,
+    CliCommand,
+)
 
 # *** fixtures
 
@@ -14,7 +20,12 @@ def cli_argument() -> CliArgument:
     '''
     Fixture to provide a sample CLI argument for testing.
     This argument is used to test the CLI argument model.
+
+    :return: The CLI argument.
+    :rtype: CliArgument
     '''
+
+    # Create the CLI argument.
     return ModelObject.new(
         CliArgument,
         name_or_flags=['--test-arg', '-t'],
@@ -29,7 +40,12 @@ def cli_command() -> CliCommand:
     '''
     Fixture to provide a sample CLI command for testing.
     This command is used to test the CLI command model.
+
+    :return: The CLI command.
+    :rtype: CliCommand
     '''
+
+    # Create the CLI command.
     return CliCommand.new(
         group_key='test-group',
         key='test-feature',
@@ -52,6 +68,9 @@ def cli_command() -> CliCommand:
 def test_cli_argument_get_type_str(cli_argument: CliArgument):
     '''
     Test the get_type method of a CLI argument with a string type.
+
+    :param cli_argument: The CLI argument to test.
+    :type cli_argument: CliArgument
     '''
     # Get the type of the CLI argument.
     arg_type = cli_argument.get_type()
@@ -77,6 +96,9 @@ def test_cli_argument_get_type_int(cli_argument: CliArgument):
 def test_cli_argument_get_type_float(cli_argument: CliArgument):
     '''
     Test the get_type method of a CLI argument with a float type.
+
+    :param cli_argument: The CLI argument to test.
+    :type cli_argument: CliArgument
     '''
     # Change the type of the CLI argument to 'float'.
     cli_argument.type = 'float'
@@ -91,6 +113,9 @@ def test_cli_argument_get_type_float(cli_argument: CliArgument):
 def test_cli_argument_get_type_none(cli_argument: CliArgument):
     '''
     Test the get_type method of a CLI argument with no type specified.
+
+    :param cli_argument: The CLI argument to test.
+    :type cli_argument: CliArgument
     '''
     # Change the type of the CLI argument to None.
     cli_argument.type = None
@@ -112,7 +137,12 @@ def test_cli_command_new(cli_command: CliCommand):
 def test_cli_command_has_argument(cli_command: CliCommand):
     '''
     Test that a CLI command can check for an argument.
+
+    :param cli_command: The CLI command to test.
+    :type cli_command: CliCommand
     '''
+
+    # Assert that the command has the argument.
     assert cli_command.has_argument(['-a', '--arg1'])
     assert not cli_command.has_argument(['-b', '--arg2'])
 
@@ -120,7 +150,11 @@ def test_cli_command_has_argument(cli_command: CliCommand):
 def test_cli_command_add_argument(cli_command: CliCommand):
     '''
     Test that a CLI command can add an argument.
+    
+    :param cli_command: The CLI command to test.
+    :type cli_command: CliCommand
     '''
+
     # Create a new argument.
     new_argument = ModelObject.new(
         CliArgument,

@@ -16,9 +16,12 @@ from ...models import (
 
 # ** fixture: app_attribute
 @pytest.fixture
-def app_attribute():
+def app_attribute() -> AppAttribute:
     '''
     Fixture for the container service attribute.
+
+    :return: The container service attribute.
+    :rtype: AppAttribute
     '''
 
     # Create a container service attribute.
@@ -58,7 +61,7 @@ def app_interface(app_attribute: AppAttribute) -> AppInterface:
 
 # *** tests
 
-# ** test: test_app_interface_get_attribute
+# ** test: app_interface_get_attribute
 def test_app_interface_get_attribute(app_interface: AppInterface):
     '''
     Test the get_attribute method of the app interface.
@@ -74,7 +77,7 @@ def test_app_interface_get_attribute(app_interface: AppInterface):
     assert app_dependency.module_path == 'test_module_path'
     assert app_dependency.class_name == 'test_class_name'
 
-# ** test: test_app_interface_get_attribute_invalid
+# ** test: app_interface_get_attribute_invalid
 def test_app_interface_get_attribute_invalid(app_interface: AppInterface):
     '''
     Test the get_attribute method of the app interface with an invalid attribute ID.
