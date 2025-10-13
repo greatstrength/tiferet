@@ -1,13 +1,20 @@
+"""Tiferet Container Models"""
+
 # *** imports
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelObject,
+    StringType,
+    DictType,
+    ListType,
+    ModelType,
+)
 
 # *** models
 
 # ** model: flagged_dependency
-class FlaggedDependency(ValueObject):
+class FlaggedDependency(ModelObject):
     '''
     A flagged container dependency object.
     '''
@@ -45,9 +52,8 @@ class FlaggedDependency(ValueObject):
         )
     )
 
-
 # ** model: container_attribute
-class ContainerAttribute(Entity):
+class ContainerAttribute(ModelObject):
     '''
     An attribute that defines container injectior behavior.
     '''
@@ -91,7 +97,7 @@ class ContainerAttribute(Entity):
             description='The container attribute dependencies.'
         )
     )
-        
+
     # * method: get_dependency
     def get_dependency(self, *flags) -> FlaggedDependency:
         '''
@@ -112,10 +118,10 @@ class ContainerAttribute(Entity):
             )
             if match:
                 return match
-        
+
         # Return None if no dependency matches the flags.
         return None
-        
+
     # * method: set_dependency
     def set_dependency(self, dependency: FlaggedDependency):
         '''
@@ -130,6 +136,6 @@ class ContainerAttribute(Entity):
             if dep.flag == dependency.flag:
                 self.dependencies[index] = dependency
                 return
-        
+
         # Append the dependency otherwise.
         self.dependencies.append(dependency)
