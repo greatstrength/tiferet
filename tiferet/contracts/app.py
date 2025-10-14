@@ -1,10 +1,21 @@
+"""Tiferet App Contracts"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contracts
 

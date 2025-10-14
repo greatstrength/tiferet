@@ -1,12 +1,21 @@
+"""Tiferet Error Contracts"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
 from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contracts
 
@@ -34,7 +43,6 @@ class ErrorMessage(ModelContract):
         :rtype: str
         '''
         raise NotImplementedError('The format method must be implemented by the error message.')
-
 
 # ** contract: error
 class Error(ModelContract):
@@ -99,7 +107,6 @@ class Error(ModelContract):
         '''
         raise NotImplementedError('The set_message method must be implemented by the error.')
 
-
 # ** contract: error_repository
 class ErrorRepository(Repository):
     '''
@@ -155,7 +162,6 @@ class ErrorRepository(Repository):
         :type error: Error
         '''
         raise NotImplementedError('The save method must be implemented by the error repository.')
-    
 
 # ** contract: error_service
 class ErrorService(Service):

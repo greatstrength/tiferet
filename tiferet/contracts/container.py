@@ -1,11 +1,20 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Tuple, Any
 from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Any
+)
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelContract,
+    Repository,
+    Service,
+)
 
 
 # *** contracts

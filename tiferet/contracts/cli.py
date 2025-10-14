@@ -1,10 +1,21 @@
+"""Tiferet CLI Contracts"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contracts
 
@@ -73,6 +84,7 @@ class CliCommand(ModelContract):
     def has_argument(self, flags: List[str]) -> bool:
         '''
         Check if the command has an argument with the given flags.
+
         :param flags: The flags to check for.
         :type flags: List[str]
         :return: True if the command has the argument, False otherwise.
@@ -85,6 +97,7 @@ class CliCommand(ModelContract):
     def add_argument(self, cli_argument: CliArgument):
         '''
         Add an argument to the command.
+
         :param cli_argument: The CLI argument to add.
         :type cli_argument: CliArgument
         '''
@@ -102,6 +115,7 @@ class CliRepository(Repository):
     def get_commands(self) -> List[CliCommand]:
         '''
         Get all commands available in the CLI repository.
+
         :return: A list of CLI commands.
         :rtype: List[CliCommand]
         '''
@@ -112,6 +126,7 @@ class CliRepository(Repository):
     def get_parent_arguments(self) -> List[CliArgument]:
         '''
         Get the parent arguments for the command line interface.
+
         :return: A list of parent arguments.
         :rtype: List[CliArgument]
         '''
@@ -128,6 +143,7 @@ class CliService(Service):
     def get_commands(self) -> Dict[str, CliCommand]:
         '''
         Get all commands available in the CLI service mapped by their group keys.
+
         :return: A dictionary of CLI commands mapped by their group keys.
         :rtype: Dict[str, CliCommand]
         '''
@@ -138,6 +154,7 @@ class CliService(Service):
     def parse_arguments(self, cli_command: CliCommand) -> Dict[str, Any]:
         '''
         Parse the command line arguments for a given CLI command.
+
         :param cli_command: The CLI command to parse arguments for.
         :type cli_command: CliCommand
         :return: A dictionary of parsed arguments.
