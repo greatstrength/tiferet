@@ -1,11 +1,11 @@
+"""Tiferet Contracts Settings"""
+
 # *** imports
 
 # ** infra
-from abc import ABC, abstractmethod
-
+from abc import ABC
 
 # *** classes
-
 
 # ** class: model_contract
 class ModelContract(ABC):
@@ -15,7 +15,6 @@ class ModelContract(ABC):
 
     pass
 
-
 # ** class: repository
 class Repository(ABC):
     '''
@@ -23,7 +22,6 @@ class Repository(ABC):
     '''
 
     pass
-
 
 # ** class: service
 class Service(ABC):
