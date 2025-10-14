@@ -1,18 +1,36 @@
+"""Tiferet App Data Transfer Object Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..app import *
+from ..settings import (
+    DataObject,
+    DEFAULT_MODULE_PATH,
+    DEFAULT_CLASS_NAME
+)
+from ..app import (
+    AppInterfaceYamlData,
+    AppInterface,
+    AppAttribute,
 
+)
 
 # *** fixtures
 
 # ** fixture: app_settings_yaml_data
 @pytest.fixture
-def app_settings_yaml_data():
+def app_settings_yaml_data() -> AppInterfaceYamlData:
+    '''
+    A fixture for an app interface yaml data object.
 
+    :return: The app interface yaml data object.
+    :rtype: AppInterfaceYamlData
+    '''
+
+    # Create and return the app interface yaml data object.
     return DataObject.from_data(
         AppInterfaceYamlData,
         id='app_yaml_data',
@@ -35,11 +53,16 @@ def app_settings_yaml_data():
         )
     )
 
-
 # *** tests
 
-# ** test: test_app_settings_yaml_data_map
-def test_app_settings_yaml_data_map(app_settings_yaml_data):
+# ** test: app_settings_yaml_data_map
+def test_app_settings_yaml_data_map(app_settings_yaml_data: AppInterfaceYamlData):
+    '''
+    Tests the mapping of an app interface yaml data object to an app interface object.
+
+    :param app_settings_yaml_data: The app interface yaml data object.
+    :type app_settings_yaml_data: AppInterfaceYamlData
+    '''
 
     # Map the app interface yaml data to an app interface object.
     app_settings = app_settings_yaml_data.map()

@@ -1,13 +1,22 @@
+"""Tiferet Container Data Transfer Objects"""
+
 # *** imports
 
 # ** app
-from ..data import *
-from ..models.container import *
-from ..contracts.container import (
-    ContainerAttribute as ContainerAttributeContract, 
-    FlaggedDependency as FlaggedDependencyContract
+from ..models import (
+    FlaggedDependency,
+    ContainerAttribute,
+    StringType,
+    DictType,
+    ModelType,
 )
-
+from ..contracts import (
+    FlaggedDependencyContract,
+    ContainerAttributeContract
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 

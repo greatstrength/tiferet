@@ -1,12 +1,26 @@
+"""Tiferet Feature Data Transfer Objects"""
+
 # *** imports
 
 # ** infra
 from schematics.types.serializable import serializable
 
-# 
-from ..data import DataObject
-from ..contracts.feature import Feature as FeatureContract, FeatureCommand as FeatureCommandContract
-from ..models.feature import *
+# app
+from ..models import (
+    Feature,
+    FeatureCommand,
+    ListType,
+    ModelType,
+    DictType,
+    StringType,
+)
+from ..contracts import (
+    FeatureContract,
+    FeatureCommandContract,
+)
+from .settings import (
+    DataObject,
+)
 
 
 class FeatureCommandData(FeatureCommand, DataObject):
@@ -76,8 +90,10 @@ class FeatureData(Feature, DataObject):
         }
     
     # * attributes
-    commands = ListType(ModelType(FeatureCommandData),
-                          deserialize_from=['handlers', 'functions', 'commands'],)
+    commands = ListType(
+        ModelType(FeatureCommandData),
+        deserialize_from=['handlers', 'functions', 'commands'],
+    )
     
     @serializable
     def feature_key(self):

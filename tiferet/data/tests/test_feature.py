@@ -1,17 +1,31 @@
+"""Tiferet Feature Data Transfer Object Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..feature import *
-
+from ...models import (
+    Feature,
+    FeatureCommand,
+)
+from ..feature import (
+    FeatureData,
+    FeatureCommandData,
+)
 
 # *** fixtures
 
 # ** fixture: feature_command_data
 @pytest.fixture
-def feature_command_data():
+def feature_command_data() -> FeatureCommandData:
+    '''
+    A fixture for a feature command data object.
+
+    :return: The feature command data object.
+    :rtype: FeatureCommandData
+    '''
     
     # Return the feature command data.
     return FeatureCommandData(dict(
@@ -26,7 +40,13 @@ def feature_command_data():
 
 # ** fixture: feature_data
 @pytest.fixture
-def feature_data():
+def feature_data() -> FeatureData:
+    '''
+    A fixture for a feature data object.
+
+    :return: The feature data object.
+    :rtype: FeatureData
+    '''
 
     # Return the feature data.
     return FeatureData.from_data(**dict(
@@ -46,13 +66,15 @@ def feature_data():
         ]
     ))
 
-
 # *** tests
 
-# ** test: test_feature_command_data_init
-def test_feature_command_data_init(feature_command_data):
+# ** test: feature_command_data_init
+def test_feature_command_data_init(feature_command_data: FeatureCommandData):
     '''
     Test the feature command data initialization.
+
+    :param feature_command_data: The feature command data object.
+    :type feature_command_data: FeatureCommandData
     '''
     
     # Assert the feature command data attributes.
@@ -64,10 +86,13 @@ def test_feature_command_data_init(feature_command_data):
     assert feature_command_data.pass_on_error == True
 
 
-# ** test: test_feature_command_data_map
-def test_feature_command_data_map(feature_command_data):
+# ** test: feature_command_data_map
+def test_feature_command_data_map(feature_command_data: FeatureCommandData):
     '''
     Test the feature command data mapping.
+
+    :param feature_command_data: The feature command data object.
+    :type feature_command_data: FeatureCommandData
     '''
     
     # Map the feature command data to a feature command object.
@@ -85,10 +110,13 @@ def test_feature_command_data_map(feature_command_data):
     assert feature_command.pass_on_error == True
 
 
-# ** test: test_feature_data_from_data
-def test_feature_data_from_data(feature_data):
+# ** test: feature_data_from_data
+def test_feature_data_from_data(feature_data: FeatureData):
     '''
     Test the feature data from data method.
+
+    :param feature_data: The feature data object.
+    :type feature_data: FeatureData
     '''
     
     # Assert the feature data attributes.
@@ -108,10 +136,13 @@ def test_feature_data_from_data(feature_data):
     assert feature_command_data.pass_on_error == True
 
 
-# ** test: test_feature_data_map
-def test_feature_data_map(feature_data):
+# ** test: feature_data_map
+def test_feature_data_map(feature_data: FeatureData):
     '''
     Test the feature data mapping.
+
+    :param feature_data: The feature data object.
+    :type feature_data: FeatureData
     '''
     
     # Map the feature data to a feature object.

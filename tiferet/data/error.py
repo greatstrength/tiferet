@@ -1,11 +1,20 @@
+"""Tiferet Error Data Transfer Objects"""
+
 # *** imports
 
 # ** app
-from ..configs import *
-from ..data import DataObject
-from ..models.error import *
-from ..contracts.error import Error as ErrorContract
-
+from ..models import (
+    Error,
+    ErrorMessage,
+    ListType,
+    ModelType,
+)
+from ..contracts import (
+    ErrorContract,
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 
