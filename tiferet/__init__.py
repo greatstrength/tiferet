@@ -22,7 +22,7 @@ try:
         ModelContract,
         Repository
     )
-    from .data import *
+    from .data import DataObject
     from .proxies import *
 except:
     pass
