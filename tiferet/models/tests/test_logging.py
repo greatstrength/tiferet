@@ -63,7 +63,7 @@ def handler(formatter: Formatter) -> Handler:
 def handler_no_optional(formatter: Formatter) -> Handler:
     '''
     Fixture to create a Handler object without optional attributes.
-    
+
     :param formatter: The formatter to associate with the handler.
     :type formatter: Formatter
     '''
@@ -239,3 +239,4 @@ def test_logger_format_config_empty_handlers(logger_empty_handlers: Logger):
         'handlers': [],
         'propagate': False
     }
+

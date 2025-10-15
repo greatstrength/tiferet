@@ -12,7 +12,7 @@ from .settings import (
     ListType,
     ModelType,
 )
-    
+
 # *** models
 
 # ** model: feature_command

@@ -77,7 +77,6 @@ def test_feature_new(feature_command: FeatureCommand):
     assert len(feature.commands) == 1
     assert feature.commands[0] == feature_command
 
-
 # ** test: feature_new_no_description
 def test_feature_new_no_description():
     '''
@@ -101,7 +100,6 @@ def test_feature_new_no_description():
     assert feature.description == feature.name
     assert len(feature.commands) == 0
 
-
 # ** test: feature_new_name_and_group_only
 def test_feature_new_name_and_group_only():
 
@@ -120,7 +118,6 @@ def test_feature_new_name_and_group_only():
     assert feature.description == 'A test feature.'
     assert len(feature.commands) == 0
 
-
 # ** test: feature_add_service_command
 def test_feature_add_service_command(
         feature: Feature,
@@ -138,10 +135,9 @@ def test_feature_add_service_command(
     # Add another command
     feature.add_command(feature_command)
     assert len(feature.commands) == 1
-    
+
     # Test that the new command is added to the list
     assert feature.commands[0] == feature_command
-
 
 # ** test: feature_add_command_position
 def test_feature_add_command_position(
@@ -151,7 +147,7 @@ def test_feature_add_command_position(
 
     # Add a command at the beginning
     feature.add_command(feature_command)
-    
+
     # Create a new command and add it at the beginning.
     new_command = ModelObject.new(
         FeatureCommand,

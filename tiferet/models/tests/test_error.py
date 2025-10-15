@@ -6,7 +6,11 @@
 import pytest
 
 # ** app
-from ..error import *
+from ..error import (
+    ModelObject,
+    Error,
+    ErrorMessage
+)
 
 # *** fixtures
 
@@ -55,7 +59,7 @@ def error(error_message: ErrorMessage) -> Error:
     :return: The Error instance.
     :rtype: Error
     '''
-    
+
     # Create the error object.
     return Error.new(
         name='Test Error',
@@ -230,7 +234,7 @@ def test_error_format_response(
 
     # Test formatting the error response
     response = error.format_response('en_US')
-    
+
     # Check if the response is correctly formatted
     assert response['error_code'] == 'TEST_ERROR'
     assert response['message'] == 'An error occurred.'
@@ -242,6 +246,14 @@ def test_error_format_response(
     assert formatted_response['error_code'] == 'TEST_FORMATTED_ERROR'
     assert formatted_response['message'] == 'An error occurred: Check for bugs.'
 
+# ** test: error_format_response_unsupported_lang
+def test_error_format_response_unsupported_lang(error: Error):
+    '''
+    Test the format_response method of an error with an unsupported language.
+
+    :param error: The basic error to test.
+    :type error: Error
+    '''
 
 # ** test: error_format_response_unsupported_lang
 def test_error_format_response_unsupported_lang(error: Error):
@@ -257,7 +269,6 @@ def test_error_format_response_unsupported_lang(error: Error):
 
     # Verify that the response is None.
     assert not response
-
 
 # ** test: error_set_message
 def test_error_set_message(error: Error):
@@ -275,7 +286,6 @@ def test_error_set_message(error: Error):
     assert len(error.message) == 1
     assert error.message[0].lang == 'en_US'
     assert error.message[0].text == 'A new error occurred.'
-
 
 # ** test: error_set_message_new_lang
 def test_error_set_message_new_lang(error: Error):

@@ -56,7 +56,6 @@ class ErrorMessage(ModelObject):
         # Format the error message text and return it.
         return self.text.format(*args)
 
-
 # ** model: error
 class Error(ModelObject):
     '''
@@ -112,7 +111,7 @@ class Error(ModelObject):
         :type kwargs: dict
         :return: A new Error object.
         '''
-        
+
         # Set Id as the name lower cased if not provided.
         if not id:
             id = name.lower().replace(' ', '_')
@@ -128,7 +127,6 @@ class Error(ModelObject):
                 message_objs.append(msg)
             elif not isinstance(msg, ErrorMessage) and isinstance(msg, dict):
                 message_objs.append(ModelObject.new(ErrorMessage, **msg))
-
 
         # Create and return a new Error object.
         return ModelObject.new(
@@ -162,7 +160,7 @@ class Error(ModelObject):
 
             # Format the error message text.
             return msg.format(*args)
-        
+
     # * method: format_response
     def format_response(self, lang: str = 'en_US', *args, **kwargs) -> Any:
         '''
@@ -191,7 +189,7 @@ class Error(ModelObject):
             message=error_message,
             **kwargs
         )
-    
+
     # * method: set_message
     def set_message(self, lang: str, text: str):
         '''
@@ -208,7 +206,7 @@ class Error(ModelObject):
             if msg.lang == lang:
                 msg.text = text
                 return
-        
+
         # If not, create a new ErrorMessage object and add it to the message list.
         self.message.append(
             ModelObject.new(

@@ -24,28 +24,28 @@ class CliArgument(ModelContract):
     '''
     A contract representing a command line argument.
     '''
-    
+
     # * attribute: name_or_flags
     name_or_flags: List[str]
-    
+
     # * attribute: description
     description: str
-    
+
     # * attribute: required
     required: bool
-    
+
     # * attribute: default
     default: str
-    
+
     # * attribute: choices
     choices: List[str]
-    
+
     # * attribute: nargs
     nargs: str
-    
+
     # * attribute: action
     action: str
-    
+
     # * method: get_type
     def get_type(self) -> str | int | float:
         '''
@@ -60,25 +60,25 @@ class CliCommand(ModelContract):
     '''
     A contract representing a command in the command line interface.
     '''
-    
+
     # * attribute: id
     id: str
-    
+
     # * attribute: name
     name: str
-    
+
     # * attribute: key
     key: str
-    
+
     # * attribute: group_key
     group_key: str
-    
+
     # * attribute: description
     description: str
-    
+
     # * attribute: arguments
     arguments: List[CliArgument]
-    
+
     # * method: has_argument
     @abstractmethod
     def has_argument(self, flags: List[str]) -> bool:
@@ -91,7 +91,7 @@ class CliCommand(ModelContract):
         :rtype: bool
         '''
         raise NotImplementedError('has_argument method must be implemented in the CliCommand contract.')
-    
+
     # * method: add_argument
     @abstractmethod
     def add_argument(self, cli_argument: CliArgument):
@@ -109,7 +109,7 @@ class CliRepository(Repository):
     The CLI repository interface is used to manage the command line interface commands and arguments.
     It provides methods to retrieve and manipulate CLI commands and their arguments.
     '''
-    
+
     # * method: get_commands
     @abstractmethod
     def get_commands(self) -> List[CliCommand]:
@@ -120,7 +120,7 @@ class CliRepository(Repository):
         :rtype: List[CliCommand]
         '''
         raise NotImplementedError('get_commands method must be implemented in the CLI repository.')
-    
+
     # * method: get_parent_arguments
     @abstractmethod
     def get_parent_arguments(self) -> List[CliArgument]:
@@ -137,7 +137,7 @@ class CliService(Service):
     '''
     The CLI service interface is used to manage the command line interface of the application.
     '''
-    
+
     # * method: get_commands
     @abstractmethod
     def get_commands(self) -> Dict[str, CliCommand]:
@@ -148,7 +148,7 @@ class CliService(Service):
         :rtype: Dict[str, CliCommand]
         '''
         raise NotImplementedError('get_commands method must be implemented in the CLI service.')
-    
+
     # * method: parse_arguments
     @abstractmethod
     def parse_arguments(self, cli_command: CliCommand) -> Dict[str, Any]:

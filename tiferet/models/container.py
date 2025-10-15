@@ -97,7 +97,7 @@ class ContainerAttribute(ModelObject):
             description='The container attribute dependencies.'
         )
     )
-        
+
     # * method: get_dependency
     def get_dependency(self, *flags) -> FlaggedDependency:
         '''
@@ -118,10 +118,10 @@ class ContainerAttribute(ModelObject):
             )
             if match:
                 return match
-        
+
         # Return None if no dependency matches the flags.
         return None
-        
+
     # * method: set_dependency
     def set_dependency(self, dependency: FlaggedDependency):
         '''
@@ -136,6 +136,6 @@ class ContainerAttribute(ModelObject):
             if dep.flag == dependency.flag:
                 self.dependencies[index] = dependency
                 return
-        
+
         # Append the dependency otherwise.
         self.dependencies.append(dependency)

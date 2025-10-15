@@ -99,7 +99,6 @@ def test_model_object_new(test_model_object: ModelObject):
     assert isinstance(model_object, test_model_object)
     assert model_object.attribute == 'test'
 
-
 # ** test: entity_new
 def test_entity_new(test_entity: Entity):
     '''
@@ -121,7 +120,6 @@ def test_entity_new(test_entity: Entity):
     assert entity.id == 'test'
     assert entity.name == 'Test Entity'
     assert entity.description == 'This is a test entity.'
-
 
 # ** test: value_object_new
 def test_value_object_new(test_value_object: ValueObject):

@@ -181,3 +181,4 @@ class ErrorService(Service):
         :rtype: List[Error]
         '''
         raise NotImplementedError('The load_errors method must be implemented by the error service.')
+

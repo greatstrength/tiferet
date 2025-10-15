@@ -92,7 +92,7 @@ class AppRepository(Repository):
         '''
         # Not implemented.
         raise NotImplementedError('get_interface method is required for AppRepository.')
-    
+
     # * method: list_interfaces
     @abstractmethod
     def list_interfaces(self) -> List[AppInterface]:
@@ -135,7 +135,7 @@ class AppService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('load_app_repository method is required for AppService.')
-    
+
     # * method: load_app_instance
     @abstractmethod
     def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute]) -> Any:
@@ -151,3 +151,4 @@ class AppService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('load_app_instance method is required for AppService.')
+

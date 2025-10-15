@@ -1,3 +1,5 @@
+"""Tiferet Container Data Transfer Objects"""
+
 # *** imports
 
 # ** core
@@ -15,7 +17,6 @@ from .settings import (
     Repository,
     Service,
 )
-
 
 # *** contracts
 
@@ -36,7 +37,6 @@ class FlaggedDependency(ModelContract):
 
     # * attribute: class_name
     class_name: str
-
 
 # ** contract: container_attribute
 class ContainerAttribute(ModelContract):
@@ -72,7 +72,6 @@ class ContainerAttribute(ModelContract):
         '''
         raise NotImplementedError('get_dependency method must be implemented in the ContainerAttribute class.')
 
-
 # ** contract: container_repository
 class ContainerRepository(Repository):
     '''
@@ -105,7 +104,6 @@ class ContainerRepository(Repository):
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerRepository class.')
 
-
 # ** contract: container_service
 class ContainerService(Service):
     '''
@@ -122,7 +120,7 @@ class ContainerService(Service):
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
-    
+
      # * method: load_constants
     @abstractmethod
     def load_constants(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
@@ -139,7 +137,7 @@ class ContainerService(Service):
         :rtype: Dict[str, str]
         '''
         raise NotImplementedError('load_constants method must be implemented in the ContainerService class.')
-    
+
     # * method: get_dependency_type
     @abstractmethod
     def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:

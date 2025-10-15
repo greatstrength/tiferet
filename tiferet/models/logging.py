@@ -254,3 +254,4 @@ class Logger(ModelObject):
             'handlers': self.handlers,
             'propagate': self.propagate
         }
+

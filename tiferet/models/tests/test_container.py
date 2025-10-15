@@ -203,3 +203,4 @@ def test_container_attribute_get_dependency_multiple_flags(
     assert dependency.class_name == flagged_dependency_to_add.class_name
     assert dependency.flag == flagged_dependency_to_add.flag
     assert dependency.parameters == flagged_dependency_to_add.parameters
+

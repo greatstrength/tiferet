@@ -1,3 +1,5 @@
+"""Tiferet Feature Data Transfer Objects"""
+
 # *** imports
 
 # ** core
@@ -45,7 +47,6 @@ class Request(ModelContract):
         '''
         raise NotImplementedError('The set_result method must be implemented by the request model.')
 
-
 # ** contract: feature_command
 class FeatureCommand(ModelContract):
     '''
@@ -70,7 +71,6 @@ class FeatureCommand(ModelContract):
     # * attribute: parameters
     parameters: Dict[str, Any]
 
-
 # ** contract: feature
 class Feature(ModelContract):
     '''
@@ -82,7 +82,6 @@ class Feature(ModelContract):
 
     # * attribute: commands
     commands: List[FeatureCommand]
-
 
 # ** contract: feature_repository
 class FeatureRepository(Repository):
@@ -128,7 +127,6 @@ class FeatureRepository(Repository):
         :rtype: List[Feature]
         '''
         raise NotImplementedError('The list method must be implemented by the feature repository.')
-    
 
 
 # ** contract: feature_service
@@ -164,3 +162,4 @@ class FeatureService(Service):
         :rtype: Feature
         '''
         raise NotImplementedError('The get_feature method must be implemented by the feature service.')
+

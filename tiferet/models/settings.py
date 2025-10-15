@@ -5,7 +5,6 @@
 # ** infra
 from schematics import Model, types as t
 
-
 # *** classes
 
 # ** class: string_type
@@ -40,7 +39,6 @@ class BooleanType(t.BooleanType):
 
     pass
 
-
 # ** class: list_type
 class ListType(t.ListType):
     '''
@@ -71,14 +69,14 @@ class ModelObject(Model):
     A domain model object.
     '''
 
-    # ** attribute: name
+    # * attribute: name
     name = StringType(
         metadata=dict(
             description='The name of the object.'
         )
     )
 
-    # ** attribute: description
+    # * attribute: description
     description = StringType(
         metadata=dict(
             description='The description of the object.'
@@ -120,7 +118,6 @@ class ModelObject(Model):
         # Return the new model object.
         return model_object
 
-
 # ** model: value_object
 class ValueObject(ModelObject):
     '''
@@ -128,14 +125,13 @@ class ValueObject(ModelObject):
     '''
     pass
 
-
 # ** class: entity
 class Entity(ModelObject):
     '''
     A domain model entity.
     '''
 
-    # ** attribute: id
+    # * attribute: id
     id = StringType(
         required=True,
         metadata=dict(
