@@ -90,6 +90,13 @@ class Feature(ModelObject):
         )
     )
 
+    # * attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the feature.'
+        )
+    )
+
     # * attribute: group_id
     group_id = StringType(
         required=True,
