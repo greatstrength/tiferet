@@ -22,11 +22,11 @@ try:
         ModelContract,
         Repository
     )
-    from .data import *
+    from .data import DataObject
     from .proxies import *
 except:
     pass
 
 # *** version
-__version__ = '1.1.5'
+__version__ = '1.1.6'
 
