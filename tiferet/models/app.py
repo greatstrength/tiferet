@@ -72,7 +72,14 @@ class AppInterface(ModelObject):
         metadata=dict(
             description='The name of the application interface.'
         ),
-    )  
+    )
+
+    # * attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the application interface.'
+        ),
+    )
 
     # * attribute: module_path
     module_path = StringType(
@@ -172,3 +179,4 @@ class AppInterface(ModelObject):
 
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
+
