@@ -7,3 +7,7 @@
 from .settings import (
     DataObject
 )
+from .app import (
+    AppAttributeYamlData,
+    AppInterfaceYamlData
+)
