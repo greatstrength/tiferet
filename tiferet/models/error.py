@@ -78,6 +78,13 @@ class Error(ModelObject):
         )
     )
 
+    # * attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the error.'
+        )
+    )
+
     # * attribute: error_code
     error_code = StringType(
         metadata=dict(
