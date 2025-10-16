@@ -66,6 +66,13 @@ class ContainerAttribute(ModelObject):
         )
     )
 
+    # * attribute: name
+    name = StringType(
+        metadata=dict(
+            description='The name of the container attribute.'
+        )
+    )
+
     # * attribute: module_path
     module_path = StringType(
         metadata=dict(
