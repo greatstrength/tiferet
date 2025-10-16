@@ -69,20 +69,6 @@ class ModelObject(Model):
     A domain model object.
     '''
 
-    # * attribute: name
-    name = StringType(
-        metadata=dict(
-            description='The name of the object.'
-        )
-    )
-
-    # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the object.'
-        )
-    )
-
     # * method: new
     @staticmethod
     def new(
