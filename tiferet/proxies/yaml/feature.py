@@ -1,14 +1,15 @@
+"""Tiferet Feature YAML Proxy"""
+
 # *** imports
 
 # ** core
 from typing import Any, List
 
 # ** app
-from .core import *
-from ...contracts.feature import Feature, FeatureRepository
-from ...data import DataObject
-from ...data.feature import FeatureData as FeatureYamlData
-
+from ...commands import raise_error, TiferetError
+from ...contracts import FeatureContract, FeatureRepository
+from ...data import DataObject, FeatureYamlData
+from .settings import YamlConfigurationProxy
 
 # *** proxies
 
@@ -48,7 +49,7 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
                 start_node=start_node,
                 create_data=create_data
             )
-        
+
         # Raise an error if the loading fails.
         except (Exception, TiferetError) as e:
             raise_error.execute(
@@ -62,7 +63,7 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
     def exists(self, id: str) -> bool:
         '''
         Verifies if the feature exists.
-        
+
         :param id: The feature id.
         :type id: str
         :return: Whether the feature exists.
@@ -76,27 +77,28 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
         return feature is not None
 
     # * method: get
-    def get(self, id: str) -> Feature:
+    def get(self, id: str) -> FeatureContract:
         '''
         Get the feature by id.
         
         :param id: The feature id.
         :type id: str
         :return: The feature object.
+        :rtype: FeatureContract
         '''
 
         # Get the feature.
         return next((feature for feature in self.list() if feature.id == id), None)
-    
+
     # * method: list
-    def list(self, group_id: str = None) -> List[Feature]:
+    def list(self, group_id: str = None) -> List[FeatureContract]:
         '''
         List the features.
         
         :param group_id: The group id.
         :type group_id: str
         :return: The list of features.
-        :rtype: List[Feature]
+        :rtype: List[FeatureContract]
         '''
 
         # Load all feature data from yaml.
