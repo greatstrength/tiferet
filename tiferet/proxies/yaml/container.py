@@ -1,13 +1,24 @@
+"""Tiferet Container YAML Proxy"""
+
 # *** imports
 
 # ** core
-from typing import Any, List, Tuple, Dict
+from typing import (
+    Any, 
+    List,
+    Tuple,
+    Dict,
+    Callable
+)
 
 # ** app
-from .core import *
-from ...data.container import ContainerAttributeYamlData
-from ...contracts.container import ContainerRepository, ContainerAttribute
-
+from ...commands import (
+    raise_error,
+    TiferetError
+)
+from ...data import ContainerAttributeYamlData
+from ...contracts import ContainerRepository, ContainerAttributeContract
+from .settings import YamlConfigurationProxy
 
 # *** proxies
 
@@ -30,7 +41,11 @@ class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
         super().__init__(container_config_file)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+    def load_yaml(
+            self, 
+            start_node: Callable = lambda data: data,
+            create_data: Callable = lambda data: data
+        ) -> Any:
         '''
         Load data from the YAML configuration file.
         :param start_node: The starting node in the YAML file.
@@ -47,7 +62,7 @@ class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
                 start_node=start_node,
                 create_data=create_data
             )
-        
+
         # Raise an error if the loading fails.
         except (Exception, TiferetError) as e:
             raise_error.execute(
@@ -58,14 +73,14 @@ class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
             )
 
     # * method: get_attribute
-    def get_attribute(self, attribute_id: str) -> ContainerAttribute:
+    def get_attribute(self, attribute_id: str) -> ContainerAttributeContract:
         '''
         Get the attribute from the yaml file.
 
         :param attribute_id: The attribute id.
         :type attribute_id: str
         :return: The container attribute.
-        :rtype: ContainerAttribute
+        :rtype: ContainerAttributeContract
         '''
 
         # Load the attribute data from the yaml configuration file.
@@ -79,17 +94,17 @@ class ContainerYamlProxy(ContainerRepository, YamlConfigurationProxy):
         # Remove the type logic later, as the type parameter will be removed in v2 (obsolete).
         if data is None:
             return None
-        
+
         # Return the attribute.
         return data.map()
 
     # * method: list_all
-    def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
+    def list_all(self) -> Tuple[List[ContainerAttributeContract], Dict[str, str]]:
         '''
         List all the container attributes and constants.
 
         :return: The list of container attributes and constants.
-        :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
+        :rtype: Tuple[List[ContainerAttributeContract], Dict[str, str]]
         '''
 
         # Define create data function to parse the YAML file.
