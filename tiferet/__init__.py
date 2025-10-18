@@ -23,7 +23,7 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import *
+    from .proxies import YamlConfigurationProxy
 except:
     pass
 
