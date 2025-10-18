@@ -1,3 +1,5 @@
+"""Tiferet Logging YAML Proxy Tests Exports"""
+
 # *** imports
 
 # ** infra
@@ -5,18 +7,29 @@ import pytest
 from unittest import mock
 
 # ** app
-from ....data.logging import LoggingSettingsData
-from ....models.logging import Formatter, Handler, Logger
-from ..logging import *
+from ....commands import TiferetError
+from ....models import (
+    Formatter,
+    Handler,
+    Logger
+)
+from ....data import LoggingSettingsData
+from ..settings import YamlConfigurationProxy
+from ..logging import LoggingYamlProxy
 
 # *** fixtures
 
 # ** fixture: yaml_data
 @pytest.fixture
-def yaml_data():
+def yaml_data() -> dict:
     '''
     Fixture to provide sample YAML data for logging configurations.
+
+    :return: Sample YAML data as a dictionary.
+    :rtype: dict
     '''
+
+    # Return sample YAML data for logging configurations.
     return {
         'logging': {
             'formatters': {
@@ -53,10 +66,16 @@ def yaml_data():
 
 # ** fixture: logging_yaml_proxy
 @pytest.fixture
-def logging_yaml_proxy(yaml_data):
+def logging_yaml_proxy(yaml_data: dict) -> LoggingYamlProxy:
     '''
     Fixture to create a LoggingYamlProxy instance with mocked YAML loading.
+    
+    :param yaml_data: Sample YAML data as a dictionary.
+    :type yaml_data: dict
+    :return: LoggingYamlProxy instance.
+    :rtype: LoggingYamlProxy
     '''
+
     # Create a LoggingYamlProxy instance with a mock YAML file.
     proxy = LoggingYamlProxy(logging_config_file='logging.yaml')
 
@@ -71,10 +90,14 @@ def logging_yaml_proxy(yaml_data):
 # *** tests
 
 # ** test: logging_yaml_proxy_load_yaml_success
-def test_logging_yaml_proxy_load_yaml_success(yaml_data):
+def test_logging_yaml_proxy_load_yaml_success(yaml_data: dict):
     '''
     Test successful loading of YAML data by LoggingYamlProxy.
+    
+    :param yaml_data: Sample YAML data as a dictionary.
+    :type yaml_data: dict
     '''
+    
     # Create a LoggingYamlProxy instance with a mock YAML file.
     proxy = LoggingYamlProxy(logging_config_file='logging.yaml')
 
@@ -91,6 +114,7 @@ def test_logging_yaml_proxy_load_yaml_error():
     '''
     Test error handling in LoggingYamlProxy load_yaml for invalid YAML.
     '''
+
     # Create a LoggingYamlProxy instance with a mock YAML file.
     proxy = LoggingYamlProxy(logging_config_file='logging.yaml')
 
@@ -104,10 +128,14 @@ def test_logging_yaml_proxy_load_yaml_error():
     assert 'Unable to load logging configuration file' in str(exc_info.value)
 
 # ** test: logging_yaml_proxy_list_all_success
-def test_logging_yaml_proxy_list_all_success(logging_yaml_proxy):
+def test_logging_yaml_proxy_list_all_success(logging_yaml_proxy: LoggingYamlProxy):
     '''
     Test successful listing of all logging configurations by LoggingYamlProxy.
+
+    :param logging_yaml_proxy: The LoggingYamlProxy instance.
+    :type logging_yaml_proxy: LoggingYamlProxy
     '''
+
     # Call the list_all method to get formatters, handlers, and loggers.
     formatters, handlers, loggers = logging_yaml_proxy.list_all()
 
@@ -130,6 +158,7 @@ def test_logging_yaml_proxy_list_all_empty():
     '''
     Test LoggingYamlProxy list_all with empty YAML data.
     '''
+
     # Create a LoggingYamlProxy instance with an empty YAML configuration.
     proxy = LoggingYamlProxy(logging_config_file='logging.yaml')
 

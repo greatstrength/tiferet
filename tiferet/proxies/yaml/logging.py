@@ -1,17 +1,25 @@
+"""Tiferet Logging YAML Proxy"""
+
 # *** imports
 
 # ** core
-from typing import List, Tuple
+from typing import (
+    List,
+    Any,
+    Tuple,
+    Callable
+)
 
 # ** app
-from .core import *
-from ...data.logging import LoggingSettingsData
-from ...contracts.logging import (
+from ...commands import raise_error, TiferetError
+from ...data import LoggingSettingsData
+from ...contracts import (
     LoggingRepository,
     FormatterContract,
     HandlerContract,
     LoggerContract
 )
+from .settings import YamlConfigurationProxy
 
 # *** proxies
 
@@ -34,7 +42,11 @@ class LoggingYamlProxy(LoggingRepository, YamlConfigurationProxy):
         super().__init__(logging_config_file)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+    def load_yaml(
+            self,
+            start_node: Callable = lambda data: data,
+            create_data: Callable = lambda data: data
+        ) -> Any:
         '''
         Load data from the YAML configuration file.
 
@@ -52,7 +64,7 @@ class LoggingYamlProxy(LoggingRepository, YamlConfigurationProxy):
                 start_node=start_node,
                 create_data=create_data
             )
-        
+
         # Raise an error if the loading fails.
         except (Exception, TiferetError) as e:
             raise_error.execute(
