@@ -1,13 +1,20 @@
+"""Tiferet Container Data Transfer Objects"""
+
 # *** imports
 
 # ** app
-from ..data import *
-from ..models.container import *
-from ..contracts.container import (
-    ContainerAttribute as ContainerAttributeContract, 
-    FlaggedDependency as FlaggedDependencyContract
+from ..models import (
+    FlaggedDependency,
+    ContainerAttribute,
+    StringType,
+    DictType,
+    ModelType,
 )
-
+from ..contracts import (
+    FlaggedDependencyContract,
+    ContainerAttributeContract
+)
+from .settings import DataObject
 
 # *** data
 
@@ -59,14 +66,14 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
 
         # Map to the container dependency object.
         obj = super().map(FlaggedDependency, **kwargs, validate=False)
-    
+
         # Set the parameters in due to the deserializer.
         obj.parameters = self.parameters
 
         # Validate and return the object.
         obj.validate()
         return obj
-    
+
     # * method: new
     @staticmethod
     def from_data(**kwargs) -> 'FlaggedDependencyYamlData':
@@ -87,7 +94,7 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
             FlaggedDependencyYamlData,
             **kwargs
         )
-    
+
     # * method: from_model
     @staticmethod
     def from_model(model: FlaggedDependency, **kwargs) -> 'FlaggedDependencyYamlData':
@@ -106,7 +113,6 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
             model,
             **kwargs,
         )
-
 
 # ** data: container_attribute_yaml_data
 class ContainerAttributeYamlData(ContainerAttribute, DataObject):
@@ -185,7 +191,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
             **kwargs, 
             validate=False
         )
-    
+
         # Set the dependencies.
         for flag, dep in obj.dependencies.items():
             dep.flag = flag
@@ -193,7 +199,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         # Validate and return the object.
         obj.validate()
         return obj
-    
+
     # * method: from_model
     @staticmethod
     def from_model(model: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
@@ -208,17 +214,16 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
         # Create the dependency data.
         dependencies = {dep.flag: dep.to_primitive() for dep in model.dependencies}
-        
+
         # Create a new model object without the dependencies.
         data = model.to_primitive()
         data['dependencies'] = dependencies
 
         # Create a new ContainerAttributeYamlData object.
-        obj = ContainerAttributeYamlData(
-            dict(
+        obj = ContainerAttributeYamlData({
                 **data,
                 **kwargs
-            ), 
+            }, 
             strict=False
         )
 
