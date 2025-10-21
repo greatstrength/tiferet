@@ -1,13 +1,24 @@
+"""Tiferet Logging Data Objects"""
+
 # *** imports
 
 # ** app
-from ..data import DataObject
-from ..contracts.logging import (
-    FormatterContract, 
-    HandlerContract, 
-    LoggerContract
+from ..models import (
+    Formatter,
+    Handler,
+    Logger,
+    StringType,
+    DictType,
+    ModelType,
 )
-from ..models.logging import *
+from ..contracts import (
+    FormatterContract,
+    HandlerContract,
+    LoggerContract,
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 
@@ -135,7 +146,7 @@ class LoggerData(Logger, DataObject):
         )
 
 # ** data: logging_settings_data
-class LoggingSettingsData(Entity, DataObject):
+class LoggingSettingsData(DataObject):
     '''
     A data representation of the overall logging configuration.
     '''
@@ -150,6 +161,12 @@ class LoggingSettingsData(Entity, DataObject):
             'to_data': DataObject.allow()
         }
 
+    # * attribute: id
+    id = StringType(
+        metadata=dict(
+            description='The unique identifier of the logging settings.'
+        )
+    )
 
     # * attribute: formatters
     formatters = DictType(
@@ -209,3 +226,4 @@ class LoggingSettingsData(Entity, DataObject):
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
         )
+
