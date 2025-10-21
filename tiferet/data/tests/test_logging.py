@@ -1,10 +1,25 @@
-# *** imports 
+"""Tiferet Logging Data Objects Tests"""
+
+# *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..logging import *
+from ...models import (
+    Formatter,
+    Handler,
+    Logger,
+)
+from ..settings import (
+    DataObject,
+)
+from ..logging import (
+    FormatterData,
+    HandlerData,
+    LoggerData,
+    LoggingSettingsData,
+)
 
 # *** fixtures
 
@@ -13,7 +28,12 @@ from ..logging import *
 def formatter_data() -> FormatterData:
     '''
     Fixture to create a basic FormatterData object.
+
+    :return: The formatter data object.
+    :rtype: FormatterData
     '''
+
+    # Return the formatter data.
     return DataObject.from_data(
         FormatterData,
         id='simple',
@@ -25,10 +45,17 @@ def formatter_data() -> FormatterData:
 
 # ** fixture: handler_data
 @pytest.fixture
-def handler_data(formatter_data) -> HandlerData:
+def handler_data(formatter_data: FormatterData) -> HandlerData:
     '''
     Fixture to create a basic HandlerData object.
+
+    :param formatter_data: The formatter data object.
+    :type formatter_data: FormatterData
+    :return: The handler data object.
+    :rtype: HandlerData
     '''
+
+    # Return the handler data.
     return DataObject.from_data(
         HandlerData,
         id='console',
@@ -43,10 +70,17 @@ def handler_data(formatter_data) -> HandlerData:
 
 # ** fixture: logger_data
 @pytest.fixture
-def logger_data(handler_data) -> LoggerData:
+def logger_data(handler_data: HandlerData) -> LoggerData:
     '''
     Fixture to create a basic LoggerData object.
+
+    :param handler_data: The handler data object.
+    :type handler_data: HandlerData
+    :return: The logger data object.
+    :rtype: LoggerData
     '''
+
+    # Return the logger data.
     return DataObject.from_data(
         LoggerData,
         id='app',
@@ -60,10 +94,25 @@ def logger_data(handler_data) -> LoggerData:
 
 # ** fixture: logging_settings_data
 @pytest.fixture
-def logging_settings_data(formatter_data, handler_data, logger_data) -> LoggingSettingsData:
+def logging_settings_data(
+    formatter_data: FormatterData,
+    handler_data: HandlerData,
+    logger_data: LoggerData
+) -> LoggingSettingsData:
     '''
     Fixture to create a LoggingSettingsData object with formatter, handler, and logger data.
+
+    :param formatter_data: The formatter data object.
+    :type formatter_data: FormatterData
+    :param handler_data: The handler data object.
+    :type handler_data: HandlerData
+    :param logger_data: The logger data object.
+    :type logger_data: LoggerData
+    :return: The logging settings data object.
+    :rtype: LoggingSettingsData
     '''
+
+    # Return the logging settings data.
     return DataObject.from_data(
         LoggingSettingsData,
         formatters={formatter_data.id: formatter_data},
@@ -74,11 +123,18 @@ def logging_settings_data(formatter_data, handler_data, logger_data) -> LoggingS
 # *** tests
 
 # ** test: formatter_data_map_success
-def test_formatter_data_map_success(formatter_data):
+def test_formatter_data_map_success(formatter_data: FormatterData):
     '''
     Test successful mapping of FormatterData to Formatter.
+
+    :param formatter_data: The formatter data object.
+    :type formatter_data: FormatterData
     '''
+
+    # Map the formatter data to a formatter object.
     formatter = formatter_data.map(role='to_model')
+
+    # Assert the formatter object attributes.
     assert isinstance(formatter, Formatter)
     assert formatter.id == 'simple'
     assert formatter.name == 'Simple Formatter'
@@ -90,11 +146,18 @@ def test_formatter_data_map_success(formatter_data):
     }
 
 # ** test: handler_data_map_success
-def test_handler_data_map_success(handler_data):
+def test_handler_data_map_success(handler_data: HandlerData):
     '''
     Test successful mapping of HandlerData to Handler.
+
+    :param handler_data: The handler data object.
+    :type handler_data: HandlerData
     '''
+
+    # Map the handler data to a handler object.
     handler = handler_data.map(role='to_model')
+
+    # Assert the handler object attributes.
     assert isinstance(handler, Handler)
     assert handler.id == 'console'
     assert handler.module_path == 'logging'
@@ -110,10 +173,15 @@ def test_handler_data_map_success(handler_data):
     }
 
 # ** test: handler_data_map_no_optional
-def test_handler_data_map_no_optional(formatter_data):
+def test_handler_data_map_no_optional(formatter_data: FormatterData):
     '''
     Test HandlerData mapping without optional attributes.
+
+    :param formatter_data: The formatter data object.
+    :type formatter_data: FormatterData
     '''
+
+    # Create a handler data object without optional attributes.
     handler_data = DataObject.from_data(
         HandlerData,
         id='minimal',
@@ -125,6 +193,8 @@ def test_handler_data_map_no_optional(formatter_data):
         formatter=formatter_data.id
     )
     handler = handler_data.map(role='to_model')
+
+    # Assert the handler object attributes.
     assert isinstance(handler, Handler)
     assert handler.id == 'minimal'
     assert handler.level == 'DEBUG'
@@ -136,11 +206,18 @@ def test_handler_data_map_no_optional(formatter_data):
     }
 
 # ** test: logger_data_map_success
-def test_logger_data_map_success(logger_data):
+def test_logger_data_map_success(logger_data: LoggerData):
     '''
     Test successful mapping of LoggerData to Logger.
+
+    :param logger_data: The logger data object.
+    :type logger_data: LoggerData
     '''
+
+    # Map the logger data to a logger object.
     logger = logger_data.map(role='to_model')
+
+    # Assert the logger object attributes.
     assert isinstance(logger, Logger)
     assert logger.id == 'app'
     assert logger.name == 'app'
@@ -159,6 +236,8 @@ def test_logger_data_map_empty_handlers():
     '''
     Test LoggerData mapping with empty handlers.
     '''
+
+    # Create a logger data object with empty handlers.
     logger_data = DataObject.from_data(
         LoggerData,
         id='empty',
@@ -170,6 +249,8 @@ def test_logger_data_map_empty_handlers():
         is_root=True
     )
     logger = logger_data.map(role='to_model')
+
+    # Assert the logger object attributes.
     assert isinstance(logger, Logger)
     assert logger.id == 'empty'
     assert logger.handlers == []
@@ -185,6 +266,8 @@ def test_logging_settings_data_from_yaml_data_success():
     '''
     Test successful instantiation of LoggingSettingsData from YAML data.
     '''
+
+    # Define the YAML data.
     yaml_data = {
         'formatters': {
             'simple': {
@@ -216,7 +299,11 @@ def test_logging_settings_data_from_yaml_data_success():
             }
         }
     }
+
+    # Instantiate LoggingSettingsData from the YAML data.
     settings = LoggingSettingsData.from_yaml_data(**yaml_data)
+
+    # Assert the logging settings data attributes.
     assert isinstance(settings, LoggingSettingsData)
     assert len(settings.formatters) == 1
     assert settings.formatters['simple'].id == 'simple'
@@ -230,9 +317,14 @@ def test_logging_settings_data_from_yaml_data_empty():
     '''
     Test LoggingSettingsData instantiation with empty YAML data.
     '''
+
+    # Instantiate LoggingSettingsData from empty YAML data.
     yaml_data = {}
     settings = LoggingSettingsData.from_yaml_data(**yaml_data)
+
+    # Assert the logging settings data attributes.
     assert isinstance(settings, LoggingSettingsData)
     assert settings.formatters == {}
     assert settings.handlers == {}
     assert settings.loggers == {}
+
