@@ -1,3 +1,5 @@
+"""Tiferet App Commands Tests"""
+
 # *** imports
 
 # ** infra
@@ -5,9 +7,14 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..app import *
-from ...models.app import Entity, ValueObject, AppInterface, AppAttribute
-
+from ...configs import TiferetError
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute
+)
+from ...contracts import AppRepository
+from ..app import ImportAppRepository, GetAppInterface
 
 # *** fixtures
 
@@ -33,7 +40,7 @@ def app_interface():
     :rtype: AppInterface
     '''
     # Create a test AppInterface instance.
-    return Entity.new(
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -43,7 +50,7 @@ def app_interface():
         feature_flag='test',
         data_flag='test',
         attributes=[
-            ValueObject.new(
+            ModelObject.new(
                 AppAttribute,
                 attribute_id='test_attribute',
                 module_path='test_module_path',
@@ -51,7 +58,6 @@ def app_interface():
             ),
         ],
     )
-
 
 # ** fixture: app_repo
 @pytest.fixture
@@ -69,7 +75,6 @@ def app_repo(app_interface):
     app_repo.get_interface.return_value = app_interface
     return app_repo
 
-
 # ** fixture: get_app_interface_cmd
 @pytest.fixture
 def get_app_interface_cmd(app_repo):
@@ -83,7 +88,6 @@ def get_app_interface_cmd(app_repo):
     '''
     # Create an instance of GetAppInterface with the mock app repository.
     return GetAppInterface(app_repo=app_repo)
-
 
 # *** tests
 
@@ -106,7 +110,6 @@ def test_import_app_repo_import_failed(import_app_repo_cmd):
     # Assert that the error message contains the expected text.
     assert exc_info.value.error_code == 'APP_REPOSITORY_IMPORT_FAILED'
     assert 'Failed to import app repository' in str(exc_info.value)
-
 
 # ** test: test_import_app_repo_success
 def test_import_app_repo_success(import_app_repo_cmd):
@@ -134,7 +137,6 @@ def test_import_app_repo_success(import_app_repo_cmd):
     config_file = getattr(app_repo, 'config_file', None)
     assert config_file == 'tiferet/configs/test.yml', 'AppRepository should have the correct config file'
 
-
 # ** test: test_get_app_interface_not_found
 def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
     '''
@@ -153,7 +155,6 @@ def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
     # Assert that the error message contains the expected text.
     assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
     assert 'App interface with ID non_existent_id not found.' in str(exc_info.value)
-
 
 # ** test: test_get_app_interface_success
 def test_get_app_interface_success(get_app_interface_cmd, app_interface):

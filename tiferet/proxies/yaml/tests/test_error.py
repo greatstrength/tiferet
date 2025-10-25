@@ -39,7 +39,7 @@ def error_yaml_proxy(error_read_config_file: str) -> ErrorYamlProxy:
     Fixture to create an instance of the ErrorYamlProxy.
 
     :param error_read_config_file: The error YAML configuration file path.
-    :type error_read_config_file: str
+    :type error_ModelObject_file: str
     '''
 
     # Create and return the ErrorYamlProxy instance.

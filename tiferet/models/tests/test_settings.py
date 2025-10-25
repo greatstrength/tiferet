@@ -8,8 +8,6 @@ import pytest
 # ** app
 from ..settings import (
     ModelObject,
-    Entity,
-    ValueObject,
     StringType,
 )
 
@@ -36,50 +34,6 @@ def test_model_object() -> ModelObject:
 
     # Return the class.
     return TestModelObject
-
-# ** fixture: test_entity
-@pytest.fixture
-def test_entity() -> Entity:
-    '''
-    Fixture for a basic Entity subclass.
-
-    :return: The Entity subclass.
-    :rtype: Entity
-    '''
-
-    # Define a simple Entity subclass.
-    class TestEntity(Entity):
-        id = StringType(
-            required=True,
-            metadata=dict(
-                description='The entity unique identifier.'
-            ),
-        )
-
-    # Return the class.
-    return TestEntity
-
-# ** fixture: test_value_object
-@pytest.fixture
-def test_value_object() -> ValueObject:
-    '''
-    Fixture for a basic ValueObject subclass.
-
-    :return: The ValueObject subclass.
-    :rtype: ValueObject
-    '''
-
-    # Define a simple ValueObject subclass.
-    class TestValueObject(ValueObject):
-        attribute = StringType(
-            required=True,
-            metadata=dict(
-                description='The attribute.'
-            ),
-        )
-
-    # Return the class.
-    return TestValueObject
 
 # *** tests
 

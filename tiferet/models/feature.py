@@ -3,7 +3,6 @@
 # *** imports
 
 # ** app
-from .settings import * # Keep this until we refactor all usages.
 from .settings import (
     ModelObject,
     StringType,
@@ -163,7 +162,7 @@ class Feature(ModelObject):
             description = name
 
         # Create and return a new Feature object.
-        return Entity.new(
+        return ModelObject.new(
             Feature,
             id=id,
             name=name,

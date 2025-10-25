@@ -1,3 +1,5 @@
+""""Tiferet Feature Handler Tests"""
+
 # *** imports
 
 # ** infra
@@ -5,9 +7,15 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..feature import *
-from ...contexts.request import RequestContext
-from ...models.feature import *
+from ...configs import TiferetError
+from ...contexts import RequestContext
+from ...models import (
+    ModelObject,
+    Feature,
+    FeatureCommand,
+)
+from ...contracts import FeatureRepository
+from ..feature import FeatureHandler
 
 # *** fixtures
 
@@ -28,7 +36,7 @@ def feature():
         id='test_group.test_feature',
         description='A test feature.',
         commands=[
-            ValueObject.new(
+            ModelObject.new(
                 FeatureCommand,
                 name='Test Command',
                 attribute_id='test_command',
