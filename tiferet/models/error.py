@@ -12,7 +12,6 @@ from .settings import (
     ListType,
     ModelType,
 )
-from .settings import * # Keep this until we refactor all usages.
 
 # *** models
 
