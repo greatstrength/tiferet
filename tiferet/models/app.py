@@ -10,7 +10,7 @@ from .settings import (
     DictType,
     ModelType,
 )
-from .settings import Entity, ValueObject # Keep this until we refactor all usages.
+from .settings import ModelObject, ModelObject # Keep this until we refactor all usages.
 
 # *** models
 
@@ -179,4 +179,3 @@ class AppInterface(ModelObject):
 
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
-
