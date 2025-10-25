@@ -1,3 +1,5 @@
+"""Tiferet Error Handler Tests"""
+
 # *** imports
 
 # ** infra
@@ -5,9 +7,12 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...models import (
+    ModelObject,
+    Error,
+    ErrorMessage
+)
 from ..error import ErrorRepository, ErrorHandler
-from ...models.error import *
-
 
 # *** fixtures
 
@@ -22,7 +27,7 @@ def error():
         id='e',
         error_code='E',
         message=[
-            ValueObject.new(
+            ModelObject.new(
                 ErrorMessage,
                 lang='en',
                 text='This is a test error message.'
@@ -65,7 +70,7 @@ def configured_errors():
             id='e_001',
             error_code='E001',
             message=[
-                ValueObject.new(
+                ModelObject.new(
                     ErrorMessage,
                     lang='en',
                     text='This is a test error message for E001.'
@@ -79,7 +84,7 @@ def configured_errors():
             id='e_002',
             error_code='E002',
             message=[
-                ValueObject.new(
+                ModelObject.new(
                     ErrorMessage,
                     lang='en',
                     text='This is a test error message for E002.'
