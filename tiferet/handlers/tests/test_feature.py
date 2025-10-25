@@ -136,4 +136,3 @@ def test_feature_handler_get_feature_from_repo(feature_handler, feature_repo, fe
     assert retrieved_feature.commands[0].name == feature.commands[0].name
     assert retrieved_feature.commands[0].attribute_id == feature.commands[0].attribute_id
     assert retrieved_feature.commands[0].parameters == feature.commands[0].parameters
-

@@ -58,14 +58,14 @@ def test_cli_command_yaml_data_from_data(cli_command_yaml_data: CliCommandYamlDa
 
     # Assert the CLI command YAML data is an instance of CliCommandYamlData.
     assert isinstance(cli_command_yaml_data, CliCommandYamlData)
-    
+
     # Assert the attributes are correctly set.
     assert cli_command_yaml_data.id == 'test_group.test_feature'
     assert cli_command_yaml_data.name == 'Test Feature'
     assert cli_command_yaml_data.description == 'This is a test feature command.'
     assert cli_command_yaml_data.group_key == 'test-group'
     assert cli_command_yaml_data.key == 'test-feature'
-    
+
     # Assert the arguments are correctly set.
     assert len(cli_command_yaml_data.arguments) == 2
     assert cli_command_yaml_data.arguments[0].name_or_flags == ['--arg1', '-a']
@@ -86,7 +86,7 @@ def test_cli_command_yaml_data_map(cli_command_yaml_data: CliCommandYamlData):
 
     # Map the YAML data to a CLI command object.
     cli_command = cli_command_yaml_data.map()
-    
+
     # Assert the mapped CLI command is valid.
     assert isinstance(cli_command, CliCommand)
     assert cli_command.id == 'test_group.test_feature'
@@ -94,7 +94,7 @@ def test_cli_command_yaml_data_map(cli_command_yaml_data: CliCommandYamlData):
     assert cli_command.description == 'This is a test feature command.'
     assert cli_command.group_key == 'test-group'
     assert cli_command.key == 'test-feature'
-    
+
     # Assert the arguments are correctly mapped.
     assert len(cli_command.arguments) == 2
     assert cli_command.arguments[0].name_or_flags == ['--arg1', '-a']
@@ -115,10 +115,10 @@ def test_cli_command_yaml_data_to_primitive(cli_command_yaml_data: CliCommandYam
 
     # Convert the YAML data to a primitive dictionary.
     primitive = cli_command_yaml_data.to_primitive('to_data')
-    
+
     # Assert the primitive is a dictionary.
     assert isinstance(primitive, dict)
-    
+
     # Assert the primitive values are correct.
     assert primitive.get('name') == 'Test Feature'
     assert primitive.get('description') == 'This is a test feature command.'

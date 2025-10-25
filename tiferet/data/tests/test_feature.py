@@ -37,7 +37,6 @@ def feature_command_data() -> FeatureCommandData:
         pass_on_error=True
     ))
 
-
 # ** fixture: feature_data
 @pytest.fixture
 def feature_data() -> FeatureData:
@@ -76,7 +75,7 @@ def test_feature_command_data_init(feature_command_data: FeatureCommandData):
     :param feature_command_data: The feature command data object.
     :type feature_command_data: FeatureCommandData
     '''
-    
+
     # Assert the feature command data attributes.
     assert feature_command_data.name == 'Test Feature Command'
     assert feature_command_data.attribute_id == 'test_feature_command'
@@ -84,7 +83,6 @@ def test_feature_command_data_init(feature_command_data: FeatureCommandData):
     assert feature_command_data.return_to_data == True
     assert feature_command_data.data_key == 'test_data'
     assert feature_command_data.pass_on_error == True
-
 
 # ** test: feature_command_data_map
 def test_feature_command_data_map(feature_command_data: FeatureCommandData):
@@ -94,13 +92,13 @@ def test_feature_command_data_map(feature_command_data: FeatureCommandData):
     :param feature_command_data: The feature command data object.
     :type feature_command_data: FeatureCommandData
     '''
-    
+
     # Map the feature command data to a feature command object.
     feature_command = feature_command_data.map()
 
     # Assert the feature command type.
     assert isinstance(feature_command, FeatureCommand)
-    
+
     # Assert the feature command attributes.
     assert feature_command.name == 'Test Feature Command'
     assert feature_command.attribute_id == 'test_feature_command'
@@ -108,7 +106,6 @@ def test_feature_command_data_map(feature_command_data: FeatureCommandData):
     assert feature_command.return_to_data == True
     assert feature_command.data_key == 'test_data'
     assert feature_command.pass_on_error == True
-
 
 # ** test: feature_data_from_data
 def test_feature_data_from_data(feature_data: FeatureData):
@@ -118,14 +115,14 @@ def test_feature_data_from_data(feature_data: FeatureData):
     :param feature_data: The feature data object.
     :type feature_data: FeatureData
     '''
-    
+
     # Assert the feature data attributes.
     assert feature_data.name == 'Test Feature'
     assert feature_data.feature_key == 'test_feature'
     assert feature_data.description == 'This is a test feature.'
     assert feature_data.group_id == 'test'
     assert len(feature_data.commands) == 1
-    
+
     # Assert the feature command data attributes.
     feature_command_data = feature_data.commands[0]
     assert feature_command_data.name == 'Test Feature Command'
@@ -135,7 +132,6 @@ def test_feature_data_from_data(feature_data: FeatureData):
     assert feature_command_data.data_key == 'test_data'
     assert feature_command_data.pass_on_error == True
 
-
 # ** test: feature_data_map
 def test_feature_data_map(feature_data: FeatureData):
     '''
@@ -144,19 +140,19 @@ def test_feature_data_map(feature_data: FeatureData):
     :param feature_data: The feature data object.
     :type feature_data: FeatureData
     '''
-    
+
     # Map the feature data to a feature object.
     feature = feature_data.map()
 
     # Assert the feature type.
     assert isinstance(feature, Feature)
-    
+
     # Assert the feature attributes.
     assert feature.name == 'Test Feature'
     assert feature.description == 'This is a test feature.'
     assert feature.group_id == 'test'
     assert len(feature.commands) == 1
-    
+
     # Assert the feature command attributes.
     feature_command = feature.commands[0]
     assert feature_command.name == 'Test Feature Command'

@@ -1,3 +1,5 @@
+"""Tiferet Logging Data Objects"""
+
 # *** imports
 
 # ** app
@@ -224,3 +226,4 @@ class LoggingSettingsData(DataObject):
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
         )
+

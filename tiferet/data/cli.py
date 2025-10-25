@@ -25,7 +25,7 @@ class CliCommandYamlData(CliCommand, DataObject):
     '''
     Represents the YAML data for a CLI command.
     '''
-    
+
     class Options():
         '''
         Options for the data object.
@@ -36,14 +36,14 @@ class CliCommandYamlData(CliCommand, DataObject):
             'to_data': DataObject.deny('id', 'arguments'),
             'to_model': DataObject.deny('arguments')
         }
-    
+
     # * attribute: id
     id = StringType(
         metadata=dict(
             description='The unique identifier for the command.'
         )
     )
-    
+
     # * attribute: arguments
     arguments = ListType(
         ModelType(CliArgument),
@@ -54,7 +54,7 @@ class CliCommandYamlData(CliCommand, DataObject):
             description='A list of arguments for the command.'
         )
     )
-    
+
     # * method: to_primitive
     def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
         '''
@@ -77,7 +77,7 @@ class CliCommandYamlData(CliCommand, DataObject):
                 ),
                 args=[arg.to_primitive() for arg in self.arguments]
             )
-        
+
         # Convert the data object to a model dictionary.
         elif role == 'to_model':
             return dict(
@@ -87,7 +87,7 @@ class CliCommandYamlData(CliCommand, DataObject):
                 ),
                 arguments=[arg.to_primitive() for arg in self.arguments]
             )
-    
+
     # * method: map
     def map(self, **kwargs) -> CliCommandContract:
         '''

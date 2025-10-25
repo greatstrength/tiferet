@@ -187,4 +187,3 @@ class Feature(ModelObject):
             self.commands.insert(position, command)
         else:
             self.commands.append(command)
-

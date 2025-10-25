@@ -61,7 +61,6 @@ class ErrorData(Error, DataObject):
             ),
             message=[msg.to_primitive() for msg in self.message]
         ) 
-        
 
     # * method: map
     def map(self, **kwargs) -> ErrorContract:

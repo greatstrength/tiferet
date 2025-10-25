@@ -1,4 +1,4 @@
-"""Tiferet Logging Data Transfer Object Tests"""
+"""Tiferet Logging Data Objects Tests"""
 
 # *** imports
 
@@ -327,3 +327,4 @@ def test_logging_settings_data_from_yaml_data_empty():
     assert settings.formatters == {}
     assert settings.handlers == {}
     assert settings.loggers == {}
+

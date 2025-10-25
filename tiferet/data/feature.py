@@ -1,4 +1,4 @@
-"""Tiferet Feature Data Transfer Objects"""
+"""Tiferet Feature Data Objects"""
 
 # *** imports
 
@@ -21,7 +21,6 @@ from ..contracts import (
 from .settings import (
     DataObject,
 )
-
 
 class FeatureCommandData(FeatureCommand, DataObject):
     '''
@@ -56,7 +55,7 @@ class FeatureCommandData(FeatureCommand, DataObject):
     def map(self, role: str = 'to_model', **kwargs) -> FeatureCommandContract:
         '''
         Maps the feature handler data to a feature handler object.
-        
+
         :param role: The role for the mapping.
         :type role: str
         :param kwargs: Additional keyword arguments.
@@ -68,7 +67,6 @@ class FeatureCommandData(FeatureCommand, DataObject):
             role, 
             parameters=self.parameters,
             **kwargs)
-
 
 class FeatureData(Feature, DataObject):
     '''
@@ -88,13 +86,13 @@ class FeatureData(Feature, DataObject):
             'to_model': DataObject.deny('feature_key'),
             'to_data': DataObject.deny('feature_key', 'group_id', 'id')
         }
-    
+
     # * attributes
     commands = ListType(
         ModelType(FeatureCommandData),
         deserialize_from=['handlers', 'functions', 'commands'],
     )
-    
+
     @serializable
     def feature_key(self):
         '''
@@ -129,7 +127,7 @@ class FeatureData(Feature, DataObject):
     def from_data(**kwargs) -> 'FeatureData':
         '''
         Initializes a new FeatureData object from a Feature object.
-        
+
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FeatureData object.
@@ -141,3 +139,4 @@ class FeatureData(Feature, DataObject):
             FeatureData, 
             **kwargs
         )
+

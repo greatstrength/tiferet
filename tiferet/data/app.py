@@ -79,7 +79,6 @@ class AppAttributeYamlData(AppAttribute, DataObject):
             **kwargs
         )
 
-
 # ** data: app_interface_yaml_data
 class AppInterfaceYamlData(AppInterface, DataObject):
     '''

@@ -1,20 +1,20 @@
-"""Container Data Transfer Objects (DTOs)"""
+"""Tiferet Container Data Objects"""
 
 # *** imports
 
 # ** app
-from .settings import DataObject
 from ..models import (
-    ContainerAttribute,
     FlaggedDependency,
+    ContainerAttribute,
     StringType,
     DictType,
     ModelType,
 )
 from ..contracts import (
-    ContainerAttributeContract,
-    FlaggedDependencyContract
+    FlaggedDependencyContract,
+    ContainerAttributeContract
 )
+from .settings import DataObject
 
 # *** data
 
@@ -66,8 +66,8 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
         
         # Map to the flagged dependency object.
         obj = super().map(FlaggedDependency, **kwargs, validate=False)
-        
-        # Set the parameters due to deserializer.
+
+        # Set the parameters in due to the deserializer.
         obj.parameters = self.parameters
         
         # Validate and return the object.
@@ -198,12 +198,13 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
             **kwargs,
             validate=False
         )
-        
+
         # Set the dependencies.
         for flag, dep in data_object.dependencies.items():
             dep.flag = flag
         
         # Validate and return the object.
+
         data_object.validate()
         return data_object
 
@@ -220,7 +221,6 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         :return: A new ContainerAttributeYamlData object.
         :rtype: ContainerAttributeYamlData
         '''
-
                 
         # Create the primitive of the model object.
         data = model_object.to_primitive()
@@ -234,6 +234,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
                 **data,
                 **kwargs
             ),
+
             strict=False
         )
         

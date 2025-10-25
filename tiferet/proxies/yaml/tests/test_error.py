@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-import os
+from typing import Dict
 
 # ** infra
 import pytest, yaml
@@ -15,7 +15,7 @@ from ....models import (
     ErrorMessage,
     ModelObject
 )
-from ..error import *
+from ..error import ErrorYamlProxy
 
 # *** fixtures
 
@@ -65,7 +65,7 @@ def errors():
             name='Test Formatted Error',
             error_code='TEST_FORMATTED_ERROR',
             message=[
-                ErrorMessage.new(
+                ModelObject.new(
                     ErrorMessage,
                     lang='en_US',
                     text='An error occurred: {}.'

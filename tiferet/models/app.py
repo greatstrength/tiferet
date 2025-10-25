@@ -13,7 +13,6 @@ from .settings import (
     DictType,
     ModelType,
 )
-from .settings import ModelObject, ModelObject # Keep this until we refactor all usages.
 
 # *** models
 
