@@ -1,4 +1,4 @@
-from ..repositories.cli import CliInterfaceRepository
+from ...app.repositories.cli import CliInterfaceRepository
 from ..objects.cli import CliInterface
 from ..objects.cli import CliCommand
 from ..objects.cli import CliArgument

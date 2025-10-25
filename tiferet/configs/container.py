@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..domain.container import ContainerAttribute, ContainerDependency
+from ...app.domain.container import ContainerAttribute, ContainerDependency
 
 
 # *** configs (container_attribute)
