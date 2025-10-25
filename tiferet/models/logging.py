@@ -12,7 +12,6 @@ from .settings import (
     BooleanType,
     ListType,
 )
-from .settings import * # Keep this until we refactor all usages.
 
 # *** models
 
@@ -254,4 +253,3 @@ class Logger(ModelObject):
             'handlers': self.handlers,
             'propagate': self.propagate
         }
-
