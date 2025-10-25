@@ -3,6 +3,7 @@
 # *** imports
 
 # ** app
+from .settings import DataObject
 from ..models import (
     ContainerAttribute,
     FlaggedDependency,
@@ -14,7 +15,6 @@ from ..contracts import (
     ContainerAttributeContract,
     FlaggedDependencyContract
 )
-from .settings import DataObject
 
 # *** data
 
