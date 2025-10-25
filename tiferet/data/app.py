@@ -1,11 +1,24 @@
+"""Tiferet App Data Transfer Objects"""
+
 # *** imports
 
 # ** app
-from .settings import *
-from ..models.app import *
-from ..contracts.app import AppAttribute as AppAttributeContract
-from ..contracts.app import AppInterface as AppInterfaceContract
-
+from ..models import (
+    AppAttribute,
+    AppInterface,
+    StringType,
+    DictType,
+    ModelType,
+)
+from ..contracts import (
+    AppAttributeContract,
+    AppInterfaceContract
+)
+from .settings import (
+    DataObject,
+    DEFAULT_MODULE_PATH,
+    DEFAULT_CLASS_NAME
+)
 
 # *** data
 
@@ -37,6 +50,7 @@ class AppAttributeYamlData(AppAttribute, DataObject):
         '''
         The options for the app dependency data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('parameters', 'attribute_id'),
@@ -138,7 +152,8 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         '''
 
         # Map the app interface data.
-        return super().map(AppInterface,
+        return super().map(
+            AppInterface,
             module_path=self.module_path,
             class_name=self.class_name,
             attributes=[attr.map(attribute_id=attr_id) for attr_id, attr in self.attributes.items()],

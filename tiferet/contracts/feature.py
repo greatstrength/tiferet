@@ -1,12 +1,21 @@
+"""Tiferet Feature Data Transfer Objects"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
 from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contacts
 
@@ -38,7 +47,6 @@ class Request(ModelContract):
         '''
         raise NotImplementedError('The set_result method must be implemented by the request model.')
 
-
 # ** contract: feature_command
 class FeatureCommand(ModelContract):
     '''
@@ -63,7 +71,6 @@ class FeatureCommand(ModelContract):
     # * attribute: parameters
     parameters: Dict[str, Any]
 
-
 # ** contract: feature
 class Feature(ModelContract):
     '''
@@ -75,20 +82,6 @@ class Feature(ModelContract):
 
     # * attribute: commands
     commands: List[FeatureCommand]
-
-    # * method: add_command
-    @abstractmethod
-    def add_command(self, command: FeatureCommand, position: int = None) -> None:
-        '''
-        Add a command to the feature.
-
-        :param command: The command to add.
-        :type command: FeatureCommand
-        :param position: The position to insert the command at. If None, append to the end.
-        :type position: int
-        '''
-        raise NotImplementedError('The add_command method must be implemented by the feature model.')
-
 
 # ** contract: feature_repository
 class FeatureRepository(Repository):
@@ -134,7 +127,6 @@ class FeatureRepository(Repository):
         :rtype: List[Feature]
         '''
         raise NotImplementedError('The list method must be implemented by the feature repository.')
-    
 
 
 # ** contract: feature_service
@@ -170,3 +162,4 @@ class FeatureService(Service):
         :rtype: Feature
         '''
         raise NotImplementedError('The get_feature method must be implemented by the feature service.')
+

@@ -1,19 +1,24 @@
+"""Tiferet CLI YAML Proxy"""
+
 # *** imports
 
 # ** core
 from typing import Any, List
 
 # ** app
-from ...data.cli import *
-from ...contracts.cli import (
+from ...commands import raise_error
+from ...models import (
+    ModelObject,
+    CliArgument,
+    CliCommand
+)
+from ...data import CliCommandYamlData, DataObject
+from ...contracts import (
     CliRepository,
-    CliCommand as CliCommandContract,
-    CliArgument as CliArgumentContract
+    CliCommandContract,
+    CliArgumentContract,
 )
-from .core import (
-    YamlConfigurationProxy,
-    raise_error
-)
+from .settings import YamlConfigurationProxy
 
 # *** proxies
 
@@ -32,6 +37,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
         :param cli_config_file: The path to the CLI configuration file.
         :type cli_config_file: str
         '''
+
         # Initialize the base class with the provided configuration file.
         super().__init__(cli_config_file)
 
@@ -63,7 +69,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
                 self.config_file,
                 e
             )
-    
+
     # * method: get_command
     def get_command(self, command_id: str) -> CliCommandContract:
         '''
@@ -84,16 +90,19 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
                 **data
             )
         )
+
         # Return the command object created from the YAML data.
         return yaml_data.map()
-    
+
     # * method: get_commands
     def get_commands(self) -> List[CliCommandContract]:
         '''
         Get all commands available in the CLI service.
+
         :return: A list of CLI commands.
         :rtype: List[CliCommandContract]
         '''
+
         # Load the YAML data for the commands.
         result: List[CliCommand] = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('cmds', []),
@@ -103,6 +112,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
                 **cmd_data
             ) for id, cmd_data in data.items()]
         )
+
         # Return the result if it exists, otherwise return an empty list.
         return [cmd.map() for cmd in result] if result else []
     
@@ -113,6 +123,7 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
         :return: A list of parent arguments.
         :rtype: List[CliArgumentContract]
         '''
+
         # Load the YAML data for the parent arguments.
         result: List[CliArgument] = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
@@ -121,5 +132,6 @@ class CliYamlProxy(CliRepository, YamlConfigurationProxy):
                 **arg_data
             ) for arg_data in data]
         )
+
         # Return the result if it exists, otherwise return an empty list.
         return result if result else []

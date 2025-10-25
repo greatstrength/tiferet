@@ -1,31 +1,56 @@
+"""Tiferet Feature YAML Proxy Tests Exports"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ....configs import TiferetError
-from ....models.feature import *
-from ...yaml.feature import FeatureYamlProxy
-
+from ....commands import TiferetError
+from ....models import Feature
+from ..feature import FeatureYamlProxy
 
 # *** fixtures
 
 # ** fixture: feature_config_file_path
 @pytest.fixture
-def feature_config_file_path():
-    return 'tiferet/configs/tests/test.yml'
+def feature_config_file_path() -> str:
+    '''
+    A fixture for the feature configuration file path.
 
+    :return: The feature configuration file path.
+    :rtype: str
+    '''
+    
+    # Return the feature configuration file path.
+    return 'tiferet/configs/tests/test.yml'
 
 # ** fixture: test_feature_yaml_proxy
 @pytest.fixture
-def feature_yaml_proxy(feature_config_file_path):
-    return FeatureYamlProxy(feature_config_file_path)
+def feature_yaml_proxy(feature_config_file_path: str) -> FeatureYamlProxy:
+    '''
+    A fixture for the feature YAML proxy.
 
+    :param feature_config_file_path: The feature configuration file path.
+    :type feature_config_file_path: str
+    :return: The feature YAML proxy.
+    :rtype: FeatureYamlProxy
+    '''
+
+    # Create and return the feature YAML proxy.
+    return FeatureYamlProxy(feature_config_file_path)
 
 # ** fixture: feature
 @pytest.fixture
 def feature() -> Feature:
+    '''
+    A fixture for a basic Feature instance.
+
+    :return: The Feature instance.
+    :rtype: Feature
+    '''
+
+    # Create and return the Feature instance.
     return Feature.new(
         **dict(
             id='test_group.test_feature',
@@ -43,13 +68,15 @@ def feature() -> Feature:
         )
     )
 
-
 # *** tests
 
 # ** test: int_feature_yaml_proxy_load_yaml
-def test_int_feature_yaml_proxy_load_yaml(feature_yaml_proxy, feature):
+def test_int_feature_yaml_proxy_load_yaml(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
     '''
 
     # Load the YAML file.
@@ -61,9 +88,12 @@ def test_int_feature_yaml_proxy_load_yaml(feature_yaml_proxy, feature):
     assert len(data['features']) > 0
 
 # ** test: int_feature_yaml_proxy_load_yaml_file_not_found
-def test_int_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy):
+def test_int_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method with a file not found error.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
     '''
 
     # Set a non-existent configuration file.
@@ -79,7 +109,18 @@ def test_int_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy):
 
 
 # ** test: int_feature_yaml_proxy_get
-def test_int_feature_yaml_proxy_get(feature_yaml_proxy, feature):
+def test_int_feature_yaml_proxy_get(
+        feature_yaml_proxy: FeatureYamlProxy,
+        feature: Feature
+    ):
+    '''
+    Test the get method of the FeatureYamlProxy.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
+    :param feature: The Feature instance.
+    :type feature: Feature
+    '''
     
     # Get the feature.
     test_feature = feature_yaml_proxy.get(feature.id)
@@ -90,21 +131,49 @@ def test_int_feature_yaml_proxy_get(feature_yaml_proxy, feature):
 
 
 # ** test: int_feature_yaml_proxy_exists
-def test_int_feature_yaml_proxy_exists(feature_yaml_proxy, feature):
+def test_int_feature_yaml_proxy_exists(
+        feature_yaml_proxy: FeatureYamlProxy,
+        feature: Feature
+    ):
+    '''
+    Test the exists method of the FeatureYamlProxy.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
+    :param feature: The Feature instance.
+    :type feature: Feature
+    '''
     
     # Check the feature exists.
     assert feature_yaml_proxy.exists(feature.id)
 
 
 # ** test: int_feature_yaml_proxy_exists_not_found
-def test_int_feature_yaml_proxy_exists_not_found(feature_yaml_proxy):
+def test_int_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProxy):
+    '''
+    Test the exists method of the FeatureYamlProxy for a non-existent feature.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
+    '''
     
     # Check the feature does not exist.
     assert not feature_yaml_proxy.exists('not_found')
 
 
 # ** test: int_feature_yaml_proxy_list
-def test_int_feature_yaml_proxy_list(feature_yaml_proxy, feature):
+def test_int_feature_yaml_proxy_list(
+        feature_yaml_proxy: FeatureYamlProxy,
+        feature: Feature
+    ):
+    '''
+    Test the list method of the FeatureYamlProxy.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
+    :param feature: The Feature instance.
+    :type feature: Feature
+    '''
     
     # List the features.
     features = feature_yaml_proxy.list()

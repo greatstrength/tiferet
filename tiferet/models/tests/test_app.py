@@ -1,22 +1,32 @@
+"""Tiferet App Model Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ...models.app import *
-
+from ...models import (
+    ModelObject,
+    AppAttribute,
+    AppInterface,
+)
 
 # *** fixtures
 
 # ** fixture: app_attribute
 @pytest.fixture
-def app_attribute():
+def app_attribute() -> AppAttribute:
     '''
     Fixture for the container service attribute.
+
+    :return: The container service attribute.
+    :rtype: AppAttribute
     '''
 
-    return dict(
+    # Create a container service attribute.
+    return ModelObject.new(
+        AppAttribute,
         attribute_id='test_attribute',
         module_path='test_module_path',
         class_name='test_class_name',
@@ -28,9 +38,18 @@ def app_attribute():
 
 # ** fixture: app_interface
 @pytest.fixture
-def app_interface(app_attribute):
+def app_interface(app_attribute: AppAttribute) -> AppInterface:
+    '''
+    Fixture for the app interface.
 
-    return Entity.new(
+    :param app_attribute: The app attribute to include in the app interface.
+    :type app_attribute: AppAttribute
+    :return: The app interface.
+    :rtype: AppInterface
+    '''
+
+    # Create the app interface.
+    return ModelObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -44,11 +63,16 @@ def app_interface(app_attribute):
         ],
     )
 
-
 # *** tests
 
-# ** test: test_app_interface_get_attribute
-def test_app_interface_get_attribute(app_interface):
+# ** test: app_interface_get_attribute
+def test_app_interface_get_attribute(app_interface: AppInterface):
+    '''
+    Test the get_attribute method of the app interface.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
 
     # Get the app dependency.
     app_dependency = app_interface.get_attribute('test_attribute')
@@ -61,9 +85,14 @@ def test_app_interface_get_attribute(app_interface):
     assert app_dependency.parameters['param1'] == 'value1'
     assert app_dependency.parameters['param2'] == 'value2'
 
+# ** test: app_interface_get_attribute_invalid
+def test_app_interface_get_attribute_invalid(app_interface: AppInterface):
+    '''
+    Test the get_attribute method of the app interface with an invalid attribute ID.
 
-# ** test: test_app_interface_get_attribute_invalid
-def test_app_interface_get_attribute_invalid(app_interface):
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
 
     # Assert the app dependency is invalid.
     assert app_interface.get_attribute('invalid') is None

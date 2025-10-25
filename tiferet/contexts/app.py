@@ -1,3 +1,5 @@
+"""Tiferet App Contexts"""
+
 # *** imports
 
 # ** core
@@ -9,17 +11,13 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
-from ..models.app import *
-from ..handlers.app import (
-    AppService,
-    AppHandler,
-    AppRepository,
+from ..models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
 )
-from ..commands import (
-    Command,
-    TiferetError
-)
-from ..commands.app import GetAppInterface
+from ..handlers.app import AppService, AppHandler
+from ..commands import TiferetError
 
 # *** contexts
 
@@ -37,7 +35,7 @@ class AppManagerContext(object):
     app_service: AppService
 
     # * init
-    def __init__(self, settings: Dict[str, Any], app_service: AppService = None):
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
         '''
         Initialize the AppManagerContext with an application service.
 
@@ -91,7 +89,7 @@ class AppManagerContext(object):
             **attr_data,
             validate=False
         ) for attr_data in DEFAULT_ATTRIBUTES]
-        
+
         # Create the app interface context.
         app_interface_context = self.app_service.load_app_instance(app_interface, default_attrs=default_attrs)
 
@@ -102,10 +100,10 @@ class AppManagerContext(object):
                 f'App context for interface is not valid: {interface_id}.',
                 interface_id
             )
-        
+
         # Return the app interface context.
         return app_interface_context
-    
+
     # * method: run
     def run(self,
             interface_id: str,
@@ -208,7 +206,7 @@ class AppInterfaceContext(object):
 
         # Return the request model object.
         return request
-    
+
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -268,8 +266,8 @@ class AppInterfaceContext(object):
         '''
 
         # Handle the response and return it.
-        return request.result
-    
+        return request.handle_response()
+
     # * method: run
     def run(self, 
             feature_id: str, 
@@ -291,15 +289,10 @@ class AppInterfaceContext(object):
 
         # Create the logger for the app interface context.
         logger = self.logging.build_logger()
-        
+
         # Parse request.
         logger.debug(f'Parsing request for feature: {feature_id}')
-        request = self.parse_request(
-            headers, 
-            data, 
-            feature_id=feature_id,
-            **kwargs
-        )
+        request = self.parse_request(headers, data, feature_id)
 
         # Execute feature context and return session.
         try:

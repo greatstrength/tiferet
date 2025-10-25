@@ -1,8 +1,22 @@
+"""Tiferet CLI Data Transfer Objects"""
+
 # *** imports
 
 # ** app
-from .settings import *
-from ..models.cli import *
+from ..models import (
+    CliCommand,
+    CliArgument,
+    ModelObject,
+    StringType,
+    ListType,
+    ModelType,
+)
+from ..contracts import (
+    CliCommandContract
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 
@@ -75,7 +89,7 @@ class CliCommandYamlData(CliCommand, DataObject):
             )
     
     # * method: map
-    def map(self, **kwargs) -> CliCommand:
+    def map(self, **kwargs) -> CliCommandContract:
         '''
         Maps the YAML data to a CLI command object.
 

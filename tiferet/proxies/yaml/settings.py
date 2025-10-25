@@ -1,14 +1,13 @@
+"""Tiferet YAML Proxy Settings"""
+
 # *** imports
 
 # ** core
 from typing import Any
 
 # ** app
-from ...commands import (
-    raise_error
-)
+from ...commands import raise_error
 from ...clients import yaml_client
-
 
 # *** classes
 

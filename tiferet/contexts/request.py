@@ -63,7 +63,7 @@ class RequestContext(object):
 
         # Return the result by default.
         return self.result
-    
+
     # * method: set_result
     def set_result(self, result: Any, data_key: str = None):
         '''

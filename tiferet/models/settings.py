@@ -1,8 +1,9 @@
+"""Tiferet Model Settings"""
+
 # *** imports
 
 # ** infra
 from schematics import Model, types as t
-
 
 # *** classes
 
@@ -14,7 +15,6 @@ class StringType(t.StringType):
 
     pass
 
-
 # ** class: integer_type
 class IntegerType(t.IntType):
     '''
@@ -22,7 +22,6 @@ class IntegerType(t.IntType):
     '''
 
     pass
-
 
 # ** class: float_type
 class FloatType(t.FloatType):
@@ -32,7 +31,6 @@ class FloatType(t.FloatType):
 
     pass
 
-
 # ** class: boolean_type
 class BooleanType(t.BooleanType):
     '''
@@ -40,7 +38,6 @@ class BooleanType(t.BooleanType):
     '''
 
     pass
-
 
 # ** class: list_type
 class ListType(t.ListType):
@@ -50,7 +47,6 @@ class ListType(t.ListType):
 
     pass
 
-
 # ** class: dict_type
 class DictType(t.DictType):
     '''
@@ -58,7 +54,6 @@ class DictType(t.DictType):
     '''
 
     pass
-
 
 # ** class: model_type
 class ModelType(t.ModelType):
@@ -68,26 +63,11 @@ class ModelType(t.ModelType):
 
     pass
 
-
 # ** class: model_object
 class ModelObject(Model):
     '''
     A domain model object.
     '''
-
-    # ** attribute: name
-    name = StringType(
-        metadata=dict(
-            description='The name of the object.'
-        )
-    )
-
-    # ** attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the object.'
-        )
-    )
 
     # * method: new
     @staticmethod
@@ -113,36 +93,13 @@ class ModelObject(Model):
         '''
 
         # Create a new model object.
-        _object: ModelObject = model_type(dict(
+        model_object: ModelObject = model_type(dict(
             **kwargs
         ), strict=strict)
 
         # Validate if specified.
         if validate:
-            _object.validate()
+            model_object.validate()
 
         # Return the new model object.
-        return _object
-
-
-# ** model: value_object
-class ValueObject(ModelObject):
-    '''
-    A domain model value object.
-    '''
-    pass
-
-
-# ** class: entity
-class Entity(ModelObject):
-    '''
-    A domain model entity.
-    '''
-
-    # ** attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The entity unique identifier.'
-        )
-    )
+        return model_object
