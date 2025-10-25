@@ -1,0 +1,104 @@
+CLI_ARGUMENT_ALREADY_EXISTS:
+  message:
+  - lang: en_US
+    text: CLI argument with name or flag "{}" already exists
+  name: CLI_ARGUMENT_ALREADY_EXISTS
+CLI_ARGUMENT_INVALID_FEATURE_ID:
+  message:
+  - lang: en_US
+    text: Feature ID is required when adding a CLI argument to a command
+  name: CLI_ARGUMENT_INVALID_FEATURE_ID
+CLI_COMMAND_ALREADY_EXISTS:
+  message:
+  - lang: en_US
+    text: CLI command with for feature "{}" already exists
+  name: CLI_COMMAND_ALREADY_EXISTS
+CLI_COMMAND_NOT_FOUND:
+  message:
+  - lang: en_US
+    text: CLI command mapped to Feature ID "{}" not found
+  name: CLI_COMMAND_NOT_FOUND
+CLI_INTERFACE_NOT_FOUND:
+  message:
+  - lang: en_US
+    text: CLI interface with id "{}" not found
+  name: CLI_INTERFACE_NOT_FOUND
+CONTAINER_ATTRIBUTE_ALREADY_EXISTS:
+  message:
+  - lang: en_US
+    text: Container attribute "{}" already exists within group "{}"
+  name: CONTAINER_ATTRIBUTE_ALREADY_EXISTS
+ERROR_ALREADY_EXISTS:
+  error_code: ERROR_ALREADY_EXISTS
+  message:
+  - lang: en_US
+    text: Error with id "{}" already exists
+  name: ERROR_ALREADY_EXISTS
+FEATURE_ALREADY_EXISTS:
+  error_code: FEATURE_ALREADY_EXISTS
+  message:
+  - lang: en_US
+    text: Feature with id "{}" already exists
+  name: FEATURE_ALREADY_EXISTS
+FEATURE_NOT_FOUND:
+  error_code: FEATURE_NOT_FOUND
+  message:
+  - lang: en_US
+    text: Feature with ID "{}" not found.
+  name: FEATURE_NOT_FOUND
+INVALID_CONTAINER_ATTRIBUTE_DATA:
+  message:
+  - lang: en_US
+    text: Container data for attribute with "{}" is invalid
+  name: INVALID_CONTAINER_ATTRIBUTE_DATA
+INVALID_REQUEST_DATA:
+  message:
+  - lang: en_US
+    text: 'Invalid request contains the following errors: "{}"'
+  name: INVALID_REQUEST_DATA
+OBJECT_ALREADY_EXISTS:
+  message:
+  - lang: en_US
+    text: Object with class name "{}" already exists
+  name: OBJECT_ALREADY_EXISTS
+OBJECT_ATTRIBUTE_ALREADY_EXISTS:
+  error_code: OBJECT_ATTRIBUTE_ALREADY_EXISTS
+  message:
+  - lang: en_US
+    text: Object attribute with name "{}" already exists
+  name: OBJECT_ATTRIBUTE_ALREADY_EXISTS
+OBJECT_METHOD_ALREADY_EXISTS:
+  error_code: OBJECT_METHOD_ALREADY_EXISTS
+  message:
+  - lang: en_US
+    text: Object method with name "{}" already exists on model object "{}"
+  name: OBJECT_METHOD_ALREADY_EXISTS
+OBJECT_METHOD_NOT_FOUND:
+  error_code: OBJECT_METHOD_NOT_FOUND
+  message:
+  - lang: en_US
+    text: Method with name "{}" not found in model object "{}".
+  name: OBJECT_METHOD_NOT_FOUND
+OBJECT_METHOD_PARAMETER_ALREADY_EXISTS:
+  error_code: OBJECT_METHOD_PARAMETER_ALREADY_EXISTS
+  message:
+  - lang: en_US
+    text: Object method "{}.{}" already has a parameter named "{}".
+  name: OBJECT_METHOD_PARAMETER_ALREADY_EXISTS
+OBJECT_NOT_FOUND:
+  message:
+  - lang: en_US
+    text: Object with id or class name "{}" not found
+  name: OBJECT_NOT_FOUND
+SYNC_CLASS_NOT_FOUND:
+  error_code: SYNC_CLASS_NOT_FOUND
+  message:
+  - lang: en_US
+    text: Unable to find sync class with name '{}'.
+  name: SYNC_CLASS_NOT_FOUND
+SYNC_MODULE_NOT_FOUND:
+  error_code: SYNC_MODULE_NOT_FOUND
+  message:
+  - lang: en_US
+    text: Unable to find module with name '{}'.
+  name: SYNC_MODULE_NOT_FOUND

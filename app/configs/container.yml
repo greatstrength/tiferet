@@ -1,0 +1,48 @@
+const:
+  app_config_file: app/configs/app.yml
+  error_config_file: app/configs/errors.yml
+  feature_config_file: app/configs/features.yml
+
+attrs:
+  app_interface_context:
+    type: interface
+    deps:
+      cli:
+        class_name: CliInterfaceContext
+        module_path: app.contexts.cli
+  feature_context:
+    type: interface
+    deps:
+      cli:
+        class_name: FeatureContext
+        module_path: app.contexts.feature
+  error_context:
+    type: interface
+    deps:
+      cli:
+        class_name: ErrorContext
+        module_path: app.contexts.error
+  cli_interface_repo:
+    type: data
+    deps:
+      yaml:
+        class_name: YamlRepository
+        module_path: app.repositories.cli
+  add_feature_command:
+    type: feature
+    deps:
+      core:
+        class_name: AddFeatureCommand
+        module_path: app.commands.feature
+  add_new_error:
+    type: feature
+    deps:
+      core:
+        class_name: AddNewError
+        module_path: app.commands.error
+  add_new_feature:
+    type: feature
+    deps:
+      core:
+        class_name: AddNewFeature
+        module_path: app.commands.feature
