@@ -52,4 +52,3 @@ def test_model_object_new(test_model_object: ModelObject):
     # Assert the model object is valid.
     assert isinstance(model_object, test_model_object)
     assert model_object.attribute == 'test'
-

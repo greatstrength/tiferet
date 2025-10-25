@@ -103,24 +103,3 @@ class ModelObject(Model):
 
         # Return the new model object.
         return model_object
-
-# ** model: value_object
-class ValueObject(ModelObject):
-    '''
-    A domain model value object.
-    '''
-    pass
-
-# ** class: entity
-class Entity(ModelObject):
-    '''
-    A domain model entity.
-    '''
-
-    # * attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The entity unique identifier.'
-        )
-    )
