@@ -1,24 +1,45 @@
-from ...app.repositories.cli import CliInterfaceRepository
-from ..objects.cli import CliInterface
-from ..objects.cli import CliCommand
-from ..objects.cli import CliArgument
+# *** imports
 
+# ** app
+from ..models.cli import (
+    ModelObject,
+    CliCommand,
+    CliArgument
+)
+from ..contracts.cli import (
+    CliRepository
+)
 
+# *** commands
+
+# ** command: add_cli_command
 class AddCliCommand(object):
 
-    def __init__(self, cli_interface_repo: CliInterfaceRepository):
-        self.cli_interface_repo = cli_interface_repo
+    # * attribute: cli_repo
+    cli_repo: CliRepository
+
+    def __init__(self, cli_repo: CliRepository):
+        '''
+        Initialize the command.
+
+        :param cli_repo: The CLI interface repository.
+        :type cli_repo: CliRepository
+        '''
+
+        # Set the CLI interface repository.
+        self.cli_repo = cli_repo
 
     def execute(self, interface_id: str, **kwargs):
 
         # Get CLI interface using the interface ID.
-        cli_interface: CliInterface = self.cli_interface_repo.get(interface_id)
+        cli_interface = self.cli_repo.get(interface_id)
 
         # Assert that the CLI interface exists.
         assert cli_interface is not None, f'CLI_INTERFACE_NOT_FOUND: {interface_id}'
 
         # Create the new CLI command.
-        command = CliCommand.new(
+        command = ModelObject.new(
+            CliCommand,
             **kwargs
         )
 
@@ -30,7 +51,7 @@ class AddCliCommand(object):
         cli_interface.add_command(command)
 
         # Save the CLI interface.
-        self.cli_interface_repo.save(cli_interface)
+        self.cli_repo.save(cli_interface)
 
         # Return the new command.
         return command
@@ -38,8 +59,8 @@ class AddCliCommand(object):
 
 class AddCliArgument(object):
 
-    def __init__(self, cli_interface_repo: CliInterfaceRepository):
-        self.cli_interface_repo = cli_interface_repo
+    def __init__(self, cli_repo: CliRepository):
+        self.cli_repo = cli_repo
 
     def execute(self, interface_id: str, name: str, help: str, arg_type: str, feature_id: str = None, **kwargs):
         '''
@@ -58,7 +79,7 @@ class AddCliArgument(object):
         '''
 
         # Get CLI interface using the interface ID.
-        cli_interface: CliInterface = self.cli_interface_repo.get(interface_id)
+        cli_interface: CliCommand = self.cli_repo.get(interface_id)
 
         # Assert that the CLI interface exists.
         assert cli_interface is not None, f'CLI_INTERFACE_NOT_FOUND: {interface_id}'
@@ -77,7 +98,7 @@ class AddCliArgument(object):
             feature_id=feature_id)
 
         # Save the CLI interface.
-        self.cli_interface_repo.save(cli_interface)
+        self.cli_repo.save(cli_interface)
 
         # Return the new argument.
         return argument
