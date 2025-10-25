@@ -151,4 +151,18 @@ class AppService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('load_app_instance method is required for AppService.')
+    
+    # * method: get_app_interface
+    @abstractmethod
+    def get_app_interface(self, interface_id: str) -> AppInterface:
+        '''
+        Get the app interface by its unique identifier.
+
+        :param interface_id: The unique identifier for the app interface.
+        :type interface_id: str
+        :return: The app interface.
+        :rtype: AppInterface
+        '''
+        # Not implemented.
+        raise NotImplementedError('get_app_interface method is required for AppService.')
 
