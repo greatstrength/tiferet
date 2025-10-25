@@ -80,7 +80,7 @@ def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error
     :return: The Error instance.
     :rtype: Error
     '''
-
+    
     # Create the error object.
     return Error.new(
         name='Test Formatted Error',
@@ -245,6 +245,15 @@ def test_error_format_response(
     # Check if the formatted response is correctly formatted
     assert formatted_response['error_code'] == 'TEST_FORMATTED_ERROR'
     assert formatted_response['message'] == 'An error occurred: Check for bugs.'
+
+# ** test: error_format_response_unsupported_lang
+def test_error_format_response_unsupported_lang(error: Error):
+    '''
+    Test the format_response method of an error with an unsupported language.
+
+    :param error: The basic error to test.
+    :type error: Error
+    '''
 
 # ** test: error_format_response_unsupported_lang
 def test_error_format_response_unsupported_lang(error: Error):

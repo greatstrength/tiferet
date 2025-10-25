@@ -23,9 +23,10 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import *
+    from .proxies import YamlConfigurationProxy
 except:
     pass
 
 # *** version
+
 __version__ = '1.1.12'

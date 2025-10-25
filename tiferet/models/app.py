@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+from typing import Dict
+
 # ** app
 from .settings import (
     ModelObject,
@@ -140,7 +143,7 @@ class AppInterface(ModelObject):
     )
 
     # * method: add_attribute
-    def add_attribute(self, module_path: str, class_name: str, attribute_id: str):
+    def add_attribute(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
         '''
         Add a dependency attribute to the app interface.
 
@@ -159,7 +162,8 @@ class AppInterface(ModelObject):
             AppAttribute,
             module_path=module_path,
             class_name=class_name,
-            attribute_id=attribute_id
+            attribute_id=attribute_id,
+            parameters=parameters,
         )
 
         # Add the dependency to the list of dependencies.

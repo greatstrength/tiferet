@@ -26,7 +26,7 @@ def feature_command_data() -> FeatureCommandData:
     :return: The feature command data object.
     :rtype: FeatureCommandData
     '''
-
+    
     # Return the feature command data.
     return FeatureCommandData(dict(
         name='Test Feature Command',

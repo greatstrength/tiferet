@@ -101,7 +101,7 @@ def logging_settings_data(
 ) -> LoggingSettingsData:
     '''
     Fixture to create a LoggingSettingsData object with formatter, handler, and logger data.
-
+    
     :param formatter_data: The formatter data object.
     :type formatter_data: FormatterData
     :param handler_data: The handler data object.

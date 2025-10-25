@@ -1,3 +1,5 @@
+"""Tiferet Container YAML Proxy Tests Exports"""
+
 # *** imports
 
 # ** core
@@ -7,25 +9,39 @@ import os
 import pytest
 
 # ** app
+from ....commands import TiferetError
+from ....models import (
+    ContainerAttribute,
+    FlaggedDependency,
+    ModelObject
+)
 from ..container import ContainerYamlProxy
-from ....configs import TiferetError
-from ....models.container import *
-
 
 # *** fixtures
 
 # ** fixture: read_config_file_path
 @pytest.fixture
-def read_config_file_path():
-    """Fixture to provide the path to the container configuration file."""
+def read_config_file_path() -> str:
+    '''
+    A fixture for the container configuration file path.
 
+    :return: The container configuration file path.
+    :rtype: str
+    '''
+
+    # Return the container configuration file path.
     return 'tiferet/configs/tests/test.yml'
 
 
 # ** fixture: container_attribute
 @pytest.fixture
-def container_attribute():
-    """Fixture to create a container attribute for testing."""
+def container_attribute() -> ContainerAttribute:
+    '''
+    A fixture for a basic ContainerAttribute instance.
+    
+    :return: The ContainerAttribute instance.
+    :rtype: ContainerAttribute
+    '''
     
     return ModelObject.new(
         ContainerAttribute,
@@ -46,17 +62,30 @@ def container_attribute():
 
 # ** fixture: container_yaml_proxy
 @pytest.fixture
-def container_yaml_proxy(read_config_file_path):
-    """Fixture to create an instance of the ContainerYamlProxy."""
-    
+def container_yaml_proxy(read_config_file_path: str) -> ContainerYamlProxy:
+    '''
+    A fixture for the container YAML proxy.
+
+    :param read_config_file_path: The container configuration file path.
+    :type read_config_file_path: str
+    :return: The container YAML proxy.
+    :rtype: ContainerYamlProxy
+    '''
+
+    # Create and return the container YAML proxy.
     return ContainerYamlProxy(read_config_file_path)
 
 
 # *** tests
 
 # ** test: container_yaml_proxy_load_yaml
-def test_container_yaml_proxy_load_yaml(container_yaml_proxy):
-    """Test the load_yaml method of the ContainerYamlProxy."""
+def test_container_yaml_proxy_load_yaml(container_yaml_proxy: ContainerYamlProxy):
+    '''
+    Test the load_yaml method of the ContainerYamlProxy.
+
+    :param container_yaml_proxy: The container YAML proxy.
+    :type container_yaml_proxy: ContainerYamlProxy
+    '''
 
     # Load the YAML file.
     data = container_yaml_proxy.load_yaml()
@@ -70,8 +99,13 @@ def test_container_yaml_proxy_load_yaml(container_yaml_proxy):
 
 
 # ** test: container_yaml_proxy_load_yaml_file_not_found
-def test_container_yaml_proxy_load_yaml_file_not_found(container_yaml_proxy):
-    """Test the load_yaml method with a file not found error."""
+def test_container_yaml_proxy_load_yaml_file_not_found(container_yaml_proxy: ContainerYamlProxy):
+    '''
+    Test the load_yaml method with a file not found error.
+
+    :param container_yaml_proxy: The container YAML proxy.
+    :type container_yaml_proxy: ContainerYamlProxy
+    '''
 
     # Set a non-existent configuration file.
     container_yaml_proxy.config_file = 'non_existent_file.yml'
@@ -86,7 +120,13 @@ def test_container_yaml_proxy_load_yaml_file_not_found(container_yaml_proxy):
 
 
 # ** test: container_yaml_proxy_list_all_empty
-def test_container_yaml_proxy_list_all_empty(container_yaml_proxy):
+def test_container_yaml_proxy_list_all_empty(container_yaml_proxy: ContainerYamlProxy):
+    '''
+    Test the list_all method with an empty configuration.
+
+    :param container_yaml_proxy: The container YAML proxy.
+    :type container_yaml_proxy: ContainerYamlProxy
+    '''
 
     # Create new config file with no container attributess.
     file_path = 'tiferet/configs/tests/test_empty.yml'
@@ -109,7 +149,18 @@ def test_container_yaml_proxy_list_all_empty(container_yaml_proxy):
 
 
 # ** test: container_yaml_proxy_list_all
-def test_container_yaml_proxy_list_all(container_yaml_proxy, container_attribute):
+def test_container_yaml_proxy_list_all(
+        container_yaml_proxy: ContainerYamlProxy,
+        container_attribute: ContainerAttribute
+    ):
+    '''
+    Test the list_all method of the ContainerYamlProxy.
+
+    :param container_yaml_proxy: The container YAML proxy.
+    :type container_yaml_proxy: ContainerYamlProxy
+    :param container_attribute: The container attribute fixture.
+    :type container_attribute: ContainerAttribute
+    '''
 
     # List all the container attributes.
     container_attributes, constants = container_yaml_proxy.list_all()
@@ -134,7 +185,18 @@ def test_container_yaml_proxy_list_all(container_yaml_proxy, container_attribute
 
 
 # ** test: container_yaml_proxy_get_attribute
-def test_container_yaml_proxy_get_attribute(container_yaml_proxy, container_attribute):
+def test_container_yaml_proxy_get_attribute(
+        container_yaml_proxy: ContainerYamlProxy,
+        container_attribute: ContainerAttribute
+    ):
+    '''
+    Test the get_attribute method of the ContainerYamlProxy.
+
+    :param container_yaml_proxy: The container YAML proxy.
+    :type container_yaml_proxy: ContainerYamlProxy
+    :param container_attribute: The container attribute fixture.
+    :type container_attribute: ContainerAttribute
+    '''
 
     # Get the container attribute.
     test_container_attribute = container_yaml_proxy.get_attribute(container_attribute.id)
