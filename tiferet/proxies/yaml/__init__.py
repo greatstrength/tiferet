@@ -3,7 +3,7 @@
 # *** exports
 
 # ** app
-from .settings import YamlConfigurationProxy
+from .settings import YamlFileProxy
 from .app import AppYamlProxy
 from .cli import CliYamlProxy
 from .container import ContainerYamlProxy
