@@ -81,12 +81,12 @@ class AppRepository(Repository):
 
     # * method: get_interface
     @abstractmethod
-    def get_interface(self, app_name: str) -> AppInterface:
+    def get_interface(self, interface_id: str) -> AppInterface:
         '''
         Get the app interface settings by name.
 
-        :param app_name: The name of the app. 
-        :type app_name: str
+        :param interface_id: The unique identifier for the app interface.
+        :type interface_id: str
         :return: The app interface.
         :rtype: AppInterface
         '''
@@ -112,11 +112,20 @@ class AppRepository(Repository):
 
         :param interface: The app interface to save.
         :type interface: AppInterfaceContract
-        :return: None
-        :rtype: None
         '''
         # Not implemented.
         raise NotImplementedError('save_interface method is required for AppRepository.')
+    
+    # * method: delete_interface
+    def delete_interface(self, interface_id: str):
+        '''
+        Delete the app interface settings by name.
+
+        :param interface_id: The unique identifier for the app interface to delete.
+        :type interface_id: str
+        '''
+        # Not implemented.
+        raise NotImplementedError('delete_interface method is required for AppRepository.')
 
 # ** interface: app_service
 class AppService(Service):

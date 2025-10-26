@@ -149,3 +149,26 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
             data=interface_data.to_primitive('to_data.yaml'),
             data_yaml_path=f'interfaces/{interface.id}'
         )
+
+    # * method: delete_interface
+    def delete_interface(self, interface_id: str):
+        '''
+        Delete the app interface from the YAML configuration file.
+
+        :param interface_id: The unique identifier for the app interface to delete.
+        :type interface_id: str
+        '''
+
+        # Delete the app interface data from the YAML configuration file.
+        interfaces_data = self.load_yaml(
+            start_node=lambda data: data.get('interfaces', {})
+        )
+
+        # Pop the interface from the interfaces data regardless of whether it exists or not to ensure it is deleted.
+        interfaces_data.pop(interface_id, None)
+
+        # Save the updated interfaces data back to the YAML configuration file.
+        self.save_yaml(
+            data=interfaces_data,
+            data_yaml_path='interfaces'
+        )

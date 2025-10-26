@@ -218,3 +218,26 @@ def test_app_yaml_proxy_save_interface(
     assert updated_interface.attributes[0].class_name == 'test_class_name'
     assert updated_interface.constants
     assert updated_interface.constants['test_const'] == 'test_const_value'
+
+# ** test: app_yaml_proxy_delete_interface
+def test_app_yaml_proxy_delete_interface(
+        app_yaml_proxy: AppYamlProxy,
+        app_id: str
+    ):
+    '''
+    Test the app YAML proxy delete settings method.
+
+    :param app_yaml_proxy: The app YAML proxy.
+    :type app_yaml_proxy: AppYamlProxy
+    :param app_id: The app id.
+    :type app_id: str
+    '''
+
+    # Delete the interface.
+    app_yaml_proxy.delete_interface(app_id)
+
+    # Attempt to get the deleted interface.
+    deleted_interface = app_yaml_proxy.get_interface(app_id)
+
+    # Check that the interface is deleted.
+    assert not deleted_interface
