@@ -98,10 +98,15 @@ class DataObject(Model):
         :rtype: DataObject
         '''
 
+        # Convert the model object to a primitive dictionary and merge with the keyword arguments.
+        # Give priority to the keyword arguments.
+        model_data = model.to_primitive()
+        for key, value in kwargs.items():
+            model_data[key] = value
+
         # Create a new data object.
         data_object = data(dict(
-            **model.to_primitive(),
-            **kwargs
+            **model_data
         ), strict=False)
 
         # Validate the data object if specified.
