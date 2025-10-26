@@ -620,11 +620,11 @@ Run the CLI with commands like:
 ```bash
 # Add two numbers
 python calc_cli.py calc add 1 2
-# Output: 1 + 2 = 3
+# Output: 3
 
 # Calculate square root
 python calc_cli.py calc sqrt 4
-# Output: √4 = 2.0
+# Output: 2.0
 
 # Division by zero
 python calc_cli.py calc divide 5 0
