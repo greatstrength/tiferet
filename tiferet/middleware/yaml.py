@@ -5,6 +5,7 @@ import yaml
 from typing import (
     Any,
     Dict,
+    List,
     Callable
 )
 
@@ -61,12 +62,12 @@ class YamlLoaderMiddleware(FileLoaderMiddleware):
         return super().__exit__(exc_type, exc_value, traceback)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: Callable = lambda data: data) -> Dict[str, Any]:
+    def load_yaml(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
         '''
         Load the YAML file and return its contents as a dictionary.
 
         :return: The contents of the YAML file as a dictionary.
-        :rtype: Dict[str, Any]
+        :rtype: List[Any] | Dict[str, Any]
         '''
 
         # Load the YAML content from the file.
