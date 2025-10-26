@@ -13,7 +13,7 @@ from ..app import AppYamlProxy
 
 # ** fixture: app_config_file
 @pytest.fixture
-def app_config_file() -> str:
+def app_config_file(tmp_path) -> str:
     '''
     A fixture for the app configuration file path.
 
@@ -21,8 +21,30 @@ def app_config_file() -> str:
     :rtype: str
     '''
 
-    # Return the app configuration file path.
-    return 'tiferet/configs/tests/test.yml'
+    # Create a temporary YAML file with sample app configuration content.
+    file_path = tmp_path / 'test.yaml'
+
+    # Write the sample app configuration to the YAML file.
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(
+            '''
+            interfaces:
+              test_app_yaml_proxy:
+                attrs:
+                  test_attribute:
+                    module_path: test_module_path
+                    class_name: test_class_name
+                const:
+                  test_const: test_const_value
+                name: Test App YAML Proxy
+                description: The context for testing the app yaml proxy.
+                feature_flag: test_app_yaml_proxy
+                data_flag: test_app_yaml_proxy
+            '''
+        )
+    
+    # Return the file path as a string.
+    return str(file_path)
 
 # ** fixture: app_yaml_proxy
 @pytest.fixture
@@ -84,7 +106,7 @@ def test_app_yaml_proxy_load_yaml_file_not_found(app_yaml_proxy: AppYamlProxy):
     '''
 
     # Set a non-existent configuration file.
-    app_yaml_proxy.config_file = 'non_existent_file.yml'
+    app_yaml_proxy.yaml_file = 'non_existent_file.yml'
 
     # Attempt to load the YAML file.
     with pytest.raises(TiferetError) as exc_info:
@@ -157,3 +179,42 @@ def test_app_yaml_proxy_get_interface_not_found(app_yaml_proxy: AppYamlProxy):
 
     # Check the interface.
     assert not interface
+
+# ** test: app_yaml_proxy_save_interface
+def test_app_yaml_proxy_save_interface(
+        app_yaml_proxy: AppYamlProxy,
+        app_id: str
+    ):
+    '''
+    Test the app YAML proxy save settings method.
+
+    :param app_yaml_proxy: The app YAML proxy.
+    :type app_yaml_proxy: AppYamlProxy
+    :param app_id: The app id.
+    :type app_id: str
+    '''
+
+    # Get the interface.
+    interface = app_yaml_proxy.get_interface(app_id)
+
+    # Modify the interface name.
+    interface.name = 'Updated Test App YAML Proxy'
+
+    # Save the interface.
+    app_yaml_proxy.save_interface(interface)
+
+    # Get the updated interface.
+    updated_interface = app_yaml_proxy.get_interface(app_id)
+
+    # Check the updated interface.
+    assert updated_interface
+    assert updated_interface.name == 'Updated Test App YAML Proxy'
+    assert updated_interface.description == 'The context for testing the app yaml proxy.'
+    assert updated_interface.feature_flag == 'test_app_yaml_proxy'
+    assert updated_interface.data_flag == 'test_app_yaml_proxy'
+    assert len(updated_interface.attributes) == 1
+    assert updated_interface.attributes[0].attribute_id == 'test_attribute'
+    assert updated_interface.attributes[0].module_path == 'test_module_path'
+    assert updated_interface.attributes[0].class_name == 'test_class_name'
+    assert updated_interface.constants
+    assert updated_interface.constants['test_const'] == 'test_const_value'

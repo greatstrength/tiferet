@@ -10,14 +10,18 @@ from typing import (
 
 # ** app
 from ...commands import raise_error
-from ...data import DataObject, AppInterfaceYamlData
+from ...data import (
+    DataObject,
+    AppInterfaceConfigData,
+    AppAttributeConfigData
+)
 from ...contracts import AppInterfaceContract, AppRepository
-from .settings import YamlConfigurationProxy
+from .settings import YamlFileProxy
 
 # *** proxies
 
 # ** proxy: app_yaml_proxy
-class AppYamlProxy(AppRepository, YamlConfigurationProxy):
+class AppYamlProxy(AppRepository, YamlFileProxy):
     '''
     YAML proxy for application configurations.
     '''
@@ -38,15 +42,15 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
     def load_yaml(
             self, 
             start_node: Callable = lambda data: data,
-            create_data: Callable = lambda data: data
+            data_factory: Callable = lambda data: data
         ) -> Any:
         '''
         Load data from the YAML configuration file.
 
         :param start_node: The starting node in the YAML file.
         :type start_node: str
-        :param create_data: A callable to create data objects from the loaded data.
-        :type create_data: callable
+        :param data_factory: A callable to create data objects from the loaded data.
+        :type data_factory: callable
         :return: The loaded data.
         :rtype: Any
         '''
@@ -55,15 +59,15 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
         try:
             return super().load_yaml(
                 start_node=start_node,
-                create_data=create_data
+                data_factory=data_factory
             )
         
         # Raise an error if the loading fails.
         except Exception as e:
             raise_error.execute(
                 'APP_CONFIG_LOADING_FAILED',
-                f'Unable to load app configuration file {self.config_file}: {e}.',
-                self.config_file,
+                f'Unable to load app configuration file {self.yaml_file}: {e}.',
+                self.yaml_file,
                 str(e)
             )
 
@@ -78,9 +82,9 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
 
         # Load the app interface data from the yaml configuration file and map it to the app interface object.
         interfaces = self.load_yaml(
-            create_data=lambda data: [
+            data_factory=lambda data: [
                 DataObject.from_data(
-                    AppInterfaceYamlData,
+                    AppInterfaceConfigData,
                     id=interface_id,
                     **record
                 ).map() for interface_id, record in data.items()],
@@ -101,18 +105,47 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
         '''
 
         # Load the app interface data from the yaml configuration file.
-        interface: AppInterfaceContract = self.load_yaml(
-            create_data=lambda data: DataObject.from_data(
-                AppInterfaceYamlData,
-                id=id, 
-                **data
-            ),
-            start_node=lambda data: data.get('interfaces').get(id)
+        interface_data: AppInterfaceContract = self.load_yaml(
+            start_node=lambda data: data.get('interfaces').get(id, None)
         )
 
-        # Return the app interface object.
-        # If the data is None, return None.
-        try:
-            return interface.map()
-        except AttributeError:
+        # If the interface data is empty, return None.
+        if not interface_data:
             return None
+
+        # Return the app interface object.
+        return DataObject.from_data(
+            AppInterfaceConfigData,
+            id=id,
+            **interface_data
+        ).map()
+        
+    # * method: save_interface
+    def save_interface(self, interface: AppInterfaceContract):
+        '''
+        Save the app interface to the YAML configuration file.
+
+        :param interface: The app interface to save.
+        :type interface: AppInterfaceContract
+        '''
+
+        # Create the attribute data for the app interface from the app interface contract.
+        attributes = {
+            attr.attribute_id: DataObject.from_model(
+                AppAttributeConfigData,
+                model=attr
+            ) for attr in interface.attributes
+        }
+
+        # Convert the app interface object to a DataObject.
+        interface_data = DataObject.from_model(
+            AppInterfaceConfigData,
+            model=interface,
+            attributes=attributes
+        )
+
+        # Save the app interface data to the YAML configuration file.
+        self.save_yaml(
+            data=interface_data.to_primitive('to_data.yaml'),
+            data_yaml_path=f'interfaces/{interface.id}'
+        )

@@ -104,6 +104,19 @@ class AppRepository(Repository):
         '''
         # Not implemented.
         raise NotImplementedError('list_interfaces method is required for AppRepository.')
+    
+    # * method: save_interface
+    def save_interface(self, interface: AppInterface):
+        '''
+        Save the app interface settings.
+
+        :param interface: The app interface to save.
+        :type interface: AppInterfaceContract
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('save_interface method is required for AppRepository.')
 
 # ** interface: app_service
 class AppService(Service):
