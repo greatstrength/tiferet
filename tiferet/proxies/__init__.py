@@ -3,4 +3,4 @@
 # *** exports
 
 # ** app
-from .yaml import YamlConfigurationProxy
+from .yaml import YamlFileProxy
