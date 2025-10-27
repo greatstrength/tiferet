@@ -133,8 +133,8 @@ def test_import_app_repo_success(import_app_repo_cmd):
     assert isinstance(app_repo, AppRepository), 'Should return an instance of AppRepository'
 
     # Assert that the app_config_file attribute is set correctly.
-    assert hasattr(app_repo, 'config_file'), 'AppRepository should have app_config_file attribute'
-    config_file = getattr(app_repo, 'config_file', None)
+    assert hasattr(app_repo, 'yaml_file'), 'AppRepository should have app_config_file attribute'
+    config_file = getattr(app_repo, 'yaml_file', None)
     assert config_file == 'tiferet/configs/test.yml', 'AppRepository should have the correct config file'
 
 # ** test: test_get_app_interface_not_found
