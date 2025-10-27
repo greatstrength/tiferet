@@ -15,6 +15,7 @@ from .app import (
 from .cli import (
     CliCommandYamlData,
     CliCommandYamlData as CliCommandConfigData,
+    CliArgument as CliArgumentConfigData,
 )
 from .container import (
     FlaggedDependencyYamlData,
