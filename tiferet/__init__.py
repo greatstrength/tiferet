@@ -28,4 +28,4 @@ except:
     pass
 
 # *** version
-__version__ = '1.1.13'
+__version__ = '1.2.0b0'
