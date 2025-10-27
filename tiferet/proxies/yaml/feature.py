@@ -3,18 +3,22 @@
 # *** imports
 
 # ** core
-from typing import Any, List
+from typing import (
+    Any,
+    List,
+    Callable
+)
 
 # ** app
 from ...commands import raise_error
 from ...contracts import FeatureContract, FeatureRepository
-from ...data import DataObject, FeatureYamlData
-from .settings import YamlConfigurationProxy
+from ...data import DataObject, FeatureConfigData
+from .settings import YamlFileProxy
 
 # *** proxies
 
 # ** proxies: feature_yaml_proxy
-class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
+class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
     '''
     Yaml repository for features.
     '''
@@ -32,13 +36,13 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
         super().__init__(feature_config_file)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+    def load_yaml(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
         '''
         Load data from the YAML configuration file.
         :param start_node: The starting node in the YAML file.
         :type start_node: str
-        :param create_data: A callable to create data objects from the loaded data.
-        :type create_data: callable
+        :param data_factory: A callable to create data objects from the loaded data.
+        :type data_factory: callable
         :return: The loaded data.
         :rtype: Any
         '''
@@ -47,15 +51,15 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
         try:
             return super().load_yaml(
                 start_node=start_node,
-                create_data=create_data
+                data_factory=data_factory
             )
 
         # Raise an error if the loading fails.
         except Exception as e:
             raise_error.execute(
                 'FEATURE_CONFIG_LOADING_FAILED',
-                f'Unable to load feature configuration file {self.config_file}: {e}.',
-                self.config_file,
+                f'Unable to load feature configuration file {self.yaml_file}: {e}.',
+                self.yaml_file,
                 str(e)
             )
 
@@ -87,8 +91,23 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
         :rtype: FeatureContract
         '''
 
-        # Get the feature.
-        return next((feature for feature in self.list() if feature.id == id), None)
+        # Load the raw YAML data for the feature.
+        yaml_data: FeatureConfigData = self.load_yaml(
+            start_node=lambda data: data.get('features', {}).get(id, None),
+        )
+
+        # If no data is found, return None.
+        if not yaml_data:
+            return None
+        
+        # Return the feature object created from the YAML data.
+        return DataObject.from_data(
+            FeatureConfigData,
+            id=id,
+            feature_key=id.split('.')[-1],
+            group_id=id.split('.')[0],
+            **yaml_data
+        ).map()
 
     # * method: list
     def list(self, group_id: str = None) -> List[FeatureContract]:
@@ -103,11 +122,11 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
 
         # Load all feature data from yaml.
         features = self.load_yaml(
-            create_data=lambda data: [DataObject.from_data(
-                FeatureYamlData,
+            data_factory=lambda data: [DataObject.from_data(
+                FeatureConfigData,
                 id=id,
                 feature_key=id.split('.')[-1],
-                group_id=id.split('.')[0] if not group_id else group_id,
+                group_id=id.split('.')[0] if '.' in id else None,
                 **feature_data
             ) for id, feature_data in data.items()],
             start_node=lambda data: data.get('features')
@@ -119,3 +138,47 @@ class FeatureYamlProxy(FeatureRepository, YamlConfigurationProxy):
 
         # Return the list of features.
         return [feature.map() for feature in features]
+    
+    # * method: save
+    def save(self, feature: FeatureContract):
+        '''
+        Save the feature.
+
+        :param feature: The feature to save.
+        :type feature: FeatureContract
+        '''
+
+        # Convert the feature to FeatureConfigData.
+        feature_data = DataObject.from_model(
+            FeatureConfigData,
+            feature
+        )
+
+        # Update the feature data.
+        self.save_yaml(
+            data=feature_data.to_primitive('to_data'), # PATCH: Change to 'to_data.yaml' as a patch release.
+            data_yaml_path=f'features/{feature.id}'
+        )
+
+    # * method: delete
+    def delete(self, id: str):
+        '''
+        Delete the feature.
+
+        :param id: The feature id.
+        :type id: str
+        '''
+
+        # Retrieve the full list of feature data.
+        features_data = self.load_yaml(
+            start_node=lambda data: data.get('features', {})
+        )
+
+        # Pop the feature to delete regardless of its existence.
+        features_data.pop(id, None)
+
+        # Save the updated features data back to the yaml file.
+        self.save_yaml(
+            data=features_data,
+            data_yaml_path='features'
+        )
