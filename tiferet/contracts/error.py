@@ -162,6 +162,17 @@ class ErrorRepository(Repository):
         :type error: Error
         '''
         raise NotImplementedError('The save method must be implemented by the error repository.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the error by its unique identifier.
+
+        :param id: The unique identifier for the error to delete.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the error repository.')
 
 # ** contract: error_service
 class ErrorService(Service):
