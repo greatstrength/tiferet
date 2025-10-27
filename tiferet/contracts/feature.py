@@ -128,6 +128,28 @@ class FeatureRepository(Repository):
         '''
         raise NotImplementedError('The list method must be implemented by the feature repository.')
 
+    # * method: save
+    @abstractmethod
+    def save(self, feature: Feature) -> None:
+        '''
+        Save the feature.
+
+        :param feature: The feature.
+        :type feature: Feature
+        '''
+        raise NotImplementedError('The save method must be implemented by the feature repository.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the feature.
+
+        :param id: The feature id.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the feature repository.')
+
 
 # ** contract: feature_service
 class FeatureService(Service):
