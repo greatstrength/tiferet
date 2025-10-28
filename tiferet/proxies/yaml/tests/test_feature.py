@@ -275,7 +275,7 @@ def test_feature_yaml_proxy_save(
                 }
             }
         ]
-    )
+    ).map()
     
     # Save the new feature.
     feature_yaml_proxy.save(new_feature)
@@ -296,8 +296,8 @@ def test_feature_yaml_proxy_save(
     assert saved_feature.commands[0].name == 'New Feature Command'
     assert saved_feature.commands[0].parameters == {'param1': 'value1'}
 
-# ** test: error_yaml_proxy_delete
-def test_feature_yaml_proxy_save_update(
+# ** test: feature_yaml_proxy_delete
+def test_feature_yaml_proxy_delete(
         feature_yaml_proxy: FeatureYamlProxy,
     ):
     '''

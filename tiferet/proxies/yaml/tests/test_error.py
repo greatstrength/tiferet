@@ -10,11 +10,7 @@ import pytest, yaml
 
 # ** app
 from ....commands import TiferetError
-from ....models import (
-    Error,
-    ErrorMessage,
-    ModelObject
-)
+from ....data import DataObject, ErrorConfigData
 from ..error import ErrorYamlProxy
 
 # *** fixtures
@@ -221,27 +217,30 @@ def test_int_error_yaml_proxy_save(error_yaml_proxy: ErrorYamlProxy):
     :type error_yaml_proxy: ErrorYamlProxy
     '''
 
-    # Load an existing error to be modified and saved.
-    error = error_yaml_proxy.get('test_error')
-
-    # Modify the error.
-    error.id = 'modified_test_error'
-    error.name = 'Modified Test Error'
-    error.error_code = 'MODIFIED_TEST_ERROR_CODE'
-    error.message[0].text = 'This is a modified test error message.'
+    # Create new error.
+    error = DataObject.from_data(
+        ErrorConfigData,
+        id='new_test_error',
+        name='New Test Error',
+        error_code='NEW_TEST_ERROR_CODE',
+        message=[{
+            'lang': 'en',
+            'text': 'This is a new test error message.'
+        }]
+    ).map()
 
     # Save the modified error.
     error_yaml_proxy.save(error)
 
     # Reload the error to verify the changes.
-    modified_error = error_yaml_proxy.get('modified_test_error')
+    modified_error = error_yaml_proxy.get('new_test_error')
     assert modified_error
-    assert modified_error.id == 'modified_test_error'
-    assert modified_error.name == 'Modified Test Error'
-    assert modified_error.error_code == 'MODIFIED_TEST_ERROR_CODE'
+    assert modified_error.id == 'new_test_error'
+    assert modified_error.name == 'New Test Error'
+    assert modified_error.error_code == 'NEW_TEST_ERROR_CODE'
     assert len(modified_error.message) == 1
     assert modified_error.message[0].lang == 'en'
-    assert modified_error.message[0].text == 'This is a modified test error message.'
+    assert modified_error.message[0].text == 'This is a new test error message.'
 
 # ** test_int: error_yaml_proxy_delete
 def test_int_error_yaml_proxy_delete(error_yaml_proxy: ErrorYamlProxy):

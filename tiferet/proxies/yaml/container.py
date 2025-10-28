@@ -15,8 +15,8 @@ from typing import (
 from ...commands import raise_error
 from ...data import (
     DataObject,
-    ContainerAttributeYamlData,
-    FlaggedDependencyYamlData
+    ContainerAttributeConfigData,
+    FlaggedDependencyConfigData
 )
 from ...contracts import ContainerRepository, ContainerAttributeContract
 from .settings import YamlFileProxy
@@ -95,7 +95,7 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
 
         # Return the attribute.
         return DataObject.from_data(
-            ContainerAttributeYamlData,
+            ContainerAttributeConfigData,
             id=attribute_id,
             **attribute_data
         ).map()
@@ -114,8 +114,9 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
             
             # Create a list of ContainerAttributeYamlData objects from the YAML data.
             attrs = [
-                ContainerAttributeYamlData.from_data(id=id, **attr_data)
-                for id, attr_data in data.get('attrs', {}).items()
+                ContainerAttributeConfigData.from_data(id=id, **attr_data)
+                for id, attr_data
+                in data.get('attrs', {}).items()
             ] if data.get('attrs') else []
 
             # Get the constants from the YAML data.
@@ -147,7 +148,7 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
         # Create flagged dependency data from the container attribute.
         dependencies_data = {
             dep.flag: DataObject.from_model(
-                FlaggedDependencyYamlData,
+                FlaggedDependencyConfigData,
                 dep,
                 id=dep.flag
             ) for dep in attribute.dependencies
@@ -155,7 +156,7 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
 
         # Create the attribute data for the container attribute from the container attribute contract.
         attribute_data = DataObject.from_model(
-            ContainerAttributeYamlData,
+            ContainerAttributeConfigData,
             attribute,
             id=attribute.id,
             dependencies=dependencies_data
@@ -163,7 +164,7 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
 
         # Save the attribute data to the YAML file.
         self.save_yaml(
-            attribute_data.to_primitive(role='to_data'), # PATCH: Change to 'to_data.yaml' as a patch release.
+            attribute_data.to_primitive(self.default_role),
             data_yaml_path=f'attrs/{attribute.id}'
         )
 

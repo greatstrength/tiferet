@@ -4,6 +4,7 @@
 
 # ** infra
 import pytest
+import yaml
 
 # ** app
 from ....commands import TiferetError
@@ -31,26 +32,35 @@ def cli_config_file(tmp_path) -> str:
 
     # Write the sample CLI configuration to the YAML file.
     with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(
-            '''
-            cli:
-              parent_args:
-                - name_or_flags: ['--parent-arg', '-p']
-                  description: Parent argument
-                  required: true
-              cmds:
-                test_group.test_feature:
-                  group_key: test-group
-                  key: test-feature
-                  name: Test Feature Command
-                  description: A test feature command.
-                  args:
-                    - name_or_flags: ['--arg1', '-a']
-                      description: Argument 1
-                    - name_or_flags: ['--arg2', '-b']
-                      description: Argument 2
-            '''
-        )
+        yaml.safe_dump({
+            'cli': {
+                'parent_args': [
+                    {
+                        'name_or_flags': ['--parent-arg', '-p'],
+                        'description': 'Parent argument',
+                        'required': True
+                    }
+                ],
+                'cmds': {
+                    'test_group.test_feature': {
+                        'group_key': 'test-group',
+                        'key': 'test-feature',
+                        'name': 'Test Feature Command',
+                        'description': 'A test feature command.',
+                        'args': [
+                            {
+                                'name_or_flags': ['--arg1', '-a'],
+                                'description': 'Argument 1'
+                            },
+                            {
+                                'name_or_flags': ['--arg2', '-b'],
+                                'description': 'Argument 2'
+                            }
+                        ]
+                    }
+                }
+            }
+        }, f)
 
     # Return the file path as a string.
     return str(file_path)
@@ -219,7 +229,7 @@ def test_cli_yaml_proxy_save_command(
             'description': 'New argument',
             'required': False
         }]
-    )
+    ).map()
 
     # Save the new command.
     cli_yaml_proxy.save_command(new_command)

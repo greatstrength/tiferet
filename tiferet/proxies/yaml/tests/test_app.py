@@ -4,6 +4,7 @@
 
 # ** infra
 import pytest
+import yaml
 
 # ** app
 from ....configs import TiferetError
@@ -26,22 +27,25 @@ def app_config_file(tmp_path) -> str:
 
     # Write the sample app configuration to the YAML file.
     with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(
-            '''
-            interfaces:
-              test_app_yaml_proxy:
-                attrs:
-                  test_attribute:
-                    module_path: test_module_path
-                    class_name: test_class_name
-                const:
-                  test_const: test_const_value
-                name: Test App YAML Proxy
-                description: The context for testing the app yaml proxy.
-                feature_flag: test_app_yaml_proxy
-                data_flag: test_app_yaml_proxy
-            '''
-        )
+        yaml.safe_dump({
+            'interfaces': {
+                'test_app_yaml_proxy': {
+                    'attrs': {
+                        'test_attribute': {
+                            'module_path': 'test_module_path',
+                            'class_name': 'test_class_name'
+                        }
+                    },
+                    'const': {
+                        'test_const': 'test_const_value'
+                    },
+                    'name': 'Test App YAML Proxy',
+                    'description': 'The context for testing the app yaml proxy.',
+                    'feature_flag': 'test_app_yaml_proxy',
+                    'data_flag': 'test_app_yaml_proxy'
+                }
+            }
+        }, f)
     
     # Return the file path as a string.
     return str(file_path)

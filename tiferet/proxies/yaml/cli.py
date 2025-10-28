@@ -161,7 +161,7 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
 
         # Save the command data to the YAML file.
         self.save_yaml(
-            yaml_data.to_primitive('to_data'), # PATCH: Change to 'to_data.yaml' as a patch release.
+            yaml_data.to_primitive(self.default_role),
             data_yaml_path=f'cli/cmds/{cli_command.id}'
         )
 

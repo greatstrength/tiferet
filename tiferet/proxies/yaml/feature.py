@@ -101,11 +101,8 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
             return None
         
         # Return the feature object created from the YAML data.
-        return DataObject.from_data(
-            FeatureConfigData,
+        return FeatureConfigData.from_data(
             id=id,
-            feature_key=id.split('.')[-1],
-            group_id=id.split('.')[0],
             **yaml_data
         ).map()
 
@@ -122,11 +119,8 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
 
         # Load all feature data from yaml.
         features = self.load_yaml(
-            data_factory=lambda data: [DataObject.from_data(
-                FeatureConfigData,
+            data_factory=lambda data: [FeatureConfigData.from_data(
                 id=id,
-                feature_key=id.split('.')[-1],
-                group_id=id.split('.')[0] if '.' in id else None,
                 **feature_data
             ) for id, feature_data in data.items()],
             start_node=lambda data: data.get('features')
@@ -156,7 +150,7 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
 
         # Update the feature data.
         self.save_yaml(
-            data=feature_data.to_primitive('to_data'), # PATCH: Change to 'to_data.yaml' as a patch release.
+            data=feature_data.to_primitive(self.default_role),
             data_yaml_path=f'features/{feature.id}'
         )
 

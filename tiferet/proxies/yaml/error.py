@@ -161,7 +161,7 @@ class ErrorYamlProxy(ErrorRepository, YamlFileProxy):
 
         # Update the error data.
         self.save_yaml(
-            data=error_data.to_primitive(),
+            data=error_data.to_primitive(self.default_role),
             data_yaml_path=f'errors/{error.id}',
         )
 

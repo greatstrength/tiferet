@@ -7,14 +7,11 @@ import os
 
 # ** infra
 import pytest
+import yaml
 
 # ** app
 from ....commands import TiferetError
-from ....models import (
-    ContainerAttribute,
-    FlaggedDependency,
-    ModelObject
-)
+from ....data import DataObject, ContainerAttributeConfigData, FlaggedDependencyConfigData
 from ..container import ContainerYamlProxy
 
 # *** fixtures
@@ -34,22 +31,26 @@ def container_config_file(tmp_path) -> str:
 
     # Write the sample container configuration to the YAML file.
     with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(
-            '''
-            attrs:
-              test_container:
-                module_path: tiferet.containers.tests
-                class_name: TestContainer
-                dependencies:
-                  test:
-                    module_path: tiferet.proxies.tests
-                    class_name: TestProxy
-                    parameters:
-                      param1: value1
-            const:
-              config_file: tiferet/configs/tests/test.yml
-            '''
-        )
+        yaml.safe_dump({
+            'attrs': {
+                'test_container': {
+                    'module_path': 'tiferet.containers.tests',
+                    'class_name': 'TestContainer',
+                    'dependencies': {
+                        'test': {
+                            'module_path': 'tiferet.proxies.tests',
+                            'class_name': 'TestProxy',
+                            'parameters': {
+                                'param1': 'value1'
+                            }
+                        }
+                    },
+                }
+            },
+            'const': {
+                'config_file': 'tiferet/configs/tests/test.yml'
+            }
+        }, f)
 
     # Return the file path as a string.
     return str(file_path)
@@ -230,20 +231,25 @@ def test_container_yaml_proxy_save_attribute(
     :type container_yaml_proxy: ContainerYamlProxy
     '''
 
-    # Get the existing container attribute.
-    existing_attribute = container_yaml_proxy.get_attribute('test_container')
-
-    # Update the existing attribute.
-    existing_attribute.class_name = 'NewContainer'
-    existing_attribute.id = 'new_container'
-    existing_attribute.module_path = 'tiferet.containers.new'
-    existing_attribute.dependencies[0].module_path = 'tiferet.proxies.new'
-    existing_attribute.dependencies[0].class_name = 'NewProxy'
-    existing_attribute.dependencies[0].flag = 'new_flag'
-    existing_attribute.dependencies[0].parameters = {'paramA': 'valueA'}
+    # Create a new container attribute.
+    new_attribute = DataObject.from_data(
+        ContainerAttributeConfigData,
+        id='new_container',
+        module_path='tiferet.containers.new',
+        class_name='NewContainer',
+        deps={
+            'new_flag': {
+                'module_path': 'tiferet.proxies.new',
+                'class_name': 'NewProxy',
+                'parameters': {
+                    'paramA': 'valueA'
+                }
+            }
+        }
+    ).map()
 
     # Save the updated container attribute.
-    container_yaml_proxy.save_attribute(existing_attribute)
+    container_yaml_proxy.save_attribute(new_attribute)
 
     # Retrieve the saved container attribute.
     saved_attribute = container_yaml_proxy.get_attribute('new_container')
