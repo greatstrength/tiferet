@@ -15,7 +15,6 @@ from ..app import (
     AppInterfaceConfigData,
     AppInterface,
     AppAttribute,
-
 )
 
 # *** fixtures
