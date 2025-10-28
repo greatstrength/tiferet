@@ -1,4 +1,4 @@
-"""Tiferet CLI Data Transfer Objects"""
+"""Tiferet CLI Data Objects"""
 
 # *** imports
 
@@ -20,8 +20,8 @@ from .settings import (
 
 # *** data
 
-# ** data: cli_command_yaml_data
-class CliCommandYamlData(CliCommand, DataObject):
+# ** data: cli_command_config_data
+class CliCommandConfigData(CliCommand, DataObject):
     '''
     Represents the YAML data for a CLI command.
     '''
@@ -33,9 +33,17 @@ class CliCommandYamlData(CliCommand, DataObject):
 
         serialize_when_none = False
         roles = {
-            'to_data': DataObject.deny('id', 'arguments'),
-            'to_model': DataObject.deny('arguments')
+            'to_model': DataObject.deny('arguments'),
+            'to_data.yaml': DataObject.deny('id', 'arguments')
         }
+
+    # * class: cli_argument_config_data
+    class CliArgumentConfigData(CliArgument, DataObject):
+        '''
+        Represents the YAML data for a CLI argument.
+        '''
+
+        pass
 
     # * attribute: id
     id = StringType(
@@ -46,7 +54,7 @@ class CliCommandYamlData(CliCommand, DataObject):
 
     # * attribute: arguments
     arguments = ListType(
-        ModelType(CliArgument),
+        ModelType(CliArgumentConfigData),
         serialized_name='args',
         deserialize_from=['args', 'arguments'],
         default=[],
@@ -56,7 +64,7 @@ class CliCommandYamlData(CliCommand, DataObject):
     )
 
     # * method: to_primitive
-    def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
+    def to_primitive(self, role: str, **kwargs) -> dict:
         '''
         Converts the data object to a primitive dictionary.
 
@@ -69,7 +77,7 @@ class CliCommandYamlData(CliCommand, DataObject):
         '''
 
         # Convert the data object to a primitive dictionary.
-        if role == 'to_data':
+        if 'to_data' in role:
             return dict(
                 **super().to_primitive(
                     role,
@@ -89,10 +97,12 @@ class CliCommandYamlData(CliCommand, DataObject):
             )
 
     # * method: map
-    def map(self, **kwargs) -> CliCommandContract:
+    def map(self, role: str = 'to_model', **kwargs) -> CliCommandContract:
         '''
         Maps the YAML data to a CLI command object.
 
+        :param role: The role for the mapping.
+        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new CLI command object.
@@ -101,5 +111,5 @@ class CliCommandYamlData(CliCommand, DataObject):
         # Map the data to a CLI command object.
         return ModelObject.new(
             CliCommand,
-            **self.to_primitive('to_model')
+            **self.to_primitive(role)
         )
