@@ -13,7 +13,7 @@ from typing import (
 # ** app
 from ...commands import raise_error
 from ...data import (
-    LoggingSettingsData,
+    LoggingSettingsConfigData,
     FormatterConfigData,
     HandlerConfigData,
     LoggerConfigData,
@@ -91,7 +91,7 @@ class LoggingYamlProxy(LoggingRepository, YamlFileProxy):
 
         # Load the YAML data for formatters, handlers, and loggers.
         data = self.load_yaml(
-            data_factory=lambda data: LoggingSettingsData.from_yaml_data(
+            data_factory=lambda data: LoggingSettingsConfigData.from_yaml_data(
                 **data
             ),
             start_node=lambda data: data.get('logging', {})

@@ -3,43 +3,15 @@
 # *** exports
 
 # ** app
-from .settings import (
-    DataObject
-)
-from .app import (
-    AppAttributeYamlData,
-    AppAttributeYamlData as AppAttributeConfigData,
-    AppInterfaceYamlData,
-    AppInterfaceYamlData as AppInterfaceConfigData,
-)
-from .cli import (
-    CliCommandYamlData,
-    CliCommandYamlData as CliCommandConfigData,
-    CliArgument as CliArgumentConfigData,
-)
-from .container import (
-    FlaggedDependencyYamlData,
-    FlaggedDependencyYamlData as FlaggedDependencyConfigData,
-    ContainerAttributeYamlData,
-    ContainerAttributeYamlData as ContainerAttributeConfigData,
-)
-from .error import (
-    ErrorData,
-    ErrorData as ErrorConfigData,
-)
-from .feature import (
-    FeatureData as FeatureYamlData,
-    FeatureData as FeatureConfigData,
-    FeatureCommandData as FeatureCommandYamlData,
-    FeatureCommandData as FeatureCommandConfigData,
-)
+from .settings import DataObject
+from .app import AppAttributeConfigData, AppInterfaceConfigData
+from .cli import CliCommandConfigData
+from .container import FlaggedDependencyConfigData, ContainerAttributeConfigData
+from .error import ErrorConfigData
+from .feature import FeatureConfigData, FeatureCommandConfigData
 from .logging import (
-    LoggingSettingsData,
-    LoggingSettingsData as LoggingConfigData,
-    FormatterData,
-    FormatterData as FormatterConfigData,
-    HandlerData,
-    HandlerData as HandlerConfigData,
-    LoggerData,
-    LoggerData as LoggerConfigData,
+    LoggingSettingsConfigData,
+    FormatterConfigData,
+    HandlerConfigData,
+    LoggerConfigData,
 )

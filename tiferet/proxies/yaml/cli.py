@@ -12,11 +12,7 @@ from typing import (
 
 # ** app
 from ...commands import raise_error
-from ...data import (
-    DataObject,
-    CliCommandConfigData,
-    CliArgumentConfigData,
-)
+from ...data import DataObject, CliCommandConfigData
 from ...contracts import (
     CliRepository,
     CliCommandContract,
@@ -135,7 +131,7 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         result: List[CliArgumentContract] = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
             data_factory=lambda data: [DataObject.from_data(
-                CliArgumentConfigData,
+                CliCommandConfigData.CliArgumentConfigData,
                 **arg_data
             ) for arg_data in data]
         )
@@ -200,7 +196,7 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         # Convert the parent arguments to data objects for serialization.
         yaml_data = [
             DataObject.from_model(
-                CliArgumentConfigData,
+                CliCommandConfigData.CliArgumentConfigData,
                 arg
             ) for arg in parent_arguments
         ]

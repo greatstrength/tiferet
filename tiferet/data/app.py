@@ -1,4 +1,4 @@
-"""Tiferet App Data Transfer Objects"""
+"""Tiferet App Data Objects"""
 
 # *** imports
 
@@ -22,8 +22,8 @@ from .settings import (
 
 # *** data
 
-# ** data: app_attribute_yaml_data
-class AppAttributeYamlData(AppAttribute, DataObject):
+# ** data: app_attribute_config_data
+class AppAttributeConfigData(AppAttribute, DataObject):
     '''
     A YAML data representation of an app dependency attribute object.
     '''
@@ -79,8 +79,8 @@ class AppAttributeYamlData(AppAttribute, DataObject):
             **kwargs
         )
 
-# ** data: app_interface_yaml_data
-class AppInterfaceYamlData(AppInterface, DataObject):
+# ** data: app_interface_config_data
+class AppInterfaceConfigData(AppInterface, DataObject):
     '''
     A data representation of an app interface settings object.
     '''
@@ -117,7 +117,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
     # * attribute: attributes
     attributes = DictType(
-        ModelType(AppAttributeYamlData),
+        ModelType(AppAttributeConfigData),
         default={},
         serialized_name='attrs',
         deserialize_from=['attrs', 'attributes'],
@@ -163,20 +163,20 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(app_interface: AppInterface, **kwargs) -> 'AppInterfaceYamlData':
+    def from_model(app_interface: AppInterface, **kwargs) -> 'AppInterfaceConfigData':
         '''
-        Creates an AppInterfaceYamlData object from an AppInterfaceContract object.
+        Creates an AppInterfaceConfigData object from an AppInterfaceContract object.
         :param app_interface: The app interface contract.
         :type app_interface: AppInterfaceContract
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new AppInterfaceYamlData object.
-        :rtype: AppInterfaceYamlData
+        :return: A new AppInterfaceConfigData object.
+        :rtype: AppInterfaceConfigData
         '''
 
-        # Create a new AppInterfaceYamlData object from the model.
+        # Create a new AppInterfaceConfigData object from the model.
         return DataObject.from_model(
-            AppInterfaceYamlData,
-            attributes={attr.attribute_id: DataObject.from_model(AppAttributeYamlData, attr) for attr in app_interface.attributes},
+            AppInterfaceConfigData,
+            attributes={attr.attribute_id: DataObject.from_model(AppAttributeConfigData, attr) for attr in app_interface.attributes},
             **kwargs
         )

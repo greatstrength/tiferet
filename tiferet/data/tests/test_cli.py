@@ -1,4 +1,4 @@
-"""Tiferet CLI Data Transfer Object Tests"""
+"""Tiferet CLI Data Object Tests"""
 
 # *** imports
 
@@ -10,7 +10,7 @@ from ..settings import (
     DataObject,
 )
 from ..cli import (
-    CliCommandYamlData,
+    CliCommandConfigData,
     CliCommand,
 )
 
@@ -18,14 +18,17 @@ from ..cli import (
 
 # ** fixture: cli_command_yaml_data
 @pytest.fixture
-def cli_command_yaml_data():
+def cli_command_config_data() -> CliCommandConfigData:
     '''
-    Provides a fixture for CLI command YAML data.
+    Provides a fixture for CLI command configuration data.
+
+    :return: The CLI command configuration data object.
+    :rtype: CliCommandConfigData
     '''
 
-    # Create and return a CLI command YAML data object.
+    # Create and return a CLI command configuration data object.
     return DataObject.from_data(
-        CliCommandYamlData,
+        CliCommandConfigData,
         id='test_group.test_feature',
         name='Test Feature',
         description='This is a test feature command.',
@@ -48,44 +51,44 @@ def cli_command_yaml_data():
 # *** tests
 
 # ** test: cli_command_yaml_data_from_data
-def test_cli_command_yaml_data_from_data(cli_command_yaml_data: CliCommandYamlData):
+def test_cli_command_yaml_data_from_data(cli_command_config_data: CliCommandConfigData):
     '''
-    Test the creation of CLI command YAML data from a dictionary.
+    Test the creation of CLI command configuration data from a dictionary.
 
-    :param cli_command_yaml_data: The CLI command YAML data object.
-    :type cli_command_yaml_data: CliCommandYamlData
+    :param cli_command_yaml_data: The CLI command configuration data object.
+    :type cli_command_yaml_data: CliCommandConfigData
     '''
 
-    # Assert the CLI command YAML data is an instance of CliCommandYamlData.
-    assert isinstance(cli_command_yaml_data, CliCommandYamlData)
+    # Assert the CLI command configuration data is an instance of CliCommandYamlData.
+    assert isinstance(cli_command_config_data, CliCommandConfigData)
 
     # Assert the attributes are correctly set.
-    assert cli_command_yaml_data.id == 'test_group.test_feature'
-    assert cli_command_yaml_data.name == 'Test Feature'
-    assert cli_command_yaml_data.description == 'This is a test feature command.'
-    assert cli_command_yaml_data.group_key == 'test-group'
-    assert cli_command_yaml_data.key == 'test-feature'
+    assert cli_command_config_data.id == 'test_group.test_feature'
+    assert cli_command_config_data.name == 'Test Feature'
+    assert cli_command_config_data.description == 'This is a test feature command.'
+    assert cli_command_config_data.group_key == 'test-group'
+    assert cli_command_config_data.key == 'test-feature'
 
     # Assert the arguments are correctly set.
-    assert len(cli_command_yaml_data.arguments) == 2
-    assert cli_command_yaml_data.arguments[0].name_or_flags == ['--arg1', '-a']
-    assert cli_command_yaml_data.arguments[0].description == 'Argument 1'
-    assert cli_command_yaml_data.arguments[0].required is True
-    assert cli_command_yaml_data.arguments[1].name_or_flags == ['--arg2', '-b']
-    assert cli_command_yaml_data.arguments[1].description == 'Argument 2'
-    assert cli_command_yaml_data.arguments[1].required is False
+    assert len(cli_command_config_data.arguments) == 2
+    assert cli_command_config_data.arguments[0].name_or_flags == ['--arg1', '-a']
+    assert cli_command_config_data.arguments[0].description == 'Argument 1'
+    assert cli_command_config_data.arguments[0].required is True
+    assert cli_command_config_data.arguments[1].name_or_flags == ['--arg2', '-b']
+    assert cli_command_config_data.arguments[1].description == 'Argument 2'
+    assert cli_command_config_data.arguments[1].required is False
 
 # ** test: cli_command_yaml_data_map
-def test_cli_command_yaml_data_map(cli_command_yaml_data: CliCommandYamlData):
+def test_cli_command_yaml_data_map(cli_command_config_data: CliCommandConfigData):
     '''
-    Test the mapping of CLI command YAML data to a CLI command object.
+    Test the mapping of CLI command configuration data to a CLI command object.
 
-    :param cli_command_yaml_data: The CLI command YAML data object.
-    :type cli_command_yaml_data: CliCommandYamlData
+    :param cli_command_yaml_data: The CLI command configuration data object.
+    :type cli_command_yaml_data: CliCommandConfigData
     '''
 
-    # Map the YAML data to a CLI command object.
-    cli_command = cli_command_yaml_data.map()
+    # Map the configuration data to a CLI command object.
+    cli_command = cli_command_config_data.map()
 
     # Assert the mapped CLI command is valid.
     assert isinstance(cli_command, CliCommand)
@@ -99,22 +102,22 @@ def test_cli_command_yaml_data_map(cli_command_yaml_data: CliCommandYamlData):
     assert len(cli_command.arguments) == 2
     assert cli_command.arguments[0].name_or_flags == ['--arg1', '-a']
     assert cli_command.arguments[0].description == 'Argument 1'
-    assert cli_command_yaml_data.arguments[0].required is True
+    assert cli_command_config_data.arguments[0].required is True
     assert cli_command.arguments[1].name_or_flags == ['--arg2', '-b']
     assert cli_command.arguments[1].description == 'Argument 2'
-    assert cli_command_yaml_data.arguments[1].required is False
+    assert cli_command_config_data.arguments[1].required is False
 
 # ** test: cli_command_yaml_data_to_primitive
-def test_cli_command_yaml_data_to_primitive(cli_command_yaml_data: CliCommandYamlData):
+def test_cli_command_yaml_data_to_primitive(cli_command_config_data: CliCommandConfigData):
     '''
-    Test the conversion of CLI command YAML data to a primitive dictionary.
+    Test the conversion of CLI command configuration data to a primitive dictionary.
 
-    :param cli_command_yaml_data: The CLI command YAML data object.
-    :type cli_command_yaml_data: CliCommandYamlData
+    :param cli_command_yaml_data: The CLI command configuration data object.
+    :type cli_command_yaml_data: CliCommandConfigData
     '''
 
-    # Convert the YAML data to a primitive dictionary.
-    primitive = cli_command_yaml_data.to_primitive('to_data')
+    # Convert the configuration data to a primitive dictionary.
+    primitive = cli_command_config_data.to_primitive('to_data.yaml')
 
     # Assert the primitive is a dictionary.
     assert isinstance(primitive, dict)

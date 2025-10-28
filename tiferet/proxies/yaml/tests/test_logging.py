@@ -11,7 +11,7 @@ import yaml
 from ....commands import TiferetError
 from ....data import (
     DataObject,
-    LoggingSettingsData,
+    LoggingSettingsConfigData,
     FormatterConfigData,
     HandlerConfigData,
     LoggerConfigData
@@ -179,7 +179,7 @@ def test_logging_yaml_proxy_list_all_empty():
     proxy = LoggingYamlProxy(logging_config_file='logging.yaml')
 
     # Mock the load_yaml method to return empty logging settings.
-    proxy.load_yaml = mock.Mock(return_value=LoggingSettingsData.from_yaml_data(
+    proxy.load_yaml = mock.Mock(return_value=LoggingSettingsConfigData.from_yaml_data(
         formatters={},
         handlers={},
         loggers={}

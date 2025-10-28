@@ -18,8 +18,8 @@ from .settings import DataObject
 
 # *** data
 
-# ** data: flagged_dependency_yaml_data
-class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
+# ** data: flagged_dependency_config_data
+class FlaggedDependencyConfigData(FlaggedDependency, DataObject):
     '''
     Represents the YAML data for a flagged dependency.
     '''
@@ -32,7 +32,7 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('params'),
-            'to_data': DataObject.deny('flag')
+            'to_data.yaml': DataObject.deny('flag')
         }
 
     # * attribute: flag
@@ -76,7 +76,7 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
 
     # * method: from_data
     @staticmethod
-    def from_data(**kwargs) -> 'FlaggedDependencyYamlData':
+    def from_data(**kwargs) -> 'FlaggedDependencyConfigData':
         '''
         Initializes a new FlaggedDependencyYamlData object from YAML data.
         
@@ -88,16 +88,16 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
         
         # Create a new FlaggedDependencyYamlData object.
         return super(
-            FlaggedDependencyYamlData,
-            FlaggedDependencyYamlData
+            FlaggedDependencyConfigData,
+            FlaggedDependencyConfigData
         ).from_data(
-            FlaggedDependencyYamlData,
+            FlaggedDependencyConfigData,
             **kwargs
         )
 
     # * method: from_model
     @staticmethod
-    def from_model(model: FlaggedDependency, **kwargs) -> 'FlaggedDependencyYamlData':
+    def from_model(model: FlaggedDependency, **kwargs) -> 'FlaggedDependencyConfigData':
         '''
         Initializes a new FlaggedDependencyYamlData object from a model object.
         
@@ -111,16 +111,16 @@ class FlaggedDependencyYamlData(FlaggedDependency, DataObject):
         
         # Create and return a new FlaggedDependencyYamlData object.
         return super(
-            FlaggedDependencyYamlData,
-            FlaggedDependencyYamlData
+            FlaggedDependencyConfigData,
+            FlaggedDependencyConfigData
         ).from_model(
-            FlaggedDependencyYamlData,
+            FlaggedDependencyConfigData,
             model,
             **kwargs
         )
 
-# ** data: container_attribute_yaml_data
-class ContainerAttributeYamlData(ContainerAttribute, DataObject):
+# ** data: container_attribute_config_data
+class ContainerAttributeConfigData(ContainerAttribute, DataObject):
     '''
     Represents the YAML data for a container attribute.
     '''
@@ -133,12 +133,12 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('params'),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id')
         }
 
     # * attribute: dependencies
     dependencies = DictType(
-        ModelType(FlaggedDependencyYamlData),
+        ModelType(FlaggedDependencyConfigData),
         default={},
         serialized_name='deps',
         deserialize_from=['deps', 'dependencies'],
@@ -179,7 +179,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
     # * method: from_data
     @staticmethod
-    def from_data(**kwargs) -> 'ContainerAttributeYamlData':
+    def from_data(**kwargs) -> 'ContainerAttributeConfigData':
         '''
         Initializes a new ContainerAttributeYamlData object from YAML data.
         
@@ -191,10 +191,10 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         
         # Create a new ContainerAttributeYamlData object.
         data_object = super(
-            ContainerAttributeYamlData,
-            ContainerAttributeYamlData
+            ContainerAttributeConfigData,
+            ContainerAttributeConfigData
         ).from_data(
-            ContainerAttributeYamlData,
+            ContainerAttributeConfigData,
             **kwargs,
             validate=False
         )
@@ -210,7 +210,7 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(model_object: ContainerAttribute, **kwargs) -> 'ContainerAttributeYamlData':
+    def from_model(model_object: ContainerAttribute, **kwargs) -> 'ContainerAttributeConfigData':
         '''
         Initializes a new ContainerAttributeYamlData object from a model object.
         
@@ -229,12 +229,11 @@ class ContainerAttributeYamlData(ContainerAttribute, DataObject):
         data['dependencies'] = {dep.flag: dep.to_primitive() for dep in model_object.dependencies}
         
         # Create a new ContainerAttributeYamlData object.
-        data_object = ContainerAttributeYamlData(
+        data_object = ContainerAttributeConfigData(
             dict(
                 **data,
                 **kwargs
             ),
-
             strict=False
         )
         

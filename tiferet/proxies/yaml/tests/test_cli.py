@@ -8,11 +8,7 @@ import yaml
 
 # ** app
 from ....commands import TiferetError
-from ....data import (
-    DataObject, 
-    CliCommandConfigData,
-    CliArgumentConfigData
-)
+from ....data import DataObject, CliCommandConfigData
 from ..cli import CliYamlProxy
 
 # *** fixtures
@@ -286,7 +282,7 @@ def test_cli_yaml_proxy_save_parent_arguments(
     # Create new parent arguments to save.
     new_parent_args = [
         DataObject.from_data(
-            CliArgumentConfigData,
+            CliCommandConfigData.CliArgumentConfigData,
             name_or_flags=['--new-parent-arg', '-P'],
             description='New parent argument',
             required=True

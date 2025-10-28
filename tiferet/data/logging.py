@@ -22,8 +22,8 @@ from .settings import (
 
 # *** data
 
-# ** data: formatter_data
-class FormatterData(Formatter, DataObject):
+# ** data: formatter_config_data
+class FormatterConfigData(Formatter, DataObject):
     '''
     A data representation of a logging formatter configuration.
     '''
@@ -35,7 +35,7 @@ class FormatterData(Formatter, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -63,8 +63,8 @@ class FormatterData(Formatter, DataObject):
             **kwargs
         )
 
-# ** data: handler_data
-class HandlerData(Handler, DataObject):
+# ** data: handler_config_data
+class HandlerConfigData(Handler, DataObject):
     '''
     A data representation of a logging handler configuration.
     '''
@@ -76,7 +76,7 @@ class HandlerData(Handler, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -104,8 +104,8 @@ class HandlerData(Handler, DataObject):
             **kwargs
         )
 
-# ** data: logger_data
-class LoggerData(Logger, DataObject):
+# ** data: logger_config_data
+class LoggerConfigData(Logger, DataObject):
     '''
     A data representation of a logger configuration.
     '''
@@ -117,7 +117,7 @@ class LoggerData(Logger, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -145,8 +145,8 @@ class LoggerData(Logger, DataObject):
             **kwargs
         )
 
-# ** data: logging_settings_data
-class LoggingSettingsData(DataObject):
+# ** data: logging_settings_config_data
+class LoggingSettingsConfigData(DataObject):
     '''
     A data representation of the overall logging configuration.
     '''
@@ -158,7 +158,7 @@ class LoggingSettingsData(DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.allow()
+            'to_data.yaml': DataObject.allow()
         }
 
     # * attribute: id
@@ -170,7 +170,7 @@ class LoggingSettingsData(DataObject):
 
     # * attribute: formatters
     formatters = DictType(
-        ModelType(FormatterData),
+        ModelType(FormatterConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of formatter configurations, keyed by id.'
@@ -179,7 +179,7 @@ class LoggingSettingsData(DataObject):
 
     # * attribute: handlers
     handlers = DictType(
-        ModelType(HandlerData),
+        ModelType(HandlerConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of handler configurations, keyed by id.'
@@ -188,7 +188,7 @@ class LoggingSettingsData(DataObject):
 
     # * attribute: loggers
     loggers = DictType(
-        ModelType(LoggerData),
+        ModelType(LoggerConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of logger configurations, keyed by id.'
@@ -197,7 +197,7 @@ class LoggingSettingsData(DataObject):
 
     # * method: from_yaml_data
     @staticmethod
-    def from_yaml_data(**data) -> 'LoggingSettingsData':
+    def from_yaml_data(**data) -> 'LoggingSettingsConfigData':
         '''
         Initializes a new LoggingSettingsData object from a YAML data representation.
 
@@ -209,19 +209,19 @@ class LoggingSettingsData(DataObject):
 
         # Create a new LoggingSettingsData object from the provided data.
         return DataObject.from_data(
-            LoggingSettingsData,
+            LoggingSettingsConfigData,
             formatters={id: DataObject.from_data(
-                FormatterData,
+                FormatterConfigData,
                 **formatter_data,
                 id=id
             ) for id, formatter_data in data.get('formatters', {}).items()},
             handlers={id: DataObject.from_data(
-                HandlerData,
+                HandlerConfigData,
                 **handler_data,
                 id=id
             ) for id, handler_data in data.get('handlers', {}).items()},
             loggers={id: DataObject.from_data(
-                LoggerData,
+                LoggerConfigData,
                 **logger_data,
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
