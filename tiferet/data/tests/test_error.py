@@ -1,4 +1,4 @@
-"""Tiferet Error Data Transfer Object Tests"""
+"""Tiferet Error Data Object Tests"""
 
 # *** imports
 
@@ -6,36 +6,13 @@
 import pytest
 
 # ** app
-from ...models import (
-    ModelObject,
-    ErrorMessage,
-)
-from ..error import (
-    ErrorData,
-)
+from ..error import  ErrorConfigData
 
 # *** fixtures
 
-# ** fixture: error_message
+# ** fixture: error_config_data
 @pytest.fixture
-def error_message() -> ErrorMessage:
-    '''
-    Provides an error message data fixture.
-
-    :return: The error message instance.
-    :rtype: ErrorMessage
-    '''
-
-    # Create and return an error message object.
-    return ModelObject.new(
-        ErrorMessage,
-        lang='en',
-        text='Test error message.'
-    )
-
-# ** fixture: error_data
-@pytest.fixture
-def error_data(error_message: ErrorMessage) -> ErrorData:
+def error_config_data() -> ErrorConfigData:
     '''
     Provides an error data fixture.
 
@@ -46,17 +23,20 @@ def error_data(error_message: ErrorMessage) -> ErrorData:
     '''
 
     # Create and return an error data object.
-    return ErrorData.from_data(
+    return ErrorConfigData.from_data(
         id='TEST_ERROR',
         name='TEST_ERROR',
         error_code='TEST_ERROR',
-        message=[error_message]
+        message=[{
+            'lang': 'en',
+            'text': 'Test error message.'
+        }]
     )
 
 # *** tests
 
 # ** test: error_data_from_data
-def test_error_data_from_data(error_data: ErrorData):
+def test_error_data_from_data(error_config_data: ErrorConfigData):
     '''
     Test the creation of error data from a dictionary.
 
@@ -65,14 +45,14 @@ def test_error_data_from_data(error_data: ErrorData):
     '''
 
     # Assert the error data is an instance of ErrorData.
-    assert error_data.name == 'TEST_ERROR'
-    assert error_data.error_code == 'TEST_ERROR'
-    assert len(error_data.message) == 1
-    assert error_data.message[0].lang == 'en'
-    assert error_data.message[0].text == 'Test error message.'
+    assert error_config_data.name == 'TEST_ERROR'
+    assert error_config_data.error_code == 'TEST_ERROR'
+    assert len(error_config_data.message) == 1
+    assert error_config_data.message[0].lang == 'en'
+    assert error_config_data.message[0].text == 'Test error message.'
 
-# ** test: error_data_to_primitive
-def test_error_data_to_primitive(error_data : ErrorData):
+# ** test: error_data_to_primitive_to_data_yaml
+def test_error_data_to_primitive_to_data_yaml(error_config_data : ErrorConfigData):
     '''
     Test the conversion of error data to a primitive dictionary.
 
@@ -81,7 +61,7 @@ def test_error_data_to_primitive(error_data : ErrorData):
     '''
 
     # Convert the error data to a primitive.
-    primitive = error_data.to_primitive('to_data')
+    primitive = error_config_data.to_primitive('to_data.yaml')
 
     # Assert the primitive is a dictionary.
     assert isinstance(primitive, dict)
@@ -95,7 +75,7 @@ def test_error_data_to_primitive(error_data : ErrorData):
     assert primitive.get('message')[0].get('text') == 'Test error message.'
 
 # ** test: error_data_map
-def test_error_data_map(error_data : ErrorData):
+def test_error_data_map(error_config_data : ErrorConfigData):
     '''
     Test the mapping of error data to an error object.
 
@@ -104,12 +84,12 @@ def test_error_data_map(error_data : ErrorData):
     '''
 
     # Map the error data to an error object.
-    error = error_data.map()
+    error = error_config_data.map()
 
     # Assert the error is an instance of Error.
-    assert error.id == error_data.id
-    assert error.name == error_data.name
-    assert error.error_code == error_data.error_code
+    assert error.id == error_config_data.id
+    assert error.name == error_config_data.name
+    assert error.error_code == error_config_data.error_code
     assert len(error.message) == 1
     assert error.message[0].lang == 'en'
     assert error.message[0].text == 'Test error message.'
