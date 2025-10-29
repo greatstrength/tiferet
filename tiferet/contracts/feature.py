@@ -1,4 +1,4 @@
-"""Tiferet Error Contracts"""
+"""Tiferet Feature Data Transfer Objects"""
 
 # *** imports
 
@@ -17,37 +17,40 @@ from .settings import (
     Service
 )
 
-# *** contracts
+# *** contacts
 
-# ** contract: error_message
-class ErrorMessage(ModelContract):
+# ** contract: request
+class Request(ModelContract):
     '''
-    Contract for an error message translation.
+    Request contract for feature execution.
     '''
 
-    # * attribute: lang
-    lang: str
+    # * attribute: headers
+    headers: Dict[str, str]
 
-    # * attribute: text
-    text: str
+    # * attribute: data
+    data: Dict[str, Any]
 
-    # * method: format
-    @abstractmethod
-    def format(self, *args) -> str:
+    # * attribute: debug
+    debug: bool
+
+    # * attribute: result
+    result: str
+
+    # * method: set_result
+    def set_result(self, result: Any):
         '''
-        Format the error message text with provided arguments.
+        Set the result of the request.
 
-        :param args: The arguments to format the error message text.
-        :type args: tuple
-        :return: The formatted error message text.
-        :rtype: str
+        :param result: The result to set.
+        :type result: Any
         '''
-        raise NotImplementedError('The format method must be implemented by the error message.')
+        raise NotImplementedError('The set_result method must be implemented by the request model.')
 
-# ** contract: error
-class Error(ModelContract):
+# ** contract: feature_command
+class FeatureCommand(ModelContract):
     '''
-    Contract for an error object with multilingual messages.
+    Feature command contract.
     '''
 
     # * attribute: id
@@ -56,139 +59,107 @@ class Error(ModelContract):
     # * attribute: name
     name: str
 
-    # * attribute: error_code
-    error_code: str
+    # * attribute: description
+    description: str
 
-    # * attribute: message
-    message: List[ErrorMessage]
+    # * attribute: data_key
+    data_key: str
 
-    # * method: format_message
-    @abstractmethod
-    def format_message(self, lang: str = 'en_US', *args) -> str:
-        '''
-        Format the error message for a specified language.
+    # * attribute: pass_on_error
+    pass_on_error: bool
 
-        :param lang: The language of the error message text (default: en_US).
-        :type lang: str
-        :param args: The format arguments for the error message text.
-        :type args: tuple
-        :return: The formatted error message text.
-        :rtype: str
-        '''
-        raise NotImplementedError('The format_message method must be implemented by the error.')
+    # * attribute: parameters
+    parameters: Dict[str, Any]
 
-    # * method: format_response
-    @abstractmethod
-    def format_response(self, lang: str = 'en_US', *args, **kwargs) -> Dict[str, Any]:
-        '''
-        Generate a formatted error response for a specified language.
-
-        :param lang: The language of the error message text (default: en_US).
-        :type lang: str
-        :param args: The format arguments for the error message text.
-        :type args: tuple
-        :param kwargs: Additional keyword arguments for the response.
-        :type kwargs: dict
-        :return: The formatted error response.
-        :rtype: Dict[str, Any]
-        '''
-        raise NotImplementedError('The format_response method must be implemented by the error.')
-
-    # * method: set_message
-    @abstractmethod
-    def set_message(self, lang: str, text: str) -> None:
-        '''
-        Set or update the error message text for a specified language.
-
-        :param lang: The language of the error message text.
-        :type lang: str
-        :param text: The error message text.
-        :type text: str
-        '''
-        raise NotImplementedError('The set_message method must be implemented by the error.')
-
-# ** contract: error_repository
-class ErrorRepository(Repository):
+# ** contract: feature
+class Feature(ModelContract):
     '''
-    Contract for an error repository to manage error objects.
+    Feature contract.
+    '''
+
+    # * attribute: id
+    id: str
+
+    # * attribute: commands
+    commands: List[FeatureCommand]
+
+# ** contract: feature_repository
+class FeatureRepository(Repository):
+    '''
+    Feature repository interface.
     '''
 
     # * method: exists
     @abstractmethod
-    def exists(self, id: str, **kwargs) -> bool:
+    def exists(self, id: str) -> bool:
         '''
-        Check if the error exists.
+        Verifies if the feature exists.
 
-        :param id: The error id.
+        :param id: The feature id.
         :type id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: Whether the error exists.
+        :return: Whether the feature exists.
         :rtype: bool
         '''
-        raise NotImplementedError('The exists method must be implemented by the error repository.')
+        raise NotImplementedError('The exists method must be implemented by the feature repository.')
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> Error:
+    def get(self, id: str) -> Feature:
         '''
-        Get an error object by its ID.
+        Get the feature by id.
 
-        :param id: The error id.
+        :param id: The feature id.
         :type id: str
-        :return: The error object.
-        :rtype: Error
+        :return: The feature object.
+        :rtype: Any
         '''
-        raise NotImplementedError('The get method must be implemented by the error repository.')
+        raise NotImplementedError('The get method must be implemented by the feature repository.')
 
     # * method: list
     @abstractmethod
-    def list(self) -> List[Error]:
+    def list(self, group_id: str = None) -> List[Feature]:
         '''
-        List all error objects.
+        List the features.
 
-        :return: The list of error objects.
-        :rtype: List[Error]
+        :param group_id: The group id.
+        :type group_id: str
+        :return: The list of features.
+        :rtype: List[Feature]
         '''
-        raise NotImplementedError('The list method must be implemented by the error repository.')
+        raise NotImplementedError('The list method must be implemented by the feature repository.')
 
-    # * method: save
-    @abstractmethod
-    def save(self, error: Error) -> None:
-        '''
-        Save the error.
 
-        :param error: The error.
-        :type error: Error
-        '''
-        raise NotImplementedError('The save method must be implemented by the error repository.')
-    
-    # * method: delete
-    @abstractmethod
-    def delete(self, id: str) -> None:
-        '''
-        Delete the error by its unique identifier.
-
-        :param id: The unique identifier for the error to delete.
-        :type id: str
-        '''
-        raise NotImplementedError('The delete method must be implemented by the error repository.')
-
-# ** contract: error_service
-class ErrorService(Service):
+# ** contract: feature_service
+class FeatureService(Service):
     '''
-    Contract for an error service to handle error operations.
+    Feature service contract.
     '''
 
-    # * method: load_errors
+    # * method: parse_parameter
     @abstractmethod
-    def load_errors(self, configured_errors: List[Error] = []) -> List[Error]:
+    def parse_parameter(self, parameter: str, request: Request = None) -> str:
         '''
-        Load errors by their codes.
+        Parse a parameter.
 
-        :param configured_errors: The list of hard-coded errors to load.
-        :type configured_errors: List[Error]
-        :return: The list of loaded errors.
-        :rtype: List[Error]
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request object containing data for parameter parsing.
+        :type request: Request
+        :return: The parsed parameter.
+        :rtype : str
         '''
-        raise NotImplementedError('The load_errors method must be implemented by the error service.')
+        raise NotImplementedError('The parse_parameter method must be implemented by the feature service.')
+
+    # * method: get_feature
+    @abstractmethod
+    def get_feature(self, feature_id: str) -> Feature:
+        '''
+        Get a feature by its ID.
+
+        :param feature_id: The ID of the feature to retrieve.
+        :type feature_id: str
+        :return: The feature object.
+        :rtype: Feature
+        '''
+        raise NotImplementedError('The get_feature method must be implemented by the feature service.')
+
