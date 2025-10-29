@@ -1,22 +1,25 @@
+"""Tiferet Error YAML Proxy"""
+
 # *** imports
 
 # ** core
-from typing import Any, List, Dict
+from typing import (
+    Any,
+    List,
+    Dict,
+    Callable
+)
 
 # ** app
-from .core import *
-from ...data.error import ErrorData
-from ...contracts.error import (
-    Error,
-    ErrorRepository
-)
-from ...clients import yaml as yaml_client
-
+from ...commands import raise_error
+from ...data import DataObject, ErrorConfigData
+from ...contracts import ErrorContract, ErrorRepository
+from .settings import YamlFileProxy
 
 # *** proxies
 
 # ** proxy: yaml_proxy
-class ErrorYamlProxy(ErrorRepository, YamlConfigurationProxy):
+class ErrorYamlProxy(ErrorRepository, YamlFileProxy):
     '''
     The YAML proxy for the error repository
     '''
@@ -34,13 +37,17 @@ class ErrorYamlProxy(ErrorRepository, YamlConfigurationProxy):
         super().__init__(error_config_file)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+    def load_yaml(
+            self,
+            start_node: Callable = lambda data: data,
+            data_factory: Callable = lambda data: data
+        ) -> Any:
         '''
         Load data from the YAML configuration file.
         :param start_node: The starting node in the YAML file.
-        :type start_node: str
+        :type start_node: Callable
         :param create_data: A callable to create data objects from the loaded data.
-        :type create_data: callable
+        :type create_data: Callable
         :return: The loaded data.
         :rtype: Any
         '''
@@ -49,15 +56,15 @@ class ErrorYamlProxy(ErrorRepository, YamlConfigurationProxy):
         try:
             return super().load_yaml(
                 start_node=start_node,
-                create_data=create_data
+                data_factory=data_factory
             )
-        
+
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'ERROR_CONFIG_LOADING_FAILED',
-                f'Unable to load error configuration file {self.config_file}: {e}.',
-                self.config_file,
+                f'Unable to load error configuration file {self.yaml_file}: {e}.',
+                self.yaml_file,
                 str(e)
             )
 
@@ -75,64 +82,101 @@ class ErrorYamlProxy(ErrorRepository, YamlConfigurationProxy):
         '''
 
         # Load the error data from the yaml configuration file.
-        data = self.get(id)
+        error = self.get(id)
 
         # Return whether the error exists.
-        return data is not None
+        return error is not None
 
     # * method: get
-    def get(self, id: str) -> Error:
+    def get(self, id: str) -> ErrorContract:
         '''
         Get the error.
-        
+
         :param id: The error id.
         :type id: str
         :return: The error.
-        :rtype: Error
+        :rtype: ErrorContract
         '''
 
         # Load the error data from the yaml configuration file.
-        _data: ErrorData = self.load_yaml(
-            create_data=lambda data: ErrorData.from_data(
-                id=id, **data),
-            start_node=lambda data: data.get('errors').get(id))
+        error_data = self.load_yaml(
+            start_node=lambda data: data.get('errors').get(id)
+        )
 
-        # Return the error object.
-        return _data.map() if _data else None
-    
+        # If no data is found, return None.
+        if not error_data:
+            return None
+        
+        # Map the error data to the error object and return it.
+        return DataObject.from_data(
+            ErrorConfigData,
+            id=id,
+            **error_data
+        ).map()
+
     # * method: list
-    def list(self) -> List[Error]:
+    def list(self) -> List[ErrorContract]:
         '''
         List all errors.
 
         :return: The list of errors.
-        :rtype: List[Error]
+        :rtype: List[ErrorContract]
         '''
 
         # Load the error data from the yaml configuration file.
-        _data: Dict[str, ErrorData] = self.load_yaml(
-            create_data=lambda data: {id: ErrorData.from_data(
-                id=id, **error_data) for id, error_data in data.items()},
+        errors: Dict[str, ErrorConfigData] = self.load_yaml(
+            data_factory=lambda data: {
+                id: DataObject.from_data(
+                    ErrorConfigData,
+                    id=id, 
+                    **error_data
+                ) for id, error_data in data.items()
+            },
             start_node=lambda data: data.get('errors'))
 
         # Return the error object.
-        return [data.map() for data in _data.values()]
+        return [data.map() for data in errors.values()]
 
     # * method: save
-    def save(self, error: Error):
+    def save(self, error: ErrorContract):
         '''
         Save the error.
 
         :param error: The error.
-        :type error: Error
+        :type error: ErrorContract
         '''
 
         # Create updated error data.
-        error_data = ErrorData.from_model(ErrorData, error)
+        error_data = DataObject.from_model(
+            ErrorConfigData, 
+            error
+        )
 
         # Update the error data.
-        yaml_client.save(
-            yaml_file=self.config_file,
-            data=error_data.to_primitive(),
-            data_save_path=f'errors/{error.id}',
+        self.save_yaml(
+            data=error_data.to_primitive(self.default_role),
+            data_yaml_path=f'errors/{error.id}',
+        )
+
+    # * method: delete
+    def delete(self, id: str):
+        '''
+        Delete the error.
+
+        :param id: The error id.
+        :type id: str
+        '''
+
+        # Retrieve the errors data from the yaml file.
+        errors_data = self.load_yaml(
+            start_node=lambda data: data.get('errors', {})
+        )
+
+        # Pop the error data whether it exists or not.
+        errors_data.pop(id, None)
+
+        # Save the updated errors data back to the yaml file.
+        self.save_yaml(
+            data=errors_data,
+            data_yaml_path='errors'
         )
