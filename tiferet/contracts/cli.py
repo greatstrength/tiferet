@@ -131,6 +131,39 @@ class CliRepository(Repository):
         :rtype: List[CliArgument]
         '''
         raise NotImplementedError('get_parent_arguments method must be implemented in the CLI repository.')
+    
+    # method: save_command
+    @abstractmethod
+    def save_command(self, cli_command: CliCommand):
+        '''
+        Save a CLI command to the repository.
+
+        :param cli_command: The CLI command to save.
+        :type cli_command: CliCommand
+        '''
+        raise NotImplementedError('save_command method must be implemented in the CLI repository.')
+    
+    # method: delete_command
+    @abstractmethod
+    def delete_command(self, command_id: str):
+        '''
+        Delete a CLI command from the repository by its unique identifier.
+
+        :param command_id: The unique identifier for the command to delete.
+        :type command_id: str
+        '''
+        raise NotImplementedError('delete_command method must be implemented in the CLI repository.')
+    
+    # * method: save_parent_arguments
+    @abstractmethod
+    def save_parent_arguments(self, parent_arguments: List[CliArgument]):
+        '''
+        Save the parent arguments for the command line interface.
+
+        :param parent_arguments: A list of parent arguments to save.
+        :type parent_arguments: List[CliArgument]
+        '''
+        raise NotImplementedError('save_parent_arguments method must be implemented in the CLI repository.')
 
 # ** contract: cli_service
 class CliService(Service):
