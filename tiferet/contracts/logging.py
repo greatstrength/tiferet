@@ -30,6 +30,18 @@ class FormatterContract(ModelContract):
     # * attribute: id
     id: str
 
+    # * attribute: name
+    name: str
+
+    # * attribute: description
+    description: str
+
+    # * attribute: format
+    format: str
+
+    # * datefmt
+    datefmt: str
+
     # * method: format_config
     def format_config(self) -> Dict[str, Any]:
         '''
@@ -49,6 +61,27 @@ class HandlerContract(ModelContract):
     # * attribute: id
     id: str
 
+    # * attribute: name
+    name: str
+
+    # * attribute: description
+    description: str
+
+    # * attribute: module_path
+    module_path: str
+
+    # * attribute: class_name
+    class_name: str
+
+    # * attribute: level
+    level: str
+
+    # * attribute: formatter
+    formatter: str
+
+    # * stream
+    stream: str
+
     # * method: format_config
     def format_config(self) -> Dict[str, Any]:
         '''
@@ -67,6 +100,21 @@ class LoggerContract(ModelContract):
 
     # * attribute: id
     id: str
+
+    # * attribute: name
+    name: str
+
+    # * attribute: description
+    description: str
+
+    # * attribute: level
+    level: str
+
+    # * attribute: handlers
+    handlers: List[str]
+
+    # * attribute: propagate
+    propagate: bool
 
     # * attribute: is_root
     is_root: bool
@@ -97,6 +145,72 @@ class LoggingRepository(Repository):
         :rtype: Tuple[FormatterContract, HandlerContract, LoggerContract]
         '''
         raise NotImplementedError('The list_all method must be implemented by the logging repository.')
+    
+    # method: save_formatter
+    @abstractmethod
+    def save_formatter(self, formatter: FormatterContract):
+        '''
+        Save a formatter configuration.
+
+        :param formatter: The formatter configuration to save.
+        :type formatter: FormatterContract
+        '''
+        raise NotImplementedError('The save_formatter method must be implemented by the logging repository.')
+    
+    # method: save_handler
+    @abstractmethod
+    def save_handler(self, handler: HandlerContract):
+        '''
+        Save a handler configuration.
+
+        :param handler: The handler configuration to save.
+        :type handler: HandlerContract
+        '''
+        raise NotImplementedError('The save_handler method must be implemented by the logging repository.')
+    
+    # method: save_logger
+    @abstractmethod
+    def save_logger(self, logger: LoggerContract):
+        '''
+        Save a logger configuration.
+
+        :param logger: The logger configuration to save.
+        :type logger: LoggerContract
+        '''
+        raise NotImplementedError('The save_logger method must be implemented by the logging repository.')
+    
+    # method: delete_formatter
+    @abstractmethod
+    def delete_formatter(self, formatter_id: str):
+        '''
+        Delete a formatter configuration by its ID.
+
+        :param formatter_id: The ID of the formatter to delete.
+        :type formatter_id: str
+        '''
+        raise NotImplementedError('The delete_formatter method must be implemented by the logging repository.')
+    
+    # method: delete_handler
+    @abstractmethod
+    def delete_handler(self, handler_id: str):
+        '''
+        Delete a handler configuration by its ID.
+
+        :param handler_id: The ID of the handler to delete.
+        :type handler_id: str
+        '''
+        raise NotImplementedError('The delete_handler method must be implemented by the logging repository.')
+    
+    # method: delete_logger
+    @abstractmethod
+    def delete_logger(self, logger_id: str):
+        '''
+        Delete a logger configuration by its ID.
+
+        :param logger_id: The ID of the logger to delete.
+        :type logger_id: str
+        '''
+        raise NotImplementedError('The delete_logger method must be implemented by the logging repository.')
 
 # ** contract: logging_service
 class LoggingService(Service):
@@ -159,4 +273,3 @@ class LoggingService(Service):
         :rtype: logging.Logger
         '''
         raise NotImplementedError('The create_logger method must be implemented by the logging service.')
-
