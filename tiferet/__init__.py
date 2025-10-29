@@ -23,9 +23,16 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import *
+    from .proxies import YamlFileProxy
+    from .middleware import (
+        File,
+        FileLoaderMiddleware,
+        Yaml,
+        YamlLoaderMiddleware 
+    )
 except:
     pass
 
 # *** version
-__version__ = '1.2.0b1'
+
+__version__ = '1.2.0'

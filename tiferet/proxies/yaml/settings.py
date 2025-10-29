@@ -23,8 +23,11 @@ class YamlFileProxy(object):
     # * attribute: encoding
     encoding: str
 
+    # * attribute: default_role
+    default_role: str
+
     # * method: init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8'):
+    def __init__(self, yaml_file: str, encoding: str = 'utf-8', default_role: str = 'to_data.yaml'):
         '''
         Initialize the proxy.
 
@@ -42,6 +45,7 @@ class YamlFileProxy(object):
 
         self.yaml_file = yaml_file
         self.encoding = encoding
+        self.default_role = default_role
 
     # * method: load_yaml
     def load_yaml(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
