@@ -106,12 +106,13 @@ class ErrorContext(object):
         :rtype: bool
         '''
 
-        # Raise the exception if it is not a Tiferet error.
-        if not isinstance(exception, TiferetError):
-            raise exception
+        # Attempt to get the error by its code.
+        # Raise the error if the error code is not found.
+        try:
+            error = self.get_error_by_code(exception.error_code)
+        except TiferetError as e:
+            raise e
 
-        # Get the error by its code from the error service.
-        error = self.get_error_by_code(exception.error_code)
         
         # Format the error response.
         error_response = error.format_response(

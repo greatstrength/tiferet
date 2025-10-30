@@ -240,4 +240,3 @@ class ContainerAttributeConfigData(ContainerAttribute, DataObject):
         # Validate and return the object.
         data_object.validate()
         return data_object
-

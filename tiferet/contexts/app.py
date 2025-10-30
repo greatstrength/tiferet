@@ -13,18 +13,11 @@ from .request import RequestContext
 from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models import (
     ModelObject,
+    AppInterface,
     AppAttribute,
 )
-from ..handlers.app import (
-    AppService,
-    AppHandler,
-    AppRepository,
-)
-from ..commands import (
-    Command,
-    TiferetError
-)
-from ..commands.app import GetAppInterface
+from ..handlers.app import AppService, AppHandler
+from ..commands import TiferetError
 
 # *** contexts
 
@@ -56,7 +49,25 @@ class AppManagerContext(object):
         self.settings = settings
 
         # Set the app service.
-        self.app_service = app_service
+        self.app_service = app_service if app_service else AppHandler(settings=settings)
+
+    # * method: load_default_attributes
+    def load_default_attributes(self, app_interface: AppInterface):
+        '''
+        Load the default attributes for the app interface.
+
+        :param app_interface: The app interface.
+        :type app_interface: AppInterface
+        '''
+
+        attribute_ids = [attr.attribute_id for attr in app_interface.attributes]
+
+        # Load the default attributes from the configuration.
+        # Add any default attributes that are not already present in the app interface.
+        for attr_data in DEFAULT_ATTRIBUTES:
+            if attr_data.get('attribute_id') in attribute_ids:
+                continue
+            app_interface.add_attribute(**attr_data)
 
     # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
@@ -69,17 +80,8 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Load the app repository.
-        app_repo: AppRepository = self.app_service.load_app_repository(**self.settings)
-
         # Get the app interface settings.
-        app_interface = Command.handle(
-            GetAppInterface,
-            dependencies=dict(
-                app_repo=app_repo
-            ),
-            interface_id=interface_id
-        )
+        app_interface = self.app_service.get_app_interface(interface_id)
 
         # Retrieve the default attributes from the configuration.
         default_attrs = [ModelObject.new(
@@ -174,7 +176,7 @@ class AppInterfaceContext(object):
         self.logging = logging
 
     # * method: parse_request
-    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None) -> RequestContext:
+    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
         '''
         Parse the incoming request.
 
@@ -184,6 +186,8 @@ class AppInterfaceContext(object):
         :type data: dict
         :param feature_id: The feature identifier if provided.
         :type feature_id: str
+        :kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The parsed request as a request context.
         :rtype: RequestContext
         '''
@@ -225,12 +229,14 @@ class AppInterfaceContext(object):
         self.features.execute_feature(feature_id, request, **kwargs)
 
     # * method: handle_error
-    def handle_error(self, error: Exception) -> Any:
+    def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
         Handle the error and return the response.
 
         :param error: The error to handle.
         :type error: Exception
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The error response.
         :rtype: Any
         '''
@@ -244,15 +250,17 @@ class AppInterfaceContext(object):
             )
 
         # Handle the error and return the response.
-        return self.errors.handle_error(error)
+        return self.errors.handle_error(error, **kwargs)
 
     # * method: handle_response
-    def handle_response(self, request: RequestContext) -> Any:
+    def handle_response(self, request: RequestContext, **kwargs) -> Any:
         '''
         Handle the response from the request.
 
         :param request: The request context.
         :type request: RequestContext
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The response.
         :rtype: Any
         '''
@@ -299,11 +307,11 @@ class AppInterfaceContext(object):
         # Handle error and return response if triggered.
         except TiferetError as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
-            return self.handle_error(e)
+            return self.handle_error(e, **kwargs)
 
         # Handle response.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
-        return self.handle_response(request)
+        return self.handle_response(request, **kwargs)
 
 # ** context: app_context (obsolete)
 class AppContext(AppManagerContext):

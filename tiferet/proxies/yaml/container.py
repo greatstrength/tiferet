@@ -205,4 +205,3 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
             constants,
             data_yaml_path='const'
         )
-
