@@ -146,4 +146,3 @@ class FeatureConfigData(Feature, DataObject):
             group_id=group_id,
             **kwargs
         )
-

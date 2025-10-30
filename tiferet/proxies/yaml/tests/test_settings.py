@@ -50,7 +50,6 @@ def yaml_config_proxy(temp_yaml_file: str) -> YamlFileProxy:
     # Create and return the YamlFileProxy instance.
     return YamlFileProxy(temp_yaml_file)
 
-
 # *** tests
 
 # ** test: yaml_config_proxy_init_invalid_file

@@ -273,4 +273,3 @@ class LoggingService(Service):
         :rtype: logging.Logger
         '''
         raise NotImplementedError('The create_logger method must be implemented by the logging service.')
-

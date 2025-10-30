@@ -184,4 +184,3 @@ class FeatureService(Service):
         :rtype: Feature
         '''
         raise NotImplementedError('The get_feature method must be implemented by the feature service.')
-

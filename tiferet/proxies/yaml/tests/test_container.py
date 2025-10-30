@@ -2,16 +2,13 @@
 
 # *** imports
 
-# ** core
-import os
-
 # ** infra
 import pytest
 import yaml
 
 # ** app
 from ....commands import TiferetError
-from ....data import DataObject, ContainerAttributeConfigData, FlaggedDependencyConfigData
+from ....data import DataObject, ContainerAttributeConfigData
 from ..container import ContainerYamlProxy
 
 # *** fixtures
