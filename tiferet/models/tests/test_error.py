@@ -80,7 +80,7 @@ def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error
     :return: The Error instance.
     :rtype: Error
     '''
-    
+
     # Create the error object.
     return Error.new(
         name='Test Formatted Error',

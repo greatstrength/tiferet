@@ -82,7 +82,7 @@ def test_feature_new_no_description():
     '''
     Test creating a Feature instance without a description.
     '''
-    
+
     # Create new feature with no description.
     feature = Feature.new(
         name='Test Feature',

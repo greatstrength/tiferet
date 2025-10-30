@@ -45,7 +45,7 @@ def test_model_object_new(test_model_object: ModelObject):
     :param test_model_object: The ModelObject subclass to test.
     :type test_model_object: ModelObject
     '''
-    
+
     # Create a new model object using the fixture.
     model_object = ModelObject.new(test_model_object, attribute='test')
 

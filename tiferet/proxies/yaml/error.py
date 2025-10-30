@@ -11,16 +11,9 @@ from typing import (
 )
 
 # ** app
-from ...commands import (
-    raise_error,
-    TiferetError
-)
+from ...commands import raise_error
 from ...data import DataObject, ErrorConfigData
-from ...contracts import (
-    ErrorContract,
-    ErrorRepository
-)
-from ...clients import yaml as yaml_client
+from ...contracts import ErrorContract, ErrorRepository
 from .settings import YamlFileProxy
 
 # *** proxies

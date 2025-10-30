@@ -150,7 +150,7 @@ def test_cli_command_has_argument(cli_command: CliCommand):
 def test_cli_command_add_argument(cli_command: CliCommand):
     '''
     Test that a CLI command can add an argument.
-    
+
     :param cli_command: The CLI command to test.
     :type cli_command: CliCommand
     '''
