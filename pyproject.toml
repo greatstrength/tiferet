@@ -40,6 +40,7 @@ include = [
     "tiferet.contracts",
     "tiferet.data",
     "tiferet.handlers",
+    "tiferet.middleware",
     "tiferet.models",
     "tiferet.proxies",
     "tiferet.proxies.yaml"
