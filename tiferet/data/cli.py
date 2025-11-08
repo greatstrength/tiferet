@@ -34,7 +34,8 @@ class CliCommandConfigData(CliCommand, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('arguments'),
-            'to_data.yaml': DataObject.deny('id', 'arguments')
+            'to_data.yaml': DataObject.deny('id', 'arguments'),
+            'to_data.json': DataObject.deny('id', 'arguments')
         }
 
     # * class: cli_argument_config_data

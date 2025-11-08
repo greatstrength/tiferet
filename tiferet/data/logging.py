@@ -35,7 +35,8 @@ class FormatterConfigData(Formatter, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -76,7 +77,8 @@ class HandlerConfigData(Handler, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -117,7 +119,8 @@ class LoggerConfigData(Logger, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -158,7 +161,8 @@ class LoggingSettingsConfigData(DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.allow()
+            'to_data.yaml': DataObject.allow(),
+            'to_data.json': DataObject.allow()
         }
 
     # * attribute: id
