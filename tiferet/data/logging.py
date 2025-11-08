@@ -199,13 +199,13 @@ class LoggingSettingsConfigData(DataObject):
         )
     )
 
-    # * method: from_yaml_data
+    # * method: from_data
     @staticmethod
-    def from_yaml_data(**data) -> 'LoggingSettingsConfigData':
+    def from_data(**data) -> 'LoggingSettingsConfigData':
         '''
-        Initializes a new LoggingSettingsData object from a YAML data representation.
+        Initializes a new LoggingSettingsData object from a data representation.
 
-        :param data: The YAML data to initialize the LoggingSettingsData object.
+        :param data: The data to initialize the LoggingSettingsData object.
         :type data: dict
         :return: A new LoggingSettingsData object.
         :rtype: LoggingSettingsData
@@ -230,3 +230,19 @@ class LoggingSettingsConfigData(DataObject):
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
         )
+
+    # * method: from_yaml_data
+    @staticmethod
+    def from_yaml_data(**data) -> 'LoggingSettingsConfigData':
+        '''
+        Initializes a new LoggingSettingsData object from a YAML data representation.
+        This is to be deleted for v2.0.0 in favor of from_data.
+
+        :param data: The YAML data to initialize the LoggingSettingsData object.
+        :type data: dict
+        :return: A new LoggingSettingsData object.
+        :rtype: LoggingSettingsData
+        '''
+
+        # Call the from_data method to create the LoggingSettingsData object.
+        return LoggingSettingsConfigData.from_data(**data)
