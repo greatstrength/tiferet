@@ -35,7 +35,7 @@ class CliCommandConfigData(CliCommand, DataObject):
         roles = {
             'to_model': DataObject.deny('arguments'),
             'to_data.yaml': DataObject.deny('id', 'arguments'),
-            'to_data.json': DataObject.deny('id', 'arguments')
+            'to_data.json': DataObject.deny('id', 'arguments', 'key', 'group_key'),
         }
 
     # * class: cli_argument_config_data
