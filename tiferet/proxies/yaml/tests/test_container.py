@@ -122,8 +122,10 @@ def test_container_yaml_proxy_list_all_empty(container_yaml_proxy: ContainerYaml
     # Create new config file with no container attributess.
     file_path = tmp_path / 'test_empty.yml'
     with open(file_path, 'w') as f:
-        f.write('attrs:\n')
-        f.write('const:\n')
+        yaml.safe_dump({
+            'attrs': {},
+            'const': {}
+        }, f)
 
     # Replace the config file path in the proxy.
     container_yaml_proxy.yaml_file = file_path
