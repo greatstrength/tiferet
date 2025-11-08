@@ -23,6 +23,9 @@ class JsonFileProxy(object):
     # * attribute: encoding
     encoding: str
 
+    # * attribute: indent
+    indent: int
+
     # * attribute: default_role
     default_role: str
 
