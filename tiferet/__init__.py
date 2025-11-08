@@ -23,7 +23,7 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import YamlFileProxy
+    from .proxies import YamlFileProxy, JsonFileProxy
     from .middleware import (
         File,
         FileLoaderMiddleware,
@@ -35,4 +35,4 @@ except:
 
 # *** version
 
-__version__ = '1.2.1'
+__version__ = '1.3.0'

@@ -4,3 +4,4 @@
 
 # ** app
 from .yaml import YamlFileProxy
+from .json import JsonFileProxy
