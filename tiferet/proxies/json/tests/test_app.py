@@ -7,7 +7,8 @@ import pytest
 import json
 
 # ** app
-from ....configs import TiferetError
+from ....commands import TiferetError
+from ....data import DataObject, AppInterfaceConfigData
 from ..app import AppJsonProxy
 
 # *** fixtures
@@ -186,8 +187,7 @@ def test_app_json_proxy_get_interface_not_found(app_json_proxy: AppJsonProxy):
 
 # ** test: app_json_proxy_save_interface
 def test_app_json_proxy_save_interface(
-        app_json_proxy: AppJsonProxy,
-        app_id: str
+        app_json_proxy: AppJsonProxy
     ):
     '''
     Test the app JSON proxy save settings method.
@@ -198,30 +198,45 @@ def test_app_json_proxy_save_interface(
     :type app_id: str
     '''
 
-    # Get the interface.
-    interface = app_json_proxy.get_interface(app_id)
+    # Create a new app interface to save.
+    new_interface = DataObject.from_data(
+        AppInterfaceConfigData,
+        id='new_test_app_json_proxy',
+        name='New Test App JSON Proxy',
+        description='The context for testing the new app json proxy.',
+        feature_flag='new_test_app_json_proxy',
+        data_flag='new_test_app_json_proxy',
+        attributes={
+            'new_test_attribute': {
+                'module_path': 'new_test_module_path',
+                'class_name': 'new_test_class_name'
+            }
+        },
+        constants={
+            'new_test_const': 'new_test_const_value'
+        }
+    ).map()
 
-    # Modify the interface name.
-    interface.name = 'Updated Test App JSON Proxy'
 
     # Save the interface.
-    app_json_proxy.save_interface(interface)
+    app_json_proxy.save_interface(new_interface)
 
     # Get the updated interface.
-    updated_interface = app_json_proxy.get_interface(app_id)
+    updated_interface = app_json_proxy.get_interface(new_interface.id)
 
     # Check the updated interface.
     assert updated_interface
-    assert updated_interface.name == 'Updated Test App JSON Proxy'
-    assert updated_interface.description == 'The context for testing the app json proxy.'
-    assert updated_interface.feature_flag == 'test_app_json_proxy'
-    assert updated_interface.data_flag == 'test_app_json_proxy'
+    assert updated_interface.id == 'new_test_app_json_proxy'
+    assert updated_interface.name == 'New Test App JSON Proxy'
+    assert updated_interface.description == 'The context for testing the new app json proxy.'
+    assert updated_interface.feature_flag == 'new_test_app_json_proxy'
+    assert updated_interface.data_flag == 'new_test_app_json_proxy'
     assert len(updated_interface.attributes) == 1
-    assert updated_interface.attributes[0].attribute_id == 'test_attribute'
-    assert updated_interface.attributes[0].module_path == 'test_module_path'
-    assert updated_interface.attributes[0].class_name == 'test_class_name'
+    assert updated_interface.attributes[0].attribute_id == 'new_test_attribute'
+    assert updated_interface.attributes[0].module_path == 'new_test_module_path'
+    assert updated_interface.attributes[0].class_name == 'new_test_class_name'
     assert updated_interface.constants
-    assert updated_interface.constants['test_const'] == 'test_const_value'
+    assert updated_interface.constants['new_test_const'] == 'new_test_const_value'
 
 # ** test: app_json_proxy_delete_interface
 def test_app_json_proxy_delete_interface(

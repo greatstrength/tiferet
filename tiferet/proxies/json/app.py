@@ -107,7 +107,7 @@ class AppJsonProxy(AppRepository, JsonFileProxy):
         :rtype: AppInterfaceContract
         '''
 
-        # Load the app interface data from the yaml configuration file.
+        # Load the app interface data from the json configuration file.
         interface_data = self.load_json(
             start_node=lambda data: data.get('interfaces').get(id, None)
         )
@@ -150,7 +150,7 @@ class AppJsonProxy(AppRepository, JsonFileProxy):
         # Save the app interface data to the YAML configuration file.
         self.save_json(
             data=interface_data.to_primitive(self.default_role),
-            data_yaml_path=f'interfaces/{interface.id}'
+            data_json_path=f'interfaces.{interface.id}'
         )
 
     # * method: delete_interface
@@ -173,5 +173,5 @@ class AppJsonProxy(AppRepository, JsonFileProxy):
         # Save the updated interfaces data back to the YAML configuration file.
         self.save_json(
             data=interfaces_data,
-            data_yaml_path='interfaces'
+            data_json_path='interfaces'
         )
