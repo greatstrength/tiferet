@@ -21,11 +21,14 @@ class FileLoaderMiddleware:
     # * attribute: encoding
     encoding: str
 
+    # * attribute: newline
+    newline: str
+
     # * attribute: file
     file: Any
 
     # * init
-    def __init__(self, path: str, mode: str = 'r', encoding: str = 'utf-8'):
+    def __init__(self, path: str, mode: str = 'r', encoding: str = 'utf-8', newline: str = None):
         '''
         Initialize the FileLoaderMiddleware with a file path, mode, and encoding.
         
@@ -35,6 +38,8 @@ class FileLoaderMiddleware:
         :type mode: str
         :param encoding: The encoding to use when reading the file (default is 'utf-8').
         :type encoding: str
+        :param newline: The newline parameter to use when opening the file (default is None).
+        :type newline: str
         '''
 
         # Verify the file path.
@@ -50,6 +55,7 @@ class FileLoaderMiddleware:
         self.mode = mode
         self.path = path
         self.encoding = encoding
+        self.newline = newline
 
         # Set the file stream to None initially. It will be opened when the context is entered.
         self.file = None
@@ -79,8 +85,9 @@ class FileLoaderMiddleware:
         '''
 
         # Validate the file mode.
-        if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
-            raise ValueError(f'Invalid file mode: {mode}. Supported modes are: r, w, a, rb, wb, ab.')
+        valid_modes = ['r', 'w', 'a', 'rb', 'wb', 'ab']
+        if mode not in valid_modes:
+            raise ValueError(f'Invalid file mode: {mode}. Supported modes are: {str(valid_modes)}.')
         
     # * method: verify_encoding
     def verify_encoding(self, encoding: str):
@@ -107,7 +114,14 @@ class FileLoaderMiddleware:
         # Raise a RuntimeError if the file is already open to prevent multiple openings.
         if self.file is not None:
             raise RuntimeError(f'File is already open: {self.path}')
-        self.file = open(self.path, mode=self.mode, encoding=self.encoding)
+        
+        # Open the file with the specified parameters.
+        self.file = open(
+            self.path, 
+            mode=self.mode, 
+            encoding=self.encoding,
+            newline=self.newline
+        )
 
     # * method: close_file
     def close_file(self):
