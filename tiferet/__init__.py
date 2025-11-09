@@ -28,7 +28,13 @@ try:
         File,
         FileLoaderMiddleware,
         Yaml,
-        YamlLoaderMiddleware 
+        YamlLoaderMiddleware,
+        Json,
+        JsonLoaderMiddleware,
+        Csv,
+        CsvLoaderMiddleware,
+        CsvDict,
+        CsvDictLoaderMiddleware
     )
 except:
     pass
