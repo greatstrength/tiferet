@@ -1,11 +1,18 @@
-"""Tiferet CSV Loader Middleware"""
+"""Tiferet CSV Middleware"""
 
 # *** imports
 import csv
-from typing import List, Dict, Any, Optional
+from _csv import Reader, Writer
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Any,
+    Optional
+)
 
 # ** app
-from .file import FileLoaderMiddleware   # <-- the parent you posted
+from .file import FileLoaderMiddleware
 
 
 # *** middleware
@@ -19,67 +26,6 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
     delimiter, newline handling and optional field-names.
     '''
 
-    # * attribute: delimiter
-    delimiter: str
-
-    # * attribute: newline
-    newline: str
-
-    # * attribute: use_dict
-    use_dict: bool
-
-    # * attribute: fieldnames
-    fieldnames: Optional[List[str]]
-
-    # * init
-    def __init__(
-        self,
-        path: str,
-        mode: str = 'r',
-        encoding: str = 'utf-8',
-        delimiter: str = ',',
-        newline: str = '',
-        use_dict: bool = False,
-        fieldnames: Optional[List[str]] = None,
-    ):
-        '''
-        Initialise the CSV loader.
-
-        All file-related validation is performed by the parent
-        FileLoaderMiddleware – only CSV options are added here.
-
-        :param path: Path to the CSV file.
-        :type path: str
-        :param mode: 'r' (read) or 'w' (write).
-        :type mode: str
-        :param encoding: File encoding (default utf-8).
-        :type encoding: str
-        :param delimiter: CSV field delimiter.
-        :type delimiter: str
-        :param newline: Newline handling ('' lets csv manage it).
-        :type newline: str
-        :param use_dict: Use DictReader / DictWriter instead of list rows.
-        :type use_dict: bool
-        :param fieldnames: Required for DictWriter; optional for DictReader.
-        :type fieldnames: Optional[List[str]]
-        '''
-
-        # Let the parent validate path / mode / encoding.
-        super().__init__(path=path, mode=mode, encoding=encoding)
-
-        # CSV-specific attributes
-        self.delimiter = delimiter
-        self.newline = newline
-        self.use_dict = use_dict
-        self.fieldnames = fieldnames
-
-        # DictWriter needs fieldnames up-front.
-        if mode == 'w' and use_dict and not fieldnames:
-            raise ValueError('fieldnames must be supplied for DictWriter.')
-
-        # CSV handle will be created in __enter__.
-        self.file = None
-
     # * method: verify_mode
     def verify_mode(self, mode: str):
         '''
@@ -90,103 +36,90 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         '''
 
         # Valid CSV modes.
-        valid_modes = {'r', 'w', 'a', 'r+', 'w+', 'a+'}
+        valid_modes = ['r', 'w', 'a', 'r+', 'w+', 'a+']
         if mode not in valid_modes:
-            raise ValueError(
-                f'Invalid mode: {mode!r}. '
-                f'CSV supports: {", ".join(sorted(valid_modes))}'
-            )
-
-    # * method: open_file
-    def open_file(self):
-        '''
-        Open the underlying file **with CSV newline handling**.
-        Overrides the parent so that newline=self.newline is passed.
-        '''
-
-        # Ensure the file is not already open.
-        if self.file is not None:
-            raise RuntimeError(f'File already open: {self.path}')
-
-        # Open the file with CSV-specific newline handling.
-        self.file = open(
-            self.path,
-            mode=self.mode,
-            encoding=self.encoding,
-            newline=self.newline,
-        )
+            raise ValueError(f'Invalid mode: {mode!r}. CSV supports: {", ".join(sorted(valid_modes))}')
 
     # * method: build_reader
-    def build_reader(self):
+    def build_reader(self, **kwargs) -> Reader:
         '''
-        Build a CSV reader (list or dict) from the opened file.
+        Build a CSV reader list from the opened file.
+
+        :param kwargs: Additional keyword arguments for csv.reader.
+        :type kwargs: dict
+        :return: A CSV reader object.
+        :rtype: Reader
         '''
 
-        # If using DictReader, pass fieldnames if provided.
-        if self.use_dict:
-            self.file = csv.DictReader(
-                self.file,
-                fieldnames=self.fieldnames,
-                delimiter=self.delimiter,
-            )
+        # Ensure the file is opened.
+        if self.file is None:
+            raise RuntimeError('CSV handle not initialized. Use within "with" block.')
 
+        # Ensure the mode is readable.
+        if self.mode[0] not in {'r'}:
+            raise RuntimeError(f'Cannot read in mode {self.mode!r}')
+        
         # Else build a standard CSV reader.
-        else:
-            self.file = csv.reader(self.file, delimiter=self.delimiter)
+        return csv.reader(self.file, **kwargs)
 
     # * method: build_writer
-    def build_writer(self):
+    def build_writer(self, **kwargs) -> Writer:
         '''
         Build a CSV writer (list or dict) for the opened file.
+
+        :param kwargs: Additional keyword arguments for csv.writer.
+        :type kwargs: dict
+        :return: A CSV writer object.
+        :rtype: Writer
         '''
 
-        # If using DictWriter, pass fieldnames and write header.
-        if self.use_dict:
-            self.file = csv.DictWriter(
-                self.file,
-                fieldnames=self.fieldnames,   # type: ignore[arg-type]
-                delimiter=self.delimiter,
-            )
+        # Ensure the file is opened.
+        if self.file is None:
+            raise RuntimeError('CSV handle not initialized. Use within "with" block.')
 
-            # Write header row automatically for DictWriter.
-            self.file.writeheader()
+        # Ensure the mode is writable.
+        if self.mode[0] not in {'w', 'a'}:
+            raise RuntimeError(f'Cannot write in mode {self.mode!r}')
+
+        # Build and return a standard CSV writer.
+        return csv.writer(self.file, **kwargs)
+    
+    # * method: read_row
+    def read_row(self, **kwargs) -> Tuple[List[Any], int]:
+        '''
+        Read a single row from the CSV file as a list with its line number.
+
+        :param kwargs: Additional keyword arguments for csv.reader.
+        :type kwargs: dict
+        :return: A single row from the CSV file.
+        :rtype: List[Any]
+        '''
         
-        # Else build a standard CSV writer.
-        else:
-            self.file = csv.writer(self.file, delimiter=self.delimiter)
+        # Build a CSV reader.
+        reader = self.build_reader(**kwargs)
 
-    # * method: __enter__
-    def __enter__(self):
+        # Read and return a single row.
+        return next(reader), reader.line_num
+    
+    # * method: read_all
+    def read_all(self, **kwargs) -> List[List[Any]]:
         '''
-        Open the file, create the appropriate CSV handle and return self.
-        The consumer uses instance.csv_handle (reader or writer).
-        '''
+        Read all rows from the CSV file as a list of lists.
 
-        # Open the file (parent logic).
-        self.open_file()
-
-        # Build the CSV reader if the mode is read.
-        if self.mode[0] == 'r':
-            self.build_reader()
-
-        # Build the CSV writer if the mode is write/append.
-        else:
-            self.build_writer()
-
-        # Return self for use within the context.
-        return self
-
-    # * method: __exit__
-    def __exit__(self, exc_type, exc_value, traceback):
-        '''
-        Close the file (parent logic) and clear the CSV handle.
+        :param kwargs: Additional keyword arguments for csv.reader.
+        :type kwargs: dict
+        :return: All rows from the CSV file.
+        :rtype: List[List[Any]]
         '''
 
-        # Clear the CSV handle.
-        self.close_file()
+        # Build a CSV reader.
+        reader = self.build_reader(**kwargs)
+
+        # Read and return all rows.
+        return list(reader)
 
     # * method: save_row
-    def save_row(self, row: List[Any] | Dict[str, Any], include_header: bool = False):
+    def save_row(self, row: List[Any], **kwargs):
         '''
         Write a single row to the CSV file.
         
@@ -195,36 +128,125 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         :param include_header: Write header row before the row (DictWriter only).
         :type include_header: bool
         '''
-        if self.file is None:
-            raise RuntimeError('CSV handle not initialized. Use within "with" block.')
 
-        if self.mode[0] not in {'w', 'a'}:
-            raise RuntimeError(f'Cannot write in mode {self.mode!r}')
+        # Build a CSV writer.
+        writer = self.build_writer(**kwargs)
 
-        self.file.writerow(row)
+        # Write the row.
+        writer.writerow(row)
 
     # * method: save_all
-    def save_all(self, dataset: List[dict] | List[list], include_header: bool = True):
+    def save_all(self, dataset: List[Any], **kwargs):
         '''
         Write an entire dataset to the CSV file.
         
         :param dataset: List of rows to write.
-        :type dataset: List[dict] | List[list]
-        :param include_header: Write header row (DictWriter only).
-        :type include_header: bool
+        :type dataset: List[List[Any]]
+        :param kwargs: Additional keyword arguments for csv.writer.
+        :type kwargs: dict
         '''
+
+        # Build a CSV writer.
+        writer = self.build_writer(**kwargs)
+
+        writer.writerows(dataset)
+
+# ** middleware: csv_list_loader
+class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
+    '''
+    CSV loader middleware specialised for list-based rows.
+    '''
+
+    # * method: build_reader
+    def build_reader(self, **kwargs) -> csv.DictReader:
+        '''
+        Build a CSV DictReader from the opened file.
+
+        :param kwargs: Additional keyword arguments for csv.DictReader.
+        :type kwargs: dict
+        :return: A CSV DictReader object.
+        :rtype: csv.DictReader
+        '''
+
+        # Ensure the file is opened.
         if self.file is None:
             raise RuntimeError('CSV handle not initialized. Use within "with" block.')
 
+        # Ensure the mode is readable.
+        if self.mode[0] not in {'r'}:
+            raise RuntimeError(f'Cannot read in mode {self.mode!r}')
+        
+        # Build and return a CSV DictReader.
+        return csv.DictReader(self.file, **kwargs)
+    
+    # * method: build_writer
+    def build_writer(self, fieldnames: Optional[List[str]], **kwargs) -> csv.DictWriter:
+        '''
+        Build a CSV DictWriter for the opened file.
+
+        :param kwargs: Additional keyword arguments for csv.DictWriter.
+        :type kwargs: dict
+        :return: A CSV DictWriter object.
+        :rtype: csv.DictWriter
+        '''
+
+        # Ensure the file is opened.
+        if self.file is None:
+            raise RuntimeError('CSV handle not initialized. Use within "with" block.')
+
+        # Ensure the mode is writable.
         if self.mode[0] not in {'w', 'a'}:
             raise RuntimeError(f'Cannot write in mode {self.mode!r}')
+        
+        # Ensure fieldnames are provided.
+        if not fieldnames:
+            raise ValueError('Fieldnames must be provided for DictWriter.')
 
-        if not dataset:
-            return
+        # Build and return a CSV DictWriter.
+        return csv.DictWriter(
+            self.file, 
+            fieldnames,
+            **kwargs
+        )
+    
+    # * method: write_row
+    def write_row(self, row: Dict[str, Any], include_header: bool = False, fieldnames: Optional[List[str]] = None, **kwargs):
+        '''
+        Write a single dict-based row to the CSV file.
+        
+        :param row: A dict (keys match fieldnames) or list of values.
+        :type row: dict
+        :param include_header: Write header row before the row.
+        :type include_header: bool
+        :param fieldnames: List of field names for the CSV DictWriter.
+        :type fieldnames: List[str]
+        '''
 
-        # Write header only if file is empty and requested
-        if self.use_dict and include_header and self.fieldnames:
-            if self.file.writer.csvfile.tell() == 0:   # type: ignore[attr-defined]
-                self.file.writeheader()
+        # Build a CSV DictWriter.
+        writer = self.build_writer(fieldnames=fieldnames, **kwargs)
 
-        self.file.writerows(dataset)
+        # Write the header if requested.
+        if include_header:
+            writer.writeheader()
+
+        # Write the row.
+        writer.writerow(row)
+
+    # * method: write_all
+    def write_all(self, dataset: List[Dict[str, Any]], fieldnames: List[str], **kwargs):
+        '''
+        Write an entire dataset of dict-based rows to the CSV file.
+        
+        :param dataset: List of dict-based rows to write.
+        :type dataset: List[Dict[str, Any]]
+        :param fieldnames: List of field names for the CSV DictWriter.
+        :type fieldnames: List[str]
+        :param kwargs: Additional keyword arguments for csv.DictWriter.
+        :type kwargs: dict
+        '''
+
+        # Build a CSV DictWriter.
+        writer = self.build_writer(fieldnames=fieldnames, **kwargs)
+
+        # Write all rows.
+        writer.writerows(dataset)
