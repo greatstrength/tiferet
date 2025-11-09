@@ -220,6 +220,26 @@ def test_context_manager_read(file_loader_middleware: FileLoaderMiddleware, temp
     # Verify the file is closed after exiting the context.
     assert file_loader_middleware.file is None
 
+# ** test: context_manager_read_with_newline
+def test_context_manager_read_with_newline(temp_text_file: str):
+    '''
+    Test the context manager for reading a file with newline parameter.
+
+    :param temp_text_file: The path to the temporary text file.
+    :type temp_text_file: str
+    '''
+    
+    # Create new file with specific newline characters.
+    with open(temp_text_file, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('Line 1\nLine 2\nLine 3\n')
+    
+    # Use the context manager to read the file with newline parameter.
+    with FileLoaderMiddleware(temp_text_file, mode='r', newline='\n') as fmw:
+        content = fmw.file.readlines()
+
+    # Verify the file content.
+    assert content == ['Line 1\n', 'Line 2\n', 'Line 3\n']
+
 # ** test: context_manager_write
 def test_context_manager_write(temp_text_file: str):
     '''
