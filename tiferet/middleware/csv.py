@@ -118,8 +118,8 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         # Read and return all rows.
         return list(reader)
 
-    # * method: save_row
-    def save_row(self, row: List[Any], **kwargs):
+    # * method: write_row
+    def write_row(self, row: List[Any], **kwargs):
         '''
         Write a single row to the CSV file.
         
@@ -136,7 +136,7 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         writer.writerow(row)
 
     # * method: save_all
-    def save_all(self, dataset: List[Any], **kwargs):
+    def write_all(self, dataset: List[Any], **kwargs):
         '''
         Write an entire dataset to the CSV file.
         
@@ -180,7 +180,7 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         return csv.DictReader(self.file, **kwargs)
     
     # * method: build_writer
-    def build_writer(self, fieldnames: Optional[List[str]], **kwargs) -> csv.DictWriter:
+    def build_writer(self, fieldnames: List[str], **kwargs) -> csv.DictWriter:
         '''
         Build a CSV DictWriter for the opened file.
 
@@ -210,7 +210,12 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         )
     
     # * method: write_row
-    def write_row(self, row: Dict[str, Any], include_header: bool = False, fieldnames: Optional[List[str]] = None, **kwargs):
+    def write_row(self, 
+        row: Dict[str, Any],
+        fieldnames = List[str],
+        include_header: bool = True,
+        **kwargs
+    ):
         '''
         Write a single dict-based row to the CSV file.
         
@@ -233,7 +238,13 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         writer.writerow(row)
 
     # * method: write_all
-    def write_all(self, dataset: List[Dict[str, Any]], fieldnames: List[str], **kwargs):
+    def write_all(
+        self,
+        dataset: List[Dict[str, Any]],
+        fieldnames: List[str],
+        include_header: bool = True,
+        **kwargs
+    ):
         '''
         Write an entire dataset of dict-based rows to the CSV file.
         
@@ -247,6 +258,10 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
 
         # Build a CSV DictWriter.
         writer = self.build_writer(fieldnames=fieldnames, **kwargs)
+
+        # Write the header if requested.
+        if include_header:
+            writer.writeheader()
 
         # Write all rows.
         writer.writerows(dataset)
