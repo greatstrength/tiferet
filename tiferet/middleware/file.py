@@ -38,6 +38,8 @@ class FileLoaderMiddleware:
         :type mode: str
         :param encoding: The encoding to use when reading the file (default is 'utf-8').
         :type encoding: str
+        :param newline: The newline parameter to use when opening the file (default is None).
+        :type newline: str
         '''
 
         # Verify the file path.
@@ -53,6 +55,7 @@ class FileLoaderMiddleware:
         self.mode = mode
         self.path = path
         self.encoding = encoding
+        self.newline = newline
 
         # Set the file stream to None initially. It will be opened when the context is entered.
         self.file = None
