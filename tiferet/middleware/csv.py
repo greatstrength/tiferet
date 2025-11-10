@@ -7,8 +7,7 @@ from typing import (
     List,
     Dict,
     Tuple,
-    Any,
-    Optional
+    Any
 )
 
 # ** app
