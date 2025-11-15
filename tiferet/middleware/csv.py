@@ -145,7 +145,12 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
             self.build_reader(**kwargs)
 
         # Read and return a single row.
-        return next(self.reader), self.reader.line_num
+        try:
+            return next(self.reader), self.reader.line_num
+        
+        # Handle end of file.
+        except StopIteration:
+            return None, -1
     
     # * method: read_all
     def read_all(self, **kwargs) -> List[List[Any]]:

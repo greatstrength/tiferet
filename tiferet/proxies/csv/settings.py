@@ -3,7 +3,15 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from typing import (
+    List,
+    Dict,
+    Any,
+    Callable
+)
+
+# ** infra
+from tiferet import raise_error
 
 # ** app
 from ...middleware import Csv, CsvDict
@@ -28,32 +36,8 @@ class CsvFileProxy(object):
     # * attribute: newline
     newline: str
 
-    # * dialect
-    dialect: str
-
-    # * delimiter
-    delimiter: str
-
-    # * quotechar
-    quotechar: str
-
-    # * escapechar
-    escapechar: str
-
-    # * doublequote
-    doublequote: bool
-    
-    # * skipinitialspace
-    skipinitialspace: bool
-
-    # * lineterminator
-    lineterminator: str
-
-    # * quoting
-    quoting: int
-
-    # * strict
-    strict: bool
+    # * csv_settings
+    csv_settings: Dict[str, Any]
 
     # * init
     def __init__(
@@ -62,15 +46,7 @@ class CsvFileProxy(object):
         listenames: List[str] = None,
         encoding: str = 'utf-8',
         newline: str = '',
-        dialect: str = 'excel',
-        delimiter: str = ',',
-        quotechar: str = '"',
-        escapechar: str = None,
-        doublequote: bool = True,
-        skipinitialspace: bool = False,
-        lineterminator: str = '\r\n',
-        quoting: int = 0,
-        strict: bool = False
+        csv_settings: Dict[str, Any] = {}
     ):
         '''
         Initialize the CsvFileProxy with CSV file settings.
@@ -83,24 +59,8 @@ class CsvFileProxy(object):
         :type encoding: str
         :param newline: The newline parameter for file operations (default is '').
         :type newline: str
-        :param dialect: The CSV dialect (default is 'excel').
-        :type dialect: str
-        :param delimiter: The field delimiter (default is ',').
-        :type delimiter: str
-        :param quotechar: The character used to quote fields (default is '"').
-        :type quotechar: str
-        :param escapechar: The character used to escape special characters (default is None).
-        :type escapechar: str
-        :param doublequote: Whether to double quote fields (default is True).
-        :type doublequote: bool
-        :param skipinitialspace: Whether to skip spaces after delimiters (default is False).
-        :type skipinitialspace: bool
-        :param lineterminator: The line terminator string (default is '\r\n').
-        :type lineterminator: str
-        :param quoting: The quoting strategy (default is Csv.QUOTE_MINIMAL).
-        :type quoting: int
-        :param strict: Whether to enable strict mode (default is False).
-        :type strict: bool
+        :param csv_settings: Additional CSV settings as a dictionary.
+        :type csv_settings: Dict[str, Any]
         '''
 
         # Set the CSV file and configuration attributes.
@@ -108,80 +68,96 @@ class CsvFileProxy(object):
         self.fieldnames = listenames
         self.encoding = encoding
         self.newline = newline
-        self.dialect = dialect
-        self.delimiter = delimiter
-        self.quotechar = quotechar
-        self.escapechar = escapechar
-        self.doublequote = doublequote
-        self.skipinitialspace = skipinitialspace
-        self.lineterminator = lineterminator
-        self.quoting = quoting
-        self.strict = strict
-
-    # * method: load_row
-    def load_row(self, index: int) -> Dict[str, Any]:
-        '''
-        Load a single row from the CSV file by index.
-
-        :param index: The index of the row to load.
-        :type index: int
-        :return: The row as a dict (keys match fieldnames).
-        :rtype: Dict[str, Any]
-        '''
-
-        # Create a CsvDict instance with the configured settings.
-        with Csv(
-            path=self.csv_file,
-            mode='r',
-            encoding=self.encoding,
-            newline=self.newline
-        ) as csv_loader:
-            
-            # Load and return the specified row from the CSV file.
-            return csv_loader.read_row(
-            dialect=self.dialect,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar,
-            escapechar=self.escapechar,
-            doublequote=self.doublequote,
-            skipinitialspace=self.skipinitialspace,
-            lineterminator=self.lineterminator,
-            quoting=self.quoting,
-            strict=self.strict
-        )
+        self.csv_settings = csv_settings
 
     # * method: load_rows
-    def load_rows(self) -> List[List[Any]]:
+    def load_rows(self, 
+        is_dict: bool = False,
+        start_index: int = None,
+        end_index: int = None,
+        has_header: bool = True,
+        data_factory: Callable = lambda data: data
+    ) -> List[Any]:
         '''
-        Load all rows from the CSV file as a list of lists.
+        Load rows from the CSV file.
 
-        :return: A list of rows, where each row is a list of values.
-        :rtype: List[List[Any]]
+        :param is_dict: Whether to load rows as dictionaries (default is False).
+        :type is_dict: bool
+        :param start_index: The starting index for loading rows (default is None).
+        :type start_index: int
+        :param end_index: The non-inclusive ending index for loading rows (default is None).
+        :type end_index: int
+        :param has_header: Whether the CSV file has a header row (default is True).
+        :type has_header: bool
+        :param data_factory: A callable to process each row after loading (default is identity).
+        :type data_factory: Callable
+        :return: A list of loaded rows.
+        :rtype: List[Any]
         '''
+
+        # Determine whether to use CsvDict or Csv based on is_dict flag.
+        CsvClass = CsvDict if is_dict else Csv
 
         # Create a Csv instance with the configured settings.
-        with Csv(
+        with CsvClass(
             path=self.csv_file,
             mode='r',
             encoding=self.encoding,
             newline=self.newline
         ) as csv_loader:
             
-            # Load and return all rows from the CSV file.
-            return csv_loader.read_all(
-            dialect=self.dialect,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar,
-            escapechar=self.escapechar,
-            doublequote=self.doublequote,
-            skipinitialspace=self.skipinitialspace,
-            lineterminator=self.lineterminator,
-            quoting=self.quoting,
-            strict=self.strict
-        )
+            # Load and return all rows from the CSV file if the start and end indices are not specified.
+            if start_index is None and end_index is None:
+                return [data_factory(row) for row in csv_loader.read_all(
+                    **self.csv_settings
+                )]
+            
+            # Raise an error if rows are loaded as dicts with no header.
+            if is_dict and not has_header:
+                raise_error.execute(
+                    'CSV_DICT_NO_HEADER',
+                    'Cannot load CSV rows as dictionaries when has_header is False.',
+                    self.csv_file
+                )
+            
+            # Specify the start index
+            if not start_index:
+                start_index = 2 if has_header else 1
+            if has_header:
+                start_index += 2
+            else:
+                start_index += 1
 
-    # * method: save_row
-    def save_row(self, row: List[Any]):
+            # Specify the end index.
+            if end_index and has_header:
+                end_index += 2
+            elif not has_header:
+                end_index += 1
+            else:
+                end_index = -1
+
+            # Define a generator function to yield rows within the specified index range.
+            def row_generator():
+
+                # Read rows one by one.
+                while True:
+                    row, line_num = csv_loader.read_row(
+                        **self.csv_settings
+                    )
+
+                    # Break the loop if there are no more rows or we reached the end index.
+                    if line_num == -1 or line_num == end_index:
+                        break
+
+                    # Yield the row if it falls within the specified index range.
+                    if start_index <= line_num < (end_index if end_index != -1 else float('inf')):
+                        yield data_factory(row)
+
+            # Return the list of rows from the generator.
+            return list(row_generator())
+
+    # * method: append_row
+    def append_row(self, row: List[Any]):
         '''
         Save a single row to the CSV file.
 
@@ -192,7 +168,7 @@ class CsvFileProxy(object):
         # Create a Csv instance with the configured settings.
         with Csv(
             path=self.csv_file,
-            mode='w',
+            mode='a',
             encoding=self.encoding,
             newline=self.newline
         ) as csv_saver:
@@ -200,19 +176,35 @@ class CsvFileProxy(object):
             # Save the specified row to the CSV file.
             csv_saver.write_row(
             row,
-            dialect=self.dialect,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar,
-            escapechar=self.escapechar,
-            doublequote=self.doublequote,
-            skipinitialspace=self.skipinitialspace,
-            lineterminator=self.lineterminator,
-            quoting=self.quoting,
-            strict=self.strict
+            **self.csv_settings
+        )
+            
+    # * method: append_dict_row
+    def append_dict_row(self, row: Dict[str, Any]):
+        '''
+        Save a single dictionary row to the CSV file.
+
+        :param row: A dictionary representing the row to save (keys match fieldnames).
+        :type row: Dict[str, Any]
+        '''
+
+        # Create a CsvDict instance with the configured settings.
+        with CsvDict(
+            path=self.csv_file,
+            mode='a',
+            encoding=self.encoding,
+            newline=self.newline
+        ) as csv_saver:
+            
+            # Save the specified dictionary row to the CSV file.
+            csv_saver.write_dict_row(
+            row,
+            fieldnames=self.fieldnames,
+            **self.csv_settings
         )
             
     # * method: save_rows
-    def save_rows(self, dataset: List[List[Any]]):
+    def save_rows(self, dataset: List[List[Any]], mode: str = 'w'):
         '''
         Save multiple rows to the CSV file.
 
@@ -223,7 +215,7 @@ class CsvFileProxy(object):
         # Create a Csv instance with the configured settings.
         with Csv(
             path=self.csv_file,
-            mode='w',
+            mode=mode,
             encoding=self.encoding,
             newline=self.newline
         ) as csv_saver:
@@ -231,44 +223,29 @@ class CsvFileProxy(object):
             # Save all rows to the CSV file.
             csv_saver.write_all(
             dataset,
-            dialect=self.dialect,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar,
-            escapechar=self.escapechar,
-            doublequote=self.doublequote,
-            skipinitialspace=self.skipinitialspace,
-            lineterminator=self.lineterminator,
-            quoting=self.quoting,
-            strict=self.strict
+            **self.csv_settings
         )
             
-    # * method: append_row
-    def append_row(self, row: List[Any]):
+    # * method: save_dict_rows
+    def save_dict_rows(self, dataset: List[Dict[str, Any]], mode: str = 'w'):
         '''
-        Append a single row to the CSV file.
+        Save multiple dictionary rows to the CSV file.
 
-        :param row: A list of values representing the row to append.
-        :type row: List[Any]
+        :param dataset: A list of dictionary rows (keys match fieldnames).
+        :type dataset: List[Dict[str, Any]]
         '''
 
-        # Create a Csv instance with the configured settings.
-        with Csv(
+        # Create a CsvDict instance with the configured settings.
+        with CsvDict(
             path=self.csv_file,
-            mode='a',
+            mode=mode,
             encoding=self.encoding,
             newline=self.newline
-        ) as csv_appender:
+        ) as csv_saver:
             
-            # Append the specified row to the CSV file.
-            csv_appender.write_row(
-            row,
-            dialect=self.dialect,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar,
-            escapechar=self.escapechar,
-            doublequote=self.doublequote,
-            skipinitialspace=self.skipinitialspace,
-            lineterminator=self.lineterminator,
-            quoting=self.quoting,
-            strict=self.strict
+            # Save all dictionary rows to the CSV file.
+            csv_saver.write_all(
+            dataset,
+            fieldnames=self.fieldnames,
+            **self.csv_settings
         )

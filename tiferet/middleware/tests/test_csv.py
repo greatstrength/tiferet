@@ -354,8 +354,8 @@ def test_csv_list_loader_read_all(csv_loader_middleware: CsvLoaderMiddleware):
         assert rows[3] == ['Charlie', '35', 'Chicago']
         assert rows[4] == ['Diana', '28', 'Houston']
 
-# ** test: csv_list_loader_save_row
-def test_csv_list_loader_save_row(temp_csv_file: str):
+# ** test: csv_list_loader_write_row
+def test_csv_list_loader_write_row(temp_csv_file: str):
     '''
     Test saving a row to the CSV using CsvLoaderMiddleware.
 
@@ -655,6 +655,29 @@ def test_csv_dict_loader_read_row(csv_dict_loader_middleware: CsvDictLoaderMiddl
         assert row == {'name': 'Alice', 'age': '30', 'city': 'New York'}
         assert line_num == 2
 
+# ** test: csv_dict_loader_read_row_eof
+def test_csv_dict_loader_read_row_eof(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+    '''
+    Test reading rows until EOF using CsvDictLoaderMiddleware.
+
+    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
+    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    '''
+
+    # Use the middleware within a context to open the file.
+    with csv_dict_loader_middleware as cmw:
+        
+        # Read all rows until EOF.
+        for _ in range(4):
+            row, line_num = cmw.read_row()
+        
+        # Attempt to read past EOF.
+        row, line_num = cmw.read_row()
+        
+        # Verify that EOF is handled correctly.
+        assert row is None
+        assert line_num == -1
+
 # ** test: csv_dict_loader_read_all
 def test_csv_dict_loader_read_all(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
     '''
@@ -677,8 +700,8 @@ def test_csv_dict_loader_read_all(csv_dict_loader_middleware: CsvDictLoaderMiddl
         assert rows[2] == {'name': 'Charlie', 'age': '35', 'city': 'Chicago'}
         assert rows[3] == {'name': 'Diana', 'age': '28', 'city': 'Houston'}
 
-# ** test: csv_dict_loader_save_row
-def test_csv_dict_loader_save_row(temp_csv_file: str):
+# ** test: csv_dict_loader_write_row
+def test_csv_dict_loader_write_row(temp_csv_file: str):
     '''
     Test saving a dict row to the CSV using CsvDictLoaderMiddleware.
 
