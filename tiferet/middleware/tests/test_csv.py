@@ -95,7 +95,7 @@ def test_csv_list_loader_creation(csv_loader_middleware: CsvLoaderMiddleware):
     assert csv_loader_middleware.file is None
 
 # ** test: csv_list_loader_verify_mode
-def test_csv_list_loader_verify_mode(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_creation_invalid_mode(csv_loader_middleware: CsvLoaderMiddleware):
     '''
     Test that CsvLoaderMiddleware raises an error for invalid modes.
 
@@ -105,7 +105,12 @@ def test_csv_list_loader_verify_mode(csv_loader_middleware: CsvLoaderMiddleware)
 
     # Attempt to create a CsvLoaderMiddleware with an invalid mode.
     with pytest.raises(ValueError) as exc_info:
-        csv_loader_middleware.verify_mode('invalid_mode')
+        CsvLoaderMiddleware(
+            path='dummy.csv',
+            mode='invalid_mode',
+            encoding='utf-8',
+            newline=''
+        )
     
     # Verify the exception message.
     assert 'Invalid mode:' in str(exc_info.value)
@@ -123,11 +128,11 @@ def test_csv_list_loader_build_reader(csv_loader_middleware: CsvLoaderMiddleware
     with csv_loader_middleware as cmw:
         
         # Build the CSV reader.
-        reader = cmw.build_reader()
+        cmw.build_reader()
         
         # Verify the reader type and content.
-        assert reader is not None
-        assert isinstance(reader, Reader)
+        assert cmw.reader is not None
+        assert isinstance(cmw.reader, Reader)
         assert cmw.file is not None
 
 # ** test: csv_list_loader_build_reader_unopened_file
@@ -189,11 +194,11 @@ def test_csv_list_loader_build_writer(csv_loader_middleware: CsvLoaderMiddleware
     with csv_loader_middleware as cmw:
         
         # Build the CSV writer.
-        writer = cmw.build_writer()
+        cmw.build_writer()
         
         # Verify the writer type and content.
-        assert writer is not None
-        assert isinstance(writer, Writer)
+        assert cmw.writer is not None
+        assert isinstance(cmw.writer, Writer)
         assert cmw.file is not None
 
 # ** test: csv_list_loader_build_writer_unopened_file
@@ -247,6 +252,50 @@ def test_csv_list_loader_build_writer_invalid_mode(temp_csv_file: str):
         # Verify the exception message.
         assert 'Cannot write in mode' in str(exc_info.value)
 
+# ** test: csv_list_loader_build_reader_writer_close_file
+def test_csv_list_loader_build_reader_writer_close_file(temp_csv_file: str):
+    '''
+    Test that building a CSV reader and writer closes the file correctly.
+
+    :param temp_csv_file: The path to the temporary CSV file.
+    :type temp_csv_file: str
+    '''
+
+    # Create a CsvLoaderMiddleware in read mode.
+    cmw = CsvLoaderMiddleware(
+        path=temp_csv_file,
+        mode='r',
+        encoding='utf-8',
+        newline=''
+    )
+    
+    # Use the middleware within a context to open the file.
+    with cmw:
+        
+        # Build the CSV reader.
+        cmw.build_reader()
+        
+        # Verify the file is open.
+        assert cmw.file is not None
+
+    # Verify the file is closed after exiting the context.
+    assert cmw.file is None
+
+    # Set the middleware to write mode.
+    cmw.mode = 'w'
+    
+    # Use the middleware within a context to open the file.
+    with cmw:
+        
+        # Build the CSV writer.
+        cmw.build_writer()
+        
+        # Verify the file is open.
+        assert cmw.file is not None
+
+    # Verify the file is closed after exiting the context.
+    assert cmw.file is None
+
 # ** test: csv_list_loader_read_row
 def test_csv_list_loader_read_row(csv_loader_middleware: CsvLoaderMiddleware):
     '''
@@ -259,12 +308,25 @@ def test_csv_list_loader_read_row(csv_loader_middleware: CsvLoaderMiddleware):
     # Use the middleware within a context to open the file.
     with csv_loader_middleware as cmw:
         
+        # Assert that the reader is None initially.
+        assert cmw.reader is None
+
         # Read the first row.
         row, line_num = cmw.read_row()
         
         # Verify the row content.
         assert row == ['name', 'age', 'city']
         assert line_num == 1
+
+        # Assert that the reader is now initialized.
+        assert cmw.reader is not None
+
+        # Read the second row.
+        row, line_num = cmw.read_row()
+
+        # Verify the row content.
+        assert row == ['Alice', '30', 'New York']
+        assert line_num == 2
 
 # ** test: csv_list_loader_read_all
 def test_csv_list_loader_read_all(csv_loader_middleware: CsvLoaderMiddleware):
@@ -278,6 +340,9 @@ def test_csv_list_loader_read_all(csv_loader_middleware: CsvLoaderMiddleware):
     # Use the middleware within a context to open the file.
     with csv_loader_middleware as cmw:
         
+        # Assert that the reader is None initially.
+        assert cmw.reader is None
+
         # Read all rows.
         rows = cmw.read_all()
         
@@ -309,8 +374,16 @@ def test_csv_list_loader_save_row(temp_csv_file: str):
     # Use the middleware within a context to open the file.
     with cmw as middleware:
         
+        # Assert that the writer is None initially.
+        assert middleware.writer is None
+
         # Save a new row.
         middleware.write_row(['name', 'age', 'city'])
+
+        # Assert that the writer is now initialized.
+        assert middleware.writer is not None
+
+        # Save another row.
         middleware.write_row(['Eve', '22', 'Miami'])
     
     # Verify that the row was saved correctly.
@@ -406,11 +479,11 @@ def test_csv_dict_loader_build_reader(csv_dict_loader_middleware: CsvDictLoaderM
     with csv_dict_loader_middleware as cmw:
         
         # Build the CSV Dict reader.
-        reader = cmw.build_reader()
+        cmw.build_reader()
         
         # Verify the reader type and content.
-        assert reader is not None
-        assert isinstance(reader, DictReader)
+        assert cmw.reader is not None
+        assert isinstance(cmw.reader, DictReader)
         assert cmw.file is not None
 
 # ** test: csv_dict_loader_unopened_file
@@ -477,11 +550,11 @@ def test_csv_dict_loader_build_writer(temp_csv_file: str):
     with cmw as cmw:
         
         # Build the CSV Dict writer.
-        writer = cmw.build_writer(fieldnames=['name', 'age', 'city'])
+        cmw.build_writer(fieldnames=['name', 'age', 'city'])
         
         # Verify the writer type and content.
-        assert writer is not None
-        assert isinstance(writer, DictWriter)
+        assert cmw.writer is not None
+        assert isinstance(cmw.writer, DictWriter)
         assert cmw.file is not None
 
 # ** test: csv_dict_loader_build_writer_unopened_file

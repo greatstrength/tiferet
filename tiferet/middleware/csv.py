@@ -25,6 +25,43 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
     delimiter, newline handling and optional field-names.
     '''
 
+    # * attribute: reader
+    reader: Reader
+
+    # * attribute: writer
+    writer: Writer
+
+    # * init
+    def __init__(
+        self,
+        path: str,
+        mode: str = 'r',
+        encoding: str = 'utf-8',
+        newline: str = ''
+    ):
+        '''
+        Initialize the CsvLoaderMiddleware with a file path, mode, encoding, and newline handling.
+        
+        :param path: The path to the CSV file to load.
+        :type path: str
+        :param mode: The mode in which to open the file (default is 'r' for read).
+        :type mode: str
+        :param encoding: The encoding to use when reading the file (default is 'utf-8').
+        :type encoding: str
+        :param newline: The newline parameter to use when opening the file (default is '').
+        :type newline: str
+        '''
+
+        # Verify the CSV-compatible file mode.
+        self.verify_mode(mode)
+
+        # Call the parent class initializer.
+        super().__init__(path=path, mode=mode, encoding=encoding, newline=newline)
+
+        # Set the CSV reader and writer to None initially.
+        self.reader = None
+        self.writer = None
+
     # * method: verify_mode
     def verify_mode(self, mode: str):
         '''
@@ -40,14 +77,12 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
             raise ValueError(f'Invalid mode: {mode!r}. CSV supports: {", ".join(sorted(valid_modes))}')
 
     # * method: build_reader
-    def build_reader(self, **kwargs) -> Reader:
+    def build_reader(self, **kwargs):
         '''
         Build a CSV reader list from the opened file.
 
         :param kwargs: Additional keyword arguments for csv.reader.
         :type kwargs: dict
-        :return: A CSV reader object.
-        :rtype: Reader
         '''
 
         # Ensure the file is opened.
@@ -58,18 +93,16 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         if self.mode[0] not in {'r'}:
             raise RuntimeError(f'Cannot read in mode {self.mode!r}')
         
-        # Else build a standard CSV reader.
-        return csv.reader(self.file, **kwargs)
+        # Else build a standard CSV reader and set the reader attribute.
+        self.reader = csv.reader(self.file, **kwargs)
 
     # * method: build_writer
-    def build_writer(self, **kwargs) -> Writer:
+    def build_writer(self, **kwargs):
         '''
         Build a CSV writer (list or dict) for the opened file.
 
         :param kwargs: Additional keyword arguments for csv.writer.
         :type kwargs: dict
-        :return: A CSV writer object.
-        :rtype: Writer
         '''
 
         # Ensure the file is opened.
@@ -80,8 +113,21 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         if self.mode[0] not in {'w', 'a'}:
             raise RuntimeError(f'Cannot write in mode {self.mode!r}')
 
-        # Build and return a standard CSV writer.
-        return csv.writer(self.file, **kwargs)
+        # Build a standard CSV writer and set the writer attribute.
+        self.writer = csv.writer(self.file, **kwargs)
+
+    # * method: close_file
+    def close_file(self):
+        '''
+        Close the CSV file and reset the reader and writer attributes.
+        '''
+
+        # Call the parent class method to close the file.
+        super().close_file()
+
+        # Reset the CSV reader and writer to None.
+        self.reader = None
+        self.writer = None
     
     # * method: read_row
     def read_row(self, **kwargs) -> Tuple[List[Any], int]:
@@ -94,11 +140,12 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         :rtype: List[Any]
         '''
         
-        # Build a CSV reader.
-        reader = self.build_reader(**kwargs)
+        # Build a CSV reader if not provided.
+        if not self.reader:
+            self.build_reader(**kwargs)
 
         # Read and return a single row.
-        return next(reader), reader.line_num
+        return next(self.reader), self.reader.line_num
     
     # * method: read_all
     def read_all(self, **kwargs) -> List[List[Any]]:
@@ -112,10 +159,10 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         '''
 
         # Build a CSV reader.
-        reader = self.build_reader(**kwargs)
+        self.build_reader(**kwargs)
 
         # Read and return all rows.
-        return list(reader)
+        return list(self.reader)
 
     # * method: write_row
     def write_row(self, row: List[Any], **kwargs):
@@ -128,11 +175,12 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         :type include_header: bool
         '''
 
-        # Build a CSV writer.
-        writer = self.build_writer(**kwargs)
+        # Build a CSV writer if not present.
+        if not self.writer:
+            self.build_writer(**kwargs)
 
         # Write the row.
-        writer.writerow(row)
+        self.writer.writerow(row)
 
     # * method: save_all
     def write_all(self, dataset: List[Any], **kwargs):
@@ -146,15 +194,21 @@ class CsvLoaderMiddleware(FileLoaderMiddleware):
         '''
 
         # Build a CSV writer.
-        writer = self.build_writer(**kwargs)
+        self.build_writer(**kwargs)
 
-        writer.writerows(dataset)
+        self.writer.writerows(dataset)
 
 # ** middleware: csv_list_loader
 class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
     '''
     CSV loader middleware specialised for list-based rows.
     '''
+
+    # * attribute: reader
+    reader: csv.DictReader
+
+    # * attribute: writer
+    writer: csv.DictWriter
 
     # * method: build_reader
     def build_reader(self, **kwargs) -> csv.DictReader:
@@ -175,8 +229,8 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         if self.mode[0] not in {'r'}:
             raise RuntimeError(f'Cannot read in mode {self.mode!r}')
         
-        # Build and return a CSV DictReader.
-        return csv.DictReader(self.file, **kwargs)
+        # Build and set the CSV DictReader.
+        self.reader = csv.DictReader(self.file, **kwargs)
     
     # * method: build_writer
     def build_writer(self, fieldnames: List[str], **kwargs) -> csv.DictWriter:
@@ -201,8 +255,8 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         if not fieldnames:
             raise ValueError('Fieldnames must be provided for DictWriter.')
 
-        # Build and return a CSV DictWriter.
-        return csv.DictWriter(
+        # Build and set the CSV DictWriter.
+        self.writer = csv.DictWriter(
             self.file, 
             fieldnames,
             **kwargs
@@ -227,14 +281,15 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         '''
 
         # Build a CSV DictWriter.
-        writer = self.build_writer(fieldnames=fieldnames, **kwargs)
+        if not self.writer:
+            self.build_writer(fieldnames=fieldnames, **kwargs)
 
         # Write the header if requested.
         if include_header:
-            writer.writeheader()
+            self.writer.writeheader()
 
         # Write the row.
-        writer.writerow(row)
+        self.writer.writerow(row)
 
     # * method: write_all
     def write_all(
@@ -256,11 +311,11 @@ class CsvDictLoaderMiddleware(CsvLoaderMiddleware):
         '''
 
         # Build a CSV DictWriter.
-        writer = self.build_writer(fieldnames=fieldnames, **kwargs)
+        self.build_writer(fieldnames=fieldnames, **kwargs)
 
         # Write the header if requested.
         if include_header:
-            writer.writeheader()
+            self.writer.writeheader()
 
         # Write all rows.
-        writer.writerows(dataset)
+        self.writer.writerows(dataset)
