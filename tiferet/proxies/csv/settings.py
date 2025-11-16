@@ -70,6 +70,79 @@ class CsvFileProxy(object):
         self.newline = newline
         self.csv_settings = csv_settings
 
+    # * method: get_start_line_num
+    def get_start_line_num(self, start_index: int = None, has_header: bool = True) -> int:
+        '''
+        Get the starting line number for reading CSV rows.
+
+        :param start_index: The starting index for reading rows (default is None).
+        :type start_index: int
+        :param has_header: Whether the CSV file has a header row (default is True).
+        :type has_header: bool
+        :return: The starting line number.
+        :rtype: int
+        '''
+
+        # Determine the starting line number based on the presence of a header.
+        if not start_index:
+            return 2 if has_header else 1
+        if has_header:
+            return start_index + 2
+        else:
+            return start_index + 1
+        
+    # me:thod: get_end_line_num
+    def get_end_line_num(self, end_index: int = None, has_header: bool = True) -> int:
+        '''
+        Get the ending line number for reading CSV rows.
+
+        :param end_index: The non-inclusive ending index for reading rows (default is None).
+        :type end_index: int
+        :param has_header: Whether the CSV file has a header row (default is True).
+        :type has_header: bool
+        :return: The ending line number.
+        :rtype: int
+        '''
+
+        # Determine the ending line number based on the presence of a header.
+        if end_index and has_header:
+            return end_index + 2
+        elif not has_header:
+            return end_index + 1
+        else:
+            return -1
+        
+    # * method: yield_rows
+    def yield_rows(self,
+        csv_loader: Csv,
+        start_line_num: int,
+        end_line_num: int,
+    ):
+        '''
+        A generator function to yield rows from the CSV file within a specified line number range.
+
+        :param csv_loader: An instance of the Csv class for reading the CSV file.
+        :type csv_loader: Csv
+        :param start_line_num: The starting line number for reading rows.
+        :type start_line_num: int
+        :param end_line_num: The non-inclusive ending line number for reading rows.
+        :type end_line_num: int
+        '''
+
+        # Read rows one by one.
+        while True:
+            row, line_num = csv_loader.read_row(
+                **self.csv_settings
+            )
+
+            # Break the loop if there are no more rows or we reached the end index.
+            if line_num == -1 or line_num == end_line_num:
+                break
+
+            # Yield the row if it falls within the specified line number range.
+            if start_line_num <= line_num < (end_line_num if end_line_num != -1 else float('inf')):
+                yield row
+
     # * method: load_rows
     def load_rows(self, 
         is_dict: bool = False,
@@ -95,6 +168,14 @@ class CsvFileProxy(object):
         :rtype: List[Any]
         '''
 
+        # Raise an error if rows are loaded as dicts with no header.
+        if is_dict and not has_header:
+            raise_error.execute(
+                'CSV_DICT_NO_HEADER',
+                'Cannot load CSV rows as dictionaries when has_header is False.',
+                self.csv_file
+            )
+
         # Determine whether to use CsvDict or Csv based on is_dict flag.
         CsvClass = CsvDict if is_dict else Csv
 
@@ -112,49 +193,24 @@ class CsvFileProxy(object):
                     **self.csv_settings
                 )]
             
-            # Raise an error if rows are loaded as dicts with no header.
-            if is_dict and not has_header:
-                raise_error.execute(
-                    'CSV_DICT_NO_HEADER',
-                    'Cannot load CSV rows as dictionaries when has_header is False.',
-                    self.csv_file
-                )
-            
-            # Specify the start index
-            if not start_index:
-                start_index = 2 if has_header else 1
-            if has_header:
-                start_index += 2
-            else:
-                start_index += 1
+            # Specify the start line number.
+            start_line_num = self.get_start_line_num(
+                start_index=start_index,
+                has_header=has_header
+            )
 
-            # Specify the end index.
-            if end_index and has_header:
-                end_index += 2
-            elif not has_header:
-                end_index += 1
-            else:
-                end_index = -1
-
-            # Define a generator function to yield rows within the specified index range.
-            def row_generator():
-
-                # Read rows one by one.
-                while True:
-                    row, line_num = csv_loader.read_row(
-                        **self.csv_settings
-                    )
-
-                    # Break the loop if there are no more rows or we reached the end index.
-                    if line_num == -1 or line_num == end_index:
-                        break
-
-                    # Yield the row if it falls within the specified index range.
-                    if start_index <= line_num < (end_index if end_index != -1 else float('inf')):
-                        yield data_factory(row)
+            # Specify the end line number.
+            end_line_num = self.get_end_line_num(
+                end_index=end_index,
+                has_header=has_header
+            )
 
             # Return the list of rows from the generator.
-            return list(row_generator())
+            return list(self.yield_rows(
+                csv_loader=csv_loader,
+                start_line_num=start_line_num,
+                end_line_num=end_line_num
+            ))
 
     # * method: append_row
     def append_row(self, row: List[Any]):
