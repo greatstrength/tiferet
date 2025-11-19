@@ -32,7 +32,8 @@ class FlaggedDependencyConfigData(FlaggedDependency, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('params'),
-            'to_data.yaml': DataObject.deny('flag')
+            'to_data.yaml': DataObject.deny('flag'),
+            'to_data.json': DataObject.deny('flag')
         }
 
     # * attribute: flag
@@ -133,7 +134,8 @@ class ContainerAttributeConfigData(ContainerAttribute, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('params'),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: dependencies
@@ -240,4 +242,3 @@ class ContainerAttributeConfigData(ContainerAttribute, DataObject):
         # Validate and return the object.
         data_object.validate()
         return data_object
-
