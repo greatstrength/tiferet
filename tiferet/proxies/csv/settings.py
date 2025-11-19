@@ -43,7 +43,7 @@ class CsvFileProxy(object):
     def __init__(
         self,
         csv_file: str,
-        listenames: List[str] = None,
+        fieldnames: List[str] = None,
         encoding: str = 'utf-8',
         newline: str = '',
         csv_settings: Dict[str, Any] = {}
@@ -53,8 +53,8 @@ class CsvFileProxy(object):
 
         :param csv_file: The path to the CSV file.
         :type csv_file: str
-        :param listenames: The list of field names for the CSV.
-        :type listenames: List[str]
+        :param fieldnames: The list of field names for the CSV.
+        :type fieldnames: List[str]
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         :param newline: The newline parameter for file operations (default is '').
@@ -65,7 +65,7 @@ class CsvFileProxy(object):
 
         # Set the CSV file and configuration attributes.
         self.csv_file = csv_file
-        self.fieldnames = listenames
+        self.fieldnames = fieldnames
         self.encoding = encoding
         self.newline = newline
         self.csv_settings = csv_settings
