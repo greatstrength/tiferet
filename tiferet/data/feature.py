@@ -38,7 +38,8 @@ class FeatureCommandConfigData(FeatureCommand, DataObject):
         # Define the roles for the feature handler data.
         roles = {
             'to_model': DataObject.deny('parameters'),
-            'to_data.yaml': DataObject.allow()
+            'to_data.yaml': DataObject.allow(),
+            'to_data.json': DataObject.allow()
         }
 
     # * attributes
@@ -85,7 +86,8 @@ class FeatureConfigData(Feature, DataObject):
         # Define the roles for the feature data.
         roles = {
             'to_model': DataObject.deny('feature_key'),
-            'to_data.yaml': DataObject.deny('feature_key', 'group_id', 'id')
+            'to_data.yaml': DataObject.deny('feature_key', 'group_id', 'id'),
+            'to_data.json': DataObject.deny('feature_key', 'group_id', 'id')
         }
 
     # * attribute: feature_key
