@@ -54,7 +54,8 @@ class AppAttributeConfigData(AppAttribute, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('parameters', 'attribute_id'),
-            'to_data.yaml': DataObject.deny('attribute_id')
+            'to_data.yaml': DataObject.deny('attribute_id'),
+            'to_data.json': DataObject.deny('attribute_id'),
         }
 
     # * method: map
@@ -92,7 +93,8 @@ class AppInterfaceConfigData(AppInterface, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('attributes', 'constants', 'module_path', 'class_name'),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id'),
         }
 
     # * attribute: module_path
