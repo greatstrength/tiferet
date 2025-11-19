@@ -28,7 +28,8 @@ class ErrorConfigData(Error, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('message'),
-            'to_data.yaml': DataObject.deny('id', 'message')
+            'to_data.yaml': DataObject.deny('id', 'message'),
+            'to_data.json': DataObject.deny('id', 'message')
         }
 
     # * class: error_message_config_data
