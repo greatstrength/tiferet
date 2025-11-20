@@ -13,10 +13,9 @@ from typing import (
 # ** app
 from .file import FileLoaderMiddleware
 
-
 # *** middleware
 
-# * middleware: csv_loader_middleware
+# ** middleware: csv_loader_middleware
 class CsvLoaderMiddleware(FileLoaderMiddleware):
     '''
     CSV-specific middleware built on top of FileLoaderMiddleware.
