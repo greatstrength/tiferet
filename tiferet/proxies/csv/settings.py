@@ -10,10 +10,8 @@ from typing import (
     Callable
 )
 
-# ** infra
-from tiferet import raise_error
-
 # ** app
+from ...commands import raise_error
 from ...middleware import Csv, CsvDict
 
 # *** classes
@@ -115,8 +113,8 @@ class CsvFileProxy(object):
     # * method: yield_rows
     def yield_rows(self,
         csv_loader: Csv,
-        start_line_num: int,
-        end_line_num: int,
+        start_line_num: int = 1,
+        end_line_num: int = -1,
     ):
         '''
         A generator function to yield rows from the CSV file within a specified line number range.
@@ -253,9 +251,10 @@ class CsvFileProxy(object):
         ) as csv_saver:
             
             # Save the specified dictionary row to the CSV file.
-            csv_saver.write_dict_row(
+            csv_saver.write_row(
             row,
             fieldnames=self.fieldnames,
+            include_header=False,
             **self.csv_settings
         )
             
@@ -291,6 +290,9 @@ class CsvFileProxy(object):
         :type dataset: List[Dict[str, Any]]
         '''
 
+        # Determine whether to include the header based on the mode.
+        include_header = True if mode == 'w' else False
+
         # Create a CsvDict instance with the configured settings.
         with CsvDict(
             path=self.csv_file,
@@ -303,5 +305,6 @@ class CsvFileProxy(object):
             csv_saver.write_all(
             dataset,
             fieldnames=self.fieldnames,
+            include_header=include_header,
             **self.csv_settings
         )
