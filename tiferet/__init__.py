@@ -23,16 +23,26 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import YamlFileProxy
+    from .proxies import (
+        YamlFileProxy,
+        JsonFileProxy,
+        CsvFileProxy
+    )
     from .middleware import (
         File,
         FileLoaderMiddleware,
         Yaml,
-        YamlLoaderMiddleware 
+        YamlLoaderMiddleware,
+        Json,
+        JsonLoaderMiddleware,
+        Csv,
+        CsvLoaderMiddleware,
+        CsvDict,
+        CsvDictLoaderMiddleware
     )
 except:
     pass
 
 # *** version
 
-__version__ = '1.2.2'
+__version__ = '1.3.0'
