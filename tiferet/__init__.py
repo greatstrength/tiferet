@@ -23,7 +23,11 @@ try:
         Repository
     )
     from .data import DataObject
-    from .proxies import YamlFileProxy, JsonFileProxy
+    from .proxies import (
+        YamlFileProxy,
+        JsonFileProxy,
+        CsvFileProxy
+    )
     from .middleware import (
         File,
         FileLoaderMiddleware,
