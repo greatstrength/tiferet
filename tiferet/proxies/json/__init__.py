@@ -5,3 +5,4 @@ from .settings import JsonFileProxy
 from .app import AppJsonProxy
 from .cli import CliJsonProxy
 from .container import ContainerJsonProxy
+from .error import ErrorJsonProxy
