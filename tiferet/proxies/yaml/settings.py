@@ -39,7 +39,7 @@ class YamlFileProxy(object):
         if not yaml_file or (not yaml_file.endswith('.yaml') and not yaml_file.endswith('.yml')):
             raise_error.execute(
                 'INVALID_YAML_FILE',
-                f'File {yaml_file} is not a valid YAML file.',
+                f'File is not a valid YAML file: {yaml_file}.',
                 yaml_file
             )
 
@@ -96,8 +96,8 @@ class YamlFileProxy(object):
                 self.yaml_file,
                 mode='w',
                 encoding=self.encoding
-            ) as yml_w:
-                yml_w.save_yaml(data=data, data_yaml_path=data_yaml_path)
+            ) as yaml_saver:
+                yaml_saver.save_yaml(data=data, data_yaml_path=data_yaml_path)
 
         # Handle any exceptions that occur during YAML saving and raise a custom error.
         except Exception as e:

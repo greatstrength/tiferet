@@ -1,4 +1,4 @@
-"""Tiferet Settings JSON Proxy Settings Tests"""
+"""Tiferet JSON Proxy Settings Tests"""
 
 # *** imports
 

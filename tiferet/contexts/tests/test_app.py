@@ -10,8 +10,13 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
+)
+from ...contracts import AppRepository
 from ..app import (
-    AppRepository,
     FeatureContext,
     ErrorContext,
     LoggingContext,
@@ -20,11 +25,6 @@ from ..app import (
     AppManagerContext,
     TiferetError,
     AppService,
-)
-from ...models import (
-    ModelObject,
-    AppInterface,
-    AppAttribute,
 )
 
 # *** fixtures
@@ -157,16 +157,14 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 # ** fixture: app_service
 @pytest.fixture
-def app_service(app_repo, app_interface_context):
+def app_service(app_interface, app_interface_context):
     """Fixture to provide a mock app service."""
 
     # Create a mock app service.
     service = mock.Mock(spec=AppService)
 
-    # Set the return value for the load_app_repository method.
-    service.load_app_repository.return_value = app_repo
-
-    # Set the return value for the load_app_instance method.
+    # Mock the get_app_interface method to return the app interface context.
+    service.get_app_interface.return_value = app_interface
     service.load_app_instance.return_value = app_interface_context
 
     # Return the mock app service.

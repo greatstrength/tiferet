@@ -88,6 +88,7 @@ class CliArgument(ModelObject):
     def get_type(self) -> str | int | float:
         '''
         Get the type of the argument.
+
         :return: The type of the argument.
         :rtype: str | int | float
         '''
