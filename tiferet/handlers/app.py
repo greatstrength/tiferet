@@ -11,8 +11,9 @@ from ..commands import (
 )
 from ..commands.dependencies import create_injector, get_dependency
 from ..contracts.app import (
+    AppRepository,
     AppInterfaceContract,
-    AppRepository
+    AppAttributeContract,
 )
 
 
@@ -24,14 +25,38 @@ class AppHandler(object):
     An app handler is a class that is used to manage app interfaces.
     '''
 
+    # * attribute: app_repo
+    app_repo: AppRepository
+
+    # * init
+    def __init__(self, app_repo: AppRepository = None, settings: Dict[str, Any] = {}):
+        '''
+        Initialize the app handler with an app repository.
+
+        :param app_repo: The app repository to use for retrieving app interfaces.
+        :type app_repo: AppRepository
+        '''
+
+        # Assign the app repository.
+        # If an app repository is provided, use it.
+        # If not, load the app repository using the provided settings.
+        # If no settings are provided, load the default app repository.
+        if app_repo:
+            self.app_repo = app_repo
+        elif settings:
+            self.app_repo = self.load_app_repository(**settings)
+        else:
+            self.app_repo = self.load_app_repository()
+
     # * method: load_app_repository
-    def load_app_repository(self, app_repo_module_path: str = 'tiferet.proxies.yaml.app',
-                app_repo_class_name: str = 'AppYamlProxy',
-                app_repo_params: Dict[str, Any] = dict(
-                    app_config_file='app/configs/app.yml'
-                ),
-                **kwargs
-                ) -> AppRepository:
+    def load_app_repository(
+        self, app_repo_module_path: str = 'tiferet.proxies.yaml.app',
+        app_repo_class_name: str = 'AppYamlProxy',
+        app_repo_params: Dict[str, Any] = dict(
+            app_config_file='app/configs/app.yml'
+        ),
+        **kwargs
+    ) -> AppRepository:
         '''
         Execute the command.
 
@@ -66,14 +91,14 @@ class AppHandler(object):
         return result
     
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: AppInterfaceContract, default_attrs: List[AppInterfaceContract] = []) -> Any:
+    def load_app_instance(self, app_interface: AppInterfaceContract, default_attrs: List[AppAttributeContract] = []) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface.
-        :type app_interface: AppInterface
+        :type app_interface: AppInterfaceContract
         :param default_attrs: The default configured attributes for the app.
-        :type default_attrs: List[AppAttribute]
+        :type default_attrs: List[AppAttributeContract]
         :return: The app instance.
         :rtype: Any
         '''
@@ -106,7 +131,6 @@ class AppHandler(object):
                 for param, value in attr.parameters.items():
                     dependencies[param] = value
 
-
         # Add the constants from the app interface to the dependencies.
         dependencies.update(app_interface.constants)
 
@@ -122,3 +146,28 @@ class AppHandler(object):
             injector,
             dependency_name='app_context',
         )
+    
+    # * method: get_app_interface
+    def get_app_interface(self, interface_id: str) -> AppInterfaceContract:
+        '''
+        Get the app interface settings by ID.
+
+        :param interface_id: The ID of the app interface.
+        :type interface_id: str
+        :return: The app interface.
+        :rtype: AppInterfaceContract
+        '''
+
+        # Retrieve the app interface from the app repository.
+        app_interface = self.app_repo.get_interface(interface_id)
+        
+        # Raise an error if the app interface is not found.
+        if not app_interface:
+            raise_error.execute(
+                'APP_INTERFACE_NOT_FOUND',
+                f'App interface not found: {interface_id}.',
+                interface_id,
+            )
+
+        # Return the app interface.
+        return app_interface

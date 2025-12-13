@@ -1,3 +1,5 @@
+"""Tiferet App Context Tests"""
+
 # *** imports
 
 # ** core
@@ -8,8 +10,22 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...models import ModelObject
-from ..app import *
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
+)
+from ...contracts import AppRepository
+from ..app import (
+    FeatureContext,
+    ErrorContext,
+    LoggingContext,
+    RequestContext,
+    AppInterfaceContext,
+    AppManagerContext,
+    TiferetError,
+    AppHandler,
+)
 
 # *** fixtures
 
@@ -33,7 +49,8 @@ def app_interface():
         feature_flag='test',
         data_flag='test',
         attributes=[
-            dict(
+            ModelObject.new(
+                AppAttribute,
                 attribute_id='test_attribute',
                 module_path='test_module_path',
                 class_name='test_class_name',
@@ -140,16 +157,14 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 # ** fixture: app_service
 @pytest.fixture
-def app_service(app_repo, app_interface_context):
+def app_service(app_interface, app_interface_context):
     """Fixture to provide a mock app service."""
 
     # Create a mock app service.
-    service = mock.Mock(spec=AppService)
+    service = mock.Mock(spec=AppHandler)
 
-    # Set the return value for the load_app_repository method.
-    service.load_app_repository.return_value = app_repo
-
-    # Set the return value for the load_app_instance method.
+    # Mock the get_app_interface method to return the app interface context.
+    service.get_app_interface.return_value = app_interface
     service.load_app_instance.return_value = app_interface_context
 
     # Return the mock app service.
@@ -158,6 +173,16 @@ def app_service(app_repo, app_interface_context):
 # ** fixture: app_manager_context
 @pytest.fixture
 def app_manager_context(app_service):
+    """
+    Fixture to provide an AppManagerContext instance.
+
+    :param app_service: The mock app service.
+    :type app_service: AppService
+    :return: An instance of AppManagerContext.
+    :rtype: AppManagerContext
+    """
+
+    # Return the AppManagerContext instance.
     return AppManagerContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
@@ -261,7 +286,8 @@ def test_app_interface_context_parse_request(app_interface_context):
     data={
         'key': 'value',
         'param': 'test_param'
-    })
+    },
+    feature_id='test_group.test_feature')
 
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None
@@ -269,6 +295,7 @@ def test_app_interface_context_parse_request(app_interface_context):
     assert request.headers.get('interface_id') == app_interface_context.interface_id
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
+    request.feature_id == 'test_group.test_feature'
 
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):

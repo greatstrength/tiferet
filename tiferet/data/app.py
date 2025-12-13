@@ -1,16 +1,29 @@
+"""Tiferet App Data Objects"""
+
 # *** imports
 
 # ** app
-from .settings import *
-from ..models.app import *
-from ..contracts.app import AppAttribute as AppAttributeContract
-from ..contracts.app import AppInterface as AppInterfaceContract
-
+from ..models import (
+    AppAttribute,
+    AppInterface,
+    StringType,
+    DictType,
+    ModelType,
+)
+from ..contracts import (
+    AppAttributeContract,
+    AppInterfaceContract
+)
+from .settings import (
+    DataObject,
+    DEFAULT_MODULE_PATH,
+    DEFAULT_CLASS_NAME
+)
 
 # *** data
 
-# ** data: app_attribute_yaml_data
-class AppAttributeYamlData(AppAttribute, DataObject):
+# ** data: app_attribute_config_data
+class AppAttributeConfigData(AppAttribute, DataObject):
     '''
     A YAML data representation of an app dependency attribute object.
     '''
@@ -37,10 +50,12 @@ class AppAttributeYamlData(AppAttribute, DataObject):
         '''
         The options for the app dependency data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('parameters', 'attribute_id'),
-            'to_data.yaml': DataObject.deny('attribute_id')
+            'to_data.yaml': DataObject.deny('attribute_id'),
+            'to_data.json': DataObject.deny('attribute_id'),
         }
 
     # * method: map
@@ -65,9 +80,8 @@ class AppAttributeYamlData(AppAttribute, DataObject):
             **kwargs
         )
 
-
-# ** data: app_interface_yaml_data
-class AppInterfaceYamlData(AppInterface, DataObject):
+# ** data: app_interface_config_data
+class AppInterfaceConfigData(AppInterface, DataObject):
     '''
     A data representation of an app interface settings object.
     '''
@@ -79,7 +93,8 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.deny('attributes', 'constants', 'module_path', 'class_name'),
-            'to_data.yaml': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id'),
         }
 
     # * attribute: module_path
@@ -104,7 +119,7 @@ class AppInterfaceYamlData(AppInterface, DataObject):
 
     # * attribute: attributes
     attributes = DictType(
-        ModelType(AppAttributeYamlData),
+        ModelType(AppAttributeConfigData),
         default={},
         serialized_name='attrs',
         deserialize_from=['attrs', 'attributes'],
@@ -138,11 +153,32 @@ class AppInterfaceYamlData(AppInterface, DataObject):
         '''
 
         # Map the app interface data.
-        return super().map(AppInterface,
+        return super().map(
+            AppInterface,
             module_path=self.module_path,
             class_name=self.class_name,
             attributes=[attr.map(attribute_id=attr_id) for attr_id, attr in self.attributes.items()],
             constants=self.constants,
             **self.to_primitive('to_model'),
+            **kwargs
+        )
+
+    # * method: from_model
+    @staticmethod
+    def from_model(app_interface: AppInterface, **kwargs) -> 'AppInterfaceConfigData':
+        '''
+        Creates an AppInterfaceConfigData object from an AppInterfaceContract object.
+        :param app_interface: The app interface contract.
+        :type app_interface: AppInterfaceContract
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new AppInterfaceConfigData object.
+        :rtype: AppInterfaceConfigData
+        '''
+
+        # Create a new AppInterfaceConfigData object from the model.
+        return DataObject.from_model(
+            AppInterfaceConfigData,
+            attributes={attr.attribute_id: DataObject.from_model(AppAttributeConfigData, attr) for attr in app_interface.attributes},
             **kwargs
         )

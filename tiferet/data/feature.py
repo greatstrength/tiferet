@@ -1,18 +1,28 @@
+"""Tiferet Feature Data Objects"""
+
 # *** imports
 
-# ** infra
-from schematics.types.serializable import serializable
-
-# 
-from ..data import DataObject
-from ..contracts.feature import (
-    FeatureContract,
-    FeatureCommandContract
+# app
+from ..models import (
+    Feature,
+    FeatureCommand,
+    ListType,
+    ModelType,
+    DictType,
+    StringType,
 )
-from ..models.feature import *
+from ..contracts import (
+    FeatureContract,
+    FeatureCommandContract,
+)
+from .settings import (
+    DataObject,
+)
 
+# *** data
 
-class FeatureCommandData(FeatureCommand, DataObject):
+# ** data: feature_command_config_data
+class FeatureCommandConfigData(FeatureCommand, DataObject):
     '''
     A data representation of a feature handler.
     '''
@@ -28,7 +38,8 @@ class FeatureCommandData(FeatureCommand, DataObject):
         # Define the roles for the feature handler data.
         roles = {
             'to_model': DataObject.deny('parameters'),
-            'to_data': DataObject.allow()
+            'to_data.yaml': DataObject.allow(),
+            'to_data.json': DataObject.allow()
         }
 
     # * attributes
@@ -45,7 +56,9 @@ class FeatureCommandData(FeatureCommand, DataObject):
     def map(self, **kwargs) -> FeatureCommandContract:
         '''
         Maps the feature handler data to a feature handler object.
-        
+
+        :param role: The role for the mapping.
+        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new feature handler object.
@@ -55,8 +68,8 @@ class FeatureCommandData(FeatureCommand, DataObject):
             parameters=self.parameters,
             **kwargs)
 
-
-class FeatureData(Feature, DataObject):
+# ** data: feature_config_data
+class FeatureConfigData(Feature, DataObject):
     '''
     A data representation of a feature.
     '''
@@ -72,15 +85,22 @@ class FeatureData(Feature, DataObject):
         # Define the roles for the feature data.
         roles = {
             'to_model': DataObject.deny('feature_key'),
-            'to_data': DataObject.deny('feature_key', 'group_id', 'id')
+            'to_data.yaml': DataObject.deny('feature_key', 'group_id', 'id'),
+            'to_data.json': DataObject.deny('feature_key', 'group_id', 'id')
         }
-    
-    # * attributes
-    commands = ListType(
-        ModelType(FeatureCommandData),
-        deserialize_from=['handlers', 'functions', 'commands'],
+
+    # * attribute: feature_key
+    feature_key = StringType(
+        metadata=dict(
+            description='The key of the feature.'
+        )
     )
 
+    # * attribute: commands
+    commands = ListType(
+        ModelType(FeatureCommandConfigData),
+        deserialize_from=['handlers', 'functions', 'commands'],
+    )
 
     def map(self, **kwargs) -> FeatureContract:
         '''
@@ -103,18 +123,26 @@ class FeatureData(Feature, DataObject):
         )
 
     @staticmethod
-    def from_data(**kwargs) -> 'FeatureData':
+    def from_data(id: str, **kwargs) -> 'FeatureConfigData':
         '''
         Initializes a new FeatureData object from a Feature object.
-        
+
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FeatureData object.
         :rtype: FeatureData
         '''
 
+        # Parse the id into group id and feature key.
+        split_id = id.split('.')
+        feature_key = split_id[-1]
+        group_id = split_id[0] if len(split_id) > 1 else None
+
+
         # Create a new FeatureData object.
-        return super(FeatureData, FeatureData).from_data(
-            FeatureData, 
+        return super(FeatureConfigData, FeatureConfigData).from_data(
+            FeatureConfigData,
+            feature_key=feature_key,
+            group_id=group_id,
             **kwargs
         )

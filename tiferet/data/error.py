@@ -1,16 +1,25 @@
+"""Tiferet Error Data Objects"""
+
 # *** imports
 
 # ** app
-from ..configs import *
-from ..data import DataObject
-from ..models.error import *
-from ..contracts.error import Error as ErrorContract
-
+from ..models import (
+    Error,
+    ErrorMessage,
+    ListType,
+    ModelType,
+)
+from ..contracts import (
+    ErrorContract,
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 
-# ** data: error_data
-class ErrorData(Error, DataObject):
+# ** data: error_config_data
+class ErrorConfigData(Error, DataObject):
     '''
     A data representation of an error object.
     '''
@@ -18,13 +27,22 @@ class ErrorData(Error, DataObject):
     class Options():
         serialize_when_none = False
         roles = {
-            'to_data': DataObject.deny('id', 'message'),
-            'to_model': DataObject.deny('message')
+            'to_model': DataObject.deny('message'),
+            'to_data.yaml': DataObject.deny('id', 'message'),
+            'to_data.json': DataObject.deny('id', 'message')
         }
+
+    # * class: error_message_config_data
+    class ErrorMessageConfigData(ErrorMessage, DataObject):
+        '''
+        A data representation of an error message.
+        '''
+
+        pass
 
     # * attribute: message
     message = ListType(
-        ModelType(ErrorMessage),
+        ModelType(ErrorMessageConfigData),
         required=True,
         metadata=dict(
             description='The error messages.'
@@ -32,7 +50,7 @@ class ErrorData(Error, DataObject):
     )
 
     # * to_primitive
-    def to_primitive(self, role: str = 'to_data', **kwargs) -> dict:
+    def to_primitive(self, role: str, **kwargs) -> dict:
         '''
         Converts the data object to a primitive dictionary.
 
@@ -52,7 +70,6 @@ class ErrorData(Error, DataObject):
             ),
             message=[msg.to_primitive() for msg in self.message]
         ) 
-        
 
     # * method: map
     def map(self, **kwargs) -> ErrorContract:
@@ -72,7 +89,7 @@ class ErrorData(Error, DataObject):
 
     # * method: from_data
     @staticmethod
-    def from_data(**kwargs) -> 'ErrorData':
+    def from_data(**kwargs) -> 'ErrorConfigData':
         '''
         Creates a new ErrorData object.
 
@@ -83,7 +100,7 @@ class ErrorData(Error, DataObject):
         '''
 
         # Create a new ErrorData object.
-        return super(ErrorData, ErrorData).from_data(
-            ErrorData, 
+        return super(ErrorConfigData, ErrorConfigData).from_data(
+            ErrorConfigData, 
             **kwargs
         )

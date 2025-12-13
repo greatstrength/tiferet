@@ -1,14 +1,51 @@
+"""Tiferet Feature Data Transfer Objects"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
 from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contacts
+
+# ** contract: request
+class Request(ModelContract):
+    '''
+    Request contract for feature execution.
+    '''
+
+    # * attribute: headers
+    headers: Dict[str, str]
+
+    # * attribute: data
+    data: Dict[str, Any]
+
+    # * attribute: debug
+    debug: bool
+
+    # * attribute: result
+    result: str
+
+    # * method: set_result
+    def set_result(self, result: Any):
+        '''
+        Set the result of the request.
+
+        :param result: The result to set.
+        :type result: Any
+        '''
+        raise NotImplementedError('The set_result method must be implemented by the request model.')
 
 # ** contract: feature_command
 class FeatureCommandContract(ModelContract):
@@ -34,7 +71,6 @@ class FeatureCommandContract(ModelContract):
     # * attribute: parameters
     parameters: Dict[str, Any]
 
-
 # ** contract: feature
 class FeatureContract(ModelContract):
     '''
@@ -46,7 +82,6 @@ class FeatureContract(ModelContract):
 
     # * attribute: commands
     commands: List[FeatureCommandContract]
-
 
 # ** contract: feature_repository
 class FeatureRepository(Repository):
@@ -92,3 +127,60 @@ class FeatureRepository(Repository):
         :rtype: List[Feature]
         '''
         raise NotImplementedError('The list method must be implemented by the feature repository.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, feature: FeatureContract) -> None:
+        '''
+        Save the feature.
+
+        :param feature: The feature.
+        :type feature: Feature
+        '''
+        raise NotImplementedError('The save method must be implemented by the feature repository.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the feature.
+
+        :param id: The feature id.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the feature repository.')
+
+
+# ** contract: feature_service
+class FeatureService(Service):
+    '''
+    Feature service contract.
+    '''
+
+    # * method: parse_parameter
+    @abstractmethod
+    def parse_parameter(self, parameter: str, request: Request = None) -> str:
+        '''
+        Parse a parameter.
+
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request object containing data for parameter parsing.
+        :type request: Request
+        :return: The parsed parameter.
+        :rtype : str
+        '''
+        raise NotImplementedError('The parse_parameter method must be implemented by the feature service.')
+
+    # * method: get_feature
+    @abstractmethod
+    def get_feature(self, feature_id: str) -> FeatureContract:
+        '''
+        Get a feature by its ID.
+
+        :param feature_id: The ID of the feature to retrieve.
+        :type feature_id: str
+        :return: The feature object.
+        :rtype: Feature
+        '''
+        raise NotImplementedError('The get_feature method must be implemented by the feature service.')

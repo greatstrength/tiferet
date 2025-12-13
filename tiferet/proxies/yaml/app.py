@@ -1,20 +1,31 @@
+"""Tiferet App YAML Proxy"""
+
 # *** imports
 
 # ** core
-from typing import Any
+from typing import (
+    List,
+    Any,
+    Callable
+)
 
 # ** app
-from .core import *
-from ...data import DataObject
-from ...data.app import AppInterfaceYamlData
-from ...contracts.app import AppRepository, AppInterface
-
+from ...commands import raise_error
+from ...data import (
+    DataObject,
+    AppInterfaceConfigData,
+    AppAttributeConfigData
+)
+from ...contracts import AppInterfaceContract, AppRepository
+from .settings import YamlFileProxy
 
 # *** proxies
 
 # ** proxy: app_yaml_proxy
-class AppYamlProxy(AppRepository, YamlConfigurationProxy):
-
+class AppYamlProxy(AppRepository, YamlFileProxy):
+    '''
+    YAML proxy for application configurations.
+    '''
 
     # * method: init
     def __init__(self, app_config_file: str):
@@ -29,13 +40,18 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
         super().__init__(app_config_file)
 
     # * method: load_yaml
-    def load_yaml(self, start_node: callable = lambda data: data, create_data: callable = lambda data: data) -> Any:
+    def load_yaml(
+            self, 
+            start_node: Callable = lambda data: data,
+            data_factory: Callable = lambda data: data
+        ) -> Any:
         '''
         Load data from the YAML configuration file.
+
         :param start_node: The starting node in the YAML file.
         :type start_node: str
-        :param create_data: A callable to create data objects from the loaded data.
-        :type create_data: callable
+        :param data_factory: A callable to create data objects from the loaded data.
+        :type data_factory: callable
         :return: The loaded data.
         :rtype: Any
         '''
@@ -44,20 +60,20 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
         try:
             return super().load_yaml(
                 start_node=start_node,
-                create_data=create_data
+                data_factory=data_factory
             )
         
         # Raise an error if the loading fails.
-        except (Exception, TiferetError) as e:
+        except Exception as e:
             raise_error.execute(
                 'APP_CONFIG_LOADING_FAILED',
-                f'Unable to load app configuration file {self.config_file}: {e}.',
-                self.config_file,
+                f'Unable to load app configuration file {self.yaml_file}: {e}.',
+                self.yaml_file,
                 str(e)
             )
 
     # * method: list_interfaces
-    def list_interfaces(self) -> list[AppInterface]:
+    def list_interfaces(self) -> List[AppInterfaceContract]:
         '''
         List all app interfaces.
 
@@ -67,19 +83,19 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
 
         # Load the app interface data from the yaml configuration file and map it to the app interface object.
         interfaces = self.load_yaml(
-            create_data=lambda data: [
+            data_factory=lambda data: [
                 DataObject.from_data(
-                    AppInterfaceYamlData,
+                    AppInterfaceConfigData,
                     id=interface_id,
-                    **record
-                ).map() for interface_id, record in data.items()],
+                    **interface_data
+                ).map() for interface_id, interface_data in data.items()],
             start_node=lambda data: data.get('interfaces'))
 
         # Return the list of app interface objects.
         return interfaces
 
     # * method: get_interface
-    def get_interface(self, id: str) -> AppInterface:
+    def get_interface(self, id: str) -> AppInterfaceContract:
         '''
         Get the app interface.
 
@@ -90,18 +106,70 @@ class AppYamlProxy(AppRepository, YamlConfigurationProxy):
         '''
 
         # Load the app interface data from the yaml configuration file.
-        _data: AppInterface = self.load_yaml(
-            create_data=lambda data: DataObject.from_data(
-                AppInterfaceYamlData,
-                id=id, 
-                **data
-            ),
-            start_node=lambda data: data.get('interfaces').get(id)
+        interface_data = self.load_yaml(
+            start_node=lambda data: data.get('interfaces').get(id, None)
         )
 
-        # Return the app interface object.
-        # If the data is None, return None.
-        try:
-            return _data.map()
-        except AttributeError:
+        # If the interface data is empty, return None.
+        if not interface_data:
             return None
+
+        # Return the app interface object.
+        return DataObject.from_data(
+            AppInterfaceConfigData,
+            id=id,
+            **interface_data
+        ).map()
+        
+    # * method: save_interface
+    def save_interface(self, interface: AppInterfaceContract):
+        '''
+        Save the app interface to the YAML configuration file.
+
+        :param interface: The app interface to save.
+        :type interface: AppInterfaceContract
+        '''
+
+        # Create the attribute data for the app interface from the app interface contract.
+        attributes = {
+            attr.attribute_id: DataObject.from_model(
+                AppAttributeConfigData,
+                model=attr
+            ) for attr in interface.attributes
+        }
+
+        # Convert the app interface object to a DataObject.
+        interface_data = DataObject.from_model(
+            AppInterfaceConfigData,
+            model=interface,
+            attributes=attributes
+        )
+
+        # Save the app interface data to the YAML configuration file.
+        self.save_yaml(
+            data=interface_data.to_primitive(self.default_role),
+            data_yaml_path=f'interfaces/{interface.id}'
+        )
+
+    # * method: delete_interface
+    def delete_interface(self, interface_id: str):
+        '''
+        Delete the app interface from the YAML configuration file.
+
+        :param interface_id: The unique identifier for the app interface to delete.
+        :type interface_id: str
+        '''
+
+        # Delete the app interface data from the YAML configuration file.
+        interfaces_data = self.load_yaml(
+            start_node=lambda data: data.get('interfaces', {})
+        )
+
+        # Pop the interface from the interfaces data regardless of whether it exists or not to ensure it is deleted.
+        interfaces_data.pop(interface_id, None)
+
+        # Save the updated interfaces data back to the YAML configuration file.
+        self.save_yaml(
+            data=interfaces_data,
+            data_yaml_path='interfaces'
+        )

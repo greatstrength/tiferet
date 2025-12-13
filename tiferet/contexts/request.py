@@ -52,7 +52,7 @@ class RequestContext(object):
         # Initialize the result to None.
         self.result = None
 
-    # * handle_response
+    # * handle_response (obsolete)
     def handle_response(self) -> Any:
         '''
         Handle the response from the request.
@@ -63,3 +63,22 @@ class RequestContext(object):
 
         # Return the result by default.
         return self.result
+
+    # * method: set_result
+    def set_result(self, result: Any, data_key: str = None):
+        '''
+        Set the result of the request.
+
+        :param result: The result to set.
+        :type result: Any
+        :param data_key: The key in the request data to set the result to. If None, sets the result directly.
+        :type data_key: str
+        '''
+
+        # If a data key is provided, store the result in the request data.
+        if data_key:
+            self.data[data_key] = result
+
+        # Otherwise set the result.
+        else:
+            self.result = result

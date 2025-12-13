@@ -1,18 +1,29 @@
+"""Tiferet Logging Data Objects"""
+
 # *** imports
 
 # ** app
-from ..data import DataObject
-from ..contracts.logging import (
-    FormatterContract, 
-    HandlerContract, 
-    LoggerContract
+from ..models import (
+    Formatter,
+    Handler,
+    Logger,
+    StringType,
+    DictType,
+    ModelType,
 )
-from ..models.logging import *
+from ..contracts import (
+    FormatterContract,
+    HandlerContract,
+    LoggerContract,
+)
+from .settings import (
+    DataObject,
+)
 
 # *** data
 
-# ** data: formatter_data
-class FormatterData(Formatter, DataObject):
+# ** data: formatter_config_data
+class FormatterConfigData(Formatter, DataObject):
     '''
     A data representation of a logging formatter configuration.
     '''
@@ -24,7 +35,8 @@ class FormatterData(Formatter, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -52,8 +64,8 @@ class FormatterData(Formatter, DataObject):
             **kwargs
         )
 
-# ** data: handler_data
-class HandlerData(Handler, DataObject):
+# ** data: handler_config_data
+class HandlerConfigData(Handler, DataObject):
     '''
     A data representation of a logging handler configuration.
     '''
@@ -65,7 +77,8 @@ class HandlerData(Handler, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -93,8 +106,8 @@ class HandlerData(Handler, DataObject):
             **kwargs
         )
 
-# ** data: logger_data
-class LoggerData(Logger, DataObject):
+# ** data: logger_config_data
+class LoggerConfigData(Logger, DataObject):
     '''
     A data representation of a logger configuration.
     '''
@@ -106,7 +119,8 @@ class LoggerData(Logger, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.deny('id')
+            'to_data.yaml': DataObject.deny('id'),
+            'to_data.json': DataObject.deny('id')
         }
 
     # * attribute: id
@@ -134,8 +148,8 @@ class LoggerData(Logger, DataObject):
             **kwargs
         )
 
-# ** data: logging_settings_data
-class LoggingSettingsData(Entity, DataObject):
+# ** data: logging_settings_config_data
+class LoggingSettingsConfigData(DataObject):
     '''
     A data representation of the overall logging configuration.
     '''
@@ -147,13 +161,20 @@ class LoggingSettingsData(Entity, DataObject):
         serialize_when_none = False
         roles = {
             'to_model': DataObject.allow(),
-            'to_data': DataObject.allow()
+            'to_data.yaml': DataObject.allow(),
+            'to_data.json': DataObject.allow()
         }
 
+    # * attribute: id
+    id = StringType(
+        metadata=dict(
+            description='The unique identifier of the logging settings.'
+        )
+    )
 
     # * attribute: formatters
     formatters = DictType(
-        ModelType(FormatterData),
+        ModelType(FormatterConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of formatter configurations, keyed by id.'
@@ -162,7 +183,7 @@ class LoggingSettingsData(Entity, DataObject):
 
     # * attribute: handlers
     handlers = DictType(
-        ModelType(HandlerData),
+        ModelType(HandlerConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of handler configurations, keyed by id.'
@@ -171,20 +192,20 @@ class LoggingSettingsData(Entity, DataObject):
 
     # * attribute: loggers
     loggers = DictType(
-        ModelType(LoggerData),
+        ModelType(LoggerConfigData),
         required=True,
         metadata=dict(
             description='Dictionary of logger configurations, keyed by id.'
         )
     )
 
-    # * method: from_yaml_data
+    # * method: from_data
     @staticmethod
-    def from_yaml_data(**data) -> 'LoggingSettingsData':
+    def from_data(**data) -> 'LoggingSettingsConfigData':
         '''
-        Initializes a new LoggingSettingsData object from a YAML data representation.
+        Initializes a new LoggingSettingsData object from a data representation.
 
-        :param data: The YAML data to initialize the LoggingSettingsData object.
+        :param data: The data to initialize the LoggingSettingsData object.
         :type data: dict
         :return: A new LoggingSettingsData object.
         :rtype: LoggingSettingsData
@@ -192,20 +213,36 @@ class LoggingSettingsData(Entity, DataObject):
 
         # Create a new LoggingSettingsData object from the provided data.
         return DataObject.from_data(
-            LoggingSettingsData,
+            LoggingSettingsConfigData,
             formatters={id: DataObject.from_data(
-                FormatterData,
+                FormatterConfigData,
                 **formatter_data,
                 id=id
             ) for id, formatter_data in data.get('formatters', {}).items()},
             handlers={id: DataObject.from_data(
-                HandlerData,
+                HandlerConfigData,
                 **handler_data,
                 id=id
             ) for id, handler_data in data.get('handlers', {}).items()},
             loggers={id: DataObject.from_data(
-                LoggerData,
+                LoggerConfigData,
                 **logger_data,
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
         )
+
+    # * method: from_yaml_data
+    @staticmethod
+    def from_yaml_data(**data) -> 'LoggingSettingsConfigData':
+        '''
+        Initializes a new LoggingSettingsData object from a YAML data representation.
+        This is to be deleted for v2.0.0 in favor of from_data.
+
+        :param data: The YAML data to initialize the LoggingSettingsData object.
+        :type data: dict
+        :return: A new LoggingSettingsData object.
+        :rtype: LoggingSettingsData
+        '''
+
+        # Call the from_data method to create the LoggingSettingsData object.
+        return LoggingSettingsConfigData.from_data(**data)

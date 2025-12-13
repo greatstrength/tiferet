@@ -1,20 +1,27 @@
+"""Tiferet App Models"""
+
 # *** imports
 
 # ** core
 from typing import Dict
 
 # ** app
-from .settings import *
-
+from .settings import (
+    ModelObject,
+    StringType,
+    ListType,
+    DictType,
+    ModelType,
+)
 
 # *** models
 
 # ** model: app_attribute
-class AppAttribute(ValueObject):
+class AppAttribute(ModelObject):
     '''
     An app dependency attribute that defines the dependency attributes for an app interface.
     '''
-    
+
     # * attribute: module_path
     module_path = StringType(
         required=True,
@@ -48,12 +55,18 @@ class AppAttribute(ValueObject):
         ),
     )
 
-
 # ** model: app_interface
-class AppInterface(Entity):
+class AppInterface(ModelObject):
     '''
     The base application interface object.
     '''
+
+    id = StringType(
+        required=True,
+        metadata=dict(
+            description='The unique identifier for the application interface.'
+        ),
+    )
 
     # * attribute: name
     name = StringType(
@@ -61,7 +74,14 @@ class AppInterface(Entity):
         metadata=dict(
             description='The name of the application interface.'
         ),
-    )  
+    )
+
+    # * attribute: description
+    description = StringType(
+        metadata=dict(
+            description='The description of the application interface.'
+        ),
+    )
 
     # * attribute: module_path
     module_path = StringType(
@@ -137,15 +157,18 @@ class AppInterface(Entity):
         :type params: dict
         '''
 
-        # Create a new AppDependency object and add it to the list of dependencies.
-        self.attributes.append(ModelObject.new(
+        # Create a new AppDependency object.
+        dependency = ModelObject.new(
             AppAttribute,
             module_path=module_path,
             class_name=class_name,
             attribute_id=attribute_id,
             parameters=parameters,
-        ))
-    
+        )
+
+        # Add the dependency to the list of dependencies.
+        self.attributes.append(dependency)
+
     # * method: get_attribute
     def get_attribute(self, attribute_id: str) -> AppAttribute:
         '''

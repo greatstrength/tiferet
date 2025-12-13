@@ -1,20 +1,37 @@
+"""Tiferet App Data Object Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
 
 # ** app
-from ..app import *
-
+from ..settings import (
+    DataObject,
+    DEFAULT_MODULE_PATH,
+    DEFAULT_CLASS_NAME
+)
+from ..app import (
+    AppInterfaceConfigData,
+    AppInterface,
+    AppAttribute,
+)
 
 # *** fixtures
 
-# ** fixture: app_settings_yaml_data
+# ** fixture: app_settings_config_data
 @pytest.fixture
-def app_settings_yaml_data():
+def app_settings_config_data() -> AppInterfaceConfigData:
+    '''
+    A fixture for an app interface yaml data object.
 
+    :return: The app interface yaml data object.
+    :rtype: AppInterfaceConfigData
+    '''
+
+    # Create and return the app interface yaml data object.
     return DataObject.from_data(
-        AppInterfaceYamlData,
+        AppInterfaceConfigData,
         id='app_yaml_data',
         name='Test App YAML Data',
         module_path=DEFAULT_MODULE_PATH,
@@ -35,21 +52,26 @@ def app_settings_yaml_data():
         )
     )
 
-
 # *** tests
 
-# ** test: test_app_settings_yaml_data_map
-def test_app_settings_yaml_data_map(app_settings_yaml_data):
+# ** test: app_settings_yaml_data_map
+def test_app_settings_yaml_data_map(app_settings_config_data: AppInterfaceConfigData):
+    '''
+    Tests the mapping of an app interface yaml data object to an app interface object.
+
+    :param app_settings_yaml_data: The app interface yaml data object.
+    :type app_settings_yaml_data: AppInterfaceConfigData
+    '''
 
     # Map the app interface yaml data to an app interface object.
-    app_settings = app_settings_yaml_data.map()
+    app_settings = app_settings_config_data.map()
 
     # Assert the mapped app interface is valid.
     assert isinstance(app_settings, AppInterface)
-    assert app_settings.id == app_settings_yaml_data.id
-    assert app_settings.name == app_settings_yaml_data.name
-    assert app_settings.feature_flag == app_settings_yaml_data.feature_flag
-    assert app_settings.data_flag == app_settings_yaml_data.data_flag
+    assert app_settings.id == app_settings_config_data.id
+    assert app_settings.name == app_settings_config_data.name
+    assert app_settings.feature_flag == app_settings_config_data.feature_flag
+    assert app_settings.data_flag == app_settings_config_data.data_flag
 
     # Assert that the module path and class name are correctly set.
     assert app_settings.module_path == DEFAULT_MODULE_PATH

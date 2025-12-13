@@ -1,12 +1,20 @@
+"""Tiferet Data Transfer Object Settings"""
+
 # *** imports
 
 # ** core
 from typing import Any
 
-# ** app
-from ..contracts.settings import ModelContract
-from ..models.settings import *
+# ** infra
+from schematics.models import Model
 
+# ** app
+from ..models import (
+    ModelObject,
+)
+from ..contracts import (
+    ModelContract,
+)
 
 # *** constants
 
@@ -15,7 +23,6 @@ DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
 
 # ** constant: default_class_name
 DEFAULT_CLASS_NAME = 'AppInterfaceContext'
-
 
 # *** classes
 
@@ -49,24 +56,24 @@ class DataObject(Model):
 
         # Get primitive of the model data and merge with the keyword arguments.
         # Give priority to the keyword arguments.
-        _data = self.to_primitive(role=role)
+        data_object = self.to_primitive(role=role)
         for key, value in kwargs.items():
-            _data[key] = value
+            data_object[key] = value
 
         # Map the data object to a model object.
         # Attempt to create a new model object with a custom factory method.
         # If the factory method does not exist, employ the standard method.
         try:
-            _object = type.new(**_data, strict=False)
+            model_object = type.new(**data_object, strict=False)
         except Exception:
-            _object = ModelObject.new(type, **_data, strict=False)
+            model_object = ModelObject.new(type, **data_object, strict=False)
 
         # Validate if specified.
         if validate:
-            _object.validate()
+            model_object.validate()
 
         # Return the model data.
-        return _object
+        return model_object
 
     # ** method: from_model
     @staticmethod
@@ -91,18 +98,23 @@ class DataObject(Model):
         :rtype: DataObject
         '''
 
+        # Convert the model object to a primitive dictionary and merge with the keyword arguments.
+        # Give priority to the keyword arguments.
+        model_data = model.to_primitive()
+        for key, value in kwargs.items():
+            model_data[key] = value
+
         # Create a new data object.
-        obj = data(dict(
-            **model.to_primitive(),
-            **kwargs
+        data_object = data(dict(
+            **model_data
         ), strict=False)
 
         # Validate the data object if specified.
         if validate:
-            obj.validate()
+            data_object.validate()
 
         # Return the data object.
-        return obj
+        return data_object
 
     # ** method: from_data
     @staticmethod

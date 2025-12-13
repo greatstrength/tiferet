@@ -1,15 +1,22 @@
+"""Tiferet Logging Models"""
+
 # *** imports
 
 # ** core
 from typing import Any, Dict
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelObject,
+    StringType,
+    BooleanType,
+    ListType,
+)
 
 # *** models
 
 # ** model: formatter
-class Formatter(Entity):
+class Formatter(ModelObject):
     '''
     An entity representing a logging formatter configuration.
     '''
@@ -60,13 +67,15 @@ class Formatter(Entity):
         :return: The formatted formatter configuration.
         :rtype: Dict[str, Any]
         '''
+
+        # Reurn the formatter configuration.
         return {
             'format': self.format,
             'datefmt': self.datefmt
         }
 
 # ** model: handler
-class Handler(Entity):
+class Handler(ModelObject):
     '''
     An entity representing a logging handler configuration.
     '''
@@ -149,19 +158,25 @@ class Handler(Entity):
         :return: The formatted handler configuration.
         :rtype: Dict[str, Any]
         '''
+
+        # Create the handler configuration.
         config = {
             'class': f'{self.module_path}.{self.class_name}',
             'level': self.level,
             'formatter': self.formatter
         }
+
+        # Add optional attributes if they are set.
         if self.stream:
             config['stream'] = self.stream
         if self.filename:
             config['filename'] = self.filename
+
+        # Return the handler configuration.
         return config
 
 # ** model: logger
-class Logger(Entity):
+class Logger(ModelObject):
     '''
     An entity representing a logger configuration.
     '''
@@ -231,6 +246,8 @@ class Logger(Entity):
         :return: The formatted logger configuration.
         :rtype: Dict[str, Any]
         '''
+
+        # Return the logger configuration.
         return {
             'level': self.level,
             'handlers': self.handlers,

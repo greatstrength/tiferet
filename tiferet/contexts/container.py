@@ -14,7 +14,7 @@ from ..commands.dependencies import *
 # *** contexts
 
 # ** contexts: container_context
-class ContainerContext(Model):
+class ContainerContext(object):
     '''
     A container context is a class that is used to create a container object.
     '''
@@ -90,7 +90,6 @@ class ContainerContext(Model):
                 dependencies[attr.id] = self.container_handler.get_dependency_type(attr, flags)
             except TiferetError as e:
                 raise e
-                    
 
         # Create the injector with the dependencies and constants.
         injector = create_injector.execute(
@@ -104,7 +103,7 @@ class ContainerContext(Model):
 
         # Return the injector.
         return injector
-    
+
     # * method: get_dependency
     def get_dependency(self, attribute_id: str, flags: List[str] = []) -> Any:
         '''

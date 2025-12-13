@@ -1,10 +1,21 @@
+"""Tiferet App Contracts"""
+
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from abc import abstractmethod
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import *
+from .settings import (
+    ModelContract,
+    Repository,
+    Service
+)
 
 # *** contracts
 
@@ -74,14 +85,14 @@ class AppRepository(Repository):
         '''
         Get the app interface settings by its ID.
 
-        : param interface_id: The app interface ID.
+        :param interface_id: The unique identifier for the app interface.
         :type interface_id: str
-        :return: The app interface settings.
-        :rtype: AppInterfaceContract
+        :return: The app interface.
+        :rtype: AppInterface
         '''
         # Not implemented.
         raise NotImplementedError('get_interface method is required for AppRepository.')
-    
+
     # * method: list_interfaces
     @abstractmethod
     def list_interfaces(self) -> List[AppInterfaceContract]:
@@ -93,3 +104,87 @@ class AppRepository(Repository):
         '''
         # Not implemented.
         raise NotImplementedError('list_interfaces method is required for AppRepository.')
+    
+    # * method: save_interface
+    def save_interface(self, interface: AppInterfaceContract):
+        '''
+        Save the app interface settings.
+
+        :param interface: The app interface to save.
+        :type interface: AppInterfaceContract
+        '''
+        # Not implemented.
+        raise NotImplementedError('save_interface method is required for AppRepository.')
+    
+    # * method: delete_interface
+    def delete_interface(self, interface_id: str):
+        '''
+        Delete the app interface settings by name.
+
+        :param interface_id: The unique identifier for the app interface to delete.
+        :type interface_id: str
+        '''
+        # Not implemented.
+        raise NotImplementedError('delete_interface method is required for AppRepository.')
+
+# ** interface: app_service
+class AppService(Service):
+    '''
+    An app service is a class that is used to manage app interfaces.
+    '''
+
+    # * method: load_app_repository
+    @abstractmethod
+    def load_app_repository(self, 
+        app_repo_module_path: str,
+        app_repo_class_name: str,
+        app_repo_params: Dict[str, Any],
+        **kwargs
+    ) -> AppRepository:
+        '''
+        Execute the command.
+
+        :param app_repo_module_path: The application repository module path.
+        :type app_repo_module_path: str
+        :param app_repo_class_name: The application repository class name.
+        :type app_repo_class_name: str
+        :param app_repo_params: The application repository parameters.
+        :type app_repo_params: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The application repository instance.
+        :rtype: AppRepository
+        '''
+        # Not implemented.
+        raise NotImplementedError('load_app_repository method is required for AppService.')
+
+    # * method: load_app_instance
+    @abstractmethod
+    def load_app_instance(self, app_interface: AppInterfaceContract, default_attrs: List[AppAttributeContract]) -> Any:
+        '''
+        Create the app dependency injector.
+
+        :param app_interface: The app interface.
+        :type app_interface: AppInterface
+        :param default_attrs: The default configured attributes for the app.
+        :type default_attrs: List[AppAttribute]
+        :return: The app instance.
+        :rtype: Any
+        '''
+        # Not implemented.
+        raise NotImplementedError('load_app_instance method is required for AppService.')
+    
+    # * method: get_app_interface
+    @abstractmethod
+    def get_app_interface(self, interface_id: str) -> AppInterfaceContract:
+        '''
+        Get the app interface by its unique identifier.
+
+        :param interface_id: The unique identifier for the app interface.
+        :type interface_id: str
+        :return: The app interface.
+        :rtype: AppInterface
+        '''
+        # Not implemented.
+        raise NotImplementedError('get_app_interface method is required for AppService.')
+
