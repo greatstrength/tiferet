@@ -1,11 +1,67 @@
-"""Model Settings Model Classes"""
+"""Tiferet Model Settings"""
 
 # *** imports
 
 # ** infra
-from schematics import Model
+from schematics import Model, types as t
 
 # *** classes
+
+# ** class: string_type
+class StringType(t.StringType):
+    '''
+    A string type.
+    '''
+
+    pass
+
+# ** class: integer_type
+class IntegerType(t.IntType):
+    '''
+    An integer type.
+    '''
+
+    pass
+
+# ** class: float_type
+class FloatType(t.FloatType):
+    '''
+    A float type.
+    '''
+
+    pass
+
+# ** class: boolean_type
+class BooleanType(t.BooleanType):
+    '''
+    A boolean type.
+    '''
+
+    pass
+
+# ** class: list_type
+class ListType(t.ListType):
+    '''
+    A list type.
+    '''
+
+    pass
+
+# ** class: dict_type
+class DictType(t.DictType):
+    '''
+    A dictionary type.
+    '''
+
+    pass
+
+# ** class: model_type
+class ModelType(t.ModelType):
+    '''
+    A model type.
+    '''
+
+    pass
 
 # ** class: model_object
 class ModelObject(Model):
@@ -47,3 +103,9 @@ class ModelObject(Model):
 
         # Return the new model object.
         return model_object
+    
+    # * method: validate
+    def validate(self, **kwargs):
+
+        # Override to disable strict mode by default.
+        return super().validate(False, True, None, **kwargs)
