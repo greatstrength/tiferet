@@ -61,7 +61,8 @@ class FileLoaderMiddleware:
         self.file = None
 
     # * method: verify_file
-    def verify_file(self, path: str):
+    @staticmethod
+    def verify_file(path: str):
         '''
         Verify that the file exists and is accessible.
 

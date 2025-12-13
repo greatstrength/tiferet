@@ -35,7 +35,7 @@ class AppManagerContext(object):
     app_service: AppService
 
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
+    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = None):
         '''
         Initialize the AppManagerContext with an application service.
 
@@ -49,7 +49,9 @@ class AppManagerContext(object):
         self.settings = settings
 
         # Set the app service.
-        self.app_service = app_service if app_service else AppHandler(settings=settings)
+        self.app_service = app_service
+
+    # * method: load_interface_config
 
     # * method: load_default_attributes
     def load_default_attributes(self, app_interface: AppInterface):

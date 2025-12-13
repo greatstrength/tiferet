@@ -1,13 +1,18 @@
 """Tiferet YAML Middleware"""
 
 # *** imports
-import yaml
+
+# ** core
+import os
 from typing import (
     Any,
     Dict,
     List,
     Callable
 )
+
+# ** infra
+import yaml
 
 # ** app
 from .file import FileLoaderMiddleware
@@ -60,6 +65,24 @@ class YamlLoaderMiddleware(FileLoaderMiddleware):
 
         # Close the file using the parent class's context manager.
         return super().__exit__(exc_type, exc_value, traceback)
+    
+    # * method: verify_file
+    @staticmethod
+    def verify_file(path: str):
+        '''
+        Verify that the YAML file exists and is accessible.
+
+        :param path: The path to the YAML file.
+        :type path: str
+        '''
+
+        # Use the parent class's verify_file method to check file existence.
+        FileLoaderMiddleware.verify_file(path)
+
+        # Validate the file extension.
+        _, ext = os.path.splitext(path)
+        if ext.lower() not in ['.yml', '.yaml']:
+            raise ValueError(f'File is not a valid YAML file: {path}')
 
     # * method: load_yaml
     def load_yaml(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:

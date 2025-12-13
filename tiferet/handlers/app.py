@@ -132,7 +132,6 @@ class AppHandler(AppService):
                 for param, value in attr.parameters.items():
                     dependencies[param] = value
 
-
         # Add the constants from the app interface to the dependencies.
         dependencies.update(app_interface.constants)
 

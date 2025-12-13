@@ -66,7 +66,23 @@ def test_yaml_file_proxy_init_invalid_file():
 
     # Verify the error message.
     assert exc_info.value.error_code == 'INVALID_YAML_FILE'
-    assert 'File is not a valid YAML file:' in str(exc_info.value)
+    assert 'Valid YAML file not found at path:' in str(exc_info.value)
+
+# ** test: yaml_file_proxy_init_invalid_file
+def test_yaml_file_proxy_init_invalid_path():
+    '''
+    Test the initialization of YamlFileProxy with an invalid file.
+
+    This test checks that initializing the YamlFileProxy with a non-YAML file raises a TiferetError.
+    '''
+
+    # Attempt to initialize the YamlFileProxy with an invalid file name.
+    with pytest.raises(TiferetError) as exc_info:
+        YamlFileProxy('invalid_file.txt')
+
+    # Verify the error message.
+    assert exc_info.value.error_code == 'INVALID_YAML_FILE'
+    assert 'Valid YAML file not found at path:' in str(exc_info.value)
 
 # ** test: yaml_file_proxy_load_yaml
 def test_yaml_file_proxy_load_yaml(yaml_file_proxy: YamlFileProxy):
