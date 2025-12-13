@@ -9,8 +9,8 @@ from .settings import (
     Service,
 )
 from .app import (
-    AppInterface as AppInterfaceContract,
-    AppAttribute as AppAttributeContract,
+    AppInterfaceContract,
+    AppAttributeContract,
     AppRepository
 )
 from .cli import (
@@ -29,8 +29,8 @@ from .error import (
     ErrorRepository
 )
 from .feature import (
-    Feature as FeatureContract,
-    FeatureCommand as FeatureCommandContract,
+    FeatureContract,
+    FeatureCommandContract,
     FeatureRepository
 )
 from .logging import (
