@@ -95,7 +95,7 @@ def container_service(container_service_content, dependency_type):
     """Fixture to create a mock container service."""
 
     # Create a mock ContainerService with the specified content.
-    service = mock.Mock(spec=ContainerService)
+    service = mock.Mock(spec=ContainerHandler)
 
     # Mock the list_all method to return the content.
     service.list_all.return_value = container_service_content
