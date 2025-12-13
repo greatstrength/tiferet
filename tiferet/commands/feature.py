@@ -15,10 +15,16 @@ from ..contracts.feature import (
 # ** command: add_new_feature
 class AddNewFeature(object):
     '''
-    Add a new feature.
+    Parse a request for a feature.
     '''
 
-    def __init__(self, feature_repo: FeatureRepository):
+    # * method: execute
+    def execute(self,
+        feature_id: str,
+        data: Dict[str, Any] = {},
+        headers: Dict[str, str] = {},
+        debug: bool = False,
+        **kwargs) -> Request:
         '''
         Initialize the command.
         
@@ -72,22 +78,28 @@ class AddFeatureCommand(object):
 
         :param feature_id: The feature ID.
         :type feature_id: str
-        :param position: The position of the handler.
-        :type position: int
+        :param data: The data.
+        :type data: dict
+        :param headers: The headers.
+        :type headers: dict
+        :param debug: Debug flag.
+        :type debug: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The updated feature.
-        :rtype: Feature
+        :return: The request context.
+        :rtype: Request
         '''
 
         # Create a new feature handler instance.
         handler = FeatureCommand.new(**kwargs)
 
-        # Get the feature using the feature ID.
-        feature = self.feature_repo.get(feature_id)
+            # If if the value is a string, integer, float, or boolean, continue to the next iteration.
+            if isinstance(value, (str, int, float, bool)):
+                continue
 
-        # Assert that the feature was successfully found.
-        assert feature is not None, f'FEATURE_NOT_FOUND: {feature_id}'
+            # If the value is a list, dictionary, convert it to a JSON string.
+            elif isinstance(value, (list, dict)):
+                data[key] = json.dumps(value)
 
         # Add the feature handler to the feature.
         feature.add_command(
@@ -95,6 +107,25 @@ class AddFeatureCommand(object):
             position=position
         )
 
-        # Save and return the feature.
-        self.feature_repo.save(feature)
-        return feature
+            # If the value is not a string, integer, float, boolean, list, dictionary, or model, raise an error.
+            else:
+                self.raise_error(
+                    'REQUEST_DATA_INVALID',
+                    key,
+                    str(value)
+                )
+            
+        # Add app interface id and name to the headers.
+        headers.update(dict(
+            feature_id=feature_id,
+            session_id=str(uuid4()),
+            app_name=self.name
+        ))
+
+        # Parse request.
+        return ModelObject.new(
+            Request,
+            data=data,
+            headers=headers,
+            debug=debug
+        )

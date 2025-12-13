@@ -2,7 +2,7 @@
 
 # *** imports
 
-# ** infra 
+# ** infra
 import pytest
 
 # ** app
@@ -91,5 +91,26 @@ def test_error_data_map(error_config_data : ErrorConfigData):
     assert error.name == error_config_data.name
     assert error.error_code == error_config_data.error_code
     assert len(error.message) == 1
-    assert error.message[0].lang == 'en'
-    assert error.message[0].text == 'Test error message.'
+    assert isinstance(error.message[0], ErrorMessage)
+    
+    # Assert the error message attributes.
+    error_message = error.message[0]
+    assert error_message.lang == 'en_US'
+    assert error_message.text == 'This is a test error message.'
+
+
+# ** test: test_error_message_yaml_data_map
+def test_error_message_yaml_data_map(error_message_yaml_data):
+    '''
+    Test the error message data mapping.
+    '''
+    
+    # Map the error message data to an error message object.
+    error_message = error_message_yaml_data.map(ErrorMessage)
+    
+    # Assert the error message type.
+    assert isinstance(error_message, ErrorMessage)
+    
+    # Assert the error message attributes.
+    assert error_message.lang == 'en_US'
+    assert error_message.text == 'This is a test error message.'

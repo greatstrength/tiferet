@@ -81,6 +81,21 @@ def feature():
         commands=[]
     )
 
+
+# ** fixture: feature_context
+@pytest.fixture
+def feature_context(container_context, feature_repo, features):
+
+    return FeatureContext(
+        feature_repo=feature_repo(features=features),
+        container_context=container_context
+    )
+
+# ** fixture: feature_handler
+@pytest.fixture
+def feature_handler():
+    return FeatureHandler()
+
 # *** tests
 
 # ** test: feature_context_load_feature_command

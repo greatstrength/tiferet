@@ -212,7 +212,7 @@ class AppInterfaceContext(object):
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
-        Execute the feature context.
+        Execute the feature request.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -314,14 +314,3 @@ class AppInterfaceContext(object):
         # Handle response.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
         return self.handle_response(request, **kwargs)
-
-# ** context: app_context (obsolete)
-class AppContext(AppManagerContext):
-    '''
-    The AppContext is an obsolete class that extends the AppManagerContext.
-    It is kept for backward compatibility but should not be used in new code.
-    '''
-
-    # * init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppHandler = AppHandler()):
-        super().__init__(settings, app_service)

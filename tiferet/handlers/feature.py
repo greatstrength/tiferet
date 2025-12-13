@@ -1,4 +1,4 @@
-# *** imports
+ # *** imports
 
 # ** app
 from ..commands import *
@@ -69,7 +69,7 @@ class FeatureHandler(FeatureService):
         return result
 
     # * method: get_feature
-    def get_feature(self, feature_id: str) -> Feature:
+    def get_feature(self, feature_id: str) -> FeatureContract:
         '''
         Get a feature by its ID.
 

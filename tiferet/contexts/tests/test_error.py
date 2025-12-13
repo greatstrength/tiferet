@@ -9,7 +9,6 @@ from ...configs.error import ERRORS
 from ..error import *
 from ...models.error import *
 
-
 # *** fixtures
 
 # ** fixture: error_service
@@ -34,7 +33,6 @@ def error_context(error_service):
     
     # Create an instance of ErrorContext with the mock error service.
     return ErrorContext(error_service=error_service)
-
 
 # *** tests
 

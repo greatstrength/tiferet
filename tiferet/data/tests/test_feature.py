@@ -56,7 +56,7 @@ def feature_config_data() -> FeatureConfigData:
             dict(
                 name='Test Feature Command',
                 attribute_id='test_feature_command',
-                params={},
+                params={'test_param': 'test_value'},
                 return_to_data=True,
                 data_key='test_data',
                 pass_on_error=True

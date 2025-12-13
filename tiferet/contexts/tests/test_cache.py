@@ -21,7 +21,6 @@ def cache_context():
     """Fixture to provide a fresh CacheContext instance for each test."""
     return CacheContext()
 
-
 # *** tests
 
 # ** test: test_init_with_initial_cache

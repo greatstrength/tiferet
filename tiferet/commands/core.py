@@ -79,7 +79,6 @@ class ImportDependency(Command):
         # Import module.
         try:
             return getattr(import_module(module_path), class_name)
-
         # Raise an error if the dependency import fails.
         except Exception as e:
             self.raise_error(

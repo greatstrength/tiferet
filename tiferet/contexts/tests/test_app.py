@@ -194,6 +194,48 @@ def app_manager_context(app_service):
         app_service
     )
 
+# ** fixture: features
+@pytest.fixture
+def features():
+    return [
+        ModelObject.new(
+            Feature,
+            **TEST_FEATURE,
+        )
+    ]
+
+# ** fixture: container_attributes
+@pytest.fixture
+def container_attributes():
+    return [
+        ModelObject.new(
+            ContainerAttribute,
+            **TEST_SERVICE_COMMAND_ATTRIBUTE
+        )
+    ]
+
+# ** fixture: errors
+@pytest.fixture
+def errors():
+    return [
+        ModelObject.new(
+            Error,
+            **TEST_ERROR
+        )
+    ]
+
+
+# ** fixture: app_context_interface
+@pytest.fixture
+def app_context_interface(app_context, app_interface, features, container_attributes, errors):
+    return app_context.load_interface(app_interface.id,
+        dependencies={
+            'features': features,
+            'attributes': container_attributes,
+            'errors': errors,
+        })
+
+
 # *** tests
 
 # ** test: app_manager_context_get_app_interface

@@ -26,8 +26,8 @@ errors:
 features:
   test_group.test_feature:
     commands:
-    - attribute_id: test_feature_command
-      name: Test Feature Command
+    - attribute_id: test_service_command
+      name: Test Service Command
       params:
         param1: value1
     description: A test feature.

@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import Dict, Any, List
+
 # ** app
 from .container import ContainerContext
 from .cache import CacheContext
@@ -158,6 +161,8 @@ class FeatureContext(object):
         :type pass_on_error: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
+        :return: The result of the feature execution.
+        :rtype: Any
         '''
 
         # Execute the command with the request data and parameters, and optional contexts.

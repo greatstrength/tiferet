@@ -117,7 +117,6 @@ class Error(ModelObject):
         :type kwargs: dict
         :return: A new Error object.
         '''
-
         # Set Id as the name lower cased if not provided.
         if not id:
             id = name.lower().replace(' ', '_')

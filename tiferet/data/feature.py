@@ -32,10 +32,7 @@ class FeatureCommandConfigData(FeatureCommand, DataObject):
         The default options for the feature handler data.
         '''
 
-        # Set the serialize when none flag to false.
         serialize_when_none = False
-
-        # Define the roles for the feature handler data.
         roles = {
             'to_model': DataObject.deny('parameters'),
             'to_data.yaml': DataObject.allow(),
@@ -79,10 +76,7 @@ class FeatureConfigData(Feature, DataObject):
         The default options for the feature data.
         '''
 
-        # Set the serialize when none flag to false.
         serialize_when_none = False
-
-        # Define the roles for the feature data.
         roles = {
             'to_model': DataObject.deny('feature_key'),
             'to_data.yaml': DataObject.deny('feature_key', 'group_id', 'id'),
