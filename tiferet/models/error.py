@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import List, Any
+from typing import List, Dict, Any
 
 # ** app
 from .settings import (
@@ -102,7 +102,7 @@ class Error(ModelObject):
 
     # * method: new
     @staticmethod
-    def new(name: str, id: str = None, error_code: str = None, message: List[ErrorMessage | Any] = [], **kwargs) -> 'Error':
+    def new(name: str, id: str = None, error_code: str = None, message: List[Dict[str, str]] = []) -> 'Error':
         '''Initializes a new Error object.
 
         :param name: The name of the error.
@@ -112,9 +112,7 @@ class Error(ModelObject):
         :param error_code: The error code for the error.
         :type error_code: str
         :param message: The error message translations for the error.
-        :type message: list 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :type message: list
         :return: A new Error object.
         '''
 
@@ -126,22 +124,13 @@ class Error(ModelObject):
         if not error_code:
             error_code = id.upper().replace(' ', '_')
 
-        # Convert any error message dicts to ErrorMessage objects.
-        message_objs = []
-        for msg in message:
-            if isinstance(msg, ErrorMessage):
-                message_objs.append(msg)
-            elif not isinstance(msg, ErrorMessage) and isinstance(msg, dict):
-                message_objs.append(ModelObject.new(ErrorMessage, **msg))
-
         # Create and return a new Error object.
         return ModelObject.new(
             Error,
             id=id,
             name=name,
             error_code=error_code,
-            message=message_objs,
-            **kwargs
+            message=message
         )
 
     # * method: format_message

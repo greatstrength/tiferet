@@ -6,7 +6,8 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import *
+from .settings import Command, TiferetError as LegacyTiferetError
+from ..assets import TiferetError
 
 
 # *** commands
@@ -109,7 +110,23 @@ class RaiseError(Command):
         '''
 
         # Raise an error with the specified code and arguments.
-        raise TiferetError(error_code, message, *args)
+        raise LegacyTiferetError(error_code, message, *args)
+    
+    @staticmethod
+    def execute(error_code: str, message: str = None, **kwargs) -> None:
+        '''
+        Raise an error with a specific code and message.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param message: An optional error message for internal exception handling.
+        :type message: str
+        :param kwargs: Additional keyword arguments for the error message.
+        :type kwargs: dict
+        '''
+
+        # Call the instance method to raise the error.
+        
 
 
 # *** command_variables
