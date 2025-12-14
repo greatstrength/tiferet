@@ -109,6 +109,21 @@ class RaiseError(Command):
 
         # Raise an error with the specified code and arguments.
         raise TiferetError(error_code, message, *args)
+    
+    # * method: execute
+    @staticmethod
+    def execute(self, error_code: str, message: str = None, *args) -> None:
+        '''
+        Execute the command.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param args: Additional arguments for the error message.
+        :type args: tuple
+        '''
+
+        # Raise an error with the specified code and arguments.
+        raise TiferetError(error_code, message, *args)
 
 
 # *** command_variables
