@@ -6,7 +6,8 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import *
+from .settings import Command
+from ..configs import TiferetError as LegacyTiferetError
 
 
 # *** commands
@@ -50,8 +51,8 @@ class ParseParameter(Command):
             self.raise_error(
                 'PARAMETER_PARSING_FAILED',
                 f'Failed to parse parameter: {parameter}. Error: {str(e)}',
-                parameter,
-                str(e)
+                parameter=parameter,
+                exception=str(e)
             )
 
 
@@ -85,9 +86,9 @@ class ImportDependency(Command):
             self.raise_error(
                 'IMPORT_DEPENDENCY_FAILED',
                 f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
-                module_path,
-                class_name,
-                str(e),
+                module_path=module_path,
+                class_name=class_name,
+                exception=str(e),
             )
 
 
@@ -109,7 +110,7 @@ class RaiseError(Command):
         '''
 
         # Raise an error with the specified code and arguments.
-        raise TiferetError(error_code, message, *args)
+        raise LegacyTiferetError(error_code, message, *args)
 
 
 # *** command_variables
