@@ -3,3 +3,4 @@
 # *** exports
 
 # ** app
+from .exceptions import TiferetError
