@@ -7,7 +7,7 @@ import pytest
 import json
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ..settings import JsonFileProxy
 
 # *** fixtures
