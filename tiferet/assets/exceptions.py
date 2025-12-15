@@ -40,8 +40,9 @@ class TiferetError(Exception):
 
         # Initialize base exception with error data.
         super().__init__(
-            json.dumps(dict(
-                error_code=error_code,
-                message=message,
-            )), **kwargs
+            json.dumps({
+                'error_code': error_code,
+                'message': message,
+                **kwargs
+            })
         )
