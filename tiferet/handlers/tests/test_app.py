@@ -2,10 +2,10 @@
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
-from ..app import AppHandler, AppRepository, TiferetError
+from ..app import AppHandler, AppRepository
+from ...configs import TiferetError
 from ...configs.app import DEFAULT_ATTRIBUTES
 from ...contexts.app import AppInterfaceContext
 from ...models.app import *
