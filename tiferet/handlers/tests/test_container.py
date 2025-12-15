@@ -7,7 +7,7 @@ from unittest import mock
 # ** app
 from ..container import ContainerRepository, ContainerHandler
 from ...models.container import *
-from ...commands import TiferetError
+from ...configs import TiferetError
 from ...proxies.yaml.container import ContainerYamlProxy
 
 
