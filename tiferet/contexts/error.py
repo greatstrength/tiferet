@@ -1,15 +1,16 @@
 # *** imports
 
 # ** core
-from typing import Any, Tuple, List
+from typing import Any, List
 
 # ** app
 from .cache import CacheContext
+from ..assets import TiferetError, TiferetAPIError
 from ..configs.error import ERRORS
 from ..handlers.error import ErrorService
 from ..models.error import Error, ModelObject
 from ..commands import raise_error
-from ..configs import TiferetError
+from ..configs import TiferetError as LegacyTiferetError
 
 
 # *** contexts
@@ -95,7 +96,7 @@ class ErrorContext(object):
         return error_map.get(error_code)
 
     # * method: handle_error
-    def handle_error(self, exception: TiferetError, lang: str = 'en_US', **kwargs) -> Tuple[bool, Any]:
+    def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Any:
         '''
         Handle an error.
 
@@ -108,18 +109,27 @@ class ErrorContext(object):
         '''
 
         # Raise the exception if it is not a Tiferet error.
-        if not isinstance(exception, TiferetError):
+        if not isinstance(exception, (TiferetError, LegacyTiferetError)):
             raise exception
 
         # Get the error by its code from the error service.
         error = self.get_error_by_code(exception.error_code)
         
         # Format the error response.
-        error_response = error.format_response(
-            lang,
-            *exception.args[1:],
-            **kwargs
-        )
+        if isinstance(exception, LegacyTiferetError):
+            error_message = error.format_message(
+                lang,
+                *exception.args
+            )
+        else:
+            error_message = error.format_message(
+                lang,
+                **exception.kwargs
+            )
 
-        # Return the error response.
-        return error_response
+        # Raise a new TiferetAPIError with the formatted error message.
+        raise TiferetAPIError(
+            error.error_code,
+            error_message,
+            **exception.kwargs
+        )
