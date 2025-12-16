@@ -53,14 +53,6 @@ ERRORS = [
         ]
     ),
     dict(
-        id='error_not_found',
-        name='Error Not Found',
-        error_code='ERROR_NOT_FOUND',
-        message=[
-            dict(lang='en_US', text='Error not found: {}.')
-        ]
-    ),
-    dict(
         id='container_attributes_not_found',
         name='Container Attributes Not Found',
         error_code='CONTAINER_ATTRIBUTES_NOT_FOUND',
