@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ....data import DataObject, ErrorConfigData
 from ..error import ErrorYamlProxy
 

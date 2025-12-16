@@ -5,8 +5,9 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...configs import TiferetError as LegacyTiferetError
 from ...configs.error import ERRORS
-from ..error import *
+from ..error import ErrorService, ErrorContext
 from ...models.error import *
 
 
@@ -77,11 +78,11 @@ def test_error_context_get_error_by_code_not_found(error_context):
     """Test handling the case where an error code is not found in the ErrorContext."""
     
     # Attempt to retrieve a non-existent error code.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(LegacyTiferetError) as exc_info:
         error_context.get_error_by_code('NON_EXISTENT_ERROR')
     
     # Assert that the raised error is of type TiferetError.
-    assert isinstance(exc_info.value, TiferetError)
+    assert isinstance(exc_info.value, LegacyTiferetError)
     
     # Assert that the error message matches the expected format.
     assert exc_info.value.error_code == 'ERROR_NOT_FOUND'
@@ -93,7 +94,7 @@ def test_error_context_handle_error(error_context):
     """Test handling an error using the ErrorContext."""
     
     # Create a TiferetError instance.
-    tiferet_error = TiferetError('ERROR_NOT_FOUND', 'Error not found: NON_EXISTENT_ERROR.', 'NON_EXISTENT_ERROR')
+    tiferet_error = LegacyTiferetError('ERROR_NOT_FOUND', 'Error not found: NON_EXISTENT_ERROR.', 'NON_EXISTENT_ERROR')
     
     # Handle the error using the error context.
     response = error_context.handle_error(tiferet_error, lang='en_US')

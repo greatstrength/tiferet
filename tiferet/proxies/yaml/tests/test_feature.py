@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ....data import DataObject, FeatureConfigData
 from ..feature import FeatureYamlProxy
 

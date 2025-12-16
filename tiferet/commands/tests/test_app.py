@@ -7,14 +7,13 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...configs import TiferetError
 from ...models import (
     ModelObject,
     AppInterface,
     AppAttribute
 )
 from ...contracts import AppRepository
-from ..app import ImportAppRepository, GetAppInterface
+from ..app import ImportAppRepository, GetAppInterface, TiferetError
 
 # *** fixtures
 

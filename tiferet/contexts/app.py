@@ -10,6 +10,7 @@ from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
+from ..configs import TiferetError
 from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models import (
     ModelObject,
@@ -21,8 +22,7 @@ from ..handlers.app import (
     AppRepository,
 )
 from ..commands import (
-    Command,
-    TiferetError
+    Command
 )
 from ..commands.app import GetAppInterface
 

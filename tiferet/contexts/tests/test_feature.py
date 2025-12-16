@@ -1,11 +1,22 @@
 # *** imports
 
+# ** core
+from typing import Any
+
 # ** infra
 import pytest
 from unittest import mock
 
 # ** app
-from ..feature import *
+from ..feature import (
+    FeatureService, 
+    ContainerContext, 
+    FeatureContext,
+    RequestContext
+)
+from ...assets import TiferetError
+from ...configs import TiferetError as LegacyTiferetError
+from ...commands import Command
 from ...models.feature import *
 
 # *** fixtures
@@ -105,7 +116,7 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
     )
 
     # Attempt to load a non-existent feature command.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(LegacyTiferetError) as exc_info:
         feature_context.load_feature_command('non_existent_command')
     
     # Assert that the exception message is as expected.

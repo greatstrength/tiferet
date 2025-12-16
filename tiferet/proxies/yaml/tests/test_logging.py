@@ -8,7 +8,7 @@ from unittest import mock
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ....data import (
     DataObject,
     LoggingSettingsConfigData,

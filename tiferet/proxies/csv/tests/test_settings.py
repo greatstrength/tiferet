@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ....middleware import CsvDict
 from ..settings import CsvFileProxy
 

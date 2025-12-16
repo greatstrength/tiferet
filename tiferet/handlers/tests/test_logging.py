@@ -1,11 +1,15 @@
 # *** imports
 
+# ** core
+import logging
+
 # ** infra
 import pytest
 from unittest import mock
 
 # ** app
-from ..logging import *
+from ..logging import LoggingHandler
+from ...configs import TiferetError
 from ...models.logging import *
 from ...contracts.logging import LoggingRepository
 
