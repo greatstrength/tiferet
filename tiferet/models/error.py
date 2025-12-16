@@ -49,14 +49,14 @@ class ErrorMessage(ModelObject):
         '''
 
         # If there are no arguments, return the error message text.
-        if not args:
+        if not (args or kwargs):
             return self.text
 
         # Format the error message text and return it.
-        if args:
-            return self.text.format(*args)
-        else:
+        if kwargs:
             return self.text.format(**kwargs)
+        else:
+            return self.text.format(*args)
 
 # ** model: error
 class Error(ModelObject):

@@ -5,7 +5,12 @@ from typing import Any, List
 
 # ** app
 from .cache import CacheContext
-from ..assets import TiferetError, TiferetAPIError
+from ..assets import (
+    TiferetError, 
+    TiferetAPIError,
+    ERROR_NOT_FOUND_ID,
+    DEFAULT_ERRORS
+)
 from ..configs.error import ERRORS
 from ..handlers.error import ErrorService
 from ..models.error import Error, ModelObject
@@ -84,12 +89,31 @@ class ErrorContext(object):
             error_map = {error.error_code: error for error in errors}
             self.cache.set('error_map', error_map)
 
-        # Raise an error if the error code does not exist in the error map.
+        # Look for the error in the default errors if it was not found in the map.
         if not error_map or error_code not in error_map:
-            raise_error.execute(
-                'ERROR_NOT_FOUND', 
-                f'Error not found: {error_code}.',
-                error_code
+            error_data = DEFAULT_ERRORS.get(error_code, None)
+
+        # Return the error if it was found in the default errors.
+        if error_data:
+            return Error.new(**error_data)
+        
+        # Raise an error if the default error does not exist.
+        if not error_data:
+            
+            # Retrieve the "error not found" error to use its details.
+            not_found_error = Error.new(
+                **DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID)
+            )
+            
+            # Raise a Tiferet API Error.
+            raise TiferetAPIError(
+                error_code=ERROR_NOT_FOUND_ID,
+                name=not_found_error.name,
+                message=not_found_error.format_message(
+                    'en_US',
+                    id=error_code
+                ),
+                id=error_code
             )
 
         # Return the error object from the error map.
@@ -129,7 +153,8 @@ class ErrorContext(object):
 
         # Raise a new TiferetAPIError with the formatted error message.
         raise TiferetAPIError(
-            error.error_code,
-            error_message,
-            **exception.kwargs
+            error_code=error.error_code,
+            name=error.name,
+            message=error_message,
+            **exception.kwargs if hasattr(exception, 'kwargs') else {}
         )

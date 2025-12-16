@@ -53,23 +53,29 @@ class TiferetAPIError(TiferetError):
     The TiferetAPIError is the exception returned for all Tiferet API-related errors by default.
     '''
     
+    # * attribute: name
+    name: str
+
     # * attribute: message
     message: str
 
     # * init
-    def __init__(self, error_code: str, message: str, **kwargs):
+    def __init__(self, error_code: str, name: str,  message: str, **kwargs):
         '''
         Initialize the TiferetError with an error code, message, and additional arguments.
 
         :param error_code: The error code.
         :type error_code: str
+        :param name: A descriptive name for the error.
+        :type name: str
         :param message: The error message.
         :type message: str
         :param kwargs: Additional error keyword arguments.
         :type kwargs: dict
         '''
 
-        # Set the message.
+        # Set the name and the message.
+        self.name = name
         self.message = message
 
         # Initialize base exception with error data.

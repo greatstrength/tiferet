@@ -5,6 +5,12 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...assets import (
+    TiferetError, 
+    TiferetAPIError,
+    ERROR_NOT_FOUND_ID,
+    DEFAULT_ERRORS
+)
 from ...configs import TiferetError as LegacyTiferetError
 from ...configs.error import ERRORS
 from ..error import ErrorService, ErrorContext
@@ -20,9 +26,10 @@ def error_service():
     
     # Create a mock error service.
     service = mock.Mock(spec=ErrorService)
-    service.load_errors.return_value = [
-        ModelObject.new(Error, **error_data) for error_data in ERRORS 
-    ]
+
+    # Load errors to be returned by the mock service.
+    errors = [ModelObject.new(Error, **error_data) for error_data in ERRORS]
+    service.load_errors.return_value = errors
 
     # Return the mock error service.
     return service
@@ -70,35 +77,45 @@ def test_error_context_get_error_by_code(error_context):
     assert error.name == 'Error Not Found'
     assert len(error.message) == 1
     assert error.message[0].lang == 'en_US'
-    assert error.message[0].text == 'Error not found: {}.'
+    assert error.message[0].text == 'Error not found: {id}.'
 
 
 # ** test: error_context_get_error_by_code_not_found
-def test_error_context_get_error_by_code_not_found(error_context):
-    """Test handling the case where an error code is not found in the ErrorContext."""
+def test_error_context_get_error_by_code_not_found(error_context: ErrorContext):
+    '''
+    Test retrieving a non-existent error code from the ErrorContext.
+
+    :param error_context: The error context to test.
+    :type error_context: ErrorContext
+    '''
     
     # Attempt to retrieve a non-existent error code.
-    with pytest.raises(LegacyTiferetError) as exc_info:
+    with pytest.raises(TiferetAPIError) as exc_info:
         error_context.get_error_by_code('NON_EXISTENT_ERROR')
     
     # Assert that the raised error is of type TiferetError.
-    assert isinstance(exc_info.value, LegacyTiferetError)
+    assert isinstance(exc_info.value, TiferetAPIError)
     
     # Assert that the error message matches the expected format.
-    assert exc_info.value.error_code == 'ERROR_NOT_FOUND'
-    assert 'Error not found: NON_EXISTENT_ERROR.' in str(exc_info.value)
-
+    assert exc_info.value.error_code == ERROR_NOT_FOUND_ID
+    assert exc_info.value.name == 'Error Not Found'
+    assert 'Error not found: NON_EXISTENT_ERROR.' in str(exc_info.value.message)
+    assert exc_info.value.kwargs.get('id') == 'NON_EXISTENT_ERROR'
 
 # ** test: error_context_handle_error
 def test_error_context_handle_error(error_context):
     """Test handling an error using the ErrorContext."""
-    
-    # Create a TiferetError instance.
-    tiferet_error = LegacyTiferetError('ERROR_NOT_FOUND', 'Error not found: NON_EXISTENT_ERROR.', 'NON_EXISTENT_ERROR')
-    
+
+    # Do this again, but with the new TiferetError.
+    tiferet_error = TiferetError('ERROR_NOT_FOUND', id='NON_EXISTENT_ERROR')
+
     # Handle the error using the error context.
-    response = error_context.handle_error(tiferet_error, lang='en_US')
+    with pytest.raises(TiferetAPIError) as exc_info:
+        error_context.handle_error(tiferet_error, lang='en_US')
     
     # Assert that the response contains the expected error message.
-    assert response['error_code'] == 'ERROR_NOT_FOUND'
-    assert response['message'] == 'Error not found: NON_EXISTENT_ERROR.'
+    assert exc_info.value.error_code == 'ERROR_NOT_FOUND'
+    assert exc_info.value.name == 'Error Not Found'
+    assert 'Error not found: NON_EXISTENT_ERROR.' in str(exc_info.value.message)
+    assert exc_info.value.kwargs.get('id') == 'NON_EXISTENT_ERROR'
+    
