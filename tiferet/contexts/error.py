@@ -8,7 +8,8 @@ from .cache import CacheContext
 from ..configs.error import ERRORS
 from ..handlers.error import ErrorService
 from ..models.error import Error, ModelObject
-from ..commands import raise_error, TiferetError
+from ..commands import raise_error
+from ..configs import TiferetError
 
 
 # *** contexts

@@ -51,7 +51,7 @@ class ImportAppRepository(Command):
             self.raise_error(
                 'APP_REPOSITORY_IMPORT_FAILED',
                 f'Failed to import app repository: {e}.',
-                str(e)
+                exception=str(e)
             )
 
         # Return the imported app repository.
@@ -95,7 +95,8 @@ class GetAppInterface(Command):
         if not interface:
             self.raise_error(
                 'APP_INTERFACE_NOT_FOUND',
-                f'App interface with ID {interface_id} not found.'
+                f'App interface with ID {interface_id} not found.',
+                interface_id=interface_id
             )
 
         # Return the loaded application interface.

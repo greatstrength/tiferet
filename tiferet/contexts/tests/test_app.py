@@ -18,9 +18,9 @@ from ..app import (
     RequestContext,
     AppInterfaceContext,
     AppManagerContext,
-    TiferetError,
     AppService,
 )
+from ...configs import TiferetError
 from ...models import (
     ModelObject,
     AppInterface,

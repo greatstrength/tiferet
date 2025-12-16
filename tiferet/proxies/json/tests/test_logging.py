@@ -8,7 +8,7 @@ from unittest import mock
 import json
 
 # ** app
-from ....commands import TiferetError
+from ....configs import TiferetError
 from ....data import (
     DataObject,
     LoggingSettingsConfigData,
