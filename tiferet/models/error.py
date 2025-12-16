@@ -38,7 +38,7 @@ class ErrorMessage(ModelObject):
     )
 
     # * method: format
-    def format(self, *args) -> str:
+    def format(self, *args, **kwargs) -> str:
         '''
         Formats the error message text.
 
@@ -53,7 +53,10 @@ class ErrorMessage(ModelObject):
             return self.text
 
         # Format the error message text and return it.
-        return self.text.format(*args)
+        if args:
+            return self.text.format(*args)
+        else:
+            return self.text.format(**kwargs)
 
 # ** model: error
 class Error(ModelObject):
@@ -145,7 +148,7 @@ class Error(ModelObject):
         )
 
     # * method: format_message
-    def format_message(self, lang: str = 'en_US', *args) -> str:
+    def format_message(self, lang: str = 'en_US', *args, **kwargs) -> str:
         '''
         Formats the error message text for the specified language.
 
@@ -165,7 +168,7 @@ class Error(ModelObject):
                 continue
 
             # Format the error message text.
-            return msg.format(*args)
+            return msg.format(*args, **kwargs)
 
     # * method: format_response
     def format_response(self, lang: str = 'en_US', *args, **kwargs) -> Any:
