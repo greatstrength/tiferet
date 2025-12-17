@@ -1,7 +1,11 @@
 # *** imports
 
 # ** app
-from ..commands import *
+from ..commands import (
+    ParseParameter,
+    import_dependency,
+    raise_error
+)
 from ..contracts.container import *
 
 
@@ -65,7 +69,7 @@ class ContainerHandler(ContainerService):
             )
 
         # If constants are provided, clean the parameters using the parse_parameter command.
-        constants = {k: parse_parameter.execute(v) for k, v in constants.items()}
+        constants = {k: ParseParameter.execute(v) for k, v in constants.items()}
 
         # Iterate through each attribute.
         for attr in attributes:
@@ -75,11 +79,11 @@ class ContainerHandler(ContainerService):
 
             # Update the constants dictionary with the parsed parameters from the dependency or the attribute itself.
             if dependency:
-                constants.update({k: parse_parameter.execute(v) for k, v in dependency.parameters.items()})
+                constants.update({k: ParseParameter.execute(v) for k, v in dependency.parameters.items()})
 
             # If no dependency is found, use the attribute's parameters.
             else:
-                constants.update({k: parse_parameter.execute(v) for k, v in attr.parameters.items()})
+                constants.update({k: ParseParameter.execute(v) for k, v in attr.parameters.items()})
 
         # Return the updated constants dictionary.
         return constants
