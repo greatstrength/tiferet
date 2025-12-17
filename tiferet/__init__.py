@@ -19,6 +19,10 @@ try:
         ModelType,
     )
     from .commands import *
+    from .commands import (
+        Command,
+        ParseParameter
+    )
     from .contracts import (
         ModelContract,
         Repository
