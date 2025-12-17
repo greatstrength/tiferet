@@ -1,9 +1,11 @@
 # *** imports
 
 # ** app
-from ..commands import *
+from ..commands import (
+    ParseParameter,
+    raise_error
+)
 from ..contracts.feature import *
-
 
 # *** handlers
 
@@ -44,7 +46,7 @@ class FeatureHandler(FeatureService):
 
         # Parse the parameter if it not a request parameter.
         if not parameter.startswith('$r.'):
-            return parse_parameter.execute(parameter)
+            return ParseParameter.execute(parameter)
         
         # Raise an error if the request is and the parameter comes from the request.
         if not request and parameter.startswith('$r.'):
