@@ -6,7 +6,6 @@ from typing import Dict, Any
 # ** app
 from ..assets import TiferetError
 
-
 # *** classes
 
 # ** class: command
