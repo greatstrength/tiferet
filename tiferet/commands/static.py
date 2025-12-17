@@ -91,3 +91,26 @@ class ImportDependency(Command):
                 class_name=class_name,
                 exception=str(e),
             )
+        
+# ** command: raise_error
+class RaiseError(Command):
+    '''
+    A command to raise an error with a specific message.
+    '''
+
+    # * method: execute
+    @staticmethod
+    def execute(error_code: str, message: str = None, **kwargs):
+        '''
+        Execute the command.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param message: The error message to raise.
+        :type message: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Raise an error with the specified code and arguments.
+        raise TiferetError(error_code, message, **kwargs)

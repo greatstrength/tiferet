@@ -1,9 +1,14 @@
 # *** imports
 
 # ** app
+from ..assets.constants import (
+    REQUEST_NOT_FOUND_ID,
+    PARAMETER_NOT_FOUND_ID,
+    FEATURE_NOT_FOUND_ID
+)
 from ..commands import (
     ParseParameter,
-    raise_error
+    RaiseError
 )
 from ..contracts.feature import *
 
@@ -50,10 +55,10 @@ class FeatureHandler(FeatureService):
         
         # Raise an error if the request is and the parameter comes from the request.
         if not request and parameter.startswith('$r.'):
-            raise_error.execute(
-                'REQUEST_NOT_FOUND',
+            RaiseError.execute(
+                REQUEST_NOT_FOUND_ID,
                 'Request data is not available for parameter parsing.',
-                parameter
+                parameter=parameter
             )
     
         # Parse the parameter from the request if provided.
@@ -61,10 +66,10 @@ class FeatureHandler(FeatureService):
         
         # Raise an error if the parameter is not found in the request data.
         if result is None:
-            raise_error.execute(
-                'PARAMETER_NOT_FOUND',
+            RaiseError.execute(
+                PARAMETER_NOT_FOUND_ID,
                 f'Parameter {parameter} not found in request data.',
-                parameter
+                parameter=parameter
             )
 
         # Return the parsed parameter.
@@ -86,10 +91,10 @@ class FeatureHandler(FeatureService):
 
         # Verify the feature is not None.
         if not feature:
-            raise_error.execute(
-                'FEATURE_NOT_FOUND',
+            RaiseError.execute(
+                FEATURE_NOT_FOUND_ID,
                 f'Feature not found: {feature_id}',
-                feature_id
+                feature_id=feature_id
             )
 
         # Return the feature.

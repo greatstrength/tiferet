@@ -5,7 +5,11 @@ from .container import ContainerContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..handlers.feature import FeatureService
-from ..commands import *
+from ..assets.constants import FEATURE_COMMAND_LOADING_FAILED_ID
+from ..commands import (
+    Command,
+    RaiseError
+)
 
 # *** contexts
 
@@ -59,11 +63,11 @@ class FeatureContext(object):
         
         # If the command is not found, raise an error.
         except Exception as e:
-            raise_error.execute(
-                'FEATURE_COMMAND_LOADING_FAILED',
+            RaiseError.execute(
+                FEATURE_COMMAND_LOADING_FAILED_ID,
                 f'Failed to load feature command attribute: {attribute_id}. Ensure the container attributes is configured with the appropriate default settings/flags.',
-                attribute_id,
-                str(e)
+                attribute_id=attribute_id,
+                exception=str(e)
         )
             
     # * method: handle_command

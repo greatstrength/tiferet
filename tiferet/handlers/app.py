@@ -4,10 +4,11 @@
 from typing import Dict, Any
 
 # ** app
+from ..assets.constants import APP_REPOSITORY_IMPORT_FAILED_ID
 from ..commands import (
     ImportDependency,
     TiferetError,
-    raise_error
+    RaiseError
 )
 from ..commands.dependencies import create_injector, get_dependency
 from ..contracts.app import *
@@ -52,10 +53,10 @@ class AppHandler(AppService):
 
         # Raise an error if the import fails.
         except TiferetError as e:
-            raise_error.execute(
-                'APP_REPOSITORY_IMPORT_FAILED',
+            RaiseError.execute(
+                APP_REPOSITORY_IMPORT_FAILED_ID,
                 f'Failed to import app repository: {e}.',
-                str(e)
+                exception=str(e)
             )
 
         # Return the imported app repository.

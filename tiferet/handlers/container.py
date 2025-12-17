@@ -1,10 +1,11 @@
 # *** imports
 
 # ** app
+from ..assets.constants import CONTAINER_ATTRIBUTES_NOT_FOUND_ID, DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..commands import (
     ParseParameter,
     ImportDependency,
-    raise_error
+    RaiseError
 )
 from ..contracts.container import *
 
@@ -62,8 +63,8 @@ class ContainerHandler(ContainerService):
 
         # Raise an error if there are no attributes provided.
         if not attributes:
-            raise_error.execute(
-                'CONTAINER_ATTRIBUTES_NOT_FOUND',
+            RaiseError.execute(
+                CONTAINER_ATTRIBUTES_NOT_FOUND_ID,
                 'No container attributes provided to load the container.',
             )
 
@@ -114,9 +115,9 @@ class ContainerHandler(ContainerService):
             )
             
         # If no type is found, raise an error.
-        raise_error.execute(
-            'DEPENDENCY_TYPE_NOT_FOUND',
+        RaiseError.execute(
+            DEPENDENCY_TYPE_NOT_FOUND_ID,
             f'No dependency type found for attribute {attribute.id} with flags {flags}.',
-            attribute.id,
-            flags
+            attribute_id=attribute.id,
+            flags=flags
         )
