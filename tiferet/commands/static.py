@@ -5,6 +5,7 @@
 # ** core
 from typing import Dict, Any
 import os
+from importlib import import_module
 
 # ** app
 from .settings import Command, TiferetError
@@ -53,4 +54,40 @@ class ParseParameter(Command):
                 f'Failed to parse parameter: {parameter}. Error: {str(e)}',
                 parameter=parameter,
                 exception=str(e)
+            )
+        
+# ** command: import_dependency
+class ImportDependency(Command):
+    '''
+    A command to import a dependency from a module.
+    '''
+
+    # * method: execute
+    @staticmethod
+    def execute(module_path: str, class_name: str, **kwargs) -> Any:
+        '''
+        Execute the command.
+
+        :param module_path: The module path to import from.
+        :type module_path: str
+        :param class_name: The class name to import.
+        :type class_name: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The imported class instance.
+        :rtype: Any
+        '''
+
+        # Import module.
+        try:
+            return getattr(import_module(module_path), class_name)
+
+        # Raise an error if the dependency import fails.
+        except Exception as e:
+            raise TiferetError(
+                'IMPORT_DEPENDENCY_FAILED',
+                f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
+                module_path=module_path,
+                class_name=class_name,
+                exception=str(e),
             )

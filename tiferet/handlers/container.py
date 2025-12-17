@@ -3,7 +3,7 @@
 # ** app
 from ..commands import (
     ParseParameter,
-    import_dependency,
+    ImportDependency,
     raise_error
 )
 from ..contracts.container import *
@@ -101,14 +101,14 @@ class ContainerHandler(ContainerService):
         # Check the flagged dependencies for the type first.
         for dep in attribute.dependencies:
             if dep.flag in flags:
-                return import_dependency.execute(
+                return ImportDependency.execute(
                     dep.module_path,
                     dep.class_name
                 ) 
         
         # Otherwise defer to an available default type.
         if attribute.module_path and attribute.class_name:
-            return import_dependency.execute(
+            return ImportDependency.execute(
                 attribute.module_path,
                 attribute.class_name
             )
