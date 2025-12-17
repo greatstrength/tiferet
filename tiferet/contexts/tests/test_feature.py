@@ -15,9 +15,12 @@ from ..feature import (
     RequestContext
 )
 from ...assets import TiferetError
-from ...configs import TiferetError as LegacyTiferetError
 from ...commands import Command
-from ...models.feature import *
+from ...models import (
+    ModelObject, 
+    Feature,
+    FeatureCommand
+)
 
 # *** fixtures
 
@@ -116,11 +119,12 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
     )
 
     # Attempt to load a non-existent feature command.
-    with pytest.raises(LegacyTiferetError) as exc_info:
+    with pytest.raises(TiferetError) as exc_info:
         feature_context.load_feature_command('non_existent_command')
     
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
+    assert exc_info.value.kwargs.get('attribute_id') == 'non_existent_command'
     assert 'Failed to load feature command attribute: non_existent_command' in str(exc_info.value)
 
 # ** test: feature_context_handle_command
