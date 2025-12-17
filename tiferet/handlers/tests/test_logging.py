@@ -9,7 +9,8 @@ from unittest import mock
 
 # ** app
 from ..logging import LoggingHandler
-from ...configs import TiferetError
+from ...assets import TiferetError
+from ...assets.constants import LOGGING_CONFIG_FAILED_ID, LOGGER_CREATION_FAILED_ID
 from ...models.logging import *
 from ...contracts.logging import LoggingRepository
 
@@ -199,8 +200,9 @@ def test_logging_handler_format_config_no_root(logging_handler, formatter, handl
         )
 
     # Assert that the correct error is raised.
-    assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'
-    assert 'No root logger' in str(exc_info.value)
+    assert exc_info.value.error_code == LOGGING_CONFIG_FAILED_ID
+    assert exc_info.value.kwargs.get('exception') == 'No root logger'
+    assert 'Failed to configure logging' in str(exc_info.value)
 
 # ** test: logging_handler_create_logger_success
 def test_logging_handler_create_logger_success(logging_handler, formatter, handler, logger_root):
@@ -241,7 +243,7 @@ def test_logging_handler_create_logger_config_error(logging_handler, formatter, 
             logging_handler.create_logger('root', config)
 
     # Assert that the correct error is raised.
-    assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'
+    assert exc_info.value.error_code == LOGGING_CONFIG_FAILED_ID
     assert 'Failed to configure logging' in str(exc_info.value)
 
 # ** test: logging_handler_create_logger_id_error
@@ -262,5 +264,6 @@ def test_logging_handler_create_logger_id_error(logging_handler, formatter, hand
                 logging_handler.create_logger('invalid', config)
 
     # Assert that the correct error is raised.
-    assert exc_info.value.error_code == 'LOGGER_CREATION_FAILED'
+    assert exc_info.value.error_code == LOGGER_CREATION_FAILED_ID
+    assert exc_info.value.kwargs.get('logger_id') == 'invalid'
     assert 'Failed to create logger with ID invalid' in str(exc_info.value)

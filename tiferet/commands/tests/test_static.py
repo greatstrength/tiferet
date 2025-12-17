@@ -13,6 +13,7 @@ import pytest
 from ..static import (
     ParseParameter,
     ImportDependency,
+    RaiseError,
     TiferetError
 )
 
@@ -89,3 +90,47 @@ def test_import_dependency_failure():
     assert exc_info.value.error_code == 'IMPORT_DEPENDENCY_FAILED', 'Should raise IMPORT_DEPENDENCY_FAILED error'
     assert exc_info.value.kwargs.get('module_path') == 'non_existent_module', 'Should include module path in error'
     assert exc_info.value.kwargs.get('class_name') == 'NonExistentClass', 'Should include class name in error'
+
+# ** test: test_raise_error_basic
+def test_raise_error_basic():
+    '''
+    Test raising an error with basic parameters.
+    '''
+
+    # Attempt to raise an error and verify it.
+    with pytest.raises(TiferetError) as exc_info:
+        RaiseError.execute('TEST_ERROR', 'Test message')
+
+    # Verify the error.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    assert 'Test message' in str(exc_info.value), 'Should include the provided message'
+
+
+# ** test: test_raise_error_with_args
+def test_raise_error_with_args():
+    '''
+    Test raising an error with additional arguments.
+    '''
+
+    # Attempt to raise an error with additional arguments and verify it.
+    with pytest.raises(TiferetError) as exc_info:
+        RaiseError.execute('TEST_ERROR', 'Test message with args', arg1='arg1', arg2='arg2')
+
+    # Verify the error.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    assert exc_info.value.kwargs.get('arg1') == 'arg1', 'Should include arg1 in error'
+    assert exc_info.value.kwargs.get('arg2') == 'arg2', 'Should include arg2 in error'
+
+
+# ** test: test_raise_error_no_message
+def test_raise_error_no_message():
+    '''
+    Test raising an error without a message.
+    '''
+
+    # Attempt to raise an error without a message and verify it.
+    with pytest.raises(TiferetError) as exc_info:
+        RaiseError.execute('TEST_ERROR')
+
+    # Verify the error.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
