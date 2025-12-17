@@ -7,7 +7,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...configs import TiferetError
+from ...assets import TiferetError
 from ...contexts import RequestContext
 from ...models import (
     ModelObject,
@@ -87,6 +87,7 @@ def test_feature_handler_parse_parameter_invalid_request(feature_handler):
 
     # Assert that the error message is correct.
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.const_value'
     assert 'Request data is not available for parameter parsing.' in str(exc_info.value)
 
 # ** test: test_feature_handler_parse_parameter_not_found
@@ -99,6 +100,7 @@ def test_feature_handler_parse_parameter_not_found(feature_handler, request_with
 
     # Assert that the error message is correct.
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.non_existent_param'
     assert 'Parameter $r.non_existent_param not found in request data.' in str(exc_info.value)
 
 # ** test: test_feature_handler_get_feature_not_found
@@ -114,6 +116,7 @@ def test_feature_handler_get_feature_not_found(feature_handler, feature_repo):
 
     # Assert that the error message is correct.
     assert exc_info.value.error_code == 'FEATURE_NOT_FOUND'
+    assert exc_info.value.kwargs.get('feature_id') == 'non_existent_feature'
     assert 'Feature not found: non_existent_feature' in str(exc_info.value)
 
 # ** test: test_feature_handler_get_feature_from_repo
