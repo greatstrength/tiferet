@@ -7,7 +7,8 @@ from unittest import mock
 # ** app
 from ..container import ContainerRepository, ContainerHandler
 from ...models.container import *
-from ...configs import TiferetError
+from ...assets import TiferetError
+from ...assets.constants import CONTAINER_ATTRIBUTES_NOT_FOUND_ID, DEPENDENCY_TYPE_NOT_FOUND_ID
 from ...proxies.yaml.container import ContainerYamlProxy
 
 
@@ -161,7 +162,9 @@ def test_container_handler_get_dependency_type_not_found(container_handler, cont
         )
 
     # Assert that the error is raised with the correct error code and message.
-    assert exc_info.value.error_code == 'DEPENDENCY_TYPE_NOT_FOUND'
+    assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
+    assert exc_info.value.kwargs.get('attribute_id') == 'container_repo'
+    assert exc_info.value.kwargs.get('flags') == ['non_existent_flag']
     assert 'No dependency type found for attribute container_repo with flags' in str(exc_info.value)
 
 
@@ -174,7 +177,7 @@ def test_container_handler_load_constants_no_attributes(container_handler):
         container_handler.load_constants([])
 
     # Assert that the error is raised with the correct error code and message.
-    assert exc_info.value.error_code == 'CONTAINER_ATTRIBUTES_NOT_FOUND'
+    assert exc_info.value.error_code == CONTAINER_ATTRIBUTES_NOT_FOUND_ID
     assert 'No container attributes provided' in str(exc_info.value)
 
 
