@@ -4,12 +4,17 @@
 
 # ** core
 from typing import Any
+import os
 
 # ** infra
 import pytest
 
 # ** app
-from ..static import ParseParameter, TiferetError
+from ..static import (
+    ParseParameter,
+    ImportDependency,
+    TiferetError
+)
 
 # *** tests
 
@@ -57,3 +62,30 @@ def test_parse_parameter_non_env_string():
 
     # Verify the result.
     assert result == 'plain_string', 'Should return the input string unchanged'
+
+# ** test: test_import_dependency_success
+def test_import_dependency_success():
+    '''
+    Test successful import of a dependency.
+    '''
+
+    # Import a known module and class.
+    result = ImportDependency.execute('os', 'getenv')
+
+    # Verify the result.
+    assert result == os.getenv, 'Should return the correct class/function from module'
+
+# ** test: test_import_dependency_failure
+def test_import_dependency_failure():
+    '''
+    Test failed import of a dependency.
+    '''
+
+    # Attempt to import a non-existent module and class, expecting an error.
+    with pytest.raises(TiferetError) as exc_info:
+        ImportDependency.execute('non_existent_module', 'NonExistentClass')
+
+    # Verify the error.
+    assert exc_info.value.error_code == 'IMPORT_DEPENDENCY_FAILED', 'Should raise IMPORT_DEPENDENCY_FAILED error'
+    assert exc_info.value.kwargs.get('module_path') == 'non_existent_module', 'Should include module path in error'
+    assert exc_info.value.kwargs.get('class_name') == 'NonExistentClass', 'Should include class name in error'
