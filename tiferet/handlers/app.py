@@ -5,13 +5,12 @@ from typing import Dict, Any
 
 # ** app
 from ..commands import (
-    import_dependency,
+    ImportDependency,
     TiferetError,
     raise_error
 )
 from ..commands.dependencies import create_injector, get_dependency
 from ..contracts.app import *
-
 
 # *** handlers
 
@@ -46,7 +45,7 @@ class AppHandler(AppService):
 
         # Import the app repository.
         try:
-            result = import_dependency.execute(
+            result = ImportDependency.execute(
                 app_repo_module_path,
                 app_repo_class_name
             )(**app_repo_params)
@@ -77,7 +76,7 @@ class AppHandler(AppService):
 
          # Retrieve the app context dependency.
         dependencies = dict(
-            app_context=import_dependency.execute(
+            app_context=ImportDependency.execute(
                 app_interface.module_path,
                 app_interface.class_name,
             ),
@@ -86,7 +85,7 @@ class AppHandler(AppService):
 
         # Add the remaining app context attributes and parameters to the dependencies.
         for attr in app_interface.attributes:
-            dependencies[attr.attribute_id] = import_dependency.execute(
+            dependencies[attr.attribute_id] = ImportDependency.execute(
                 attr.module_path,
                 attr.class_name,
             )
@@ -96,7 +95,7 @@ class AppHandler(AppService):
         # Add the default attributes and parameters to the dependencies if they do not already exist in the dependencies.
         for attr in default_attrs:
             if attr.attribute_id not in dependencies:
-                dependencies[attr.attribute_id] = import_dependency.execute(
+                dependencies[attr.attribute_id] = ImportDependency.execute(
                     attr.module_path,
                     attr.class_name,
                 )
