@@ -7,6 +7,9 @@
 # ** constant: error_not_found_id
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 
+# ** constant: parameter_parsing_failed_id
+PARAMETER_PARSING_FAILED_ID = 'PARAMETER_PARSING_FAILED'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -18,6 +21,18 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'Error not found: {id}.'
+            }
+        ]
+    },
+
+    # * error: PARAMETER_PARSING_FAILED
+    PARAMETER_PARSING_FAILED_ID: {
+        'id': PARAMETER_PARSING_FAILED_ID,
+        'name': 'Parameter Parsing Failed',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Failed to parse parameter: {parameter}. Error: {exception}.'
             }
         ]
     }
