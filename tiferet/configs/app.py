@@ -45,9 +45,9 @@ DEFAULT_ATTRIBUTES = [
         class_name='FeatureHandler',
     ),
     dict(
-        attribute_id='error_service',
-        module_path='tiferet.handlers.error',
-        class_name='ErrorHandler',
+        attribute_id='get_error_cmd',
+        module_path='tiferet.commands.error',
+        class_name='GetError',
     ),
     dict(
         attribute_id='logging_service',
