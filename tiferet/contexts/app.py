@@ -10,7 +10,8 @@ from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
-from ..configs import TiferetError
+from ..assets import TiferetError
+from ..configs import TiferetError as LegacyTiferetError
 from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models import (
     ModelObject,
@@ -297,7 +298,7 @@ class AppInterfaceContext(object):
                 **kwargs)
 
         # Handle error and return response if triggered.
-        except TiferetError as e:
+        except (TiferetError, LegacyTiferetError) as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e)
 
