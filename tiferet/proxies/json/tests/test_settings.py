@@ -7,7 +7,7 @@ import pytest
 import json
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ..settings import JsonFileProxy
 
 # *** fixtures
@@ -66,6 +66,7 @@ def test_json_file_proxy_init_invalid_file():
     # Verify that the error code and message are as expected.
     assert exc_info.value.error_code == 'INVALID_JSON_FILE'
     assert 'File is not a valid JSON file:' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == 'invalid_file.txt'
 
 # ** test: json_file_proxy_load_json
 def test_json_file_proxy_load_json(json_file_proxy: JsonFileProxy):
@@ -104,7 +105,7 @@ def test_json_file_proxy_load_json_file_not_found():
     # Verify that the error code indicates a file not found error.
     assert exc_info.value.error_code == 'JSON_FILE_LOAD_ERROR'
     assert 'An error occurred while loading the JSON file' in str(exc_info.value)
-    assert 'non_existent_file.json' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == 'non_existent_file.json'
 
 # ** test: json_file_proxy_save_json
 def test_json_file_proxy_save_json(json_file_proxy: JsonFileProxy, temp_json_file: str):

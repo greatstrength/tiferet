@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ..app import AppYamlProxy
 
 # *** fixtures
@@ -119,6 +119,7 @@ def test_app_yaml_proxy_load_yaml_file_not_found(app_yaml_proxy: AppYamlProxy):
     # Check the exception message.
     assert exc_info.value.error_code == 'APP_CONFIG_LOADING_FAILED'
     assert 'Unable to load app configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == app_yaml_proxy.yaml_file
 
 # ** test: app_yaml_proxy_list_interfaces
 def test_app_yaml_proxy_list_interfaces(app_yaml_proxy: AppYamlProxy):

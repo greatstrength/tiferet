@@ -7,7 +7,7 @@ import pytest
 import json
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, FeatureConfigData
 from ..feature import FeatureJsonProxy
 
@@ -106,7 +106,7 @@ def test_feature_json_proxy_load_json_file_not_found(feature_json_proxy: Feature
     # Verify the error message.
     assert exc_info.value.error_code == 'FEATURE_CONFIG_LOADING_FAILED'
     assert 'Unable to load feature configuration file' in str(exc_info.value)
-
+    assert exc_info.value.kwargs.get('json_file') == 'non_existent_file.yml'
 
 # ** test: feature_json_proxy_get
 def test_feature_json_proxy_get(

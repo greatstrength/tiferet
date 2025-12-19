@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, ErrorConfigData
 from ..error import ErrorYamlProxy
 
@@ -109,6 +109,7 @@ def test_int_error_yaml_proxy_load_yaml_file_not_found(error_yaml_proxy: ErrorYa
     # Check the exception message.
     assert exc_info.value.error_code == 'ERROR_CONFIG_LOADING_FAILED'
     assert 'Unable to load error configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test_int: error_yaml_proxy_list_errors
 def test_int_error_yaml_proxy_list(
