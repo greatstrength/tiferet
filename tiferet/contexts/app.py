@@ -97,7 +97,7 @@ class AppManagerContext(object):
             raise TiferetError(
                 'APP_INTERFACE_INVALID',
                 f'App context for interface is not valid: {interface_id}.',
-                interface_id
+                interface_id=interface_id
             )
 
         # Return the app interface context.
@@ -241,7 +241,7 @@ class AppInterfaceContext(object):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
-                str(error)
+                error=str(error)
             )
 
         # Handle the error and return the response.
