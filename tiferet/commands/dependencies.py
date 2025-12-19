@@ -62,8 +62,8 @@ class GetDependency(Command):
             self.raise_error(
                 'INVALID_DEPENDENCY_ERROR',
                 f'Dependency {dependency_name} could not be resolved: {str(e)}',
-                dependency_name,
-                str(e)
+                dependency_name=dependency_name,
+                exception=str(e)
             )
 
 

@@ -1,12 +1,26 @@
 # *** imports
 
+# ** core
+from typing import Any
+
 # ** infra
 import pytest
 from unittest import mock
 
 # ** app
-from ..feature import *
-from ...models.feature import *
+from ..feature import (
+    FeatureService, 
+    ContainerContext, 
+    FeatureContext,
+    RequestContext
+)
+from ...assets import TiferetError
+from ...commands import Command
+from ...models import (
+    ModelObject, 
+    Feature,
+    FeatureCommand
+)
 
 # *** fixtures
 
@@ -110,6 +124,7 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
     
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
+    assert exc_info.value.kwargs.get('attribute_id') == 'non_existent_command'
     assert 'Failed to load feature command attribute: non_existent_command' in str(exc_info.value)
 
 # ** test: feature_context_handle_command

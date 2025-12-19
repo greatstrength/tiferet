@@ -12,7 +12,7 @@ attrs:
     class_name: TestDivideNumber
     module_path: tiferet.tests_int
 errors:
-  divide_by_zero:
+  DIVISION_BY_ZERO:
     name: Division by Zero
     description: This error occurs when an attempt is made to divide by zero.
     error_code: DIVISION_BY_ZERO

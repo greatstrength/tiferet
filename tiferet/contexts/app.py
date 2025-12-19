@@ -10,14 +10,23 @@ from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
+from ..assets import TiferetError
+from ..configs import TiferetError as LegacyTiferetError
 from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
-from ..handlers.app import AppService, AppHandler
-from ..commands import TiferetError
+from ..handlers.app import (
+    AppService,
+    AppHandler,
+    AppRepository,
+)
+from ..commands import (
+    Command
+)
+from ..commands.app import GetAppInterface
 
 # *** contexts
 
@@ -100,7 +109,7 @@ class AppManagerContext(object):
             raise TiferetError(
                 'APP_INTERFACE_INVALID',
                 f'App context for interface is not valid: {interface_id}.',
-                interface_id
+                interface_id=interface_id
             )
 
         # Return the app interface context.
@@ -248,7 +257,7 @@ class AppInterfaceContext(object):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
-                str(error)
+                error=str(error)
             )
 
         # Handle the error and return the response.
@@ -307,7 +316,7 @@ class AppInterfaceContext(object):
                 **kwargs)
 
         # Handle error and return response if triggered.
-        except TiferetError as e:
+        except (TiferetError, LegacyTiferetError) as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e, **kwargs)
 

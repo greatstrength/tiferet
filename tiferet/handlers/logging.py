@@ -5,7 +5,8 @@ import logging
 import logging.config
 
 # ** app
-from ..commands import *
+from ..assets.constants import LOGGING_CONFIG_FAILED_ID, LOGGER_CREATION_FAILED_ID
+from ..commands import RaiseError
 from ..contracts.logging import *
 
 # *** handlers
@@ -68,10 +69,10 @@ class LoggingHandler(LoggingService):
         # Get the root logger configuration and ensure it exists.
         root_logger = next((logger for logger in loggers if logger.is_root), None)
         if not root_logger:
-            raise_error.execute(
-                'LOGGING_CONFIG_FAILED',
+            RaiseError.execute(
+                LOGGING_CONFIG_FAILED_ID,
                 'Failed to configure logging: No root logger configuration found.',
-                'No root logger'
+                exception='No root logger'
             )
 
         # Format the configurations into a dictionary.
@@ -98,21 +99,21 @@ class LoggingHandler(LoggingService):
         try:
             logging.config.dictConfig(logging_config)
         except Exception as e:
-            raise_error.execute(
-                'LOGGING_CONFIG_FAILED',
+            RaiseError.execute(
+                LOGGING_CONFIG_FAILED_ID,
                 'Failed to configure logging: {e}.',
-                str(e)
+                exception=str(e)
             )
 
         # Return the logger instance by its ID.
         try:
             logger = logging.getLogger(logger_id)
         except Exception as e:
-            raise_error.execute(
-                'LOGGER_CREATION_FAILED',
+            RaiseError.execute(
+                LOGGER_CREATION_FAILED_ID,
                 f'Failed to create logger with ID {logger_id}: {e}.',
-                logger_id, 
-                str(e)
+                logger_id=logger_id, 
+                exception=str(e)
             )
 
         return logger

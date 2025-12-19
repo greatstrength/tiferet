@@ -11,7 +11,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...middleware import Csv, CsvDict
 
 # *** classes
@@ -168,10 +168,10 @@ class CsvFileProxy(object):
 
         # Raise an error if rows are loaded as dicts with no header.
         if is_dict and not has_header:
-            raise_error.execute(
+            RaiseError.execute(
                 'CSV_DICT_NO_HEADER',
                 'Cannot load CSV rows as dictionaries when has_header is False.',
-                self.csv_file
+                csv_file=self.csv_file
             )
 
         # Determine whether to use CsvDict or Csv based on is_dict flag.

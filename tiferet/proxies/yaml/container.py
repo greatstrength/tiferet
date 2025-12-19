@@ -12,7 +12,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import (
     DataObject,
     ContainerAttributeConfigData,
@@ -66,11 +66,11 @@ class ContainerYamlProxy(ContainerRepository, YamlFileProxy):
 
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'CONTAINER_CONFIG_LOADING_FAILED',
                 f'Unable to load container configuration file {self.yaml_file}: {e}.',
-                self.yaml_file,
-                str(e)
+                yaml_file=self.yaml_file,
+                exception=str(e)
             )
 
     # * method: get_attribute

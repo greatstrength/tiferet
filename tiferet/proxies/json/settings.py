@@ -6,7 +6,7 @@
 from typing import Any, Callable
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...middleware import Json
 
 # *** classes
@@ -40,10 +40,10 @@ class JsonFileProxy(object):
 
         # Verify that the configuration file is a valid JSON file.
         if not json_file or not json_file.endswith('.json'):
-            raise_error.execute(
+            RaiseError.execute(
                 'INVALID_JSON_FILE',
                 f'File is not a valid JSON file: {json_file}.',
-                json_file
+                json_file=json_file
             )
 
         self.json_file = json_file
@@ -76,10 +76,10 @@ class JsonFileProxy(object):
         
         # Handle any exceptions that occur during loading.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'JSON_FILE_LOAD_ERROR',
                 f'An error occurred while loading the JSON file: {self.json_file}, {str(e)}',
-                self.json_file
+                json_file=self.json_file
             )
 
     # * method: save_json
@@ -112,8 +112,8 @@ class JsonFileProxy(object):
 
         # Handle any exceptions that occur during saving.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'JSON_FILE_SAVE_ERROR',
                 f'An error occurred while saving to the JSON file {self.json_file}: {str(e)}',
-                self.json_file
+                json_file=self.json_file
             )

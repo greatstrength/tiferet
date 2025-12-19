@@ -11,7 +11,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import (
     LoggingSettingsConfigData,
     FormatterConfigData,
@@ -73,11 +73,11 @@ class LoggingJsonProxy(LoggingRepository, JsonFileProxy):
 
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'LOGGING_CONFIG_LOADING_FAILED',
                 f'Unable to load logging configuration file {self.json_file}: {e}.',
-                self.json_file,
-                str(e)
+                json_file=self.json_file,
+                exception=str(e)
             )
 
     # * method: list_all

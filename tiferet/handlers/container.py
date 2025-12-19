@@ -1,9 +1,13 @@
 # *** imports
 
 # ** app
-from ..commands import *
+from ..assets.constants import CONTAINER_ATTRIBUTES_NOT_FOUND_ID, DEPENDENCY_TYPE_NOT_FOUND_ID
+from ..commands import (
+    ParseParameter,
+    ImportDependency,
+    RaiseError
+)
 from ..contracts.container import *
-
 
 # *** handlers
 
@@ -59,13 +63,13 @@ class ContainerHandler(ContainerService):
 
         # Raise an error if there are no attributes provided.
         if not attributes:
-            raise_error.execute(
-                'CONTAINER_ATTRIBUTES_NOT_FOUND',
+            RaiseError.execute(
+                CONTAINER_ATTRIBUTES_NOT_FOUND_ID,
                 'No container attributes provided to load the container.',
             )
 
         # If constants are provided, clean the parameters using the parse_parameter command.
-        constants = {k: parse_parameter.execute(v) for k, v in constants.items()}
+        constants = {k: ParseParameter.execute(v) for k, v in constants.items()}
 
         # Iterate through each attribute.
         for attr in attributes:
@@ -75,11 +79,11 @@ class ContainerHandler(ContainerService):
 
             # Update the constants dictionary with the parsed parameters from the dependency or the attribute itself.
             if dependency:
-                constants.update({k: parse_parameter.execute(v) for k, v in dependency.parameters.items()})
+                constants.update({k: ParseParameter.execute(v) for k, v in dependency.parameters.items()})
 
             # If no dependency is found, use the attribute's parameters.
             else:
-                constants.update({k: parse_parameter.execute(v) for k, v in attr.parameters.items()})
+                constants.update({k: ParseParameter.execute(v) for k, v in attr.parameters.items()})
 
         # Return the updated constants dictionary.
         return constants
@@ -98,22 +102,22 @@ class ContainerHandler(ContainerService):
         # Check the flagged dependencies for the type first.
         for dep in attribute.dependencies:
             if dep.flag in flags:
-                return import_dependency.execute(
+                return ImportDependency.execute(
                     dep.module_path,
                     dep.class_name
                 ) 
         
         # Otherwise defer to an available default type.
         if attribute.module_path and attribute.class_name:
-            return import_dependency.execute(
+            return ImportDependency.execute(
                 attribute.module_path,
                 attribute.class_name
             )
             
         # If no type is found, raise an error.
-        raise_error.execute(
-            'DEPENDENCY_TYPE_NOT_FOUND',
+        RaiseError.execute(
+            DEPENDENCY_TYPE_NOT_FOUND_ID,
             f'No dependency type found for attribute {attribute.id} with flags {flags}.',
-            attribute.id,
-            flags
+            attribute_id=attribute.id,
+            flags=flags
         )

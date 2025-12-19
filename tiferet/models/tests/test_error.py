@@ -45,7 +45,7 @@ def formatted_error_message() -> ErrorMessage:
     return ModelObject.new(
         ErrorMessage,
         lang='en_US',
-        text='An error occurred: {}'
+        text='An error occurred: {error}'
     )
 
 # ** fixture: error
@@ -62,8 +62,8 @@ def error(error_message: ErrorMessage) -> Error:
 
     # Create the error object.
     return Error.new(
+        id='TEST_ERROR',
         name='Test Error',
-        error_code='TEST_ERROR',
         message=[
             error_message
         ]
@@ -83,8 +83,8 @@ def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error
 
     # Create the error object.
     return Error.new(
+        id='TEST_FORMATTED_ERROR',
         name='Test Formatted Error',
-        error_code='TEST_FORMATTED_ERROR',
         message=[
             formatted_error_message
         ]
@@ -92,78 +92,20 @@ def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error
 
 # *** tests
 
-# ** test: error_message_new
-def test_error_message_new(error_message: ErrorMessage):
-    '''
-    Test creating a new error message object.
-
-    :param error_message: The error message to test.
-    :type error_message: ErrorMessage
-    '''
-
-    # Create an error message object.
-    error = Error.new(
-        id='test_error',
-        name='Test Error',
-        error_code='TEST_ERROR',
-        message=[
-            ModelObject.new(
-                ErrorMessage,
-                lang='en_US',
-                text='An error occurred.'
-            )
-        ]
-    )
-
-    # Check if the error message object is correctly instantiated.
-    assert error.id == 'test_error'
-    assert error.name == 'Test Error'
-    assert error.error_code == 'TEST_ERROR'
-    assert len(error.message) == 1
-    assert error.message[0] == error_message
-
-# ** test: error_new_no_id
-def test_error_new_no_id(error_message: ErrorMessage):
-    '''
-    Test creating a new error message object without specifying an ID.
-
-    :param error_message: The error message to test.
-    :type error_message: ErrorMessage
-    '''
-
-    # Create an error message object with no ID.
-    error = Error.new(
-        name='Test Error',
-        error_code='TEST_ERROR',
-        message=[error_message]
-    )
-
-    # Check if the error message object is correctly instantiated.
-    assert error.name == 'Test Error'
-    assert error.id == 'test_error'
-    assert error.error_code == 'TEST_ERROR'
-    assert len(error.message) == 1
-    assert error.message[0] == error_message
-
-# ** test: error_new_raw_message_data
-def test_error_new_raw_message_data(error_message: ErrorMessage):
+# ** test: error_new
+def test_error_new(error: Error, error_message: ErrorMessage):
     '''
     Test creating a new error message object with raw message data.
 
+    :param error: The error to test.
+    :type error: Error
     :param error_message: The error message to test.
     :type error_message: ErrorMessage
     '''
 
-    # Create an error message object.
-    error = Error.new(
-        name='Test Error',
-        error_code='TEST_ERROR',
-        message=[error_message.to_primitive()]
-    )
-
     # Check if the error message object is correctly instantiated.
+    assert error.id == 'TEST_ERROR'
     assert error.name == 'Test Error'
-    assert error.error_code == 'TEST_ERROR'
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
@@ -184,7 +126,7 @@ def test_error_message_format(
     # Test basic formatting
     assert error_message.format() == 'An error occurred.'
     # Test formatting with arguments
-    assert formatted_error_message.format('Check for bugs.') == 'An error occurred: Check for bugs.'
+    assert formatted_error_message.format(error='Check for bugs.') == 'An error occurred: Check for bugs.'
 
 # ** test: error_format_method
 def test_error_format_method(
@@ -204,7 +146,7 @@ def test_error_format_method(
     assert error.format_message('en_US') == 'An error occurred.'
 
     # Test formatting with arguments
-    assert error_with_formatted_message.format_message('en_US', 'Check for bugs.') == 'An error occurred: Check for bugs.'
+    assert error_with_formatted_message.format_message('en_US', error='Check for bugs.') == 'An error occurred: Check for bugs.'
 
 # ** test: error_format_method_unsupported_lang
 def test_error_format_method_unsupported_lang(error: Error):
@@ -240,7 +182,7 @@ def test_error_format_response(
     assert response['message'] == 'An error occurred.'
 
     # Test formatting the error response with formatted message
-    formatted_response = error_with_formatted_message.format_response('en_US', 'Check for bugs.')
+    formatted_response = error_with_formatted_message.format_response('en_US', error='Check for bugs.')
 
     # Check if the formatted response is correctly formatted
     assert formatted_response['error_code'] == 'TEST_FORMATTED_ERROR'

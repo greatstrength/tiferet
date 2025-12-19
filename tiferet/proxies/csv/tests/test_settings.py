@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....middleware import CsvDict
 from ..settings import CsvFileProxy
 
@@ -253,6 +253,7 @@ def test_csv_file_proxy_load_rows_dict_with_no_header_error(csv_file_proxy: CsvF
     # Verify the error message.
     assert exc_info.value.error_code == 'CSV_DICT_NO_HEADER'
     assert 'Cannot load CSV rows as dictionaries when has_header is False.' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('csv_file') == csv_file_proxy.csv_file
 
 # ** test: csv_file_proxy_load_rows_list_no_header
 def test_csv_file_proxy_load_rows_list_no_header(csv_file_proxy: CsvFileProxy, tmp_csv_file_no_header: str):

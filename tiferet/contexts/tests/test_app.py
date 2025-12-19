@@ -23,8 +23,13 @@ from ..app import (
     RequestContext,
     AppInterfaceContext,
     AppManagerContext,
-    TiferetError,
     AppService,
+)
+from ...assets import TiferetError
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
 )
 
 # *** fixtures
@@ -240,6 +245,7 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_ser
     # Assert that the error message is as expected.
     assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
     assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
 
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):

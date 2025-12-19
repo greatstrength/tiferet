@@ -1,3 +1,5 @@
+"""Tiferet Static Commands"""
+
 # *** imports
 
 # ** core
@@ -6,21 +8,19 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import Command
-from ..configs import TiferetError as LegacyTiferetError
-
+from .settings import Command, TiferetError
 
 # *** commands
 
 # ** command: parse_parameter
-# -- obsolete: This command is now part of the static commands.
 class ParseParameter(Command):
     '''
     A command to parse a parameter from a string.
     '''
 
     # * method: execute
-    def execute(self, parameter: str) -> Dict[str, Any]:
+    @staticmethod
+    def execute(parameter: str) -> Dict[str, Any]:
         '''
         Execute the command.
 
@@ -49,23 +49,22 @@ class ParseParameter(Command):
 
         # Raise an error if the parameter parsing fails.
         except Exception as e:
-            self.raise_error(
+            raise TiferetError(
                 'PARAMETER_PARSING_FAILED',
                 f'Failed to parse parameter: {parameter}. Error: {str(e)}',
                 parameter=parameter,
                 exception=str(e)
             )
-
-
+        
 # ** command: import_dependency
-# -- obsolete: This command is now part of the static commands.
 class ImportDependency(Command):
     '''
     A command to import a dependency from a module.
     '''
 
     # * method: execute
-    def execute(self, module_path: str, class_name: str, **kwargs) -> Any:
+    @staticmethod
+    def execute(module_path: str, class_name: str, **kwargs) -> Any:
         '''
         Execute the command.
 
@@ -85,46 +84,33 @@ class ImportDependency(Command):
 
         # Raise an error if the dependency import fails.
         except Exception as e:
-            self.raise_error(
+            raise TiferetError(
                 'IMPORT_DEPENDENCY_FAILED',
                 f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
                 module_path=module_path,
                 class_name=class_name,
                 exception=str(e),
             )
-
-
+        
 # ** command: raise_error
-# -- obsolete: This command is now part of the static commands.
 class RaiseError(Command):
     '''
     A command to raise an error with a specific message.
     '''
 
     # * method: execute
-    def execute(self, error_code: str, message: str = None, *args) -> None:
+    @staticmethod
+    def execute(error_code: str, message: str = None, **kwargs):
         '''
         Execute the command.
 
         :param error_code: The error code to raise.
         :type error_code: str
-        :param args: Additional arguments for the error message.
-        :type args: tuple
+        :param message: The error message to raise.
+        :type message: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         '''
 
         # Raise an error with the specified code and arguments.
-        raise LegacyTiferetError(error_code, message, *args)
-
-# *** command_variables
-
-# ** command_variable: parse_parameter
-# -- obsolete: This command is now part of the static commands.
-parse_parameter = ParseParameter()
-
-# ** command_variable: import_dependency
-# -- obsolete: This command is now part of the static commands.
-import_dependency = ImportDependency()
-
-# ** command_variable: raise_error
-# -- obsolete: This command is now part of the static commands.
-raise_error = RaiseError()
+        raise TiferetError(error_code, message, **kwargs)

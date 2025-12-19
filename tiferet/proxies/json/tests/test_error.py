@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, json
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, ErrorConfigData
 from ..error import ErrorJsonProxy
 
@@ -109,6 +109,7 @@ def test_int_error_json_proxy_load_json_file_not_found(error_json_proxy: ErrorJs
     # Check the exception message.
     assert exc_info.value.error_code == 'ERROR_CONFIG_LOADING_FAILED'
     assert 'Unable to load error configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == error_json_proxy.json_file
 
 # ** test_int: error_json_proxy_list_errors
 def test_int_error_json_proxy_list(

@@ -4,8 +4,7 @@
 from typing import Dict, Any
 
 # ** app
-from ..configs import TiferetError
-
+from ..assets import TiferetError
 
 # *** classes
 
@@ -30,7 +29,7 @@ class Command(object):
         raise NotImplementedError()
 
     # * method: raise_error
-    def raise_error(self, error_code: str, message: str = None, *args):
+    def raise_error(self, error_code: str, message: str = None, **kwargs):
         '''
         Raise an error with the given error code and arguments.
 
@@ -38,19 +37,19 @@ class Command(object):
         :type error_code: str
         :param message: The error message.
         :type message: str
-        :param args: Additional error arguments.
-        :type args: tuple
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
         '''
 
         # Raise the TiferetError with the given error code and arguments.
         raise TiferetError(
             error_code,
             message,
-            *args
+            **kwargs
         )    
 
     # * method: verify
-    def verify(self, expression: bool, error_code: str, message: str = None, *args):
+    def verify(self, expression: bool, error_code: str, message: str = None, **kwargs):
         '''
         Verify an expression and raise an error if it is false.
 
@@ -60,8 +59,8 @@ class Command(object):
         :type error_code: str
         :param message: The error message.
         :type message: str
-        :param args: Additional error arguments.
-        :type args: tuple
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
         '''
 
         # Verify the expression.
@@ -71,7 +70,7 @@ class Command(object):
             self.raise_error(
                 error_code,
                 message,
-                *args
+                **kwargs
             )
 
     # * method: handle

@@ -4,10 +4,11 @@
 from typing import List, Dict, Any
 
 # ** app
+from ..assets.constants import APP_REPOSITORY_IMPORT_FAILED_ID
 from ..commands import (
-    import_dependency,
+    ImportDependency,
     TiferetError,
-    raise_error
+    RaiseError
 )
 from ..commands.dependencies import create_injector, get_dependency
 from ..contracts.app import (
@@ -16,7 +17,6 @@ from ..contracts.app import (
     AppInterface as AppInterfaceContract,
     AppAttribute as AppAttributeContract,
 )
-
 
 # *** handlers
 
@@ -75,17 +75,17 @@ class AppHandler(AppService):
 
         # Import the app repository.
         try:
-            result = import_dependency.execute(
+            result = ImportDependency.execute(
                 app_repo_module_path,
                 app_repo_class_name
             )(**app_repo_params)
 
         # Raise an error if the import fails.
         except TiferetError as e:
-            raise_error.execute(
-                'APP_REPOSITORY_IMPORT_FAILED',
+            RaiseError.execute(
+                APP_REPOSITORY_IMPORT_FAILED_ID,
                 f'Failed to import app repository: {e}.',
-                str(e)
+                exception=str(e)
             )
 
         # Return the imported app repository.
@@ -106,7 +106,7 @@ class AppHandler(AppService):
 
          # Retrieve the app context dependency.
         dependencies = dict(
-            app_context=import_dependency.execute(
+            app_context=ImportDependency.execute(
                 app_interface.module_path,
                 app_interface.class_name,
             ),
@@ -115,7 +115,7 @@ class AppHandler(AppService):
 
         # Add the remaining app context attributes and parameters to the dependencies.
         for attr in app_interface.attributes:
-            dependencies[attr.attribute_id] = import_dependency.execute(
+            dependencies[attr.attribute_id] = ImportDependency.execute(
                 attr.module_path,
                 attr.class_name,
             )
@@ -125,7 +125,7 @@ class AppHandler(AppService):
         # Add the default attributes and parameters to the dependencies if they do not already exist in the dependencies.
         for attr in default_attrs:
             if attr.attribute_id not in dependencies:
-                dependencies[attr.attribute_id] = import_dependency.execute(
+                dependencies[attr.attribute_id] = ImportDependency.execute(
                     attr.module_path,
                     attr.class_name,
                 )

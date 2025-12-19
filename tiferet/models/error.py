@@ -38,22 +38,22 @@ class ErrorMessage(ModelObject):
     )
 
     # * method: format
-    def format(self, *args) -> str:
+    def format(self, **kwargs) -> str:
         '''
         Formats the error message text.
 
-        :param args: The arguments to format the error message text with.
-        :type args: tuple
+        :param kwargs: The format keyword arguments for the error message text.
+        :type kwargs: dict
         :return: The formatted error message text.
         :rtype: str
         '''
 
         # If there are no arguments, return the error message text.
-        if not args:
+        if not kwargs:
             return self.text
 
         # Format the error message text and return it.
-        return self.text.format(*args)
+        return self.text.format(**kwargs)
 
 # ** model: error
 class Error(ModelObject):
@@ -102,7 +102,7 @@ class Error(ModelObject):
 
     # * method: new
     @staticmethod
-    def new(name: str, id: str = None, error_code: str = None, message: List[Dict[str, str]] = []) -> 'Error':
+    def new(name: str, id: str, message: List[Dict[str, str]] = [], **kwargs) -> 'Error':
         '''Initializes a new Error object.
 
         :param name: The name of the error.
@@ -116,13 +116,8 @@ class Error(ModelObject):
         :return: A new Error object.
         '''
 
-        # Set Id as the name lower cased if not provided.
-        if not id:
-            id = name.lower().replace(' ', '_')
-
-        # Set the error code as the id upper cased if not provided.
-        if not error_code:
-            error_code = id.upper().replace(' ', '_')
+        # Set the error code as the id upper cased.
+        error_code = id.upper().replace(' ', '_')
 
         # Create and return a new Error object.
         return ModelObject.new(
@@ -130,18 +125,19 @@ class Error(ModelObject):
             id=id,
             name=name,
             error_code=error_code,
-            message=message
+            message=message,
+            **kwargs
         )
 
     # * method: format_message
-    def format_message(self, lang: str = 'en_US', *args) -> str:
+    def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         '''
         Formats the error message text for the specified language.
 
         :param lang: The language of the error message text.
         :type lang: str
-        :param args: The format arguments for the error message text.
-        :type args: tuple
+        :param kwargs: Additional format arguments for the error message text.
+        :type kwargs: dict
         :return: The formatted error message text.
         :rtype: str
         '''
@@ -154,25 +150,23 @@ class Error(ModelObject):
                 continue
 
             # Format the error message text.
-            return msg.format(*args)
+            return msg.format(**kwargs)
 
     # * method: format_response
-    def format_response(self, lang: str = 'en_US', *args, **kwargs) -> Any:
+    def format_response(self, lang: str = 'en_US', **kwargs) -> Any:
         '''
         Formats the error response for the specified language.
 
         :param lang: The language of the error message text.
         :type lang: str
-        :param args: The format arguments for the error message text.
-        :type args: tuple
-        :param kwargs: Additional keyword arguments.
+        :param kwargs: Additional format arguments for the error message text.
         :type kwargs: dict
         :return: The formatted error response.
         :rtype: dict
         '''
 
         # Format the error message text.
-        error_message = self.format_message(lang, *args)
+        error_message = self.format_message(lang, **kwargs)
 
         # If the error message is not found, return no response.
         if not error_message:
@@ -180,7 +174,8 @@ class Error(ModelObject):
 
         # Return the formatted error response.
         return dict(
-            error_code=self.error_code,
+            error_code=self.id,
+            name=self.name,
             message=error_message,
             **kwargs
         )

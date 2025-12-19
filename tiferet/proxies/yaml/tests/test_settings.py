@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ..settings import YamlFileProxy
 
 # *** fixtures
@@ -123,7 +123,7 @@ def test_yaml_file_proxy_load_yaml_file_not_found(yaml_file_proxy: YamlFileProxy
     # Verify the error message.
     assert exc_info.value.error_code == 'YAML_FILE_LOAD_ERROR'
     assert 'An error occurred while loading the YAML file' in str(exc_info.value)
-    assert 'non_existent_file.yml' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test: yaml_file_proxy_save_yaml
 def test_yaml_file_proxy_save_yaml(yaml_file_proxy: YamlFileProxy, temp_yaml_file: str):

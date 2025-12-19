@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, CliCommandConfigData
 from ..cli import CliYamlProxy
 
@@ -113,6 +113,7 @@ def test_cli_yaml_proxy_load_yaml_file_not_found(cli_yaml_proxy: CliYamlProxy):
     # Verify the error message.
     assert exc_info.value.error_code == 'CLI_CONFIG_LOADING_FAILED'
     assert 'Unable to load CLI configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test: cli_yaml_proxy_get_command
 def test_cli_yaml_proxy_get_command(cli_yaml_proxy: CliYamlProxy):

@@ -2,10 +2,11 @@
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
-from ..app import AppHandler, AppRepository, TiferetError
+from ..app import AppHandler, AppRepository
+from ...assets import TiferetError
+from ...assets.constants import APP_REPOSITORY_IMPORT_FAILED_ID
 from ...configs.app import DEFAULT_ATTRIBUTES
 from ...contexts.app import AppInterfaceContext
 from ...models.app import *
@@ -98,8 +99,9 @@ def test_app_handler_load_app_repository_invalid(app_handler):
         )
     
     # Assert that the error message is as expected.
-    assert 'Failed to import app repository' in str(exc_info.value)
-    assert exc_info.value.error_code == 'APP_REPOSITORY_IMPORT_FAILED'
+    assert exc_info.value.error_code == APP_REPOSITORY_IMPORT_FAILED_ID, 'Error code should match APP_REPOSITORY_IMPORT_FAILED_ID.'
+    assert 'Failed to import app repository' in str(exc_info.value), 'Error message should indicate import failure.'
+    assert exc_info.value.kwargs.get('exception'), 'Exception details should be included in the error.'
 
 # ** test: app_handler_load_app_instance
 def test_app_handler_load_app_instance(app_handler, app_interface):

@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, FeatureConfigData
 from ..feature import FeatureYamlProxy
 
@@ -104,7 +104,7 @@ def test_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy: Feature
     # Verify the error message.
     assert exc_info.value.error_code == 'FEATURE_CONFIG_LOADING_FAILED'
     assert 'Unable to load feature configuration file' in str(exc_info.value)
-
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test: feature_yaml_proxy_get
 def test_feature_yaml_proxy_get(
@@ -135,7 +135,6 @@ def test_feature_yaml_proxy_get(
     assert test_feature.commands[0].name == 'Test Feature Command'
     assert test_feature.commands[0].parameters == {'param1': 'value1'}
 
-
 # ** test: feature_yaml_proxy_exists
 def test_feature_yaml_proxy_exists(
         feature_yaml_proxy: FeatureYamlProxy,
@@ -152,7 +151,6 @@ def test_feature_yaml_proxy_exists(
     # Check the feature exists.
     assert feature_yaml_proxy.exists('test_group.test_feature')
 
-
 # ** test: feature_yaml_proxy_exists_not_found
 def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
@@ -164,7 +162,6 @@ def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProx
     
     # Check the feature does not exist.
     assert not feature_yaml_proxy.exists('not_found')
-
 
 # ** test: feature_yaml_proxy_list
 def test_feature_yaml_proxy_list(
