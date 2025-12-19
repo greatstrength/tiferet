@@ -9,7 +9,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import (
     DataObject,
     AppInterfaceConfigData,
@@ -64,11 +64,11 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
         
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'APP_CONFIG_LOADING_FAILED',
                 f'Unable to load app configuration file {self.yaml_file}: {e}.',
-                self.yaml_file,
-                str(e)
+                yaml_file=self.yaml_file,
+                exception=str(e)
             )
 
     # * method: list_interfaces

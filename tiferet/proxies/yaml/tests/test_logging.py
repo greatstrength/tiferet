@@ -8,7 +8,7 @@ from unittest import mock
 import yaml
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ....data import (
     DataObject,
     LoggingSettingsConfigData,
@@ -131,6 +131,7 @@ def test_logging_yaml_proxy_load_yaml_error():
     # Assert that the exception is raised with the correct error code and message.
     assert exc_info.value.error_code == 'LOGGING_CONFIG_LOADING_FAILED'
     assert 'Unable to load logging configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'logging.yaml'
 
 # ** test: logging_yaml_proxy_list_all_success
 def test_logging_yaml_proxy_list_all_success(logging_yaml_proxy: LoggingYamlProxy):

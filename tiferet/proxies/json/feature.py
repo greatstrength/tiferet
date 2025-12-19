@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...contracts import FeatureContract, FeatureRepository
 from ...data import DataObject, FeatureConfigData
 from .settings import JsonFileProxy
@@ -56,11 +56,11 @@ class FeatureJsonProxy(FeatureRepository, JsonFileProxy):
 
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'FEATURE_CONFIG_LOADING_FAILED',
                 f'Unable to load feature configuration file {self.json_file}: {e}.',
-                self.json_file,
-                str(e)
+                json_file=self.json_file,
+                exception=str(e)
             )
 
     # * method: exists
