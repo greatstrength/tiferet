@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import (
     DataObject,
     AppInterfaceConfigData,
@@ -65,11 +65,11 @@ class AppJsonProxy(AppRepository, JsonFileProxy):
 
         # Handle any exceptions that occur during loading.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'APP_CONFIG_LOADING_FAILED',
                 f'Unable to load app configuration file {self.json_file}: {e}.',
-                self.json_file,
-                str(e)
+                json_file=self.json_file,
+                exception=str(e)
             )
 
     # * method: list_interfaces

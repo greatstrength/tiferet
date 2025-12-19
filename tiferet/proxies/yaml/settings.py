@@ -6,7 +6,7 @@
 from typing import Dict, Any, Callable
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...middleware import Yaml
 
 # *** classes
@@ -37,10 +37,10 @@ class YamlFileProxy(object):
 
         # Verify that the configuration file is a valid YAML file.
         if not yaml_file or (not yaml_file.endswith('.yaml') and not yaml_file.endswith('.yml')):
-            raise_error.execute(
+            RaiseError.execute(
                 'INVALID_YAML_FILE',
                 f'File {yaml_file} is not a valid YAML file.',
-                yaml_file
+                yaml_file=yaml_file
             )
 
         self.yaml_file = yaml_file
@@ -72,11 +72,11 @@ class YamlFileProxy(object):
 
         # Handle any exceptions that occur during YAML loading and raise a custom error.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'YAML_FILE_LOAD_ERROR',
                 f'An error occurred while loading the YAML file {self.yaml_file}: {str(e)}',
-                self.yaml_file,
-                str(e)
+                yaml_file=self.yaml_file,
+                exception=str(e)
             )
 
     # * method: save_yaml
@@ -101,9 +101,9 @@ class YamlFileProxy(object):
 
         # Handle any exceptions that occur during YAML saving and raise a custom error.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'YAML_FILE_SAVE_ERROR',
                 f'An error occurred while saving to the YAML file {self.yaml_file}: {str(e)}',
-                self.yaml_file,
-                str(e)
+                yaml_file=self.yaml_file,
+                exception=str(e)
             )

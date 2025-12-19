@@ -11,7 +11,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import DataObject, CliCommandConfigData
 from ...contracts import (
     CliRepository,
@@ -63,11 +63,11 @@ class CliJsonProxy(CliRepository, JsonFileProxy):
 
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'CLI_CONFIG_LOADING_FAILED',
                 f'Unable to load CLI configuration file {self.json_file}: {e}.',
-                self.json_file,
-                e
+                json_file=self.json_file,
+                exception=str(e)
             )
 
     # * method: get_command

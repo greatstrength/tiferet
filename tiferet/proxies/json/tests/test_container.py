@@ -7,7 +7,7 @@ import pytest
 import json
 
 # ** app
-from ....configs import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, ContainerAttributeConfigData
 from ..container import ContainerJsonProxy
 
@@ -107,6 +107,7 @@ def test_container_json_proxy_load_json_file_not_found(container_json_proxy: Con
     # Verify the error message.
     assert exc_info.value.error_code == 'CONTAINER_CONFIG_LOADING_FAILED'
     assert 'Unable to load container configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == container_json_proxy.json_file
 
 # ** test: container_json_proxy_list_all_empty
 def test_container_json_proxy_list_all_empty(container_json_proxy: ContainerJsonProxy, tmp_path):

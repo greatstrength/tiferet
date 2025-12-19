@@ -12,7 +12,7 @@ from typing import (
 )
 
 # ** app
-from ...commands import raise_error
+from ...commands import RaiseError
 from ...data import (
     DataObject,
     ContainerAttributeConfigData,
@@ -66,11 +66,11 @@ class ContainerJsonProxy(ContainerRepository, JsonFileProxy):
 
         # Raise an error if the loading fails.
         except Exception as e:
-            raise_error.execute(
+            RaiseError.execute(
                 'CONTAINER_CONFIG_LOADING_FAILED',
                 f'Unable to load container configuration file {self.json_file}: {e}.',
-                self.json_file,
-                str(e)
+                json_file=self.json_file,
+                exception=str(e)
             )
 
     # * method: get_attribute
