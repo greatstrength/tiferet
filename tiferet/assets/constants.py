@@ -55,6 +55,12 @@ INVALID_FILE_MODE_ID = 'INVALID_FILE_MODE'
 # ** constant: invalid_encoding_id
 INVALID_ENCODING_ID = 'INVALID_ENCODING'
 
+# ** constant: invalid_json_file_id
+INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
+
+# ** constant: invalid_yaml_file_id
+INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
+
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 
@@ -211,6 +217,24 @@ DEFAULT_ERRORS = {
         'name': 'Invalid Encoding',
         'message': [
             {'lang': 'en_US', 'text': 'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.'}
+        ]
+    },
+
+    # * error: INVALID_JSON_FILE
+    INVALID_JSON_FILE_ID: {
+        'id': INVALID_JSON_FILE_ID,
+        'name': 'Invalid JSON File',
+        'message': [
+            {'lang': 'en_US', 'text': 'File is not a valid JSON file: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_YAML_FILE
+    INVALID_YAML_FILE_ID: {
+        'id': INVALID_YAML_FILE_ID,
+        'name': 'Invalid YAML File',
+        'message': [
+            {'lang': 'en_US', 'text': 'File is not a valid YAML file: {path}.'}
         ]
     },
 
