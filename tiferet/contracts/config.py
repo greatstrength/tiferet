@@ -33,7 +33,7 @@ class ConfigurationService(Service):
 
     # * method: save
     @abstractmethod
-    def save(self, data: Any, data_path: str = None):
+    def save(self, data: Any, data_path: str = None, **kwargs):
         '''
         Save data to the configuration file.
 
@@ -41,6 +41,8 @@ class ConfigurationService(Service):
         :type data: Any
         :param data_path: Optional path within the configuration structure to save data.
         :type data_path: str
+        :param kwargs: Additional keyword arguments for saving.
+        :type kwargs: dict
         '''
         
         raise NotImplementedError('save method must be implemented in the ConfigurationService class.')
