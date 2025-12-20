@@ -18,6 +18,7 @@ from .cli import (
     CliCommand as CliCommandContract,
     CliRepository
 )
+from .config import ConfigurationService
 from .container import (
     ContainerAttribute as ContainerAttributeContract,
     FlaggedDependency as FlaggedDependencyContract,
