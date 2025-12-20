@@ -33,6 +33,7 @@ from .feature import (
     FeatureCommand as FeatureCommandContract,
     FeatureRepository
 )
+from .file import FileService
 from .logging import (
     FormatterContract,
     HandlerContract,

@@ -7,14 +7,7 @@ import os
 from typing import Any
 
 # ** app
-from ..commands import (
-    TiferetError, 
-    FILE_NOT_FOUND_ID,
-    INVALID_FILE_ID,
-    INVALID_FILE_MODE_ID,
-    INVALID_ENCODING_ID,
-    FILE_ALREADY_OPEN_ID
-)
+from ..commands import TiferetError, const
 from ..contracts import FileService
 
 # *** classes
@@ -82,7 +75,7 @@ class FileLoaderMiddleware(FileService):
         # Raise an error if the file does not exist.
         if not os.path.exists(path):
             raise TiferetError(
-                FILE_NOT_FOUND_ID,
+                const.FILE_NOT_FOUND_ID,
                 f'File not found: {path}.',
                 path=path
             )
@@ -90,7 +83,7 @@ class FileLoaderMiddleware(FileService):
         # Raise an error if the path is not a file.
         if not os.path.isfile(path):
             raise TiferetError(
-                INVALID_FILE_ID,
+                const.INVALID_FILE_ID,
                 f'Path is not a file: {path}.',
                 path=path
             )
@@ -108,7 +101,7 @@ class FileLoaderMiddleware(FileService):
         valid_modes = ['r', 'w', 'a', 'rb', 'wb', 'ab']
         if mode not in valid_modes:
             raise TiferetError(
-                INVALID_FILE_MODE_ID,
+                const.INVALID_FILE_MODE_ID,
                 f'Invalid file mode: {mode}. Valid modes include {str(valid_modes)}',
                 mode=mode,
                 modes=str(valid_modes)
@@ -126,7 +119,7 @@ class FileLoaderMiddleware(FileService):
         # Validate the encoding.
         if encoding not in ['utf-8', 'ascii', 'latin-1']:
             raise TiferetError(
-                INVALID_ENCODING_ID,
+                const.INVALID_ENCODING_ID,
                 f'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.',
                 encoding=encoding     
             )
@@ -146,7 +139,7 @@ class FileLoaderMiddleware(FileService):
         # Raise a RuntimeError if the file is already open to prevent multiple openings.
         if self.file is not None:
             raise TiferetError(
-                FILE_ALREADY_OPEN_ID,
+                const.FILE_ALREADY_OPEN_ID,
                 f'File is already open: {self.path}.',
                 path=self.path
             )
