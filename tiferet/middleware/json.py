@@ -13,6 +13,7 @@ import json
 
 # ** app
 from .file import FileLoaderMiddleware
+from ..commands import TiferetError, const
 
 # *** middleware
 
@@ -62,6 +63,29 @@ class JsonLoaderMiddleware(FileLoaderMiddleware):
 
         # Call the parent class's __exit__ method to ensure proper cleanup.
         return super().__exit__(exc_type, exc_value, traceback)
+    
+    # * method: verify_file
+    def verify_file(self, path: str):
+        '''
+        Verify that the file at the given path is a valid JSON file.
+
+        :param path: The path to the JSON file.
+        :type path: str
+        '''
+
+        # Verify that the configuration file is a valid JSON file.
+        if not path or not path.endswith('.json'):
+            raise TiferetError(
+                const.INVALID_JSON_FILE_ID,
+                f'File is not a valid JSON file: {path}.',
+                path=path
+            )
+
+        # Call the parent class's verify_file method.
+        super().verify_file(path)
+
+        # Additional verification for JSON files can be added here if needed.
+        # For now, we assume that if the file can be opened, it is a valid JSON file.
 
     # * method: load_json
     def load_json(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:

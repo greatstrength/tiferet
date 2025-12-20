@@ -10,6 +10,7 @@ import pytest
 
 # ** app
 from ..json import JsonLoaderMiddleware
+from ...commands import TiferetError, const
 
 # *** fixtures
 
@@ -42,6 +43,28 @@ def temp_json_file(tmp_path):
     return str(file_path)
 
 # *** tests
+
+# ** test: json_loader_middleware_verify_file_invalid_json
+def test_json_loader_middleware_verify_file_invalid_json(tmp_path):
+    '''
+    Test that JsonLoaderMiddleware raises an error when the file contains invalid JSON.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+    
+    # Create a temporary file with invalid JSON content.
+    file_path = tmp_path / 'invalid.txt'
+    json_file_middleware = JsonLoaderMiddleware(path=str(file_path))
+
+    # Attempt to load the invalid JSON file and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        json_file_middleware.verify_file(str(file_path))
+    
+    # Verify that the exception message indicates a JSON file extension error.
+    assert exc_info.value.error_code == const.INVALID_JSON_FILE_ID
+    assert 'File is not a valid JSON file:' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('path') == str(file_path)
 
 # ** test: json_loader_middleware_load_json
 def test_json_loader_middleware_load_json(temp_json_file: str):
