@@ -9,11 +9,7 @@ import pytest
 from ..file import FileLoaderMiddleware
 from ...commands import (
     TiferetError,
-    INVALID_FILE_MODE_ID,
-    INVALID_ENCODING_ID,
-    FILE_NOT_FOUND_ID,
-    INVALID_FILE_ID,
-    FILE_ALREADY_OPEN_ID
+    const
 )
 
 # *** fixtures
@@ -135,7 +131,7 @@ def test_file_loader_middleware_instantiation_invalid_mode(temp_text_file: str):
         FileLoaderMiddleware(path=temp_text_file, mode='x')
     
     # Verify the error message.
-    assert exc_info.value.error_code == INVALID_FILE_MODE_ID
+    assert exc_info.value.error_code == const.INVALID_FILE_MODE_ID
     assert 'Invalid file mode: x' in str(exc_info.value)
     assert exc_info.value.kwargs.get('mode') == 'x'
 
@@ -153,7 +149,7 @@ def test_file_loader_middleware_instantiation_invalid_encoding(temp_text_file: s
         FileLoaderMiddleware(path=temp_text_file, encoding='utf-16')
     
     # Verify the error message.
-    assert exc_info.value.error_code == INVALID_ENCODING_ID
+    assert exc_info.value.error_code == const.INVALID_ENCODING_ID
     assert 'Invalid encoding: utf-16' in str(exc_info.value)
     assert exc_info.value.kwargs.get('encoding') == 'utf-16'
 
@@ -170,7 +166,7 @@ def test_file_loader_middleware_instantiation_invalid_path():
         file_loader_middleware.open_file()
     
     # Verify the error message.
-    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == const.FILE_NOT_FOUND_ID
     assert 'File not found: non_existent.txt' in str(exc_info.value)
     assert exc_info.value.kwargs.get('path') == 'non_existent.txt'
 
@@ -191,7 +187,7 @@ def test_file_loader_middleware_runtime_error_on_already_open(temp_text_file: st
             fmw.open_file()
     
     # Verify the error message.
-    assert exc_info.value.error_code == FILE_ALREADY_OPEN_ID
+    assert exc_info.value.error_code == const.FILE_ALREADY_OPEN_ID
     assert f'File is already open: {temp_text_file}' in str(exc_info.value)
     assert exc_info.value.kwargs.get('path') == temp_text_file
 
