@@ -18,6 +18,7 @@ from .cli import (
     CliCommand as CliCommandContract,
     CliRepository
 )
+from .config import ConfigurationService
 from .container import (
     ContainerAttribute as ContainerAttributeContract,
     FlaggedDependency as FlaggedDependencyContract,
@@ -33,6 +34,7 @@ from .feature import (
     FeatureCommand as FeatureCommandContract,
     FeatureRepository
 )
+from .file import FileService
 from .logging import (
     FormatterContract,
     HandlerContract,

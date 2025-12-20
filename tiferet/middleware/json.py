@@ -13,11 +13,13 @@ import json
 
 # ** app
 from .file import FileLoaderMiddleware
+from ..commands import TiferetError, const
+from ..contracts import ConfigurationService
 
 # *** middleware
 
 #* middleware: json_loader
-class JsonLoaderMiddleware(FileLoaderMiddleware):
+class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
     '''
     Middleware for loading JSON files into the application.
     '''
@@ -62,9 +64,32 @@ class JsonLoaderMiddleware(FileLoaderMiddleware):
 
         # Call the parent class's __exit__ method to ensure proper cleanup.
         return super().__exit__(exc_type, exc_value, traceback)
+    
+    # * method: verify_file
+    def verify_file(self, path: str):
+        '''
+        Verify that the file at the given path is a valid JSON file.
 
-    # * method: load_json
-    def load_json(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+        :param path: The path to the JSON file.
+        :type path: str
+        '''
+
+        # Verify that the configuration file is a valid JSON file.
+        if not path or not path.endswith('.json'):
+            raise TiferetError(
+                const.INVALID_JSON_FILE_ID,
+                f'File is not a valid JSON file: {path}.',
+                path=path
+            )
+
+        # Call the parent class's verify_file method.
+        super().verify_file(path)
+
+        # Additional verification for JSON files can be added here if needed.
+        # For now, we assume that if the file can be opened, it is a valid JSON file.
+
+    # * method: load
+    def load(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
         '''
         Load data from the JSON configuration file.
 
@@ -77,6 +102,19 @@ class JsonLoaderMiddleware(FileLoaderMiddleware):
 
         # Process the JSON content using the provided start node.
         return start_node(json_content)
+
+    # * method: load_json
+    # - obsolete: use load instead
+    def load_json(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+        '''
+        Load data from the JSON configuration file.
+
+        :param start_node: A callable to specify the starting node for loading data from the JSON file. Defaults to a lambda that returns the data as is.
+        :type start_node: Callable
+        '''
+
+        # Call the load method to load the JSON content.
+        return self.load(start_node)
     
     # * method: parse_json_path
     def parse_json_path(self, path: str) -> List[str | int]:
@@ -102,26 +140,28 @@ class JsonLoaderMiddleware(FileLoaderMiddleware):
         
         return parts
     
-    # * method: save_json
-    def save_json(self, data: Dict[str, Any], data_json_path: str = None, indent: int = 4):
+    # * method: save
+    def save(self, data: Dict[str, Any], data_path: str = None, indent: int = 4, **kwargs):
         '''
         Save data to the JSON configuration file.
 
         :param data: The data to save to the JSON file.
         :type data: Dict[str, Any]
-        :param data_json_path: The path within the JSON file where the data should be saved. If None, saves to the root of the JSON file.
-        :type data_json_path: str
+        :param data_path: The path within the JSON file where the data should be saved. If None, saves to the root of the JSON file.
+        :type data_path: str
         :param indent: The number of spaces to use for indentation in the JSON file. Defaults to 4.
         :type indent: int
+        :param kwargs: Additional keyword arguments for saving.
+        :type kwargs: dict
         '''
 
         # Save the JSON data to the file with the specified indentation if no specific path is provided. 
-        if not data_json_path:
+        if not data_path:
             json.dump(data, self.file, indent=indent)
             return
 
         # Get the data save path list and navigate to the correct location in the JSON structure to save the data.
-        save_path_list = self.parse_json_path(data_json_path)
+        save_path_list = self.parse_json_path(data_path)
 
         # Update the JSON data at the specified path.
         current_data = self.cache_data
@@ -150,3 +190,20 @@ class JsonLoaderMiddleware(FileLoaderMiddleware):
 
         # Save the updated JSON data to the file with the specified indentation.
         json.dump(self.cache_data, self.file, indent=indent)
+
+    # * method: save_json
+    # - obsolete: use save instead
+    def save_json(self, data: Dict[str, Any], data_json_path: str = None, indent: int = 4):
+        '''
+        Save data to the JSON configuration file.
+
+        :param data: The data to save to the JSON file.
+        :type data: Dict[str, Any]
+        :param data_json_path: The path within the JSON file where the data should be saved. If None, saves to the root of the JSON file.
+        :type data_json_path: str
+        :param indent: The number of spaces to use for indentation in the JSON file. Defaults to 4.
+        :type indent: int
+        '''
+
+        # Use the save method to save the JSON data.
+        self.save(data, data_json_path, indent)

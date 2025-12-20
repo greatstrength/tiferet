@@ -7,6 +7,10 @@ import pytest
 
 # ** app
 from ..file import FileLoaderMiddleware
+from ...commands import (
+    TiferetError,
+    const
+)
 
 # *** fixtures
 
@@ -113,19 +117,6 @@ def test_file_loader_middleware_encoding_ascii(temp_text_file: str):
         assert fmw.encoding == 'ascii'
         assert fmw.file is not None
 
-# ** test: file_loader_middleware_instantiation_invalid_path
-def test_file_loader_middleware_instantiation_invalid_path():
-    '''
-    Test instantiation of FileLoaderMiddleware with an invalid file path raises an error.
-    '''
-    
-    # Attempt to create FileLoaderMiddleware with a non-existent file path.
-    with pytest.raises(FileNotFoundError) as exc_info:
-        FileLoaderMiddleware(path='non_existent.txt')
-    
-    # Verify the error message.
-    assert 'File not found: non_existent.txt' in str(exc_info.value)
-
 # ** test: file_loader_middleware_instantiation_invalid_mode
 def test_file_loader_middleware_instantiation_invalid_mode(temp_text_file: str):
     '''
@@ -136,11 +127,13 @@ def test_file_loader_middleware_instantiation_invalid_mode(temp_text_file: str):
     '''
     
     # Attempt to create FileLoaderMiddleware with an invalid mode.
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(TiferetError) as exc_info:
         FileLoaderMiddleware(path=temp_text_file, mode='x')
     
     # Verify the error message.
+    assert exc_info.value.error_code == const.INVALID_FILE_MODE_ID
     assert 'Invalid file mode: x' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('mode') == 'x'
 
 # ** test: file_loader_middleware_instantiation_invalid_encoding
 def test_file_loader_middleware_instantiation_invalid_encoding(temp_text_file: str):
@@ -152,11 +145,30 @@ def test_file_loader_middleware_instantiation_invalid_encoding(temp_text_file: s
     '''
     
     # Attempt to create FileLoaderMiddleware with an invalid encoding.
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(TiferetError) as exc_info:
         FileLoaderMiddleware(path=temp_text_file, encoding='utf-16')
     
     # Verify the error message.
+    assert exc_info.value.error_code == const.INVALID_ENCODING_ID
     assert 'Invalid encoding: utf-16' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('encoding') == 'utf-16'
+
+# ** test: file_loader_middleware_instantiation_invalid_path
+def test_file_loader_middleware_instantiation_invalid_path():
+    '''
+    Test instantiation of FileLoaderMiddleware with an invalid file path raises an error.
+    '''
+    
+    file_loader_middleware = FileLoaderMiddleware(path='non_existent.txt')
+
+    # Attempt to create FileLoaderMiddleware with a non-existent file path.
+    with pytest.raises(TiferetError) as exc_info:
+        file_loader_middleware.open_file()
+    
+    # Verify the error message.
+    assert exc_info.value.error_code == const.FILE_NOT_FOUND_ID
+    assert 'File not found: non_existent.txt' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('path') == 'non_existent.txt'
 
 # ** test: file_loader_middleware_runtime_error_on_already_open
 def test_file_loader_middleware_runtime_error_on_already_open(temp_text_file: str):
@@ -171,11 +183,13 @@ def test_file_loader_middleware_runtime_error_on_already_open(temp_text_file: st
     with FileLoaderMiddleware(path=temp_text_file) as fmw:
         
         # Attempt to open the file again within the same context.
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             fmw.open_file()
     
     # Verify the error message.
+    assert exc_info.value.error_code == const.FILE_ALREADY_OPEN_ID
     assert f'File is already open: {temp_text_file}' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('path') == temp_text_file
 
 # ** test: file_loader_middleware_open_and_close_file
 def test_file_loader_middleware_open_and_close_file(temp_text_file: str):
