@@ -89,7 +89,7 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         # For now, we assume that if the file can be opened, it is a valid JSON file.
 
     # * method: load
-    def load(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
         '''
         Load data from the JSON configuration file.
 
@@ -100,8 +100,11 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         # Load the JSON content from the file.
         json_content = json.load(self.file)
 
-        # Process the JSON content using the provided start node.
-        return start_node(json_content)
+        # Navigate to the start node of the loaded JSON content.
+        json_content = start_node(json_content)
+
+        # Return the JSON content processed by the data factory.
+        return data_factory(json_content)
 
     # * method: load_json
     # - obsolete: use load instead

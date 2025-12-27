@@ -110,6 +110,30 @@ def test_json_loader_middleware_load_start_node(temp_json_file: str):
     # Verify the file is closed after loading.
     assert json_r.file is None
 
+# ** test: json_loader_middleware_load_data_factory
+def test_json_loader_middleware_load_data_factory(temp_json_file: str):
+    '''
+    Test loading a JSON file with a custom data factory using JsonLoaderMiddleware.
+
+    :param temp_json_file: The path to the temporary JSON file.
+    :type temp_json_file: str
+    '''
+    
+    # Define a custom data factory function to transform the loaded data.
+    def data_factory(data):
+        return {k.upper(): v for k, v in data.items()}
+    
+    # Load the JSON content using the custom data factory.
+    with JsonLoaderMiddleware(path=temp_json_file) as json_r:
+        content = json_r.load(data_factory=data_factory)
+    
+    # Verify the loaded content has keys transformed to uppercase.
+    assert isinstance(content, dict)
+    assert content == {'KEY': 'value', 'NESTED': {'a': 1}, 'LIST': [{'b': 2}]}
+    
+    # Verify the file is closed after loading.
+    assert json_r.file is None
+
 # ** test: json_loader_middleware_parse_path
 def test_json_loader_middleware_parse_path(temp_json_file: str):
     '''
