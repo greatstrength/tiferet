@@ -131,7 +131,8 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
             yaml.safe_dump(data, self.file)
             return
 
-        # Get the data save path list.
+        # Get the data save path list. Replace any '.' with '/' for path consistency.
+        data_path = data_path.replace('.', '/')
         save_path_list = data_path.split('/')
 
         # Update the yaml data.
