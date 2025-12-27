@@ -61,6 +61,9 @@ INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
+# ** constant: unsupported_config_file_type_id
+UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
+
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 
@@ -237,6 +240,16 @@ DEFAULT_ERRORS = {
             {'lang': 'en_US', 'text': 'File is not a valid YAML file: {path}.'}
         ]
     },
+
+    # * error: UNSUPPORTED_CONFIG_FILE_TYPE
+    UNSUPPORTED_CONFIG_FILE_TYPE_ID: {
+        'id': UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+        'name': 'Unsupported Configuration File Type',
+        'message': [
+            {'lang': 'en_US', 'text': 'Unsupported configuration file type: {file_extension}.'}
+        ]
+    },
+
 
     # * error: APP_INTERFACE_NOT_FOUND
     APP_INTERFACE_NOT_FOUND_ID: {

@@ -103,6 +103,30 @@ def test_yaml_loader_middleware_load_start_node(temp_yaml_file: str):
     # Verify the file is closed after loading.
     assert yaml_r.file is None
 
+# ** test: yaml_loader_middleware_load_data_factory
+def test_yaml_loader_middleware_load_data_factory(temp_yaml_file: str):
+    '''
+    Test loading a YAML file with a custom data factory using YamlLoaderMiddleware.
+
+    :param temp_yaml_file: The path to the temporary YAML file.
+    :type temp_yaml_file: str
+    '''
+    
+    # Define a custom data factory to transform the loaded YAML data.
+    def data_factory(data):
+        return {k.upper(): v for k, v in data.items()}
+    
+    # Load the YAML content using the custom data factory.
+    with YamlLoaderMiddleware(path=temp_yaml_file) as yaml_r:
+        content = yaml_r.load(data_factory=data_factory)
+    
+    # Verify the transformed content.
+    assert isinstance(content, dict)
+    assert content == {'KEY': 'value', 'NESTED': {'a': 1}}
+    
+    # Verify the file is closed after loading.
+    assert yaml_r.file is None
+
 # ** test: yaml_loader_middleware_save
 def test_yaml_loader_middleware_save(temp_yaml_file: str):
     '''

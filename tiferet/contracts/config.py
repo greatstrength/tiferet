@@ -19,12 +19,14 @@ class ConfigurationService(Service):
 
     # * method: load
     @abstractmethod
-    def load(self, start_node: Callable = lambda data: data) -> Any:
+    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
         '''
         Load and return configuration data.
 
         :param start_node: Optional callable to select starting node in loaded structure.
         :type start_node: Callable
+        :param data_factory: Optional callable to transform loaded data into desired format.
+        :type data_factory: Callable
         :return: Parsed configuration data.
         :rtype: Any
         '''

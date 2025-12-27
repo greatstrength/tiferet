@@ -27,7 +27,8 @@ from .container import (
 from .error import (
     Error as ErrorContract,
     ErrorMessage as ErrorMessageContract,
-    ErrorRepository
+    ErrorRepository,
+    ErrorService
 )
 from .feature import (
     Feature as FeatureContract,

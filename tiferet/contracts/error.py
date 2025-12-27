@@ -177,18 +177,66 @@ class ErrorRepository(Repository):
 # ** contract: error_service
 class ErrorService(Service):
     '''
-    Contract for an error service to handle error operations.
+    Contract for an error service to manage error objects.
     '''
 
-    # * method: load_errors
+    # * method: exists
     @abstractmethod
-    def load_errors(self, configured_errors: List[Error] = []) -> List[Error]:
+    def exists(self, id: str, **kwargs) -> bool:
         '''
-        Load errors by their codes.
+        Check if the error exists.
 
-        :param configured_errors: The list of hard-coded errors to load.
-        :type configured_errors: List[Error]
-        :return: The list of loaded errors.
+        :param id: The error id.
+        :type id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: Whether the error exists.
+        :rtype: bool
+        '''
+        raise NotImplementedError('The exists method must be implemented by the error repository.')
+
+    # * method: get
+    @abstractmethod
+    def get(self, id: str) -> Error:
+        '''
+        Get an error object by its ID.
+
+        :param id: The error id.
+        :type id: str
+        :return: The error object.
+        :rtype: Error
+        '''
+        raise NotImplementedError('The get method must be implemented by the error repository.')
+
+    # * method: list
+    @abstractmethod
+    def list(self) -> List[Error]:
+        '''
+        List all error objects.
+
+        :return: The list of error objects.
         :rtype: List[Error]
         '''
-        raise NotImplementedError('The load_errors method must be implemented by the error service.')
+        raise NotImplementedError('The list method must be implemented by the error repository.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, error: Error) -> None:
+        '''
+        Save the error.
+
+        :param error: The error.
+        :type error: Error
+        '''
+        raise NotImplementedError('The save method must be implemented by the error repository.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the error by its unique identifier.
+
+        :param id: The unique identifier for the error to delete.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the error repository.')
