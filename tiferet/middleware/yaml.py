@@ -81,10 +81,14 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         super().verify_file(path)
 
     # * method: load
-    def load(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
         '''
         Load the YAML file and return its contents as a dictionary.
 
+        :param start_node: A callable to specify the starting node for loading data from the YAML file. Defaults to a lambda that returns the data as is.
+        :type start_node: Callable
+        :param data_factory: A callable to specify how to create data objects from the loaded YAML data. Defaults to a lambda that returns the data as is.
+        :type data_factory: Callable
         :return: The contents of the YAML file as a dictionary.
         :rtype: List[Any] | Dict[str, Any]
         '''
@@ -92,8 +96,11 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         # Load the YAML content from the file.
         yaml_content = yaml.safe_load(self.file)
         
-        # Return the loaded YAML content as a dictionary.
-        return start_node(yaml_content)
+        # Navigate to the start node of the loaded YAML content.
+        yaml_content = start_node(yaml_content)
+
+        # Return the YAML content processed by the data factory.
+        return data_factory(yaml_content)
 
     # * method: load_yaml
     # - obsolete, use load() instead
