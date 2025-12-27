@@ -44,7 +44,9 @@ include = [
     "tiferet.middleware",
     "tiferet.models",
     "tiferet.proxies",
-    "tiferet.proxies.yaml"
+    "tiferet.proxies.yaml",
+    "tiferet.repos",
+    "tiferet.repos.config",
 ]
 
 [tool.setuptools.dynamic]

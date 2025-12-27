@@ -6,13 +6,12 @@
 from typing import (
     Any,
     List,
-    Dict,
-    Callable
+    Dict
 )
 
 # ** app
 from ...models import Error
-from ...contracts import ErrorService, ConfigurationService
+from ...contracts import ErrorService
 from ...data import DataObject, ErrorConfigData
 from .settings import ConfigurationFileRepository
 
