@@ -22,6 +22,9 @@ class ConfigurationFileRepository(object):
     The base class for configuration file repositories.
     '''
 
+    # * attribute: default_role
+    default_role: str
+
     # * method: open_config
     def open_config(self, file_path: str, mode: str, encoding = 'utf-8', **kwargs) -> ConfigurationService:
         '''
@@ -42,8 +45,9 @@ class ConfigurationFileRepository(object):
         # Retrieve the file extension.
         _, ext = os.path.splitext(file_path)
 
-        # If the file is a YAML file, return the YAML configuration service.
+        # If the file is a YAML file, set the default role and return the YAML configuration service.
         if ext.lower() in ['.yaml', '.yml']:
+            self.default_role = 'to_data.yaml'
             return Yaml(
                 file_path,
                 mode=mode,
@@ -51,8 +55,9 @@ class ConfigurationFileRepository(object):
                 **kwargs
             )
         
-        # If the file is a JSON file, return the JSON configuration service.
+        # If the file is a JSON file, set the default role and return the JSON configuration service.
         elif ext.lower() == '.json':
+            self.default_role = 'to_data.json'
             return Json(
                 file_path,
                 mode=mode,

@@ -44,6 +44,7 @@ def test_open_config_valid_yaml_file(tmp_path):
 
     # Verify that the returned service is an instance of YamlLoaderMiddleware.
     assert isinstance(config_service, Yaml)
+    assert config_repo.default_role == 'to_data.yaml'
 
 # ** test: open_config_valid_json_file
 def test_open_config_valid_json_file(tmp_path):
@@ -64,6 +65,7 @@ def test_open_config_valid_json_file(tmp_path):
 
     # Verify that the returned service is an instance of JsonLoaderMiddleware.
     assert isinstance(config_service, Json)
+    assert config_repo.default_role == 'to_data.json'
 
 # ** test: open_config_unsupported_file_type
 def test_open_config_unsupported_file_type(tmp_path):
