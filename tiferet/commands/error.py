@@ -6,7 +6,7 @@
 from .settings import Command
 from ..assets.constants import DEFAULT_ERRORS, ERROR_NOT_FOUND_ID
 from ..models import Error
-from ..contracts import ErrorRepository
+from ..contracts import ErrorService
 
 # *** commands
 
@@ -16,18 +16,18 @@ class GetError(Command):
     Command to retrieve an Error domain object by its ID.
     '''
 
-    # * attribute: error_repo
-    error_repo: ErrorRepository
+    # * attribute: error_service
+    error_service: ErrorService
 
     # * init
-    def __init__(self, error_repo: ErrorRepository):
+    def __init__(self, error_service: ErrorService):
         '''
         Initialize the GetError command.
 
-        :param error_repo: The error repository to query.
-        :type error_repo: ErrorRepository
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
         '''
-        self.error_repo = error_repo
+        self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, include_defaults: bool = False, **kwargs) -> Error:
@@ -45,7 +45,7 @@ class GetError(Command):
         '''
 
         # Attempt to retrieve from configured repository.
-        error = self.error_repo.get(id)
+        error = self.error_service.get(id)
 
         # If found, return immediately.
         if error:
