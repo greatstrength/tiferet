@@ -155,3 +155,55 @@ class GetError(Command):
             message=f'Error not found: {id}.',
             id=id,
         )
+
+# ** command: rename_error
+class RenameError(Command):
+    '''
+    Command to rename an existing Error domain object.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the RenameError command.
+
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
+        '''
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self, id: str, new_name: str, **kwargs) -> Error:
+        '''
+        Rename an existing Error by its ID.
+
+        :param id: The unique identifier of the error to rename.
+        :type id: str
+        :param new_name: The new name for the error.
+        :type new_name: str
+        :param kwargs: Additional context (passed to error if raised).
+        :type kwargs: dict
+        :return: The updated Error domain model instance.
+        :rtype: Error
+        '''
+
+        # Retrieve the existing error.
+        error = self.error_service.get(id)
+        self.verify(
+            expression=error,
+            error_code=const.ERROR_NOT_FOUND_ID,
+            message=f'Error not found: {id}.',
+            id=id
+        )
+
+        # Update the name.
+        error.rename(new_name)
+
+        # Save the updated error.
+        self.error_service.save(error)
+
+        # Return the updated error.
+        return error

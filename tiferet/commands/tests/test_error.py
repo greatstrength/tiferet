@@ -12,6 +12,7 @@ from ..error import (
     ErrorService, 
     AddError,
     GetError,
+    RenameError,
     const
 )
 from ..settings import TiferetError
@@ -80,6 +81,21 @@ def get_error_command(error_service_mock: mock.Mock) -> GetError:
 
     # Return the GetError command with the mocked repository.
     return GetError(error_service=error_service_mock)
+
+# ** fixture: rename_error_command
+@pytest.fixture
+def rename_error_command(error_service_mock: mock.Mock) -> RenameError:
+    '''
+    Fixture to create a RenameError command instance with a mocked ErrorService.
+
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :return: The RenameError command instance.
+    :rtype: RenameError
+    '''
+
+    # Return the RenameError command with the mocked repository.
+    return RenameError(error_service=error_service_mock)
 
 # *** tests
 
@@ -199,6 +215,67 @@ def test_add_error_already_exists(add_error_command: AddError, error_service_moc
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     assert f'An error with ID {error_id} already exists.' in str(exc_info.value), 'Exception message does not match.'
     error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
+
+# ** test: rename_error_success
+def test_rename_error_success(rename_error_command: RenameError, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test renaming an existing error successfully.
+
+    :param rename_error_command: The RenameError command instance.
+    :type rename_error_command: RenameError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Arrange the parameters for renaming an error.
+    error_id = error.id
+    new_name = 'Renamed Test Error'
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act to rename the error.
+    rename_error_command.execute(
+        id=error_id,
+        new_name=new_name
+    )
+
+    # Assert that the error was renamed correctly.
+    assert error.name == new_name, 'Error name was not updated correctly.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
+
+# ** test: rename_error_not_found
+def test_rename_error_not_found(rename_error_command: RenameError, error_service_mock: mock.Mock):
+    '''
+    Test renaming an error that does not exist.
+
+    :param rename_error_command: The RenameError command instance.
+    :type rename_error_command: RenameError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    '''
+
+    # Arrange the parameters for renaming an error.
+    error_id = 'NON_EXISTENT_ERROR'
+    new_name = 'Renamed Error'
+
+    # Configure the mock to return None (error not found).
+    error_service_mock.get.return_value = None
+
+    # Act & Assert that renaming the error raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        rename_error_command.execute(
+            id=error_id,
+            new_name=new_name
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
 
 # ** test: get_error_found_in_repo
 def test_get_error_found_in_repo(error: Error, error_service_mock: mock.Mock, get_error_command: GetError):
