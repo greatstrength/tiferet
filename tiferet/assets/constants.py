@@ -13,6 +13,9 @@ ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 # ** constant: error_already_exists_id
 ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
 
+# ** constant: no_error_messages_id
+NO_ERROR_MESSAGES_ID = 'NO_ERROR_MESSAGES'
+
 # ** constant: parameter_parsing_failed_id
 PARAMETER_PARSING_FAILED_ID = 'PARAMETER_PARSING_FAILED'
 
@@ -100,6 +103,15 @@ DEFAULT_ERRORS = {
         'name': 'Error Already Exists',
         'message': [
             {'lang': 'en_US', 'text': 'An error with ID {id} already exists.'}
+        ]
+    },
+
+    # * error: NO_ERROR_MESSAGES
+    NO_ERROR_MESSAGES_ID: {
+        'id': NO_ERROR_MESSAGES_ID,
+        'name': 'No Error Messages',
+        'message': [
+            {'lang': 'en_US', 'text': 'No error messages are defined for error ID {id}.'}
         ]
     },
 
