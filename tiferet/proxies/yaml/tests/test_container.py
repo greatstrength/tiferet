@@ -127,7 +127,7 @@ def test_container_yaml_proxy_list_all_empty(container_yaml_proxy: ContainerYaml
         f.write('const:\n')
 
     # Replace the config file path in the proxy.
-    container_yaml_proxy.yaml_file = file_path
+    container_yaml_proxy.yaml_file = str(file_path)
 
     # List all the container attributes.
     container_attributes, constants = container_yaml_proxy.list_all()
