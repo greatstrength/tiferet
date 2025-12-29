@@ -14,8 +14,6 @@ from ..feature import FeatureYamlProxy
 # *** fixtures
 
 # ** fixture: feature_config_file_path
-
-
 @pytest.fixture
 def feature_config_file(tmp_path) -> str:
     '''
@@ -56,8 +54,6 @@ def feature_config_file(tmp_path) -> str:
     return str(file_path)
 
 # ** fixture: test_feature_yaml_proxy
-
-
 @pytest.fixture
 def feature_yaml_proxy(feature_config_file: str) -> FeatureYamlProxy:
     '''
@@ -75,8 +71,6 @@ def feature_yaml_proxy(feature_config_file: str) -> FeatureYamlProxy:
 # *** tests
 
 # ** test: feature_yaml_proxy_load_yaml
-
-
 def test_feature_yaml_proxy_load_yaml(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method.
@@ -94,8 +88,6 @@ def test_feature_yaml_proxy_load_yaml(feature_yaml_proxy: FeatureYamlProxy):
     assert len(data['features']) > 0
 
 # ** test: feature_yaml_proxy_load_yaml_file_not_found
-
-
 def test_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method with a file not found error.
@@ -185,8 +177,6 @@ def test_feature_yaml_proxy_exists(
     assert feature_yaml_proxy.exists('test_group.test_feature')
 
 # ** test: feature_yaml_proxy_exists_not_found
-
-
 def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the exists method of the FeatureYamlProxy for a non-existent feature.
@@ -202,8 +192,6 @@ def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProx
     assert not feature_yaml_proxy.exists('test_group.not_found')
 
 # ** test: feature_yaml_proxy_list
-
-
 def test_feature_yaml_proxy_list(
     feature_yaml_proxy: FeatureYamlProxy,
 ):
@@ -234,8 +222,6 @@ def test_feature_yaml_proxy_list(
     assert features[0].commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_list_by_group_id
-
-
 def test_feature_yaml_proxy_list_by_group_id(
     feature_yaml_proxy: FeatureYamlProxy,
 ):
@@ -266,8 +252,6 @@ def test_feature_yaml_proxy_list_by_group_id(
     assert features[0].commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_list_by_group_id_not_found
-
-
 def test_feature_yaml_proxy_list_by_group_id_not_found(
     feature_yaml_proxy: FeatureYamlProxy,
 ):
@@ -287,8 +271,6 @@ def test_feature_yaml_proxy_list_by_group_id_not_found(
     assert features == []
 
 # ** test: feature_yaml_proxy_save
-
-
 def test_feature_yaml_proxy_save(
     feature_yaml_proxy: FeatureYamlProxy,
 ):
@@ -340,8 +322,6 @@ def test_feature_yaml_proxy_save(
     assert saved_feature.commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_delete
-
-
 def test_feature_yaml_proxy_delete(
     feature_yaml_proxy: FeatureYamlProxy,
 ):
