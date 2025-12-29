@@ -252,3 +252,21 @@ def test_error_set_message_new_lang(error: Error):
     assert len(error.message) == 2
     assert error.message[1].lang == 'fr_FR'
     assert error.message[1].text == 'Une nouvelle erreur est survenue.'
+
+# ** test: error_remove_message
+def test_error_remove_message(error: Error):
+    '''
+    Test removing an error message for a specific language.
+
+    :param error: The error to test.
+    :type error: Error
+    '''
+
+    # Add a message for removal test.
+    error.set_message('fr_FR', 'Une erreur est survenue.')
+
+    # Remove the message for the 'en_US' language.
+    error.remove_message('fr_FR')
+
+    # Verify that the message is removed.
+    assert len(error.message) == 1

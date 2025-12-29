@@ -219,3 +219,15 @@ class Error(ModelObject):
                 text=text
             )
         )
+
+    # * method: remove_message
+    def remove_message(self, lang: str):
+        '''
+        Removes the error message for the specified language.
+
+        :param lang: The language of the error message to remove.
+        :type lang: str
+        '''
+
+        # Filter out the message with the specified language.
+        self.message = [msg for msg in self.message if msg.lang != lang]
