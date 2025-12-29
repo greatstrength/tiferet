@@ -62,6 +62,17 @@ class Error(ModelContract):
     # * attribute: message
     message: List[ErrorMessage]
 
+    # * method: rename
+    @abstractmethod
+    def rename(self, new_name: str) -> None:
+        '''
+        Rename the error.
+
+        :param new_name: The new name for the error.
+        :type new_name: str
+        '''
+        raise NotImplementedError('The rename method must be implemented by the error.')
+
     # * method: format_message
     @abstractmethod
     def format_message(self, lang: str = 'en_US', *args) -> str:
