@@ -130,6 +130,18 @@ class Error(ModelObject):
             message=message,
             **kwargs
         )
+    
+    # * method: rename
+    def rename(self, new_name: str):
+        '''
+        Renames the error.
+
+        :param new_name: The new name for the error.
+        :type new_name: str
+        '''
+
+        # Update the name.
+        self.name = new_name
 
     # * method: format_message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:

@@ -109,6 +109,22 @@ def test_error_new(error: Error, error_message: ErrorMessage):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
+# ** test: error_message_rename
+def test_error_message_rename(error: Error):
+    '''
+    Test renaming an error.
+
+    :param error: The error to test.
+    :type error: Error
+    '''
+
+    # Rename the error.
+    new_name = 'Renamed Test Error'
+    error.rename(new_name)
+
+    # Verify the name is updated.
+    assert error.name == new_name
+
 # ** test: error_message_format
 def test_error_message_format(
         error_message: ErrorMessage,
