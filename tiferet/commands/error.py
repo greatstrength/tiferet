@@ -156,6 +156,50 @@ class GetError(Command):
             id=id,
         )
 
+# ** command: list_errors
+class ListErrors(Command):
+    '''
+    Command to list all Error domain objects.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the ListErrors command.
+
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
+        '''
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self, include_defaults: bool = False, **kwargs) -> List[Error]:
+        '''
+        List all Errors.
+
+        :return: The list of Error domain model instances.
+        :rtype: List[Error]
+        :param include_defaults: If True, include DEFAULT_ERRORS in the list.
+        :type include_defaults: bool
+        :param kwargs: Additional context (passed to error if raised).
+        :type kwargs: dict
+        '''
+
+        # If defaults are not included, retrieve from repository only.
+        if not include_defaults:
+            return self.error_service.list()
+        
+        # If defaults are included, merge repository and default errors.
+        errors = {id: Error.new(**data) for id, data in const.DEFAULT_ERRORS.items()}
+        repo_errors = self.error_service.list()
+        errors.update({error.id: error for error in repo_errors})
+
+        # Return the merged list of errors.
+        return list(errors.values())
+
 # ** command: rename_error
 class RenameError(Command):
     '''
