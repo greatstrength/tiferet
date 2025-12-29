@@ -14,6 +14,8 @@ from ..feature import FeatureYamlProxy
 # *** fixtures
 
 # ** fixture: feature_config_file_path
+
+
 @pytest.fixture
 def feature_config_file(tmp_path) -> str:
     '''
@@ -24,7 +26,7 @@ def feature_config_file(tmp_path) -> str:
     :return: The feature configuration file path.
     :rtype: str
     '''
-    
+
     # Create a temporary YAML file with sample feature configuration content.
     file_path = tmp_path / 'test.yaml'
 
@@ -32,18 +34,20 @@ def feature_config_file(tmp_path) -> str:
     with open(file_path, 'w', encoding='utf-8') as f:
         yaml.safe_dump({
             'features': {
-                'test_group.test_feature': {
-                    'name': 'Test Feature',
-                    'description': 'A test feature.',
-                    'commands': [
-                        {
-                            'attribute_id': 'test_feature_command',
-                            'name': 'Test Feature Command',
-                            'parameters': {
-                                'param1': 'value1'
+                'test_group': {
+                    'test_feature': {
+                        'name': 'Test Feature',
+                        'description': 'A test feature.',
+                        'commands': [
+                            {
+                                'attribute_id': 'test_feature_command',
+                                'name': 'Test Feature Command',
+                                'parameters': {
+                                    'param1': 'value1'
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             }
         }, f)
@@ -52,6 +56,8 @@ def feature_config_file(tmp_path) -> str:
     return str(file_path)
 
 # ** fixture: test_feature_yaml_proxy
+
+
 @pytest.fixture
 def feature_yaml_proxy(feature_config_file: str) -> FeatureYamlProxy:
     '''
@@ -69,6 +75,8 @@ def feature_yaml_proxy(feature_config_file: str) -> FeatureYamlProxy:
 # *** tests
 
 # ** test: feature_yaml_proxy_load_yaml
+
+
 def test_feature_yaml_proxy_load_yaml(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method.
@@ -86,6 +94,8 @@ def test_feature_yaml_proxy_load_yaml(feature_yaml_proxy: FeatureYamlProxy):
     assert len(data['features']) > 0
 
 # ** test: feature_yaml_proxy_load_yaml_file_not_found
+
+
 def test_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the feature YAML proxy load YAML method with a file not found error.
@@ -108,8 +118,8 @@ def test_feature_yaml_proxy_load_yaml_file_not_found(feature_yaml_proxy: Feature
 
 # ** test: feature_yaml_proxy_get
 def test_feature_yaml_proxy_get(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the get method of the FeatureYamlProxy.
 
@@ -118,7 +128,7 @@ def test_feature_yaml_proxy_get(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # Get the feature.
     test_feature = feature_yaml_proxy.get('test_group.test_feature')
 
@@ -135,10 +145,33 @@ def test_feature_yaml_proxy_get(
     assert test_feature.commands[0].name == 'Test Feature Command'
     assert test_feature.commands[0].parameters == {'param1': 'value1'}
 
+# ** test: feature_yaml_proxy_get_not_found
+def test_feature_yaml_proxy_get_not_found(
+    feature_yaml_proxy: FeatureYamlProxy,
+):
+    '''
+    Test the get method of the FeatureYamlProxy for a non-existent feature.
+
+    :param feature_yaml_proxy: The feature YAML proxy.
+    :type feature_yaml_proxy: FeatureYamlProxy
+    '''
+
+    # Get the feature using the incorrect group id.
+    test_feature = feature_yaml_proxy.get('not_found.test_feature')
+
+    # Check the feature is None.
+    assert test_feature is None
+
+    # Get the feature using the incorrect feature name.
+    test_feature = feature_yaml_proxy.get('test_group.not_found')
+
+    # Check the feature is None.
+    assert test_feature is None
+
 # ** test: feature_yaml_proxy_exists
 def test_feature_yaml_proxy_exists(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the exists method of the FeatureYamlProxy.
 
@@ -147,11 +180,13 @@ def test_feature_yaml_proxy_exists(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # Check the feature exists.
     assert feature_yaml_proxy.exists('test_group.test_feature')
 
 # ** test: feature_yaml_proxy_exists_not_found
+
+
 def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProxy):
     '''
     Test the exists method of the FeatureYamlProxy for a non-existent feature.
@@ -159,14 +194,19 @@ def test_feature_yaml_proxy_exists_not_found(feature_yaml_proxy: FeatureYamlProx
     :param feature_yaml_proxy: The feature YAML proxy.
     :type feature_yaml_proxy: FeatureYamlProxy
     '''
-    
-    # Check the feature does not exist.
-    assert not feature_yaml_proxy.exists('not_found')
+
+    # Check the feature does not exist using the incorrect group id.
+    assert not feature_yaml_proxy.exists('not_found.test_feature')
+
+    # Check the feature does not exist using the incorrect feature name.
+    assert not feature_yaml_proxy.exists('test_group.not_found')
 
 # ** test: feature_yaml_proxy_list
+
+
 def test_feature_yaml_proxy_list(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the list method of the FeatureYamlProxy.
 
@@ -175,10 +215,10 @@ def test_feature_yaml_proxy_list(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # List the features.
     features = feature_yaml_proxy.list()
-    
+
     # Check the features.
     assert features
     assert len(features) == 1
@@ -194,9 +234,11 @@ def test_feature_yaml_proxy_list(
     assert features[0].commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_list_by_group_id
+
+
 def test_feature_yaml_proxy_list_by_group_id(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the list method of the FeatureYamlProxy with a group id.
 
@@ -205,10 +247,10 @@ def test_feature_yaml_proxy_list_by_group_id(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # List the features by group id.
     features = feature_yaml_proxy.list(group_id='test_group')
-    
+
     # Check the features.
     assert features
     assert len(features) == 1
@@ -224,9 +266,11 @@ def test_feature_yaml_proxy_list_by_group_id(
     assert features[0].commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_list_by_group_id_not_found
+
+
 def test_feature_yaml_proxy_list_by_group_id_not_found(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the list method of the FeatureYamlProxy with a non-existent group id.
 
@@ -235,17 +279,19 @@ def test_feature_yaml_proxy_list_by_group_id_not_found(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # List the features by a non-existent group id.
     features = feature_yaml_proxy.list(group_id='not_found')
-    
+
     # Check the features.
     assert features == []
 
 # ** test: feature_yaml_proxy_save
+
+
 def test_feature_yaml_proxy_save(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the save method of the FeatureYamlProxy.
 
@@ -254,7 +300,7 @@ def test_feature_yaml_proxy_save(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # Create a new feature to save.
     new_feature = DataObject.from_data(
         FeatureConfigData,
@@ -273,13 +319,13 @@ def test_feature_yaml_proxy_save(
             }
         ]
     ).map()
-    
+
     # Save the new feature.
     feature_yaml_proxy.save(new_feature)
-    
+
     # Get the saved feature.
     saved_feature = feature_yaml_proxy.get('new_group.new_feature')
-    
+
     # Check the saved feature.
     assert saved_feature
     assert saved_feature.id == 'new_group.new_feature'
@@ -294,9 +340,11 @@ def test_feature_yaml_proxy_save(
     assert saved_feature.commands[0].parameters == {'param1': 'value1'}
 
 # ** test: feature_yaml_proxy_delete
+
+
 def test_feature_yaml_proxy_delete(
-        feature_yaml_proxy: FeatureYamlProxy,
-    ):
+    feature_yaml_proxy: FeatureYamlProxy,
+):
     '''
     Test the save method of the FeatureYamlProxy for updating an existing feature.
 
@@ -305,7 +353,7 @@ def test_feature_yaml_proxy_delete(
     :param feature: The Feature instance.
     :type feature: Feature
     '''
-    
+
     # Delete the existing feature.
     feature_yaml_proxy.delete('test_group.test_feature')
 
