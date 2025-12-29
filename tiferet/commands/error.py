@@ -198,6 +198,7 @@ class ListErrors(Command):
         errors.update({error.id: error for error in repo_errors})
 
         # Return the merged list of errors.
+        return list(errors.values())
 
 # ** command: rename_error
 class RenameError(Command):
@@ -377,4 +378,47 @@ class RemoveErrorMessage(Command):
         self.error_service.save(error)
 
         # Return the updated error id.
+        return id
+
+# ** command: remove_error
+class RemoveError(Command):
+    '''
+    Command to remove an existing Error domain object by its ID.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the RemoveError command.
+
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
+        '''
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> None:
+        '''
+        Remove an existing Error by its ID.
+
+        :param id: The unique identifier of the error to remove.
+        :type id: str
+        :param kwargs: Additional context (passed to error if raised).
+        :type kwargs: dict
+        '''
+
+        # Verify that the id parameter is not null or empty.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name='RemoveError'
+        )
+
+        # Remove the error.
+        self.error_service.delete(id)
+
+        # Return the removed error id.
         return id

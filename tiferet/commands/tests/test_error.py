@@ -19,6 +19,7 @@ from ..error import (
     RenameError,
     SetErrorMessage,
     RemoveErrorMessage,
+    RemoveError,
     const
 )
 from ..settings import TiferetError
@@ -161,6 +162,21 @@ def remove_error_message_command(error_service_mock: mock.Mock) -> RemoveErrorMe
 
     # Return the RemoveErrorMessage command with the mocked repository.
     return RemoveErrorMessage(error_service=error_service_mock)
+
+# ** fixture: remove_error_command
+@pytest.fixture
+def remove_error_command(error_service_mock: mock.Mock) -> RemoveError:
+    '''
+    Fixture to create a RemoveError command instance with a mocked ErrorService.
+
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :return: The RemoveError command instance.
+    :rtype: RemoveError
+    '''
+
+    # Return the RemoveError command with the mocked repository.
+    return RemoveError(error_service=error_service_mock)
 
 # *** tests
 
@@ -757,3 +773,46 @@ def test_remove_error_message_no_error_messages(remove_error_message_command: Re
     assert exc_info.value.error_code == const.NO_ERROR_MESSAGES_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error.id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error.id), 'Get method was not called correctly.'
+
+# ** test: remove_error_success
+def test_remove_error_success(remove_error_command: RemoveError, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test removing an existing error successfully.
+
+    :param remove_error_command: The RemoveError command instance.
+    :type remove_error_command: RemoveError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Arrange the parameters for removing an error.
+    error_id = error.id
+
+    # Act to remove the error.
+    removed_error_id = remove_error_command.execute(
+        id=error_id
+    )
+
+    # Assert that the error was removed correctly.
+    assert removed_error_id == error_id, 'Returned error ID does not match.'
+    error_service_mock.delete.assert_called_once_with(error_id), 'Delete method was not called correctly.'
+
+# ** test: remove_error_invalid_parameters
+def test_remove_error_invalid_parameters(remove_error_command: RemoveError):
+    '''
+    Test removing an error with invalid parameters.
+
+    :param remove_error_command: The RemoveError command instance.
+    :type remove_error_command: RemoveError
+    '''
+
+    # Test with empty ID.
+    with pytest.raises(TiferetError) as exc_info:
+        remove_error_command.execute(
+            id=''
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.kwargs.get('parameter') == 'id'
+    assert exc_info.value.kwargs.get('command') == 'RemoveError'
