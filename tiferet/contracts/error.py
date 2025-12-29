@@ -117,6 +117,17 @@ class Error(ModelContract):
         :type text: str
         '''
         raise NotImplementedError('The set_message method must be implemented by the error.')
+    
+    # * method: remove_message
+    @abstractmethod
+    def remove_message(self, lang: str) -> None:
+        '''
+        Remove the error message for a specified language.
+
+        :param lang: The language of the error message text to remove.
+        :type lang: str
+        '''
+        raise NotImplementedError('The remove_message method must be implemented by the error.')
 
 # ** contract: error_repository
 class ErrorRepository(Repository):
