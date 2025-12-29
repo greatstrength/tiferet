@@ -62,6 +62,17 @@ class Error(ModelContract):
     # * attribute: message
     message: List[ErrorMessage]
 
+    # * method: rename
+    @abstractmethod
+    def rename(self, new_name: str) -> None:
+        '''
+        Rename the error.
+
+        :param new_name: The new name for the error.
+        :type new_name: str
+        '''
+        raise NotImplementedError('The rename method must be implemented by the error.')
+
     # * method: format_message
     @abstractmethod
     def format_message(self, lang: str = 'en_US', *args) -> str:
@@ -106,6 +117,17 @@ class Error(ModelContract):
         :type text: str
         '''
         raise NotImplementedError('The set_message method must be implemented by the error.')
+    
+    # * method: remove_message
+    @abstractmethod
+    def remove_message(self, lang: str) -> None:
+        '''
+        Remove the error message for a specified language.
+
+        :param lang: The language of the error message text to remove.
+        :type lang: str
+        '''
+        raise NotImplementedError('The remove_message method must be implemented by the error.')
 
 # ** contract: error_repository
 class ErrorRepository(Repository):

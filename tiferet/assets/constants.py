@@ -4,8 +4,17 @@
 
 # *** constants (errors)
 
+# ** constant: command_parameter_required_id
+COMMAND_PARAMETER_REQUIRED_ID = 'COMMAND_PARAMETER_REQUIRED'
+
 # ** constant: error_not_found_id
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
+
+# ** constant: error_already_exists_id
+ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
+
+# ** constant: no_error_messages_id
+NO_ERROR_MESSAGES_ID = 'NO_ERROR_MESSAGES'
 
 # ** constant: parameter_parsing_failed_id
 PARAMETER_PARSING_FAILED_ID = 'PARAMETER_PARSING_FAILED'
@@ -70,12 +79,39 @@ APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
+    # * error: COMMAND_PARAMETER_REQUIRED
+    COMMAND_PARAMETER_REQUIRED_ID: {
+        'id': COMMAND_PARAMETER_REQUIRED_ID,
+        'name': 'Command Parameter Required',
+        'message': [
+            {'lang': 'en_US', 'text': 'The required parameter {parameter} for command {command} is missing.'}
+        ]
+    },
+
     # * error: ERROR_NOT_FOUND
     ERROR_NOT_FOUND_ID: {
         'id': ERROR_NOT_FOUND_ID,
         'name': 'Error Not Found',
         'message': [
             {'lang': 'en_US', 'text': 'Error not found: {id}.'}
+        ]
+    },
+
+    # * error: ERROR_ALREADY_EXISTS
+    ERROR_ALREADY_EXISTS_ID: {
+        'id': ERROR_ALREADY_EXISTS_ID,
+        'name': 'Error Already Exists',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error with ID {id} already exists.'}
+        ]
+    },
+
+    # * error: NO_ERROR_MESSAGES
+    NO_ERROR_MESSAGES_ID: {
+        'id': NO_ERROR_MESSAGES_ID,
+        'name': 'No Error Messages',
+        'message': [
+            {'lang': 'en_US', 'text': 'No error messages are defined for error ID {id}.'}
         ]
     },
 
