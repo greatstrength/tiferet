@@ -74,11 +74,20 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
         :rtype: bool
         '''
 
-        # Retrieve the feature by id.
-        feature = self.get(id)
+        # Split the feature id into group and name.
+        group_id, feature_name = id.split('.', 1)
+
+        # Load the raw YAML data for the feature.
+        group_data: FeatureConfigData = self.load_yaml(
+            start_node=lambda data: data.get('features', {}).get(group_id, None),
+        )
+
+        # If no data is found, return None.
+        if not group_data:
+            return False
 
         # Return whether the feature exists.
-        return feature is not None
+        return feature_name in group_data
 
     # * method: get
     def get(self, id: str) -> FeatureContract:
@@ -91,19 +100,29 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
         :rtype: FeatureContract
         '''
 
+        # Split the feature id into group and name.
+        group_id, feature_name = id.split('.', 1)
+
         # Load the raw YAML data for the feature.
-        yaml_data: FeatureConfigData = self.load_yaml(
-            start_node=lambda data: data.get('features', {}).get(id, None),
+        group_data: FeatureConfigData = self.load_yaml(
+            start_node=lambda data: data.get('features', {}).get(group_id, None),
         )
 
         # If no data is found, return None.
-        if not yaml_data:
+        if not group_data:
+            return None
+        
+        # Get the specific feature data.
+        feature_data = group_data.get(feature_name, None)
+
+        # If no data is found, return None.
+        if not feature_data:
             return None
         
         # Return the feature object created from the YAML data.
         return FeatureConfigData.from_data(
-            id=id,
-            **yaml_data
+            id=f'{group_id}.{feature_name}',
+            **feature_data
         ).map()
 
     # * method: list
@@ -117,18 +136,28 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
         :rtype: List[FeatureContract]
         '''
 
-        # Load all feature data from yaml.
-        features = self.load_yaml(
-            data_factory=lambda data: [FeatureConfigData.from_data(
-                id=id,
-                **feature_data
-            ) for id, feature_data in data.items()],
-            start_node=lambda data: data.get('features')
+        # Load the raw YAML data for the feature.
+        groups_data = self.load_yaml(
+            start_node=lambda data: data.get('features', {}),
         )
 
-        # Filter features by group id.
+        # Get the features for the specified group.
         if group_id:
-            features = [feature for feature in features if feature.group_id == group_id]
+            features_data = groups_data.get(group_id, {})
+            features = [FeatureConfigData.from_data(
+                id=f'{group_id}.{id}',
+                **feature_data
+            ) for id, feature_data in features_data.items()]
+
+        # Get all features across all groups.
+        else:
+            features: List[FeatureConfigData] = []
+            for group_id, group_data in groups_data.items():
+                for feature_id, feature_data in group_data.items():
+                    features.append(FeatureConfigData.from_data(
+                        id=f'{group_id}.{feature_id}',
+                        **feature_data
+                    ))
 
         # Return the list of features.
         return [feature.map() for feature in features]
@@ -163,16 +192,23 @@ class FeatureYamlProxy(FeatureRepository, YamlFileProxy):
         :type id: str
         '''
 
-        # Retrieve the full list of feature data.
-        features_data = self.load_yaml(
-            start_node=lambda data: data.get('features', {})
+        # Split the feature id into group and name.
+        group_id, feature_name = id.split('.', 1)
+
+        # Retrieve group data.
+        group_data = self.load_yaml(
+            start_node=lambda data: data.get('features', {}).get(group_id, None)
         )
 
-        # Pop the feature to delete regardless of its existence.
-        features_data.pop(id, None)
+        # If the group does not exist, return.
+        if not group_data:
+            return
+
+        # Pop the feature from the group data.
+        group_data.pop(feature_name, None)
 
         # Save the updated features data back to the yaml file.
         self.save_yaml(
-            data=features_data,
-            data_yaml_path='features'
+            data=group_data,
+            data_yaml_path=f'features/{group_id}'
         )

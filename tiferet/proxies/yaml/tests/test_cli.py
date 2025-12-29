@@ -38,21 +38,23 @@ def cli_config_file(tmp_path) -> str:
                     }
                 ],
                 'cmds': {
-                    'test_group.test_feature': {
-                        'group_key': 'test-group',
-                        'key': 'test-feature',
-                        'name': 'Test Feature Command',
-                        'description': 'A test feature command.',
-                        'args': [
-                            {
-                                'name_or_flags': ['--arg1', '-a'],
-                                'description': 'Argument 1'
-                            },
-                            {
-                                'name_or_flags': ['--arg2', '-b'],
-                                'description': 'Argument 2'
-                            }
-                        ]
+                    'test_group': { 
+                        'test_feature': {
+                            'group_key': 'test-group',
+                            'key': 'test-feature',
+                            'name': 'Test Feature Command',
+                            'description': 'A test feature command.',
+                            'args': [
+                                {
+                                    'name_or_flags': ['--arg1', '-a'],
+                                    'description': 'Argument 1'
+                                },
+                                {
+                                    'name_or_flags': ['--arg2', '-b'],
+                                    'description': 'Argument 2'
+                                }
+                            ]
+                        }
                     }
                 }
             }

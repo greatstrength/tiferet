@@ -45,6 +45,8 @@ include = [
     "tiferet.models",
     "tiferet.proxies",
     "tiferet.proxies.yaml",
+    "tiferet.proxies.json",
+    "tiferet.proxies.csv",
     "tiferet.repos",
     "tiferet.repos.config",
 ]
