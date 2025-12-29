@@ -10,10 +10,11 @@ from unittest import mock
 from ..error import (
     Error,
     ErrorService, 
-    GetError
+    AddError,
+    GetError,
+    const
 )
-from ...assets import TiferetError, DEFAULT_ERRORS
-from ...assets.constants import ERROR_NOT_FOUND_ID
+from ..settings import TiferetError
 
 # *** fixtures
 @pytest.fixture
@@ -50,6 +51,21 @@ def error_service_mock() -> mock.Mock:
     # Create and return the mock.
     return mock.Mock(spec=ErrorService)
 
+# ** fixture: add_error_command
+@pytest.fixture
+def add_error_command(error_service_mock: mock.Mock) -> AddError:
+    '''
+    Fixture to create an AddError command instance with a mocked ErrorService.
+
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :return: The AddError command instance.
+    :rtype: AddError
+    '''
+
+    # Return the AddError command with the mocked repository.
+    return AddError(error_service=error_service_mock)
+
 # ** fixture: get_error_command
 @pytest.fixture
 def get_error_command(error_service_mock: mock.Mock) -> GetError:
@@ -66,6 +82,123 @@ def get_error_command(error_service_mock: mock.Mock) -> GetError:
     return GetError(error_service=error_service_mock)
 
 # *** tests
+
+# ** test: add_error_success
+def test_add_error_success(add_error_command: AddError, error_service_mock: mock.Mock):
+    '''
+    Test adding a new error successfully.
+
+    :param add_error_command: The AddError command instance.
+    :type add_error_command: AddError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    '''
+
+    # Arrange the parameters for adding an error.
+    error_id = 'NEW_ERROR'
+    error_name = 'New Error'
+    error_message = 'This is a new error message.'
+    lang = 'en_US'
+    additional_messages = [{'lang': 'es_ES', 'text': 'Este es un mensaje de error nuevo.'}]
+
+    # Configure the mock to indicate the error does not exist.
+    error_service_mock.exists.return_value = False
+
+    # Act to add the new error.
+    result = add_error_command.execute(
+        id=error_id,
+        name=error_name,
+        message=error_message,
+        lang=lang,
+        additional_messages=additional_messages
+    )
+
+    # Assert that the error was added correctly.
+    assert result.id == error_id, 'Error ID does not match.'
+    assert result.name == error_name, 'Error name does not match.'
+    assert any(msg.text == error_message and msg.lang == lang for msg in result.message), 'Primary error message does not match.'
+    assert any(msg.text == 'Este es un mensaje de error nuevo.' and msg.lang == 'es_ES' for msg in result.message), 'Additional error message does not match.'
+    error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
+    error_service_mock.save.assert_called_once_with(result), 'Save method was not called correctly.'
+
+# * test: add_error_already_invalid_parameters
+def test_add_error_already_invalid_parameters(add_error_command: AddError):
+    '''
+    Test adding an error with invalid parameters.
+
+    :param add_error_command: The AddError command instance.
+    :type add_error_command: AddError
+    '''
+
+    # Test with empty ID.
+    with pytest.raises(TiferetError) as exc_info:
+        add_error_command.execute(
+            id='',
+            name='Some Name',
+            message='Some message.'
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.kwargs.get('parameter') == 'id'
+    assert exc_info.value.kwargs.get('command') == 'AddError'
+
+    # Test with empty name.
+    with pytest.raises(TiferetError) as exc_info:
+        add_error_command.execute(
+            id='VALID_ID',
+            name='',
+            message='Some message.'
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.kwargs.get('parameter') == 'name'
+    assert exc_info.value.kwargs.get('command') == 'AddError'
+
+    # Test with empty message.
+    with pytest.raises(TiferetError) as exc_info:
+        add_error_command.execute(
+            id='VALID_ID',
+            name='Some Name',
+            message=''
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.kwargs.get('parameter') == 'message'
+    assert exc_info.value.kwargs.get('command') == 'AddError'
+
+# ** test: add_error_already_exists
+def test_add_error_already_exists(add_error_command: AddError, error_service_mock: mock.Mock):
+    '''
+    Test adding an error that already exists.
+
+    :param add_error_command: The AddError command instance.
+    :type add_error_command: AddError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    '''
+
+    # Arrange the parameters for adding an error.
+    error_id = 'EXISTING_ERROR'
+    error_name = 'Existing Error'
+    error_message = 'This error already exists.'
+    lang = 'en_US'
+    additional_messages = []
+
+    # Configure the mock to indicate the error already exists.
+    error_service_mock.exists.return_value = True
+
+    # Act & Assert that adding the error raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        add_error_command.execute(
+            id=error_id,
+            name=error_name,
+            message=error_message,
+            lang=lang,
+            additional_messages=additional_messages
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.ERROR_ALREADY_EXISTS_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
+    assert f'An error with ID {error_id} already exists.' in str(exc_info.value), 'Exception message does not match.'
+    error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
 
 # ** test: get_error_found_in_repo
 def test_get_error_found_in_repo(error: Error, error_service_mock: mock.Mock, get_error_command: GetError):
@@ -103,14 +236,14 @@ def test_get_error_found_in_defaults(error_service_mock: mock.Mock, get_error_co
     '''
 
     # Arrange the mock to return None.
-    error_id = ERROR_NOT_FOUND_ID
+    error_id = const.ERROR_NOT_FOUND_ID
     error_service_mock.get.return_value = None
 
     # Act to retrieve the error.
     result = get_error_command.execute(id=error_id, include_defaults=True)
 
     # Assert the result matches the expected default error.
-    expected_error = Error.new(**DEFAULT_ERRORS.get(error_id))
+    expected_error = Error.new(**const.DEFAULT_ERRORS.get(error_id))
     assert result == expected_error
     error_service_mock.get.assert_called_once_with(error_id)
 
@@ -134,7 +267,7 @@ def test_get_error_not_found(error_service_mock: mock.Mock, get_error_command: G
         get_error_command.execute(id=error_id, include_defaults=False)
 
     # Verify the exception message.
-    assert exc_info.value.error_code == ERROR_NOT_FOUND_ID
+    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID
     assert exc_info.value.kwargs.get('id') == error_id
     assert f'Error not found: {error_id}.' in str(exc_info.value)
     error_service_mock.get.assert_called_once_with(error_id)

@@ -1,14 +1,106 @@
 """Tiferet Error Commands"""
 
 # *** imports
+from typing import (
+    List,
+    Dict,
+    Any
+)
 
 # ** app
-from .settings import Command
-from ..assets.constants import DEFAULT_ERRORS, ERROR_NOT_FOUND_ID
+from .settings import Command, const
 from ..models import Error
 from ..contracts import ErrorService
 
 # *** commands
+
+# ** command: add_error
+
+
+class AddError(Command):
+    '''
+    Command to add a new Error domain object to the repository.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the AddError command.
+
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
+        '''
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self,
+            id: str,
+            name: str,
+            message: str, 
+            lang: str = 'en_US', 
+            additional_messages: List[Dict[str, Any]] = []
+        ) -> None:
+        '''
+        Add a new Error to the app.
+
+        :param id: The unique identifier of the error.
+        :type id: str
+        :param name: The name of the error.
+        :type name: str
+        :param message: The primary error message text.
+        :type message: str
+        :param lang: The language of the primary error message (default is 'en_US').
+        :type lang: str
+        :param additional_messages: Additional error messages in different languages.
+        :type additional_messages: List[Dict[str, Any]]
+        '''
+
+        # Verfy that the id is not null/empty.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name='AddError'
+        )
+
+        # Verify that the name is not null/empty.
+        self.verify_parameter(
+            parameter=name,
+            parameter_name='name',
+            command_name='AddError'
+        )
+
+        # Verify that the message is not null/empty.
+        self.verify_parameter(
+            parameter=message,
+            parameter_name='message',
+            command_name='AddError'
+        )
+
+        # Check if an error with the same ID already exists.
+        exists = self.error_service.exists(id)
+        self.verify(
+            expression=exists is False,
+            error_code=const.ERROR_ALREADY_EXISTS_ID,
+            message=f'An error with ID {id} already exists.',
+            id=id
+        )
+
+        # Create the Error instance.
+        error_messages = [{'lang': lang, 'text': message}] + additional_messages
+        new_error = Error.new(
+            id=id,
+            name=name,
+            message=error_messages
+        )
+
+        # Save the new error.
+        self.error_service.save(new_error)
+
+        # Return the new error.
+        return new_error
 
 # ** command: get_error
 class GetError(Command):
@@ -53,13 +145,13 @@ class GetError(Command):
 
         # If requested, check built-in defaults and return as error if found.
         if include_defaults:
-            error_data = DEFAULT_ERRORS.get(id)
+            error_data = const.DEFAULT_ERRORS.get(id)
             if error_data:
                 return Error.new(**error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
-            error_code=ERROR_NOT_FOUND_ID,
+            error_code=const.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id,
         )
