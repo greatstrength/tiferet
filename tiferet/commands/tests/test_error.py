@@ -18,6 +18,7 @@ from ..error import (
     ListErrors,
     RenameError,
     SetErrorMessage,
+    RemoveErrorMessage,
     const
 )
 from ..settings import TiferetError
@@ -145,6 +146,21 @@ def set_error_message_command(error_service_mock: mock.Mock) -> SetErrorMessage:
 
     # Return the SetErrorMessage command with the mocked repository.
     return SetErrorMessage(error_service=error_service_mock)
+
+# ** fixture: remove_error_message_command
+@pytest.fixture
+def remove_error_message_command(error_service_mock: mock.Mock) -> RemoveErrorMessage:
+    '''
+    Fixture to create a RemoveErrorMessage command instance with a mocked ErrorService.
+
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :return: The RemoveErrorMessage command instance.
+    :rtype: RemoveErrorMessage
+    '''
+
+    # Return the RemoveErrorMessage command with the mocked repository.
+    return RemoveErrorMessage(error_service=error_service_mock)
 
 # *** tests
 
@@ -648,3 +664,96 @@ def test_set_error_message_not_found(set_error_message_command: SetErrorMessage,
     assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+
+# ** test: remove_error_message_success
+def test_remove_error_message_success(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test removing a message for an existing error successfully.
+
+    :param remove_error_message_command: The RemoveErrorMessage command instance.
+    :type remove_error_message_command: RemoveErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Add a new message to ensure there is something to remove.
+    lang_to_remove = 'es_ES'
+    error.set_message(lang_to_remove, 'Este es un mensaje de error de prueba.')
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act to remove the error message.
+    error_id = remove_error_message_command.execute(
+        id=error.id,
+        lang=lang_to_remove
+    )
+
+    # Assert that the error message was removed correctly.
+    assert error_id == error.id, 'Returned error ID does not match.'
+    assert all(msg.lang != lang_to_remove for msg in error.message), 'Error message was not removed correctly.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
+
+# ** test: remove_error_message_not_found
+def test_remove_error_message_not_found(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock):
+    '''
+    Test removing a message for an error that does not exist.
+
+    :param remove_error_message_command: The RemoveErrorMessage command instance.
+    :type remove_error_message_command: RemoveErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    '''
+
+    # Arrange the parameters for removing an error message.
+    error_id = 'NON_EXISTENT_ERROR'
+    lang_to_remove = 'en_US'
+
+    # Configure the mock to return None (error not found).
+    error_service_mock.get.return_value = None
+
+    # Act & Assert that removing the message raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        remove_error_message_command.execute(
+            id=error_id,
+            lang=lang_to_remove
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+
+# ** test: remove_error_message_no_error_messages
+def test_remove_error_message_no_error_messages(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test removing a message when no messages exist for the error.
+
+    :param remove_error_message_command: The RemoveErrorMessage command instance.
+    :type remove_error_message_command: RemoveErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Prepare the input parameters to remove the only existing message.
+    lang_to_remove = 'en_US'
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act & Assert that removing the message raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        remove_error_message_command.execute(
+            id=error.id,
+            lang=lang_to_remove
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.NO_ERROR_MESSAGES_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('id') == error.id, 'Error ID in exception does not match.'
+    error_service_mock.get.assert_called_once_with(error.id), 'Get method was not called correctly.'
