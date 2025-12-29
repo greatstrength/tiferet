@@ -17,6 +17,7 @@ from ..error import (
     GetError,
     ListErrors,
     RenameError,
+    SetErrorMessage,
     const
 )
 from ..settings import TiferetError
@@ -129,6 +130,21 @@ def rename_error_command(error_service_mock: mock.Mock) -> RenameError:
 
     # Return the RenameError command with the mocked repository.
     return RenameError(error_service=error_service_mock)
+
+# ** fixture: set_error_message_command
+@pytest.fixture
+def set_error_message_command(error_service_mock: mock.Mock) -> SetErrorMessage:
+    '''
+    Fixture to create a SetErrorMessage command instance with a mocked ErrorService.
+
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :return: The SetErrorMessage command instance.
+    :rtype: SetErrorMessage
+    '''
+
+    # Return the SetErrorMessage command with the mocked repository.
+    return SetErrorMessage(error_service=error_service_mock)
 
 # *** tests
 
@@ -471,6 +487,38 @@ def test_rename_error_success(rename_error_command: RenameError, error_service_m
     error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
     error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
 
+# ** test: rename_error_empty_name
+def test_rename_error_empty_name(rename_error_command: RenameError, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test renaming an error with an empty new name.
+
+    :param rename_error_command: The RenameError command instance.
+    :type rename_error_command: RenameError
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Arrange the parameters for renaming an error.
+    error_id = error.id
+    new_name = ''
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act & Assert that renaming the error raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        rename_error_command.execute(
+            id=error_id,
+            new_name=new_name
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('parameter') == 'new_name', 'Parameter in exception does not match.'
+    assert exc_info.value.kwargs.get('command') == 'RenameError', 'Command in exception does not match.'
+
 # ** test: rename_error_not_found
 def test_rename_error_not_found(rename_error_command: RenameError, error_service_mock: mock.Mock):
     '''
@@ -494,6 +542,106 @@ def test_rename_error_not_found(rename_error_command: RenameError, error_service
         rename_error_command.execute(
             id=error_id,
             new_name=new_name
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+
+# ** test: set_error_message_success
+def test_set_error_message_success(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test setting a new message for an existing error successfully.
+
+    :param set_error_message_command: The SetErrorMessage command instance.
+    :type set_error_message_command: SetErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Arrange the parameters for setting a new error message.
+    error_id = error.id
+    new_message = 'This is an updated test error message.'
+    lang = 'en_US'
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act to set the new error message.
+    error_id = set_error_message_command.execute(
+        id=error_id,
+        message=new_message,
+        lang=lang
+    )
+
+    # Assert that the error message was updated correctly.
+    assert error_id == error.id, 'Returned error ID does not match.'
+    assert any(msg.text == new_message and msg.lang == lang for msg in error.message), 'Error message was not updated correctly.'
+    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
+
+# ** test: set_error_message_empty_message
+def test_set_error_message_empty_message(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock, error: Error):
+    '''
+    Test setting an empty message for an existing error.
+
+    :param set_error_message_command: The SetErrorMessage command instance.
+    :type set_error_message_command: SetErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    :param error: The sample Error instance.
+    :type error: Error
+    '''
+
+    # Arrange the parameters for setting a new error message.
+    error_id = error.id
+    new_message = ''
+    lang = 'en_US'
+
+    # Configure the mock to return the existing error.
+    error_service_mock.get.return_value = error
+
+    # Act & Assert that setting the empty message raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        set_error_message_command.execute(
+            id=error_id,
+            message=new_message,
+            lang=lang
+        )
+
+    # Verify the exception message.
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
+    assert exc_info.value.kwargs.get('parameter') == 'message', 'Parameter in exception does not match.'
+    assert exc_info.value.kwargs.get('command') == 'SetErrorMessage', 'Command in exception does not match.'
+
+# ** test: set_error_message_not_found
+def test_set_error_message_not_found(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock):
+    '''
+    Test setting a message for an error that does not exist.
+
+    :param set_error_message_command: The SetErrorMessage command instance.
+    :type set_error_message_command: SetErrorMessage
+    :param error_service_mock: The mocked ErrorService.
+    :type error_service_mock: mock.Mock
+    '''
+
+    # Arrange the parameters for setting a new error message.
+    error_id = 'NON_EXISTENT_ERROR'
+    new_message = 'This is a new message.'
+    lang = 'en_US'
+
+    # Configure the mock to return None (error not found).
+    error_service_mock.get.return_value = None
+
+    # Act & Assert that setting the message raises the expected exception.
+    with pytest.raises(TiferetError) as exc_info:
+        set_error_message_command.execute(
+            id=error_id,
+            message=new_message,
+            lang=lang
         )
 
     # Verify the exception message.

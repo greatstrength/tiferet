@@ -1,6 +1,8 @@
 """Tiferet Error Commands"""
 
 # *** imports
+
+# ** core
 from typing import (
     List,
     Dict,
@@ -15,8 +17,6 @@ from ..contracts import ErrorService
 # *** commands
 
 # ** command: add_error
-
-
 class AddError(Command):
     '''
     Command to add a new Error domain object to the repository.
@@ -198,7 +198,6 @@ class ListErrors(Command):
         errors.update({error.id: error for error in repo_errors})
 
         # Return the merged list of errors.
-        return list(errors.values())
 
 # ** command: rename_error
 class RenameError(Command):
@@ -234,6 +233,13 @@ class RenameError(Command):
         :rtype: Error
         '''
 
+        # Verify that the new name is not null/empty.
+        self.verify_parameter(
+            parameter=new_name,
+            parameter_name='new_name',
+            command_name='RenameError'
+        )
+
         # Retrieve the existing error.
         error = self.error_service.get(id)
         self.verify(
@@ -251,3 +257,64 @@ class RenameError(Command):
 
         # Return the updated error.
         return error
+
+# ** command: set_error_message
+class SetErrorMessage(Command):
+    '''
+    Command to set the message of an existing Error domain object.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the SetErrorMessage command.
+
+        :param error_repo: The error service to use.
+        :type error_repo: ErrorService
+        '''
+        self.error_service = error_service
+
+    # * method: execute
+    def execute(self, id: str, message: str, lang: str = 'en_US', **kwargs) -> str:
+        '''
+        Set the message of an existing Error by its ID.
+
+        :param id: The unique identifier of the error.
+        :type id: str
+        :param message: The new message text.
+        :type message: str
+        :param lang: The language of the message (default is 'en_US').
+        :type lang: str
+        :param kwargs: Additional context (passed to error if raised).
+        :type kwargs: dict
+        :return: The unique identifier of the updated error.
+        :rtype: str
+        '''
+
+        # Verify that the message is not null/empty.
+        self.verify_parameter(
+            parameter=message,
+            parameter_name='message',
+            command_name='SetErrorMessage'
+        )
+
+        # Retrieve the existing error.
+        error = self.error_service.get(id)
+        self.verify(
+            expression=error,
+            error_code=const.ERROR_NOT_FOUND_ID,
+            message=f'Error not found: {id}.',
+            id=id
+        )
+
+        # Update the message.
+        error.set_message(lang, message)
+
+        # Save the updated error.
+        self.error_service.save(error)
+
+        # Return the updated error id.
+        return id
