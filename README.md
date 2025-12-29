@@ -403,44 +403,45 @@ Create `app/configs/feature.yml` with the following content:
 
 ```yaml
 features:
-  calc.add:
-    name: 'Add Number'
-    description: 'Adds one number to another'
-    commands:
-      - attribute_id: add_number_cmd
-        name: Add `a` and `b`
-  calc.subtract:
-    name: 'Subtract Number'
-    description: 'Subtracts one number from another'
-    commands:
-      - attribute_id: subtract_number_cmd
-        name: Subtract `b` from `a`
-  calc.multiply:
-    name: 'Multiply Number'
-    description: 'Multiplies one number by another'
-    commands:
-      - attribute_id: multiply_number_cmd
-        name: Multiply `a` and `b`
-  calc.divide:
-    name: 'Divide Number'
-    description: 'Divides one number by another'
-    commands:
-      - attribute_id: divide_number_cmd
-        name: Divide `a` by `b`
-  calc.exp:
-    name: 'Exponentiate Number'
-    description: 'Raises one number to the power of another'
-    commands:
-      - attribute_id: exponentiate_number_cmd
-        name: Raise `a` to the power of `b`
-  calc.sqrt:
-    name: 'Square Root'
-    description: 'Calculates the square root of a number'
-    commands:
-      - attribute_id: exponentiate_number_cmd
-        name: Calculate square root of `a`
-        params:
-          b: '0.5'  # Square root is equivalent to raising to the power of 0.5
+  calc:
+    add:
+      name: 'Add Number'
+      description: 'Adds one number to another'
+      commands:
+        - attribute_id: add_number_cmd
+          name: Add `a` and `b`
+    subtract:
+      name: 'Subtract Number'
+      description: 'Subtracts one number from another'
+      commands:
+        - attribute_id: subtract_number_cmd
+          name: Subtract `b` from `a`
+    multiply:
+      name: 'Multiply Number'
+      description: 'Multiplies one number by another'
+      commands:
+        - attribute_id: multiply_number_cmd
+          name: Multiply `a` and `b`
+    divide:
+      name: 'Divide Number'
+      description: 'Divides one number by another'
+      commands:
+        - attribute_id: divide_number_cmd
+          name: Divide `a` by `b`
+    exp:
+      name: 'Exponentiate Number'
+      description: 'Raises one number to the power of another'
+      commands:
+        - attribute_id: exponentiate_number_cmd
+          name: Raise `a` to the power of `b`
+    sqrt:
+      name: 'Square Root'
+      description: 'Calculates the square root of a number'
+      commands:
+        - attribute_id: exponentiate_number_cmd
+          name: Calculate square root of `a`
+          params:
+            b: '0.5'  # Square root is equivalent to raising to the power of 0.5
 ```
 
 The `features` section maps each operation (e.g., `calc.add`, `calc.sqrt`) to its command via `attribute_id`, with descriptive names and parameters. The `calc.sqrt` feature reuses `exponentiate_number_cmd` with a fixed `b` value of `0.5`, showcasing Tiferet’s flexible workflow design.
@@ -502,63 +503,64 @@ Create `app/configs/cli.yml` with the following content:
 ```yaml
 cli:
   cmds:
-    calc.add:
-      group_key: calc
-      key: add
-      description: Adds two numbers.
-      args:
-        - name_or_flags:
-            - a
-          description: The first number to add.
-        - name_or_flags:
-            - b
-          description: The second number to add.
-      name: Add Number Command
-    calc.subtract:
-      group_key: calc
-      key: subtract
-      description: Subtracts one number from another.
-      args:
-        - name_or_flags:
-            - a
-          description: The number to subtract from.
-        - name_or_flags:
-            - b
-          description: The number to subtract.
-      name: Subtract Number Command
-    calc.multiply:
-      group_key: calc
-      key: multiply
-      description: Multiplies two numbers.
-      args:
-        - name_or_flags:
-            - a
-          description: The first number to multiply.
-        - name_or_flags:
-            - b
-          description: The second number to multiply.
-      name: Multiply Number Command
-    calc.divide:
-      group_key: calc
-      key: divide
-      description: Divides one number by another.
-      args:
-        - name_or_flags:
-            - a
-          description: The numerator.
-        - name_or_flags:
-            - b
-          description: The denominator.
-      name: Divide Number Command
-    calc.sqrt:
-      group_key: calc
-      key: sqrt
-      description: Calculates the square root of a number.
-      args:
-        - name_or_flags:
-            - a
-          description: The number to square root.
-      name: Square Root Command
+    calc:
+      add:
+        group_key: calc
+        key: add
+        description: Adds two numbers.
+        args:
+          - name_or_flags:
+              - a
+            description: The first number to add.
+          - name_or_flags:
+              - b
+            description: The second number to add.
+        name: Add Number Command
+      subtract:
+        group_key: calc
+        key: subtract
+        description: Subtracts one number from another.
+        args:
+          - name_or_flags:
+              - a
+            description: The number to subtract from.
+          - name_or_flags:
+              - b
+            description: The number to subtract.
+        name: Subtract Number Command
+      multiply:
+        group_key: calc
+        key: multiply
+        description: Multiplies two numbers.
+        args:
+          - name_or_flags:
+              - a
+            description: The first number to multiply.
+          - name_or_flags:
+              - b
+            description: The second number to multiply.
+        name: Multiply Number Command
+      divide:
+        group_key: calc
+        key: divide
+        description: Divides one number by another.
+        args:
+          - name_or_flags:
+              - a
+            description: The numerator.
+          - name_or_flags:
+              - b
+            description: The denominator.
+        name: Divide Number Command
+      sqrt:
+        group_key: calc
+        key: sqrt
+        description: Calculates the square root of a number.
+        args:
+          - name_or_flags:
+              - a
+            description: The number to square root.
+        name: Square Root Command
 ```
 
 The `cli.cmds` section maps each feature (e.g., `calc.add`) to its command group (`calc`), key (e.g., `add`), and arguments (`a`, `b`), enabling `CliContext` to parse inputs and execute features with precision.
