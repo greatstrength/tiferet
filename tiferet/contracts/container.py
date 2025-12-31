@@ -154,11 +154,39 @@ class ContainerService(Service):
     An interface for accessing container dependencies.
     '''
 
-   # * method: list_all
+    # * method: attribute_exists
+    @abstractmethod
+    def attribute_exists(self, id: str) -> bool:
+        '''
+        Check if the container attribute exists.
+
+        :param id: The container attribute id.
+        :type id: str
+        :return: Whether the container attribute exists.
+        :rtype: bool
+        '''
+        raise NotImplementedError('attribute_exists method must be implemented in the ContainerService class.')
+
+    # * method: get_attribute
+    @abstractmethod
+    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
+        '''
+        Get the attribute from the container service.
+
+        :param attribute_id: The attribute id.
+        :type attribute_id: str
+        :param flag: An optional flag to filter the attribute.
+        :type flag: str
+        :return: The container attribute.
+        :rtype: ContainerAttribute
+        '''
+        raise NotImplementedError('get_attribute method must be implemented in the ContainerService class.')
+
+    # * method: list_all
     @abstractmethod
     def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
         '''
-        List all container attributes and constants.
+        List all container attributes and constants from the service.
 
         :return: A tuple containing a list of container attributes and a dictionary of constants.
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]

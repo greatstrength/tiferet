@@ -22,7 +22,8 @@ from .config import ConfigurationService
 from .container import (
     ContainerAttribute as ContainerAttributeContract,
     FlaggedDependency as FlaggedDependencyContract,
-    ContainerRepository
+    ContainerRepository,
+    ContainerService
 )
 from .error import (
     Error as ErrorContract,
