@@ -194,3 +194,80 @@ class ContainerConfigurationRepository(ContainerService, ConfigurationFileReposi
                     data=container_data.to_primitive(self.default_role),
                     data_path=f'attrs.{attribute.id}',
                 )
+
+    # * method: delete_attribute
+    def delete_attribute(self, attribute_id: str):
+        '''
+        Delete the container attribute by its unique identifier.
+
+        :param attribute_id: The unique identifier for the attribute to delete.
+        :type attribute_id: str
+        '''
+
+        # Load the existing container attribute data from the yaml configuration file.
+        with self.open_config(
+            self.container_config_file,
+            encoding=self.encoding,
+            mode='r'
+        ) as config_file:
+
+            # Load all container attribute data.
+            attrs_data = config_file.load(
+                start_node=lambda data: data.get('attrs', {})
+            )
+
+        # Pop the attribute data whether it exists or not.
+        attrs_data.pop(attribute_id, None)
+
+        # Save the updated container attribute data back to the yaml file.
+        with self.open_config(
+            self.container_config_file,
+            encoding=self.encoding,
+            mode='w'
+        ) as config_file:
+
+            # Save the updated attribute data.
+            config_file.save(
+                data=attrs_data,
+                data_path='attrs',
+            )
+
+    # * method: save_constants
+    def save_constants(self, constants: Dict[str, str]):
+        '''
+        Save the container constants.
+
+        :param constants: The container constants to save.
+        :type constants: Dict[str, str]
+        '''
+
+        # Load the existing constants data from the yaml configuration file.
+        with self.open_config(
+            self.container_config_file,
+            encoding=self.encoding,
+            mode='r'
+        ) as config_file:
+
+            # Save the updated constants data.
+            const_data = config_file.load(
+                start_node=lambda data: data.get('const', {})
+            )
+
+        # Update the constants data with the new constants.
+        const_data.update(constants)
+
+        # Remove any constants with None values.
+        const_data = {k: v for k, v in const_data.items() if v is not None}
+
+        # Save the updated constants data back to the yaml file.
+        with self.open_config(
+            self.container_config_file,
+            encoding=self.encoding,
+            mode='w'
+        ) as config_file:
+
+            # Save the updated constants data.
+            config_file.save(
+                data=const_data,
+                data_path='const',
+            )

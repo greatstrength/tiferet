@@ -159,3 +159,86 @@ def test_save_attribute(container_config_repo: ContainerConfigurationRepository)
     assert saved_attribute.module_path == 'tiferet.new.module'
     assert saved_attribute.class_name == 'NewClass'
     assert saved_attribute.dependencies == []
+
+# ** test: container_configuration_repository_delete_attribute
+def test_delete_attribute(container_config_repo: ContainerConfigurationRepository):
+    '''
+    Test the delete_attribute method of the ContainerConfigurationRepository.
+
+    :param container_config_repo: The ContainerConfigurationRepository instance.
+    :type container_config_repo: ContainerConfigurationRepository
+    '''
+
+    # Ensure the container service attribute exists before deletion.
+    assert container_config_repo.attribute_exists(CONTAINER_SERVICE_ID) is True
+
+    # Delete the container service attribute.
+    container_config_repo.delete_attribute(CONTAINER_SERVICE_ID)
+
+    # Verify that the attribute no longer exists.
+    assert container_config_repo.attribute_exists(CONTAINER_SERVICE_ID) is False
+
+# ** test: container_configuration_repository_save_constants
+def test_save_constants(container_config_repo: ContainerConfigurationRepository):
+    '''
+    Test the save_constants method of the ContainerConfigurationRepository.
+
+    :param container_config_repo: The ContainerConfigurationRepository instance.
+    :type container_config_repo: ContainerConfigurationRepository
+    '''
+
+    # Define new constants to save.
+    new_constants = {
+        'new_const_1': 'value_1',
+        'new_const_2': 'value_2'
+    }
+
+    # Save the new constants.
+    container_config_repo.save_constants(new_constants)
+
+    # List all attributes and constants to verify the new constants were saved.
+    _, constants = container_config_repo.list_all()
+
+    # Verify the new constants exist in the saved constants.
+    assert 'new_const_1' in constants
+    assert constants['new_const_1'] == 'value_1'
+    assert 'new_const_2' in constants
+    assert constants['new_const_2'] == 'value_2'
+
+# ** test: container_configuration_repository_save_constants_overwrite
+def test_save_constants_overwrite(container_config_repo: ContainerConfigurationRepository):
+    '''
+    Test that the save_constants method of the ContainerConfigurationRepository overwrites existing constants.
+
+    :param container_config_repo: The ContainerConfigurationRepository instance.
+    :type container_config_repo: ContainerConfigurationRepository
+    '''
+
+    # Define initial constants to save.
+    initial_constants = {
+        'const_to_overwrite': 'initial_value',
+        'another_const': 'another_value'
+    }
+
+    # Save the initial constants.
+    container_config_repo.save_constants(initial_constants)
+
+    # Define new constants that will overwrite one of the initial constants.
+    new_constants = {
+        'const_to_overwrite': 'new_value',
+        'additional_const': 'additional_value'
+    }
+
+    # Save the new constants.
+    container_config_repo.save_constants(new_constants)
+
+    # List all attributes and constants to verify the constants were updated.
+    _, constants = container_config_repo.list_all()
+
+    # Verify that new constants were added and existing ones were overwritten.
+    assert constants == {
+        'sample_const': 'sample_value',
+        'const_to_overwrite': 'new_value',
+        'another_const': 'another_value',
+        'additional_const': 'additional_value'
+    }
