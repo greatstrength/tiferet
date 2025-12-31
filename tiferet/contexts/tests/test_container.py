@@ -3,30 +3,56 @@
 # ** infra
 import pytest
 from unittest import mock
+from typing import Tuple, List, Dict
 
 # ** app
 from ..container import *
 from ...models.container import *
 
 
+# *** classes
+
+# ** class: TestContainer
+class TestContainer():
+        '''
+        A mock container class for testing.
+        '''
+        
+        # * attribute: test_config
+        test_config: str
+
+        # * attribute: param_config
+        param_config: str
+
+        # * attribute: flagged_config
+        flagged_config: str
+
+        def __init__(self, test_config: str, param_config: str = None, flagged_config: str = None):
+            '''Initialize the container with a test configuration.'''
+            self.test_config = test_config
+            self.param_config = param_config
+            self.flagged_config = flagged_config
+
 # *** fixtures
 
 # ** fixture: container_service_content
 @pytest.fixture
 def container_service_content():
-    """Fixture to provide content for the container service."""
+    '''
+    Fixture to provide content for the container service.
+    '''
 
     # Create a list of container attributes.
     attributes = [
         ModelObject.new(
             ContainerAttribute,
             id='test_container',
-            module_path='tiferet.containers.tests',
+            module_path='tiferet.contexts.tests.test_container',
             class_name='TestContainer',
             dependencies=[
                 ModelObject.new(
                     FlaggedDependency,
-                    module_path='tiferet.containers.tests',
+                    module_path='tiferet.contexts.tests.test_container',
                     class_name='TestContainer',
                     flag='test',
                     parameters=dict(
@@ -51,27 +77,11 @@ def container_service_content():
 
 # ** fixture: dependency_type
 @pytest.fixture
-def dependency_type():
+def dependency_type() -> type:
+    '''
+    Fixture to provide a mock dependency type.
+    '''
 
-    class TestContainer():
-        """A mock container class for testing."""
-        
-        # * attribute: test_config
-        test_config: str
-
-        # * attribute: param_config
-        param_config: str
-
-        # * attribute: flagged_config
-        flagged_config: str
-
-        def __init__(self, test_config: str, param_config: str = None, flagged_config: str = None):
-            """Initialize the container with a test configuration."""
-            self.test_config = test_config
-            self.param_config = param_config
-            self.flagged_config = flagged_config
-
-        
     # Return the mock container class.
     return TestContainer
 
@@ -79,7 +89,9 @@ def dependency_type():
 # ** fixture: test_container
 @pytest.fixture
 def test_container(dependency_type):
-    """Fixture to create a mock test container."""
+    '''
+    Fixture to create a mock test container
+    '''
     
     # Create an instance of the mock container class.
     return dependency_type(
@@ -88,40 +100,33 @@ def test_container(dependency_type):
         flagged_config=None
     )
 
-
 # ** fixture: container_service
 @pytest.fixture
-def container_service(container_service_content, dependency_type):
-    """Fixture to create a mock container service."""
+def container_service(container_service_content):
+    '''
+    Fixture to create a mock container service.
+    '''
 
     # Create a mock ContainerService with the specified content.
     service = mock.Mock(spec=ContainerService)
 
     # Mock the list_all method to return the content.
     service.list_all.return_value = container_service_content
-    service.get_dependency_type.return_value = dependency_type
 
     # Return the mock service.
     return service
 
-
 # ** fixture: container_context
 @pytest.fixture
 def container_context(container_service):
-    """Fixture to create a ContainerContext with a mock container service."""
+    '''Fixture to create a ContainerContext with a mock container service.'''
     return ContainerContext(container_service=container_service)
 
 
 # ** fixture: injector
 @pytest.fixture
 def injector(container_context, container_service):
-    """Fixture to create an injector using the ContainerContext."""
-    
-    # Set the load constants return value to reflect parameters from the default attribute.
-    container_service.load_constants.return_value = dict(
-        test_config='test_value',
-        param_config='param_value',
-    )
+    '''Fixture to create an injector using the ContainerContext.'''
 
     # Build the injector with no flags.
     return container_context.build_injector()
@@ -133,7 +138,7 @@ def injector(container_context, container_service):
 
 # ** test: container_context_get_cache_key
 def test_container_context_get_cache_key(container_context):
-    """Test the creation of a cache key in the ContainerContext."""
+    '''Test the creation of a cache key in the ContainerContext.'''
     
     # Test with no flags
     assert container_context.create_cache_key() == "feature_container"
@@ -143,14 +148,8 @@ def test_container_context_get_cache_key(container_context):
 
 
 # ** test: container_context_build_injector
-def test_container_context_build_injector(container_context, container_service_content, container_service):
-    """Test the building of an injector in the ContainerContext."""
-
-    # Set the load constants return value to reflect parameters from the default attribute.
-    container_service.load_constants.return_value = dict(
-        test_config='test_value',
-        param_config='param_value',
-    )
+def test_container_context_build_injector(container_context, container_service):
+    '''Test the building of an injector in the ContainerContext.'''
 
     # Build the injector with no flags.
     injector = container_context.build_injector()
@@ -172,12 +171,6 @@ def test_container_context_build_injector(container_context, container_service_c
     # Assert that the feature_container is in the container context cache.
     assert container_context.cache.get('feature_container') == injector
 
-    # Set the load constants return value to reflect parameters from the flagged dependency.
-    container_service.load_constants.return_value = dict(
-        test_config='test_value',
-        flagged_config='flagged_value',
-    )
-
     # Build the injector with flags.
     injector = container_context.build_injector(flags=['test'])
 
@@ -197,10 +190,30 @@ def test_container_context_build_injector(container_context, container_service_c
     # Assert that the feature_container_test is in the container context cache.
     assert container_context.cache.get('feature_container_test') == injector
 
+# ** test: container_context_build_injector_with_missing_dependency_type
+def test_container_context_build_injector_with_missing_dependency_type(container_context, container_service, container_service_content):
+    '''Test building an injector with a missing dependency type in the ContainerContext.'''
+
+    # Update the attribute in the container service content to have no module_path and class_name.
+    attributes, constants = container_service_content
+    attributes[0].module_path = None
+    attributes[0].class_name = None
+
+    # Mock the get_dependency_type method to return the updated attributes.
+    container_service.list_all.return_value = (attributes, constants)
+
+    # Attempt to build the injector and expect a RaiseError due to missing dependency type.
+    with pytest.raises(TiferetError) as exc_info:
+        container_context.build_injector(flags=['missing_flag'])
+
+    # Assert that the exception message contains the expected error ID.
+    assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
+    assert exc_info.value.kwargs.get('attribute_id') == 'test_container'
+    assert exc_info.value.kwargs.get('flags') == ['missing_flag']
 
 # ** test: container_context_build_injector_with_cached_injector
-def test_container_context_build_injector_with_cached_injector(container_context, injector, container_service):
-    """Test building an injector with a cached injector in the ContainerContext."""
+def test_container_context_build_injector_with_cached_injector(container_context, injector):
+    '''Test building an injector with a cached injector in the ContainerContext.'''
 
     # Assert that there is a cached injector.
     assert container_context.cache.get('feature_container')
@@ -213,8 +226,8 @@ def test_container_context_build_injector_with_cached_injector(container_context
 
 
 # ** test: container_context_get_dependency
-def test_container_context_get_dependency(container_context, injector, test_container):
-    """Test retrieving a dependency from the ContainerContext."""
+def test_container_context_get_dependency(container_context, test_container):
+    '''Test retrieving a dependency from the ContainerContext.'''
 
     # Retrieve the dependency using the injector.
     dependency = container_context.get_dependency(
@@ -225,3 +238,44 @@ def test_container_context_get_dependency(container_context, injector, test_cont
     assert dependency.test_config == test_container.test_config
     assert dependency.param_config == test_container.param_config
     assert dependency.flagged_config == test_container.flagged_config
+
+# ** test: test_container_handler_load_constants_with_flagged_dependencies
+def test_container_handler_load_constants_with_flagged_dependencies(
+        container_context: ContainerContext, 
+        container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]):
+    '''
+    Test the load_constants method with flagged dependencies in the ContainerContext.
+
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    :param container_service_content: The content for the container service.
+    :type container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]
+    '''
+
+    # Unpack the container service content.
+    attributes, constants = container_service_content
+
+    # Load constants from the attributes.
+    constants_no_flags = container_context.load_constants(
+        attributes=attributes,
+        constants=constants
+    )
+
+    # Assert that the result contains parsed constants and parameters.
+    constants_no_flags == {
+        'test_config': 'test_value',
+        'param_config': 'param_value'
+    }
+
+    # Call the load_constants method with flags.
+    constants_with_flags = container_context.load_constants(
+        attributes=attributes,
+        constants=constants,
+        flags=['test']
+    )
+
+    # Assert that the result with flags contains parsed constants and parameters.
+    assert constants_with_flags == {
+        'test_config': 'test_value',
+        'flagged_config': 'flagged_value'
+    }
