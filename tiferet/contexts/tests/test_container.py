@@ -148,7 +148,7 @@ def test_container_context_get_cache_key(container_context):
 
 
 # ** test: container_context_build_injector
-def test_container_context_build_injector(container_context, container_service_content, container_service):
+def test_container_context_build_injector(container_context, container_service):
     """Test the building of an injector in the ContainerContext."""
 
     # Set the load constants return value to reflect parameters from the default attribute.
@@ -202,9 +202,29 @@ def test_container_context_build_injector(container_context, container_service_c
     # Assert that the feature_container_test is in the container context cache.
     assert container_context.cache.get('feature_container_test') == injector
 
+# ** test: container_context_build_injector_with_missing_dependency_type
+def test_container_context_build_injector_with_missing_dependency_type(container_context, container_service, container_service_content):
+    """Test building an injector with a missing dependency type in the ContainerContext."""
+
+    # Update the attribute in the container service content to have no module_path and class_name.
+    attributes, constants = container_service_content
+    attributes[0].module_path = None
+    attributes[0].class_name = None
+
+    # Mock the get_dependency_type method to return the updated attributes.
+    container_service.get_dependency_type.return_value = (attributes, constants)
+
+    # Attempt to build the injector and expect a RaiseError due to missing dependency type.
+    with pytest.raises(TiferetError) as exc_info:
+        container_context.build_injector(flags=['missing_flag'])
+
+    # Assert that the exception message contains the expected error ID.
+    assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
+    assert exc_info.value.kwargs.get('attribute_id') == 'test_container'
+    assert exc_info.value.kwargs.get('flags') == ['missing_flag']
 
 # ** test: container_context_build_injector_with_cached_injector
-def test_container_context_build_injector_with_cached_injector(container_context, injector, container_service):
+def test_container_context_build_injector_with_cached_injector(container_context, injector):
     """Test building an injector with a cached injector in the ContainerContext."""
 
     # Assert that there is a cached injector.
