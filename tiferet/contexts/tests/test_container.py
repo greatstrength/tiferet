@@ -9,6 +9,27 @@ from ..container import *
 from ...models.container import *
 
 
+# *** classes
+
+# ** class: TestContainer
+class TestContainer():
+        """A mock container class for testing."""
+        
+        # * attribute: test_config
+        test_config: str
+
+        # * attribute: param_config
+        param_config: str
+
+        # * attribute: flagged_config
+        flagged_config: str
+
+        def __init__(self, test_config: str, param_config: str = None, flagged_config: str = None):
+            """Initialize the container with a test configuration."""
+            self.test_config = test_config
+            self.param_config = param_config
+            self.flagged_config = flagged_config
+
 # *** fixtures
 
 # ** fixture: container_service_content
@@ -21,12 +42,12 @@ def container_service_content():
         ModelObject.new(
             ContainerAttribute,
             id='test_container',
-            module_path='tiferet.containers.tests',
+            module_path='tiferet.contexts.tests.test_container',
             class_name='TestContainer',
             dependencies=[
                 ModelObject.new(
                     FlaggedDependency,
-                    module_path='tiferet.containers.tests',
+                    module_path='tiferet.contexts.tests.test_container',
                     class_name='TestContainer',
                     flag='test',
                     parameters=dict(
@@ -51,27 +72,11 @@ def container_service_content():
 
 # ** fixture: dependency_type
 @pytest.fixture
-def dependency_type():
+def dependency_type() -> type:
+    '''
+    Fixture to provide a mock dependency type.
+    '''
 
-    class TestContainer():
-        """A mock container class for testing."""
-        
-        # * attribute: test_config
-        test_config: str
-
-        # * attribute: param_config
-        param_config: str
-
-        # * attribute: flagged_config
-        flagged_config: str
-
-        def __init__(self, test_config: str, param_config: str = None, flagged_config: str = None):
-            """Initialize the container with a test configuration."""
-            self.test_config = test_config
-            self.param_config = param_config
-            self.flagged_config = flagged_config
-
-        
     # Return the mock container class.
     return TestContainer
 

@@ -5,6 +5,7 @@ from typing import Any, List
 
 # ** app
 from .cache import CacheContext
+from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..handlers.container import ContainerService
 from ..commands import *
 from ..commands.dependencies import *
@@ -54,7 +55,7 @@ class ContainerContext(object):
 
     # * method: build_injector
     def build_injector(self,
-            flags: List[str] = None,
+            flags: List[str] = [],
         ) -> Injector:
         '''
         Build the container injector.
@@ -82,11 +83,22 @@ class ContainerContext(object):
         # Create the dependencies for the injector.
         dependencies = {}
         for attr in attributes:
-            try:
-                dependencies[attr.id] = self.container_service.get_dependency_type(attr, flags)
-            except TiferetError as e:
-                raise e
+            
+            # Get the dependency type based on the flags.
+            dep_type = attr.get_type(attr, *flags)
 
+            # If no type is found, raise an error.
+            if not dep_type:
+                RaiseError.execute(
+                    DEPENDENCY_TYPE_NOT_FOUND_ID,
+                    f'No dependency type found for attribute {attr.id} with flags {flags}.',
+                    attribute_id=attr.id,
+                    flags=flags
+                )
+
+            # Otherwise, add the dependency to the dependencies dictionary.
+            dependencies[attr.id] = dep_type
+            
         # Create the injector with the dependencies and constants.
         injector = create_injector.execute(
             cache_key,
