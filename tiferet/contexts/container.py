@@ -7,6 +7,7 @@ from typing import Any, List
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..handlers.container import ContainerService
+from ..models import ContainerAttribute
 from ..commands import *
 from ..commands.dependencies import *
 
@@ -78,7 +79,7 @@ class ContainerContext(object):
         attributes, constants = self.container_service.list_all()
 
         # Load constants from the attributes.
-        constants = self.container_service.load_constants(attributes, constants, flags)
+        constants = self.load_constants(attributes, constants, flags)
 
         # Create the dependencies for the injector.
         dependencies = {}
@@ -132,3 +133,36 @@ class ContainerContext(object):
 
         # Return the dependency.
         return dependency
+    
+    # * method: load_constants
+    def load_constants(self, attributes: List[ContainerAttribute] = [], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
+        '''
+        Load constants from the container attributes.
+
+        :param attributes: The list of container attributes.
+        :type attributes: List[ContainerAttribute]
+        :param constants: The dictionary of constants.
+        :type constants: Dict[str, str]
+        :return: A dictionary of constants.
+        :rtype: Dict[str, str]
+        '''
+
+        # If constants are provided, clean the parameters using the parse_parameter command.
+        constants = {k: ParseParameter.execute(v) for k, v in constants.items()}
+
+        # Iterate through each attribute.
+        for attr in attributes:
+
+            # If flags are provided, check for dependencies with those flags.
+            dependency = attr.get_dependency(*flags)
+
+            # Update the constants dictionary with the parsed parameters from the dependency or the attribute itself.
+            if dependency:
+                constants.update({k: ParseParameter.execute(v) for k, v in dependency.parameters.items()})
+
+            # If no dependency is found, use the attribute's parameters.
+            else:
+                constants.update({k: ParseParameter.execute(v) for k, v in attr.parameters.items()})
+
+        # Return the updated constants dictionary.
+        return constants
