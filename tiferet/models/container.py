@@ -10,6 +10,7 @@ from .settings import (
     ListType,
     ModelType,
 )
+from ..commands import ImportDependency
 
 # *** models
 
@@ -127,6 +128,36 @@ class ContainerAttribute(ModelObject):
                 return match
 
         # Return None if no dependency matches the flags.
+        return None
+
+    # * method: get_type
+    def get_type(self, *flags) -> type:
+        '''
+        Gets the type of the container attribute based on the provided flags.
+
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
+        :return: The type of the container attribute.
+        :rtype: type
+        '''
+
+        # Check the flagged dependencies for the type first.
+        for flag in flags:
+            dependency = self.get_dependency(flag)
+            if dependency:
+                return ImportDependency.execute(
+                    dependency.module_path,
+                    dependency.class_name
+                ) 
+        
+        # Otherwise defer to an available default type.
+        if self.module_path and self.class_name:
+            return ImportDependency.execute(
+                self.module_path,
+                self.class_name
+            )
+        
+        # Return None if no type is found.
         return None
 
     # * method: set_dependency
