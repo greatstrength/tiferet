@@ -72,7 +72,7 @@ def container_config_repo(container_config_file: str) -> ContainerConfigurationR
 
 # *** tests
 
-# ** test: test_attribute_exists
+# ** test: container_configuration_repository_attribute_exists
 def test_attribute_exists(container_config_repo: ContainerConfigurationRepository):
     '''
     Test the attribute_exists method of the ContainerConfigurationRepository.
@@ -87,7 +87,7 @@ def test_attribute_exists(container_config_repo: ContainerConfigurationRepositor
     # Check for a non-existing attribute.
     assert container_config_repo.attribute_exists('non_existing_attr') is False
 
-# ** test: test_get_attribute
+# ** test: container_configuration_repository_get_attribute
 def test_get_attribute(container_config_repo: ContainerConfigurationRepository):
     '''
     Test the get_attribute method of the ContainerConfigurationRepository.
@@ -108,3 +108,23 @@ def test_get_attribute(container_config_repo: ContainerConfigurationRepository):
     # Get a container attribute that does not exist and expect None.
     non_existing_attribute = container_config_repo.get_attribute('non_existing_attr')
     assert not non_existing_attribute
+
+# ** test: container_configuration_repository_list_all
+def test_list_all(container_config_repo: ContainerConfigurationRepository):
+    '''
+    Test the list_all method of the ContainerConfigurationRepository.
+
+    :param container_config_repo: The ContainerConfigurationRepository instance.
+    :type container_config_repo: ContainerConfigurationRepository
+    '''
+
+    # List all container attributes and constants.
+    attributes, constants = container_config_repo.list_all()
+
+    # Verify the attributes list.
+    assert len(attributes) == 1
+    assert attributes[0].id == CONTAINER_SERVICE_ID
+
+    # Verify the constants dictionary.
+    assert 'sample_const' in constants
+    assert constants['sample_const'] == 'sample_value'

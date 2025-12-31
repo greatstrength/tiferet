@@ -168,19 +168,19 @@ class ContainerService(Service):
         raise NotImplementedError('attribute_exists method must be implemented in the ContainerService class.')
 
     # * method: get_attribute
-    # @abstractmethod
-    # def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
-    #     '''
-    #     Get the attribute from the container service.
+    @abstractmethod
+    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
+        '''
+        Get the attribute from the container service.
 
-    #     :param attribute_id: The attribute id.
-    #     :type attribute_id: str
-    #     :param flag: An optional flag to filter the attribute.
-    #     :type flag: str
-    #     :return: The container attribute.
-    #     :rtype: ContainerAttribute
-    #     '''
-    #     raise NotImplementedError('get_attribute method must be implemented in the ContainerService class.')
+        :param attribute_id: The attribute id.
+        :type attribute_id: str
+        :param flag: An optional flag to filter the attribute.
+        :type flag: str
+        :return: The container attribute.
+        :rtype: ContainerAttribute
+        '''
+        raise NotImplementedError('get_attribute method must be implemented in the ContainerService class.')
 
     # * method: list_all
     @abstractmethod
