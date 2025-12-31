@@ -164,20 +164,3 @@ class ContainerService(Service):
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
-
-     # * method: load_constants
-    @abstractmethod
-    def load_constants(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
-        '''
-        Load constants from the container attributes.
-
-        :param attributes: The list of container attributes.
-        :type attributes: List[ContainerAttribute]
-        :param constants: The dictionary of constants.
-        :type constants: Dict[str, str]
-        :param flags: Optional list of flags to filter the constants.
-        :type flags: List[str]
-        :return: A dictionary of constants.
-        :rtype: Dict[str, str]
-        '''
-        raise NotImplementedError('load_constants method must be implemented in the ContainerService class.')
