@@ -261,4 +261,3 @@ def test_app_json_proxy_delete_interface(
 
     # Check that the interface is deleted.
     assert not deleted_interface
-

@@ -4,6 +4,7 @@
 
 # ** core
 from typing import (
+    List,
     Any,
     Callable
 )
@@ -72,7 +73,7 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
             )
 
     # * method: list_interfaces
-    def list_interfaces(self) -> list[AppInterfaceContract]:
+    def list_interfaces(self) -> List[AppInterfaceContract]:
         '''
         List all app interfaces.
 
@@ -86,8 +87,8 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
                 DataObject.from_data(
                     AppInterfaceConfigData,
                     id=interface_id,
-                    **record
-                ).map() for interface_id, record in data.items()],
+                    **interface_data
+                ).map() for interface_id, interface_data in data.items()],
             start_node=lambda data: data.get('interfaces'))
 
         # Return the list of app interface objects.
@@ -105,7 +106,7 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
         '''
 
         # Load the app interface data from the yaml configuration file.
-        interface_data: AppInterfaceContract = self.load_yaml(
+        interface_data = self.load_yaml(
             start_node=lambda data: data.get('interfaces').get(id, None)
         )
 
@@ -146,7 +147,7 @@ class AppYamlProxy(AppRepository, YamlFileProxy):
 
         # Save the app interface data to the YAML configuration file.
         self.save_yaml(
-            data=interface_data.to_primitive('to_data.yaml'),
+            data=interface_data.to_primitive(self.default_role),
             data_yaml_path=f'interfaces/{interface.id}'
         )
 

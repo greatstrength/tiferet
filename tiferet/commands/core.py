@@ -115,7 +115,6 @@ class RaiseError(Command):
         # Raise an error with the specified code and arguments.
         raise LegacyTiferetError(error_code, message, *args)
 
-
 # *** command_variables
 
 # ** command_variable: parse_parameter

@@ -213,6 +213,15 @@ def test_error_format_response_unsupported_lang(error: Error):
     :type error: Error
     '''
 
+# ** test: error_format_response_unsupported_lang
+def test_error_format_response_unsupported_lang(error: Error):
+    '''
+    Test the format_response method of an error with an unsupported language.
+
+    :param error: The basic error to test.
+    :type error: Error
+    '''
+
     # Test formatting the error response with unsupported language
     response = error.format_response('fr_FR')
 

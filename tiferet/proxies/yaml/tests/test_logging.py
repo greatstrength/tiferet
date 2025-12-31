@@ -376,4 +376,3 @@ def test_logging_yaml_proxy_delete_logger(logging_yaml_proxy: LoggingYamlProxy):
 
     # Assert that the deleted logger is None.
     assert deleted_logger is None
-

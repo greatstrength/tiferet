@@ -261,14 +261,14 @@ def test_logger_data_map_empty_handlers():
         'propagate': False
     }
 
-# ** test: logging_settings_data_from_yaml_data_success
-def test_logging_settings_data_from_yaml_data_success():
+# ** test: logging_settings_data_from_data_success
+def test_logging_settings_data_from_data_success():
     '''
     Test successful instantiation of LoggingSettingsData from YAML data.
     '''
 
     # Define the YAML data.
-    yaml_data = {
+    data = {
         'formatters': {
             'simple': {
                 'name': 'Simple Formatter',
@@ -301,7 +301,7 @@ def test_logging_settings_data_from_yaml_data_success():
     }
 
     # Instantiate LoggingSettingsData from the YAML data.
-    settings = LoggingSettingsConfigData.from_yaml_data(**yaml_data)
+    settings = LoggingSettingsConfigData.from_data(**data)
 
     # Assert the logging settings data attributes.
     assert isinstance(settings, LoggingSettingsConfigData)
@@ -312,15 +312,15 @@ def test_logging_settings_data_from_yaml_data_success():
     assert len(settings.loggers) == 1
     assert settings.loggers['app'].id == 'app'
 
-# ** test: logging_settings_data_from_yaml_data_empty
-def test_logging_settings_data_from_yaml_data_empty():
+# ** test: logging_settings_data_from_data_empty
+def test_logging_settings_data_from_data_empty():
     '''
     Test LoggingSettingsData instantiation with empty YAML data.
     '''
 
     # Instantiate LoggingSettingsData from empty YAML data.
-    yaml_data = {}
-    settings = LoggingSettingsConfigData.from_yaml_data(**yaml_data)
+    data = {}
+    settings = LoggingSettingsConfigData.from_data(**data)
 
     # Assert the logging settings data attributes.
     assert isinstance(settings, LoggingSettingsConfigData)

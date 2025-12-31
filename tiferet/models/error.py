@@ -112,9 +112,7 @@ class Error(ModelObject):
         :param error_code: The error code for the error.
         :type error_code: str
         :param message: The error message translations for the error.
-        :type message: list 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :type message: list
         :return: A new Error object.
         '''
 

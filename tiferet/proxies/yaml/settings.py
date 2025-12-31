@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import os
 from typing import Dict, Any, Callable
 
 # ** app
@@ -20,6 +21,9 @@ class YamlFileProxy(object):
     # * attribute: yaml_file
     yaml_file: str
 
+    # * attribute: default_path
+    default_path: str
+
     # * attribute: encoding
     encoding: str
 
@@ -27,12 +31,18 @@ class YamlFileProxy(object):
     default_role: str
 
     # * method: init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8', default_role: str = 'to_data.yaml'):
+    def __init__(self, yaml_file: str, default_path: str = None, encoding: str = 'utf-8', default_role: str = 'to_data.yaml'):
         '''
         Initialize the proxy.
 
-        :param config_file: The configuration file.
-        :type config_file: str
+        :param yaml_file: The YAML configuration file path.
+        :type yaml_file: str
+        :param default_path: An optional default path location of the YAML file.
+        :type default_path: str
+        :param encoding: The file encoding (default is 'utf-8').
+        :type encoding: str
+        :param default_role: The default role for data serialization/deserialization.
+        :type default_role: str
         '''
 
         # Verify that the configuration file is a valid YAML file.
@@ -46,6 +56,50 @@ class YamlFileProxy(object):
         self.yaml_file = yaml_file
         self.encoding = encoding
         self.default_role = default_role
+
+    # * method: verify_yaml_file
+    @staticmethod
+    def verify_yaml_file(yaml_file: str, default_path: str = None) -> str:
+        '''
+        Verify that the YAML file exists and is a valid YAML file.
+
+        :return: The verified YAML file path.
+        :rtype: str
+        '''
+
+        # Generate possible paths for the YAML file.
+        yaml_files = [
+            yaml_file
+        ]
+        if default_path:
+            yaml_files.append(
+                os.path.join(default_path, yaml_file)
+            )
+
+        # Verify the YAML is valid and file exists in one of the possible paths.
+        has_error = True
+        for file in yaml_files:
+            try:
+
+                # Verify the file exists and is a valid YAML file.
+                Yaml.verify_file(file)
+                return file
+
+            # Try the next possible path if file not found.
+            except FileNotFoundError:
+                continue
+
+            # Break on any other exception (like invalid YAML).
+            except Exception:
+                break
+
+        # Raise an error if no valid YAML file was found or is invalid.
+        if has_error:
+            raise_error.execute(
+                'INVALID_YAML_FILE',
+                f'Valid YAML file not found at path: {yaml_file}.',
+                yaml_file
+            )
 
     # * method: load_yaml
     def load_yaml(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
@@ -96,8 +150,8 @@ class YamlFileProxy(object):
                 self.yaml_file,
                 mode='w',
                 encoding=self.encoding
-            ) as yml_w:
-                yml_w.save_yaml(data=data, data_yaml_path=data_yaml_path)
+            ) as yaml_saver:
+                yaml_saver.save_yaml(data=data, data_yaml_path=data_yaml_path)
 
         # Handle any exceptions that occur during YAML saving and raise a custom error.
         except Exception as e:

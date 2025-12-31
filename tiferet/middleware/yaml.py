@@ -1,13 +1,18 @@
 """Tiferet YAML Middleware"""
 
 # *** imports
-import yaml
+
+# ** core
+import os
 from typing import (
     Any,
     Dict,
     List,
     Callable
 )
+
+# ** infra
+import yaml
 
 # ** app
 from .file import FileLoaderMiddleware
