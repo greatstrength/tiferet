@@ -71,6 +71,19 @@ class ContainerAttribute(ModelContract):
         :rtype: FlaggedDependency
         '''
         raise NotImplementedError('get_dependency method must be implemented in the ContainerAttribute class.')
+    
+    # * method: get_type
+    @abstractmethod
+    def get_type(self, *flags) -> type:
+        '''
+        Gets the type of the container attribute based on the provided flags.
+
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
+        :return: The type of the container attribute.
+        :rtype: type
+        '''
+        raise NotImplementedError('get_type method must be implemented in the ContainerAttribute class.')
 
 # ** contract: container_repository
 class ContainerRepository(Repository):
@@ -151,35 +164,3 @@ class ContainerService(Service):
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
-
-     # * method: load_constants
-    @abstractmethod
-    def load_constants(self, attributes: List[ContainerAttribute], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
-        '''
-        Load constants from the container attributes.
-
-        :param attributes: The list of container attributes.
-        :type attributes: List[ContainerAttribute]
-        :param constants: The dictionary of constants.
-        :type constants: Dict[str, str]
-        :param flags: Optional list of flags to filter the constants.
-        :type flags: List[str]
-        :return: A dictionary of constants.
-        :rtype: Dict[str, str]
-        '''
-        raise NotImplementedError('load_constants method must be implemented in the ContainerService class.')
-
-    # * method: get_dependency_type
-    @abstractmethod
-    def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:
-        '''
-        Get the type of a container attribute.
-
-        :param attribute: The container attribute.
-        :type attribute: ContainerAttribute
-        :param flags: Optional list of flags to filter the dependency type.
-        :type flags: List[str]
-        :return: The type of the container attribute.
-        :rtype: type
-        '''
-        raise NotImplementedError('get_dependency_type method must be implemented in the ContainerService class.')

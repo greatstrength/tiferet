@@ -28,9 +28,6 @@ FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 
-# ** constant: container_attributes_not_found_id
-CONTAINER_ATTRIBUTES_NOT_FOUND_ID = 'CONTAINER_ATTRIBUTES_NOT_FOUND'
-
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
 
@@ -148,15 +145,6 @@ DEFAULT_ERRORS = {
         'name': 'App Repository Import Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import app repository: {exception}.'}
-        ]
-    },
-
-    # * error: CONTAINER_ATTRIBUTES_NOT_FOUND
-    CONTAINER_ATTRIBUTES_NOT_FOUND_ID: {
-        'id': CONTAINER_ATTRIBUTES_NOT_FOUND_ID,
-        'name': 'Container Attributes Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'No container attributes provided to load the container.'}
         ]
     },
 
