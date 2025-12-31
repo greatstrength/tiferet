@@ -104,7 +104,6 @@ def container_service(container_service_content, dependency_type):
 
     # Mock the list_all method to return the content.
     service.list_all.return_value = container_service_content
-    service.get_dependency_type.return_value = dependency_type
 
     # Return the mock service.
     return service
@@ -212,7 +211,7 @@ def test_container_context_build_injector_with_missing_dependency_type(container
     attributes[0].class_name = None
 
     # Mock the get_dependency_type method to return the updated attributes.
-    container_service.get_dependency_type.return_value = (attributes, constants)
+    container_service.list_all.return_value = (attributes, constants)
 
     # Attempt to build the injector and expect a RaiseError due to missing dependency type.
     with pytest.raises(TiferetError) as exc_info:
