@@ -120,54 +120,6 @@ def test_container_handler_list_all(container_handler, container_repo, container
     assert attributes == [container_attribute]
     assert consts == constants
 
-
-# ** test: test_container_handler_get_dependency_type
-def test_container_handler_get_dependency_type(container_handler, container_attribute):
-    """Test the get_dependency_type method of ContainerHandler."""
-    
-    # Call the get_dependency_type method.
-    dependency_type = container_handler.get_dependency_type(container_attribute)
-
-    # Assert that the type is correct.
-    assert dependency_type == ContainerYamlProxy
-
-
-# ** test: test_container_handler_get_dependency_type_with_flagged_dependencies
-def test_container_handler_get_dependency_type_with_flagged_dependencies(container_handler, container_attribute_with_flagged_dependencies):
-    """Test the get_dependency_type method with flagged dependencies."""
-    
-    # Call the get_dependency_type method with flags.
-    dependency_type = container_handler.get_dependency_type(
-        container_attribute_with_flagged_dependencies,
-        flags=['flagged_dependency']
-    )
-
-    # Assert that the type is correct.
-    assert dependency_type == ContainerYamlProxy
-
-
-# ** test: test_container_handler_get_dependency_type_not_found
-def test_container_handler_get_dependency_type_not_found(container_handler, container_attribute):
-    """Test the get_dependency_type method when the type is not found."""
-    
-    # Remove module path and class name from the container attribute.
-    container_attribute.module_path = None
-    container_attribute.class_name = None
-
-    # Call the get_dependency_type method with a non-existent flag.
-    with pytest.raises(TiferetError) as exc_info:
-         container_handler.get_dependency_type(
-            container_attribute,
-            flags=['non_existent_flag']
-        )
-
-    # Assert that the error is raised with the correct error code and message.
-    assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
-    assert exc_info.value.kwargs.get('attribute_id') == 'container_repo'
-    assert exc_info.value.kwargs.get('flags') == ['non_existent_flag']
-    assert 'No dependency type found for attribute container_repo with flags' in str(exc_info.value)
-
-
 # ** test: test_container_handler_load_constants_no_attributes
 def test_container_handler_load_constants_no_attributes(container_handler):
     """Test the load_constants method with no attributes provided."""

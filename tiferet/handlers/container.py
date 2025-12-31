@@ -87,37 +87,3 @@ class ContainerHandler(ContainerService):
 
         # Return the updated constants dictionary.
         return constants
-    
-    # * method: get_dependency_type
-    def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:
-        '''
-        Get the type of a container attribute.
-
-        :param attribute: The container attribute.
-        :type attribute: ContainerAttribute
-        :return: The type of the container attribute.
-        :rtype: type
-        '''
-
-        # Check the flagged dependencies for the type first.
-        for dep in attribute.dependencies:
-            if dep.flag in flags:
-                return ImportDependency.execute(
-                    dep.module_path,
-                    dep.class_name
-                ) 
-        
-        # Otherwise defer to an available default type.
-        if attribute.module_path and attribute.class_name:
-            return ImportDependency.execute(
-                attribute.module_path,
-                attribute.class_name
-            )
-            
-        # If no type is found, raise an error.
-        RaiseError.execute(
-            DEPENDENCY_TYPE_NOT_FOUND_ID,
-            f'No dependency type found for attribute {attribute.id} with flags {flags}.',
-            attribute_id=attribute.id,
-            flags=flags
-        )

@@ -181,18 +181,3 @@ class ContainerService(Service):
         :rtype: Dict[str, str]
         '''
         raise NotImplementedError('load_constants method must be implemented in the ContainerService class.')
-
-    # * method: get_dependency_type
-    @abstractmethod
-    def get_dependency_type(self, attribute: ContainerAttribute, flags: List[str] = []) -> type:
-        '''
-        Get the type of a container attribute.
-
-        :param attribute: The container attribute.
-        :type attribute: ContainerAttribute
-        :param flags: Optional list of flags to filter the dependency type.
-        :type flags: List[str]
-        :return: The type of the container attribute.
-        :rtype: type
-        '''
-        raise NotImplementedError('get_dependency_type method must be implemented in the ContainerService class.')
