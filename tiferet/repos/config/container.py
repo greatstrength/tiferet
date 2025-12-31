@@ -8,7 +8,11 @@ from typing import Tuple, Any, List, Dict
 # ** app
 from ...models import ContainerAttribute
 from ...contracts import ContainerService
-from ...data import DataObject, ContainerAttributeConfigData
+from ...data import (
+    DataObject, 
+    ContainerAttributeConfigData,
+    FlaggedDependencyConfigData
+)
 from .settings import ConfigurationFileRepository
 
 # *** repositories
@@ -145,3 +149,48 @@ class ContainerConfigurationRepository(ContainerService, ConfigurationFileReposi
                 [data.map() for data in attrs_data],
                 consts
             )
+        
+    # * method: save_attribute
+    def save_attribute(self, attribute: ContainerAttribute):
+        '''
+        Save the container attribute to the configuration file.
+
+        :param attribute: The container attribute to save.
+        :type attribute: ContainerAttribute
+        '''
+
+        # Create flagged dependency data from the container attribute.
+        dependencies_data = {
+            dep.flag: DataObject.from_model(
+                FlaggedDependencyConfigData,
+                dep,
+                id=dep.flag
+            ) for dep in attribute.dependencies
+        }
+
+        # Create updated container attribute data.
+        container_data = DataObject.from_model(
+            ContainerAttributeConfigData, 
+            attribute,
+            id=attribute.id,
+            dependencies=dependencies_data
+        )
+
+        # Load the existing container attribute data from the yaml configuration file.
+        with self.open_config(
+            self.container_config_file,
+            encoding=self.encoding,
+            mode='w'
+        ) as config_file:
+
+            # Update the error data.
+            with self.open_config(
+                self.container_config_file,
+                mode='w'
+            ) as config_file:
+
+                # Save the updated error data back to the yaml file.
+                config_file.save(
+                    data=container_data.to_primitive(self.default_role),
+                    data_path=f'attrs.{attribute.id}',
+                )

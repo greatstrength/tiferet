@@ -128,3 +128,34 @@ def test_list_all(container_config_repo: ContainerConfigurationRepository):
     # Verify the constants dictionary.
     assert 'sample_const' in constants
     assert constants['sample_const'] == 'sample_value'
+
+# ** test: container_configuration_repository_save_attribute
+def test_save_attribute(container_config_repo: ContainerConfigurationRepository):
+    '''
+    Test the save_attribute method of the ContainerConfigurationRepository.
+
+    :param container_config_repo: The ContainerConfigurationRepository instance.
+    :type container_config_repo: ContainerConfigurationRepository
+    '''
+
+    # Create a new container attribute to save.
+    new_attribute = DataObject.from_data(
+        ContainerAttributeConfigData,
+        id='new_attr',
+        module_path='tiferet.new.module',
+        class_name='NewClass',
+        deps={}
+    ).map()
+
+    # Save the new container attribute.
+    container_config_repo.save_attribute(new_attribute)
+
+    # Verify that the new attribute now exists.
+    assert container_config_repo.attribute_exists('new_attr') is True
+
+    # Retrieve the newly saved attribute and verify its properties.
+    saved_attribute = container_config_repo.get_attribute('new_attr')
+    assert saved_attribute.id == 'new_attr'
+    assert saved_attribute.module_path == 'tiferet.new.module'
+    assert saved_attribute.class_name == 'NewClass'
+    assert saved_attribute.dependencies == []
