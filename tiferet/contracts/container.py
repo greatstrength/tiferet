@@ -192,36 +192,3 @@ class ContainerService(Service):
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
-
-    # * method: save_attribute
-    @abstractmethod
-    def save_attribute(self, attribute: ContainerAttribute):
-        '''
-        Save the container attribute to the service.
-
-        :param attribute: The container attribute to save.
-        :type attribute: ContainerAttribute
-        '''
-        raise NotImplementedError('save_attribute method must be implemented in the ContainerService class.')
-    
-    # * method: delete_attribute
-    @abstractmethod
-    def delete_attribute(self, attribute_id: str):
-        '''
-        Delete the container attribute by its unique identifier from the service.
-
-        :param attribute_id: The unique identifier for the attribute to delete.
-        :type attribute_id: str
-        '''
-        raise NotImplementedError('delete_attribute method must be implemented in the ContainerService class.')
-    
-    # * method: save_constants
-    @abstractmethod
-    def save_constants(self, constants: Dict[str, str]):
-        '''
-        Save the container constants to the service.
-
-        :param constants: The container constants to save.
-        :type constants: Dict[str, str]
-        '''
-        raise NotImplementedError('save_constants method must be implemented in the ContainerService class.')
