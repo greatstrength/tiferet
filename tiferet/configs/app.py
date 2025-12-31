@@ -19,9 +19,9 @@ DEFAULT_ATTRIBUTES = [
         )
     ),
     dict(
-        attribute_id='error_repo',
-        module_path='tiferet.proxies.yaml.error',
-        class_name='ErrorYamlProxy',
+        attribute_id='error_service',
+        module_path='tiferet.repos.config.error',
+        class_name='ErrorConfigurationRepository',
         parameters=dict(
             error_config_file='app/configs/error.yml'
         )

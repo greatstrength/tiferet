@@ -64,6 +64,9 @@ class ErrorContext(object):
                 **error.format_response(),
                 id=error_code
             )
+        
+        # Return the retrieved error.
+        return error
 
     # * method: handle_error
     def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Any:
@@ -78,12 +81,9 @@ class ErrorContext(object):
         :rtype: bool
         '''
 
-        # Attempt to get the error by its code.
-        # Raise the error if the error code is not found.
-        try:
-            error = self.get_error_by_code(exception.error_code)
-        except TiferetError as e:
-            raise e
+        # Raise the exception if it is not a Tiferet error.
+        if not isinstance(exception, (TiferetError, LegacyTiferetError)):
+            raise exception
 
         # Format the error response.
         if isinstance(exception, LegacyTiferetError):

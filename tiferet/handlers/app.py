@@ -11,12 +11,7 @@ from ..commands import (
     RaiseError
 )
 from ..commands.dependencies import create_injector, get_dependency
-from ..contracts.app import (
-    AppService,
-    AppRepository,
-    AppInterface as AppInterfaceContract,
-    AppAttribute as AppAttributeContract,
-)
+from ..contracts.app import *
 
 # *** handlers
 

@@ -129,7 +129,7 @@ def test_container_json_proxy_list_all_empty(container_json_proxy: ContainerJson
         }, f)
 
     # Replace the config file path in the proxy.
-    container_json_proxy.json_file = file_path
+    container_json_proxy.json_file = str(file_path)
 
     # List all the container attributes.
     container_attributes, constants = container_json_proxy.list_all()

@@ -109,6 +109,22 @@ def test_error_new(error: Error, error_message: ErrorMessage):
     assert len(error.message) == 1
     assert error.message[0] == error_message
 
+# ** test: error_message_rename
+def test_error_message_rename(error: Error):
+    '''
+    Test renaming an error.
+
+    :param error: The error to test.
+    :type error: Error
+    '''
+
+    # Rename the error.
+    new_name = 'Renamed Test Error'
+    error.rename(new_name)
+
+    # Verify the name is updated.
+    assert error.name == new_name
+
 # ** test: error_message_format
 def test_error_message_format(
         error_message: ErrorMessage,
@@ -245,3 +261,21 @@ def test_error_set_message_new_lang(error: Error):
     assert len(error.message) == 2
     assert error.message[1].lang == 'fr_FR'
     assert error.message[1].text == 'Une nouvelle erreur est survenue.'
+
+# ** test: error_remove_message
+def test_error_remove_message(error: Error):
+    '''
+    Test removing an error message for a specific language.
+
+    :param error: The error to test.
+    :type error: Error
+    '''
+
+    # Add a message for removal test.
+    error.set_message('fr_FR', 'Une erreur est survenue.')
+
+    # Remove the message for the 'en_US' language.
+    error.remove_message('fr_FR')
+
+    # Verify that the message is removed.
+    assert len(error.message) == 1

@@ -1,8 +1,8 @@
 # *** imports
 
 # ** app
-from .settings import *
-from .core import import_dependency
+from .settings import Command
+from ..assets.constants import APP_INTERFACE_NOT_FOUND_ID
 from ..contracts.app import AppRepository, AppInterface
 
 
@@ -44,7 +44,7 @@ class GetAppInterface(Command):
         interface = self.app_repo.get_interface(interface_id)
         if not interface:
             self.raise_error(
-                'APP_INTERFACE_NOT_FOUND',
+                APP_INTERFACE_NOT_FOUND_ID,
                 f'App interface with ID {interface_id} not found.',
                 interface_id=interface_id
             )

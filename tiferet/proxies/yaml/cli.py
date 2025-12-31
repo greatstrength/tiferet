@@ -81,12 +81,20 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         :rtype: CliCommandContract
         '''
 
+        # Split the command ID into group and name.
+        group_key, command_key = command_id.split('.', 1)
+
         # Load the raw YAML data for the command.
-        yaml_data: CliCommandConfigData = self.load_yaml(
-            start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(command_id, None),
+        group_data: CliCommandConfigData = self.load_yaml(
+            start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(group_key, None),
         )
 
         # If no data is found, return None.
+        if not group_data:
+            return None
+        
+        # Get the specific command data.
+        yaml_data = group_data.get(command_key, None)
         if not yaml_data:
             return None
 
@@ -106,15 +114,23 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         :rtype: List[CliCommandContract]
         '''
 
-        # Load the YAML data for the commands.
-        result: List[CliCommandContract] = self.load_yaml(
-            start_node=lambda data: data.get('cli', {}).get('cmds', []),
-            data_factory=lambda data: [DataObject.from_data(
-                CliCommandConfigData,
-                id=id,
-                **cmd_data
-            ) for id, cmd_data in data.items()]
+        # Create an empty list to hold the commands.
+        result: List[CliCommandContract] = []
+
+        # Load all of the commands by their groups.
+        groups_data: Dict[str, CliCommandConfigData] = self.load_yaml(
+            start_node=lambda data: data.get('cli', {}).get('cmds', {}),
         )
+
+        # Add the commands from each group to the result list.
+        for group_key, group_data in groups_data.items():
+            for command_key, command_data in group_data.items():
+                command_id = f'{group_key}.{command_key}'
+                result.append(DataObject.from_data(
+                    CliCommandConfigData,
+                    id=command_id,
+                    **command_data
+                ))
 
         # Return the result if it exists, otherwise return an empty list.
         return [cmd.map() for cmd in result] if result else []
@@ -170,18 +186,25 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         :type command_id: str
         '''
 
-        # Delete the command data from the YAML file.
+        # Split the command ID into group and name.
+        group_key, command_key = command_id.split('.', 1)
+
+        # Retrieve the current commands data by group.
         commands_data = self.load_yaml(
-            start_node=lambda data: data.get('cli', {}).get('cmds', {})
+            start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(group_key, None)
         )
 
-        # Pop the command regardless of its existence.
-        commands_data.pop(command_id, None)
+        # Return if the group or command does not exist.
+        if not commands_data:
+            return
+        
+        # Remove the specified command from the group.
+        commands_data.pop(command_key, None)
 
-        # Save the updated commands data back to the YAML file.
+        # Save the updated commands data back to the YAML file at the group level.
         self.save_yaml(
             commands_data,
-            data_yaml_path='cli/cmds'
+            data_yaml_path=f'cli/cmds/{group_key}'
         )
 
     # * method: save_parent_arguments

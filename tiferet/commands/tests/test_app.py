@@ -13,7 +13,8 @@ from ...models import (
     AppAttribute
 )
 from ...contracts import AppRepository
-from ..app import GetAppInterface, TiferetError
+from ..app import GetAppInterface
+from ..settings import TiferetError
 
 # *** fixtures
 

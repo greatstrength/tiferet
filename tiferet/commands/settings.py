@@ -4,7 +4,7 @@
 from typing import Dict, Any
 
 # ** app
-from ..assets import TiferetError
+from ..assets import TiferetError, constants as const
 
 # *** classes
 
@@ -72,6 +72,28 @@ class Command(object):
                 message,
                 **kwargs
             )
+
+    # * method: verify_parameter
+    def verify_parameter(self, parameter: Any, parameter_name: str, command_name: str):
+        '''
+        Verify that a command parameter is not null or empty.
+
+        :param parameter: The parameter to verify.
+        :type parameter: Any
+        :param parameter_name: The name of the parameter.
+        :type parameter_name: str
+        :param command_name: The name of the command.
+        :type command_name: str
+        '''
+
+        # Verify the parameter is not null or empty.
+        self.verify(
+            expression=parameter is not None and (not isinstance(parameter, str) or bool(parameter.strip())),
+            error_code=const.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'The "{parameter_name}" parameter is required for the "{command_name}" command.',
+            parameter=parameter_name,
+            command=command_name
+        )
 
     # * method: handle
     @staticmethod
