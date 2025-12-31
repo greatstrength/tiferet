@@ -71,6 +71,19 @@ class ContainerAttribute(ModelContract):
         :rtype: FlaggedDependency
         '''
         raise NotImplementedError('get_dependency method must be implemented in the ContainerAttribute class.')
+    
+    # * method: get_type
+    @abstractmethod
+    def get_type(self, *flags) -> type:
+        '''
+        Gets the type of the container attribute based on the provided flags.
+
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
+        :return: The type of the container attribute.
+        :rtype: type
+        '''
+        raise NotImplementedError('get_type method must be implemented in the ContainerAttribute class.')
 
 # ** contract: container_repository
 class ContainerRepository(Repository):
