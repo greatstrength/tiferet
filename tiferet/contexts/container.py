@@ -1,15 +1,15 @@
 # *** imports
 
 # ** core
-from typing import Any, List
+from typing import Callable, Any, List
 
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..handlers.container import ContainerService
 from ..models import ContainerAttribute
-from ..commands import *
+from ..commands import RaiseError, ParseParameter
 from ..commands.dependencies import *
+from ..commands.container import ListAllSettings
 
 # *** contexts
 
@@ -22,22 +22,22 @@ class ContainerContext(object):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: container_service
-    container_service: ContainerService
+    # * attribute: list_all_handler
+    list_all_handler: Callable
 
     # * method: init
-    def __init__(self, container_service: ContainerService, cache: CacheContext = None):
+    def __init__(self, container_list_all_cmd: ListAllSettings, cache: CacheContext = None):
         '''
         Initialize the container context.
 
-        :param container_service: The container service to use for executing container requests.
-        :type container_service: ContainerService
+        :param container_list_all_cmd: The command to list all container attributes.
+        :type container_list_all_cmd: ListAllSettings
         :param cache: The cache context to use for caching container data.
         :type cache: CacheContext
         '''
 
         # Assign the attributes.
-        self.container_service = container_service
+        self.list_all_handler = container_list_all_cmd.execute
         self.cache = cache if cache else CacheContext()
 
     # * method: create_cache_key
@@ -76,7 +76,7 @@ class ContainerContext(object):
             return cached_injector
 
         # Get all attributes and constants from the container service.
-        attributes, constants = self.container_service.list_all()
+        attributes, constants = self.list_all_handler()
 
         # Load constants from the attributes.
         constants = self.load_constants(attributes, constants, flags)
