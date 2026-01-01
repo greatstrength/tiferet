@@ -20,46 +20,42 @@ errors:
     - lang: en_US
       text: Division by zero is not allowed.
 features:
-  test_calc.add_number:
-    commands:
-    - attribute_id: add_number_cmd
-      name: Add Number Command
-    description: Adds two numbers.
-    name: Add Number Feature
-  test_calc.subtract_number:
-    commands:
-    - attribute_id: subtract_number_cmd
-      name: Subtract Number Command
-    description: Subtracts two numbers.
-    name: Subtract Number Feature
-  test_calc.multiply_number:
-    commands:
-    - attribute_id: multiply_number_cmd
-      name: Multiply Number Command
-    description: Multiplies two numbers.
-    name: Multiply Number Feature
-  test_calc.divide_number:
-    commands:
-    - attribute_id: divide_number_cmd
-      name: Divide Number Command
-    description: Divides two numbers.
-    name: Divide Number Feature
-  test_calc.square_number:
-    commands:
-    - attribute_id: multiply_number_cmd
-      name: Square Number Command
-      params:
-        b: $r.a
-    description: Squares a number.
-    name: Square Number Feature
+  test_calc:
+    add_number:
+      commands:
+      - attribute_id: add_number_cmd
+        name: Add Number Command
+      description: Adds two numbers.
+      name: Add Number Feature
+    subtract_number:
+      commands:
+      - attribute_id: subtract_number_cmd
+        name: Subtract Number Command
+      description: Subtracts two numbers.
+      name: Subtract Number Feature
+    multiply_number:
+      commands:
+      - attribute_id: multiply_number_cmd
+        name: Multiply Number Command
+      description: Multiplies two numbers.
+      name: Multiply Number Feature
+    divide_number:
+      commands:
+      - attribute_id: divide_number_cmd
+        name: Divide Number Command
+      description: Divides two numbers.
+      name: Divide Number Feature
+    square_number:
+      commands:
+      - attribute_id: multiply_number_cmd
+        name: Square Number Command
+        params:
+          b: $r.a
+      description: Squares a number.
+      name: Square Number Feature
 interfaces:
   test_calc:
     attrs:
-      container_repo:
-        class_name: ContainerYamlProxy
-        module_path: tiferet.proxies.yaml.container
-        params:
-          container_config_file: tiferet/configs/tests/test_calc.yml
       feature_repo:
         class_name: FeatureYamlProxy
         module_path: tiferet.proxies.yaml.feature
@@ -67,6 +63,8 @@ interfaces:
           feature_config_file: tiferet/configs/tests/test_calc.yml
     const:
       error_config_file: tiferet/configs/tests/test_calc.yml
+      container_config_file: tiferet/configs/tests/test_calc.yml
+      logging_config_file: tiferet/configs/tests/test_calc.yml
     description: The interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator
   test_calc_cli:
@@ -87,3 +85,4 @@ interfaces:
       error_config_file: tiferet/configs/tests/test_calc.yml
     description: The CLI interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator CLI
+logging: {}
