@@ -47,7 +47,7 @@ def container_attribute_and_constants() -> Tuple[ContainerAttribute, Dict[str, A
 
 # ** fixture: mock_container_service
 @pytest.fixture
-def mock_container_service():
+def mock_container_service() -> ContainerService:
     '''
     A fixture for a mock container service.
     '''
@@ -57,9 +57,14 @@ def mock_container_service():
 
 # ** fixture: list_all_settings_command
 @pytest.fixture
-def list_all_settings_command(mock_container_service: ContainerService):
+def list_all_settings_command(mock_container_service: ContainerService) -> ListAllSettings:
     '''
     A fixture for the list all settings command.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    :return: The list all settings command.
+    :rtype: ListAllSettings
     '''
 
     # Create the list all settings command.
@@ -75,6 +80,13 @@ def test_execute_calls_container_service_list_all(
 ):
     '''
     Test that the execute method calls the container service's list_all method.
+
+    :param container_attribute_and_constants: The container attribute and constants.
+    :type container_attribute_and_constants: Tuple[ContainerAttribute, Dict[str, Any]]
+    :param list_all_settings_command: The list all settings command.
+    :type list_all_settings_command: ListAllSettings
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
     '''
 
     # Arrange the mock container service to return an empty list and empty dict.
