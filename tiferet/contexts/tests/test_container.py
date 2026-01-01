@@ -37,7 +37,7 @@ class TestContainer():
 
 # ** fixture: container_service_content
 @pytest.fixture
-def container_service_content():
+def container_service_content() -> Tuple[List[ContainerAttribute], Dict[str, str]]:
     '''
     Fixture to provide content for the container service.
     '''
@@ -88,9 +88,14 @@ def dependency_type() -> type:
 
 # ** fixture: test_container
 @pytest.fixture
-def test_container(dependency_type):
+def test_container(dependency_type: type) -> TestContainer:
     '''
     Fixture to create a mock test container
+
+    :param dependency_type: The dependency type to use.
+    :type dependency_type: type
+    :return: An instance of the mock test container.
+    :rtype: TestContainer
     '''
     
     # Create an instance of the mock container class.
@@ -100,45 +105,68 @@ def test_container(dependency_type):
         flagged_config=None
     )
 
-# ** fixture: container_service
+# ** fixture: container_list_all_cmd_mock
 @pytest.fixture
-def container_service(container_service_content):
+def container_list_all_cmd_mock(container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]):
     '''
-    Fixture to create a mock container service.
+    Fixture to create a mock ListAllSettings command.
+
+    :param container_service_content: The content for the container service.
+    :type container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]
+    :return: A mock ListAllSettings command.
+    :rtype: ListAllSettings
     '''
 
     # Create a mock ContainerService with the specified content.
-    service = mock.Mock(spec=ContainerService)
+    command = mock.Mock(spec=ListAllSettings)
 
-    # Mock the list_all method to return the content.
-    service.list_all.return_value = container_service_content
+    # Mock the execute method to return the content.
+    command.execute.return_value = container_service_content
 
     # Return the mock service.
-    return service
+    return command
 
 # ** fixture: container_context
 @pytest.fixture
-def container_context(container_service):
-    '''Fixture to create a ContainerContext with a mock container service.'''
-    return ContainerContext(container_service=container_service)
+def container_context(container_list_all_cmd_mock: ListAllSettings) -> ContainerContext:
+    '''
+    Fixture to create a ContainerContext with a mock container service.
+    
+    :param container_list_all_cmd_mock: The mock ListAllSettings command.
+    :type container_list_all_cmd_mock: ListAllSettings
+    :return: A ContainerContext instance.
+    :rtype: ContainerContext
+    '''
+    return ContainerContext(container_list_all_cmd=container_list_all_cmd_mock)
 
 
 # ** fixture: injector
 @pytest.fixture
-def injector(container_context, container_service):
-    '''Fixture to create an injector using the ContainerContext.'''
+def injector(container_context: ContainerContext) -> Injector:
+    '''
+    Fixture to create an injector using the ContainerContext.
+    
+    :param container_context: The container context to use.
+    :type container_context: ContainerContext
+    :return: An Injector instance.
+    :rtype: Injector
+    '''
 
     # Build the injector with no flags.
     return container_context.build_injector()
-
 
 # *** tests
 
 # ** test
 
 # ** test: container_context_get_cache_key
-def test_container_context_get_cache_key(container_context):
-    '''Test the creation of a cache key in the ContainerContext.'''
+def test_container_context_get_cache_key(container_context: ContainerContext):
+    '''
+    Test the creation of a cache key in the ContainerContext.
+    
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    '''
     
     # Test with no flags
     assert container_context.create_cache_key() == "feature_container"
@@ -148,8 +176,13 @@ def test_container_context_get_cache_key(container_context):
 
 
 # ** test: container_context_build_injector
-def test_container_context_build_injector(container_context, container_service):
-    '''Test the building of an injector in the ContainerContext.'''
+def test_container_context_build_injector(container_context: ContainerContext):
+    '''
+    Test the building of an injector in the ContainerContext.
+    
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    '''
 
     # Build the injector with no flags.
     injector = container_context.build_injector()
@@ -191,8 +224,20 @@ def test_container_context_build_injector(container_context, container_service):
     assert container_context.cache.get('feature_container_test') == injector
 
 # ** test: container_context_build_injector_with_missing_dependency_type
-def test_container_context_build_injector_with_missing_dependency_type(container_context, container_service, container_service_content):
-    '''Test building an injector with a missing dependency type in the ContainerContext.'''
+def test_container_context_build_injector_with_missing_dependency_type(
+        container_context: ContainerContext,
+        container_list_all_cmd_mock: ListAllSettings,
+        container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]):
+    '''
+    Test building an injector with a missing dependency type in the ContainerContext.
+    
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    :param container_list_all_cmd_mock: The mock ListAllSettings command.
+    :type container_list_all_cmd_mock: ListAllSettings
+    :param container_service_content: The content for the container service.
+    :type container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]
+    '''
 
     # Update the attribute in the container service content to have no module_path and class_name.
     attributes, constants = container_service_content
@@ -200,7 +245,7 @@ def test_container_context_build_injector_with_missing_dependency_type(container
     attributes[0].class_name = None
 
     # Mock the get_dependency_type method to return the updated attributes.
-    container_service.list_all.return_value = (attributes, constants)
+    container_list_all_cmd_mock.execute.return_value = (attributes, constants)
 
     # Attempt to build the injector and expect a RaiseError due to missing dependency type.
     with pytest.raises(TiferetError) as exc_info:
