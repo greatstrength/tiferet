@@ -206,6 +206,52 @@ def test_container_attribute_get_dependency_invalid(container_attribute: Contain
     # Assert the container dependency is invalid.
     assert container_attribute.get_dependency('invalid') is None
 
+
+# ** test: container_attribute_remove_dependency_existing
+def test_container_attribute_remove_dependency_existing(
+    container_attribute: ContainerAttribute,
+    flagged_dependency: FlaggedDependency,
+):
+    '''
+    Test that remove_dependency removes an existing flagged dependency by flag.
+
+    :param container_attribute: The container attribute whose dependency will be removed.
+    :type container_attribute: ContainerAttribute
+    :param flagged_dependency: The existing flagged dependency to remove.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Sanity check: the alpha dependency is present.
+    dependency = container_attribute.get_dependency('test_alpha')
+    assert dependency is not None
+
+    # Remove the dependency by flag.
+    container_attribute.remove_dependency('test_alpha')
+
+    # The dependency list should no longer contain the alpha dependency.
+    assert container_attribute.get_dependency('test_alpha') is None
+    assert all(dep.flag != 'test_alpha' for dep in container_attribute.dependencies)
+
+# ** test: container_attribute_remove_dependency_non_existing
+def test_container_attribute_remove_dependency_non_existing(
+    container_attribute: ContainerAttribute,
+):
+    '''
+    Test that remove_dependency is a no-op when the flag does not exist.
+
+    :param container_attribute: The container attribute whose dependencies are unaffected.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Capture current dependencies.
+    before = list(container_attribute.dependencies)
+
+    # Attempt to remove a non-existent dependency.
+    container_attribute.remove_dependency('non_existent_flag')
+
+    # Dependencies should remain unchanged.
+    assert container_attribute.dependencies == before
+
 # ** test: container_attribute_get_dependency_muliple_flags
 def test_container_attribute_get_dependency_multiple_flags(
     container_attribute : ContainerAttribute,
