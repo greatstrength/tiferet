@@ -299,3 +299,58 @@ def test_container_attribute_set_dependency_new(
     # Verify that the beta dependency is set.
     assert len(container_attribute.dependencies) == 2
     assert container_attribute.get_dependency('test_beta') == flagged_dependency_to_add
+
+
+# ** test: container_attribute_set_default_type_clear
+def test_container_attribute_set_default_type_clear(container_attribute: ContainerAttribute):
+    '''
+    Test that set_default_type clears the default type and parameters when
+    both module_path and class_name are None.
+
+    :param container_attribute: The container attribute whose default type and
+        parameters are being cleared.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Sanity check initial state.
+    assert container_attribute.module_path is not None
+    assert container_attribute.class_name is not None
+    assert container_attribute.parameters == dict(
+        test_param='test_value',
+        param='value0',
+    )
+
+    # Clear the default type and parameters.
+    container_attribute.set_default_type(None, None, None)
+
+    assert container_attribute.module_path is None
+    assert container_attribute.class_name is None
+    assert container_attribute.parameters == {}
+
+
+# ** test: container_attribute_set_default_type_update_and_filter_params
+def test_container_attribute_set_default_type_update_and_filter_params(
+    container_attribute: ContainerAttribute,
+):
+    '''
+    Test that set_default_type updates the default type and parameters when
+    both module_path and class_name are provided, and that parameters with
+    values of None are removed.
+
+    :param container_attribute: The container attribute whose default type is
+        being updated.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    container_attribute.set_default_type(
+        'tiferet.models.tests.test_container',
+        'TestDependencyBeta',
+        dict(
+            keep='value',
+            drop=None,
+        ),
+    )
+
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependencyBeta'
+    assert container_attribute.parameters == dict(keep='value')
