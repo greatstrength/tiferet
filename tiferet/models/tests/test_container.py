@@ -354,3 +354,36 @@ def test_container_attribute_set_default_type_update_and_filter_params(
     assert container_attribute.module_path == 'tiferet.models.tests.test_container'
     assert container_attribute.class_name == 'TestDependencyBeta'
     assert container_attribute.parameters == dict(keep='value')
+
+
+# ** test: container_attribute_set_default_type_clear_parameters_only
+def test_container_attribute_set_default_type_clear_parameters_only(
+    container_attribute: ContainerAttribute,
+):
+    '''
+    Test that set_default_type clears parameters when parameters is None but
+    module_path and class_name remain set.
+
+    :param container_attribute: The container attribute whose parameters are
+        being cleared for an existing default type.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Sanity check initial state.
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependency'
+    assert container_attribute.parameters == dict(
+        test_param='test_value',
+        param='value0',
+    )
+
+    # Clear only the parameters while keeping the default type.
+    container_attribute.set_default_type(
+        'tiferet.models.tests.test_container',
+        'TestDependency',
+        None,
+    )
+
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependency'
+    assert container_attribute.parameters == {}
