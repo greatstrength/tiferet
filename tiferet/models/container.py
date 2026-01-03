@@ -213,6 +213,22 @@ class ContainerAttribute(ModelObject):
         # Return None if no type is found.
         return None
 
+    # * method: remove_dependency
+    def remove_dependency(self, flag):
+        '''
+        Remove a flagged container dependency by its flag.
+
+        :param flag: The flag identifying the dependency to remove.
+        :type flag: str
+        '''
+
+        # Filter out any dependency whose flag matches the provided flag.
+        self.dependencies = [
+            dependency
+            for dependency in self.dependencies
+            if dependency.flag != flag
+        ]
+
     # * method: set_dependency
     def set_dependency(
         self,
