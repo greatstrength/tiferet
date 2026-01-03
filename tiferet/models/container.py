@@ -106,6 +106,41 @@ class ContainerAttribute(ModelObject):
         )
     )
 
+    # * method: set_default_type
+    def set_default_type(
+        self,
+        module_path=None,
+        class_name=None,
+        parameters=None,
+    ):
+        '''
+        Update the default type and parameters for this container attribute.
+
+        :param module_path: New module path (or None to clear).
+        :type module_path: Optional[str]
+        :param class_name: New class name (or None to clear).
+        :type class_name: Optional[str]
+        :param parameters: New parameters dict (or None to clear all).
+        :type parameters: Optional[Dict[str, Any]]
+        '''
+
+        # If both type fields are None, clear default type.
+        if module_path is None and class_name is None:
+            self.module_path = None
+            self.class_name = None
+            self.parameters = {}
+            
+        # Otherwise, set them to whatever is provided.
+        else:
+            self.module_path = module_path
+            self.class_name = class_name
+
+        # Update parameters: if parameters is None, clear all; otherwise replace.
+        if parameters is None:
+            self.parameters = {}
+        else:
+            self.parameters = {k: v for k, v in parameters.items() if v != None}
+
     # * method: get_dependency
     def get_dependency(self, *flags) -> FlaggedDependency:
         '''
