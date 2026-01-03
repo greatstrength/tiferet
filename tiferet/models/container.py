@@ -53,6 +53,24 @@ class FlaggedDependency(ModelObject):
         )
     )
 
+    # * method: set_parameters
+    def set_parameters(self, parameters=None):
+        '''
+        Update the parameters dictionary for this flagged dependency.
+
+        :param parameters: New parameters, or None to clear all.
+                           Keys with None values are removed.
+        :type parameters: Dict[str, Any] | None
+        '''
+
+        # Update parameters: if parameters is None, clear all; otherwise replace.
+        if parameters is None:
+            self.parameters = {}
+        else:
+            self.parameters = {
+                k: v for k, v in parameters.items() if v is not None
+            }
+
 # ** model: container_attribute
 class ContainerAttribute(ModelObject):
     '''
@@ -196,19 +214,45 @@ class ContainerAttribute(ModelObject):
         return None
 
     # * method: set_dependency
-    def set_dependency(self, dependency: FlaggedDependency):
+    def set_dependency(
+        self,
+        flag,
+        module_path=None,
+        class_name=None,
+        parameters=None,
+    ):
         '''
-        Sets a flagged container dependency.
+        Sets or updates a flagged container dependency.
 
-        :param dependency: The flagged container dependency to set.
-        :type dependency: ContainerDependency
+        :param flag: The flag that identifies the dependency.
+        :type flag: str
+        :param module_path: The module path for the dependency.
+        :type module_path: Optional[str]
+        :param class_name: The class name for the dependency.
+        :type class_name: Optional[str]
+        :param parameters: The parameters for the dependency (empty dict by default).
+        :type parameters: Dict[str, Any] | None
         '''
+
+        # Normalize parameters to a dict; None is treated as an empty mapping here
+        # and the final cleaning is delegated to FlaggedDependency.set_parameters.
+        parameters = parameters or {}
 
         # Replace the value of the dependency if a dependency with the same flag exists.
-        for index, dep in enumerate(self.dependencies):
-            if dep.flag == dependency.flag:
-                self.dependencies[index] = dependency
+        for dep in self.dependencies:
+            if dep.flag == flag:
+                dep.module_path = module_path
+                dep.class_name = class_name
+                dep.set_parameters(parameters)
                 return
 
-        # Append the dependency otherwise.
+        # Create a new dependency if none exists with this flag.
+        dependency = ModelObject.new(
+            FlaggedDependency,
+            module_path=module_path,
+            class_name=class_name,
+            flag=flag,
+            parameters=parameters,
+        )
+
         self.dependencies.append(dependency)
