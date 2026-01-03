@@ -132,6 +132,45 @@ def container_attribute_no_default_type(flagged_dependency: FlaggedDependency) -
 
 # *** tests
 
+# ** test: flagged_dependency_set_parameters_clear
+def test_flagged_dependency_set_parameters_clear(flagged_dependency: FlaggedDependency):
+    '''
+    Test that set_parameters clears all parameters when None is provided.
+
+    :param flagged_dependency: The flagged dependency to update.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Ensure there are initial parameters.
+    assert flagged_dependency.parameters == dict(
+        test_param='test_value',
+        param='value1',
+    )
+
+    # Clear parameters.
+    flagged_dependency.set_parameters(None)
+
+    assert flagged_dependency.parameters == {}
+
+
+# ** test: flagged_dependency_set_parameters_filters_none
+def test_flagged_dependency_set_parameters_filters_none(flagged_dependency: FlaggedDependency):
+    '''
+    Test that set_parameters filters out keys whose values are None.
+
+    :param flagged_dependency: The flagged dependency to update.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    flagged_dependency.set_parameters(
+        dict(
+            keep='value',
+            drop=None,
+        )
+    )
+
+    assert flagged_dependency.parameters == dict(keep='value')
+
 # ** test: container_attribute_get_dependency
 def test_container_attribute_get_dependency(
     container_attribute: ContainerAttribute,
@@ -185,7 +224,12 @@ def test_container_attribute_get_dependency_multiple_flags(
     '''
 
     # Set the beta dependency.
-    container_attribute.set_dependency(flagged_dependency_to_add)
+    container_attribute.set_dependency(
+        flag=flagged_dependency_to_add.flag,
+        module_path=flagged_dependency_to_add.module_path,
+        class_name=flagged_dependency_to_add.class_name,
+        parameters=flagged_dependency_to_add.parameters,
+    )
 
     # Assert that the test_alpha dependency is returned.
     dependency = container_attribute.get_dependency('test_alpha', 'test_beta')
@@ -219,7 +263,12 @@ def test_container_attribute_set_dependency_exists(
     flagged_dependency.parameters['test_param'] = 'test_value_updated'
 
     # Set the flagged dependency.
-    container_attribute.set_dependency(flagged_dependency)
+    container_attribute.set_dependency(
+        flag=flagged_dependency.flag,
+        module_path=flagged_dependency.module_path,
+        class_name=flagged_dependency.class_name,
+        parameters=flagged_dependency.parameters,
+    )
 
     # Get the flagged dependency.
     dependency = container_attribute.get_dependency('test_alpha')
@@ -232,6 +281,38 @@ def test_container_attribute_set_dependency_exists(
         test_param='test_value_updated',
         param='value1'
     )
+
+
+# ** test: container_attribute_set_dependency_filters_none_parameters
+def test_container_attribute_set_dependency_filters_none_parameters(
+    container_attribute: ContainerAttribute,
+    flagged_dependency: FlaggedDependency,
+):
+    '''
+    Test that set_dependency, via FlaggedDependency.set_parameters, removes
+    parameters whose values are None when updating an existing dependency.
+
+    :param container_attribute: The container attribute to test.
+    :type container_attribute: ContainerAttribute
+    :param flagged_dependency: The flagged dependency providing updated parameters.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Set one of the parameters to None to mark it for removal.
+    flagged_dependency.parameters['param'] = None
+
+    # Update the existing dependency on the container attribute.
+    container_attribute.set_dependency(
+        flag=flagged_dependency.flag,
+        module_path=flagged_dependency.module_path,
+        class_name=flagged_dependency.class_name,
+        parameters=flagged_dependency.parameters,
+    )
+
+    dependency = container_attribute.get_dependency('test_alpha')
+
+    # "param" should be removed, but test_param should remain.
+    assert dependency.parameters == dict(test_param='test_value')
 
 # ** test: container_attribute_get_type_success_default
 def test_container_attribute_get_type_success_default(
@@ -294,11 +375,21 @@ def test_container_attribute_set_dependency_new(
     '''
 
     # Set the beta dependency.
-    container_attribute.set_dependency(flagged_dependency_to_add)
+    container_attribute.set_dependency(
+        flag=flagged_dependency_to_add.flag,
+        module_path=flagged_dependency_to_add.module_path,
+        class_name=flagged_dependency_to_add.class_name,
+        parameters=flagged_dependency_to_add.parameters,
+    )
 
     # Verify that the beta dependency is set.
     assert len(container_attribute.dependencies) == 2
-    assert container_attribute.get_dependency('test_beta') == flagged_dependency_to_add
+
+    dependency = container_attribute.get_dependency('test_beta')
+    assert dependency.module_path == flagged_dependency_to_add.module_path
+    assert dependency.class_name == flagged_dependency_to_add.class_name
+    assert dependency.flag == flagged_dependency_to_add.flag
+    assert dependency.parameters == flagged_dependency_to_add.parameters
 
 
 # ** test: container_attribute_set_default_type_clear
