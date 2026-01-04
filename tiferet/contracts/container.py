@@ -192,3 +192,14 @@ class ContainerService(Service):
         :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
         '''
         raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
+
+    # * method: save_attribute
+    @abstractmethod
+    def save_attribute(self, attribute: ContainerAttribute):
+        '''
+        Save the container attribute through the service.
+
+        :param attribute: The container attribute to save.
+        :type attribute: ContainerAttribute
+        '''
+        raise NotImplementedError('save_attribute method must be implemented in the ContainerService class.')
