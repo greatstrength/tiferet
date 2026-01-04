@@ -3,16 +3,21 @@
 # *** imports
 
 # ** core
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
 
 # ** infra
 import pytest
 from unittest import mock
 
 # ** app
-from ..container import ListAllSettings
+from ..container import ListAllSettings, AddServiceConfiguration
 from ...models import ModelObject, ContainerAttribute
 from ...contracts import ContainerService
+from ...assets import TiferetError
+from ...assets.constants import (
+    INVALID_SERVICE_CONFIGURATION_ID,
+    ATTRIBUTE_ALREADY_EXISTS_ID,
+)
 
 # *** fixtures
 
@@ -100,3 +105,213 @@ def test_execute_calls_container_service_list_all(
 
     # Assert that the container service's list_all method was called once.
     mock_container_service.list_all.assert_called_once()
+
+# ** test: add_service_configuration_with_default_type_only
+def test_add_service_configuration_with_default_type_only(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration can add an attribute using only a
+    default type (module_path and class_name).
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    # Arrange the container service mock.
+    mock_container_service.attribute_exists.return_value = False
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    attribute = command.execute(
+        id='svc_default_only',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={'param': 'value'},
+        dependencies=[],
+    )
+
+    # Assert the attribute is created correctly.
+    assert isinstance(attribute, ContainerAttribute)
+    assert attribute.id == 'svc_default_only'
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    assert attribute.parameters == {'param': 'value'}
+    assert isinstance(attribute.dependencies, list)
+    assert attribute.dependencies == []
+
+    # Assert the service was called to check existence and to save.
+    mock_container_service.attribute_exists.assert_called_once_with('svc_default_only')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: add_service_configuration_with_dependencies_only
+def test_add_service_configuration_with_dependencies_only(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration can add an attribute using only
+    flagged dependencies.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.attribute_exists.return_value = False
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    dependencies: List[Dict[str, Any]] = [
+        dict(
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+            flag='alpha',
+            parameters={'flag_param': 'x'},
+        )
+    ]
+
+    attribute = command.execute(
+        id='svc_deps_only',
+        dependencies=dependencies,
+    )
+
+    assert isinstance(attribute, ContainerAttribute)
+    assert attribute.id == 'svc_deps_only'
+    assert attribute.module_path is None
+    assert attribute.class_name is None
+    assert len(attribute.dependencies) == 1
+
+    dep = attribute.dependencies[0]
+    # Dependency should round-trip from the dicts provided.
+    assert dep.flag == 'alpha'
+    assert dep.module_path == 'tiferet.models.tests.test_container'
+    assert dep.class_name == 'TestDependency'
+    assert dep.parameters == {'flag_param': 'x'}
+
+    mock_container_service.attribute_exists.assert_called_once_with('svc_deps_only')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: add_service_configuration_with_default_and_dependencies
+def test_add_service_configuration_with_default_and_dependencies(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration can add an attribute when both a
+    default type and flagged dependencies are provided.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.attribute_exists.return_value = False
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    dependencies: List[Dict[str, Any]] = [
+        dict(
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+            flag='alpha',
+            parameters={'flag_param': 'x'},
+        )
+    ]
+
+    attribute = command.execute(
+        id='svc_both',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={'param': 'value'},
+        dependencies=dependencies,
+    )
+
+    assert isinstance(attribute, ContainerAttribute)
+    assert attribute.id == 'svc_both'
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    assert attribute.parameters == {'param': 'value'}
+    assert len(attribute.dependencies) == 1
+
+    dep = attribute.dependencies[0]
+    assert dep.flag == 'alpha'
+    assert dep.module_path == 'tiferet.models.tests.test_container'
+    assert dep.class_name == 'TestDependency'
+    assert dep.parameters == {'flag_param': 'x'}
+
+    mock_container_service.attribute_exists.assert_called_once_with('svc_both')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: add_service_configuration_missing_id
+def test_add_service_configuration_missing_id(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration fails when id is missing or empty.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.attribute_exists.return_value = False
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id=' ',  # empty after strip
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == 'COMMAND_PARAMETER_REQUIRED'
+
+# ** test: add_service_configuration_duplicate_id
+def test_add_service_configuration_duplicate_id(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration fails when the attribute id already exists.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.attribute_exists.return_value = True
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_existing',
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == ATTRIBUTE_ALREADY_EXISTS_ID
+
+# ** test: add_service_configuration_no_type_source
+def test_add_service_configuration_no_type_source(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that AddServiceConfiguration fails when no default type or
+    dependencies are provided.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.attribute_exists.return_value = False
+
+    command = AddServiceConfiguration(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_invalid',
+            module_path=None,
+            class_name=None,
+            dependencies=[],
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
