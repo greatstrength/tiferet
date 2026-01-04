@@ -73,6 +73,12 @@ UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 
+# ** constant: invalid_service_configuration_id
+INVALID_SERVICE_CONFIGURATION_ID = 'INVALID_SERVICE_CONFIGURATION'
+
+# ** constant: attribute_already_exists_id
+ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -282,6 +288,33 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'App interface with ID {interface_id} not found.'}
         ]
+    },
+
+    # * error: INVALID_SERVICE_CONFIGURATION
+    INVALID_SERVICE_CONFIGURATION_ID: {
+        'id': INVALID_SERVICE_CONFIGURATION_ID,
+        'name': 'Invalid Service Configuration',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': (
+                    'A container attribute must define either a default type '
+                    '(module_path/class_name) or at least one flagged dependency.'
+                ),
+            }
+        ],
+    },
+
+    # * error: ATTRIBUTE_ALREADY_EXISTS
+    ATTRIBUTE_ALREADY_EXISTS_ID: {
+        'id': ATTRIBUTE_ALREADY_EXISTS_ID,
+        'name': 'Attribute Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A container attribute with ID {id} already exists.',
+            }
+        ],
     },
 
     # * error: INVALID_DEPENDENCY_ERROR
