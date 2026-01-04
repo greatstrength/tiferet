@@ -13,6 +13,7 @@ from ..models.settings import ModelObject
 from ..assets.constants import (
     INVALID_SERVICE_CONFIGURATION_ID,
     ATTRIBUTE_ALREADY_EXISTS_ID,
+    SERVICE_CONFIGURATION_NOT_FOUND_ID,
 )
 
 # *** commands
@@ -98,6 +99,92 @@ class AddServiceConfiguration(Command):
         )
 
         # Save the new attribute and return it.
+        self.container_service.save_attribute(attribute)
+        return attribute
+
+# ** command: set_default_service_configuration
+class SetDefaultServiceConfiguration(Command):
+    '''
+    Command to set or update the default service configuration for an
+    existing container attribute.
+    '''
+
+    # * attribute: container_service
+    container_service: ContainerService
+
+    # * method: init
+    def __init__(self, container_service: ContainerService):
+        '''
+        Initialize the set default service configuration command.
+
+        :param container_service: The container service.
+        :type container_service: ContainerService
+        '''
+
+        # Set the command attributes.
+        self.container_service = container_service
+
+    # * method: execute
+    def execute(
+        self,
+        id: str,
+        module_path: Optional[str] = None,
+        class_name: Optional[str] = None,
+        parameters: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> ContainerAttribute:
+        '''
+        Set or update the default module/class and parameters for an
+        existing container attribute.
+
+        :param id: The unique container attribute identifier.
+        :type id: str
+        :param module_path: Optional default module path.
+        :type module_path: str | None
+        :param class_name: Optional default class name.
+        :type class_name: str | None
+        :param parameters: Optional attribute parameters. When None,
+            existing parameters are cleared.
+        :type parameters: Dict[str, Any] | None
+        :return: The updated container attribute.
+        :rtype: ContainerAttribute
+        '''
+
+        # Retrieve the existing attribute.
+        attribute = self.container_service.get_attribute(id)
+
+        # Verify that the attribute exists.
+        self.verify(
+            attribute is not None,
+            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            id=id,
+        )
+
+        # If either module_path or class_name is provided, both must be
+        # non-None to ensure an atomic default type update.
+        if module_path is not None or class_name is not None:
+            self.verify(
+                module_path is not None and class_name is not None,
+                INVALID_SERVICE_CONFIGURATION_ID,
+            )
+
+            # Update both type and parameters via the model helper.
+            attribute.set_default_type(
+                module_path,
+                class_name,
+                parameters,
+            )
+        else:
+            # Only parameters are being updated (or cleared). Keep the
+            # existing module_path and class_name but delegate parameter
+            # handling/cleanup to the model helper.
+            attribute.set_default_type(
+                attribute.module_path,
+                attribute.class_name,
+                parameters,
+            )
+
+        # Persist the updated attribute and return it.
         self.container_service.save_attribute(attribute)
         return attribute
 
