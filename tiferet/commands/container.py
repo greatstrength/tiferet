@@ -278,6 +278,80 @@ class SetServiceDependency(Command):
         return id
 
 
+# ** command: remove_service_dependency
+class RemoveServiceDependency(Command):
+    '''
+    Command to remove a flagged dependency from an existing container
+    attribute.
+    '''
+
+    # * attribute: container_service
+    container_service: ContainerService
+
+    # * method: init
+    def __init__(self, container_service: ContainerService):
+        '''
+        Initialize the remove service dependency command.
+
+        :param container_service: The container service.
+        :type container_service: ContainerService
+        '''
+
+        # Set the command attributes.
+        self.container_service = container_service
+
+    # * method: execute
+    def execute(
+        self,
+        id: str,
+        flag: str,
+        **kwargs,
+    ) -> str:
+        '''
+        Remove a flagged dependency from the given container attribute.
+
+        :param id: The container attribute identifier.
+        :type id: str
+        :param flag: The flag that identifies the dependency to remove.
+        :type flag: str
+        :return: The container attribute id.
+        :rtype: str
+        '''
+
+        # Validate required flag.
+        self.verify_parameter(
+            parameter=flag,
+            parameter_name='flag',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the existing attribute.
+        attribute = self.container_service.get_attribute(id)
+
+        # Verify that the attribute exists.
+        self.verify(
+            attribute is not None,
+            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            id=id,
+        )
+
+        # Remove the dependency by flag (idempotent at the model level).
+        attribute.remove_dependency(flag)
+
+        # Post-removal validation: ensure a remaining type source.
+        has_default = bool(attribute.module_path and attribute.class_name)
+        has_deps = bool(attribute.dependencies)
+        self.verify(
+            has_default or has_deps,
+            INVALID_SERVICE_CONFIGURATION_ID,
+        )
+
+        # Persist the updated attribute.
+        self.container_service.save_attribute(attribute)
+
+        # Return the id for convenience/confirmation.
+        return id
+
 # ** command: list_all_settings
 class ListAllSettings(Command):
     '''

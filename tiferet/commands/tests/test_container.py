@@ -19,6 +19,7 @@ from ...assets.constants import (
     ATTRIBUTE_ALREADY_EXISTS_ID,
     SERVICE_CONFIGURATION_NOT_FOUND_ID,
     INVALID_FLAGGED_DEPENDENCY_ID,
+    COMMAND_PARAMETER_REQUIRED_ID
 )
 
 # *** fixtures
@@ -737,3 +738,181 @@ def test_set_service_dependency_not_found(
 
     error: TiferetError = excinfo.value
     assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+
+# ** test: remove_service_dependency_success_with_remaining_default
+def test_remove_service_dependency_success_with_remaining_default(
+    mock_container_service: ContainerService,
+    flagged_dependency_for_commands: FlaggedDependency,
+):
+    '''
+    Test that RemoveServiceDependency removes a dependency while a
+    default type remains configured.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    :param flagged_dependency_for_commands: The flagged dependency to remove.
+    :type flagged_dependency_for_commands: FlaggedDependency
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_remove_default',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[flagged_dependency_for_commands],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import RemoveServiceDependency
+
+    command = RemoveServiceDependency(container_service=mock_container_service)
+
+    result_id = command.execute(
+        id='svc_remove_default',
+        flag='test_alpha',
+    )
+
+    assert result_id == 'svc_remove_default'
+    # Dependency should be removed, but default type remains.
+    assert attribute.get_dependency('test_alpha') is None
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    mock_container_service.get_attribute.assert_called_once_with('svc_remove_default')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: remove_service_dependency_success_nonexistent_flag
+def test_remove_service_dependency_success_nonexistent_flag(
+    mock_container_service: ContainerService,
+    flagged_dependency_for_commands: FlaggedDependency,
+):
+    '''
+    Test that RemoveServiceDependency is idempotent when the flag does
+    not exist, as long as a type source remains.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    :param flagged_dependency_for_commands: An existing flagged dependency.
+    :type flagged_dependency_for_commands: FlaggedDependency
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_remove_missing',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[flagged_dependency_for_commands],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import RemoveServiceDependency
+
+    command = RemoveServiceDependency(container_service=mock_container_service)
+
+    result_id = command.execute(
+        id='svc_remove_missing',
+        flag='non_existent_flag',
+    )
+
+    assert result_id == 'svc_remove_missing'
+    # Dependencies and default type remain unchanged.
+    assert attribute.get_dependency('test_alpha') is not None
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    mock_container_service.get_attribute.assert_called_once_with('svc_remove_missing')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: remove_service_dependency_invalid_after_removal
+def test_remove_service_dependency_invalid_after_removal(
+    mock_container_service: ContainerService,
+    flagged_dependency_for_commands: FlaggedDependency,
+):
+    '''
+    Test that RemoveServiceDependency raises INVALID_SERVICE_CONFIGURATION
+    when removing the last type source (no default type and no remaining
+    dependencies).
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    :param flagged_dependency_for_commands: The flagged dependency to remove.
+    :type flagged_dependency_for_commands: FlaggedDependency
+    '''
+
+    # Attribute with only a flagged dependency and no default type.
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_invalid_after_remove',
+        dependencies=[flagged_dependency_for_commands],
+        parameters={},
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import RemoveServiceDependency
+
+    command = RemoveServiceDependency(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_invalid_after_remove',
+            flag='test_alpha',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+
+# ** test: remove_service_dependency_not_found_attribute
+def test_remove_service_dependency_not_found_attribute(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that RemoveServiceDependency raises SERVICE_CONFIGURATION_NOT_FOUND
+    when the container attribute does not exist.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.get_attribute.return_value = None
+
+    from ..container import RemoveServiceDependency
+
+    command = RemoveServiceDependency(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='missing_attr',
+            flag='alpha',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+
+# ** test: remove_service_dependency_missing_flag
+def test_remove_service_dependency_missing_flag(
+    mock_container_service: ContainerService
+):
+    '''
+    Test that RemoveServiceDependency fails with COMMAND_PARAMETER_REQUIRED
+    when flag is missing or empty.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    # Import and create the command.
+    from ..container import RemoveServiceDependency
+    command = RemoveServiceDependency(container_service=mock_container_service)
+
+    # Run the command with the expectation of an error.
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_missing_flag_remove',
+            flag=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
