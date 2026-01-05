@@ -169,7 +169,13 @@ def test_flagged_dependency_set_parameters_filters_none(flagged_dependency: Flag
         )
     )
 
-    assert flagged_dependency.parameters == dict(keep='value')
+    # Existing parameters should be preserved and new ones merged, while
+    # None-valued keys are removed.
+    assert flagged_dependency.parameters == dict(
+        test_param='test_value',
+        param='value1',
+        keep='value',
+    )
 
 # ** test: container_attribute_get_dependency
 def test_container_attribute_get_dependency(

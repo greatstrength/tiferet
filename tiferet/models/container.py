@@ -63,12 +63,17 @@ class FlaggedDependency(ModelObject):
         :type parameters: Dict[str, Any] | None
         '''
 
-        # Update parameters: if parameters is None, clear all; otherwise replace.
+        # If parameters is None, clear all.
         if parameters is None:
             self.parameters = {}
         else:
+            # Merge existing parameters with new ones (new values win).
+            merged = dict(self.parameters or {})
+            merged.update(parameters)
+
+            # Filter out keys where the value is None.
             self.parameters = {
-                k: v for k, v in parameters.items() if v is not None
+                k: v for k, v in merged.items() if v is not None
             }
 
 # ** model: container_attribute
