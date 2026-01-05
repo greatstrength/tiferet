@@ -17,6 +17,7 @@ from ...assets import TiferetError
 from ...assets.constants import (
     INVALID_SERVICE_CONFIGURATION_ID,
     ATTRIBUTE_ALREADY_EXISTS_ID,
+    SERVICE_CONFIGURATION_NOT_FOUND_ID,
 )
 
 # *** fixtures
@@ -311,6 +312,194 @@ def test_add_service_configuration_no_type_source(
             module_path=None,
             class_name=None,
             dependencies=[],
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+
+# ** test: set_default_service_configuration_full_update
+def test_set_default_service_configuration_full_update(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetDefaultServiceConfiguration updates both default type and
+    parameters when provided.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    # Create an existing attribute.
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_full',
+        module_path='old.module',
+        class_name='OldClass',
+        parameters={'old': 'value'},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetDefaultServiceConfiguration
+
+    command = SetDefaultServiceConfiguration(container_service=mock_container_service)
+
+    result = command.execute(
+        id='svc_full',
+        module_path='new.module',
+        class_name='NewClass',
+        parameters={'param': 'value'},
+    )
+
+    assert result is attribute
+    assert attribute.module_path == 'new.module'
+    assert attribute.class_name == 'NewClass'
+    assert attribute.parameters == {'param': 'value'}
+    mock_container_service.get_attribute.assert_called_once_with('svc_full')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: set_default_service_configuration_parameters_only
+def test_set_default_service_configuration_parameters_only(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetDefaultServiceConfiguration updates only parameters when
+    module_path and class_name are not provided.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_params',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={'keep': 'value', 'drop': 'x'},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetDefaultServiceConfiguration
+
+    command = SetDefaultServiceConfiguration(container_service=mock_container_service)
+
+    result = command.execute(
+        id='svc_params',
+        parameters={'keep': 'updated', 'drop': None},
+    )
+
+    assert result is attribute
+    # Default type should remain unchanged.
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    # Parameters should be cleaned via set_default_type (drop=None removed).
+    assert attribute.parameters == {'keep': 'updated'}
+    mock_container_service.get_attribute.assert_called_once_with('svc_params')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: set_default_service_configuration_clear_parameters
+def test_set_default_service_configuration_clear_parameters(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetDefaultServiceConfiguration clears parameters when
+    parameters is None.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_clear',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={'keep': 'value'},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetDefaultServiceConfiguration
+
+    command = SetDefaultServiceConfiguration(container_service=mock_container_service)
+
+    result = command.execute(
+        id='svc_clear',
+        parameters=None,
+    )
+
+    assert result is attribute
+    assert attribute.module_path == 'tiferet.models.tests.test_container'
+    assert attribute.class_name == 'TestDependency'
+    assert attribute.parameters == {}
+    mock_container_service.get_attribute.assert_called_once_with('svc_clear')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+# ** test: set_default_service_configuration_not_found
+def test_set_default_service_configuration_not_found(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetDefaultServiceConfiguration raises when the attribute
+    does not exist.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.get_attribute.return_value = None
+
+    from ..container import SetDefaultServiceConfiguration
+
+    command = SetDefaultServiceConfiguration(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='missing',
+            module_path='mod',
+            class_name='Cls',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+
+# ** test: set_default_service_configuration_incomplete_type
+def test_set_default_service_configuration_incomplete_type(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetDefaultServiceConfiguration rejects partial default type
+    updates when only one of module_path or class_name is provided.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_partial',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={'keep': 'value'},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetDefaultServiceConfiguration
+
+    command = SetDefaultServiceConfiguration(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_partial',
+            module_path='new.module',
+            class_name=None,
+            parameters={'param': 'value'},
         )
 
     error: TiferetError = excinfo.value
