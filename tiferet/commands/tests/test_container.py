@@ -619,9 +619,12 @@ def test_set_service_dependency_update_existing(
     # Type should be updated.
     assert dep.module_path == 'tiferet.models.tests.test_container'
     assert dep.class_name == 'TestDependencyAlpha'
-    # Parameters should be cleaned (None removed) via set_parameters.
-    # Existing parameters are replaced, so only updated keys remain.
-    assert dep.parameters == {'test_param': 'updated'}
+    # Parameters should be cleaned (None removed) via set_parameters and
+    # merged with existing parameters (new values win).
+    assert dep.parameters == {
+        'test_param': 'updated',
+        'param': 'value1',
+    }
     mock_container_service.get_attribute.assert_called_once_with('svc_flags_update')
     mock_container_service.save_attribute.assert_called_once_with(attribute)
 
