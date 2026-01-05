@@ -352,6 +352,54 @@ class RemoveServiceDependency(Command):
         # Return the id for convenience/confirmation.
         return id
 
+# ** command: remove_service_configuration
+class RemoveServiceConfiguration(Command):
+    '''
+    Command to remove a container attribute (service configuration) by ID.
+    '''
+
+    # * attribute: container_service
+    container_service: ContainerService
+
+    # * init
+    def __init__(self, container_service: ContainerService):
+        '''
+        Initialize the remove service configuration command.
+
+        :param container_service: The container service.
+        :type container_service: ContainerService
+        '''
+
+        # Set the command attributes.
+        self.container_service = container_service
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> str:
+        '''
+        Remove a container attribute.
+
+        :param id: The unique identifier of the attribute to remove.
+        :type id: str
+        :param kwargs: Additional context.
+        :type kwargs: dict
+        :return: The removed attribute ID.
+        :rtype: str
+        '''
+
+        # Validate required id (non-empty string).
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+
+        # Delete (idempotent; underlying service handles non-existent IDs).
+        self.container_service.delete_attribute(id)
+
+        # Return id for confirmation.
+        return id
+
+
 # ** command: list_all_settings
 class ListAllSettings(Command):
     '''
