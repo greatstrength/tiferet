@@ -10,7 +10,11 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..container import ListAllSettings, AddServiceConfiguration
+from ..container import (
+    ListAllSettings,
+    AddServiceConfiguration,
+    RemoveServiceConfiguration,
+)
 from ...models import ModelObject, ContainerAttribute, FlaggedDependency
 from ...contracts import ContainerService
 from ...assets import TiferetError
@@ -19,8 +23,9 @@ from ...assets.constants import (
     ATTRIBUTE_ALREADY_EXISTS_ID,
     SERVICE_CONFIGURATION_NOT_FOUND_ID,
     INVALID_FLAGGED_DEPENDENCY_ID,
-    COMMAND_PARAMETER_REQUIRED_ID
+    COMMAND_PARAMETER_REQUIRED_ID,
 )
+from ...commands import Command
 
 # *** fixtures
 
@@ -738,6 +743,70 @@ def test_set_service_dependency_not_found(
 
     error: TiferetError = excinfo.value
     assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+
+# ** test: remove_service_configuration_existing
+def test_remove_service_configuration_existing(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that RemoveServiceConfiguration deletes an existing container
+    attribute and returns its id.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    result = Command.handle(
+        RemoveServiceConfiguration,
+        dependencies={'container_service': mock_container_service},
+        id='svc_to_delete',
+    )
+
+    assert result == 'svc_to_delete'
+    mock_container_service.delete_attribute.assert_called_once_with('svc_to_delete')
+
+# ** test: remove_service_configuration_nonexistent_id
+def test_remove_service_configuration_nonexistent_id(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that RemoveServiceConfiguration is idempotent when the attribute
+    does not exist (delete_attribute is still called, no error).
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    result = Command.handle(
+        RemoveServiceConfiguration,
+        dependencies={'container_service': mock_container_service},
+        id='missing_id',
+    )
+
+    assert result == 'missing_id'
+    mock_container_service.delete_attribute.assert_called_once_with('missing_id')
+
+# ** test: remove_service_configuration_missing_id
+def test_remove_service_configuration_missing_id(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that RemoveServiceConfiguration fails with COMMAND_PARAMETER_REQUIRED
+    when id is missing or empty.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveServiceConfiguration,
+            dependencies={'container_service': mock_container_service},
+            id=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == 'COMMAND_PARAMETER_REQUIRED'
 
 # ** test: remove_service_dependency_success_with_remaining_default
 def test_remove_service_dependency_success_with_remaining_default(

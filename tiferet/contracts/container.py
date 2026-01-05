@@ -203,3 +203,15 @@ class ContainerService(Service):
         :type attribute: ContainerAttribute
         '''
         raise NotImplementedError('save_attribute method must be implemented in the ContainerService class.')
+
+    # * method: delete_attribute
+    @abstractmethod
+    def delete_attribute(self, attribute_id: str):
+        '''
+        Delete the container attribute by its unique identifier through
+        the service.
+
+        :param attribute_id: The unique identifier for the attribute to delete.
+        :type attribute_id: str
+        '''
+        raise NotImplementedError('delete_attribute method must be implemented in the ContainerService class.')
