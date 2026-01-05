@@ -215,3 +215,14 @@ class ContainerService(Service):
         :type attribute_id: str
         '''
         raise NotImplementedError('delete_attribute method must be implemented in the ContainerService class.')
+
+    # * method: save_constants
+    @abstractmethod
+    def save_constants(self, constants: Dict[str, Any] = {}):
+        '''
+        Save the container constants through the service.
+
+        :param constants: The container constants to save.
+        :type constants: Dict[str, Any]
+        '''
+        raise NotImplementedError('save_constants method must be implemented in the ContainerService class.')
