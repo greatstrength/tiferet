@@ -11,16 +11,35 @@ from unittest import mock
 
 # ** app
 from ..container import ListAllSettings, AddServiceConfiguration
-from ...models import ModelObject, ContainerAttribute
+from ...models import ModelObject, ContainerAttribute, FlaggedDependency
 from ...contracts import ContainerService
 from ...assets import TiferetError
 from ...assets.constants import (
     INVALID_SERVICE_CONFIGURATION_ID,
     ATTRIBUTE_ALREADY_EXISTS_ID,
     SERVICE_CONFIGURATION_NOT_FOUND_ID,
+    INVALID_FLAGGED_DEPENDENCY_ID,
 )
 
 # *** fixtures
+
+# ** fixture: flagged_dependency_for_commands
+@pytest.fixture
+def flagged_dependency_for_commands() -> FlaggedDependency:
+    '''
+    A flagged dependency instance for command tests.
+    '''
+
+    return ModelObject.new(
+        FlaggedDependency,
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependencyAlpha',
+        flag='test_alpha',
+        parameters={
+            'test_param': 'test_value',
+            'param': 'value1',
+        },
+    )
 
 # ** fixture: container_attribute_and_constants
 @pytest.fixture
@@ -504,3 +523,214 @@ def test_set_default_service_configuration_incomplete_type(
 
     error: TiferetError = excinfo.value
     assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+
+
+# ** test: set_service_dependency_add_new
+def test_set_service_dependency_add_new(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceDependency adds a new flagged dependency when the
+    flag does not yet exist.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    # Existing attribute with no dependencies.
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_flags',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetServiceDependency
+
+    command = SetServiceDependency(container_service=mock_container_service)
+
+    result_id = command.execute(
+        id='svc_flags',
+        flag='alpha',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependencyAlpha',
+        parameters={'param': 'value'},
+    )
+
+    assert result_id == 'svc_flags'
+    assert len(attribute.dependencies) == 1
+    dep = attribute.get_dependency('alpha')
+    assert dep is not None
+    assert dep.flag == 'alpha'
+    assert dep.module_path == 'tiferet.models.tests.test_container'
+    assert dep.class_name == 'TestDependencyAlpha'
+    assert dep.parameters == {'param': 'value'}
+    mock_container_service.get_attribute.assert_called_once_with('svc_flags')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+
+# ** test: set_service_dependency_update_existing
+def test_set_service_dependency_update_existing(
+    mock_container_service: ContainerService,
+    flagged_dependency_for_commands: FlaggedDependency,
+):
+    '''
+    Test that SetServiceDependency updates an existing flagged
+    dependency when the flag already exists.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    :param flagged_dependency_for_commands: The existing flagged dependency.
+    :type flagged_dependency_for_commands: FlaggedDependency
+    '''
+
+    # Attribute with one existing flagged dependency.
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_flags_update',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[flagged_dependency_for_commands],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetServiceDependency
+
+    command = SetServiceDependency(container_service=mock_container_service)
+
+    # Update dependency parameters and type via command.
+    result_id = command.execute(
+        id='svc_flags_update',
+        flag='test_alpha',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependencyAlpha',
+        parameters={'test_param': 'updated', 'extra': None},
+    )
+
+    assert result_id == 'svc_flags_update'
+    dep = attribute.get_dependency('test_alpha')
+    assert dep is not None
+    # Type should be updated.
+    assert dep.module_path == 'tiferet.models.tests.test_container'
+    assert dep.class_name == 'TestDependencyAlpha'
+    # Parameters should be cleaned (None removed) via set_parameters.
+    # Existing parameters are replaced, so only updated keys remain.
+    assert dep.parameters == {'test_param': 'updated'}
+    mock_container_service.get_attribute.assert_called_once_with('svc_flags_update')
+    mock_container_service.save_attribute.assert_called_once_with(attribute)
+
+
+# ** test: set_service_dependency_missing_flag
+def test_set_service_dependency_missing_flag(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceDependency fails when flag is missing or empty.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_missing_flag',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetServiceDependency
+
+    command = SetServiceDependency(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_missing_flag',
+            flag=' ',
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+            parameters={'param': 'value'},
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == 'COMMAND_PARAMETER_REQUIRED'
+
+
+# ** test: set_service_dependency_incomplete_type
+def test_set_service_dependency_incomplete_type(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceDependency rejects an incomplete flagged
+    dependency when either module_path or class_name is missing.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    attribute = ModelObject.new(
+        ContainerAttribute,
+        id='svc_bad_dep',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
+        parameters={},
+        dependencies=[],
+    )
+
+    mock_container_service.get_attribute.return_value = attribute
+
+    from ..container import SetServiceDependency
+
+    command = SetServiceDependency(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='svc_bad_dep',
+            flag='alpha',
+            module_path='tiferet.models.tests.test_container',
+            class_name='',
+            parameters={'param': 'value'},
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_FLAGGED_DEPENDENCY_ID
+
+
+# ** test: set_service_dependency_not_found
+def test_set_service_dependency_not_found(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceDependency raises SERVICE_CONFIGURATION_NOT_FOUND
+    when the container attribute does not exist.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    mock_container_service.get_attribute.return_value = None
+
+    from ..container import SetServiceDependency
+
+    command = SetServiceDependency(container_service=mock_container_service)
+
+    with pytest.raises(TiferetError) as excinfo:
+        command.execute(
+            id='missing',
+            flag='alpha',
+            module_path='tiferet.models.tests.test_container',
+            class_name='TestDependency',
+            parameters={'param': 'value'},
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID

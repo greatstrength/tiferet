@@ -14,6 +14,7 @@ from ..assets.constants import (
     INVALID_SERVICE_CONFIGURATION_ID,
     ATTRIBUTE_ALREADY_EXISTS_ID,
     SERVICE_CONFIGURATION_NOT_FOUND_ID,
+    INVALID_FLAGGED_DEPENDENCY_ID,
 )
 
 # *** commands
@@ -187,6 +188,95 @@ class SetDefaultServiceConfiguration(Command):
         # Persist the updated attribute and return it.
         self.container_service.save_attribute(attribute)
         return attribute
+
+# ** command: set_service_dependency
+class SetServiceDependency(Command):
+    '''
+    Command to set or update a flagged dependency on an existing container
+    attribute.
+    '''
+
+    # * attribute: container_service
+    container_service: ContainerService
+
+    # * method: init
+    def __init__(self, container_service: ContainerService):
+        '''
+        Initialize the set service dependency command.
+
+        :param container_service: The container service.
+        :type container_service: ContainerService
+        '''
+
+        # Set the command attributes.
+        self.container_service = container_service
+
+    # * method: execute
+    def execute(
+        self,
+        id: str,
+        flag: str,
+        module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] = {},
+        **kwargs,
+    ) -> str:
+        '''
+        Set or update a flagged dependency for the given container
+        attribute.
+
+        :param id: The container attribute identifier.
+        :type id: str
+        :param flag: The flag that identifies the dependency.
+        :type flag: str
+        :param module_path: The module path for the dependency.
+        :type module_path: str
+        :param class_name: The class name for the dependency.
+        :type class_name: str
+        :param parameters: Parameters for the dependency.
+        :type parameters: Dict[str, Any]
+        :return: The container attribute id.
+        :rtype: str
+        '''
+
+        # Validate required flag (id is validated implicitly via lookup).
+        self.verify_parameter(
+            parameter=flag,
+            parameter_name='flag',
+            command_name=self.__class__.__name__,
+        )
+
+        # Ensure module_path and class_name are both provided for a valid
+        # flagged dependency.
+        self.verify(
+            bool(module_path) and bool(class_name),
+            INVALID_FLAGGED_DEPENDENCY_ID,
+        )
+
+        # Retrieve the existing attribute.
+        attribute = self.container_service.get_attribute(id)
+
+        # Verify that the attribute exists.
+        self.verify(
+            attribute is not None,
+            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            id=id,
+        )
+
+        # Delegate to the model to set/update the flagged dependency.
+        attribute.set_dependency(
+            flag=flag,
+            module_path=module_path,
+            class_name=class_name,
+            parameters=parameters,
+        )
+
+        # Persist the updated attribute.
+        self.container_service.save_attribute(attribute)
+
+        # Return the id for convenience/confirmation.
+        return id
+
 
 # ** command: list_all_settings
 class ListAllSettings(Command):
