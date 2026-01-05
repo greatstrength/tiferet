@@ -400,6 +400,68 @@ class RemoveServiceConfiguration(Command):
         return id
 
 
+# ** command: set_service_constants
+class SetServiceConstants(Command):
+    '''
+    Command to set or clear container-level constants.
+    '''
+
+    # * attribute: container_service
+    container_service: ContainerService
+
+    # * init
+    def __init__(self, container_service: ContainerService):
+        '''
+        Initialize the SetServiceConstants command.
+
+        :param container_service: The container service to use.
+        :type container_service: ContainerService
+        '''
+
+        # Set the command attributes.
+        self.container_service = container_service
+
+    # * method: execute
+    def execute(
+        self,
+        constants: Optional[Dict[str, Any]] = {},
+        **kwargs,
+    ) -> Dict[str, Any]:
+        '''
+        Set container constants.
+
+        :param constants: New constants dictionary, or None to clear all.
+            Keys with None value are removed using pop-style semantics.
+        :type constants: Dict[str, Any] | None
+        :param kwargs: Additional context.
+        :type kwargs: dict
+        :return: The updated constants dictionary.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Retrieve current constants from the container service.
+        _, current_constants = self.container_service.list_all()
+
+        if constants is None:
+            # Clear all constants.
+            updated = {}
+        else:
+            # Start from existing constants, then apply updates/removals.
+            updated = dict(current_constants or {})
+
+            # Update the current constants giving preference to the added ones.
+            updated.update(constants)
+        
+            # Remove any constants with a value of None
+            updated = {k: v for k, v in updated.items() if v != None}
+
+        # Persist the updated constants.
+        self.container_service.save_constants(updated)
+
+        # Return the updated constants dictionary.
+        return updated
+
+
 # ** command: list_all_settings
 class ListAllSettings(Command):
     '''

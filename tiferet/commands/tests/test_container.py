@@ -14,6 +14,7 @@ from ..container import (
     ListAllSettings,
     AddServiceConfiguration,
     RemoveServiceConfiguration,
+    SetServiceConstants,
 )
 from ...models import ModelObject, ContainerAttribute, FlaggedDependency
 from ...contracts import ContainerService
@@ -131,6 +132,177 @@ def test_execute_calls_container_service_list_all(
 
     # Assert that the container service's list_all method was called once.
     mock_container_service.list_all.assert_called_once()
+
+# ** test: set_service_constants_clear_all_with_none
+def test_set_service_constants_clear_all_with_none(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants clears all constants when None is passed.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    # Arrange existing constants.
+    existing_constants = {
+        'constant_1': 'value1',
+        'constant_2': 'value2',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(constants=None)
+
+    assert result == {}
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with({})
+
+# ** test: set_service_constants_partial_removal
+def test_set_service_constants_partial_removal(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants removes keys with None values while
+    preserving others.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    existing_constants = {
+        'keep': 'value',
+        'remove': 'to_delete',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(constants={'remove': None})
+
+    assert result == {'keep': 'value'}
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with({'keep': 'value'})
+
+# ** test: set_service_constants_add_new
+def test_set_service_constants_add_new(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants adds new constants on top of existing
+    ones.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    existing_constants = {
+        'existing': 'old',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(constants={'new': 'value'})
+
+    assert result == {
+        'existing': 'old',
+        'new': 'value',
+    }
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with({
+        'existing': 'old',
+        'new': 'value',
+    })
+
+# ** test: set_service_constants_update_existing
+def test_set_service_constants_update_existing(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants updates existing constant values.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    existing_constants = {
+        'to_update': 'old',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(constants={'to_update': 'new'})
+
+    assert result == {'to_update': 'new'}
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with({'to_update': 'new'})
+
+# ** test: set_service_constants_mixed_operations
+def test_set_service_constants_mixed_operations(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants can add, update, and remove constants in
+    a single call.
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    existing_constants = {
+        'keep': 'value',
+        'remove': 'to_delete',
+        'update': 'old',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(
+        constants={
+            'remove': None,
+            'update': 'new',
+            'add': 'added',
+        },
+    )
+
+    expected = {
+        'keep': 'value',
+        'update': 'new',
+        'add': 'added',
+    }
+
+    assert result == expected
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with(expected)
+
+# ** test: set_service_constants_empty_dict
+def test_set_service_constants_empty_dict(
+    mock_container_service: ContainerService,
+):
+    '''
+    Test that SetServiceConstants is idempotent when an empty dict is
+    provided (no changes to existing constants).
+
+    :param mock_container_service: The mock container service.
+    :type mock_container_service: ContainerService
+    '''
+
+    existing_constants = {
+        'keep': 'value',
+    }
+    mock_container_service.list_all.return_value = ([], existing_constants)
+
+    command = SetServiceConstants(container_service=mock_container_service)
+
+    result = command.execute(constants={})
+
+    assert result == existing_constants
+    mock_container_service.list_all.assert_called_once()
+    mock_container_service.save_constants.assert_called_once_with(existing_constants)
 
 # ** test: add_service_configuration_with_default_type_only
 def test_add_service_configuration_with_default_type_only(
