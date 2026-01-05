@@ -79,6 +79,9 @@ INVALID_SERVICE_CONFIGURATION_ID = 'INVALID_SERVICE_CONFIGURATION'
 # ** constant: attribute_already_exists_id
 ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
 
+# ** constant: service_configuration_not_found_id
+SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -313,6 +316,18 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'A container attribute with ID {id} already exists.',
+            }
+        ],
+    },
+
+    # * error: SERVICE_CONFIGURATION_NOT_FOUND
+    SERVICE_CONFIGURATION_NOT_FOUND_ID: {
+        'id': SERVICE_CONFIGURATION_NOT_FOUND_ID,
+        'name': 'Service Configuration Not Found',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Container attribute with ID {id} not found.',
             }
         ],
     },
