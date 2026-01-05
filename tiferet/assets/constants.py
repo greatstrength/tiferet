@@ -82,6 +82,9 @@ ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
 # ** constant: service_configuration_not_found_id
 SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
 
+# ** constant: invalid_flagged_dependency_id
+INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -328,6 +331,18 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'Container attribute with ID {id} not found.',
+            }
+        ],
+    },
+
+    # * error: INVALID_FLAGGED_DEPENDENCY
+    INVALID_FLAGGED_DEPENDENCY_ID: {
+        'id': INVALID_FLAGGED_DEPENDENCY_ID,
+        'name': 'Invalid Flagged Dependency',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A flagged dependency must define both module_path and class_name.',
             }
         ],
     },
