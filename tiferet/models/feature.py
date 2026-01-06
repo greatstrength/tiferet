@@ -173,20 +173,51 @@ class Feature(ModelObject):
         )
 
     # * method: add_command
-    def add_command(self, command: FeatureCommand, position: int = None):
+    def add_command(
+        self,
+        name: str,
+        attribute_id: str,
+        parameters: dict | None = None,
+        data_key: str | None = None,
+        pass_on_error: bool | None = None,
+        position: int | None = None,
+    ) -> FeatureCommand:
         '''Adds a service command to the feature.
 
-        :param command: The service command to add.
-        :type command: FeatureCommand
-        :param position: The position to add the handler at.
-        :type position: int
+        :param name: The name of the feature command.
+        :type name: str
+        :param attribute_id: The container attribute ID for the feature command.
+        :type attribute_id: str
+        :param parameters: Optional custom parameters for the feature command.
+        :type parameters: dict | None
+        :param data_key: Optional data key to store the command result under.
+        :type data_key: str | None
+        :param pass_on_error: Whether to pass on errors from the command.
+        :type pass_on_error: bool | None
+        :param position: The position to add the handler at. If ``None``, the
+            command is appended.
+        :type position: int | None
+        :return: The created feature command.
+        :rtype: FeatureCommand
         '''
+
+        # Construct the feature command from raw attributes.
+        command = ModelObject.new(
+            FeatureCommand,
+            name=name,
+            attribute_id=attribute_id,
+            parameters=parameters or {},
+            data_key=data_key,
+            pass_on_error=pass_on_error,
+        )
 
         # Add the feature command to the feature.
         if position is not None:
             self.commands.insert(position, command)
         else:
             self.commands.append(command)
+
+        return command
 
     # * method: rename
     def rename(self, name: str) -> None:

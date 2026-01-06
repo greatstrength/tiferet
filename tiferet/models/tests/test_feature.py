@@ -119,47 +119,49 @@ def test_feature_new_name_and_group_only():
     assert len(feature.commands) == 0
 
 # ** test: feature_add_service_command
-def test_feature_add_service_command(
-        feature: Feature,
-        feature_command: FeatureCommand
-    ):
+def test_feature_add_service_command(feature: Feature):
     '''
-    Test adding a FeatureCommand to a Feature.
+    Test adding a FeatureCommand to a Feature via raw attributes.
 
     :param feature: The feature to add the command to.
     :type feature: Feature
-    :param feature_command: The feature command to add.
-    :type feature_command: FeatureCommand
     '''
 
-    # Add another command
-    feature.add_command(feature_command)
+    command = feature.add_command(
+        name='Test Service Command',
+        attribute_id='test_feature_command',
+        parameters={'param1': 'value1'},
+    )
     assert len(feature.commands) == 1
 
     # Test that the new command is added to the list
-    assert feature.commands[0] == feature_command
+    assert feature.commands[0] == command
+    assert command.name == 'Test Service Command'
+    assert command.attribute_id == 'test_feature_command'
+    assert command.parameters == {'param1': 'value1'}
 
 # ** test: feature_add_command_position
-def test_feature_add_command_position(
-        feature: Feature,
-        feature_command: FeatureCommand
-    ):
+def test_feature_add_command_position(feature: Feature):
 
-    # Add a command at the beginning
-    feature.add_command(feature_command)
+    # Add a command at the end.
+    feature.add_command(
+        name='Existing Command',
+        attribute_id='existing_feature_command',
+        parameters={'param1': 'value1'},
+    )
 
-    # Create a new command and add it at the beginning.
-    new_command = ModelObject.new(
-        FeatureCommand,
+    # Add a new command at the beginning.
+    new_command = feature.add_command(
         name='New Service Command',
         attribute_id='new_feature_command',
         parameters={'param1': 'value1'},
+        position=0,
     )
-    feature.add_command(new_command, 0)
 
     # Test that the new command is added to the beginning of the list.
     assert len(feature.commands) == 2
     assert feature.commands[0] == new_command
+    assert feature.commands[0].attribute_id == 'new_feature_command'
 
 # ** test: feature_rename
 def test_feature_rename(feature: Feature):
