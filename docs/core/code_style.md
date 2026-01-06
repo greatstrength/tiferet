@@ -74,9 +74,9 @@ class FeatureContext:
     container: ContainerContext
 
     # * init
-    def __init__(self, 
-        feature_service: FeatureService, 
-        container: ContainerContext, 
+    def __init__(self,
+        get_feature_cmd: GetFeature,
+        container: ContainerContext,
         cache: CacheContext = None
     ):
         ...
@@ -153,10 +153,10 @@ Each method or initializer contains discrete code snippets, where each snippet r
 
   ```python
   # Try to get the feature by its id from the cache.
-  # If it does not exist, retrieve it from the feature handler and cache it.
+  # If it does not exist, retrieve it using the configured GetFeature command and cache it.
   feature = self.cache.get(feature_id)
   if not feature:
-      feature = self.feature_handler.get_feature(feature_id)
+      feature = self.get_feature_handler(id=feature_id)
       self.cache.set(feature_id, feature)
   ```
 
