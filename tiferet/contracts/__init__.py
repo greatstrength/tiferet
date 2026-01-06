@@ -34,7 +34,8 @@ from .error import (
 from .feature import (
     Feature as FeatureContract,
     FeatureCommand as FeatureCommandContract,
-    FeatureRepository
+    FeatureRepository,
+    FeatureService,
 )
 from .file import FileService
 from .logging import (
