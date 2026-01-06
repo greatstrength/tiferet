@@ -10,7 +10,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..feature import GetFeature, AddFeature
+from ..feature import GetFeature, AddFeature, ListFeatures
 from ...models import Feature, FeatureCommand, ModelObject
 from ...contracts import FeatureService
 from ...assets import TiferetError
@@ -231,3 +231,102 @@ def test_add_feature_already_exists(mock_feature_service: FeatureService):
     assert error.kwargs.get('id') == 'test_group.test_feature'
     mock_feature_service.exists.assert_called_once()
     mock_feature_service.save.assert_not_called()
+
+# ** test: list_features_success_all
+def test_list_features_success_all(mock_feature_service: FeatureService):
+    '''
+    Test that ListFeatures returns all features when no group_id is
+    specified.
+    '''
+
+    feature1 = ModelObject.new(
+        Feature,
+        id='group1.feature1',
+        name='Feature One',
+        group_id='group1',
+        feature_key='feature1',
+        description='First feature',
+        commands=[],
+    )
+    feature2 = ModelObject.new(
+        Feature,
+        id='group2.feature2',
+        name='Feature Two',
+        group_id='group2',
+        feature_key='feature2',
+        description='Second feature',
+        commands=[],
+    )
+
+    mock_feature_service.list.return_value = [feature1, feature2]
+
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+    )
+
+    assert result == [feature1, feature2]
+    mock_feature_service.list.assert_called_once_with(None)
+
+# ** test: list_features_by_group
+def test_list_features_by_group(mock_feature_service: FeatureService):
+    '''
+    Test that ListFeatures filters features by the provided group id.
+    '''
+
+    feature = ModelObject.new(
+        Feature,
+        id='group1.feature1',
+        name='Feature One',
+        group_id='group1',
+        feature_key='feature1',
+        description='First feature',
+        commands=[],
+    )
+
+    mock_feature_service.list.return_value = [feature]
+
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+        group_id='group1',
+    )
+
+    assert result == [feature]
+    mock_feature_service.list.assert_called_once_with('group1')
+
+
+# ** test: list_features_empty
+
+def test_list_features_empty(mock_feature_service: FeatureService):
+    '''
+    Test that ListFeatures returns an empty list when no features exist.
+    '''
+
+    mock_feature_service.list.return_value = []
+
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+    )
+
+    assert result == []
+    mock_feature_service.list.assert_called_once_with(None)
+
+# ** test: list_features_group_not_found
+def test_list_features_group_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that ListFeatures returns an empty list when the group id does not
+    exist.
+    '''
+
+    mock_feature_service.list.return_value = []
+
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+        group_id='missing_group',
+    )
+
+    assert result == []
+    mock_feature_service.list.assert_called_once_with('missing_group')

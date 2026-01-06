@@ -143,16 +143,8 @@ class AddFeature(Command):
             command_name=self.__class__.__name__,
         )
 
-        # Ensure the feature does not already exist.
-        exists = self.feature_service.exists(feature.id)
-        self.verify(
-            expression=exists is False,
-            error_code='FEATURE_ALREADY_EXISTS',
-            message=f'Feature with ID {feature.id} already exists.',
-            id=feature.id,
-        )
-
-        # Create the feature using the domain factory.
+        # Create the feature using the domain factory so that the effective id
+        # and feature_key are computed consistently.
         feature = Feature.new(
             name=name,
             group_id=group_id,
@@ -162,10 +154,57 @@ class AddFeature(Command):
             **kwargs,
         )
 
+        # Ensure the feature does not already exist.
+        exists = self.feature_service.exists(feature.id)
+        self.verify(
+            expression=exists is False,
+            error_code='FEATURE_ALREADY_EXISTS',
+            message=f'Feature with ID {feature.id} already exists.',
+            id=feature.id,
+        )
+
         # Persist and return the new feature.
         self.feature_service.save(feature)
         return feature
 
+# ** command: list_features
+class ListFeatures(Command):
+    '''
+    Command to list feature configurations.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * method: init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the ListFeatures command.
+
+        :param feature_service: The feature service to use for retrieving
+            feature configurations.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(self, group_id: str | None = None, **kwargs) -> list[Feature]:
+        '''
+        List feature configurations.
+
+        :param group_id: Optional group identifier used to filter the
+            returned features. If omitted, all features are returned.
+        :type group_id: str | None
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: A list of feature configurations.
+        :rtype: List[Feature]
+        '''
+
+        # List and return the features.
+        return self.feature_service.list(group_id)
 
 class AddFeatureCommand(object):
     '''
