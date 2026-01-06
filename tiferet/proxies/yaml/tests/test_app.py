@@ -8,6 +8,7 @@ import yaml
 
 # ** app
 from ....assets import TiferetError
+from ....data import DataObject, AppInterfaceConfigData
 from ..app import AppYamlProxy
 
 # *** fixtures
