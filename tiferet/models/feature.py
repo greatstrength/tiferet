@@ -187,3 +187,23 @@ class Feature(ModelObject):
             self.commands.insert(position, command)
         else:
             self.commands.append(command)
+
+    # * method: rename
+    def rename(self, name: str) -> None:
+        '''Rename the feature.
+
+        :param name: The new name for the feature.
+        :type name: str
+        '''
+
+        self.name = name
+
+    # * method: set_description
+    def set_description(self, description: str | None) -> None:
+        '''Update the feature description.
+
+        :param description: The new description for the feature.
+        :type description: str | None
+        '''
+
+        self.description = description

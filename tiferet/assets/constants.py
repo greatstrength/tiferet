@@ -13,6 +13,12 @@ ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 # ** constant: error_already_exists_id
 ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
 
+# ** constant: feature_name_required_id
+FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
+
+# ** constant: invalid_feature_attribute_id
+INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
+
 # ** constant: no_error_messages_id
 NO_ERROR_MESSAGES_ID = 'NO_ERROR_MESSAGES'
 
@@ -112,6 +118,24 @@ DEFAULT_ERRORS = {
         'name': 'Error Already Exists',
         'message': [
             {'lang': 'en_US', 'text': 'An error with ID {id} already exists.'}
+        ]
+    },
+
+    # * error: FEATURE_NAME_REQUIRED
+    FEATURE_NAME_REQUIRED_ID: {
+        'id': FEATURE_NAME_REQUIRED_ID,
+        'name': 'Feature Name Required',
+        'message': [
+            {'lang': 'en_US', 'text': 'A feature name is required when updating the name attribute.'}
+        ]
+    },
+
+    # * error: INVALID_FEATURE_ATTRIBUTE
+    INVALID_FEATURE_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Attribute',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid feature attribute: {attribute}. Supported attributes are name and description.'}
         ]
     },
 

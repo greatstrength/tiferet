@@ -160,3 +160,21 @@ def test_feature_add_command_position(
     # Test that the new command is added to the beginning of the list.
     assert len(feature.commands) == 2
     assert feature.commands[0] == new_command
+
+# ** test: feature_rename
+def test_feature_rename(feature: Feature):
+    '''
+    Test the rename helper on Feature.
+    '''
+
+    feature.rename('Renamed Feature')
+    assert feature.name == 'Renamed Feature'
+
+# ** test: feature_set_description
+def test_feature_set_description(feature: Feature):
+    '''
+    Test the set_description helper on Feature.
+    '''
+
+    feature.set_description('Updated description')
+    assert feature.description == 'Updated description'

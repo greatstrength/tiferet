@@ -9,7 +9,11 @@ from ..contracts.feature import (
     FeatureRepository,
     FeatureService,
 )
-from ..assets.constants import FEATURE_NOT_FOUND_ID
+from ..assets.constants import (
+    FEATURE_NOT_FOUND_ID,
+    FEATURE_NAME_REQUIRED_ID,
+    INVALID_FEATURE_ATTRIBUTE_ID,
+)
 from ..assets import TiferetError
 from .settings import Command
 
@@ -205,6 +209,92 @@ class ListFeatures(Command):
 
         # List and return the features.
         return self.feature_service.list(group_id)
+
+
+# ** command: update_feature
+class UpdateFeature(Command):
+    '''
+    Command to update feature information.
+
+    This command supports updating either the ``name`` or ``description``
+    attributes of an existing :class:`Feature`.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * method: init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the UpdateFeature command.
+
+        :param feature_service: The feature service to use for retrieving and
+            persisting features.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(self, id: str, attribute: str, value, **kwargs) -> Feature:
+        '''
+        Update a feature attribute.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param attribute: The attribute to update (``name`` or ``description``).
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: The updated feature.
+        :rtype: Feature
+        '''
+
+        # Only the attribute parameter is formally verified here; the id is
+        # implicitly validated by ensuring a feature is successfully
+        # retrieved.
+        self.verify_parameter(
+            parameter=attribute,
+            parameter_name='attribute',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the feature and verify that it exists.
+        feature = self.feature_service.get_feature(id)
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Validate the attribute using the base verify helper.
+        self.verify(
+            expression=attribute in {'name', 'description'},
+            error_code=INVALID_FEATURE_ATTRIBUTE_ID,
+            message=f'Invalid feature attribute: {attribute}',
+            attribute=attribute,
+        )
+
+        # Apply the update based on the attribute, using verify for name
+        # requirements as well.
+        if attribute == 'name':
+            self.verify(
+                expression=value is not None,
+                error_code=FEATURE_NAME_REQUIRED_ID,
+                message='A feature name is required when updating the name attribute.',
+            )
+            feature.rename(value)
+        elif attribute == 'description':
+            feature.set_description(value)
+
+        # Persist and return the updated feature.
+        self.feature_service.save(feature)
+        return feature
+
 
 class AddFeatureCommand(object):
     '''
