@@ -242,15 +242,13 @@ def test_container_attribute_yaml_data_from_model(container_attribute_config_dat
     # Create a new model object from the fixture.
     model_object = container_attribute_config_data.map()
     
-    # Update the model object with a new dependency.
-    new_dep = ModelObject.new(
-        FlaggedDependency,
-        module_path='tests.repos.test',
-        class_name='TestRepoProxy3',
-        flag='test3',
-        parameters={'param3': 'value3'}
+    # Add another dependency to the model object.
+    model_object.set_dependency(
+        flag = 'test3',
+        module_path = 'tests.repos.test',
+        class_name = 'TestRepoProxy3',
+        parameters = {'param3': 'value3'}
     )
-    model_object.set_dependency(new_dep)
     
     # Create a new data object from the model object.
     data_object = ContainerAttributeConfigData.from_model(model_object)

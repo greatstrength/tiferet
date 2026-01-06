@@ -28,9 +28,6 @@ FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 
-# ** constant: container_attributes_not_found_id
-CONTAINER_ATTRIBUTES_NOT_FOUND_ID = 'CONTAINER_ATTRIBUTES_NOT_FOUND'
-
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
 
@@ -75,6 +72,18 @@ UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
+
+# ** constant: invalid_service_configuration_id
+INVALID_SERVICE_CONFIGURATION_ID = 'INVALID_SERVICE_CONFIGURATION'
+
+# ** constant: attribute_already_exists_id
+ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
+
+# ** constant: service_configuration_not_found_id
+SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
+
+# ** constant: invalid_flagged_dependency_id
+INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
 # ** constant: default_errors
 DEFAULT_ERRORS = {
@@ -148,15 +157,6 @@ DEFAULT_ERRORS = {
         'name': 'App Repository Import Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import app repository: {exception}.'}
-        ]
-    },
-
-    # * error: CONTAINER_ATTRIBUTES_NOT_FOUND
-    CONTAINER_ATTRIBUTES_NOT_FOUND_ID: {
-        'id': CONTAINER_ATTRIBUTES_NOT_FOUND_ID,
-        'name': 'Container Attributes Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'No container attributes provided to load the container.'}
         ]
     },
 
@@ -294,6 +294,57 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'App interface with ID {interface_id} not found.'}
         ]
+    },
+
+    # * error: INVALID_SERVICE_CONFIGURATION
+    INVALID_SERVICE_CONFIGURATION_ID: {
+        'id': INVALID_SERVICE_CONFIGURATION_ID,
+        'name': 'Invalid Service Configuration',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': (
+                    'A container attribute must define either a default type '
+                    '(module_path/class_name) or at least one flagged dependency.'
+                ),
+            }
+        ],
+    },
+
+    # * error: ATTRIBUTE_ALREADY_EXISTS
+    ATTRIBUTE_ALREADY_EXISTS_ID: {
+        'id': ATTRIBUTE_ALREADY_EXISTS_ID,
+        'name': 'Attribute Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A container attribute with ID {id} already exists.',
+            }
+        ],
+    },
+
+    # * error: SERVICE_CONFIGURATION_NOT_FOUND
+    SERVICE_CONFIGURATION_NOT_FOUND_ID: {
+        'id': SERVICE_CONFIGURATION_NOT_FOUND_ID,
+        'name': 'Service Configuration Not Found',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Container attribute with ID {id} not found.',
+            }
+        ],
+    },
+
+    # * error: INVALID_FLAGGED_DEPENDENCY
+    INVALID_FLAGGED_DEPENDENCY_ID: {
+        'id': INVALID_FLAGGED_DEPENDENCY_ID,
+        'name': 'Invalid Flagged Dependency',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A flagged dependency must define both module_path and class_name.',
+            }
+        ],
     },
 
     # * error: INVALID_DEPENDENCY_ERROR

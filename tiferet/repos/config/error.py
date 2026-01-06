@@ -1,4 +1,4 @@
-"""Tiferet Error YAML Proxy"""
+"""Tiferet Error Configuration Repository"""
 
 # *** imports
 
