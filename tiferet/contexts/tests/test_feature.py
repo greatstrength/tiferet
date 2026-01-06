@@ -9,11 +9,11 @@ from unittest import mock
 
 # ** app
 from ..feature import (
-    FeatureService, 
-    ContainerContext, 
+    ContainerContext,
     FeatureContext,
-    RequestContext
+    RequestContext,
 )
+from ...commands.feature import GetFeature
 from ...assets import TiferetError
 from ...commands import Command
 from ...models import (
@@ -24,16 +24,13 @@ from ...models import (
 
 # *** fixtures
 
-# ** fixture: feature_service
+# ** fixture: get_feature_cmd
 @pytest.fixture
-def feature_service():
-    """Fixture to provide a mock feature service."""
-    
-    # Create a mock feature service.
-    service = mock.Mock(spec=FeatureService)
-    
-    # Return the mock feature service.
-    return service
+def get_feature_cmd():
+    """Fixture to provide a mock GetFeature command."""
+
+    cmd = mock.Mock(spec=GetFeature)
+    return cmd
 
 # ** fixture: container_context
 @pytest.fixture
@@ -51,13 +48,12 @@ def container_context(test_command):
 
 # ** fixture: feature_context
 @pytest.fixture
-def feature_context(feature_service, container_context):
+def feature_context(get_feature_cmd, container_context):
     """Fixture to provide an instance of FeatureContext."""
-    
-    # Create an instance of FeatureContext with the mock feature service and container context.
+
     return FeatureContext(
-        feature_service=feature_service, 
-        container=container_context
+        get_feature_cmd=get_feature_cmd,
+        container=container_context,
     )
 
 # ** fixture: test_command
@@ -183,7 +179,7 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature
-def test_feature_context_execute_feature(feature_context, feature_service, feature):
+def test_feature_context_execute_feature(feature_context, get_feature_cmd, feature):
 
     # Create a standard feature command with no data key or pass on error.
     feature_command = ModelObject.new(
@@ -192,9 +188,9 @@ def test_feature_context_execute_feature(feature_context, feature_service, featu
         name='Test Command'
     )
 
-    # Add it to the feature and set as the feature service's return value.
+    # Add it to the feature and set as the GetFeature command's return value.
     feature.add_command(feature_command)
-    feature_service.get_feature.return_value = feature
+    get_feature_cmd.execute.return_value = feature
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
@@ -206,7 +202,7 @@ def test_feature_context_execute_feature(feature_context, feature_service, featu
     assert request.handle_response() == {"status": "success", "data": {"key": "value"}}
 
 # ** test: feature_context_execute_feature_with_data_key_parameter
-def test_feature_context_execute_feature_with_request_parameter(feature_context, feature_service, feature):
+def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_cmd, feature):
     """Test executing a feature with a request parameter in the FeatureContext."""
     
     # Create a standard feature command with a data key.
@@ -220,9 +216,9 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
         data_key='response_data'
     )
 
-    # Add it to the feature and set as the feature service's return value.
+    # Add it to the feature and set as the GetFeature command's return value.
     feature.add_command(feature_command)
-    feature_service.get_feature.return_value = feature
+    get_feature_cmd.execute.return_value = feature
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
@@ -235,7 +231,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value", "param": "value"}}
 
 # ** test: feature_context_execute_feature_with_pass_on_error
-def test_feature_context_execute_feature_with_pass_on_error(feature_context, feature_service, feature):
+def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_cmd, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
     
     # Create a standard feature command with pass_on_error set to True.
@@ -246,9 +242,9 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
         pass_on_error=True
     )
 
-    # Add it to the feature and set as the feature service's return value.
+    # Add it to the feature and set as the GetFeature command's return value.
     feature.add_command(feature_command)
-    feature_service.get_feature.return_value = feature
+    get_feature_cmd.execute.return_value = feature
 
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})

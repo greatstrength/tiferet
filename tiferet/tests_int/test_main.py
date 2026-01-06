@@ -5,6 +5,7 @@ import pytest
 
 # ** app
 from .. import App, TiferetAPIError
+from ..handlers.app import AppHandler
 
 # *** fixtures
 
@@ -12,13 +13,16 @@ from .. import App, TiferetAPIError
 @pytest.fixture
 def app_context():
 
-    return App(settings=dict(
-        app_repo_module_path='tiferet.proxies.yaml.app',
-        app_repo_class_name='AppYamlProxy',
-        app_repo_params=dict(
-            app_config_file='tiferet/configs/tests/test_calc.yml'
+    return App(
+        app_service=AppHandler(),
+        settings=dict(
+            app_repo_module_path='tiferet.proxies.yaml.app',
+            app_repo_class_name='AppYamlProxy',
+            app_repo_params=dict(
+                app_config_file='tiferet/configs/tests/test_calc.yml'
+            )
         )
-    ))
+    )
 
 # ** fixture: basic_calc
 @pytest.fixture

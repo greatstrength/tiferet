@@ -91,8 +91,20 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Get the app interface settings.
-        app_interface = self.app_service.get_app_interface(interface_id)
+        # Get the app repository from the app service and the settings.
+        app_repository = self.app_service.load_app_repository(
+            app_repo_module_path=self.settings.get('app_repo_module_path', 'tiferet.proxies.yaml.app'),
+            app_repo_class_name=self.settings.get('app_repo_class_name', 'AppYamlProxy'),
+            app_repo_params=self.settings.get('app_repo_params', {}),
+        )
+
+        app_interface = Command.handle(
+            GetAppInterface,
+            dependencies={
+                'app_repo': app_repository,
+            },
+            interface_id=interface_id
+        )
 
         # Retrieve the default attributes from the configuration.
         default_attrs = [ModelObject.new(

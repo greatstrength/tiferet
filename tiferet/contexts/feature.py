@@ -1,11 +1,13 @@
 # *** imports
 
+# ** core
+from typing import Callable
+
 # ** app
 from .container import ContainerContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..models import FeatureCommand
-from ..handlers.feature import FeatureService
 from ..assets.constants import (
     FEATURE_COMMAND_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
@@ -16,6 +18,7 @@ from ..commands import (
     RaiseError,
     ParseParameter,
 )
+from ..commands.feature import GetFeature
 
 # *** contexts
 
@@ -28,19 +31,19 @@ class FeatureContext(object):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: feature_service
-    feature_service: FeatureService
+    # * attribute: get_feature_handler
+    get_feature_handler: Callable
 
     # * method: init
-    def __init__(self, 
-            feature_service: FeatureService,
+    def __init__(self,
+            get_feature_cmd: GetFeature,
             container: ContainerContext,
             cache: CacheContext = None):
         '''
         Initialize the feature context.
 
-        :param feature_service: The feature service to use for executing feature requests.
-        :type feature_service: FeatureService
+        :param get_feature_cmd: The command used to retrieve features by ID.
+        :type get_feature_cmd: GetFeature
         :param container: The container context for dependency injection.
         :type container: ContainerContext
         :param cache: The cache context to use for caching feature data.
@@ -48,8 +51,7 @@ class FeatureContext(object):
         '''
 
         # Assign the attributes.
-        self.feature_service = feature_service
-        self.feature_handler = feature_service
+        self.get_feature_handler = get_feature_cmd.execute
         self.container = container
         self.cache = cache if cache else CacheContext()
 
@@ -226,6 +228,26 @@ class FeatureContext(object):
             **kwargs
         )
 
+    # * method: load_feature
+    def load_feature(self, feature_id: str):
+        '''
+        Load a feature by its ID, using the cache when possible.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :return: The loaded feature.
+        :rtype: Any
+        '''
+
+        # Try to get the feature from the cache first.
+        feature = self.cache.get(feature_id)
+        if not feature:
+            # Retrieve via the configured GetFeature command handler and cache the result.
+            feature = self.get_feature_handler(id=feature_id)
+            self.cache.set(feature_id, feature)
+
+        return feature
+
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -259,7 +281,6 @@ class FeatureContext(object):
                 data_key=feature_command.data_key,
                 pass_on_error=feature_command.pass_on_error,
                 **params,
-                features=self.feature_service,
                 container=self.container,
                 cache=self.cache,
                 **kwargs,

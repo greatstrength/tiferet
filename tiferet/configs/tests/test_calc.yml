@@ -55,15 +55,10 @@ features:
       name: Square Number Feature
 interfaces:
   test_calc:
-    attrs:
-      feature_repo:
-        class_name: FeatureYamlProxy
-        module_path: tiferet.proxies.yaml.feature
-        params:
-          feature_config_file: tiferet/configs/tests/test_calc.yml
     const:
       error_config_file: tiferet/configs/tests/test_calc.yml
       container_config_file: tiferet/configs/tests/test_calc.yml
+      feature_config_file: tiferet/configs/tests/test_calc.yml
       logging_config_file: tiferet/configs/tests/test_calc.yml
     description: The interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator

@@ -85,6 +85,11 @@ class ErrorContext(object):
         if not isinstance(exception, (TiferetError, LegacyTiferetError)):
             raise exception
 
+        # Retrieve the error details.
+        error: Error = self.get_error_by_code(
+            exception.error_code
+        )
+
         # Format the error response.
         if isinstance(exception, LegacyTiferetError):
             error_message = error.format_message(

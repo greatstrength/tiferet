@@ -11,7 +11,12 @@ from ..commands import (
     RaiseError
 )
 from ..commands.dependencies import create_injector, get_dependency
-from ..contracts.app import *
+from ..contracts.app import (
+    AppInterface as AppInterfaceContract,
+    AppAttribute as AppAttributeContract,
+    AppService,
+    AppRepository
+)
 
 # *** handlers
 
@@ -159,7 +164,7 @@ class AppHandler(AppService):
         
         # Raise an error if the app interface is not found.
         if not app_interface:
-            raise_error.execute(
+            RaiseError.execute(
                 'APP_INTERFACE_NOT_FOUND',
                 f'App interface not found: {interface_id}.',
                 interface_id,
