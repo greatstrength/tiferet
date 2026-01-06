@@ -1,14 +1,14 @@
 # *** imports
 
+# ** core
+from typing import List
+
 # ** app
 from ..assets.constants import (
-    REQUEST_NOT_FOUND_ID,
-    PARAMETER_NOT_FOUND_ID,
-    FEATURE_NOT_FOUND_ID
+    FEATURE_NOT_FOUND_ID,
 )
 from ..commands import (
-    ParseParameter,
-    RaiseError
+    RaiseError,
 )
 from ..contracts.feature import *
 
@@ -35,45 +35,66 @@ class FeatureHandler(FeatureService):
         # Assign the feature repository.
         self.feature_repo = feature_repo
 
-    # * method: parse_parameter
-    def parse_parameter(self, parameter: str, request: Request = None) -> str:
+    # * method: exists
+    def exists(self, id: str) -> bool:
         '''
-        Parse a parameter.
+        Check if the feature exists.
 
-        
-        :param parameter: The parameter to parse.
-        :type parameter: str:
-        param request: The request object containing data for parameter parsing.
-        :type request: Request
-        :return: The parsed parameter.
-        :rtype: str
+        :param id: The feature id.
+        :type id: str
+        :return: Whether the feature exists.
+        :rtype: bool
         '''
 
-        # Parse the parameter if it not a request parameter.
-        if not parameter.startswith('$r.'):
-            return ParseParameter.execute(parameter)
-        
-        # Raise an error if the request is and the parameter comes from the request.
-        if not request and parameter.startswith('$r.'):
-            RaiseError.execute(
-                REQUEST_NOT_FOUND_ID,
-                'Request data is not available for parameter parsing.',
-                parameter=parameter
-            )
-    
-        # Parse the parameter from the request if provided.
-        result = request.data.get(parameter[3:], None)
-        
-        # Raise an error if the parameter is not found in the request data.
-        if result is None:
-            RaiseError.execute(
-                PARAMETER_NOT_FOUND_ID,
-                f'Parameter {parameter} not found in request data.',
-                parameter=parameter
-            )
+        return self.feature_repo.exists(id)
 
-        # Return the parsed parameter.
-        return result
+    # * method: get
+    def get(self, id: str) -> Feature:
+        '''
+        Get the feature by id.
+
+        :param id: The feature id.
+        :type id: str
+        :return: The feature object.
+        :rtype: Feature
+        '''
+
+        return self.feature_repo.get(id)
+
+    # * method: list
+    def list(self, group_id: str = None) -> List[Feature]:
+        '''
+        List the features.
+
+        :param group_id: The group id.
+        :type group_id: str
+        :return: The list of features.
+        :rtype: List[Feature]
+        '''
+
+        return self.feature_repo.list(group_id)
+
+    # * method: save
+    def save(self, feature: Feature) -> None:
+        '''
+        Save the feature.
+
+        :param feature: The feature.
+        :type feature: Feature
+        '''
+
+        self.feature_repo.save(feature)
+
+    # * method: delete
+    def delete(self, id: str) -> None:
+        '''
+        Delete the feature.
+
+        :param id: The feature id.
+        :type id: str
+        '''
+
+        self.feature_repo.delete(id)
 
     # * method: get_feature
     def get_feature(self, feature_id: str) -> Feature:

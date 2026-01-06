@@ -4,11 +4,17 @@
 from .container import ContainerContext
 from .cache import CacheContext
 from .request import RequestContext
+from ..models import FeatureCommand
 from ..handlers.feature import FeatureService
-from ..assets.constants import FEATURE_COMMAND_LOADING_FAILED_ID
+from ..assets.constants import (
+    FEATURE_COMMAND_LOADING_FAILED_ID,
+    REQUEST_NOT_FOUND_ID,
+    PARAMETER_NOT_FOUND_ID,
+)
 from ..commands import (
     Command,
-    RaiseError
+    RaiseError,
+    ParseParameter,
 )
 
 # *** contexts
@@ -24,10 +30,6 @@ class FeatureContext(object):
 
     # * attribute: feature_service
     feature_service: FeatureService
-
-    # * attribute: feature_handler
-    feature_handler: FeatureHandler
-
 
     # * method: init
     def __init__(self, 
@@ -51,26 +53,44 @@ class FeatureContext(object):
         self.container = container
         self.cache = cache if cache else CacheContext()
 
-    # * method: load_feature
-    def load_feature(self, feature_id: str) -> Feature:
+    # * method: parse_request_parameter
+    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
         '''
-        Retrieve a FlaskFeature by its feature ID.
+        Parse a parameter value with access to the request context.
 
-        :param feature_id: The feature ID to look up.
-        :type feature_id: str
-        :return: The corresponding Feature instance.
-        :rtype: Feature
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request object containing data for parameter parsing.
+        :type request: RequestContext
+        :return: The parsed parameter.
+        :rtype: str
         '''
-        
-        # Try to get the feature by its id from the cache.
-        # If it does not exist, retrieve it from the feature handler and cache it.
-        feature = self.cache.get(feature_id)
-        if not feature:
-            feature = self.feature_handler.get_feature(feature_id)
-            self.cache.set(feature_id, feature)
 
-        # Return the feature.
-        return feature
+        # Parse the parameter if it is not a request parameter.
+        if not parameter.startswith('$r.'):
+            return ParseParameter.execute(parameter)
+
+        # Raise an error if the request is missing and the parameter comes from the request.
+        if not request:
+            RaiseError.execute(
+                REQUEST_NOT_FOUND_ID,
+                'Request data is not available for parameter parsing.',
+                parameter=parameter,
+            )
+
+        # Parse the parameter from the request if provided.
+        result = request.data.get(parameter[3:], None)
+
+        # Raise an error if the parameter is not found in the request data.
+        if result is None:
+            RaiseError.execute(
+                PARAMETER_NOT_FOUND_ID,
+                f'Parameter {parameter} not found in request data.',
+                parameter=parameter,
+            )
+
+        # Return the parsed parameter.
+        return result
 
     # * method: load_feature_command
     def load_feature_command(self, attribute_id: str) -> Command:
@@ -111,11 +131,11 @@ class FeatureContext(object):
 
         # Parse the parameter if it not a request parameter.
         if not parameter.startswith('$r.'):
-            return parse_parameter.execute(parameter)
+            return ParseParameter.execute(parameter)
         
         # Raise an error if the request is and the parameter comes from the request.
         if not request and parameter.startswith('$r.'):
-            raise_error.execute(
+            RaiseError.execute(
                 'REQUEST_NOT_FOUND',
                 'Request data is not available for parameter parsing.',
                 parameter
@@ -126,7 +146,7 @@ class FeatureContext(object):
         
         # Raise an error if the parameter is not found in the request data.
         if result is None:
-            raise_error.execute(
+            RaiseError.execute(
                 'PARAMETER_NOT_FOUND',
                 f'Parameter {parameter} not found in request data.',
                 parameter
@@ -220,20 +240,27 @@ class FeatureContext(object):
         # Load the feature by its ID.
         feature = self.load_feature(feature_id)
 
-        # Load the command dependencies from the container for the feature.
-        commands = [
-            self.load_feature_command(cmd.attribute_id)
-            for cmd in feature.commands
-        ]
-              
-        # Execute each command in the feature with the request and feature command options.
-        for index, command in enumerate(commands):
-            self.handle_feature_command(
-                command=command,
-                request=request,
-                feature_command=feature.commands[index],
+        # Execute the feature with the request and commands.
+        for feature_command in feature.commands:
+
+            # Load the command dependency from the container for this feature command.
+            cmd = self.load_feature_command(feature_command.attribute_id)
+
+            # Parse the command parameters.
+            params = {
+                param: self.parse_request_parameter(value, request)
+                for param, value in feature_command.parameters.items()
+            }
+
+            # Execute the command with the request data and parameters.
+            self.handle_command(
+                cmd,
+                request,
+                data_key=feature_command.data_key,
+                pass_on_error=feature_command.pass_on_error,
+                **params,
                 features=self.feature_service,
                 container=self.container,
                 cache=self.cache,
-                **kwargs
+                **kwargs,
             )

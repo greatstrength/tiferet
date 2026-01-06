@@ -223,7 +223,6 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Add it to the feature and set as the feature service's return value.
     feature.add_command(feature_command)
     feature_service.get_feature.return_value = feature
-    feature_service.parse_parameter.return_value = 'value'
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
