@@ -297,7 +297,6 @@ def test_list_features_by_group(mock_feature_service: FeatureService):
 
 
 # ** test: list_features_empty
-
 def test_list_features_empty(mock_feature_service: FeatureService):
     '''
     Test that ListFeatures returns an empty list when no features exist.
