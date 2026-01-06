@@ -3,10 +3,8 @@
 # ** app
 from ..models.feature import (
     Feature,
-    FeatureCommand
 )
 from ..contracts.feature import (
-    FeatureRepository,
     FeatureService,
 )
 from ..assets.constants import (
@@ -295,52 +293,84 @@ class UpdateFeature(Command):
         self.feature_service.save(feature)
         return feature
 
-
-class AddFeatureCommand(object):
+# ** command: add_feature_command
+class AddFeatureCommand(Command):
     '''
     Adds a feature handler to a feature.
     '''
 
-    def __init__(self, feature_repo: FeatureRepository):
+    def __init__(self, feature_service: FeatureService):
         '''
         Initialize the command.
         
-        :param feature_repo: The feature repository.
-        :type feature_repo: FeatureRepository
+        :param feature_service: The feature service.
+        :type feature_service: FeatureService
         '''
 
-        # Set the feature repository.
-        self.feature_repo = feature_repo
+        # Set the feature service.
+        self.feature_service = feature_service
 
-    def execute(self, feature_id: str, position: int = None, **kwargs):
+    def execute(
+        self,
+        id: str,
+        name: str,
+        attribute_id: str,
+        parameters: dict | None = None,
+        data_key: str | None = None,
+        position: int | None = None,
+    ) -> str:
         '''
         Execute the command to add a feature handler to a feature.
 
-        :param feature_id: The feature ID.
-        :type feature_id: str
-        :param position: The position of the handler.
-        :type position: int
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The updated feature.
-        :rtype: Feature
+        :param id: The feature ID.
+        :type id: str
+        :param name: The name of the feature command.
+        :type name: str
+        :param attribute_id: The container attribute ID for the feature command.
+        :type attribute_id: str
+        :param parameters: Optional custom parameters for the feature command.
+        :type parameters: dict | None
+        :param data_key: Optional data key to store the command result under.
+        :type data_key: str | None
+        :param position: The position of the handler. If ``None``, the command
+            is appended.
+        :type position: int | None
+        :return: The feature ID.
+        :rtype: str
         '''
 
-        # Create a new feature handler instance.
-        handler = FeatureCommand.new(**kwargs)
-
-        # Get the feature using the feature ID.
-        feature = self.feature_repo.get(feature_id)
-
-        # Assert that the feature was successfully found.
-        assert feature is not None, f'FEATURE_NOT_FOUND: {feature_id}'
-
-        # Add the feature handler to the feature.
-        feature.add_command(
-            handler,
-            position=position
+        # Validate required parameters using the base command helper.
+        self.verify_parameter(
+            parameter=name,
+            parameter_name='name',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute_id,
+            parameter_name='attribute_id',
+            command_name=self.__class__.__name__,
         )
 
-        # Save and return the feature.
-        self.feature_repo.save(feature)
-        return feature
+        # Get the feature using the feature ID.
+        feature = self.feature_service.get(id)
+
+        # Verify that the feature was successfully found.
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Add the feature handler to the feature using raw attributes.
+        feature.add_command(
+            name=name,
+            attribute_id=attribute_id,
+            parameters=parameters or {},
+            data_key=data_key,
+            position=position,
+        )
+
+        # Save the updated feature and return its identifier.
+        self.feature_service.save(feature)
+        return id

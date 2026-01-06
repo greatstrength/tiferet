@@ -10,8 +10,18 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..feature import GetFeature, AddFeature, ListFeatures, UpdateFeature
-from ...models import Feature, FeatureCommand, ModelObject
+from ..feature import (
+    GetFeature,
+    AddFeature,
+    ListFeatures,
+    UpdateFeature,
+    AddFeatureCommand,
+)
+from ...models import (
+    Feature,
+    FeatureCommand,
+    ModelObject,
+)
 from ...contracts import FeatureService
 from ...assets import TiferetError
 from ...assets.constants import (
@@ -465,4 +475,104 @@ def test_update_feature_not_found(mock_feature_service: FeatureService):
     assert error.error_code == FEATURE_NOT_FOUND_ID
     assert error.kwargs.get('feature_id') == 'missing.feature'
     mock_feature_service.get_feature.assert_called_once_with('missing.feature')
+    mock_feature_service.save.assert_not_called()
+
+# ** test: add_feature_command_success
+def test_add_feature_command_success(mock_feature_service: FeatureService):
+    '''
+    Test that AddFeatureCommand successfully adds a command to an existing feature.
+    '''
+
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[],
+    )
+    mock_feature_service.get.return_value = feature
+
+    result = Command.handle(
+        AddFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id='test_group.test_feature',
+        name='Test Command',
+        attribute_id='test_command',
+        parameters={'param': 'value'},
+        data_key='response_data',
+        position=0,
+    )
+
+    assert result == 'test_group.test_feature'
+    mock_feature_service.get.assert_called_once_with('test_group.test_feature')
+    mock_feature_service.save.assert_called_once_with(feature)
+    assert len(feature.commands) == 1
+    cmd = feature.commands[0]
+    assert cmd.name == 'Test Command'
+    assert cmd.attribute_id == 'test_command'
+    assert cmd.parameters == {'param': 'value'}
+    assert cmd.data_key == 'response_data'
+
+# ** test: add_feature_command_missing_name
+def test_add_feature_command_missing_name(mock_feature_service: FeatureService):
+    '''
+    Test that AddFeatureCommand validates the required name parameter.
+    '''
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            AddFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='test_group.test_feature',
+            name=' ',
+            attribute_id='test_command',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: add_feature_command_missing_attribute_id
+def test_add_feature_command_missing_attribute_id(mock_feature_service: FeatureService):
+    '''
+    Test that AddFeatureCommand validates the required attribute_id parameter.
+    '''
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            AddFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='test_group.test_feature',
+            name='Test Command',
+            attribute_id=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: add_feature_command_feature_not_found
+def test_add_feature_command_feature_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that AddFeatureCommand raises FEATURE_NOT_FOUND when the feature does not exist.
+    '''
+
+    mock_feature_service.get.return_value = None
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            AddFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            name='Test Command',
+            attribute_id='test_command',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.kwargs.get('feature_id') == 'missing.feature'
+    mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
