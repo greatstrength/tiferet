@@ -71,41 +71,99 @@ class GetFeature(Command):
         return feature
 
 
-# ** command: add_new_feature
-class AddNewFeature(object):
+# ** command: add_feature
+class AddFeature(Command):
     '''
-    Add a new feature.
+    Command to add a new feature configuration.
+
+    This command creates a new :class:`Feature` instance using the
+    :meth:`Feature.new` factory method, validates the required parameters,
+    verifies that the feature does not already exist using the configured
+    :class:`FeatureService`, and then persists the new feature.
     '''
 
-    def __init__(self, feature_repo: FeatureRepository):
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * method: init
+    def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the command.
-        
-        :param feature_repo: The feature repository.
-        :type feature_repo: FeatureRepository
+        Initialize the AddFeature command.
+
+        :param feature_service: The feature service to use for managing
+            feature configurations.
+        :type feature_service: FeatureService
         '''
 
-        # Set the feature repository.
-        self.feature_repo = feature_repo
+        # Set the feature service.
+        self.feature_service = feature_service
 
-    def execute(self, **kwargs) -> Feature:
+    # * method: execute
+    def execute(
+        self,
+        name: str,
+        group_id: str,
+        feature_key: str | None = None,
+        id: str | None = None,
+        description: str | None = None,
+        **kwargs,
+    ) -> Feature:
         '''
-        Execute the command to add a new feature.
-        
-        :param kwargs: The keyword arguments.
+        Create and persist a new feature configuration.
+
+        :param name: The name of the feature.
+        :type name: str
+        :param group_id: The context group identifier of the feature.
+        :type group_id: str
+        :param feature_key: Optional explicit feature key. If not provided,
+            the key is derived from the name.
+        :type feature_key: str | None
+        :param id: Optional explicit feature identifier. If not provided, the
+            identifier is computed as ``"{group_id}.{feature_key}"``.
+        :type id: str | None
+        :param description: Optional description of the feature. Defaults to
+            the ``name`` if not provided.
+        :type description: str | None
+        :param kwargs: Additional keyword arguments passed through to
+            :meth:`Feature.new` (for example, commands or log_params).
         :type kwargs: dict
-        :return: The new feature.
+        :return: The newly created feature.
+        :rtype: Feature
         '''
 
-        # Create a new feature.
-        feature = Feature.new(**kwargs)
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=name,
+            parameter_name='name',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=group_id,
+            parameter_name='group_id',
+            command_name=self.__class__.__name__,
+        )
 
-        # Assert that the feature does not already exist.
-        assert not self.feature_repo.exists(
-            feature.id), f'FEATURE_ALREADY_EXISTS: {feature.id}'
+        # Ensure the feature does not already exist.
+        exists = self.feature_service.exists(feature.id)
+        self.verify(
+            expression=exists is False,
+            error_code='FEATURE_ALREADY_EXISTS',
+            message=f'Feature with ID {feature.id} already exists.',
+            id=feature.id,
+        )
 
-        # Save and return the feature.
-        self.feature_repo.save(feature)
+        # Create the feature using the domain factory.
+        feature = Feature.new(
+            name=name,
+            group_id=group_id,
+            feature_key=feature_key,
+            id=id,
+            description=description,
+            **kwargs,
+        )
+
+        # Persist and return the new feature.
+        self.feature_service.save(feature)
         return feature
 
 
