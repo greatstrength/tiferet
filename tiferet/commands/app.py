@@ -125,16 +125,16 @@ class GetAppInterface(Command):
     A command to get the application interface by its ID.
     '''
 
-    def __init__(self, app_repo: AppRepository):
+    def __init__(self, app_service: AppService):
         '''
-        Initialize the LoadAppInterface command.
+        Initialize the GetAppInterface command.
 
-        :param app_repo: The application repository instance.
-        :type app_repo: AppRepository
+        :param app_service: The application service instance.
+        :type app_service: AppService
         '''
-        
-        # Set the application repository.
-        self.app_repo = app_repo
+
+        # Set the application service.
+        self.app_service = app_service
 
     # * method: execute
     def execute(self, interface_id: str, **kwargs) -> AppInterface:
@@ -152,7 +152,7 @@ class GetAppInterface(Command):
 
         # Load the application interface.
         # Raise an error if the interface is not found.
-        interface = self.app_repo.get_interface(interface_id)
+        interface = self.app_service.get(interface_id)
         if not interface:
             self.raise_error(
                 APP_INTERFACE_NOT_FOUND_ID,

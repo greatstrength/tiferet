@@ -12,7 +12,7 @@ from ...models import (
     AppInterface,
     AppAttribute
 )
-from ...contracts import AppRepository, AppService
+from ...contracts import AppService
 from ..app import GetAppInterface, AddAppInterface
 from ..settings import TiferetError, Command
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
@@ -58,35 +58,6 @@ def app_interface():
         ],
     )
 
-# ** fixture: app_repo
-@pytest.fixture
-def app_repo(app_interface):
-    '''
-    Fixture to create a mock AppRepository instance.
-    
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    '''
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-    app_repo.config_file = 'tiferet/configs/test.yml'
-    app_repo.get_interface.return_value = app_interface
-    return app_repo
-
-# ** fixture: get_app_interface_cmd
-@pytest.fixture
-def get_app_interface_cmd(app_repo):
-    '''
-    Fixture to create an instance of GetAppInterface command.
-    
-    :param app_repo: The mock AppRepository instance.
-    :type app_repo: AppRepository
-    :return: An instance of GetAppInterface.
-    :rtype: GetAppInterface
-    '''
-    # Create an instance of GetAppInterface with the mock app repository.
-    return GetAppInterface(app_repo=app_repo)
 
 # *** tests
 
@@ -185,7 +156,7 @@ def test_add_app_interface_missing_required_field(mock_app_service: AppService):
     mock_app_service.save.assert_not_called()
 
 # ** test: test_get_app_interface_not_found
-def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
+def test_get_app_interface_not_found(mock_app_service: AppService):
     '''
     Test the GetAppInterface command when the app interface is not found.
     
@@ -193,18 +164,22 @@ def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
     :type get_app_interface_cmd: GetAppInterface
     '''
 
-    app_repo.get_interface.return_value = None  # Simulate that the interface is not found.
+    mock_app_service.get.return_value = None  # Simulate that the interface is not found.
 
     # Attempt to get an app interface that does not exist.
     with pytest.raises(TiferetError) as exc_info:
-        get_app_interface_cmd.execute(interface_id='non_existent_id')
+        Command.handle(
+            GetAppInterface,
+            dependencies={'app_service': mock_app_service},
+            interface_id='non_existent_id',
+        )
     
     # Assert that the error message contains the expected text.
     assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
     assert 'App interface with ID non_existent_id not found.' in str(exc_info.value)
 
 # ** test: test_get_app_interface_success
-def test_get_app_interface_success(get_app_interface_cmd, app_interface):
+def test_get_app_interface_success(mock_app_service: AppService, app_interface: AppInterface):
     '''
     Test the GetAppInterface command when the app interface is found.
     
@@ -214,8 +189,14 @@ def test_get_app_interface_success(get_app_interface_cmd, app_interface):
     :type app_interface: AppInterface
     '''
 
-    # Execute the command to get the app interface.
-    result = get_app_interface_cmd.execute(interface_id='test')
+    mock_app_service.get.return_value = app_interface
+
+    # Execute the command to get the app interface via Command.handle.
+    result = Command.handle(
+        GetAppInterface,
+        dependencies={'app_service': mock_app_service},
+        interface_id='test',
+    )
 
     # Assert that the returned interface matches the expected app interface.
     assert result == app_interface, 'Should return the correct AppInterface instance'

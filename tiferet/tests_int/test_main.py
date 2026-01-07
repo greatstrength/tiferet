@@ -14,8 +14,8 @@ def app_context():
 
     return App(
         {
-            'app_repo_module_path': 'tiferet.proxies.yaml.app',
-            'app_repo_class_name': 'AppYamlProxy',
+            'app_repo_module_path': 'tiferet.repos.config.app',
+            'app_repo_class_name': 'AppConfigurationRepository',
             'app_repo_params': {
                 'app_config_file': 'tiferet/configs/tests/test_calc.yml',
             },

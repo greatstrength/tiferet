@@ -15,7 +15,7 @@ from ...models import (
     AppInterface,
     AppAttribute,
 )
-from ...contracts import AppRepository
+from ...contracts import AppService
 from ..app import (
     FeatureContext,
     ErrorContext,
@@ -37,11 +37,14 @@ from ...models import (
 # ** fixture: settings
 @pytest.fixture
 def settings():
-    """Fixture to provide application settings for a custom app repo."""
+    """Fixture to provide application settings for a custom app service.
+
+    Uses the AppConfigurationRepository as the backing AppService.
+    """
 
     return {
-        'app_repo_module_path': 'tiferet.proxies.yaml.app',
-        'app_repo_class_name': 'AppYamlProxy',
+        'app_repo_module_path': 'tiferet.repos.config.app',
+        'app_repo_class_name': 'AppConfigurationRepository',
         'app_repo_params': {
             'app_config_file': 'tiferet/configs/tests/test.yml',
         },
@@ -69,24 +72,14 @@ def app_interface():
         attributes=[],
     )
 
-# ** fixture: app_repo
+# ** fixture: app_service
 @pytest.fixture
-def app_repo(app_interface):
-    """
-    Fixture to create a mock AppRepository instance.
+def app_service(app_interface: AppInterface) -> AppService:
+    """Fixture to create a mock AppService instance."""
 
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    """
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-
-    # Set the return value for the get_interface method.
-    app_repo.get_interface.return_value = app_interface
-
-    # Return the mock AppRepository instance.
-    return app_repo
+    service = mock.Mock(spec=AppService)
+    service.get.return_value = app_interface
+    return service
 
 # ** fixture: feature_context
 @pytest.fixture
@@ -168,21 +161,13 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 # ** fixture: app_manager_context
 @pytest.fixture
-def app_manager_context(app_repo, app_interface_context):
-    """Fixture to provide an AppManagerContext instance."""
+def app_manager_context(settings, app_service, app_interface_context):
+    """Fixture to provide an AppManagerContext instance using shared settings."""
 
-    ctx = AppManagerContext(
-        dict(
-            app_repo_module_path='tiferet.proxies.yaml.app',
-            app_repo_class_name='AppYamlProxy',
-            app_repo_params=dict(
-                app_config_file='tiferet/configs/app.yaml',
-            ),
-        ),
-    )
+    ctx = AppManagerContext(settings)
 
     # Patch internals to avoid real imports / filesystem access.
-    ctx.load_app_repo = mock.Mock(return_value=app_repo)
+    ctx.load_app_repo = mock.Mock(return_value=app_service)
     ctx.load_app_instance = mock.Mock(return_value=app_interface_context)
 
     return ctx
@@ -195,10 +180,10 @@ def test_app_manager_context_load_app_repo_default():
 
     ctx = AppManagerContext()
 
-    app_repo = ctx.load_app_repo()
+    app_service = ctx.load_app_repo()
 
-    assert app_repo
-    assert isinstance(app_repo, AppRepository)
+    assert app_service
+    assert isinstance(app_service, AppService)
 
 
 # ** test: app_manager_context_load_app_repo_custom
@@ -207,10 +192,10 @@ def test_app_manager_context_load_app_repo_custom(settings):
 
     ctx = AppManagerContext()
 
-    app_repo = ctx.load_app_repo(**settings)
+    app_service = ctx.load_app_repo(**settings)
 
-    assert app_repo
-    assert isinstance(app_repo, AppRepository)
+    assert app_service
+    assert isinstance(app_service, AppService)
 
 
 # ** test: app_manager_context_load_app_repo_invalid

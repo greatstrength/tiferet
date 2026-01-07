@@ -53,8 +53,8 @@ class AppManagerContext(object):
     # * method: load_app_repo
     def load_app_repo(
         self,
-        app_repo_module_path: str = 'tiferet.proxies.yaml.app',
-        app_repo_class_name: str = 'AppYamlProxy',
+        app_repo_module_path: str = 'tiferet.repos.config.app',
+        app_repo_class_name: str = 'AppConfigurationRepository',
         app_repo_params: Dict[str, Any] = dict(
             app_config_file='app/configs/app.yml',
         ),
@@ -183,17 +183,17 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Get the app repository from the settings.
+        # Get the app repository / service from the settings.
         app_repository = self.load_app_repo(
-            app_repo_module_path=self.settings.get('app_repo_module_path', 'tiferet.proxies.yaml.app'),
-            app_repo_class_name=self.settings.get('app_repo_class_name', 'AppYamlProxy'),
+            app_repo_module_path=self.settings.get('app_repo_module_path', 'tiferet.repos.config.app'),
+            app_repo_class_name=self.settings.get('app_repo_class_name', 'AppConfigurationRepository'),
             app_repo_params=self.settings.get('app_repo_params', {}),
         )
 
         app_interface = Command.handle(
             GetAppInterface,
             dependencies={
-                'app_repo': app_repository,
+                'app_service': app_repository,
             },
             interface_id=interface_id
         )
