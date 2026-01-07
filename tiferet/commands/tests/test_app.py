@@ -12,11 +12,22 @@ from ...models import (
     AppInterface,
     AppAttribute
 )
-from ...contracts import AppRepository
-from ..app import GetAppInterface
-from ..settings import TiferetError
+from ...contracts import AppRepository, AppService
+from ..app import GetAppInterface, AddAppInterface
+from ..settings import TiferetError, Command
+from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 
 # *** fixtures
+
+# ** fixture: mock_app_service
+@pytest.fixture
+def mock_app_service() -> AppService:
+    '''
+    Fixture to provide a mock AppService instance.
+    '''
+
+    service = mock.Mock(spec=AppService)
+    return service
 
 # ** app_interface
 @pytest.fixture
@@ -78,6 +89,100 @@ def get_app_interface_cmd(app_repo):
     return GetAppInterface(app_repo=app_repo)
 
 # *** tests
+
+# ** test: add_app_interface_success
+def test_add_app_interface_success(mock_app_service: AppService):
+    '''
+    Ensure AddAppInterface creates and saves a new AppInterface.
+    '''
+
+    result: AppInterface = Command.handle(
+        AddAppInterface,
+        dependencies={'app_service': mock_app_service},
+        id='test.app',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        description='A test app interface.',
+        logger_id='test_logger',
+        feature_flag='test_feature',
+        data_flag='test_data',
+        attributes=[
+            {
+                'attribute_id': 'attr1',
+                'module_path': 'test.module',
+                'class_name': 'TestClass',
+                'parameters': {'foo': 'bar'},
+            }
+        ],
+        constants={'CONST_KEY': 'VALUE'},
+    )
+
+    assert isinstance(result, AppInterface)
+    assert result.id == 'test.app'
+    assert result.name == 'Test App'
+    assert result.module_path == 'tiferet.contexts.app'
+    assert result.class_name == 'AppInterfaceContext'
+    assert result.description == 'A test app interface.'
+    assert result.logger_id == 'test_logger'
+    assert result.feature_flag == 'test_feature'
+    assert result.data_flag == 'test_data'
+    assert len(result.attributes) == 1
+    attr = result.attributes[0]
+    assert attr.attribute_id == 'attr1'
+    assert attr.module_path == 'test.module'
+    assert attr.class_name == 'TestClass'
+    assert attr.parameters == {'foo': 'bar'}
+    assert result.constants == {'CONST_KEY': 'VALUE'}
+
+    # Ensure the app service was called with the new interface.
+    mock_app_service.save.assert_called_once()
+    saved_interface = mock_app_service.save.call_args[0][0]
+    assert isinstance(saved_interface, AppInterface)
+    assert saved_interface.id == 'test.app'
+
+# ** test: add_app_interface_defaults
+def test_add_app_interface_defaults(mock_app_service: AppService):
+    '''
+    Ensure AddAppInterface applies default flags and empty attributes/constants.
+    '''
+
+    result: AppInterface = Command.handle(
+        AddAppInterface,
+        dependencies={'app_service': mock_app_service},
+        id='test.app',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+    )
+
+    assert result.feature_flag == 'default'
+    assert result.data_flag == 'default'
+    assert result.attributes == []
+    assert result.constants == {}
+
+    mock_app_service.save.assert_called_once()
+
+
+# ** test: add_app_interface_missing_required_field
+def test_add_app_interface_missing_required_field(mock_app_service: AppService):
+    '''
+    Ensure AddAppInterface validates required parameters.
+    '''
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            AddAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id=' ',  # invalid
+            name='Test App',
+            module_path='tiferet.contexts.app',
+            class_name='AppInterfaceContext',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_app_service.save.assert_not_called()
 
 # ** test: test_get_app_interface_not_found
 def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):

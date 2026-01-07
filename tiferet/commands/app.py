@@ -1,12 +1,123 @@
 # *** imports
 
+# ** core
+from typing import List, Dict, Any
+
 # ** app
 from .settings import Command
-from ..assets.constants import APP_INTERFACE_NOT_FOUND_ID
-from ..contracts.app import AppRepository, AppInterface
+from ..assets.constants import APP_INTERFACE_NOT_FOUND_ID, COMMAND_PARAMETER_REQUIRED_ID
+from ..contracts.app import AppRepository, AppInterface as AppInterfaceContract, AppService
+from ..models.app import AppInterface
+from ..models.settings import ModelObject
+from ..assets import TiferetError
 
 
 # *** commands
+
+# ** command: add_app_interface
+class AddAppInterface(Command):
+    '''
+    Command to add a new application interface configuration via the AppService.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService):
+        '''
+        Initialize the AddAppInterface command.
+
+        :param app_service: The application service used to persist app interfaces.
+        :type app_service: AppService
+        '''
+
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(
+        self,
+        id: str,
+        name: str,
+        module_path: str,
+        class_name: str,
+        description: str | None = None,
+        logger_id: str = 'default',
+        feature_flag: str = 'default',
+        data_flag: str = 'default',
+        attributes: List[Dict[str, Any]] = [],
+        constants: Dict[str, str] = {},
+        **kwargs,
+    ) -> AppInterfaceContract:
+        '''
+        Create and save a new AppInterface using the injected AppService.
+
+        Required parameters: ``id``, ``name``, ``module_path``, ``class_name``.
+
+        :param id: Unique identifier for the app interface.
+        :type id: str
+        :param name: Human readable name of the interface.
+        :type name: str
+        :param module_path: Python module path of the app context class.
+        :type module_path: str
+        :param class_name: Name of the app context class.
+        :type class_name: str
+        :param description: Optional description.
+        :type description: str | None
+        :param logger_id: Optional logger identifier, defaults to ``'default'``.
+        :type logger_id: str | None
+        :param feature_flag: Optional feature flag, defaults to ``'default'``.
+        :type feature_flag: str | None
+        :param data_flag: Optional data flag, defaults to ``'default'``.
+        :type data_flag: str | None
+        :param attributes: Optional list of attribute definitions; each item is a
+            dict with keys ``attribute_id``, ``module_path``, ``class_name`` and
+            optional ``parameters``.
+        :type attributes: List[Dict[str, Any]] | None
+        :param constants: Optional dictionary of constant values.
+        :type constants: Dict[str, str] | None
+        :return: The created AppInterface contract.
+        :rtype: AppInterfaceContract
+        '''
+
+        # Validate required scalar parameters.
+        for param_name, value in (
+            ('id', id),
+            ('name', name),
+            ('module_path', module_path),
+            ('class_name', class_name),
+        ):
+            self.verify_parameter(
+                parameter=value,
+                parameter_name=param_name,
+                command_name=self.__class__.__name__,
+            )
+
+        # Normalize collection defaults.
+        attributes = attributes or []
+        constants = constants or {}
+
+        # Create the AppInterface model; feature_flag and data_flag default to 'default'.
+        interface: AppInterface = ModelObject.new(
+            AppInterface,
+            id=id,
+            name=name,
+            description=description,
+            module_path=module_path,
+            class_name=class_name,
+            logger_id=logger_id or 'default',
+            feature_flag=feature_flag or 'default',
+            data_flag=data_flag or 'default',
+            attributes=attributes,
+            constants=constants,
+        )
+
+        # Persist the new interface via the app service.
+        self.app_service.save(interface)
+
+        # Return the contract type (AppInterfaceContract) instance.
+        return interface
+
 
 # ** command: get_app_interface
 class GetAppInterface(Command):
