@@ -162,3 +162,37 @@ class GetAppInterface(Command):
 
         # Return the loaded application interface.
         return interface
+
+
+# ** command: list_app_interfaces
+class ListAppInterfaces(Command):
+    '''
+    Command to list all configured app interfaces.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService):
+        '''
+        Initialize the ListAppInterfaces command.
+
+        :param app_service: The app service to use.
+        :type app_service: AppService
+        '''
+
+        # Set the application service.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(self, **kwargs) -> List[AppInterface]:
+        '''
+        List all app interfaces.
+
+        :return: List of AppInterface models.
+        :rtype: List[AppInterface]
+        '''
+
+        # Delegate to the app service to retrieve all interfaces.
+        return self.app_service.list()

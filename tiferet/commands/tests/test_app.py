@@ -13,7 +13,7 @@ from ...models import (
     AppAttribute
 )
 from ...contracts import AppService
-from ..app import GetAppInterface, AddAppInterface
+from ..app import GetAppInterface, AddAppInterface, ListAppInterfaces
 from ..settings import TiferetError, Command
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 
@@ -200,3 +200,43 @@ def test_get_app_interface_success(mock_app_service: AppService, app_interface: 
 
     # Assert that the returned interface matches the expected app interface.
     assert result == app_interface, 'Should return the correct AppInterface instance'
+
+# ** test: list_app_interfaces_empty
+def test_list_app_interfaces_empty(mock_app_service: AppService):
+    '''
+    Ensure ListAppInterfaces returns an empty list when no interfaces exist.
+    '''
+
+    mock_app_service.list.return_value = []
+
+    result = Command.handle(
+        ListAppInterfaces,
+        dependencies={'app_service': mock_app_service},
+    )
+
+    assert result == []
+    mock_app_service.list.assert_called_once_with()
+
+# ** test: list_app_interfaces_multiple
+def test_list_app_interfaces_multiple(mock_app_service: AppService, app_interface: AppInterface):
+    '''
+    Ensure ListAppInterfaces returns all interfaces from the service.
+    '''
+
+    another_interface = ModelObject.new(
+        AppInterface,
+        id='test2',
+        name='Test App 2',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+    )
+
+    mock_app_service.list.return_value = [app_interface, another_interface]
+
+    result = Command.handle(
+        ListAppInterfaces,
+        dependencies={'app_service': mock_app_service},
+    )
+
+    assert result == [app_interface, another_interface]
+    mock_app_service.list.assert_called_once_with()
