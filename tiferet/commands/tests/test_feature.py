@@ -15,6 +15,7 @@ from ..feature import (
     AddFeature,
     ListFeatures,
     UpdateFeature,
+    RemoveFeature,
     AddFeatureCommand,
     UpdateFeatureCommand,
     RemoveFeatureCommand,
@@ -82,6 +83,60 @@ def sample_feature() -> Feature:
 
 
 # *** tests
+
+# ** test: remove_feature_success
+def test_remove_feature_success(mock_feature_service: FeatureService):
+    '''
+    Test that RemoveFeature deletes an existing feature and returns its id.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    result = Command.handle(
+        RemoveFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id='test_group.test_feature',
+    )
+
+    assert result == 'test_group.test_feature'
+    mock_feature_service.delete.assert_called_once_with('test_group.test_feature')
+
+
+# ** test: remove_feature_idempotent_when_missing
+def test_remove_feature_idempotent_when_missing(mock_feature_service: FeatureService):
+    '''
+    Test that RemoveFeature is idempotent and still returns the id when the
+    feature does not exist (delete is still invoked, but we do not raise).
+    '''
+
+    result = Command.handle(
+        RemoveFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id='missing.feature',
+    )
+
+    assert result == 'missing.feature'
+    mock_feature_service.delete.assert_called_once_with('missing.feature')
+
+
+# ** test: remove_feature_missing_id
+def test_remove_feature_missing_id(mock_feature_service: FeatureService):
+    '''
+    Test that RemoveFeature validates the required id parameter.
+    '''
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_feature_service.delete.assert_not_called()
+
 
 # ** test: get_feature_success
 def test_get_feature_success(mock_feature_service: FeatureService, sample_feature: Feature):

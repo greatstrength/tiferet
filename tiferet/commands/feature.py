@@ -24,6 +24,60 @@ from .settings import Command
 
 # *** commands
 
+# ** command: remove_feature
+class RemoveFeature(Command):
+    '''
+    Command to remove a feature configuration by its identifier.
+
+    This operation is idempotent: attempting to remove a feature that does
+    not exist will not raise an error.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * method: init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the RemoveFeature command.
+
+        :param feature_service: The feature service used to manage feature
+            configurations.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> str:
+        '''
+        Remove a feature by id.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: The identifier of the (attempted) removed feature.
+        :rtype: str
+        '''
+
+        # Validate the required id parameter.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+
+        # Delegate deletion to the feature service. The underlying repository
+        # implementation is already effectively idempotent, so we do not need
+        # to check for existence or raise an error if the feature is missing.
+        self.feature_service.delete(id)
+
+        # Return the id for convenience and consistency with other commands.
+        return id
+
+
 # ** command: get_feature
 class GetFeature(Command):
     '''
