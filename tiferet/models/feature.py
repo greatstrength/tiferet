@@ -67,6 +67,62 @@ class FeatureCommand(ModelObject):
         )
     )
 
+    # * method: set_pass_on_error
+    def set_pass_on_error(self, value) -> None:
+        '''
+        Set the pass_on_error flag based on a provided value.
+
+        :param value: The value to convert to a boolean.
+        :type value: Any
+        '''
+
+        # If the value is a string literal 'false' (case-insensitive), force
+        # the flag to False. Otherwise, use Python's bool conversion.
+        if isinstance(value, str) and value.lower() == 'false':
+            self.pass_on_error = False
+        else:
+            self.pass_on_error = bool(value)
+
+    # * method: set_parameters
+    def set_parameters(self, parameters: dict | None = None) -> None:
+        '''
+        Merge new parameters into the existing parameters, preferring new
+        values and removing keys with a value of ``None``.
+
+        :param parameters: The new parameters to merge.
+        :type parameters: dict | None
+        '''
+
+        if parameters is None:
+            self.parameters = {}
+            return
+
+        # Start from the existing parameters; overlay new values.
+        merged = dict(self.parameters or {})
+        merged.update(parameters)
+
+        # Drop keys where the value is None.
+        self.parameters = {k: v for k, v in merged.items() if v is not None}
+
+    # * method: set_attribute
+    def set_attribute(self, attribute: str, value) -> None:
+        '''
+        Set an attribute on the feature command, with special handling for
+        ``parameters`` and ``pass_on_error``.
+
+        :param attribute: The attribute name to set.
+        :type attribute: str
+        :param value: The value to set.
+        :type value: Any
+        '''
+
+        if attribute == 'parameters':
+            self.set_parameters(value)
+        elif attribute == 'pass_on_error':
+            self.set_pass_on_error(value)
+        else:
+            setattr(self, attribute, value)
+
 # ** model: feature
 class Feature(ModelObject):
     '''
@@ -238,3 +294,20 @@ class Feature(ModelObject):
         '''
 
         self.description = description
+
+    # * method: get_attribute
+    def get_attribute(self, position: int) -> FeatureCommand | None:
+        '''
+        Get the feature command at the given position, or ``None`` if the
+        index is out of range.
+
+        :param position: The index of the feature command in the commands list.
+        :type position: int
+        :return: The feature command at the position or ``None``.
+        :rtype: FeatureCommand | None
+        '''
+
+        try:
+            return self.commands[position]
+        except (IndexError, TypeError):
+            return None

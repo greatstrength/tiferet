@@ -180,3 +180,108 @@ def test_feature_set_description(feature: Feature):
 
     feature.set_description('Updated description')
     assert feature.description == 'Updated description'
+
+
+# ** test: feature_get_attribute_valid
+def test_feature_get_attribute_valid(feature: Feature):
+    '''
+    Test that get_attribute returns the command at the given index.
+    '''
+
+    feature.add_command(
+        name='First Command',
+        attribute_id='first',
+    )
+    feature.add_command(
+        name='Second Command',
+        attribute_id='second',
+    )
+
+    cmd = feature.get_attribute(1)
+    assert isinstance(cmd, FeatureCommand)
+    assert cmd.name == 'Second Command'
+    assert cmd.attribute_id == 'second'
+
+
+# ** test: feature_get_attribute_out_of_range
+def test_feature_get_attribute_out_of_range(feature: Feature):
+    '''
+    Test that get_attribute returns None when the index is out of range.
+    '''
+
+    feature.add_command(
+        name='Only Command',
+        attribute_id='only',
+    )
+
+    assert feature.get_attribute(5) is None
+    assert feature.get_attribute(-5) is None
+
+
+# ** test: feature_command_set_pass_on_error
+def test_feature_command_set_pass_on_error(feature_command: FeatureCommand):
+    '''
+    Test the set_pass_on_error helper on FeatureCommand.
+    '''
+
+    feature_command.set_pass_on_error('false')
+    assert feature_command.pass_on_error is False
+
+    feature_command.set_pass_on_error('TRUE')
+    assert feature_command.pass_on_error is True
+
+    feature_command.set_pass_on_error(0)
+    assert feature_command.pass_on_error is False
+
+    feature_command.set_pass_on_error(1)
+    assert feature_command.pass_on_error is True
+
+
+# ** test: feature_command_set_parameters_merge
+def test_feature_command_set_parameters_merge(feature_command: FeatureCommand):
+    '''
+    Test that set_parameters merges dictionaries and removes None values.
+    '''
+
+    assert feature_command.parameters == {'param1': 'value1'}
+
+    feature_command.set_parameters({
+        'param1': 'new',
+        'param2': 'value2',
+        'to_remove': None,
+    })
+
+    assert feature_command.parameters == {
+        'param1': 'new',
+        'param2': 'value2',
+    }
+
+
+# ** test: feature_command_set_attribute_parameters
+def test_feature_command_set_attribute_parameters(feature_command: FeatureCommand):
+    '''
+    Test that set_attribute delegates parameter updates to set_parameters.
+    '''
+
+    feature_command.set_attribute('parameters', {'param1': 'updated'})
+    assert feature_command.parameters == {'param1': 'updated'}
+
+
+# ** test: feature_command_set_attribute_pass_on_error
+def test_feature_command_set_attribute_pass_on_error(feature_command: FeatureCommand):
+    '''
+    Test that set_attribute delegates pass_on_error updates to set_pass_on_error.
+    '''
+
+    feature_command.set_attribute('pass_on_error', 'false')
+    assert feature_command.pass_on_error is False
+
+
+# ** test: feature_command_set_attribute_other
+def test_feature_command_set_attribute_other(feature_command: FeatureCommand):
+    '''
+    Test that set_attribute falls back to setattr for other attributes.
+    '''
+
+    feature_command.set_attribute('data_key', 'foo')
+    assert feature_command.data_key == 'foo'
