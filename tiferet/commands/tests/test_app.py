@@ -13,7 +13,7 @@ from ...models import (
     AppAttribute
 )
 from ...contracts import AppService
-from ..app import GetAppInterface, AddAppInterface, ListAppInterfaces
+from ..app import GetAppInterface, AddAppInterface, ListAppInterfaces, UpdateAppInterface
 from ..settings import TiferetError, Command
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 
@@ -240,3 +240,119 @@ def test_list_app_interfaces_multiple(mock_app_service: AppService, app_interfac
 
     assert result == [app_interface, another_interface]
     mock_app_service.list.assert_called_once_with()
+
+# ** test: update_app_interface_success
+def test_update_app_interface_success(mock_app_service: AppService, app_interface: AppInterface):
+    '''
+    Ensure UpdateAppInterface updates a supported scalar attribute and
+    persists the interface.
+    '''
+
+    mock_app_service.get.return_value = app_interface
+
+    result = Command.handle(
+        UpdateAppInterface,
+        dependencies={'app_service': mock_app_service},
+        id='test',
+        attribute='name',
+        value='Updated Name',
+    )
+
+    assert result == 'test'
+    assert app_interface.name == 'Updated Name'
+    mock_app_service.get.assert_called_once_with('test')
+    mock_app_service.save.assert_called_once_with(app_interface)
+
+# ** test: update_app_interface_missing_required
+def test_update_app_interface_missing_required(mock_app_service: AppService):
+    '''
+    Ensure UpdateAppInterface validates required id and attribute parameters.
+    '''
+
+    # Missing id (blank).
+    with pytest.raises(TiferetError) as excinfo_id:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id=' ',
+            attribute='name',
+            value='value',
+        )
+
+    err_id = excinfo_id.value
+    assert err_id.error_code == COMMAND_PARAMETER_REQUIRED_ID
+
+    # Missing attribute (blank).
+    with pytest.raises(TiferetError) as excinfo_attr:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id='test',
+            attribute=' ',
+            value='value',
+        )
+
+    err_attr = excinfo_attr.value
+    assert err_attr.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_app_service.save.assert_not_called()
+
+# ** test: update_app_interface_not_found
+def test_update_app_interface_not_found(mock_app_service: AppService):
+    '''
+    Ensure UpdateAppInterface raises when the interface does not exist.
+    '''
+
+    mock_app_service.get.return_value = None
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id='missing',
+            attribute='name',
+            value='value',
+        )
+
+    error = excinfo.value
+    assert error.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert 'missing' in str(error)
+    mock_app_service.save.assert_not_called()
+
+# ** test: update_app_interface_invalid_attribute_delegated
+def test_update_app_interface_invalid_attribute_delegated(mock_app_service: AppService, app_interface: AppInterface):
+    '''
+    Ensure UpdateAppInterface lets the model raise for invalid attribute or
+    invalid value (e.g., empty module_path/class_name).
+    '''
+
+    from ...assets import TiferetError
+    from ...commands.settings import const as cmd_const
+
+    mock_app_service.get.return_value = app_interface
+
+    # Invalid attribute name should raise INVALID_MODEL_ATTRIBUTE from the model.
+    with pytest.raises(TiferetError) as excinfo_attr:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id='test',
+            attribute='invalid_attr',
+            value='value',
+        )
+
+    err_attr = excinfo_attr.value
+    assert err_attr.error_code == cmd_const.INVALID_MODEL_ATTRIBUTE_ID
+
+    # Empty module_path should raise INVALID_APP_INTERFACE_TYPE from the model.
+    with pytest.raises(TiferetError) as excinfo_type:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': mock_app_service},
+            id='test',
+            attribute='module_path',
+            value=' ',
+        )
+
+    err_type = excinfo_type.value
+    assert err_type.error_code == cmd_const.INVALID_APP_INTERFACE_TYPE_ID
+    mock_app_service.save.assert_not_called()

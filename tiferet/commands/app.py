@@ -196,3 +196,71 @@ class ListAppInterfaces(Command):
 
         # Delegate to the app service to retrieve all interfaces.
         return self.app_service.list()
+
+
+# ** command: update_app_interface
+class UpdateAppInterface(Command):
+    '''
+    Command to update scalar attributes of an existing app interface.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService):
+        '''
+        Initialize the UpdateAppInterface command.
+
+        :param app_service: The application service used to retrieve and
+            persist app interfaces.
+        :type app_service: AppService
+        '''
+
+        # Set the application service.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(self, id: str, attribute: str, value: Any, **kwargs) -> str:
+        '''
+        Update an app interface attribute.
+
+        :param id: The unique identifier of the app interface to update.
+        :type id: str
+        :param attribute: The scalar attribute name to update.
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
+        :return: The id of the updated app interface.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute,
+            parameter_name='attribute',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the existing app interface.
+        interface = self.app_service.get(id)
+        self.verify(
+            expression=interface is not None,
+            error_code=APP_INTERFACE_NOT_FOUND_ID,
+            message=f'App interface with ID {id} not found.',
+            interface_id=id,
+        )
+
+        # Delegate mutation to the model helper.
+        interface.set_attribute(attribute, value)
+
+        # Persist the updated interface.
+        self.app_service.save(interface)
+
+        # Return the interface id for idempotent usage.
+        return id
