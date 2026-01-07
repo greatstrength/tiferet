@@ -17,6 +17,7 @@ from ..feature import (
     UpdateFeature,
     AddFeatureCommand,
     UpdateFeatureCommand,
+    RemoveFeatureCommand,
 )
 from ...models import (
     Feature,
@@ -746,4 +747,70 @@ def test_update_feature_command_command_not_found(mock_feature_service: FeatureS
     assert error.error_code == FEATURE_COMMAND_NOT_FOUND_ID
     assert error.kwargs.get('feature_id') == 'test_group.test_feature'
     assert error.kwargs.get('position') == 0
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: remove_feature_command_success
+def test_remove_feature_command_success(mock_feature_service: FeatureService):
+    '''
+    Test that RemoveFeatureCommand removes a command from an existing feature.
+    '''
+
+    cmd1 = ModelObject.new(
+        FeatureCommand,
+        name='First',
+        attribute_id='first',
+        parameters={},
+    )
+    cmd2 = ModelObject.new(
+        FeatureCommand,
+        name='Second',
+        attribute_id='second',
+        parameters={},
+    )
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[cmd1, cmd2],
+    )
+    mock_feature_service.get.return_value = feature
+
+    result = Command.handle(
+        RemoveFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id='test_group.test_feature',
+        position=0,
+    )
+
+    assert result == 'test_group.test_feature'
+    mock_feature_service.get.assert_called_once_with('test_group.test_feature')
+    mock_feature_service.save.assert_called_once_with(feature)
+    assert len(feature.commands) == 1
+    remaining = feature.commands[0]
+    assert remaining.name == 'Second'
+    assert remaining.attribute_id == 'second'
+
+
+# ** test: remove_feature_command_feature_not_found
+def test_remove_feature_command_feature_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that RemoveFeatureCommand raises FEATURE_NOT_FOUND when the feature does not exist.
+    '''
+
+    mock_feature_service.get.return_value = None
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            position=0,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.kwargs.get('feature_id') == 'missing.feature'
     mock_feature_service.save.assert_not_called()

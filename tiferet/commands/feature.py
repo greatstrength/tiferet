@@ -495,3 +495,53 @@ class UpdateFeatureCommand(Command):
         # Persist the updated feature and return its id.
         self.feature_service.save(feature)
         return id
+
+
+# ** command: remove_feature_command
+class RemoveFeatureCommand(Command):
+    '''
+    Command to remove a feature command from an existing feature.
+    '''
+
+    feature_service: FeatureService
+
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the RemoveFeatureCommand.
+
+        :param feature_service: The feature service to use for retrieving and
+            persisting features.
+        :type feature_service: FeatureService
+        '''
+
+        self.feature_service = feature_service
+
+    def execute(self, id: str, position: int, **kwargs) -> str:
+        '''
+        Remove a feature command at the given position from the feature.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param position: The index of the feature command to remove.
+        :type position: int
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: The feature identifier.
+        :rtype: str
+        '''
+
+        # Verify that the feature exists.
+        feature = self.feature_service.get(id)
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Remove the command at the given position (idempotent if out-of-range).
+        feature.remove_command(position)
+
+        # Persist the updated feature and return its identifier.
+        self.feature_service.save(feature)
+        return id
