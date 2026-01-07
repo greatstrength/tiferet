@@ -331,3 +331,32 @@ class Feature(ModelObject):
             return self.commands.pop(position)
         except (IndexError, TypeError):
             return None
+
+    # * method: reorder_command
+    def reorder_command(self, current_position: int, new_position: int) -> FeatureCommand | None:
+        '''
+        Move a feature command from its current position to a new position
+        within the commands list, shifting other commands as needed.
+
+        :param current_position: The current index of the feature command.
+        :type current_position: int
+        :param new_position: The desired index for the feature command.
+        :type new_position: int
+        :return: The moved feature command, or ``None`` if the current
+            position is out of range.
+        :rtype: FeatureCommand | None
+        '''
+
+        try:
+            command = self.commands.pop(current_position)
+        except (IndexError, TypeError):
+            return None
+
+        # Clamp the new position to the valid range [0, len(self.commands)].
+        if new_position < 0:
+            new_position = 0
+        if new_position > len(self.commands):
+            new_position = len(self.commands)
+
+        self.commands.insert(new_position, command)
+        return command

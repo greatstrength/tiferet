@@ -321,3 +321,51 @@ def test_feature_remove_command_out_of_range(feature: Feature):
 
     assert feature.remove_command(5) is None
     assert len(feature.commands) == 1
+
+
+# ** test: feature_reorder_command_move_forward
+def test_feature_reorder_command_move_forward(feature: Feature):
+    '''
+    Test moving a command to a higher index.
+    '''
+
+    cmd1 = feature.add_command(name='First', attribute_id='first')
+    cmd2 = feature.add_command(name='Second', attribute_id='second')
+    cmd3 = feature.add_command(name='Third', attribute_id='third')
+
+    moved = feature.reorder_command(0, 2)
+
+    assert moved is cmd1
+    assert [c.attribute_id for c in feature.commands] == ['second', 'third', 'first']
+
+
+# ** test: feature_reorder_command_move_backward
+def test_feature_reorder_command_move_backward(feature: Feature):
+    '''
+    Test moving a command to a lower index.
+    '''
+
+    cmd1 = feature.add_command(name='First', attribute_id='first')
+    cmd2 = feature.add_command(name='Second', attribute_id='second')
+    cmd3 = feature.add_command(name='Third', attribute_id='third')
+
+    moved = feature.reorder_command(2, 0)
+
+    assert moved is cmd3
+    assert [c.attribute_id for c in feature.commands] == ['third', 'first', 'second']
+
+
+# ** test: feature_reorder_command_out_of_range
+def test_feature_reorder_command_out_of_range(feature: Feature):
+    '''
+    Test that reorder_command returns None and leaves list unchanged when
+    given an out-of-range current position.
+    '''
+
+    feature.add_command(name='Only', attribute_id='only')
+    original_commands = list(feature.commands)
+
+    moved = feature.reorder_command(5, 0)
+
+    assert moved is None
+    assert feature.commands == original_commands
