@@ -23,9 +23,9 @@ from ..app import (
     RequestContext,
     AppInterfaceContext,
     AppManagerContext,
-    AppService,
 )
 from ...assets import TiferetError
+from ...assets.constants import APP_REPOSITORY_IMPORT_FAILED_ID, DEFAULT_ATTRIBUTES
 from ...models import (
     ModelObject,
     AppInterface,
@@ -33,6 +33,19 @@ from ...models import (
 )
 
 # *** fixtures
+
+# ** fixture: settings
+@pytest.fixture
+def settings():
+    """Fixture to provide application settings for a custom app repo."""
+
+    return {
+        'app_repo_module_path': 'tiferet.proxies.yaml.app',
+        'app_repo_class_name': 'AppYamlProxy',
+        'app_repo_params': {
+            'app_config_file': 'tiferet/configs/tests/test.yml',
+        },
+    }
 
 # ** app_interface
 @pytest.fixture
@@ -53,14 +66,7 @@ def app_interface():
         description='The test app.',
         feature_flag='test',
         data_flag='test',
-        attributes=[
-            ModelObject.new(
-                AppAttribute,
-                attribute_id='test_attribute',
-                module_path='test_module_path',
-                class_name='test_class_name',
-            ),
-        ],
+        attributes=[],
     )
 
 # ** fixture: app_repo
@@ -160,46 +166,91 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         logging=logging_context,
     )
 
-# ** fixture: app_service
-@pytest.fixture
-def app_service(app_interface, app_interface_context):
-    """Fixture to provide a mock app service."""
-
-    # Create a mock app service.
-    service = mock.Mock(spec=AppService)
-
-    # Mock the get_app_interface method to return the app interface context.
-    service.get_app_interface.return_value = app_interface
-    service.load_app_instance.return_value = app_interface_context
-
-    # Return the mock app service.
-    return service
-
 # ** fixture: app_manager_context
 @pytest.fixture
-def app_manager_context(app_service):
-    """
-    Fixture to provide an AppManagerContext instance.
+def app_manager_context(app_repo, app_interface_context):
+    """Fixture to provide an AppManagerContext instance."""
 
-    :param app_service: The mock app service.
-    :type app_service: AppService
-    :return: An instance of AppManagerContext.
-    :rtype: AppManagerContext
-    """
-
-    # Return the AppManagerContext instance.
-    return AppManagerContext(
+    ctx = AppManagerContext(
         dict(
             app_repo_module_path='tiferet.proxies.yaml.app',
             app_repo_class_name='AppYamlProxy',
             app_repo_params=dict(
                 app_config_file='tiferet/configs/app.yaml',
-            )
+            ),
         ),
-        app_service
     )
 
+    # Patch internals to avoid real imports / filesystem access.
+    ctx.load_app_repo = mock.Mock(return_value=app_repo)
+    ctx.load_app_instance = mock.Mock(return_value=app_interface_context)
+
+    return ctx
+
 # *** tests
+
+# ** test: app_manager_context_load_app_repo_default
+def test_app_manager_context_load_app_repo_default():
+    """Test loading the default app repository via AppManagerContext."""
+
+    ctx = AppManagerContext()
+
+    app_repo = ctx.load_app_repo()
+
+    assert app_repo
+    assert isinstance(app_repo, AppRepository)
+
+
+# ** test: app_manager_context_load_app_repo_custom
+def test_app_manager_context_load_app_repo_custom(settings):
+    """Test loading a custom app repository with specific settings."""
+
+    ctx = AppManagerContext()
+
+    app_repo = ctx.load_app_repo(**settings)
+
+    assert app_repo
+    assert isinstance(app_repo, AppRepository)
+
+
+# ** test: app_manager_context_load_app_repo_invalid
+def test_app_manager_context_load_app_repo_invalid():
+    """Test loading an app repository with invalid settings raises the proper error."""
+
+    ctx = AppManagerContext()
+
+    with pytest.raises(TiferetError) as exc_info:
+        ctx.load_app_repo(
+            app_repo_module_path='invalid.module.path',
+            app_repo_class_name='InvalidClassName',
+        )
+
+    error = exc_info.value
+    assert error.error_code == APP_REPOSITORY_IMPORT_FAILED_ID
+    assert 'Failed to import app repository' in str(error)
+    assert error.kwargs.get('exception')
+
+
+# ** test: app_manager_context_load_app_instance
+def test_app_manager_context_load_app_instance(app_interface, monkeypatch):
+    """Test loading an app instance using AppManagerContext.load_app_instance."""
+
+    ctx = AppManagerContext()
+
+    default_attrs = [
+        ModelObject.new(
+            AppAttribute,
+            **attr_data,
+            validate=False,
+        )
+        for attr_data in DEFAULT_ATTRIBUTES
+    ]
+
+    app_instance = ctx.load_app_instance(app_interface, default_attrs)
+
+    assert app_instance
+    assert isinstance(app_instance, AppInterfaceContext)
+
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context, app_interface):
@@ -220,7 +271,7 @@ def test_app_manager_context_load_interface(app_manager_context, app_interface):
     assert isinstance(result, AppInterfaceContext)
 
 # ** test: app_manager_context_load_interface_invalid
-def test_app_manager_context_load_interface_invalid(app_manager_context, app_service):
+def test_app_manager_context_load_interface_invalid(app_manager_context):
     """
     Test loading an invalid app interface.
 
@@ -236,7 +287,7 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_ser
             pass
 
     # Mock the load_app_instance method to return an invalid app interface context.
-    app_service.load_app_instance.return_value = InvalidContext()
+    app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())
 
     # Attempt to load an invalid interface and assert that it raises an error.
     with pytest.raises(TiferetError) as exc_info:

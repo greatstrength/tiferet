@@ -11,21 +11,19 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 from ..assets import TiferetError
+from ..assets.constants import APP_REPOSITORY_IMPORT_FAILED_ID, DEFAULT_ATTRIBUTES
 from ..configs import TiferetError as LegacyTiferetError
-from ..configs.app import DEFAULT_ATTRIBUTES
 from ..models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
-from ..handlers.app import (
-    AppService,
-    AppHandler,
-    AppRepository,
-)
 from ..commands import (
-    Command
+    Command,
+    ImportDependency,
+    RaiseError,
 )
+from ..commands.dependencies import create_injector, get_dependency
 from ..commands.app import GetAppInterface
 
 # *** contexts
@@ -40,25 +38,119 @@ class AppManagerContext(object):
     # * attribute: settings
     settings: Dict[str, Any]
 
-    # * attribute: app_service
-    app_service: AppService
-
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = None):
+    def __init__(self, settings: Dict[str, Any] = {}):
         '''
-        Initialize the AppManagerContext with an application service.
+        Initialize the AppManagerContext with application settings.
 
         :param settings: The application settings.
         :type settings: dict
-        :param app_service: The application service to use.
-        :type app_service: AppService
         '''
 
         # Set the settings.
         self.settings = settings
 
-        # Set the app service.
-        self.app_service = app_service
+    # * method: load_app_repo
+    def load_app_repo(
+        self,
+        app_repo_module_path: str = 'tiferet.proxies.yaml.app',
+        app_repo_class_name: str = 'AppYamlProxy',
+        app_repo_params: Dict[str, Any] = dict(
+            app_config_file='app/configs/app.yml',
+        ),
+        **kwargs,
+    ) -> Any:
+        '''
+        Load the application repository implementation.
+
+        :param app_repo_module_path: The application repository module path.
+        :type app_repo_module_path: str
+        :param app_repo_class_name: The application repository class name.
+        :type app_repo_class_name: str
+        :param app_repo_params: The application repository parameters.
+        :type app_repo_params: dict
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The application repository instance.
+        :rtype: Any
+        '''
+
+        try:
+            repo_cls = ImportDependency.execute(
+                app_repo_module_path,
+                app_repo_class_name,
+            )
+            result = repo_cls(**app_repo_params)
+
+        except TiferetError as e:
+            RaiseError.execute(
+                APP_REPOSITORY_IMPORT_FAILED_ID,
+                f'Failed to import app repository: {e}.',
+                exception=str(e),
+            )
+
+        return result
+
+    # * method: load_app_instance
+    def load_app_instance(
+        self,
+        app_interface: AppInterface,
+        default_attrs: list[AppAttribute] = [],
+    ) -> Any:
+        '''
+        Load the app instance based on the provided app interface settings.
+
+        :param app_interface: The app interface.
+        :type app_interface: AppInterface
+        :param default_attrs: The default configured attributes for the app.
+        :type default_attrs: list[AppAttribute]
+        :return: The app instance.
+        :rtype: Any
+        '''
+
+        # Retrieve the app context dependency.
+        dependencies = dict(
+            app_context=ImportDependency.execute(
+                app_interface.module_path,
+                app_interface.class_name,
+            ),
+            logger_id=app_interface.logger_id,
+        )
+
+        # Add the remaining app context attributes and parameters to the dependencies.
+        for attr in app_interface.attributes:
+            dependencies[attr.attribute_id] = ImportDependency.execute(
+                attr.module_path,
+                attr.class_name,
+            )
+            for param, value in attr.parameters.items():
+                dependencies[param] = value
+
+        # Add the default attributes and parameters to the dependencies if they do not already exist.
+        for attr in default_attrs:
+            if attr.attribute_id not in dependencies:
+                dependencies[attr.attribute_id] = ImportDependency.execute(
+                    attr.module_path,
+                    attr.class_name,
+                )
+                for param, value in attr.parameters.items():
+                    dependencies[param] = value
+
+        # Add the constants from the app interface to the dependencies.
+        dependencies.update(app_interface.constants)
+
+        # Create the injector.
+        injector = create_injector.execute(
+            app_interface.id,
+            dependencies,
+            interface_id=app_interface.id,
+        )
+
+        # Return the app interface context.
+        return get_dependency.execute(
+            injector,
+            dependency_name='app_context',
+        )
 
     # * method: load_interface_config
 
@@ -91,8 +183,8 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Get the app repository from the app service and the settings.
-        app_repository = self.app_service.load_app_repository(
+        # Get the app repository from the settings.
+        app_repository = self.load_app_repo(
             app_repo_module_path=self.settings.get('app_repo_module_path', 'tiferet.proxies.yaml.app'),
             app_repo_class_name=self.settings.get('app_repo_class_name', 'AppYamlProxy'),
             app_repo_params=self.settings.get('app_repo_params', {}),
@@ -114,7 +206,7 @@ class AppManagerContext(object):
         ) for attr_data in DEFAULT_ATTRIBUTES]
 
         # Create the app interface context.
-        app_interface_context = self.app_service.load_app_instance(app_interface, default_attrs=default_attrs)
+        app_interface_context = self.load_app_instance(app_interface, default_attrs=default_attrs)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
@@ -344,5 +436,5 @@ class AppContext(AppManagerContext):
     '''
 
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppService = AppHandler()):
-        super().__init__(settings, app_service)
+    def __init__(self, settings: Dict[str, Any] = {}):
+        super().__init__(settings)
