@@ -285,3 +285,39 @@ def test_feature_command_set_attribute_other(feature_command: FeatureCommand):
 
     feature_command.set_attribute('data_key', 'foo')
     assert feature_command.data_key == 'foo'
+
+
+# ** test: feature_remove_command_success
+def test_feature_remove_command_success(feature: Feature):
+    '''
+    Test that remove_command removes the command at the given position.
+    '''
+
+    cmd1 = feature.add_command(
+        name='First Command',
+        attribute_id='first',
+    )
+    cmd2 = feature.add_command(
+        name='Second Command',
+        attribute_id='second',
+    )
+
+    removed = feature.remove_command(0)
+    assert removed is cmd1
+    assert len(feature.commands) == 1
+    assert feature.commands[0] is cmd2
+
+
+# ** test: feature_remove_command_out_of_range
+def test_feature_remove_command_out_of_range(feature: Feature):
+    '''
+    Test that remove_command returns None when index is out of range.
+    '''
+
+    feature.add_command(
+        name='Only Command',
+        attribute_id='only',
+    )
+
+    assert feature.remove_command(5) is None
+    assert len(feature.commands) == 1
