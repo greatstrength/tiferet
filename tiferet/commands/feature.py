@@ -545,3 +545,74 @@ class RemoveFeatureCommand(Command):
         # Persist the updated feature and return its identifier.
         self.feature_service.save(feature)
         return id
+
+
+# ** command: reorder_feature_command
+class ReorderFeatureCommand(Command):
+    '''
+    Command to reorder a feature command within an existing feature.
+    '''
+
+    feature_service: FeatureService
+
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the ReorderFeatureCommand.
+
+        :param feature_service: The feature service to use for retrieving and
+            persisting features.
+        :type feature_service: FeatureService
+        '''
+
+        self.feature_service = feature_service
+
+    def execute(
+        self,
+        id: str,
+        start_position: int,
+        end_position: int,
+        **kwargs,
+    ) -> str:
+        '''
+        Reorder a feature command from start_position to end_position.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param start_position: The current index of the feature command.
+        :type start_position: int
+        :param end_position: The desired index for the feature command.
+        :type end_position: int
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: The feature identifier.
+        :rtype: str
+        '''
+
+        # Verify that required position parameters are present.
+        self.verify_parameter(
+            parameter=start_position,
+            parameter_name='start_position',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=end_position,
+            parameter_name='end_position',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve and verify the feature.
+        feature = self.feature_service.get(id)
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Delegate reordering to the model helper. This is effectively
+        # idempotent if the start_position is out of range.
+        feature.reorder_command(start_position, end_position)
+
+        # Persist the updated feature and return its identifier.
+        self.feature_service.save(feature)
+        return id

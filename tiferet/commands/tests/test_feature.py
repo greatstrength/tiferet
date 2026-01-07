@@ -18,6 +18,7 @@ from ..feature import (
     AddFeatureCommand,
     UpdateFeatureCommand,
     RemoveFeatureCommand,
+    ReorderFeatureCommand,
 )
 from ...models import (
     Feature,
@@ -808,6 +809,77 @@ def test_remove_feature_command_feature_not_found(mock_feature_service: FeatureS
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
             position=0,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.kwargs.get('feature_id') == 'missing.feature'
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: reorder_feature_command_success
+def test_reorder_feature_command_success(mock_feature_service: FeatureService):
+    '''
+    Test that ReorderFeatureCommand successfully reorders a feature command.
+    '''
+
+    cmd1 = ModelObject.new(
+        FeatureCommand,
+        name='First',
+        attribute_id='first',
+        parameters={},
+    )
+    cmd2 = ModelObject.new(
+        FeatureCommand,
+        name='Second',
+        attribute_id='second',
+        parameters={},
+    )
+    cmd3 = ModelObject.new(
+        FeatureCommand,
+        name='Third',
+        attribute_id='third',
+        parameters={},
+    )
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[cmd1, cmd2, cmd3],
+    )
+    mock_feature_service.get.return_value = feature
+
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id='test_group.test_feature',
+        start_position=0,
+        end_position=2,
+    )
+
+    assert result == 'test_group.test_feature'
+    mock_feature_service.get.assert_called_once_with('test_group.test_feature')
+    mock_feature_service.save.assert_called_once_with(feature)
+    assert [c.attribute_id for c in feature.commands] == ['second', 'third', 'first']
+
+
+# ** test: reorder_feature_command_feature_not_found
+def test_reorder_feature_command_feature_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that ReorderFeatureCommand raises FEATURE_NOT_FOUND when the feature does not exist.
+    '''
+
+    mock_feature_service.get.return_value = None
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            ReorderFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            start_position=0,
+            end_position=1,
         )
 
     error: TiferetError = excinfo.value
