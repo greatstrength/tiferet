@@ -182,10 +182,10 @@ def test_feature_set_description(feature: Feature):
     assert feature.description == 'Updated description'
 
 
-# ** test: feature_get_attribute_valid
-def test_feature_get_attribute_valid(feature: Feature):
+# ** test: feature_get_command_valid
+def test_feature_get_command_valid(feature: Feature):
     '''
-    Test that get_attribute returns the command at the given index.
+    Test that get_command returns the command at the given index.
     '''
 
     feature.add_command(
@@ -197,16 +197,16 @@ def test_feature_get_attribute_valid(feature: Feature):
         attribute_id='second',
     )
 
-    cmd = feature.get_attribute(1)
+    cmd = feature.get_command(1)
     assert isinstance(cmd, FeatureCommand)
     assert cmd.name == 'Second Command'
     assert cmd.attribute_id == 'second'
 
 
-# ** test: feature_get_attribute_out_of_range
-def test_feature_get_attribute_out_of_range(feature: Feature):
+# ** test: feature_get_command_out_of_range
+def test_feature_get_command_out_of_range(feature: Feature):
     '''
-    Test that get_attribute returns None when the index is out of range.
+    Test that get_command returns None when the index is out of range.
     '''
 
     feature.add_command(
@@ -214,8 +214,8 @@ def test_feature_get_attribute_out_of_range(feature: Feature):
         attribute_id='only',
     )
 
-    assert feature.get_attribute(5) is None
-    assert feature.get_attribute(-5) is None
+    assert feature.get_command(5) is None
+    assert feature.get_command(-5) is None
 
 
 # ** test: feature_command_set_pass_on_error

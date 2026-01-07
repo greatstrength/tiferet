@@ -16,6 +16,7 @@ from ..feature import (
     ListFeatures,
     UpdateFeature,
     AddFeatureCommand,
+    UpdateFeatureCommand,
 )
 from ...models import (
     Feature,
@@ -29,6 +30,8 @@ from ...assets.constants import (
     FEATURE_NOT_FOUND_ID,
     FEATURE_NAME_REQUIRED_ID,
     INVALID_FEATURE_ATTRIBUTE_ID,
+    FEATURE_COMMAND_NOT_FOUND_ID,
+    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
 )
 from ...commands import Command
 
@@ -575,4 +578,172 @@ def test_add_feature_command_feature_not_found(mock_feature_service: FeatureServ
     assert error.error_code == FEATURE_NOT_FOUND_ID
     assert error.kwargs.get('feature_id') == 'missing.feature'
     mock_feature_service.get.assert_called_once_with('missing.feature')
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: update_feature_command_success
+def test_update_feature_command_success(mock_feature_service: FeatureService):
+    '''
+    Test that UpdateFeatureCommand successfully updates a feature command attribute.
+    '''
+
+    command = ModelObject.new(
+        FeatureCommand,
+        name='Original',
+        attribute_id='test_command',
+        parameters={},
+    )
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[command],
+    )
+    mock_feature_service.get.return_value = feature
+
+    result = Command.handle(
+        UpdateFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id='test_group.test_feature',
+        position=0,
+        attribute='name',
+        value='Updated',
+    )
+
+    assert result == 'test_group.test_feature'
+    mock_feature_service.get.assert_called_once_with('test_group.test_feature')
+    mock_feature_service.save.assert_called_once_with(feature)
+    assert feature.commands[0].name == 'Updated'
+
+
+# ** test: update_feature_command_invalid_attribute
+def test_update_feature_command_invalid_attribute(mock_feature_service: FeatureService):
+    '''
+    Test that UpdateFeatureCommand rejects unsupported attributes.
+    '''
+
+    command = ModelObject.new(
+        FeatureCommand,
+        name='Cmd',
+        attribute_id='test_command',
+        parameters={},
+    )
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[command],
+    )
+    mock_feature_service.get.return_value = feature
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='test_group.test_feature',
+            position=0,
+            attribute='invalid',
+            value='x',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: update_feature_command_missing_name_value
+def test_update_feature_command_missing_name_value(mock_feature_service: FeatureService):
+    '''
+    Test that UpdateFeatureCommand enforces a value for name and attribute_id.
+    '''
+
+    command = ModelObject.new(
+        FeatureCommand,
+        name='Original',
+        attribute_id='test_command',
+        parameters={},
+    )
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[command],
+    )
+    mock_feature_service.get.return_value = feature
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='test_group.test_feature',
+            position=0,
+            attribute='name',
+            value=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: update_feature_command_feature_not_found
+def test_update_feature_command_feature_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that UpdateFeatureCommand raises FEATURE_NOT_FOUND when the feature does not exist.
+    '''
+
+    mock_feature_service.get.return_value = None
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            position=0,
+            attribute='name',
+            value='Updated',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.kwargs.get('feature_id') == 'missing.feature'
+    mock_feature_service.save.assert_not_called()
+
+
+# ** test: update_feature_command_command_not_found
+def test_update_feature_command_command_not_found(mock_feature_service: FeatureService):
+    '''
+    Test that UpdateFeatureCommand raises FEATURE_COMMAND_NOT_FOUND when no command exists at the position.
+    '''
+
+    feature = ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
+        name='Test Feature',
+        group_id='test_group',
+        feature_key='test_feature',
+        commands=[],
+    )
+    mock_feature_service.get.return_value = feature
+
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='test_group.test_feature',
+            position=0,
+            attribute='name',
+            value='Updated',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_COMMAND_NOT_FOUND_ID
+    assert error.kwargs.get('feature_id') == 'test_group.test_feature'
+    assert error.kwargs.get('position') == 0
     mock_feature_service.save.assert_not_called()

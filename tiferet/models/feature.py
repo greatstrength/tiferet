@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+from typing import Any
+
 # ** app
 from .settings import (
     ModelObject,
@@ -295,8 +298,8 @@ class Feature(ModelObject):
 
         self.description = description
 
-    # * method: get_attribute
-    def get_attribute(self, position: int) -> FeatureCommand | None:
+    # * method: get_command
+    def get_command(self, position: int) -> FeatureCommand | None:
         '''
         Get the feature command at the given position, or ``None`` if the
         index is out of range.

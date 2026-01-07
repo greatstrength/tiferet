@@ -1,5 +1,8 @@
 # ** imports
 
+# ** core
+from typing import Any
+
 # ** app
 from ..models.feature import (
     Feature,
@@ -11,6 +14,9 @@ from ..assets.constants import (
     FEATURE_NOT_FOUND_ID,
     FEATURE_NAME_REQUIRED_ID,
     INVALID_FEATURE_ATTRIBUTE_ID,
+    FEATURE_COMMAND_NOT_FOUND_ID,
+    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+    COMMAND_PARAMETER_REQUIRED_ID,
 )
 from ..assets import TiferetError
 from .settings import Command
@@ -372,5 +378,120 @@ class AddFeatureCommand(Command):
         )
 
         # Save the updated feature and return its identifier.
+        self.feature_service.save(feature)
+        return id
+
+
+# ** command: update_feature_command
+class UpdateFeatureCommand(Command):
+    '''
+    Command to update a feature command within an existing feature.
+    '''
+
+    feature_service: FeatureService
+
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the UpdateFeatureCommand.
+
+        :param feature_service: The feature service to use for retrieving and
+            persisting features.
+        :type feature_service: FeatureService
+        '''
+
+        self.feature_service = feature_service
+
+    def execute(
+        self,
+        id: str,
+        position: int,
+        attribute: str,
+        value: Any | None = None,
+        **kwargs,
+    ) -> str:
+        '''
+        Update a feature command attribute.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param position: The index of the feature command in the feature's
+            commands list.
+        :type position: int
+        :param attribute: The attribute to update. Must be one of:
+            ``name``, ``attribute_id``, ``data_key``, ``pass_on_error``,
+            or ``parameters``.
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: The feature identifier.
+        :rtype: str
+        '''
+
+        # Validate the attribute parameter itself.
+        self.verify_parameter(
+            parameter=attribute,
+            parameter_name='attribute',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve and verify the feature.
+        feature = self.feature_service.get(id)
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Retrieve and verify the feature command at the requested position.
+        command = feature.get_command(position)
+        self.verify(
+            expression=command is not None,
+            error_code=FEATURE_COMMAND_NOT_FOUND_ID,
+            message=(
+                f'Feature command not found for feature {id} at '
+                f'position {position}.'
+            ),
+            feature_id=id,
+            position=position,
+        )
+
+        # Validate that the attribute is supported.
+        valid_attributes = {
+            'name',
+            'attribute_id',
+            'data_key',
+            'pass_on_error',
+            'parameters',
+        }
+        self.verify(
+            expression=attribute in valid_attributes,
+            error_code=INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+            message=f'Invalid feature command attribute: {attribute}',
+            attribute=attribute,
+        )
+
+        # For name and attribute_id, a non-empty value is required.
+        if attribute in {'name', 'attribute_id'}:
+            self.verify(
+                expression=(
+                    value is not None
+                    and (not isinstance(value, str) or bool(value.strip()))
+                ),
+                error_code=COMMAND_PARAMETER_REQUIRED_ID,
+                message=(
+                    f'The "{attribute}" attribute value is required for '
+                    f'UpdateFeatureCommand.'
+                ),
+                parameter=attribute,
+                command=self.__class__.__name__,
+            )
+
+        # Delegate the actual mutation to the FeatureCommand helper.
+        command.set_attribute(attribute, value)
+
+        # Persist the updated feature and return its id.
         self.feature_service.save(feature)
         return id
