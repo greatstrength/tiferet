@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Dict
+from typing import Dict, Any
 
 # ** app
 from .settings import (
@@ -13,6 +13,8 @@ from .settings import (
     DictType,
     ModelType,
 )
+from ..commands.static import RaiseError
+from ..commands.settings import const
 
 # *** models
 
@@ -182,3 +184,51 @@ class AppInterface(ModelObject):
 
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
+
+    # * method: set_attribute
+    def set_attribute(self, attribute: str, value: Any) -> None:
+        '''
+        Update a supported scalar attribute on the app interface.
+
+        Supported attributes: name, description, module_path, class_name,
+        logger_id, feature_flag, data_flag.
+
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value.
+        :type value: Any
+        '''
+
+        supported = {
+            'name',
+            'description',
+            'module_path',
+            'class_name',
+            'logger_id',
+            'feature_flag',
+            'data_flag',
+        }
+
+        # Validate the attribute name.
+        if attribute not in supported:
+            RaiseError.execute(
+                error_code=const.INVALID_MODEL_ATTRIBUTE_ID,
+                message='Invalid attribute: {attribute}',
+                attribute=attribute,
+                supported=', '.join(sorted(supported)),
+            )
+
+        # Special validation for module_path and class_name.
+        if attribute in {'module_path', 'class_name'}:
+            if not value or not str(value).strip():
+                RaiseError.execute(
+                    error_code=const.INVALID_APP_INTERFACE_TYPE_ID,
+                    message='{attribute} must be a non-empty string',
+                    attribute=attribute,
+                )
+
+        # Apply update.
+        setattr(self, attribute, value)
+
+        # Final model validation.
+        self.validate()

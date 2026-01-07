@@ -175,6 +175,12 @@ SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
 # ** constant: invalid_flagged_dependency_id
 INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
+# ** constant: invalid_model_attribute_id
+INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
+
+# ** constant: invalid_app_interface_type_id
+INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -479,6 +485,30 @@ DEFAULT_ERRORS = {
         ],
     },
 
+    # * error: INVALID_MODEL_ATTRIBUTE
+    INVALID_MODEL_ATTRIBUTE_ID: {
+        'id': INVALID_MODEL_ATTRIBUTE_ID,
+        'name': 'Invalid Model Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            }
+        ],
+    },
+
+    # * error: INVALID_APP_INTERFACE_TYPE
+    INVALID_APP_INTERFACE_TYPE_ID: {
+        'id': INVALID_APP_INTERFACE_TYPE_ID,
+        'name': 'Invalid App Interface Type',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': '{attribute} must be a non-empty string.',
+            }
+        ],
+    },
+    
     # * error: INVALID_DEPENDENCY_ERROR
     'INVALID_DEPENDENCY_ERROR': {
         'id': 'INVALID_DEPENDENCY_ERROR',

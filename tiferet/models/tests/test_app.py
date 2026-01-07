@@ -11,6 +11,7 @@ from ...models import (
     AppAttribute,
     AppInterface,
 )
+from ...commands.settings import const
 
 # *** fixtures
 
@@ -121,3 +122,61 @@ def test_app_interface_add_attribute(app_interface):
     assert new_attribute.parameters
     assert new_attribute.parameters['new_param1'] == 'new_value1'
     assert new_attribute.parameters['new_param2'] == 'new_value2'
+
+# ** test: app_interface_set_attribute_valid
+def test_app_interface_set_attribute_valid(app_interface: AppInterface):
+    '''
+    Test that set_attribute successfully updates supported scalar attributes and validates the model.
+    '''
+
+    # Update the name attribute.
+    app_interface.set_attribute('name', 'Updated App Name')
+    assert app_interface.name == 'Updated App Name'
+
+    # Update the description attribute.
+    app_interface.set_attribute('description', 'Updated description')
+    assert app_interface.description == 'Updated description'
+
+    # Update logger_id and flags.
+    app_interface.set_attribute('logger_id', 'custom_logger')
+    app_interface.set_attribute('feature_flag', 'custom_feature')
+    app_interface.set_attribute('data_flag', 'custom_data')
+
+    assert app_interface.logger_id == 'custom_logger'
+    assert app_interface.feature_flag == 'custom_feature'
+    assert app_interface.data_flag == 'custom_data'
+
+# ** test: app_interface_set_attribute_invalid_name
+def test_app_interface_set_attribute_invalid_name(app_interface: AppInterface):
+    '''
+    Test that set_attribute rejects unsupported attribute names.
+    '''
+
+    from ...assets import TiferetError
+
+    with pytest.raises(TiferetError) as excinfo:
+        app_interface.set_attribute('invalid_attr', 'value')
+
+    error = excinfo.value
+    assert error.error_code == const.INVALID_MODEL_ATTRIBUTE_ID
+    assert error.kwargs.get('attribute') == 'invalid_attr'
+
+# ** test: app_interface_set_attribute_empty_module_or_class
+def test_app_interface_set_attribute_empty_module_or_class(app_interface: AppInterface):
+    '''
+    Test that set_attribute rejects empty values for module_path and class_name.
+    '''
+
+    from ...assets import TiferetError
+
+    # Empty module_path.
+    with pytest.raises(TiferetError) as excinfo_module:
+        app_interface.set_attribute('module_path', ' ')
+
+    assert excinfo_module.value.error_code == const.INVALID_APP_INTERFACE_TYPE_ID
+
+    # Empty class_name.
+    with pytest.raises(TiferetError) as excinfo_class:
+        app_interface.set_attribute('class_name', '')
+
+    assert excinfo_class.value.error_code == const.INVALID_APP_INTERFACE_TYPE_ID
