@@ -179,6 +179,7 @@ class AppInterfaceConfigData(AppInterface, DataObject):
         # Create a new AppInterfaceConfigData object from the model.
         return DataObject.from_model(
             AppInterfaceConfigData,
+            app_interface,
             attributes={attr.attribute_id: DataObject.from_model(AppAttributeConfigData, attr) for attr in app_interface.attributes},
             **kwargs
         )

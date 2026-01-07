@@ -95,3 +95,46 @@ def test_app_settings_yaml_data_map(app_settings_config_data: AppInterfaceConfig
     # Assert that the constants are correctly set.
     assert app_settings.constants
     assert app_settings.constants['test_const'] == 'test_const_value'
+
+
+# ** test: app_interface_config_data_from_model_round_trip
+
+def test_app_interface_config_data_from_model_round_trip(app_settings_config_data: AppInterfaceConfigData):
+    '''
+    Ensure AppInterfaceConfigData.from_model produces a data object that
+    round-trips back to an equivalent AppInterface instance.
+    '''
+
+    # Start from data -> model
+    original_interface = app_settings_config_data.map()
+
+    # Convert model back to data
+    data_obj = AppInterfaceConfigData.from_model(original_interface)
+
+    assert isinstance(data_obj, AppInterfaceConfigData)
+
+    # Convert data back to model again
+    round_tripped_interface = data_obj.map()
+
+    # Compare key fields
+    assert round_tripped_interface.id == original_interface.id
+    assert round_tripped_interface.name == original_interface.name
+    assert round_tripped_interface.feature_flag == original_interface.feature_flag
+    assert round_tripped_interface.data_flag == original_interface.data_flag
+    assert round_tripped_interface.module_path == original_interface.module_path
+    assert round_tripped_interface.class_name == original_interface.class_name
+
+    # Attributes should match by id and core fields
+    assert len(round_tripped_interface.attributes) == len(original_interface.attributes)
+    orig_attrs = {a.attribute_id: a for a in original_interface.attributes}
+    rt_attrs = {a.attribute_id: a for a in round_tripped_interface.attributes}
+    assert orig_attrs.keys() == rt_attrs.keys()
+
+    for attr_id, orig_attr in orig_attrs.items():
+        rt_attr = rt_attrs[attr_id]
+        assert rt_attr.module_path == orig_attr.module_path
+        assert rt_attr.class_name == orig_attr.class_name
+        assert rt_attr.parameters == orig_attr.parameters
+
+    # Constants should also match
+    assert round_tripped_interface.constants == original_interface.constants
