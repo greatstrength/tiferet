@@ -277,8 +277,6 @@ def test_app_manager_context_load_interface_invalid(app_manager_context):
 
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
-    :param app_service: The mock app service.
-    :type app_service: AppService
     """
 
     # Create invalid app interface context.
