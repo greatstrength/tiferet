@@ -235,8 +235,7 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 
 The Tiferet framework maintains a suite of focused documentation in `tiferet/assets/docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
-- **[code_style.md](https://github.com/greatstrength/tiferet/blob/main/tiferet/assets/docs/core/code_style.md)** – Core structured code style (artifact comments, spacing, docstrings, snippets).
-- **[models.md](https://github.com/greatstrength/tiferet/blob/main/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
-- **[commands.md](https://github.com/greatstrength/tiferet/blob/main/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
+- **[models.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
+- **[commands.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
 
 Additional component-style documents (e.g., contexts, repositories, data objects) will be added as the framework evolves. Refer to this list for the current set of authoritative style guides.
