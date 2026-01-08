@@ -9,7 +9,7 @@ These instructions ensure consistency, clarity, and completeness when drafting T
 ## General Guidelines
 - **Tone & Style**: Professional, precise, and concise. Use active voice where possible.
 - **Formatting**: Pure Markdown with proper headers, tables, code blocks, and lists.
-- **Date**: Use the current date (e.g., January 07, 2026).
+- **Date**: Use the current date (e.g., January 08, 2026).
 - **Version**: Use the current milestone version (e.g., 1.7.0). Increment only when instructed.
 - **Length**: Aim for completeness without unnecessary verbosity. Typical length: 1–3 pages when rendered.
 
@@ -78,3 +78,13 @@ Before finalizing:
 - [ ] No placeholder text or unresolved comments.
 
 These instructions ensure all TRDs remain uniform, readable, and actionable across the Tiferet codebase. Follow them strictly for every new document.
+
+## Related Code Style Documentation
+
+For detailed guidance on implementation style beyond TRD structure, add a refererence in the technical requirements document to the following documents in `tiferet/assets/docs/core/`:
+
+- **[code_style.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
+- **[models.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
+- **[commands.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
+
+Additional component-specific style guides will be added as the framework evolves. Always consult these documents when implementing or extending components.
