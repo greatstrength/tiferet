@@ -36,13 +36,21 @@ DEFAULT_ATTRIBUTES = [
     ),
     dict(
         attribute_id='feature_service',
-        module_path='tiferet.handlers.feature',
-        class_name='FeatureHandler',
+        module_path='tiferet.repos.config.feature',
+        class_name='FeatureConfigurationRepository',
+        parameters=dict(
+            feature_config_file='app/configs/feature.yml'
+        )
     ),
     dict(
         attribute_id='get_error_cmd',
         module_path='tiferet.commands.error',
         class_name='GetError',
+    ),
+    dict(
+        attribute_id='get_feature_cmd',
+        module_path='tiferet.commands.feature',
+        class_name='GetFeature',
     ),
     {
         'attribute_id': 'container_list_all_cmd',
