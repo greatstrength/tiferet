@@ -2,12 +2,9 @@
 
 # ** app
 from ..assets.constants import (
-    REQUEST_NOT_FOUND_ID,
-    PARAMETER_NOT_FOUND_ID,
     FEATURE_NOT_FOUND_ID
 )
 from ..commands import (
-    ParseParameter,
     RaiseError
 )
 from ..contracts.feature import *
@@ -34,46 +31,6 @@ class FeatureHandler(FeatureService):
 
         # Assign the feature repository.
         self.feature_repo = feature_repo
-
-    # * method: parse_parameter
-    def parse_parameter(self, parameter: str, request: Request = None) -> str:
-        '''
-        Parse a parameter.
-
-        
-        :param parameter: The parameter to parse.
-        :type parameter: str:
-        param request: The request object containing data for parameter parsing.
-        :type request: Request
-        :return: The parsed parameter.
-        :rtype: str
-        '''
-
-        # Parse the parameter if it not a request parameter.
-        if not parameter.startswith('$r.'):
-            return ParseParameter.execute(parameter)
-        
-        # Raise an error if the request is and the parameter comes from the request.
-        if not request and parameter.startswith('$r.'):
-            RaiseError.execute(
-                REQUEST_NOT_FOUND_ID,
-                'Request data is not available for parameter parsing.',
-                parameter=parameter
-            )
-    
-        # Parse the parameter from the request if provided.
-        result = request.data.get(parameter[3:], None)
-        
-        # Raise an error if the parameter is not found in the request data.
-        if result is None:
-            RaiseError.execute(
-                PARAMETER_NOT_FOUND_ID,
-                f'Parameter {parameter} not found in request data.',
-                parameter=parameter
-            )
-
-        # Return the parsed parameter.
-        return result
 
     # * method: get_feature
     def get_feature(self, feature_id: str) -> Feature:
