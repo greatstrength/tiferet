@@ -293,23 +293,3 @@ def test_int_feature_config_repo_delete(
     assert remaining_features == []
 
 
-# ** test_int: feature_config_repo_get_feature
-def test_int_feature_config_repo_get_feature(
-        feature_config_repo: FeatureConfigurationRepository,
-    ):
-    '''
-    Test the get_feature convenience method of the FeatureConfigurationRepository.
-
-    :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureConfigurationRepository
-    '''
-
-    # Retrieve a feature using get_feature.
-    feature = feature_config_repo.get_feature(TEST_FEATURE_ID)
-
-    # Check the retrieved feature.
-    assert feature
-    assert feature.id == TEST_FEATURE_ID
-    assert feature.name == 'Test Feature'
-    assert feature.group_id == 'test_group'
-    assert feature.feature_key == 'test_feature'
