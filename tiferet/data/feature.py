@@ -80,9 +80,6 @@ class FeatureConfigData(Feature, DataObject):
         The default options for the feature data.
         '''
 
-        # Set the serialize when none flag to false.
-        serialize_when_none = False
-
         # Define the roles for the feature data.
         roles = {
             'to_model': DataObject.deny('feature_key'),
@@ -116,11 +113,13 @@ class FeatureConfigData(Feature, DataObject):
         '''
 
         # Map the feature data to a feature object.
-        return super().map(Feature, role, 
+        commands_list = [
+            command.map(role, **kwargs) for command in (self.commands or [])
+        ]
+
+        return super().map(Feature, role,
             feature_key=self.feature_key,
-            commands=[
-                command.map(role, **kwargs) for command in self.commands
-            ],
+            commands=commands_list,
             **kwargs
         )
 
