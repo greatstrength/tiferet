@@ -63,7 +63,7 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     '''
 
     # Arrange the feature service to return the sample feature.
-    mock_feature_service.get_feature.return_value = sample_feature
+    mock_feature_service.get.return_value = sample_feature
 
     # Execute the command via the static Command.handle interface.
     result = Command.handle(
@@ -74,7 +74,7 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
 
     # Assert that the feature is returned and the service was called as expected.
     assert result is sample_feature
-    mock_feature_service.get_feature.assert_called_once_with('group.sample_feature')
+    mock_feature_service.get.assert_called_once_with('group.sample_feature')
 
 # ** test: get_feature_not_found
 def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
@@ -86,7 +86,7 @@ def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
     '''
 
     # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get_feature.return_value = None
+    mock_feature_service.get.return_value = None
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
@@ -98,7 +98,7 @@ def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
 
     error: TiferetError = excinfo.value
     assert error.error_code == FEATURE_NOT_FOUND_ID
-    mock_feature_service.get_feature.assert_called_once_with('missing.feature')
+    mock_feature_service.get.assert_called_once_with('missing.feature')
 
 # ** test: get_feature_missing_id
 def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
@@ -120,4 +120,4 @@ def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
     error: TiferetError = excinfo.value
     assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
     # The feature service should not be called when validation fails.
-    mock_feature_service.get_feature.assert_not_called()
+    mock_feature_service.get.assert_not_called()

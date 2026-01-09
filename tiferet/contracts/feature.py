@@ -155,17 +155,68 @@ class FeatureRepository(Repository):
 class FeatureService(Service):
     '''
     Feature service contract.
+
+    This service provides repository-style operations for features,
+    mirroring the FeatureRepository contract.
     '''
 
-    # * method: get_feature
+    # * method: exists
     @abstractmethod
-    def get_feature(self, feature_id: str) -> Feature:
+    def exists(self, id: str) -> bool:
         '''
-        Get a feature by its ID.
+        Verifies if the feature exists.
 
-        :param feature_id: The ID of the feature to retrieve.
-        :type feature_id: str
-        :return: The feature object.
-        :rtype: Feature
+        :param id: The feature id.
+        :type id: str
+        :return: Whether the feature exists.
+        :rtype: bool
         '''
-        raise NotImplementedError('The get_feature method must be implemented by the feature service.')
+        raise NotImplementedError('The exists method must be implemented by the feature service.')
+
+    # * method: get
+    @abstractmethod
+    def get(self, id: str) -> Feature:
+        '''
+        Get the feature by id.
+
+        :param id: The feature id.
+        :type id: str
+        :return: The feature object.
+        :rtype: Any
+        '''
+        raise NotImplementedError('The get method must be implemented by the feature service.')
+
+    # * method: list
+    @abstractmethod
+    def list(self, group_id: str = None) -> List[Feature]:
+        '''
+        List the features.
+
+        :param group_id: The group id.
+        :type group_id: str
+        :return: The list of features.
+        :rtype: List[Feature]
+        '''
+        raise NotImplementedError('The list method must be implemented by the feature service.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, feature: Feature) -> None:
+        '''
+        Save the feature.
+
+        :param feature: The feature.
+        :type feature: Feature
+        '''
+        raise NotImplementedError('The save method must be implemented by the feature service.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the feature.
+
+        :param id: The feature id.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the feature service.')

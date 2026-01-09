@@ -250,16 +250,3 @@ class FeatureConfigurationRepository(FeatureService, ConfigurationFileRepository
                 data_path='features',
             )
 
-    # * method: get_feature
-    def get_feature(self, feature_id: str) -> FeatureContract:
-        '''
-        Get a feature by its ID.
-
-        :param feature_id: The feature id in the format "<group_id>.<feature_key>".
-        :type feature_id: str
-        :return: The feature instance or None if not found.
-        :rtype: FeatureContract | None
-        '''
-
-        # Delegate to the get method for compatibility with FeatureService.
-        return self.get(feature_id)
