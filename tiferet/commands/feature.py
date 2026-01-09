@@ -306,3 +306,98 @@ class UpdateFeature(Command):
 
         # Return the updated feature.
         return feature
+
+
+# ** command: add_feature_command
+class AddFeatureCommand(Command):
+    '''
+    Command to add a command to an existing feature.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the AddFeatureCommand command.
+
+        :param feature_service: The feature service to use.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            name: str,
+            attribute_id: str,
+            parameters: dict | None = None,
+            data_key: str | None = None,
+            position: int | None = None,
+            **kwargs,
+        ) -> str:
+        '''
+        Add a command to an existing feature.
+
+        :param id: The feature ID.
+        :type id: str
+        :param name: The command name.
+        :type name: str
+        :param attribute_id: The container attribute ID.
+        :type attribute_id: str
+        :param parameters: Optional command parameters.
+        :type parameters: dict | None
+        :param data_key: Optional result data key.
+        :type data_key: str | None
+        :param position: Insertion position (None to append).
+        :type position: int | None
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The feature ID.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=name,
+            parameter_name='name',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute_id,
+            parameter_name='attribute_id',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the feature from the feature service.
+        feature = self.feature_service.get(id)
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Add the command using the Feature model helper.
+        feature.add_command(
+            name=name,
+            attribute_id=attribute_id,
+            parameters=parameters or {},
+            data_key=data_key,
+            position=position,
+        )
+
+        # Persist the updated feature.
+        self.feature_service.save(feature)
+
+        # Return the feature identifier.
+        return id
