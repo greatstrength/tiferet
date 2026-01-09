@@ -110,7 +110,6 @@ def test_feature_context_parse_request_parameter_success(feature_context):
     # Assert that the parsed value is correct.
     assert result == 'value'
 
-
 # ** test: feature_context_parse_request_parameter_request_not_found
 def test_feature_context_parse_request_parameter_request_not_found(feature_context):
     """Test that an error is raised when request is None for a request-backed parameter."""
@@ -123,7 +122,6 @@ def test_feature_context_parse_request_parameter_request_not_found(feature_conte
 
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.key'
-
 
 # ** test: feature_context_parse_request_parameter_not_found
 def test_feature_context_parse_request_parameter_not_found(feature_context):
@@ -140,7 +138,6 @@ def test_feature_context_parse_request_parameter_not_found(feature_context):
 
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.missing'
-
 
 # ** test: feature_context_parse_request_parameter_delegates_to_parse_parameter
 def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
@@ -161,7 +158,6 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
 
     assert result == 'parsed-value'
     assert called['parameter'] == '$env.MY_VAR'
-
 
 # ** test: feature_context_load_feature_command
 def test_feature_context_load_feature_command(feature_context, test_command):
