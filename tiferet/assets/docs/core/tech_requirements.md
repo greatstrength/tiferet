@@ -81,10 +81,17 @@ These instructions ensure all TRDs remain uniform, readable, and actionable acro
 
 ## Related Code Style Documentation
 
-For detailed guidance on implementation style beyond TRD structure, add a refererence in the technical requirements document to the following documents in `tiferet/assets/docs/core/`:
+Every TRD must include a **"Related Code Style Documentation"** section at the end. This section provides targeted links to component-specific style guides based on the primary artifacts being modified in the story.
 
+**Rule for inclusion:**
+- Always include the general `code_style.md`.
+- Include a component-specific guide (models.md, commands.md, contexts.md, etc.) **only if the story directly adds, modifies, or refactors code in that component type**.
+- Do not include unrelated guides to avoid clutter.
+
+Current available guides (located in `tiferet/assets/docs/core/`):
 - **[code_style.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
 - **[models.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
 - **[commands.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
+- **[contexts.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
 
-Additional component-specific style guides will be added as the framework evolves. Always consult these documents when implementing or extending components.
+Additional component-specific style guides will be added as the framework evolves. Always consult the relevant documents when implementing or extending components.
