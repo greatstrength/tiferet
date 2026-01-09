@@ -97,6 +97,72 @@ def feature():
 
 # *** tests
 
+# ** test: feature_context_parse_request_parameter_success
+def test_feature_context_parse_request_parameter_success(feature_context):
+    """Test parsing a request-backed parameter successfully."""
+
+    # Create a mock request with data.
+    request = RequestContext(data={"key": "value"})
+
+    # Parse the parameter from the request.
+    result = feature_context.parse_request_parameter('$r.key', request)
+
+    # Assert that the parsed value is correct.
+    assert result == 'value'
+
+
+# ** test: feature_context_parse_request_parameter_request_not_found
+def test_feature_context_parse_request_parameter_request_not_found(feature_context):
+    """Test that an error is raised when request is None for a request-backed parameter."""
+
+    from ...assets import TiferetError
+
+    # Assert that an error is raised when request is None.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_context.parse_request_parameter('$r.key', None)
+
+    assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.key'
+
+
+# ** test: feature_context_parse_request_parameter_not_found
+def test_feature_context_parse_request_parameter_not_found(feature_context):
+    """Test that an error is raised when the parameter key is missing in request data."""
+
+    from ...assets import TiferetError
+
+    # Create a mock request without the expected key.
+    request = RequestContext(data={})
+
+    # Assert that an error is raised when the parameter is missing.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_context.parse_request_parameter('$r.missing', request)
+
+    assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.missing'
+
+
+# ** test: feature_context_parse_request_parameter_delegates_to_parse_parameter
+def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
+    """Test that non-request parameters delegate to ParseParameter.execute."""
+
+    from ...commands import static as static_commands
+
+    called = {}
+
+    def fake_execute(parameter: str):
+        called['parameter'] = parameter
+        return 'parsed-value'
+
+    monkeypatch.setattr(static_commands.ParseParameter, 'execute', staticmethod(fake_execute))
+
+    # Non-request parameter should be delegated to ParseParameter.execute.
+    result = feature_context.parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
+
+    assert result == 'parsed-value'
+    assert called['parameter'] == '$env.MY_VAR'
+
+
 # ** test: feature_context_load_feature_command
 def test_feature_context_load_feature_command(feature_context, test_command):
     """Test loading a feature command from the FeatureContext."""
@@ -223,7 +289,6 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Add it to the feature and set as the feature service's return value.
     feature.add_command(feature_command)
     feature_service.get_feature.return_value = feature
-    feature_service.parse_parameter.return_value = 'value'
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
