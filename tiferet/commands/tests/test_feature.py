@@ -20,7 +20,7 @@ from ...assets import TiferetError
 from ...assets.constants import (
     FEATURE_NOT_FOUND_ID,
     COMMAND_PARAMETER_REQUIRED_ID,
-    ERROR_ALREADY_EXISTS_ID,
+    FEATURE_ALREADY_EXISTS_ID,
 )
 from ...commands import Command
 
@@ -271,7 +271,7 @@ def test_add_feature_duplicate_id(mock_feature_service: FeatureService) -> None:
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == ERROR_ALREADY_EXISTS_ID
+    assert error.error_code == FEATURE_ALREADY_EXISTS_ID
 
     # Verify that existence was checked and the feature was not saved.
     mock_feature_service.exists.assert_called_once()

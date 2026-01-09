@@ -10,7 +10,7 @@ from ..models.feature import (
 from ..contracts.feature import FeatureService
 from ..assets.constants import (
     FEATURE_NOT_FOUND_ID,
-    ERROR_ALREADY_EXISTS_ID,
+    FEATURE_ALREADY_EXISTS_ID,
 )
 from .settings import Command
 
@@ -100,7 +100,7 @@ class AddFeature(Command):
         # Check for duplicate feature identifier.
         self.verify(
             expression=not self.feature_service.exists(feature.id),
-            error_code=ERROR_ALREADY_EXISTS_ID,
+            error_code=FEATURE_ALREADY_EXISTS_ID,
             message=f'Feature with ID {feature.id} already exists.',
             id=feature.id,
         )
