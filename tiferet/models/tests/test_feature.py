@@ -142,3 +142,84 @@ def test_feature_add_command_position(feature: Feature):
     assert len(feature.commands) == 2
     assert feature.commands[0] == new_command
     assert feature.commands[1] == first_command
+
+# ** test: feature_rename
+def test_feature_rename(feature: Feature) -> None:
+    '''
+    Test renaming a feature updates only the name attribute.
+
+    :param feature: The feature to rename.
+    :type feature: Feature
+    '''
+
+    # Capture original attributes.
+    original_id = feature.id
+    original_group_id = feature.group_id
+    original_feature_key = feature.feature_key
+    original_description = feature.description
+    original_commands = list(feature.commands)
+
+    # Rename the feature.
+    feature.rename('Renamed Feature')
+
+    # Verify that only the name has changed.
+    assert feature.name == 'Renamed Feature'
+    assert feature.id == original_id
+    assert feature.group_id == original_group_id
+    assert feature.feature_key == original_feature_key
+    assert feature.description == original_description
+    assert feature.commands == original_commands
+
+# ** test: feature_set_description_value
+def test_feature_set_description_value(feature: Feature) -> None:
+    '''
+    Test setting a new description on a feature.
+
+    :param feature: The feature to update.
+    :type feature: Feature
+    '''
+
+    # Capture original attributes.
+    original_id = feature.id
+    original_group_id = feature.group_id
+    original_feature_key = feature.feature_key
+    original_name = feature.name
+    original_commands = list(feature.commands)
+
+    # Set a new description.
+    feature.set_description('Updated description.')
+
+    # Verify that only the description has changed.
+    assert feature.description == 'Updated description.'
+    assert feature.id == original_id
+    assert feature.group_id == original_group_id
+    assert feature.feature_key == original_feature_key
+    assert feature.name == original_name
+    assert feature.commands == original_commands
+
+# ** test: feature_set_description_none
+def test_feature_set_description_none(feature: Feature) -> None:
+    '''
+    Test clearing the description by setting it to None.
+
+    :param feature: The feature to update.
+    :type feature: Feature
+    '''
+
+    # Capture original attributes.
+    original_id = feature.id
+    original_group_id = feature.group_id
+    original_feature_key = feature.feature_key
+    original_name = feature.name
+    original_commands = list(feature.commands)
+
+    # Clear the description.
+    feature.set_description(None)
+
+    # Verify that the description is cleared and other attributes are unchanged.
+    assert feature.description is None
+    assert feature.id == original_id
+    assert feature.group_id == original_group_id
+    assert feature.feature_key == original_feature_key
+    assert feature.name == original_name
+    assert feature.commands == original_commands
