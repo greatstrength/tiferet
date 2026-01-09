@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** core
+from typing import List
+
 # ** app
 from ..models.feature import (
     Feature,
@@ -165,3 +168,40 @@ class GetFeature(Command):
 
         # Return the retrieved feature.
         return feature
+
+# ** command: list_features
+class ListFeatures(Command):
+    '''
+    Command to list feature configurations.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the ListFeatures command.
+
+        :param feature_service: The feature service to use for listing features.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(self, group_id: str | None = None, **kwargs) -> List[Feature]:
+        '''
+        List features, optionally filtered by group_id.
+
+        :param group_id: Optional group identifier to filter results.
+        :type group_id: str | None
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: List of Feature models.
+        :rtype: List[Feature]
+        '''
+
+        # Delegate to the feature service.
+        return self.feature_service.list(group_id=group_id)
