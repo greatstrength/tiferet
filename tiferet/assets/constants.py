@@ -43,6 +43,12 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_already_exists_id
 FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
 
+# ** constant: feature_name_required_id
+FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
+
+# ** constant: invalid_feature_attribute_id
+INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
+
 # ** constant: logging_config_failed_id
 LOGGING_CONFIG_FAILED_ID = 'LOGGING_CONFIG_FAILED'
 
@@ -206,6 +212,30 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'Feature with ID {id} already exists.'}
         ]
+    },
+
+    # * error: FEATURE_NAME_REQUIRED
+    FEATURE_NAME_REQUIRED_ID: {
+        'id': FEATURE_NAME_REQUIRED_ID,
+        'name': 'Feature Name Required',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A feature name is required when updating the name attribute.',
+            },
+        ],
+    },
+
+    # * error: INVALID_FEATURE_ATTRIBUTE
+    INVALID_FEATURE_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid feature attribute: {attribute}',
+            },
+        ],
     },
 
     # * error: LOGGING_CONFIG_FAILED

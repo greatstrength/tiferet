@@ -14,6 +14,7 @@ from ..feature import (
     GetFeature,
     AddFeature,
     ListFeatures,
+    UpdateFeature,
 )
 from ...models import ModelObject, Feature
 from ...contracts import FeatureService
@@ -22,6 +23,8 @@ from ...assets.constants import (
     FEATURE_NOT_FOUND_ID,
     COMMAND_PARAMETER_REQUIRED_ID,
     FEATURE_ALREADY_EXISTS_ID,
+    FEATURE_NAME_REQUIRED_ID,
+    INVALID_FEATURE_ATTRIBUTE_ID,
 )
 from ...commands import Command
 
@@ -351,3 +354,226 @@ def test_list_features_empty_result(mock_feature_service: FeatureService) -> Non
     # Assert that an empty list is returned and the service was called as expected.
     assert result == []
     mock_feature_service.list.assert_called_once_with(group_id=None)
+
+# ** test: update_feature_name_success
+def test_update_feature_name_success(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test successful update of a feature name via UpdateFeature.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Execute the command via the static Command.handle interface.
+    result: Feature = Command.handle(
+        UpdateFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        attribute='name',
+        value='Updated Feature Name',
+    )
+
+    # Assert that the feature name is updated and persisted.
+    assert result is sample_feature
+    assert result.name == 'Updated Feature Name'
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: update_feature_description_success
+def test_update_feature_description_success(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test successful update of a feature description via UpdateFeature.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Execute the command to update the description.
+    result: Feature = Command.handle(
+        UpdateFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        attribute='description',
+        value='Updated description.',
+    )
+
+    # Assert that the feature description is updated and persisted.
+    assert result is sample_feature
+    assert result.description == 'Updated description.'
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: update_feature_clear_description
+def test_update_feature_clear_description(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test clearing a feature description via UpdateFeature.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Execute the command to clear the description.
+    result: Feature = Command.handle(
+        UpdateFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        attribute='description',
+        value=None,
+    )
+
+    # Assert that the feature description is cleared and persisted.
+    assert result is sample_feature
+    assert result.description is None
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: update_feature_missing_required_parameters
+@pytest.mark.parametrize(
+    'id, attribute',
+    [
+        (' ', 'name'),
+        ('group.sample_feature', ' '),
+    ],
+)
+def test_update_feature_missing_required_parameters(
+        mock_feature_service: FeatureService,
+        id: str,
+        attribute: str,
+    ) -> None:
+    '''
+    Test that UpdateFeature fails with COMMAND_PARAMETER_REQUIRED when
+    required parameters are missing or empty.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param id: The feature identifier to test.
+    :type id: str
+    :param attribute: The attribute name to test.
+    :type attribute: str
+    '''
+
+    # Execute the command with invalid parameters and expect a validation error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id=id,
+            attribute=attribute,
+            value='ignored',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+
+    # The feature service should not be called when validation fails.
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: update_feature_invalid_attribute
+def test_update_feature_invalid_attribute(
+        mock_feature_service: FeatureService,
+    ) -> None:
+    '''
+    Test that UpdateFeature fails when an unsupported attribute is provided.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Execute the command with an invalid attribute and expect an error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id='group.sample_feature',
+            attribute='invalid',
+            value='ignored',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == INVALID_FEATURE_ATTRIBUTE_ID
+
+    # The feature service should not be called when attribute validation fails.
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: update_feature_missing_name_value
+def test_update_feature_missing_name_value(
+        mock_feature_service: FeatureService,
+    ) -> None:
+    '''
+    Test that UpdateFeature fails with FEATURE_NAME_REQUIRED when updating
+    the name with an empty value.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Execute the command with an empty name value and expect an error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id='group.sample_feature',
+            attribute='name',
+            value=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NAME_REQUIRED_ID
+
+    # The feature service should not be called when name validation fails.
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: update_feature_not_found
+def test_update_feature_not_found(mock_feature_service: FeatureService) -> None:
+    '''
+    Test that UpdateFeature raises FEATURE_NOT_FOUND when the feature does
+    not exist.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Arrange the feature service to return None for the requested feature.
+    mock_feature_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            UpdateFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            attribute='name',
+            value='Updated Feature Name',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    mock_feature_service.get.assert_called_once_with('missing.feature')
+    mock_feature_service.save.assert_not_called()

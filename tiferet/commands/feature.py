@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import List
+from typing import List, Any
 
 # ** app
 from ..models.feature import (
@@ -14,6 +14,8 @@ from ..contracts.feature import FeatureService
 from ..assets.constants import (
     FEATURE_NOT_FOUND_ID,
     FEATURE_ALREADY_EXISTS_ID,
+    FEATURE_NAME_REQUIRED_ID,
+    INVALID_FEATURE_ATTRIBUTE_ID,
 )
 from .settings import Command
 
@@ -205,3 +207,102 @@ class ListFeatures(Command):
 
         # Delegate to the feature service.
         return self.feature_service.list(group_id=group_id)
+
+# ** command: update_feature
+class UpdateFeature(Command):
+    '''
+    Command to update basic metadata of an existing feature.
+
+    Supports updating the ``name`` or ``description`` attributes using the
+    Feature model helpers.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService) -> None:
+        '''
+        Initialize the UpdateFeature command.
+
+        :param feature_service: The feature service used to retrieve and
+            persist features.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            attribute: str,
+            value: Any,
+            **kwargs,
+        ) -> Feature:
+        '''
+        Update a feature's ``name`` or ``description`` attribute.
+
+        :param id: The identifier of the feature to update.
+        :type id: str
+        :param attribute: The attribute to update (``"name"`` or
+            ``"description"``).
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The updated Feature instance.
+        :rtype: Feature
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute,
+            parameter_name='attribute',
+            command_name=self.__class__.__name__,
+        )
+
+        # Validate that the attribute is supported.
+        self.verify(
+            expression=attribute in ('name', 'description'),
+            error_code=INVALID_FEATURE_ATTRIBUTE_ID,
+            message=f'Invalid feature attribute: {attribute}',
+            attribute=attribute,
+        )
+
+        # When updating the name, ensure a non-empty value is provided.
+        if attribute == 'name':
+            self.verify(
+                expression=isinstance(value, str) and bool(value.strip()),
+                error_code=FEATURE_NAME_REQUIRED_ID,
+                message='A feature name is required when updating the name attribute.',
+            )
+
+        # Retrieve the feature from the feature service.
+        feature = self.feature_service.get(id)
+
+        # Verify that the feature exists.
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            feature_id=id,
+        )
+
+        # Apply the requested update using model helpers.
+        if attribute == 'name':
+            feature.rename(value)
+        elif attribute == 'description':
+            feature.set_description(value)
+
+        # Persist the updated feature.
+        self.feature_service.save(feature)
+
+        # Return the updated feature.
+        return feature
