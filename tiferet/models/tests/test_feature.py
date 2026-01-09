@@ -113,6 +113,8 @@ def test_feature_add_service_command(feature: Feature):
     # Test that the new command is added to the list.
     assert len(feature.commands) == 1
     assert feature.commands[0] == command
+    # Default pass_on_error should be False.
+    assert command.pass_on_error is False
 
 # ** test: feature_add_command_position
 def test_feature_add_command_position(feature: Feature):
@@ -128,6 +130,7 @@ def test_feature_add_command_position(feature: Feature):
         name='Initial Service Command',
         attribute_id='initial_feature_command',
         parameters={'param1': 'value1'},
+        pass_on_error=True,
     )
 
     # Add a new command at the beginning.
@@ -142,6 +145,8 @@ def test_feature_add_command_position(feature: Feature):
     assert len(feature.commands) == 2
     assert feature.commands[0] == new_command
     assert feature.commands[1] == first_command
+    # Ensure pass_on_error is preserved on the first command.
+    assert first_command.pass_on_error is True
 
 # ** test: feature_rename
 def test_feature_rename(feature: Feature) -> None:
