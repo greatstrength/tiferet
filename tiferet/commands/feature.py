@@ -337,6 +337,7 @@ class AddFeatureCommand(Command):
             attribute_id: str,
             parameters: dict | None = None,
             data_key: str | None = None,
+            pass_on_error: bool = False,
             position: int | None = None,
             **kwargs,
         ) -> str:
@@ -353,6 +354,8 @@ class AddFeatureCommand(Command):
         :type parameters: dict | None
         :param data_key: Optional result data key.
         :type data_key: str | None
+        :param pass_on_error: Whether to pass on errors from this command.
+        :type pass_on_error: bool
         :param position: Insertion position (None to append).
         :type position: int | None
         :param kwargs: Additional keyword arguments.
@@ -393,6 +396,7 @@ class AddFeatureCommand(Command):
             attribute_id=attribute_id,
             parameters=parameters or {},
             data_key=data_key,
+            pass_on_error=pass_on_error,
             position=position,
         )
 

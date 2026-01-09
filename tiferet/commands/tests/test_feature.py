@@ -606,6 +606,7 @@ def test_add_feature_command_append_success(
         attribute_id='container.attribute',
         parameters={'foo': 'bar'},
         data_key='result_key',
+        pass_on_error=True,
     )
 
     # Assert that the feature ID is returned.
@@ -618,6 +619,7 @@ def test_add_feature_command_append_success(
     assert command.attribute_id == 'container.attribute'
     assert command.parameters == {'foo': 'bar'}
     assert command.data_key == 'result_key'
+    assert command.pass_on_error is True
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -644,6 +646,7 @@ def test_add_feature_command_insert_success(
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
+        pass_on_error=False,
     )
     sample_feature.add_command(
         name='second',
