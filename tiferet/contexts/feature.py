@@ -5,10 +5,15 @@ from .container import ContainerContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..handlers.feature import FeatureService
-from ..assets.constants import FEATURE_COMMAND_LOADING_FAILED_ID
+from ..assets.constants import (
+    FEATURE_COMMAND_LOADING_FAILED_ID,
+    REQUEST_NOT_FOUND_ID,
+    PARAMETER_NOT_FOUND_ID
+)
 from ..commands import (
     Command,
-    RaiseError
+    RaiseError,
+    ParseParameter
 )
 
 # *** contexts
@@ -118,6 +123,45 @@ class FeatureContext(object):
         else:
             request.result = result
 
+    # * method: parse_request_parameter
+    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
+        '''
+        Parse a request-aware parameter.
+
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request context object containing data for parameter parsing.
+        :type request: RequestContext
+        :return: The parsed parameter value.
+        :rtype: str
+        '''
+
+        # Parse the parameter if it is not a request-backed parameter.
+        if not parameter.startswith('$r.'):
+            return ParseParameter.execute(parameter)
+
+        # Raise an error if the request is not provided for a request-backed parameter.
+        if not request:
+            RaiseError.execute(
+                REQUEST_NOT_FOUND_ID,
+                'Request data is not available for parameter parsing.',
+                parameter=parameter
+            )
+
+        # Parse the parameter from the request if provided.
+        result = request.data.get(parameter[3:], None)
+
+        # Raise an error if the parameter is not found in the request data.
+        if result is None:
+            RaiseError.execute(
+                PARAMETER_NOT_FOUND_ID,
+                f'Parameter {parameter} not found in request data.',
+                parameter=parameter
+            )
+
+        # Return the parsed parameter.
+        return result
+
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -136,21 +180,15 @@ class FeatureContext(object):
             feature = self.feature_service.get_feature(feature_id)
             self.cache.set(feature_id, feature)
 
-        # Load the command dependencies from the container for the feature.
-        commands = [
-            self.load_feature_command(cmd.attribute_id)
-            for cmd in feature.commands
-        ]
-              
-        # Execute the feature with the request and commands.
-        for index, cmd in enumerate(commands):
+        # Execute the feature by iterating over its configured commands.
+        for feature_command in feature.commands:
 
-            # Get the feature command from the feature.
-            feature_command = feature.commands[index]
+            # Load the command dependency for this feature command.
+            cmd = self.load_feature_command(feature_command.attribute_id)
 
-            # Parse the command parameters
+            # Parse the command parameters.
             params = {
-                param: self.feature_service.parse_parameter(value, request)
+                param: self.parse_request_parameter(value, request)
                 for param, value in feature_command.parameters.items()
             }
 
