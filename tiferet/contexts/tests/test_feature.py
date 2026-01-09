@@ -19,7 +19,6 @@ from ...commands.feature import GetFeature
 from ...models import (
     ModelObject,
     Feature,
-    FeatureCommand
 )
 
 # *** fixtures
@@ -247,15 +246,13 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
 # ** test: feature_context_execute_feature
 def test_feature_context_execute_feature(feature_context, get_feature_cmd, feature):
 
-    # Create a standard feature command with no data key or pass on error.
-    feature_command = ModelObject.new(
-        FeatureCommand,
+    # Add a standard feature command with no data key or pass on error.
+    feature.add_command(
+        name='Test Command',
         attribute_id='test_command',
-        name='Test Command'
     )
 
-    # Add it to the feature and set as the GetFeature command's return value.
-    feature.add_command(feature_command)
+    # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature
 
     # Create a mock request.
@@ -270,23 +267,21 @@ def test_feature_context_execute_feature(feature_context, get_feature_cmd, featu
     # Assert that the GetFeature command was invoked once for this feature id.
     get_feature_cmd.execute.assert_called_once_with(id=feature.id)
 
-# ** test: feature_context_execute_feature_with_data_key_parameter
+# ** test: feature_context_execute_feature_with_request_parameter
 def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_cmd, feature):
     """Test executing a feature with a request parameter in the FeatureContext."""
     
-    # Create a standard feature command with a data key.
-    feature_command = ModelObject.new(
-        FeatureCommand,
-        attribute_id='test_command',
+    # Add a standard feature command with a data key.
+    feature.add_command(
         name='Test Command',
+        attribute_id='test_command',
         parameters=dict(
             param='$r.key',
         ),
-        data_key='response_data'
+        data_key='response_data',
     )
 
-    # Add it to the feature and set as the GetFeature command's return value.
-    feature.add_command(feature_command)
+    # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature
 
     # Create a mock request.
@@ -306,16 +301,14 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
 def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_cmd, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
     
-    # Create a standard feature command with pass_on_error set to True.
-    feature_command = ModelObject.new(
-        FeatureCommand,
-        attribute_id='test_command',
+    # Add a standard feature command and enable pass_on_error.
+    feature_command = feature.add_command(
         name='Test Command',
-        pass_on_error=True
+        attribute_id='test_command',
     )
+    feature_command.pass_on_error = True
 
-    # Add it to the feature and set as the GetFeature command's return value.
-    feature.add_command(feature_command)
+    # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature
 
     # Create a mock request that will raise an error.
