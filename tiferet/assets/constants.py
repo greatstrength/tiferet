@@ -40,6 +40,9 @@ PARAMETER_NOT_FOUND_ID = 'PARAMETER_NOT_FOUND'
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
+# ** constant: feature_already_exists_id
+FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
+
 # ** constant: logging_config_failed_id
 LOGGING_CONFIG_FAILED_ID = 'LOGGING_CONFIG_FAILED'
 
@@ -193,6 +196,15 @@ DEFAULT_ERRORS = {
         'name': 'Feature Not Found',
         'message': [
             {'lang': 'en_US', 'text': 'Feature not found: {feature_id}.'}
+        ]
+    },
+
+    # * error: FEATURE_ALREADY_EXISTS
+    FEATURE_ALREADY_EXISTS_ID: {
+        'id': FEATURE_ALREADY_EXISTS_ID,
+        'name': 'Feature Already Exists',
+        'message': [
+            {'lang': 'en_US', 'text': 'Feature with ID {id} already exists.'}
         ]
     },
 
