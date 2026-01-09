@@ -173,17 +173,44 @@ class Feature(ModelObject):
         )
 
     # * method: add_command
-    def add_command(self, command: FeatureCommand, position: int = None):
-        '''Adds a service command to the feature.
-
-        :param command: The service command to add.
-        :type command: FeatureCommand
-        :param position: The position to add the handler at.
-        :type position: int
+    def add_command(
+        self,
+        name: str,
+        attribute_id: str,
+        parameters: dict | None = None,
+        data_key: str | None = None,
+        position: int | None = None,
+    ) -> FeatureCommand:
         '''
+        Add a feature command using raw attributes.
+
+        :param name: Command name.
+        :type name: str
+        :param attribute_id: Container attribute ID.
+        :type attribute_id: str
+        :param parameters: Optional parameters dictionary.
+        :type parameters: dict | None
+        :param data_key: Optional result data key.
+        :type data_key: str | None
+        :param position: Insertion position (None to append).
+        :type position: int | None
+        :return: Created FeatureCommand instance.
+        :rtype: FeatureCommand
+        '''
+
+        # Create the feature command from raw attributes.
+        command = ModelObject.new(
+            FeatureCommand,
+            name=name,
+            attribute_id=attribute_id,
+            parameters=parameters or {},
+            data_key=data_key,
+        )
 
         # Add the feature command to the feature.
         if position is not None:
             self.commands.insert(position, command)
         else:
             self.commands.append(command)
+
+        return command
