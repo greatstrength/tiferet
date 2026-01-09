@@ -214,3 +214,25 @@ class Feature(ModelObject):
             self.commands.append(command)
 
         return command
+
+    # * method: rename
+    def rename(self, name: str) -> None:
+        '''
+        Update the display name of the feature.
+
+        :param name: The new name.
+        :type name: str
+        '''
+
+        self.name = name
+
+    # * method: set_description
+    def set_description(self, description: str | None) -> None:
+        '''
+        Update or clear the feature description.
+
+        :param description: The new description, or None to clear.
+        :type description: str | None
+        '''
+
+        self.description = description
