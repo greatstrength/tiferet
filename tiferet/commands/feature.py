@@ -56,7 +56,7 @@ class GetFeature(Command):
         )
 
         # Retrieve the feature from the feature service.
-        feature = self.feature_service.get_feature(id)
+        feature = self.feature_service.get(id)
 
         # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
         self.verify(
