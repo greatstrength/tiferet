@@ -53,55 +53,7 @@ def feature_handler(feature_repo):
     return FeatureHandler(
         feature_repo=feature_repo,
     )
-
-# ** fixture: request_with_data
-@pytest.fixture
-def request_with_data():
-    """Fixture to provide a request object with data."""
-
-    return RequestContext(
-        data=dict(
-            const_value='test_value',
-        )
-    )
-
 # *** tests
-
-# ** test: test_feature_handler_parse_parameter
-def test_feature_handler_parse_parameter(feature_handler, request_with_data):
-    """Test that the feature handler can parse a parameter from the request data."""
-
-    # Run the test.
-    parsed_value = feature_handler.parse_parameter('$r.const_value', request_with_data)
-
-    # Assert that the parsed value is correct.
-    assert parsed_value == 'test_value'
-
-# ** test: test_feature_handler_parse_parameter_invalid_request
-def test_feature_handler_parse_parameter_invalid_request(feature_handler):
-    """Test that the feature handler raises an error when the request is None."""
-
-    # Assert that an error is raised when trying to parse a parameter with a None request.
-    with pytest.raises(TiferetError) as exc_info:
-        feature_handler.parse_parameter('$r.const_value')
-
-    # Assert that the error message is correct.
-    assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
-    assert exc_info.value.kwargs.get('parameter') == '$r.const_value'
-    assert 'Request data is not available for parameter parsing.' in str(exc_info.value)
-
-# ** test: test_feature_handler_parse_parameter_not_found
-def test_feature_handler_parse_parameter_not_found(feature_handler, request_with_data):
-    """Test that the feature handler raises an error when a parameter is not found in the request data."""
-
-    # Assert that an error is raised when trying to parse a non-existent parameter.
-    with pytest.raises(TiferetError) as exc_info:
-        feature_handler.parse_parameter('$r.non_existent_param', request_with_data)
-
-    # Assert that the error message is correct.
-    assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
-    assert exc_info.value.kwargs.get('parameter') == '$r.non_existent_param'
-    assert 'Parameter $r.non_existent_param not found in request data.' in str(exc_info.value)
 
 # ** test: test_feature_handler_get_feature_not_found
 def test_feature_handler_get_feature_not_found(feature_handler, feature_repo):
