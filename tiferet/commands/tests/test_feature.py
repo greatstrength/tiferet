@@ -13,6 +13,7 @@ from unittest import mock
 from ..feature import (
     GetFeature,
     AddFeature,
+    ListFeatures,
 )
 from ...models import ModelObject, Feature
 from ...contracts import FeatureService
@@ -276,3 +277,77 @@ def test_add_feature_duplicate_id(mock_feature_service: FeatureService) -> None:
     # Verify that existence was checked and the feature was not saved.
     mock_feature_service.exists.assert_called_once()
     mock_feature_service.save.assert_not_called()
+
+# ** test: list_features_all
+def test_list_features_all(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
+    '''ß
+    Test listing all features when no group_id filter is provided.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Arrange the feature service to return all features.
+    mock_feature_service.list.return_value = [sample_feature]
+
+    # Execute the command via the static Command.handle interface.
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+        group_id=None,
+    )
+
+    # Assert that all features are returned and the service was called as expected.
+    assert result == [sample_feature]
+    mock_feature_service.list.assert_called_once_with(group_id=None)
+
+# ** test: list_features_by_group_id
+def test_list_features_by_group_id(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
+    '''
+    Test listing features filtered by group_id.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Arrange the feature service to return features for the specified group.
+    group_id = 'group'
+    mock_feature_service.list.return_value = [sample_feature]
+
+    # Execute the command via the static Command.handle interface.
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+        group_id=group_id,
+    )
+
+    # Assert that the filtered features are returned and the service was called as expected.
+    assert result == [sample_feature]
+    mock_feature_service.list.assert_called_once_with(group_id=group_id)
+
+# ** test: list_features_empty_result
+def test_list_features_empty_result(mock_feature_service: FeatureService) -> None:
+    '''
+    Test listing features when the service returns an empty list.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Arrange the feature service to return an empty list.
+    mock_feature_service.list.return_value = []
+
+    # Execute the command via the static Command.handle interface.
+    result = Command.handle(
+        ListFeatures,
+        dependencies={'feature_service': mock_feature_service},
+        group_id=None,
+    )
+
+    # Assert that an empty list is returned and the service was called as expected.
+    assert result == []
+    mock_feature_service.list.assert_called_once_with(group_id=None)
