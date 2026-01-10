@@ -17,6 +17,7 @@ from ..feature import (
     UpdateFeature,
     AddFeatureCommand,
     UpdateFeatureCommand,
+    RemoveFeatureCommand,
 )
 from ...models import ModelObject, Feature
 from ...contracts import FeatureService
@@ -1089,4 +1090,170 @@ def test_update_feature_command_command_not_found(
     error: TiferetError = excinfo.value
     assert error.error_code == FEATURE_COMMAND_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_not_called()
+
+# ** test: remove_feature_command_success
+def test_remove_feature_command_success(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test successfully removing a command at a valid position via
+    RemoveFeatureCommand.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with two commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+
+    assert sample_feature.commands == [first_command, second_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Execute the command via the static Command.handle interface.
+    result = Command.handle(
+        RemoveFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        position=0,
+    )
+
+    # Assert that the feature ID is returned and the first command was
+    # removed.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [second_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: remove_feature_command_invalid_position_idempotent
+def test_remove_feature_command_invalid_position_idempotent(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test that RemoveFeatureCommand behaves idempotently when an invalid
+    position is provided.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with a single command.
+    original_command = sample_feature.add_command(
+        name='only',
+        attribute_id='container.only',
+        parameters={'index': 0},
+        data_key='only_key',
+    )
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Execute the command with an out-of-range position; this should be a
+    # silent, idempotent no-op.
+    result = Command.handle(
+        RemoveFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        position=5,
+    )
+
+    # Assert that the feature ID is returned and the commands list is
+    # unchanged.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [original_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: remove_feature_command_feature_not_found
+def test_remove_feature_command_feature_not_found(
+        mock_feature_service: FeatureService,
+    ) -> None:
+    '''
+    Test that RemoveFeatureCommand raises FEATURE_NOT_FOUND when the feature
+    does not exist.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Arrange the feature service to return None for the requested feature.
+    mock_feature_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            position=0,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    mock_feature_service.get.assert_called_once_with('missing.feature')
+    mock_feature_service.save.assert_not_called()
+
+# ** test: remove_feature_command_missing_required_parameters
+@pytest.mark.parametrize(
+    'id, position',
+    [
+        (' ', 0),
+        ('group.sample_feature', None),
+    ],
+)
+def test_remove_feature_command_missing_required_parameters(
+        mock_feature_service: FeatureService,
+        id: str,
+        position: int | None,
+    ) -> None:
+    '''
+    Test that RemoveFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
+    required parameters are missing or empty.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param id: The feature identifier to test.
+    :type id: str
+    :param position: The command position to test.
+    :type position: int | None
+    '''
+
+    # Execute the command with invalid parameters and expect a validation
+    # error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id=id,
+            position=position,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+
+    # The feature service should not be called when validation fails.
+    mock_feature_service.get.assert_not_called()
     mock_feature_service.save.assert_not_called()
