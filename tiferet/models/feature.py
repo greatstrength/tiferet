@@ -297,6 +297,30 @@ class Feature(ModelObject):
         except (IndexError, TypeError):
             return None
 
+    # * method: remove_command
+    def remove_command(self, position: int) -> FeatureCommand | None:
+        '''
+        Remove and return the feature command at the given position, or
+        return ``None`` if the index is out of range or invalid.
+
+        :param position: The index of the feature command to remove.
+        :type position: int
+        :return: The removed feature command or ``None``.
+        :rtype: FeatureCommand | None
+        '''
+
+        # Validate the position argument, ensuring it is a non-negative
+        # integer index.
+        if not isinstance(position, int) or position < 0:
+            return None
+
+        # Attempt to remove and return the command at the specified index,
+        # returning None if the index is out of range.
+        try:
+            return self.commands.pop(position)
+        except IndexError:
+            return None
+
     # * method: rename
     def rename(self, name: str) -> None:
         '''

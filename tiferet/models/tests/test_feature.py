@@ -359,3 +359,87 @@ def test_feature_get_command_valid_and_invalid_indices(feature: Feature) -> None
 
     # Non-integer index should also return None.
     assert feature.get_command('invalid') is None
+
+# ** test: feature_remove_command_valid_positions
+def test_feature_remove_command_valid_positions(feature: Feature) -> None:
+    '''
+    Test that ``remove_command`` removes and returns commands for valid
+    positions.
+    '''
+
+    # Add three commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    middle_command = feature.add_command(
+        name='Middle Command',
+        attribute_id='middle_attr',
+    )
+    last_command = feature.add_command(
+        name='Last Command',
+        attribute_id='last_attr',
+    )
+
+    # Remove the middle command.
+    removed = feature.remove_command(1)
+    assert removed is middle_command
+    assert feature.commands == [first_command, last_command]
+
+    # Remove the first command (start of the list).
+    removed = feature.remove_command(0)
+    assert removed is first_command
+    assert feature.commands == [last_command]
+
+    # Re-add commands to test removing the last position explicitly.
+    feature.add_command(
+        name='Another Command',
+        attribute_id='another_attr',
+    )
+    # At this point, commands are [last_command, another_command].
+    another_command = feature.commands[1]
+
+    removed = feature.remove_command(1)
+    assert removed is another_command
+    assert feature.commands == [last_command]
+
+# ** test: feature_remove_command_invalid_positions
+def test_feature_remove_command_invalid_positions(feature: Feature) -> None:
+    '''
+    Test that ``remove_command`` returns ``None`` and leaves the commands
+    list unchanged for invalid positions.
+    '''
+
+    # Add two commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+
+    original_commands = list(feature.commands)
+
+    # Out-of-range positive index should return None and not modify the list.
+    assert feature.remove_command(5) is None
+    assert feature.commands == original_commands
+
+    # Negative index should return None and not modify the list.
+    assert feature.remove_command(-1) is None
+    assert feature.commands == original_commands
+
+    # Non-integer index should also return None and not modify the list.
+    assert feature.remove_command('invalid') is None
+    assert feature.commands == original_commands
+
+    # Empty list should remain unchanged when attempting removal.
+    empty_feature = Feature.new(
+        name='Empty Feature',
+        group_id='empty_group',
+        commands=[],
+    )
+
+    assert empty_feature.remove_command(0) is None
+    assert empty_feature.commands == []
