@@ -553,3 +553,82 @@ class UpdateFeatureCommand(Command):
 
         # Return the feature identifier.
         return id
+
+# ** command: remove_feature_command
+class RemoveFeatureCommand(Command):
+    '''
+    Command to remove a command from an existing feature by position.
+
+    This command is idempotent: invalid positions result in silent success
+    with no mutation to the feature's command list.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService) -> None:
+        '''
+        Initialize the RemoveFeatureCommand command.
+
+        :param feature_service: The feature service to use for retrieving and
+            persisting features.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            position: int,
+            **kwargs,
+        ) -> str:
+        '''
+        Remove a command from the feature at the given position.
+
+        :param id: The feature identifier.
+        :type id: str
+        :param position: The index of the command to remove.
+        :type position: int
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The feature identifier.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=position,
+            parameter_name='position',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the feature from the feature service.
+        feature = self.feature_service.get(id)
+
+        # Verify that the feature exists.
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Attempt safe removal of the command at the given position. The
+        # underlying Feature.remove_command helper is idempotent and will
+        # return None without raising if the position is invalid.
+        feature.remove_command(position)
+
+        # Persist the feature, even if no command was removed.
+        self.feature_service.save(feature)
+
+        # Return the feature identifier.
+        return id
