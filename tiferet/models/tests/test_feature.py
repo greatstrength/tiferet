@@ -443,3 +443,119 @@ def test_feature_remove_command_invalid_positions(feature: Feature) -> None:
 
     assert empty_feature.remove_command(0) is None
     assert empty_feature.commands == []
+
+# ** test: feature_reorder_command_move_forward
+def test_feature_reorder_command_move_forward(feature: Feature) -> None:
+    '''
+    Test moving a feature command forward in the list.
+    '''
+
+    # Add three commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+    third_command = feature.add_command(
+        name='Third Command',
+        attribute_id='third_attr',
+    )
+
+    # Move the first command to the end.
+    moved = feature.reorder_command(0, 2)
+
+    assert moved is first_command
+    assert feature.commands == [second_command, third_command, first_command]
+
+# ** test: feature_reorder_command_move_backward
+def test_feature_reorder_command_move_backward(feature: Feature) -> None:
+    '''
+    Test moving a feature command backward in the list.
+    '''
+
+    # Add three commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+    third_command = feature.add_command(
+        name='Third Command',
+        attribute_id='third_attr',
+    )
+
+    # Move the last command to the beginning.
+    moved = feature.reorder_command(2, 0)
+
+    assert moved is third_command
+    assert feature.commands == [third_command, first_command, second_command]
+
+# ** test: feature_reorder_command_clamp_positions
+def test_feature_reorder_command_clamp_positions() -> None:
+    '''
+    Test that ``reorder_command`` clamps the new position to the valid range.
+    '''
+
+    # Create a feature with three commands.
+    feature = Feature.new(
+        name='Clamp Feature',
+        group_id='clamp_group',
+        commands=[],
+    )
+
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+    third_command = feature.add_command(
+        name='Third Command',
+        attribute_id='third_attr',
+    )
+
+    # Clamp low: move middle command to a negative index, which should clamp to 0.
+    feature.reorder_command(1, -10)
+    assert feature.commands == [second_command, first_command, third_command]
+
+    # Reset order and clamp high: move middle command beyond the end, which
+    # should clamp to the list length.
+    feature.commands = [first_command, second_command, third_command]
+
+    feature.reorder_command(1, 10)
+    assert feature.commands == [first_command, third_command, second_command]
+
+# ** test: feature_reorder_command_invalid_current_position
+def test_feature_reorder_command_invalid_current_position(feature: Feature) -> None:
+    '''
+    Test that ``reorder_command`` returns ``None`` and leaves the commands
+    list unchanged for invalid ``current_position`` values.
+    '''
+
+    # Add two commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+
+    original_commands = list(feature.commands)
+
+    # Out-of-range positive index should return None and not modify the list.
+    assert feature.reorder_command(5, 0) is None
+    assert feature.commands == original_commands
+
+    # Non-integer index should also return None and not modify the list.
+    assert feature.reorder_command('invalid', 0) is None
+    assert feature.commands == original_commands
