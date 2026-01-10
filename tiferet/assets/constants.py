@@ -49,6 +49,12 @@ FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
 # ** constant: invalid_feature_attribute_id
 INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
 
+# ** constant: feature_command_not_found_id
+FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
+
+# ** constant: invalid_feature_command_attribute_id
+INVALID_FEATURE_COMMAND_ATTRIBUTE_ID = 'INVALID_FEATURE_COMMAND_ATTRIBUTE'
+
 # ** constant: logging_config_failed_id
 LOGGING_CONFIG_FAILED_ID = 'LOGGING_CONFIG_FAILED'
 
@@ -234,6 +240,33 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'Invalid feature attribute: {attribute}',
+            },
+        ],
+    },
+
+    # * error: FEATURE_COMMAND_NOT_FOUND
+    FEATURE_COMMAND_NOT_FOUND_ID: {
+        'id': FEATURE_COMMAND_NOT_FOUND_ID,
+        'name': 'Feature Command Not Found',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Feature command not found for feature {feature_id} at position {position}.',
+            },
+        ],
+    },
+
+    # * error: INVALID_FEATURE_COMMAND_ATTRIBUTE
+    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Command Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': (
+                    'Invalid feature command attribute: {attribute}. Supported attributes are '
+                    'name, attribute_id, data_key, pass_on_error, and parameters.'
+                ),
             },
         ],
     },
