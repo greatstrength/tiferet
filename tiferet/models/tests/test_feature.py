@@ -6,7 +6,11 @@
 import pytest
 
 # ** app
-from ..feature import Feature
+from ..feature import (
+    Feature,
+    FeatureCommand,
+    ModelObject
+)
 
 # *** fixtures
 
@@ -228,3 +232,130 @@ def test_feature_set_description_none(feature: Feature) -> None:
     assert feature.feature_key == original_feature_key
     assert feature.name == original_name
     assert feature.commands == original_commands
+
+# ** test: feature_command_set_pass_on_error_false_string
+def test_feature_command_set_pass_on_error_false_string() -> None:
+    '''
+    Test that ``set_pass_on_error`` treats the string "false" (any case) as
+    ``False`` and uses standard bool conversion otherwise.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+    )
+
+    # Explicit "false" string should result in False.
+    command.set_pass_on_error('false')
+    assert command.pass_on_error is False
+
+    # Mixed-case "False" string should also result in False.
+    command.set_pass_on_error('False')
+    assert command.pass_on_error is False
+
+    # Truthy value should result in True.
+    command.set_pass_on_error(1)
+    assert command.pass_on_error is True
+
+# ** test: feature_command_set_parameters_merge_and_cleanup
+def test_feature_command_set_parameters_merge_and_cleanup() -> None:
+    '''
+    Test that ``set_parameters`` merges parameters and removes keys with
+    ``None`` values.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+        parameters={'a': '1', 'b': '2'},
+    )
+
+    # Merge new parameters, overriding existing values and dropping None.
+    command.set_parameters({'b': '3', 'c': None})
+
+    assert command.parameters == {'a': '1', 'b': '3'}
+
+# ** test: feature_command_set_parameters_none_noop
+def test_feature_command_set_parameters_none_noop() -> None:
+    '''
+    Test that ``set_parameters`` is a no-op when ``None`` is provided.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+        parameters={'a': '1'},
+    )
+
+    command.set_parameters(None)
+
+    assert command.parameters == {'a': '1'}
+
+# ** test: feature_command_set_attribute_delegates
+def test_feature_command_set_attribute_delegates() -> None:
+    '''
+    Test that ``set_attribute`` delegates to specialized methods for
+    ``parameters`` and ``pass_on_error``.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+        parameters={'a': '1'},
+    )
+
+    # Update parameters via set_attribute.
+    command.set_attribute('parameters', {'a': None, 'b': '2'})
+    assert command.parameters == {'b': '2'}
+
+    # Update pass_on_error via set_attribute.
+    command.set_attribute('pass_on_error', 'false')
+    assert command.pass_on_error is False
+
+# ** test: feature_command_set_attribute_fallback
+def test_feature_command_set_attribute_fallback() -> None:
+    '''
+    Test that ``set_attribute`` falls back to ``setattr`` for other
+    attributes.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+    )
+
+    # Set the data_key attribute using the generic attribute setter.
+    command.set_attribute('data_key', 'result')
+    assert command.data_key == 'result'
+
+# ** test: feature_get_command_valid_and_invalid_indices
+def test_feature_get_command_valid_and_invalid_indices(feature: Feature) -> None:
+    '''
+    Test that ``get_command`` returns commands for valid indices and ``None``
+    for invalid indices.
+    '''
+
+    # Add two commands to the feature.
+    first_command = feature.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    second_command = feature.add_command(
+        name='Second Command',
+        attribute_id='second_attr',
+    )
+
+    # Valid indices should return the corresponding commands.
+    assert feature.get_command(0) is first_command
+    assert feature.get_command(1) is second_command
+
+    # Out-of-range indices should return None.
+    assert feature.get_command(2) is None
+
+    # Non-integer index should also return None.
+    assert feature.get_command('invalid') is None
