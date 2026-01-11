@@ -18,6 +18,7 @@ from ..feature import (
     AddFeatureCommand,
     UpdateFeatureCommand,
     RemoveFeatureCommand,
+    ReorderFeatureCommand,
 )
 from ...models import ModelObject, Feature
 from ...contracts import FeatureService
@@ -1249,6 +1250,361 @@ def test_remove_feature_command_missing_required_parameters(
             dependencies={'feature_service': mock_feature_service},
             id=id,
             position=position,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+
+    # The feature service should not be called when validation fails.
+    mock_feature_service.get.assert_not_called()
+    mock_feature_service.save.assert_not_called()
+
+# ** test: reorder_feature_command_success_forward
+def test_reorder_feature_command_success_forward(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test moving a feature command forward in the workflow.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with three commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+    third_command = sample_feature.add_command(
+        name='third',
+        attribute_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+
+    assert sample_feature.commands == [first_command, second_command, third_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Move the first command to the end.
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        start_position=0,
+        end_position=2,
+    )
+
+    # Assert that the feature ID is returned and ordering is updated.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [second_command, third_command, first_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: reorder_feature_command_success_backward
+def test_reorder_feature_command_success_backward(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test moving a feature command backward in the workflow.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with three commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+    third_command = sample_feature.add_command(
+        name='third',
+        attribute_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+
+    assert sample_feature.commands == [first_command, second_command, third_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Move the last command to the front.
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        start_position=2,
+        end_position=0,
+    )
+
+    # Assert that the feature ID is returned and ordering is updated.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [third_command, first_command, second_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: reorder_feature_command_clamp_low
+def test_reorder_feature_command_clamp_low(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test that end_position is clamped to the start of the list when below 0.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with three commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+    third_command = sample_feature.add_command(
+        name='third',
+        attribute_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+
+    assert sample_feature.commands == [first_command, second_command, third_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Move the last command to a negative index; it should be clamped to 0.
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        start_position=2,
+        end_position=-5,
+    )
+
+    # Assert that the feature ID is returned and ordering is updated.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [third_command, first_command, second_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: reorder_feature_command_clamp_high
+def test_reorder_feature_command_clamp_high(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test that end_position is clamped to the end of the list when above the
+    maximum index.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with three commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+    third_command = sample_feature.add_command(
+        name='third',
+        attribute_id='container.third',
+        parameters={'index': 2},
+        data_key='third_key',
+    )
+
+    assert sample_feature.commands == [first_command, second_command, third_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Move the first command beyond the end; it should be clamped to the end.
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        start_position=0,
+        end_position=10,
+    )
+
+    # Assert that the feature ID is returned and ordering is updated.
+    assert result == sample_feature.id
+    assert sample_feature.commands == [second_command, third_command, first_command]
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: reorder_feature_command_invalid_start_position_idempotent
+def test_reorder_feature_command_invalid_start_position_idempotent(
+        mock_feature_service: FeatureService,
+        sample_feature: Feature,
+    ) -> None:
+    '''
+    Test that ReorderFeatureCommand behaves idempotently when an invalid
+    start_position is provided.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param sample_feature: The sample feature instance.
+    :type sample_feature: Feature
+    '''
+
+    # Pre-populate the feature with two commands.
+    first_command = sample_feature.add_command(
+        name='first',
+        attribute_id='container.first',
+        parameters={'index': 0},
+        data_key='first_key',
+    )
+    second_command = sample_feature.add_command(
+        name='second',
+        attribute_id='container.second',
+        parameters={'index': 1},
+        data_key='second_key',
+    )
+
+    original_commands = list(sample_feature.commands)
+    assert original_commands == [first_command, second_command]
+
+    # Arrange the feature service to return the sample feature.
+    mock_feature_service.get.return_value = sample_feature
+
+    # Attempt to move a command from an out-of-range position; this should be
+    # a silent, idempotent no-op.
+    result = Command.handle(
+        ReorderFeatureCommand,
+        dependencies={'feature_service': mock_feature_service},
+        id=sample_feature.id,
+        start_position=5,
+        end_position=0,
+    )
+
+    # Assert that the feature ID is returned and the commands list is unchanged.
+    assert result == sample_feature.id
+    assert sample_feature.commands == original_commands
+
+    # Verify that the feature was retrieved and saved.
+    mock_feature_service.get.assert_called_once_with(sample_feature.id)
+    mock_feature_service.save.assert_called_once_with(sample_feature)
+
+# ** test: reorder_feature_command_feature_not_found
+def test_reorder_feature_command_feature_not_found(
+        mock_feature_service: FeatureService,
+    ) -> None:
+    '''
+    Test that ReorderFeatureCommand raises FEATURE_NOT_FOUND when the feature
+    does not exist.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Arrange the feature service to return None for the requested feature.
+    mock_feature_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            ReorderFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id='missing.feature',
+            start_position=0,
+            end_position=1,
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == FEATURE_NOT_FOUND_ID
+    mock_feature_service.get.assert_called_once_with('missing.feature')
+    mock_feature_service.save.assert_not_called()
+
+# ** test: reorder_feature_command_missing_required_parameters
+@pytest.mark.parametrize(
+    'id, start_position, end_position',
+    [
+        (' ', 0, 1),
+        ('group.sample_feature', None, 1),
+        ('group.sample_feature', 0, None),
+    ],
+)
+def test_reorder_feature_command_missing_required_parameters(
+        mock_feature_service: FeatureService,
+        id: str,
+        start_position: int | None,
+        end_position: int | None,
+    ) -> None:
+    '''
+    Test that ReorderFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
+    required parameters are missing or empty.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    :param id: The feature identifier to test.
+    :type id: str
+    :param start_position: The starting position to test.
+    :type start_position: int | None
+    :param end_position: The ending position to test.
+    :type end_position: int | None
+    '''
+
+    # Execute the command with invalid parameters and expect a validation
+    # error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            ReorderFeatureCommand,
+            dependencies={'feature_service': mock_feature_service},
+            id=id,
+            start_position=start_position,
+            end_position=end_position,
         )
 
     error: TiferetError = excinfo.value
