@@ -211,6 +211,56 @@ class ListFeatures(Command):
         # Delegate to the feature service.
         return self.feature_service.list(group_id=group_id)
 
+
+# ** command: remove_feature
+class RemoveFeature(Command):
+    '''
+    Command to remove an entire feature configuration by ID (idempotent).
+
+    This command delegates deletion semantics to the underlying
+    ``FeatureService.delete`` implementation, which is expected to behave
+    idempotently when the feature does not exist.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService):
+        '''
+        Initialize the RemoveFeature command.
+
+        :param feature_service: The feature service to use.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> str:
+        '''
+        Remove a feature by ID.
+
+        :param id: The feature ID.
+        :type id: str
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The removed feature ID.
+        :rtype: str
+        '''
+
+        # Validate required id.
+        self.verify_parameter(id, 'id', self.__class__.__name__)
+
+        # Delete the feature using the feature service. Deletion is idempotent
+        # and treated as a successful no-op when the feature does not exist.
+        self.feature_service.delete(id)
+
+        # Return the feature identifier.
+        return id
+
+
 # ** command: update_feature
 class UpdateFeature(Command):
     '''
