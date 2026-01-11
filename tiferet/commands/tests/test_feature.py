@@ -14,6 +14,7 @@ from ..feature import (
     GetFeature,
     AddFeature,
     ListFeatures,
+    RemoveFeature,
     UpdateFeature,
     AddFeatureCommand,
     UpdateFeatureCommand,
@@ -135,6 +136,86 @@ def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
     assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
+
+
+# ** test: remove_feature_success
+def test_remove_feature_success(mock_feature_service: FeatureService) -> None:
+    '''
+    Test successful deletion of a feature via RemoveFeature.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Execute the command via the static Command.handle interface.
+    feature_id = 'group.sample_feature'
+    result = Command.handle(
+        RemoveFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=feature_id,
+    )
+
+    # Assert that the feature ID is returned and the service was called.
+    assert result == feature_id
+    mock_feature_service.delete.assert_called_once_with(feature_id)
+
+
+# ** test: remove_feature_idempotent_multiple_calls
+def test_remove_feature_idempotent_multiple_calls(
+        mock_feature_service: FeatureService,
+    ) -> None:
+    '''
+    Test that RemoveFeature can be called multiple times for the same ID
+    without raising, relying on the service's idempotent delete semantics.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    feature_id = 'group.sample_feature'
+
+    # Call the command twice for the same feature identifier.
+    result_first = Command.handle(
+        RemoveFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=feature_id,
+    )
+    result_second = Command.handle(
+        RemoveFeature,
+        dependencies={'feature_service': mock_feature_service},
+        id=feature_id,
+    )
+
+    # Both calls should succeed and return the same identifier.
+    assert result_first == feature_id
+    assert result_second == feature_id
+    assert mock_feature_service.delete.call_count == 2
+    mock_feature_service.delete.assert_called_with(feature_id)
+
+
+# ** test: remove_feature_missing_id
+def test_remove_feature_missing_id(mock_feature_service: FeatureService) -> None:
+    '''
+    Test that RemoveFeature fails with COMMAND_PARAMETER_REQUIRED when id is
+    missing or empty.
+
+    :param mock_feature_service: The mock feature service.
+    :type mock_feature_service: FeatureService
+    '''
+
+    # Execute the command with an invalid id and expect a validation error.
+    with pytest.raises(TiferetError) as excinfo:
+        Command.handle(
+            RemoveFeature,
+            dependencies={'feature_service': mock_feature_service},
+            id=' ',
+        )
+
+    error: TiferetError = excinfo.value
+    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+
+    # The feature service should not be called when validation fails.
+    mock_feature_service.delete.assert_not_called()
 
 
 # ** test: add_feature_minimal_success
