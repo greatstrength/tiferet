@@ -632,3 +632,95 @@ class RemoveFeatureCommand(Command):
 
         # Return the feature identifier.
         return id
+
+
+# ** command: reorder_feature_command
+class ReorderFeatureCommand(Command):
+    '''
+    Command to reorder an existing feature command within a feature's
+    command workflow.
+
+    This command delegates to the ``Feature.reorder_command`` model helper,
+    which clamps the target position and behaves idempotently for invalid
+    start positions.
+    '''
+
+    # * attribute: feature_service
+    feature_service: FeatureService
+
+    # * init
+    def __init__(self, feature_service: FeatureService) -> None:
+        '''
+        Initialize the ReorderFeatureCommand command.
+
+        :param feature_service: The feature service used to retrieve and
+            persist features.
+        :type feature_service: FeatureService
+        '''
+
+        # Set the feature service dependency.
+        self.feature_service = feature_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            start_position: int,
+            end_position: int,
+            **kwargs,
+        ) -> str:
+        '''
+        Reorder a feature command by moving it from ``start_position`` to
+        ``end_position`` within the feature's command list.
+
+        :param id: The identifier of the feature whose command will be
+            reordered.
+        :type id: str
+        :param start_position: The current index of the command to move.
+        :type start_position: int
+        :param end_position: The desired new index for the command.
+        :type end_position: int
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The feature identifier.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=start_position,
+            parameter_name='start_position',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=end_position,
+            parameter_name='end_position',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the feature from the feature service.
+        feature = self.feature_service.get(id)
+
+        # Verify that the feature exists.
+        self.verify(
+            expression=feature is not None,
+            error_code=FEATURE_NOT_FOUND_ID,
+            message=f'Feature not found: {id}',
+            feature_id=id,
+        )
+
+        # Delegate the reordering logic to the Feature model helper. This
+        # method clamps ``end_position`` and is idempotent for invalid
+        # ``start_position`` values.
+        feature.reorder_command(start_position, end_position)
+
+        # Persist the updated feature configuration.
+        self.feature_service.save(feature)
+
+        # Return the feature identifier.
+        return id
