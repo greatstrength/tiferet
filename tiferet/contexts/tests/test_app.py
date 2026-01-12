@@ -197,14 +197,12 @@ def test_app_manager_context_load_interface(app_manager_context):
     assert isinstance(result, AppInterfaceContext)
 
 # ** test: app_manager_context_load_interface_invalid
-def test_app_manager_context_load_interface_invalid(app_manager_context, monkeypatch):
+def test_app_manager_context_load_interface_invalid(app_manager_context, app_interface):
     """
     Test loading an invalid app interface.
 
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
-    :param app_service: The mock app service.
-    :type app_service: AppService
     """
 
     # Create invalid app interface context.
@@ -212,11 +210,17 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, monkeyp
         def __init__(self, *args, **kwargs):
             pass
 
-    # Patch load_app_instance on the context to return an invalid app interface context.
-    def _invalid_loader(app_interface, default_attrs):
-        return InvalidContext()
+    # Create a fake app repository that always returns the provided app_interface,
+    # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
+    # so we can exercise the "invalid app interface context" error instead.
+    fake_repo = mock.Mock(spec=AppRepository)
+    fake_repo.get_interface.return_value = app_interface
 
-    monkeypatch.setattr(app_manager_context, 'load_app_instance', _invalid_loader)
+    # Mock the load_app_repo method to return the fake repository.
+    app_manager_context.load_app_repo = mock.Mock(return_value=fake_repo)
+
+    # Mock the load_app_instance method to return an invalid app interface context.
+    app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())
 
     # Attempt to load an invalid interface and assert that it raises an error.
     with pytest.raises(TiferetError) as exc_info:
