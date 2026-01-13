@@ -135,6 +135,12 @@ FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
 # ** constant: invalid_feature_attribute_id
 INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
 
+# ** constant: invalid_model_attribute_id
+INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
+
+# ** constant: invalid_app_interface_type_id
+INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
 
@@ -587,5 +593,29 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'Command {command} not found.'}
         ]
+    },
+
+    # * error: INVALID_MODEL_ATTRIBUTE
+    INVALID_MODEL_ATTRIBUTE_ID: {
+        'id': INVALID_MODEL_ATTRIBUTE_ID,
+        'name': 'Invalid Model Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            },
+        ],
+    },
+
+    # * error: INVALID_APP_INTERFACE_TYPE
+    INVALID_APP_INTERFACE_TYPE_ID: {
+        'id': INVALID_APP_INTERFACE_TYPE_ID,
+        'name': 'Invalid App Interface Type',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': '{attribute} must be a non-empty string.',
+            },
+        ],
     },
 }
