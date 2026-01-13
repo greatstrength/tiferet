@@ -168,6 +168,113 @@ def test_app_interface_set_attribute_invalid_class_name(app_interface: AppInterf
     assert exc_info.value.kwargs.get('attribute') == 'class_name'
 
 
+# ** test: app_interface_set_dependency_updates_existing_and_merges_parameters
+def test_app_interface_set_dependency_updates_existing_and_merges_parameters(
+    app_interface: AppInterface,
+) -> None:
+    '''
+    Test that set_dependency updates an existing dependency and merges parameters,
+    removing keys whose values are None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing parameters on the dependency.
+    dependency = app_interface.get_attribute('test_attribute')
+    dependency.parameters = {
+        'keep': 'original',
+        'override': 'old',
+        'remove': 'value',
+    }
+
+    # Perform an update with new type information and parameter overrides.
+    app_interface.set_dependency(
+        attribute_id='test_attribute',
+        module_path='updated.module',
+        class_name='UpdatedClass',
+        parameters={
+            'override': 'new',
+            'remove': None,
+            'add': 'added',
+        },
+    )
+
+    # Reload the dependency and assert type fields were updated.
+    updated = app_interface.get_attribute('test_attribute')
+    assert updated.module_path == 'updated.module'
+    assert updated.class_name == 'UpdatedClass'
+
+    # Existing parameters should be merged, with None-valued keys removed.
+    assert updated.parameters == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
+
+
+# ** test: app_interface_set_dependency_clears_parameters_when_none
+def test_app_interface_set_dependency_clears_parameters_when_none(
+    app_interface: AppInterface,
+) -> None:
+    '''
+    Test that set_dependency clears parameters when parameters is None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed parameters on the dependency.
+    dependency = app_interface.get_attribute('test_attribute')
+    dependency.parameters = {
+        'existing': 'value',
+    }
+
+    # Call set_dependency with parameters=None.
+    app_interface.set_dependency(
+        attribute_id='test_attribute',
+        module_path='cleared.module',
+        class_name='ClearedClass',
+        parameters=None,
+    )
+
+    # Parameters should be cleared while type fields are updated.
+    updated = app_interface.get_attribute('test_attribute')
+    assert updated.module_path == 'cleared.module'
+    assert updated.class_name == 'ClearedClass'
+    assert updated.parameters == {}
+
+
+# ** test: app_interface_set_dependency_creates_new
+def test_app_interface_set_dependency_creates_new(app_interface: AppInterface) -> None:
+    '''
+    Test that set_dependency creates a new dependency when none exists.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Ensure that no dependency exists with the new attribute_id.
+    assert app_interface.get_attribute('new_attribute') is None
+
+    # Create a new dependency via set_dependency.
+    app_interface.set_dependency(
+        attribute_id='new_attribute',
+        module_path='new.module',
+        class_name='NewClass',
+        parameters={
+            'param': 'value',
+        },
+    )
+
+    # Verify that the dependency was created with the correct values.
+    new_attr = app_interface.get_attribute('new_attribute')
+    assert new_attr is not None
+    assert new_attr.module_path == 'new.module'
+    assert new_attr.class_name == 'NewClass'
+    assert new_attr.parameters == {'param': 'value'}
+
+
 # ** test: app_interface_set_attribute_uses_validate
 def test_app_interface_set_attribute_uses_validate(app_interface: AppInterface, monkeypatch) -> None:
     '''
