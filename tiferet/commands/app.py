@@ -283,3 +283,101 @@ class ListAppInterfaces(Command):
 
         # Delegate to the app service to retrieve all interfaces.
         return self.app_service.list()
+
+
+# ** command: set_service_dependency
+class SetServiceDependency(Command):
+    '''
+    Command to set or update a dependency attribute on an app interface.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the SetServiceDependency command.
+
+        :param app_service: The app service used to manage app interfaces.
+        :type app_service: AppService
+        '''
+
+        # Set the app service dependency.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            attribute_id: str,
+            module_path: str,
+            class_name: str,
+            parameters: dict[str, Any] | None = None,
+            **kwargs,
+        ) -> str:
+        '''
+        Set or update a dependency attribute on an app interface.
+
+        :param id: The unique identifier for the app interface.
+        :type id: str
+        :param attribute_id: The dependency attribute identifier.
+        :type attribute_id: str
+        :param module_path: The module path for the dependency implementation.
+        :type module_path: str
+        :param class_name: The class name for the dependency implementation.
+        :type class_name: str
+        :param parameters: Optional parameters for the dependency. ``None`` clears parameters.
+        :type parameters: dict[str, Any] | None
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The ID of the app interface whose dependency was set.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute_id,
+            parameter_name='attribute_id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=module_path,
+            parameter_name='module_path',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=class_name,
+            parameter_name='class_name',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the app interface via the app service.
+        interface = self.app_service.get(id)
+
+        # Verify that the interface exists.
+        self.verify(
+            expression=interface is not None,
+            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            message=f'App interface with ID {id} not found.',
+            interface_id=id,
+        )
+
+        # Set or update the dependency via the model method.
+        interface.set_dependency(
+            attribute_id=attribute_id,
+            module_path=module_path,
+            class_name=class_name,
+            parameters=parameters,
+        )
+
+        # Persist the updated interface.
+        self.app_service.save(interface)
+
+        # Return the interface ID.
+        return id
