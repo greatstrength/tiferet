@@ -18,6 +18,7 @@ from ..app import (
     AddAppInterface,
     ListAppInterfaces,
     UpdateAppInterface,
+    SetServiceDependency,
 )
 from ..settings import TiferetError, Command
 
@@ -158,6 +159,193 @@ def test_list_app_interfaces_empty(app_service):
     # Assert that an empty list is returned and the service was called.
     assert result == []
     app_service.list.assert_called_once_with()
+
+
+# ** test: set_service_dependency_creates_new_attribute
+def test_set_service_dependency_creates_new_attribute(app_service, app_interface):
+    '''
+    Test that SetServiceDependency creates a new dependency attribute when it does not exist.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Ensure no attribute with the target id exists initially.
+    assert app_interface.get_attribute('new_dependency') is None
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        SetServiceDependency,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute_id='new_dependency',
+        module_path='new.module.path',
+        class_name='NewClass',
+        parameters={'param1': 'value1'},
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # A new attribute should be created with the provided values.
+    new_attr = app_interface.get_attribute('new_dependency')
+    assert new_attr is not None
+    assert new_attr.module_path == 'new.module.path'
+    assert new_attr.class_name == 'NewClass'
+    assert new_attr.parameters == {'param1': 'value1'}
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+
+# ** test: set_service_dependency_updates_existing_attribute_and_merges_parameters
+def test_set_service_dependency_updates_existing_attribute_and_merges_parameters(
+    app_service, app_interface
+):
+    '''
+    Test that SetServiceDependency updates an existing dependency and merges parameters.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Precondition: existing attribute from fixture.
+    existing_attr = app_interface.get_attribute('test_attribute')
+    existing_attr.parameters = {'keep': 'value', 'override': 'old', 'remove': 'to_be_removed'}
+
+    # Execute the command via Command.handle with updated fields and parameters.
+    result = Command.handle(
+        SetServiceDependency,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute_id='test_attribute',
+        module_path='updated.module.path',
+        class_name='UpdatedClass',
+        parameters={
+            'override': 'new',
+            'remove': None,
+            'new_param': 'new_value',
+        },
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # Attribute should be updated.
+    updated_attr = app_interface.get_attribute('test_attribute')
+    assert updated_attr.module_path == 'updated.module.path'
+    assert updated_attr.class_name == 'UpdatedClass'
+    # Parameters merged: keep preserved, override updated, remove dropped, new_param added.
+    assert updated_attr.parameters == {
+        'keep': 'value',
+        'override': 'new',
+        'new_param': 'new_value',
+    }
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+
+# ** test: set_service_dependency_parameters_none_clears_existing
+def test_set_service_dependency_parameters_none_clears_existing(app_service, app_interface):
+    '''
+    Test that passing parameters=None clears existing parameters on the attribute.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Precondition: existing attribute has parameters.
+    existing_attr = app_interface.get_attribute('test_attribute')
+    existing_attr.parameters = {'key': 'value'}
+
+    # Execute the command with parameters set to None.
+    result = Command.handle(
+        SetServiceDependency,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute_id='test_attribute',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        parameters=None,
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # Parameters should be cleared.
+    cleared_attr = app_interface.get_attribute('test_attribute')
+    assert cleared_attr.parameters == {}
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+
+# ** test: set_service_dependency_missing_required_parameters
+@pytest.mark.parametrize('missing_param', ['id', 'attribute_id', 'module_path', 'class_name'])
+def test_set_service_dependency_missing_required_parameters(missing_param, app_service):
+    '''
+    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
+
+    :param missing_param: The parameter name to omit.
+    :type missing_param: str
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    kwargs = dict(
+        id='test.interface',
+        attribute_id='dep',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+    )
+    kwargs[missing_param] = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            SetServiceDependency,
+            dependencies={'app_service': app_service},
+            **kwargs,
+        )
+
+    # Verify the error code and that the missing parameter is mentioned.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert missing_param in str(exc_info.value)
+
+
+# ** test: set_service_dependency_interface_not_found
+def test_set_service_dependency_interface_not_found(app_service):
+    '''
+    Test that SetServiceDependency raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Simulate missing interface.
+    app_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            SetServiceDependency,
+            dependencies={'app_service': app_service},
+            id='missing.interface',
+            attribute_id='dep',
+            module_path='tiferet.contexts.app',
+            class_name='AppContext',
+        )
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 # ** test: list_app_interfaces_multiple
 def test_list_app_interfaces_multiple(app_service, app_interface):
