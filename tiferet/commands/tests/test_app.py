@@ -14,9 +14,10 @@ from ...models import (
 )
 from ...contracts import AppService
 from ..app import (
-    GetAppInterface, 
-    AddAppInterface, 
-    ListAppInterfaces
+    GetAppInterface,
+    AddAppInterface,
+    ListAppInterfaces,
+    UpdateAppInterface,
 )
 from ..settings import TiferetError, Command
 
@@ -349,3 +350,161 @@ def test_add_app_interface_default_fallbacks(app_service):
 
     # Assert the interface is saved via the app service.
     app_service.save.assert_called_once_with(interface)
+
+# ** test: update_app_interface_success_supported_attributes
+@pytest.mark.parametrize(
+    'attribute,new_value',
+    [
+        ('name', 'Updated Name'),
+        ('description', 'Updated description'),
+        ('module_path', 'updated.module.path'),
+        ('class_name', 'UpdatedClass'),
+        ('logger_id', 'updated_logger'),
+        ('feature_flag', 'updated_feature_flag'),
+        ('data_flag', 'updated_data_flag'),
+    ],
+)
+
+def test_update_app_interface_success_supported_attributes(
+    app_service, app_interface, attribute, new_value
+):
+    '''
+    Test updating each supported scalar attribute via UpdateAppInterface.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        UpdateAppInterface,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute=attribute,
+        value=new_value,
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # The attribute on the interface should be updated.
+    assert getattr(app_interface, attribute) == new_value
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: update_app_interface_missing_required_parameters
+@pytest.mark.parametrize('missing_param', ['id', 'attribute'])
+def test_update_app_interface_missing_required_parameters(missing_param, app_service):
+    '''
+    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
+
+    :param missing_param: The parameter name to omit.
+    :type missing_param: str
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    kwargs = dict(
+        id='test.interface',
+        attribute='name',
+        value='Updated Name',
+    )
+    kwargs[missing_param] = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': app_service},
+            **kwargs,
+        )
+
+    # Verify the error code and that the missing parameter is mentioned.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert missing_param in str(exc_info.value)
+
+# ** test: update_app_interface_interface_not_found
+def test_update_app_interface_interface_not_found(app_service):
+    '''
+    Test that UpdateAppInterface raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Simulate missing interface.
+    app_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': app_service},
+            id='missing.interface',
+            attribute='name',
+            value='Updated Name',
+        )
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
+
+# ** test: update_app_interface_invalid_attribute_raises_model_error
+def test_update_app_interface_invalid_attribute_raises_model_error(
+    app_service, app_interface
+):
+    '''
+    Test that an invalid attribute name is validated by the AppInterface model.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Execute the command with an unsupported attribute name.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': app_service},
+            id=app_interface.id,
+            attribute='invalid_attribute',
+            value='value',
+        )
+
+    # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
+    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    app_service.save.assert_not_called()
+
+# ** test: update_app_interface_invalid_type_attributes_empty_value
+@pytest.mark.parametrize('attribute', ['module_path', 'class_name'])
+def test_update_app_interface_invalid_type_attributes_empty_value(
+    attribute, app_service, app_interface
+):
+    '''
+    Test that empty values for module_path or class_name are rejected by the model.
+
+    :param attribute: The attribute name under test.
+    :type attribute: str
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Execute the command with an empty value for a type-constrained attribute.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            UpdateAppInterface,
+            dependencies={'app_service': app_service},
+            id=app_interface.id,
+            attribute=attribute,
+            value='',
+        )
+
+    # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
+    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    app_service.save.assert_not_called()

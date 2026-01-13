@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List
+from typing import List, Any
 
 # ** app
 from .settings import Command, const
@@ -179,6 +179,75 @@ class AddAppInterface(Command):
         # Return the created app interface.
         return interface
 
+# ** command: update_app_interface
+class UpdateAppInterface(Command):
+    '''
+    Command to update scalar attributes of an existing app interface.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the UpdateAppInterface command.
+
+        :param app_service: The app service used to manage app interfaces.
+        :type app_service: AppService
+        '''
+
+        # Set the app service dependency.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(self, id: str, attribute: str, value: Any, **kwargs) -> str:
+        '''
+        Update a scalar attribute on an existing app interface.
+
+        :param id: The unique identifier for the app interface to update.
+        :type id: str
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value for the attribute.
+        :type value: Any
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The ID of the updated app interface.
+        :rtype: str
+        '''
+
+        # Validate required parameters.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+        self.verify_parameter(
+            parameter=attribute,
+            parameter_name='attribute',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the app interface via the app service.
+        interface = self.app_service.get(id)
+
+        # Verify that the interface exists.
+        self.verify(
+            expression=interface is not None,
+            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            message=f'App interface with ID {id} not found.',
+            interface_id=id,
+        )
+
+        # Update the attribute via the model method.
+        interface.set_attribute(attribute, value)
+
+        # Persist the updated interface.
+        self.app_service.save(interface)
+
+        # Return the interface ID.
+        return id
 
 # ** command: list_app_interfaces
 class ListAppInterfaces(Command):
