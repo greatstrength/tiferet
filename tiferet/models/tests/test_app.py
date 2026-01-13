@@ -90,6 +90,121 @@ def test_app_interface_get_attribute_invalid(app_interface: AppInterface):
     # Assert the app dependency is invalid.
     assert app_interface.get_attribute('invalid') is None
 
+# ** test: app_interface_remove_attribute_removes_matching_from_middle_start_end
+def test_app_interface_remove_attribute_removes_matching_from_middle_start_end() -> None:
+    '''
+    Test that remove_attribute removes and returns attributes when attribute_id
+    matches for items in the middle, start, and end positions.
+    '''
+
+    # Create three attributes with distinct attribute_ids.
+    first = ModelObject.new(
+        AppAttribute,
+        attribute_id='first',
+        module_path='module.first',
+        class_name='FirstClass',
+    )
+    middle = ModelObject.new(
+        AppAttribute,
+        attribute_id='middle',
+        module_path='module.middle',
+        class_name='MiddleClass',
+    )
+    last = ModelObject.new(
+        AppAttribute,
+        attribute_id='last',
+        module_path='module.last',
+        class_name='LastClass',
+    )
+
+    # Create an app interface seeded with the three attributes.
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[first, middle, last],
+    )
+
+    # Remove the middle attribute and verify it is returned and removed.
+    removed_middle = app_interface.remove_attribute('middle')
+    assert removed_middle is not None
+    assert removed_middle.attribute_id == 'middle'
+    assert [attr.attribute_id for attr in app_interface.attributes] == ['first', 'last']
+
+    # Remove the first attribute and verify it is returned and removed.
+    removed_first = app_interface.remove_attribute('first')
+    assert removed_first is not None
+    assert removed_first.attribute_id == 'first'
+    assert [attr.attribute_id for attr in app_interface.attributes] == ['last']
+
+    # Remove the last remaining attribute and verify it is returned and removed.
+    removed_last = app_interface.remove_attribute('last')
+    assert removed_last is not None
+    assert removed_last.attribute_id == 'last'
+    assert app_interface.attributes == []
+
+# ** test: app_interface_remove_attribute_missing_returns_none_and_does_not_modify
+def test_app_interface_remove_attribute_missing_returns_none_and_does_not_modify() -> None:
+    '''
+    Test that remove_attribute returns None and leaves the attributes list
+    unchanged when no attribute with the given attribute_id exists.
+    '''
+
+    # Create two attributes and an app interface seeded with them.
+    first = ModelObject.new(
+        AppAttribute,
+        attribute_id='first',
+        module_path='module.first',
+        class_name='FirstClass',
+    )
+    second = ModelObject.new(
+        AppAttribute,
+        attribute_id='second',
+        module_path='module.second',
+        class_name='SecondClass',
+    )
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[first, second],
+    )
+
+    # Capture the original list of attributes for comparison.
+    original_attributes = list(app_interface.attributes)
+
+    # Attempt to remove a non-existent attribute.
+    result = app_interface.remove_attribute('missing')
+
+    # Verify the method returns None and the list is unchanged.
+    assert result is None
+    assert app_interface.attributes == original_attributes
+
+# ** test: app_interface_remove_attribute_on_empty_attributes_returns_none
+def test_app_interface_remove_attribute_on_empty_attributes_returns_none() -> None:
+    '''
+    Test that remove_attribute returns None when called on an app interface with
+    an empty attributes list.
+    '''
+
+    # Create an app interface with no attributes.
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[],
+    )
+
+    # Attempt to remove any attribute and verify None is returned.
+    result = app_interface.remove_attribute('anything')
+    assert result is None
+
 # ** test: app_interface_set_attribute_valid_updates
 def test_app_interface_set_attribute_valid_updates(app_interface: AppInterface) -> None:
     '''

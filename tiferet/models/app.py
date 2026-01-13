@@ -184,6 +184,28 @@ class AppInterface(ModelObject):
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
 
+    # * method: remove_attribute
+    def remove_attribute(self, attribute_id: str) -> AppAttribute | None:
+        '''
+        Remove and return a dependency attribute by its attribute_id (idempotent).
+
+        If an attribute with the given attribute_id exists, it is removed.
+        If no matching attribute exists, no action is taken (silent success).
+
+        :param attribute_id: The attribute_id of the dependency to remove.
+        :type attribute_id: str
+        :return: The removed AppAttribute or None.
+        :rtype: AppAttribute | None
+        '''
+
+        # Iterate over attributes and remove the first match by attribute_id.
+        for index, attr in enumerate(self.attributes):
+            if attr.attribute_id == attribute_id:
+                return self.attributes.pop(index)
+
+        # If no attribute matches, return None without modifying the list.
+        return None
+
     # * method: set_dependency
     def set_dependency(
         self,
