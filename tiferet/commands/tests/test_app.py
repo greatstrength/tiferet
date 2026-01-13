@@ -12,7 +12,7 @@ from ...models import (
     AppInterface,
     AppAttribute,
 )
-from ...contracts import AppRepository, AppService
+from ...contracts import AppService
 from ..app import GetAppInterface, AddAppInterface
 from ..settings import TiferetError, Command
 
@@ -47,53 +47,41 @@ def app_interface():
         ],
     )
 
-# ** fixture: app_repo
-@pytest.fixture
-def app_repo(app_interface):
-    '''
-    Fixture to create a mock AppRepository instance.
-    
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    '''
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-    app_repo.config_file = 'tiferet/configs/test.yml'
-    app_repo.get_interface.return_value = app_interface
-    return app_repo
-
 # ** fixture: get_app_interface_cmd
 @pytest.fixture
-def get_app_interface_cmd(app_repo):
+def get_app_interface_cmd(app_service):
     '''
     Fixture to create an instance of GetAppInterface command.
     
-    :param app_repo: The mock AppRepository instance.
-    :type app_repo: AppRepository
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
     :return: An instance of GetAppInterface.
     :rtype: GetAppInterface
     '''
-    # Create an instance of GetAppInterface with the mock app repository.
-    return GetAppInterface(app_repo=app_repo)
+    # Create an instance of GetAppInterface with the mock app service.
+    return GetAppInterface(app_service=app_service)
 
 # ** fixture: app_service
 @pytest.fixture
-def app_service():
+def app_service(app_interface):
     '''
     Fixture to create a mock AppService instance.
 
+    :param app_interface: The mock AppInterface instance used as the default return value.
+    :type app_interface: AppInterface
     :return: A mock instance of AppService.
     :rtype: AppService
     '''
 
-    # Create a mock AppService instance.
-    return mock.Mock(spec=AppService)
+    # Create a mock AppService instance configured to return the app_interface.
+    service = mock.Mock(spec=AppService)
+    service.get.return_value = app_interface
+    return service
 
 # *** tests
 
 # ** test: test_get_app_interface_not_found
-def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
+def test_get_app_interface_not_found(app_service, get_app_interface_cmd):
     '''
     Test the GetAppInterface command when the app interface is not found.
     
@@ -101,7 +89,8 @@ def test_get_app_interface_not_found(app_repo, get_app_interface_cmd):
     :type get_app_interface_cmd: GetAppInterface
     '''
 
-    app_repo.get_interface.return_value = None  # Simulate that the interface is not found.
+    # Simulate that the interface is not found.
+    app_service.get.return_value = None  
 
     # Attempt to get an app interface that does not exist.
     with pytest.raises(TiferetError) as exc_info:
