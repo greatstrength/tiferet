@@ -11,7 +11,6 @@ from unittest import mock
 
 # ** app
 from ..app import (
-    AppRepository,
     FeatureContext,
     ErrorContext,
     LoggingContext,
@@ -26,6 +25,7 @@ from ...models import (
     AppInterface,
     AppAttribute,
 )
+from ...contracts import AppService
 
 # *** fixtures
 
@@ -57,25 +57,6 @@ def app_interface():
             ),
         ],
     )
-
-# ** fixture: app_repo
-@pytest.fixture
-def app_repo(app_interface):
-    """
-    Fixture to create a mock AppRepository instance.
-
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    """
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-
-    # Set the return value for the get_interface method.
-    app_repo.get_interface.return_value = app_interface
-
-    # Return the mock AppRepository instance.
-    return app_repo
 
 # ** fixture: feature_context
 @pytest.fixture
@@ -165,11 +146,11 @@ def app_manager_context():
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance using test settings.
+    # Return the AppManagerContext instance using test settings with AppConfigurationRepository.
     return AppManagerContext(
         dict(
-            app_repo_module_path='tiferet.proxies.yaml.app',
-            app_repo_class_name='AppYamlProxy',
+            app_repo_module_path='tiferet.repos.config.app',
+            app_repo_class_name='AppConfigurationRepository',
             app_repo_params=dict(
                 app_config_file='tiferet/configs/tests/test_calc.yml',
             ),
@@ -210,14 +191,14 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_int
         def __init__(self, *args, **kwargs):
             pass
 
-    # Create a fake app repository that always returns the provided app_interface,
+    # Create a fake app service that always returns the provided app_interface,
     # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
     # so we can exercise the "invalid app interface context" error instead.
-    fake_repo = mock.Mock(spec=AppRepository)
-    fake_repo.get_interface.return_value = app_interface
+    fake_service = mock.Mock(spec=AppService)
+    fake_service.get.return_value = app_interface
 
-    # Mock the load_app_repo method to return the fake repository.
-    app_manager_context.load_app_repo = mock.Mock(return_value=fake_repo)
+    # Mock the load_app_repo method to return the fake service.
+    app_manager_context.load_app_repo = mock.Mock(return_value=fake_service)
 
     # Mock the load_app_instance method to return an invalid app interface context.
     app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())

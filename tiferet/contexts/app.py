@@ -179,14 +179,14 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Load the app repository.
+        # Load the app repository or service implementation.
         app_repo: AppRepository = self.load_app_repo()
 
-        # Get the app interface settings.
+        # Get the app interface settings via the AppService abstraction.
         app_interface = Command.handle(
             GetAppInterface,
             dependencies=dict(
-                app_repo=app_repo,
+                app_service=app_repo,
             ),
             interface_id=interface_id,
         )

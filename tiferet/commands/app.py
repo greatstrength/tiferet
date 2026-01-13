@@ -3,7 +3,7 @@
 # ** app
 from .settings import Command, const
 from ..models import ModelObject, AppInterface
-from ..contracts import AppRepository, AppService
+from ..contracts import AppService
 
 
 # *** commands
@@ -11,19 +11,23 @@ from ..contracts import AppRepository, AppService
 # ** command: get_app_interface
 class GetAppInterface(Command):
     '''
-    A command to get the application interface by its ID.
+    Command to retrieve an app interface using the ``AppService`` abstraction.
     '''
 
-    def __init__(self, app_repo: AppRepository):
-        '''
-        Initialize the LoadAppInterface command.
+    # * attribute: app_service
+    app_service: AppService
 
-        :param app_repo: The application repository instance.
-        :type app_repo: AppRepository
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the GetAppInterface command.
+
+        :param app_service: The app service used to retrieve interfaces.
+        :type app_service: AppService
         '''
 
-        # Set the application repository.
-        self.app_repo = app_repo
+        # Set the app service dependency.
+        self.app_service = app_service
 
     # * method: execute
     def execute(self, interface_id: str, **kwargs) -> AppInterface:
@@ -39,9 +43,10 @@ class GetAppInterface(Command):
         :raises TiferetError: If the interface cannot be found.
         '''
 
-        # Load the application interface.
+        # Retrieve the app interface via the app service.
+        interface = self.app_service.get(interface_id)
+
         # Raise an error if the interface is not found.
-        interface = self.app_repo.get_interface(interface_id)
         if not interface:
             self.raise_error(
                 const.APP_INTERFACE_NOT_FOUND_ID,
