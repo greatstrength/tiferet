@@ -13,7 +13,11 @@ from ...models import (
     AppAttribute,
 )
 from ...contracts import AppService
-from ..app import GetAppInterface, AddAppInterface
+from ..app import (
+    GetAppInterface, 
+    AddAppInterface, 
+    ListAppInterfaces
+)
 from ..settings import TiferetError, Command
 
 # *** fixtures
@@ -78,6 +82,21 @@ def app_service(app_interface):
     service.get.return_value = app_interface
     return service
 
+# ** fixture: list_app_interfaces_cmd
+@pytest.fixture
+def list_app_interfaces_cmd(app_service):
+    '''
+    Fixture to create an instance of ListAppInterfaces command.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :return: An instance of ListAppInterfaces.
+    :rtype: ListAppInterfaces
+    '''
+
+    # Create an instance of ListAppInterfaces with the mock app service.
+    return ListAppInterfaces(app_service=app_service)
+
 # *** tests
 
 # ** test: test_get_app_interface_not_found
@@ -116,6 +135,59 @@ def test_get_app_interface_success(get_app_interface_cmd, app_interface):
 
     # Assert that the returned interface matches the expected app interface.
     assert result == app_interface, 'Should return the correct AppInterface instance'
+
+# ** test: list_app_interfaces_empty
+def test_list_app_interfaces_empty(app_service):
+    '''
+    Test that ListAppInterfaces returns an empty list when no interfaces are configured.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Configure the service to return an empty list.
+    app_service.list.return_value = []
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        ListAppInterfaces,
+        dependencies={'app_service': app_service},
+    )
+
+    # Assert that an empty list is returned and the service was called.
+    assert result == []
+    app_service.list.assert_called_once_with()
+
+# ** test: list_app_interfaces_multiple
+def test_list_app_interfaces_multiple(app_service, app_interface):
+    '''
+    Test that ListAppInterfaces returns multiple interfaces when configured.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The mock AppInterface instance.
+    :type app_interface: AppInterface
+    '''
+
+    # Configure the service to return multiple interfaces.
+    another_interface = ModelObject.new(
+        AppInterface,
+        id='other',
+        name='Other App',
+        module_path='tiferet.contexts.app',
+        class_name='OtherAppContext',
+    )
+    app_service.list.return_value = [app_interface, another_interface]
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        ListAppInterfaces,
+        dependencies={'app_service': app_service},
+    )
+
+    # Assert that the returned list matches the configured interfaces.
+    assert result == [app_interface, another_interface]
+    app_service.list.assert_called_once_with()
 
 # ** test: add_app_interface_minimal_success
 def test_add_app_interface_minimal_success(app_service):
