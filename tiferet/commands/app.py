@@ -1,5 +1,8 @@
 # *** imports
 
+# ** core
+from typing import List
+
 # ** app
 from .settings import Command, const
 from ..models import ModelObject, AppInterface
@@ -175,3 +178,39 @@ class AddAppInterface(Command):
 
         # Return the created app interface.
         return interface
+
+
+# ** command: list_app_interfaces
+class ListAppInterfaces(Command):
+    '''
+    Command to list all configured app interfaces.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the ListAppInterfaces command.
+
+        :param app_service: The app service to use.
+        :type app_service: AppService
+        '''
+
+        # Set the app service dependency.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(self, **kwargs) -> List[AppInterface]:
+        '''
+        List all app interfaces.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: List of AppInterface models.
+        :rtype: List[AppInterface]
+        '''
+
+        # Delegate to the app service to retrieve all interfaces.
+        return self.app_service.list()
