@@ -130,46 +130,73 @@ class AppRepository(Repository):
 # ** interface: app_service
 class AppService(Service):
     '''
-    An app service is a class that is used to manage app interfaces.
+    Service interface for managing app interfaces using a repository-style API.
     '''
 
-    # * method: load_app_repository
+    # * method: exists
     @abstractmethod
-    def load_app_repository(self, 
-        app_repo_module_path: str,
-        app_repo_class_name: str,
-        app_repo_params: Dict[str, Any],
-        **kwargs
-    ) -> AppRepository:
+    def exists(self, id: str) -> bool:
         '''
-        Execute the command.
+        Check if an app interface exists by ID.
 
-        :param app_repo_module_path: The application repository module path.
-        :type app_repo_module_path: str
-        :param app_repo_class_name: The application repository class name.
-        :type app_repo_class_name: str
-        :param app_repo_params: The application repository parameters.
-        :type app_repo_params: dict
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The application repository instance.
-        :rtype: AppRepository
+        :param id: The app interface identifier.
+        :type id: str
+        :return: True if the app interface exists, otherwise False.
+        :rtype: bool
         '''
         # Not implemented.
-        raise NotImplementedError('load_app_repository method is required for AppService.')
+        raise NotImplementedError('exists method is required for AppService.')
 
-    # * method: load_app_instance
+    # * method: get
     @abstractmethod
-    def load_app_instance(self, app_interface: AppInterface, default_attrs: List[AppAttribute]) -> Any:
+    def get(self, id: str) -> AppInterface | None:
         '''
-        Create the app dependency injector.
+        Retrieve an app interface by ID.
 
-        :param app_interface: The app interface.
-        :type app_interface: AppInterface
-        :param default_attrs: The default configured attributes for the app.
-        :type default_attrs: List[AppAttribute]
-        :return: The app instance.
-        :rtype: Any
+        :param id: The app interface identifier.
+        :type id: str
+        :return: The app interface if found, otherwise None.
+        :rtype: AppInterface | None
         '''
         # Not implemented.
-        raise NotImplementedError('load_app_instance method is required for AppService.')
+        raise NotImplementedError('get method is required for AppService.')
+
+    # * method: list
+    @abstractmethod
+    def list(self) -> List[AppInterface]:
+        '''
+        List all app interfaces.
+
+        :return: A list of app interfaces.
+        :rtype: List[AppInterface]
+        '''
+        # Not implemented.
+        raise NotImplementedError('list method is required for AppService.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, interface: AppInterface) -> None:
+        '''
+        Save or update an app interface.
+
+        :param interface: The app interface to save.
+        :type interface: AppInterface
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('save method is required for AppService.')
+
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete an app interface by ID. This operation should be idempotent.
+
+        :param id: The app interface identifier.
+        :type id: str
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('delete method is required for AppService.')
