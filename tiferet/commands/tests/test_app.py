@@ -18,6 +18,7 @@ from ..app import (
     AddAppInterface,
     ListAppInterfaces,
     UpdateAppInterface,
+    SetAppConstants,
     SetServiceDependency,
     RemoveServiceDependency,
     RemoveAppInterface,
@@ -698,6 +699,148 @@ def test_update_app_interface_invalid_type_attributes_empty_value(
     # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
     assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
     app_service.save.assert_not_called()
+
+# ** test: set_app_constants_full_clear
+def test_set_app_constants_full_clear(app_service, app_interface):
+    '''
+    Test that SetAppConstants clears all constants when constants=None.
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'EXISTING': 'value',
+        'OTHER': 'other_value',
+    }
+
+    # Execute the command via Command.handle with constants=None.
+    result = Command.handle(
+        SetAppConstants,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        constants=None,
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # All constants should be cleared.
+    assert app_interface.constants == {}
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: set_app_constants_merge_override_and_remove
+def test_set_app_constants_merge_override_and_remove(app_service, app_interface):
+    '''
+    Test that SetAppConstants merges constants, overrides values, and removes None-valued keys.
+    '''
+
+    # Seed existing constants.
+    app_interface.constants = {
+        'KEEP': 'keep_value',
+        'OVERRIDE': 'old',
+        'REMOVE': 'to_be_removed',
+    }
+
+    # Execute the command with mixed updates.
+    result = Command.handle(
+        SetAppConstants,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        constants={
+            'OVERRIDE': 'new',
+            'REMOVE': None,
+            'ADD': 'added',
+        },
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # Constants should be merged/updated with None-valued keys removed.
+    assert app_interface.constants == {
+        'KEEP': 'keep_value',
+        'OVERRIDE': 'new',
+        'ADD': 'added',
+    }
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: set_app_constants_add_new_constants
+def test_set_app_constants_add_new_constants(app_service, app_interface):
+    '''
+    Test that SetAppConstants adds new constants when none exist.
+    '''
+
+    # Precondition: no constants defined.
+    assert app_interface.constants == {}
+
+    # Execute the command with new constants.
+    result = Command.handle(
+        SetAppConstants,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        constants={
+            'NEW_ONE': 'one',
+            'NEW_TWO': 'two',
+        },
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # All new constants should be present.
+    assert app_interface.constants == {
+        'NEW_ONE': 'one',
+        'NEW_TWO': 'two',
+    }
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: set_app_constants_missing_or_empty_id
+@pytest.mark.parametrize('invalid_id', [None, ''])
+def test_set_app_constants_missing_or_empty_id(invalid_id, app_service):
+    '''
+    Test that missing or empty id raises COMMAND_PARAMETER_REQUIRED.
+    '''
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            SetAppConstants,
+            dependencies={'app_service': app_service},
+            id=invalid_id,
+            constants={'KEY': 'VALUE'},
+        )
+
+    # Verify the error code and that the id parameter is mentioned.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert 'id' in str(exc_info.value)
+    app_service.save.assert_not_called()
+
+# ** test: set_app_constants_interface_not_found
+def test_set_app_constants_interface_not_found(app_service):
+    '''
+    Test that SetAppConstants raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
+    '''
+
+    # Simulate missing interface.
+    app_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            SetAppConstants,
+            dependencies={'app_service': app_service},
+            id='missing.interface',
+            constants={'KEY': 'VALUE'},
+        )
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 # ** test: remove_service_dependency_removes_existing_attribute
 def test_remove_service_dependency_removes_existing_attribute(app_service, app_interface):
