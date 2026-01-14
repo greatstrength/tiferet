@@ -20,6 +20,7 @@ from ..app import (
     UpdateAppInterface,
     SetServiceDependency,
     RemoveServiceDependency,
+    RemoveAppInterface,
 )
 from ..settings import TiferetError, Command
 
@@ -820,3 +821,68 @@ def test_remove_service_dependency_missing_required_parameters(missing_param, ap
     # Verify the error code and that the missing parameter is mentioned.
     assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
     assert missing_param in str(exc_info.value)
+
+# ** test: remove_app_interface_success_existing
+def test_remove_app_interface_success_existing(app_service):
+    '''
+    Test that RemoveAppInterface deletes an existing app interface and returns the ID.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Execute the command via Command.handle for an existing interface.
+    result = Command.handle(
+        RemoveAppInterface,
+        dependencies={'app_service': app_service},
+        id='existing.interface',
+    )
+
+    # Command should return the interface id and delegate deletion to the service.
+    assert result == 'existing.interface'
+    app_service.delete.assert_called_once_with('existing.interface')
+
+# ** test: remove_app_interface_success_missing_is_idempotent
+def test_remove_app_interface_success_missing_is_idempotent(app_service):
+    '''
+    Test that removing a non-existent interface is idempotent and still succeeds.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Execute the command via Command.handle for a missing interface.
+    result = Command.handle(
+        RemoveAppInterface,
+        dependencies={'app_service': app_service},
+        id='missing.interface',
+    )
+
+    # Command should return the interface id and still call delete exactly once.
+    assert result == 'missing.interface'
+    app_service.delete.assert_called_once_with('missing.interface')
+
+# ** test: remove_app_interface_missing_or_empty_id
+@pytest.mark.parametrize('invalid_id', [None, ''])
+def test_remove_app_interface_missing_or_empty_id(invalid_id, app_service):
+    '''
+    Test that missing or empty id raises COMMAND_PARAMETER_REQUIRED.
+
+    :param invalid_id: The invalid id value to use.
+    :type invalid_id: str | None
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            RemoveAppInterface,
+            dependencies={'app_service': app_service},
+            id=invalid_id,
+        )
+
+    # Verify the error code and that the id parameter is mentioned.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert 'id' in str(exc_info.value)
+    app_service.delete.assert_not_called()
