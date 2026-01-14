@@ -11,7 +11,8 @@ from .settings import (
 from .app import (
     AppInterface as AppInterfaceContract,
     AppAttribute as AppAttributeContract,
-    AppRepository
+    AppRepository,
+    AppService,
 )
 from .cli import (
     CliArgument as CliArgumentContract,

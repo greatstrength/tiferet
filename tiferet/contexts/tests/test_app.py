@@ -11,21 +11,21 @@ from unittest import mock
 
 # ** app
 from ..app import (
-    AppRepository,
     FeatureContext,
     ErrorContext,
     LoggingContext,
     RequestContext,
     AppInterfaceContext,
     AppManagerContext,
-    AppService,
 )
 from ...assets import TiferetError
+from ...assets.constants import DEFAULT_ATTRIBUTES
 from ...models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
+from ...contracts import AppService
 
 # *** fixtures
 
@@ -57,25 +57,6 @@ def app_interface():
             ),
         ],
     )
-
-# ** fixture: app_repo
-@pytest.fixture
-def app_repo(app_interface):
-    """
-    Fixture to create a mock AppRepository instance.
-
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    """
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-
-    # Set the return value for the get_interface method.
-    app_repo.get_interface.return_value = app_interface
-
-    # Return the mock AppRepository instance.
-    return app_repo
 
 # ** fixture: feature_context
 @pytest.fixture
@@ -155,51 +136,31 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         logging=logging_context,
     )
 
-# ** fixture: app_service
-@pytest.fixture
-def app_service(app_repo, app_interface_context):
-    """Fixture to provide a mock app service."""
-
-    # Create a mock app service.
-    service = mock.Mock(spec=AppService)
-
-    # Set the return value for the load_app_repository method.
-    service.load_app_repository.return_value = app_repo
-
-    # Set the return value for the load_app_instance method.
-    service.load_app_instance.return_value = app_interface_context
-
-    # Return the mock app service.
-    return service
-
 # ** fixture: app_manager_context
 @pytest.fixture
-def app_manager_context(app_service):
+def app_manager_context():
     """
     Fixture to provide an AppManagerContext instance.
 
-    :param app_service: The mock app service.
-    :type app_service: AppService
     :return: An instance of AppManagerContext.
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance.
+    # Return the AppManagerContext instance using test settings with AppConfigurationRepository.
     return AppManagerContext(
         dict(
-            app_repo_module_path='tiferet.proxies.yaml.app',
-            app_repo_class_name='AppYamlProxy',
+            app_repo_module_path='tiferet.repos.config.app',
+            app_repo_class_name='AppConfigurationRepository',
             app_repo_params=dict(
-                app_config_file='tiferet/configs/app.yaml',
-            )
+                app_config_file='tiferet/configs/tests/test_calc.yml',
+            ),
         ),
-        app_service
     )
 
 # *** tests
 
 # ** test: app_manager_context_load_interface
-def test_app_manager_context_load_interface(app_manager_context, app_interface):
+def test_app_manager_context_load_interface(app_manager_context):
     """
     Test the load_interface method of AppManagerContext.
 
@@ -210,21 +171,19 @@ def test_app_manager_context_load_interface(app_manager_context, app_interface):
     """
 
     # Load the app interface using the app context.
-    result = app_manager_context.load_interface(app_interface.id)
+    result = app_manager_context.load_interface('test_calc')
 
     # Assert that the result is an instance of AppInterfaceContext.
     assert result
     assert isinstance(result, AppInterfaceContext)
 
 # ** test: app_manager_context_load_interface_invalid
-def test_app_manager_context_load_interface_invalid(app_manager_context, app_service):
+def test_app_manager_context_load_interface_invalid(app_manager_context, app_interface):
     """
     Test loading an invalid app interface.
 
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
-    :param app_service: The mock app service.
-    :type app_service: AppService
     """
 
     # Create invalid app interface context.
@@ -232,8 +191,17 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_ser
         def __init__(self, *args, **kwargs):
             pass
 
+    # Create a fake app service that always returns the provided app_interface,
+    # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
+    # so we can exercise the "invalid app interface context" error instead.
+    fake_service = mock.Mock(spec=AppService)
+    fake_service.get.return_value = app_interface
+
+    # Mock the load_app_repo method to return the fake service.
+    app_manager_context.load_app_repo = mock.Mock(return_value=fake_service)
+
     # Mock the load_app_instance method to return an invalid app interface context.
-    app_service.load_app_instance.return_value = InvalidContext()
+    app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())
 
     # Attempt to load an invalid interface and assert that it raises an error.
     with pytest.raises(TiferetError) as exc_info:
