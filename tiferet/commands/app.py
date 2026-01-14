@@ -449,3 +449,50 @@ class RemoveServiceDependency(Command):
 
         # Return the interface ID.
         return id
+
+# ** command: remove_app_interface
+class RemoveAppInterface(Command):
+    '''
+    Command to remove an entire app interface configuration by ID (idempotent).
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the RemoveAppInterface command.
+
+        :param app_service: The app service used to manage app interfaces.
+        :type app_service: AppService
+        '''
+
+        # Set the app service dependency.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> str:
+        '''
+        Remove an app interface by ID.
+
+        :param id: The interface ID.
+        :type id: str
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The removed interface ID.
+        :rtype: str
+        '''
+
+        # Validate required id parameter.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+
+        # Delegate deletion to the app service (idempotent operation).
+        self.app_service.delete(id)
+
+        # Return the interface ID.
+        return id
