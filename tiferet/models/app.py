@@ -144,6 +144,30 @@ class AppInterface(ModelObject):
         ),
     )
 
+    # * method: set_constants
+    def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
+        '''
+        Update the constants dictionary.
+
+        :param constants: New constants to merge, or None to clear all. Keys with None value are removed.
+        :type constants: Dict[str, Any] | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Clear all constants when None is provided.
+        if constants is None:
+            self.constants = {}
+
+        # Otherwise merge new constants and remove keys with None value.
+        else:
+            self.constants.update(constants)
+            self.constants = {
+                key: value
+                for key, value in self.constants.items()
+                if value is not None
+            }
+
     # * method: add_attribute
     def add_attribute(self, module_path: str, class_name: str, attribute_id: str):
         '''

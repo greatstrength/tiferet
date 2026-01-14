@@ -414,3 +414,114 @@ def test_app_interface_set_attribute_uses_validate(app_interface: AppInterface, 
 
     # Ensure validate was called.
     assert called['value'] is True
+
+# ** test: app_interface_set_constants_clears_when_none
+def test_app_interface_set_constants_clears_when_none(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants clears all constants when called with None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'existing': 'value',
+        'another': 'value',
+    }
+
+    # Call set_constants with None to clear all constants.
+    app_interface.set_constants(None)
+
+    # All constants should be cleared.
+    assert app_interface.constants == {}
+
+# ** test: app_interface_set_constants_merges_and_overrides
+def test_app_interface_set_constants_merges_and_overrides(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants merges new constants and overrides existing keys.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'keep': 'original',
+        'override': 'old',
+    }
+
+    # Merge new constants, overriding existing keys and adding new ones.
+    app_interface.set_constants(
+        {
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Existing keys should be preserved or overridden as appropriate.
+    assert app_interface.constants == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
+
+# ** test: app_interface_set_constants_removes_none_valued_keys
+def test_app_interface_set_constants_removes_none_valued_keys(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants removes keys whose new value is None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'keep': 'value',
+        'remove': 'value',
+    }
+
+    # Provide an update that sets one key to None.
+    app_interface.set_constants(
+        {
+            'remove': None,
+        },
+    )
+
+    # The key set to None should be removed, and others preserved.
+    assert app_interface.constants == {
+        'keep': 'value',
+    }
+
+# ** test: app_interface_set_constants_mixed_operations
+def test_app_interface_set_constants_mixed_operations(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants supports mixed operations of clearing, overriding,
+    adding, and preserving keys in a single call.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'remove': 'value',
+        'override': 'old',
+        'preserve': 'present',
+    }
+
+    # Perform a mixed update.
+    app_interface.set_constants(
+        {
+            'remove': None,
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Verify mixed behavior across keys.
+    assert app_interface.constants == {
+        'override': 'new',
+        'preserve': 'present',
+        'add': 'added',
+    }
