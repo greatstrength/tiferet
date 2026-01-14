@@ -19,6 +19,7 @@ from ..app import (
     ListAppInterfaces,
     UpdateAppInterface,
     SetServiceDependency,
+    RemoveServiceDependency,
 )
 from ..settings import TiferetError, Command
 
@@ -696,3 +697,126 @@ def test_update_app_interface_invalid_type_attributes_empty_value(
     # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
     assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
     app_service.save.assert_not_called()
+
+# ** test: remove_service_dependency_removes_existing_attribute
+def test_remove_service_dependency_removes_existing_attribute(app_service, app_interface):
+    '''
+    Test that RemoveServiceDependency removes an existing dependency attribute.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Precondition: the attribute exists on the interface.
+    existing_attr = app_interface.get_attribute('test_attribute')
+    assert existing_attr is not None
+    initial_count = len(app_interface.attributes)
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        RemoveServiceDependency,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute_id='test_attribute',
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # The attribute should be removed and the list size decreased by one.
+    assert app_interface.get_attribute('test_attribute') is None
+    assert len(app_interface.attributes) == initial_count - 1
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: remove_service_dependency_missing_attribute_is_idempotent
+def test_remove_service_dependency_missing_attribute_is_idempotent(app_service, app_interface):
+    '''
+    Test that removing a non-existent dependency attribute is idempotent and succeeds.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    :param app_interface: The AppInterface instance returned by the service.
+    :type app_interface: AppInterface
+    '''
+
+    # Precondition: no attribute with the given id exists.
+    assert app_interface.get_attribute('missing_attribute') is None
+    initial_count = len(app_interface.attributes)
+
+    # Execute the command via Command.handle.
+    result = Command.handle(
+        RemoveServiceDependency,
+        dependencies={'app_service': app_service},
+        id=app_interface.id,
+        attribute_id='missing_attribute',
+    )
+
+    # Command should return the interface id.
+    assert result == app_interface.id
+
+    # Attributes list should remain unchanged and still not contain the attribute.
+    assert app_interface.get_attribute('missing_attribute') is None
+    assert len(app_interface.attributes) == initial_count
+
+    # The updated interface should be saved.
+    app_service.save.assert_called_once_with(app_interface)
+
+# ** test: remove_service_dependency_interface_not_found
+def test_remove_service_dependency_interface_not_found(app_service):
+    '''
+    Test that RemoveServiceDependency raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
+
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    # Simulate missing interface.
+    app_service.get.return_value = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            RemoveServiceDependency,
+            dependencies={'app_service': app_service},
+            id='missing.interface',
+            attribute_id='dep',
+        )
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
+
+
+# ** test: remove_service_dependency_missing_required_parameters
+@pytest.mark.parametrize('missing_param', ['id', 'attribute_id'])
+def test_remove_service_dependency_missing_required_parameters(missing_param, app_service):
+    '''
+    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
+
+    :param missing_param: The parameter name to omit.
+    :type missing_param: str
+    :param app_service: The mock AppService instance.
+    :type app_service: AppService
+    '''
+
+    kwargs = dict(
+        id='test.interface',
+        attribute_id='dep',
+    )
+    kwargs[missing_param] = None
+
+    # Execute the command and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            RemoveServiceDependency,
+            dependencies={'app_service': app_service},
+            **kwargs,
+        )
+
+    # Verify the error code and that the missing parameter is mentioned.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert missing_param in str(exc_info.value)
