@@ -249,6 +249,74 @@ class UpdateAppInterface(Command):
         # Return the interface ID.
         return id
 
+# ** command: set_app_constants
+class SetAppConstants(Command):
+    '''
+    Command to set or clear constants on an app interface.
+    '''
+
+    # * attribute: app_service
+    app_service: AppService
+
+    # * init
+    def __init__(self, app_service: AppService) -> None:
+        '''
+        Initialize the SetAppConstants command.
+
+        :param app_service: The app service used to manage app interfaces.
+        :type app_service: AppService
+        '''
+
+        # Set the app service dependency.
+        self.app_service = app_service
+
+    # * method: execute
+    def execute(
+            self,
+            id: str,
+            constants: dict[str, Any] | None = None,
+            **kwargs,
+        ) -> str:
+        '''
+        Set constants on an app interface.
+
+        :param id: The unique identifier for the app interface.
+        :type id: str
+        :param constants: A mapping of constants to apply. ``None`` clears all constants.
+        :type constants: dict[str, Any] | None
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The ID of the app interface whose constants were updated.
+        :rtype: str
+        '''
+
+        # Validate required id parameter.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
+        )
+
+        # Retrieve the app interface via the app service.
+        interface = self.app_service.get(id)
+
+        # Verify that the interface exists.
+        self.verify(
+            expression=interface is not None,
+            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            message=f'App interface with ID {id} not found.',
+            interface_id=id,
+        )
+
+        # Update constants via the model method.
+        interface.set_constants(constants)
+
+        # Persist the updated interface.
+        self.app_service.save(interface)
+
+        # Return the interface ID.
+        return id
+
 # ** command: list_app_interfaces
 class ListAppInterfaces(Command):
     '''
