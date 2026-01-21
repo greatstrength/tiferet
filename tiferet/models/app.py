@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import Any, Dict
 
 # ** app
 from .settings import (
@@ -144,6 +144,30 @@ class AppInterface(ModelObject):
         ),
     )
 
+    # * method: set_constants
+    def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
+        '''
+        Update the constants dictionary.
+
+        :param constants: New constants to merge, or None to clear all. Keys with None value are removed.
+        :type constants: Dict[str, Any] | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Clear all constants when None is provided.
+        if constants is None:
+            self.constants = {}
+
+        # Otherwise merge new constants and remove keys with None value.
+        else:
+            self.constants.update(constants)
+            self.constants = {
+                key: value
+                for key, value in self.constants.items()
+                if value is not None
+            }
+
     # * method: add_attribute
     def add_attribute(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
         '''
@@ -185,6 +209,91 @@ class AppInterface(ModelObject):
         # Get the dependency attribute by attribute id.
         return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
 
+    # * method: remove_attribute
+    def remove_attribute(self, attribute_id: str) -> AppAttribute | None:
+        '''
+        Remove and return a dependency attribute by its attribute_id (idempotent).
+
+        If an attribute with the given attribute_id exists, it is removed.
+        If no matching attribute exists, no action is taken (silent success).
+
+        :param attribute_id: The attribute_id of the dependency to remove.
+        :type attribute_id: str
+        :return: The removed AppAttribute or None.
+        :rtype: AppAttribute | None
+        '''
+
+        # Iterate over attributes and remove the first match by attribute_id.
+        for index, attr in enumerate(self.attributes):
+            if attr.attribute_id == attribute_id:
+                return self.attributes.pop(index)
+
+        # If no attribute matches, return None without modifying the list.
+        return None
+
+    # * method: set_dependency
+    def set_dependency(
+        self,
+        attribute_id: str,
+        module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] | None = None,
+    ) -> None:
+        '''
+        Set or update a dependency attribute by attribute_id (PUT semantics).
+
+        If a dependency with the given attribute_id exists:
+          - Update module_path and class_name.
+          - Merge parameters (favor new values; remove keys with None value).
+          - Clear parameters if parameters is None.
+
+        If no dependency exists:
+          - Create new AppAttribute and append to attributes.
+
+        :param attribute_id: The dependency identifier.
+        :type attribute_id: str
+        :param module_path: The module path.
+        :type module_path: str
+        :param class_name: The class name.
+        :type class_name: str
+        :param parameters: New parameters (None to clear).
+        :type parameters: Dict[str, Any] | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Find the existing dependency attribute by attribute_id.
+        attr = self.get_attribute(attribute_id)
+
+        # If the dependency exists, update its type fields and merge parameters.
+        if attr is not None:
+            attr.module_path = module_path
+            attr.class_name = class_name
+
+            # Clear parameters when parameters is None.
+            if parameters is None:
+                attr.parameters = {}
+
+            # Otherwise merge and then remove keys whose value is None.
+            else:
+                attr.parameters.update(parameters)
+                attr.parameters = {
+                    key: value
+                    for key, value in attr.parameters.items()
+                    if value is not None
+                }
+
+        # If the dependency does not exist, create a new one and append.
+        else:
+            new_attr = ModelObject.new(
+                AppAttribute,
+                attribute_id=attribute_id,
+                module_path=module_path,
+                class_name=class_name,
+                parameters=parameters or {},
+            )
+            self.attributes.append(new_attr)
+
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
@@ -197,8 +306,11 @@ class AppInterface(ModelObject):
         :type attribute: str
         :param value: The new value.
         :type value: Any
+        :return: None
+        :rtype: None
         '''
 
+        # Define the set of supported attributes.
         supported = {
             'name',
             'description',
@@ -213,22 +325,22 @@ class AppInterface(ModelObject):
         if attribute not in supported:
             RaiseError.execute(
                 error_code=const.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}',
+                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
                 attribute=attribute,
                 supported=', '.join(sorted(supported)),
             )
 
-        # Special validation for module_path and class_name.
+        # Specific validation for module_path and class_name.
         if attribute in {'module_path', 'class_name'}:
             if not value or not str(value).strip():
                 RaiseError.execute(
                     error_code=const.INVALID_APP_INTERFACE_TYPE_ID,
-                    message='{attribute} must be a non-empty string',
+                    message='{attribute} must be a non-empty string.',
                     attribute=attribute,
                 )
 
-        # Apply update.
+        # Apply the update to the attribute.
         setattr(self, attribute, value)
 
-        # Final model validation.
+        # Perform final model validation.
         self.validate()

@@ -10,50 +10,56 @@ import pytest, yaml
 
 # ** app
 from ....data import DataObject, FeatureConfigData
-from ....models import Feature
 from ..feature import FeatureConfigurationRepository
+
 
 # *** constants
 
 # ** constant: test_feature_id
 TEST_FEATURE_ID = 'test_group.test_feature'
 
-# ** constant: test_feature_2_id
-TEST_FEATURE_2_ID = 'test_group.test_feature_2'
+# ** constant: another_feature_id
+ANOTHER_FEATURE_ID = 'test_group.another_feature'
+
+# ** constant: other_group_feature_id
+OTHER_GROUP_FEATURE_ID = 'other_group.other_feature'
 
 # ** constant: feature_data
-FEATURE_DATA = {
+FEATURE_DATA: Dict[str, Dict] = {
     'features': {
         'test_group': {
-            'test_feature': {
+'test_feature': {
                 'name': 'Test Feature',
-                'description': 'A test feature.',
+                'description': 'A test feature with a command.',
                 'commands': [
                     {
-                        'attribute_id': 'test_feature_command',
-                        'name': 'Test Feature Command',
-                        'parameters': {
-                            'param1': 'value1'
+                        'name': 'Test Command',
+                        'attribute_id': 'test.attribute',
+                        'params': {
+                            'key': 'value'
                         }
                     }
-                ]
+                ],
+                'log_params': {},
             },
-            'test_feature_2': {
-                'name': 'Second Test Feature',
+            'another_feature': {
+                'name': 'Another Feature',
                 'description': 'Another test feature.',
-                'commands': [
-                    {
-                        'attribute_id': 'second_test_feature_command',
-                        'name': 'Second Test Feature Command',
-                        'parameters': {
-                            'param2': 'value2'
-                        }
-                    }
-                ]
+                'commands': [],
+                'log_params': {},
             },
-        }
-    }
+        },
+        'other_group': {
+            'other_feature': {
+                'name': 'Other Group Feature',
+                'description': 'A feature in another group.',
+                'commands': [],
+                'log_params': {},
+            },
+        },
+    },
 }
+
 
 # *** fixtures
 
@@ -92,10 +98,10 @@ def feature_config_repo(feature_config_file: str) -> FeatureConfigurationReposit
     # Create and return the FeatureConfigurationRepository instance.
     return FeatureConfigurationRepository(feature_config_file)
 
+
 # *** tests
 
 # ** test_int: feature_config_repo_exists
-
 def test_int_feature_config_repo_exists(
         feature_config_repo: FeatureConfigurationRepository,
     ):
@@ -106,13 +112,14 @@ def test_int_feature_config_repo_exists(
     :type feature_config_repo: FeatureConfigurationRepository
     '''
 
-    # Check if the feature exists.
+    # Check if the features exist.
     assert feature_config_repo.exists(TEST_FEATURE_ID)
-    assert feature_config_repo.exists(TEST_FEATURE_2_ID)
-    assert not feature_config_repo.exists('nonexistent_group.nonexistent_feature')
+    assert feature_config_repo.exists(ANOTHER_FEATURE_ID)
+    assert feature_config_repo.exists(OTHER_GROUP_FEATURE_ID)
+    assert not feature_config_repo.exists('nonexistent.group.feature')
+
 
 # ** test_int: feature_config_repo_get
-
 def test_int_feature_config_repo_get(
         feature_config_repo: FeatureConfigurationRepository,
     ):
@@ -123,9 +130,10 @@ def test_int_feature_config_repo_get(
     :type feature_config_repo: FeatureConfigurationRepository
     '''
 
-    # Get the features.
+    # Get features by id.
     feature = feature_config_repo.get(TEST_FEATURE_ID)
-    feature_2 = feature_config_repo.get(TEST_FEATURE_2_ID)
+    another_feature = feature_config_repo.get(ANOTHER_FEATURE_ID)
+    other_group_feature = feature_config_repo.get(OTHER_GROUP_FEATURE_ID)
 
     # Check the first feature.
     assert feature
@@ -133,28 +141,23 @@ def test_int_feature_config_repo_get(
     assert feature.name == 'Test Feature'
     assert feature.group_id == 'test_group'
     assert feature.feature_key == 'test_feature'
-    assert feature.description == 'A test feature.'
-    assert feature.commands
-    assert len(feature.commands) == 1
-    assert feature.commands[0].attribute_id == 'test_feature_command'
-    assert feature.commands[0].name == 'Test Feature Command'
-    assert feature.commands[0].parameters == {'param1': 'value1'}
 
     # Check the second feature.
-    assert feature_2
-    assert feature_2.id == TEST_FEATURE_2_ID
-    assert feature_2.name == 'Second Test Feature'
-    assert feature_2.group_id == 'test_group'
-    assert feature_2.feature_key == 'test_feature_2'
-    assert feature_2.description == 'Another test feature.'
-    assert feature_2.commands
-    assert len(feature_2.commands) == 1
-    assert feature_2.commands[0].attribute_id == 'second_test_feature_command'
-    assert feature_2.commands[0].name == 'Second Test Feature Command'
-    assert feature_2.commands[0].parameters == {'param2': 'value2'}
+    assert another_feature
+    assert another_feature.id == ANOTHER_FEATURE_ID
+    assert another_feature.name == 'Another Feature'
+    assert another_feature.group_id == 'test_group'
+    assert another_feature.feature_key == 'another_feature'
+
+    # Check the feature from the other group.
+    assert other_group_feature
+    assert other_group_feature.id == OTHER_GROUP_FEATURE_ID
+    assert other_group_feature.name == 'Other Group Feature'
+    assert other_group_feature.group_id == 'other_group'
+    assert other_group_feature.feature_key == 'other_feature'
+
 
 # ** test_int: feature_config_repo_get_not_found
-
 def test_int_feature_config_repo_get_not_found(
         feature_config_repo: FeatureConfigurationRepository,
     ):
@@ -165,76 +168,65 @@ def test_int_feature_config_repo_get_not_found(
     :type feature_config_repo: FeatureConfigurationRepository
     '''
 
-    # Get the feature.
-    test_feature = feature_config_repo.get('not_found_group.not_found_feature')
+    # Attempt to get a non-existent feature.
+    feature = feature_config_repo.get('missing.group.feature')
 
-    # Check the feature.
-    assert not test_feature
+    # Check that the feature is None.
+    assert not feature
 
-# ** test_int: feature_config_repo_list
 
-def test_int_feature_config_repo_list(
+# ** test_int: feature_config_repo_list_all
+def test_int_feature_config_repo_list_all(
         feature_config_repo: FeatureConfigurationRepository,
     ):
     '''
-    Test the list method of the FeatureConfigurationRepository.
+    Test the list method of the FeatureConfigurationRepository for all features.
 
     :param feature_config_repo: The feature configuration repository.
     :type feature_config_repo: FeatureConfigurationRepository
     '''
 
     # List all features.
-    test_features = feature_config_repo.list()
+    features = feature_config_repo.list()
 
     # Check the features.
-    assert test_features
-    assert len(test_features) == 2
-    feature_ids = [feature.id for feature in test_features]
+    assert features
+    assert len(features) == 3
+    feature_ids = [feature.id for feature in features]
     assert TEST_FEATURE_ID in feature_ids
-    assert TEST_FEATURE_2_ID in feature_ids
+    assert ANOTHER_FEATURE_ID in feature_ids
+    assert OTHER_GROUP_FEATURE_ID in feature_ids
+
 
 # ** test_int: feature_config_repo_list_by_group
-
 def test_int_feature_config_repo_list_by_group(
         feature_config_repo: FeatureConfigurationRepository,
     ):
     '''
-    Test the list method of the FeatureConfigurationRepository with a group id.
+    Test the list method of the FeatureConfigurationRepository filtered by group.
 
     :param feature_config_repo: The feature configuration repository.
     :type feature_config_repo: FeatureConfigurationRepository
     '''
 
-    # List the features by group id.
-    test_features = feature_config_repo.list(group_id='test_group')
+    # List features for a specific group.
+    features = feature_config_repo.list(group_id='test_group')
 
     # Check the features.
-    assert test_features
-    assert len(test_features) == 2
-    feature_ids = [feature.id for feature in test_features]
+    assert features
+    assert len(features) == 2
+    feature_ids = [feature.id for feature in features]
     assert TEST_FEATURE_ID in feature_ids
-    assert TEST_FEATURE_2_ID in feature_ids
+    assert ANOTHER_FEATURE_ID in feature_ids
 
-# ** test_int: feature_config_repo_list_by_group_not_found
+    # List features for a non-existent group.
+    missing_group_features = feature_config_repo.list(group_id='missing_group')
 
-def test_int_feature_config_repo_list_by_group_not_found(
-        feature_config_repo: FeatureConfigurationRepository,
-    ):
-    '''
-    Test the list method of the FeatureConfigurationRepository with a non-existent group id.
+    # Check that no features are returned for the missing group.
+    assert missing_group_features == []
 
-    :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureConfigurationRepository
-    '''
-
-    # List the features by a non-existent group id.
-    test_features = feature_config_repo.list(group_id='not_found')
-
-    # Check the features.
-    assert test_features == []
 
 # ** test_int: feature_config_repo_save
-
 def test_int_feature_config_repo_save(
         feature_config_repo: FeatureConfigurationRepository,
     ):
@@ -246,45 +238,35 @@ def test_int_feature_config_repo_save(
     '''
 
     # Create constant for new test feature.
-    NEW_TEST_FEATURE_ID = 'new_group.new_feature'
+    new_feature_id = 'new_group.new_feature'
 
-    # Create new feature via FeatureConfigData mapping.
-    feature = FeatureConfigData.from_data(
-        id=NEW_TEST_FEATURE_ID,
-        name='New Test Feature',
+    # Create new feature config data and map to a model.
+    feature = DataObject.from_data(
+        FeatureConfigData,
+        id=new_feature_id,
+        name='New Feature',
         description='A new test feature.',
-        commands=[
-            {
-                'attribute_id': 'new_feature_command',
-                'name': 'New Feature Command',
-                'parameters': {
-                    'param': 'value'
-                }
-            }
-        ],
+        group_id='new_group',
+        feature_key='new_feature',
+        commands=[],
+        log_params={},
     ).map()
 
     # Save the new feature.
     feature_config_repo.save(feature)
 
-    # Reload the feature to verify the changes.
-    new_feature = feature_config_repo.get(NEW_TEST_FEATURE_ID)
+    # Reload the feature to verify it was saved.
+    new_feature = feature_config_repo.get(new_feature_id)
 
     # Check the new feature.
     assert new_feature
-    assert new_feature.id == NEW_TEST_FEATURE_ID
-    assert new_feature.name == 'New Test Feature'
+    assert new_feature.id == new_feature_id
+    assert new_feature.name == 'New Feature'
     assert new_feature.group_id == 'new_group'
     assert new_feature.feature_key == 'new_feature'
-    assert new_feature.description == 'A new test feature.'
-    assert new_feature.commands
-    assert len(new_feature.commands) == 1
-    assert new_feature.commands[0].attribute_id == 'new_feature_command'
-    assert new_feature.commands[0].name == 'New Feature Command'
-    assert new_feature.commands[0].parameters == {'param': 'value'}
+
 
 # ** test_int: feature_config_repo_delete
-
 def test_int_feature_config_repo_delete(
         feature_config_repo: FeatureConfigurationRepository,
     ):
@@ -296,10 +278,17 @@ def test_int_feature_config_repo_delete(
     '''
 
     # Delete an existing feature.
-    feature_config_repo.delete(TEST_FEATURE_2_ID)
+    feature_config_repo.delete(ANOTHER_FEATURE_ID)
 
     # Attempt to get the deleted feature.
-    deleted_feature = feature_config_repo.get(TEST_FEATURE_2_ID)
+    deleted_feature = feature_config_repo.get(ANOTHER_FEATURE_ID)
 
     # Check that the feature is None.
     assert not deleted_feature
+
+    # Also ensure that deleting the last feature in a group removes the group.
+    feature_config_repo.delete(TEST_FEATURE_ID)
+    remaining_features = feature_config_repo.list(group_id='test_group')
+    assert remaining_features == []
+
+

@@ -12,7 +12,7 @@ from .app import (
     AppInterface as AppInterfaceContract,
     AppAttribute as AppAttributeContract,
     AppRepository,
-    AppService
+    AppService,
 )
 from .cli import (
     CliArgument as CliArgumentContract,
@@ -36,7 +36,7 @@ from .feature import (
     Feature as FeatureContract,
     FeatureCommand as FeatureCommandContract,
     FeatureRepository,
-    FeatureService,
+    FeatureService
 )
 from .file import FileService
 from .logging import (

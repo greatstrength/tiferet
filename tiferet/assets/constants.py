@@ -127,8 +127,26 @@ PARAMETER_NOT_FOUND_ID = 'PARAMETER_NOT_FOUND'
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
+# ** constant: feature_already_exists_id
+FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
+
+# ** constant: feature_name_required_id
+FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
+
+# ** constant: invalid_feature_attribute_id
+INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
+
+# ** constant: invalid_model_attribute_id
+INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
+
+# ** constant: invalid_app_interface_type_id
+INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
+
+# ** constant: invalid_feature_command_attribute_id
+INVALID_FEATURE_COMMAND_ATTRIBUTE_ID = 'INVALID_FEATURE_COMMAND_ATTRIBUTE'
 
 # ** constant: logging_config_failed_id
 LOGGING_CONFIG_FAILED_ID = 'LOGGING_CONFIG_FAILED'
@@ -340,6 +358,39 @@ DEFAULT_ERRORS = {
         ]
     },
 
+    # * error: FEATURE_ALREADY_EXISTS
+    FEATURE_ALREADY_EXISTS_ID: {
+        'id': FEATURE_ALREADY_EXISTS_ID,
+        'name': 'Feature Already Exists',
+        'message': [
+            {'lang': 'en_US', 'text': 'Feature with ID {id} already exists.'}
+        ]
+    },
+
+    # * error: FEATURE_NAME_REQUIRED
+    FEATURE_NAME_REQUIRED_ID: {
+        'id': FEATURE_NAME_REQUIRED_ID,
+        'name': 'Feature Name Required',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A feature name is required when updating the name attribute.',
+            },
+        ],
+    },
+
+    # * error: INVALID_FEATURE_ATTRIBUTE
+    INVALID_FEATURE_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid feature attribute: {attribute}',
+            },
+        ],
+    },
+
     # * error: FEATURE_COMMAND_NOT_FOUND
     FEATURE_COMMAND_NOT_FOUND_ID: {
         'id': FEATURE_COMMAND_NOT_FOUND_ID,
@@ -348,7 +399,22 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'Feature command not found for feature {feature_id} at position {position}.',
-            }
+            },
+        ],
+    },
+
+    # * error: INVALID_FEATURE_COMMAND_ATTRIBUTE
+    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Command Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': (
+                    'Invalid feature command attribute: {attribute}. Supported attributes are '
+                    'name, attribute_id, data_key, pass_on_error, and parameters.'
+                ),
+            },
         ],
     },
 
@@ -660,5 +726,29 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'Command {command} not found.'}
         ]
+    },
+
+    # * error: INVALID_MODEL_ATTRIBUTE
+    INVALID_MODEL_ATTRIBUTE_ID: {
+        'id': INVALID_MODEL_ATTRIBUTE_ID,
+        'name': 'Invalid Model Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            },
+        ],
+    },
+
+    # * error: INVALID_APP_INTERFACE_TYPE
+    INVALID_APP_INTERFACE_TYPE_ID: {
+        'id': INVALID_APP_INTERFACE_TYPE_ID,
+        'name': 'Invalid App Interface Type',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': '{attribute} must be a non-empty string.',
+            },
+        ],
     },
 }

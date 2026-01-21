@@ -11,7 +11,7 @@ from ...models import (
     AppAttribute,
     AppInterface,
 )
-from ...commands.settings import const
+from ...commands.static import TiferetError
 
 # *** fixtures
 
@@ -98,85 +98,438 @@ def test_app_interface_get_attribute_invalid(app_interface: AppInterface):
     # Assert the app dependency is invalid.
     assert app_interface.get_attribute('invalid') is None
 
-def test_app_interface_add_attribute(app_interface):
+# ** test: app_interface_remove_attribute_removes_matching_from_middle_start_end
+def test_app_interface_remove_attribute_removes_matching_from_middle_start_end() -> None:
+    '''
+    Test that remove_attribute removes and returns attributes when attribute_id
+    matches for items in the middle, start, and end positions.
+    '''
 
-    # Add a new attribute.
-    app_interface.add_attribute(
-        module_path='new_module_path',
-        class_name='NewClassName',
-        attribute_id='new_attribute',
+    # Create three attributes with distinct attribute_ids.
+    first = ModelObject.new(
+        AppAttribute,
+        attribute_id='first',
+        module_path='module.first',
+        class_name='FirstClass',
+    )
+    middle = ModelObject.new(
+        AppAttribute,
+        attribute_id='middle',
+        module_path='module.middle',
+        class_name='MiddleClass',
+    )
+    last = ModelObject.new(
+        AppAttribute,
+        attribute_id='last',
+        module_path='module.last',
+        class_name='LastClass',
+    )
+
+    # Create an app interface seeded with the three attributes.
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[first, middle, last],
+    )
+
+    # Remove the middle attribute and verify it is returned and removed.
+    removed_middle = app_interface.remove_attribute('middle')
+    assert removed_middle is not None
+    assert removed_middle.attribute_id == 'middle'
+    assert [attr.attribute_id for attr in app_interface.attributes] == ['first', 'last']
+
+    # Remove the first attribute and verify it is returned and removed.
+    removed_first = app_interface.remove_attribute('first')
+    assert removed_first is not None
+    assert removed_first.attribute_id == 'first'
+    assert [attr.attribute_id for attr in app_interface.attributes] == ['last']
+
+    # Remove the last remaining attribute and verify it is returned and removed.
+    removed_last = app_interface.remove_attribute('last')
+    assert removed_last is not None
+    assert removed_last.attribute_id == 'last'
+    assert app_interface.attributes == []
+
+# ** test: app_interface_remove_attribute_missing_returns_none_and_does_not_modify
+def test_app_interface_remove_attribute_missing_returns_none_and_does_not_modify() -> None:
+    '''
+    Test that remove_attribute returns None and leaves the attributes list
+    unchanged when no attribute with the given attribute_id exists.
+    '''
+
+    # Create two attributes and an app interface seeded with them.
+    first = ModelObject.new(
+        AppAttribute,
+        attribute_id='first',
+        module_path='module.first',
+        class_name='FirstClass',
+    )
+    second = ModelObject.new(
+        AppAttribute,
+        attribute_id='second',
+        module_path='module.second',
+        class_name='SecondClass',
+    )
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[first, second],
+    )
+
+    # Capture the original list of attributes for comparison.
+    original_attributes = list(app_interface.attributes)
+
+    # Attempt to remove a non-existent attribute.
+    result = app_interface.remove_attribute('missing')
+
+    # Verify the method returns None and the list is unchanged.
+    assert result is None
+    assert app_interface.attributes == original_attributes
+
+# ** test: app_interface_remove_attribute_on_empty_attributes_returns_none
+def test_app_interface_remove_attribute_on_empty_attributes_returns_none() -> None:
+    '''
+    Test that remove_attribute returns None when called on an app interface with
+    an empty attributes list.
+    '''
+
+    # Create an app interface with no attributes.
+    app_interface = ModelObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        attributes=[],
+    )
+
+    # Attempt to remove any attribute and verify None is returned.
+    result = app_interface.remove_attribute('anything')
+    assert result is None
+
+# ** test: app_interface_set_attribute_valid_updates
+def test_app_interface_set_attribute_valid_updates(app_interface: AppInterface) -> None:
+    '''
+    Test that set_attribute successfully updates supported attributes and validates the model.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Update multiple supported attributes.
+    app_interface.set_attribute('name', 'Updated App')
+    app_interface.set_attribute('description', 'Updated description')
+    app_interface.set_attribute('logger_id', 'updated_logger')
+    app_interface.set_attribute('feature_flag', 'updated_feature')
+    app_interface.set_attribute('data_flag', 'updated_data')
+
+    # Assert that the attributes were updated.
+    assert app_interface.name == 'Updated App'
+    assert app_interface.description == 'Updated description'
+    assert app_interface.logger_id == 'updated_logger'
+    assert app_interface.feature_flag == 'updated_feature'
+    assert app_interface.data_flag == 'updated_data'
+
+
+# ** test: app_interface_set_attribute_invalid_name
+def test_app_interface_set_attribute_invalid_name(app_interface: AppInterface) -> None:
+    '''
+    Test that set_attribute rejects an unsupported attribute name.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Attempt to update an unsupported attribute and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface.set_attribute('invalid_attribute', 'value')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    assert exc_info.value.kwargs.get('attribute') == 'invalid_attribute'
+
+
+# ** test: app_interface_set_attribute_invalid_module_path
+def test_app_interface_set_attribute_invalid_module_path(app_interface: AppInterface) -> None:
+    '''
+    Test that set_attribute enforces non-empty string for module_path.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Attempt to set an empty module_path and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface.set_attribute('module_path', '')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    assert exc_info.value.kwargs.get('attribute') == 'module_path'
+
+
+# ** test: app_interface_set_attribute_invalid_class_name
+def test_app_interface_set_attribute_invalid_class_name(app_interface: AppInterface) -> None:
+    '''
+    Test that set_attribute enforces non-empty string for class_name.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Attempt to set an empty class_name and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface.set_attribute('class_name', '   ')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    assert exc_info.value.kwargs.get('attribute') == 'class_name'
+
+
+# ** test: app_interface_set_dependency_updates_existing_and_merges_parameters
+def test_app_interface_set_dependency_updates_existing_and_merges_parameters(
+    app_interface: AppInterface,
+) -> None:
+    '''
+    Test that set_dependency updates an existing dependency and merges parameters,
+    removing keys whose values are None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing parameters on the dependency.
+    dependency = app_interface.get_attribute('test_attribute')
+    dependency.parameters = {
+        'keep': 'original',
+        'override': 'old',
+        'remove': 'value',
+    }
+
+    # Perform an update with new type information and parameter overrides.
+    app_interface.set_dependency(
+        attribute_id='test_attribute',
+        module_path='updated.module',
+        class_name='UpdatedClass',
         parameters={
-            'new_param1': 'new_value1',
-            'new_param2': 'new_value2',
+            'override': 'new',
+            'remove': None,
+            'add': 'added',
         },
     )
 
-    # Get the new attribute.
-    new_attribute = app_interface.get_attribute('new_attribute')
+    # Reload the dependency and assert type fields were updated.
+    updated = app_interface.get_attribute('test_attribute')
+    assert updated.module_path == 'updated.module'
+    assert updated.class_name == 'UpdatedClass'
 
-    # Assert the new attribute is valid.
-    assert new_attribute is not None
-    assert new_attribute.module_path == 'new_module_path'
-    assert new_attribute.class_name == 'NewClassName'
-    assert new_attribute.attribute_id == 'new_attribute'
-    assert new_attribute.parameters
-    assert new_attribute.parameters['new_param1'] == 'new_value1'
-    assert new_attribute.parameters['new_param2'] == 'new_value2'
+    # Existing parameters should be merged, with None-valued keys removed.
+    assert updated.parameters == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
 
-# ** test: app_interface_set_attribute_valid
-def test_app_interface_set_attribute_valid(app_interface: AppInterface):
+
+# ** test: app_interface_set_dependency_clears_parameters_when_none
+def test_app_interface_set_dependency_clears_parameters_when_none(
+    app_interface: AppInterface,
+) -> None:
     '''
-    Test that set_attribute successfully updates supported scalar attributes and validates the model.
-    '''
+    Test that set_dependency clears parameters when parameters is None.
 
-    # Update the name attribute.
-    app_interface.set_attribute('name', 'Updated App Name')
-    assert app_interface.name == 'Updated App Name'
-
-    # Update the description attribute.
-    app_interface.set_attribute('description', 'Updated description')
-    assert app_interface.description == 'Updated description'
-
-    # Update logger_id and flags.
-    app_interface.set_attribute('logger_id', 'custom_logger')
-    app_interface.set_attribute('feature_flag', 'custom_feature')
-    app_interface.set_attribute('data_flag', 'custom_data')
-
-    assert app_interface.logger_id == 'custom_logger'
-    assert app_interface.feature_flag == 'custom_feature'
-    assert app_interface.data_flag == 'custom_data'
-
-# ** test: app_interface_set_attribute_invalid_name
-def test_app_interface_set_attribute_invalid_name(app_interface: AppInterface):
-    '''
-    Test that set_attribute rejects unsupported attribute names.
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
     '''
 
-    from ...assets import TiferetError
+    # Seed parameters on the dependency.
+    dependency = app_interface.get_attribute('test_attribute')
+    dependency.parameters = {
+        'existing': 'value',
+    }
 
-    with pytest.raises(TiferetError) as excinfo:
-        app_interface.set_attribute('invalid_attr', 'value')
+    # Call set_dependency with parameters=None.
+    app_interface.set_dependency(
+        attribute_id='test_attribute',
+        module_path='cleared.module',
+        class_name='ClearedClass',
+        parameters=None,
+    )
 
-    error = excinfo.value
-    assert error.error_code == const.INVALID_MODEL_ATTRIBUTE_ID
-    assert error.kwargs.get('attribute') == 'invalid_attr'
+    # Parameters should be cleared while type fields are updated.
+    updated = app_interface.get_attribute('test_attribute')
+    assert updated.module_path == 'cleared.module'
+    assert updated.class_name == 'ClearedClass'
+    assert updated.parameters == {}
 
-# ** test: app_interface_set_attribute_empty_module_or_class
-def test_app_interface_set_attribute_empty_module_or_class(app_interface: AppInterface):
+
+# ** test: app_interface_set_dependency_creates_new
+def test_app_interface_set_dependency_creates_new(app_interface: AppInterface) -> None:
     '''
-    Test that set_attribute rejects empty values for module_path and class_name.
+    Test that set_dependency creates a new dependency when none exists.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
     '''
 
-    from ...assets import TiferetError
+    # Ensure that no dependency exists with the new attribute_id.
+    assert app_interface.get_attribute('new_attribute') is None
 
-    # Empty module_path.
-    with pytest.raises(TiferetError) as excinfo_module:
-        app_interface.set_attribute('module_path', ' ')
+    # Create a new dependency via set_dependency.
+    app_interface.set_dependency(
+        attribute_id='new_attribute',
+        module_path='new.module',
+        class_name='NewClass',
+        parameters={
+            'param': 'value',
+        },
+    )
 
-    assert excinfo_module.value.error_code == const.INVALID_APP_INTERFACE_TYPE_ID
+    # Verify that the dependency was created with the correct values.
+    new_attr = app_interface.get_attribute('new_attribute')
+    assert new_attr is not None
+    assert new_attr.module_path == 'new.module'
+    assert new_attr.class_name == 'NewClass'
+    assert new_attr.parameters == {'param': 'value'}
 
-    # Empty class_name.
-    with pytest.raises(TiferetError) as excinfo_class:
-        app_interface.set_attribute('class_name', '')
 
-    assert excinfo_class.value.error_code == const.INVALID_APP_INTERFACE_TYPE_ID
+# ** test: app_interface_set_attribute_uses_validate
+def test_app_interface_set_attribute_uses_validate(app_interface: AppInterface, monkeypatch) -> None:
+    '''
+    Test that set_attribute calls validate after updating the attribute.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: Any
+    '''
+
+    called = {'value': False}
+
+    def fake_validate() -> None:
+        called['value'] = True
+
+    # Patch validate to track calls.
+    monkeypatch.setattr(app_interface, 'validate', fake_validate)
+
+    # Perform an update.
+    app_interface.set_attribute('name', 'Validated App')
+
+    # Ensure validate was called.
+    assert called['value'] is True
+
+# ** test: app_interface_set_constants_clears_when_none
+def test_app_interface_set_constants_clears_when_none(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants clears all constants when called with None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'existing': 'value',
+        'another': 'value',
+    }
+
+    # Call set_constants with None to clear all constants.
+    app_interface.set_constants(None)
+
+    # All constants should be cleared.
+    assert app_interface.constants == {}
+
+# ** test: app_interface_set_constants_merges_and_overrides
+def test_app_interface_set_constants_merges_and_overrides(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants merges new constants and overrides existing keys.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'keep': 'original',
+        'override': 'old',
+    }
+
+    # Merge new constants, overriding existing keys and adding new ones.
+    app_interface.set_constants(
+        {
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Existing keys should be preserved or overridden as appropriate.
+    assert app_interface.constants == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
+
+# ** test: app_interface_set_constants_removes_none_valued_keys
+def test_app_interface_set_constants_removes_none_valued_keys(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants removes keys whose new value is None.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'keep': 'value',
+        'remove': 'value',
+    }
+
+    # Provide an update that sets one key to None.
+    app_interface.set_constants(
+        {
+            'remove': None,
+        },
+    )
+
+    # The key set to None should be removed, and others preserved.
+    assert app_interface.constants == {
+        'keep': 'value',
+    }
+
+# ** test: app_interface_set_constants_mixed_operations
+def test_app_interface_set_constants_mixed_operations(app_interface: AppInterface) -> None:
+    '''
+    Test that set_constants supports mixed operations of clearing, overriding,
+    adding, and preserving keys in a single call.
+
+    :param app_interface: The app interface to test.
+    :type app_interface: AppInterface
+    '''
+
+    # Seed existing constants on the interface.
+    app_interface.constants = {
+        'remove': 'value',
+        'override': 'old',
+        'preserve': 'present',
+    }
+
+    # Perform a mixed update.
+    app_interface.set_constants(
+        {
+            'remove': None,
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Verify mixed behavior across keys.
+    assert app_interface.constants == {
+        'override': 'new',
+        'preserve': 'present',
+        'add': 'added',
+    }

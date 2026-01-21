@@ -56,6 +56,7 @@ features:
 interfaces:
   test_calc:
     const:
+      feature_config_file: tiferet/configs/tests/test_calc.yml
       error_config_file: tiferet/configs/tests/test_calc.yml
       container_config_file: tiferet/configs/tests/test_calc.yml
       feature_config_file: tiferet/configs/tests/test_calc.yml

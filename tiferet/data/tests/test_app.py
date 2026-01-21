@@ -16,6 +16,7 @@ from ..app import (
     AppInterface,
     AppAttribute,
 )
+from ...models import ModelObject
 
 # *** fixtures
 
@@ -50,6 +51,41 @@ def app_settings_config_data() -> AppInterfaceConfigData:
         constants=dict(
             test_const='test_const_value',
         )
+    )
+
+# ** fixture: sample_app_interface
+@pytest.fixture
+def sample_app_interface() -> AppInterface:
+    '''
+    Fixture to provide a sample AppInterface model for round-trip testing.
+
+    :return: A sample AppInterface instance.
+    :rtype: AppInterface
+    '''
+
+    return ModelObject.new(
+        AppInterface,
+        id='test.interface',
+        name='Test Interface',
+        description='The test app interface.',
+        module_path=DEFAULT_MODULE_PATH,
+        class_name=DEFAULT_CLASS_NAME,
+        feature_flag='test_feature',
+        data_flag='test_data',
+        attributes=[
+            ModelObject.new(
+                AppAttribute,
+                attribute_id='test_attribute',
+                module_path='test_module_path',
+                class_name='test_class_name',
+                parameters={
+                    'test_param': 'test_value',
+                },
+            ),
+        ],
+        constants={
+            'TEST_CONST': 'test_const_value',
+        },
     )
 
 # *** tests
@@ -96,45 +132,28 @@ def test_app_settings_yaml_data_map(app_settings_config_data: AppInterfaceConfig
     assert app_settings.constants
     assert app_settings.constants['test_const'] == 'test_const_value'
 
-
-# ** test: app_interface_config_data_from_model_round_trip
-
-def test_app_interface_config_data_from_model_round_trip(app_settings_config_data: AppInterfaceConfigData):
+# ** test: app_interface_config_data_round_trip
+def test_app_interface_config_data_round_trip(sample_app_interface: AppInterface):
     '''
-    Ensure AppInterfaceConfigData.from_model produces a data object that
-    round-trips back to an equivalent AppInterface instance.
+    Test round-trip mapping: model → data → model.
     '''
 
-    # Start from data -> model
-    original_interface = app_settings_config_data.map()
+    data_obj = AppInterfaceConfigData.from_model(sample_app_interface)
+    round_tripped = data_obj.map()
 
-    # Convert model back to data
-    data_obj = AppInterfaceConfigData.from_model(original_interface)
+    # Core fields
+    assert round_tripped.id == sample_app_interface.id
+    assert round_tripped.name == sample_app_interface.name
+    assert round_tripped.module_path == sample_app_interface.module_path
+    assert round_tripped.class_name == sample_app_interface.class_name
 
-    assert isinstance(data_obj, AppInterfaceConfigData)
-
-    # Convert data back to model again
-    round_tripped_interface = data_obj.map()
-
-    # Compare key fields
-    assert round_tripped_interface.id == original_interface.id
-    assert round_tripped_interface.name == original_interface.name
-    assert round_tripped_interface.feature_flag == original_interface.feature_flag
-    assert round_tripped_interface.data_flag == original_interface.data_flag
-    assert round_tripped_interface.module_path == original_interface.module_path
-    assert round_tripped_interface.class_name == original_interface.class_name
-
-    # Attributes should match by id and core fields
-    assert len(round_tripped_interface.attributes) == len(original_interface.attributes)
-    orig_attrs = {a.attribute_id: a for a in original_interface.attributes}
-    rt_attrs = {a.attribute_id: a for a in round_tripped_interface.attributes}
-    assert orig_attrs.keys() == rt_attrs.keys()
-
-    for attr_id, orig_attr in orig_attrs.items():
-        rt_attr = rt_attrs[attr_id]
+    # Attributes
+    assert len(round_tripped.attributes) == len(sample_app_interface.attributes)
+    for orig_attr, rt_attr in zip(sample_app_interface.attributes, round_tripped.attributes):
+        assert rt_attr.attribute_id == orig_attr.attribute_id
         assert rt_attr.module_path == orig_attr.module_path
         assert rt_attr.class_name == orig_attr.class_name
         assert rt_attr.parameters == orig_attr.parameters
 
-    # Constants should also match
-    assert round_tripped_interface.constants == original_interface.constants
+    # Constants
+    assert round_tripped.constants == sample_app_interface.constants

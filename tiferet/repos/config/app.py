@@ -3,28 +3,25 @@
 # *** imports
 
 # ** core
-from typing import List, Dict
+from typing import List
 
 # ** app
-from ...models import AppInterface
-from ...contracts import AppService
+from ...contracts import (
+    AppInterfaceContract,
+    AppService,
+)
 from ...data import (
-    DataObject, 
+    DataObject,
     AppInterfaceConfigData,
-    AppAttributeConfigData
 )
 from .settings import ConfigurationFileRepository
 
-# *** repositories
+# *** proxies
 
-# ** repository: app_configuration_repository
+# ** proxy: app_configuration_repository
 class AppConfigurationRepository(AppService, ConfigurationFileRepository):
     '''
     The app configuration repository.
-
-    This repository provides a service-level abstraction over app interface
-    configurations stored in a YAML configuration file, mirroring the
-    FeatureConfigurationRepository and ErrorConfigurationRepository patterns.
     '''
 
     # * attribute: app_config_file
@@ -34,11 +31,11 @@ class AppConfigurationRepository(AppService, ConfigurationFileRepository):
     encoding: str
 
     # * method: init
-    def __init__(self, app_config_file: str, encoding: str = 'utf-8'):
+    def __init__(self, app_config_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the app configuration repository.
 
-        :param app_config_file: The app configuration file.
+        :param app_config_file: The app configuration file path.
         :type app_config_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
@@ -51,45 +48,57 @@ class AppConfigurationRepository(AppService, ConfigurationFileRepository):
     # * method: exists
     def exists(self, id: str) -> bool:
         '''
-        Check if an app interface exists by its identifier.
+        Check if the app interface exists.
 
         :param id: The app interface identifier.
         :type id: str
-        :return: True if the app interface exists, False otherwise.
+        :return: True if the app interface exists, otherwise False.
         :rtype: bool
         '''
 
-        with self.open_config(self.app_config_file, mode='r') as config_file:
+        # Load the interfaces mapping from the configuration file.
+        with self.open_config(
+            self.app_config_file,
+            mode='r',
+            encoding=self.encoding,
+        ) as config_file:
 
-            interfaces_data: Dict[str, Dict] = config_file.load(
-                start_node=lambda data: data.get('interfaces', {}),
+            # Load all interfaces data.
+            interfaces_data = config_file.load(
+                start_node=lambda data: data.get('interfaces', {})
             )
 
+        # Return whether the interface id exists in the mapping.
         return id in interfaces_data
 
     # * method: get
-    def get(self, id: str) -> AppInterface:
+    def get(self, id: str) -> AppInterfaceContract | None:
         '''
-        Get an app interface by its identifier.
+        Get the app interface by identifier.
 
         :param id: The app interface identifier.
         :type id: str
-        :return: The app interface object, or None if not found.
-        :rtype: AppInterface
+        :return: The app interface instance or None if not found.
+        :rtype: AppInterfaceContract | None
         '''
 
-        # Load the interface data from the configuration file.
-        with self.open_config(self.app_config_file, mode='r') as config_file:
+        # Load the specific interface data from the configuration file.
+        with self.open_config(
+            self.app_config_file,
+            mode='r',
+            encoding=self.encoding,
+        ) as config_file:
 
-            interface_data: Dict | None = config_file.load(
-                start_node=lambda data: data.get('interfaces', {}).get(id, None),
+            # Load the app interface node.
+            interface_data = config_file.load(
+                start_node=lambda data: data.get('interfaces', {}).get(id)
             )
 
         # If no data is found, return None.
         if not interface_data:
             return None
 
-        # Map the interface data to the AppInterface model and return it.
+        # Map the data to an AppInterfaceContract and return it.
         return DataObject.from_data(
             AppInterfaceConfigData,
             id=id,
@@ -97,22 +106,27 @@ class AppConfigurationRepository(AppService, ConfigurationFileRepository):
         ).map()
 
     # * method: list
-    def list(self) -> List[AppInterface]:
+    def list(self) -> List[AppInterfaceContract]:
         '''
         List all app interfaces.
 
-        :return: The list of app interfaces.
-        :rtype: List[AppInterface]
+        :return: A list of app interfaces.
+        :rtype: List[AppInterfaceContract]
         '''
 
         # Load all interfaces data from the configuration file.
-        with self.open_config(self.app_config_file, mode='r') as config_file:
+        with self.open_config(
+            self.app_config_file,
+            mode='r',
+            encoding=self.encoding,
+        ) as config_file:
 
-            interfaces_data: Dict[str, Dict] = config_file.load(
-                start_node=lambda data: data.get('interfaces', {}),
+            # Load the interfaces mapping.
+            interfaces_data = config_file.load(
+                start_node=lambda data: data.get('interfaces', {})
             )
 
-        # Map each interface data entry to an AppInterface model.
+        # Map each interface entry to an AppInterfaceContract.
         return [
             DataObject.from_data(
                 AppInterfaceConfigData,
@@ -123,49 +137,81 @@ class AppConfigurationRepository(AppService, ConfigurationFileRepository):
         ]
 
     # * method: save
-    def save(self, interface: AppInterface) -> None:
+    def save(self, interface: AppInterfaceContract) -> None:
         '''
-        Save an app interface.
+        Save the app interface.
 
         :param interface: The app interface to save.
-        :type interface: AppInterface
+        :type interface: AppInterfaceContract
+        :return: None
+        :rtype: None
         '''
 
-        # Create updated interface data from the model.
-        interface_data = AppInterfaceConfigData.from_model(
-            interface
-        )
+        # Convert the app interface model to configuration data.
+        interface_data = AppInterfaceConfigData.from_model(interface)
 
-        # Persist the interface data under its id.
-        with self.open_config(self.app_config_file, mode='w') as config_file:
+        # Load the existing interfaces mapping from the configuration file.
+        with self.open_config(
+            self.app_config_file,
+            mode='r',
+            encoding=self.encoding,
+        ) as config_file:
 
+            # Load all interfaces data.
+            interfaces_data = config_file.load(
+                start_node=lambda data: data.get('interfaces', {})
+            ) or {}
+
+        # Update or insert the interface entry.
+        interfaces_data[interface.id] = interface_data.to_primitive(self.default_role)
+
+        # Persist the updated interfaces mapping under the interfaces root.
+        with self.open_config(
+            self.app_config_file,
+            mode='w',
+            encoding=self.encoding,
+        ) as config_file:
+
+            # Save the updated interfaces data back to the configuration file.
             config_file.save(
-                data=interface_data.to_primitive(self.default_role),
-                data_path=f'interfaces.{interface.id}',
+                data=interfaces_data,
+                data_path='interfaces',
             )
 
     # * method: delete
     def delete(self, id: str) -> None:
         '''
-        Delete an app interface.
+        Delete the app interface.
 
         :param id: The app interface identifier.
         :type id: str
+        :return: None
+        :rtype: None
         '''
 
-        # Load the current interfaces data from the configuration file.
-        with self.open_config(self.app_config_file, mode='r') as config_file:
+        # Load the interfaces mapping from the configuration file.
+        with self.open_config(
+            self.app_config_file,
+            mode='r',
+            encoding=self.encoding,
+        ) as config_file:
 
-            interfaces_data: Dict[str, Dict] = config_file.load(
-                start_node=lambda data: data.get('interfaces', {}),
+            # Load all interfaces data.
+            interfaces_data = config_file.load(
+                start_node=lambda data: data.get('interfaces', {})
             )
 
-        # Pop the interface if present; this is effectively idempotent.
+        # Remove the interface entry if it exists (idempotent).
         interfaces_data.pop(id, None)
 
-        # Save the updated interfaces data back to the configuration file.
-        with self.open_config(self.app_config_file, mode='w') as config_file:
+        # Write the updated interfaces mapping back to the configuration file.
+        with self.open_config(
+            self.app_config_file,
+            mode='w',
+            encoding=self.encoding,
+        ) as config_file:
 
+            # Save the updated interfaces data under the interfaces root.
             config_file.save(
                 data=interfaces_data,
                 data_path='interfaces',

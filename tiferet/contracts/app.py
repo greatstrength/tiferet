@@ -130,34 +130,35 @@ class AppRepository(Repository):
 # ** interface: app_service
 class AppService(Service):
     '''
-    App service interface that mirrors AppRepository but with shorter method
-    names, providing a service-level abstraction for managing app interfaces.
+    Service interface for managing app interfaces using a repository-style API.
     '''
 
     # * method: exists
     @abstractmethod
     def exists(self, id: str) -> bool:
         '''
-        Check if the app interface exists.
+        Check if an app interface exists by ID.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The app interface identifier.
         :type id: str
-        :return: True if the app interface exists, False otherwise.
+        :return: True if the app interface exists, otherwise False.
         :rtype: bool
         '''
+        # Not implemented.
         raise NotImplementedError('exists method is required for AppService.')
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> AppInterface:
+    def get(self, id: str) -> AppInterface | None:
         '''
-        Get the app interface by its unique identifier.
+        Retrieve an app interface by ID.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The app interface identifier.
         :type id: str
-        :return: The app interface, or None if not found.
-        :rtype: AppInterface
+        :return: The app interface if found, otherwise None.
+        :rtype: AppInterface | None
         '''
+        # Not implemented.
         raise NotImplementedError('get method is required for AppService.')
 
     # * method: list
@@ -169,27 +170,33 @@ class AppService(Service):
         :return: A list of app interfaces.
         :rtype: List[AppInterface]
         '''
+        # Not implemented.
         raise NotImplementedError('list method is required for AppService.')
 
     # * method: save
     @abstractmethod
     def save(self, interface: AppInterface) -> None:
         '''
-        Save the app interface settings.
+        Save or update an app interface.
 
         :param interface: The app interface to save.
         :type interface: AppInterface
+        :return: None
+        :rtype: None
         '''
+        # Not implemented.
         raise NotImplementedError('save method is required for AppService.')
 
     # * method: delete
     @abstractmethod
     def delete(self, id: str) -> None:
         '''
-        Delete the app interface settings by its unique identifier.
+        Delete an app interface by ID. This operation should be idempotent.
 
-        :param id: The unique identifier for the app interface to delete.
+        :param id: The app interface identifier.
         :type id: str
+        :return: None
+        :rtype: None
         '''
+        # Not implemented.
         raise NotImplementedError('delete method is required for AppService.')
-

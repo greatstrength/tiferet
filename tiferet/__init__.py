@@ -45,9 +45,10 @@ try:
         CsvDict,
         CsvDictLoaderMiddleware
     )
-except:
+except Exception as e:
+    print(f"Warning: Failed to import Tiferet core modules: {e}")
     pass
 
 # *** version
 
-__version__ = '1.5.0'
+__version__ = '1.7.0'

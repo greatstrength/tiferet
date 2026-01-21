@@ -65,6 +65,7 @@ class FeatureCommand(ModelObject):
 
     # * attribute: pass_on_error
     pass_on_error = BooleanType(
+        default=False,
         metadata=dict(
             description='Whether to pass on the error if the feature handler fails.'
         )
@@ -73,14 +74,15 @@ class FeatureCommand(ModelObject):
     # * method: set_pass_on_error
     def set_pass_on_error(self, value) -> None:
         '''
-        Set the pass_on_error flag based on a provided value.
+        Set the ``pass_on_error`` flag based on a provided value.
 
-        :param value: The value to convert to a boolean.
+        :param value: The value to interpret as a boolean.
         :type value: Any
         '''
 
-        # If the value is a string literal 'false' (case-insensitive), force
-        # the flag to False. Otherwise, use Python's bool conversion.
+        # Normalize the value, treating the string "false" (case-insensitive)
+        # as an explicit False value and using standard bool conversion
+        # otherwise.
         if isinstance(value, str) and value.lower() == 'false':
             self.pass_on_error = False
         else:
@@ -90,21 +92,21 @@ class FeatureCommand(ModelObject):
     def set_parameters(self, parameters: dict | None = None) -> None:
         '''
         Merge new parameters into the existing parameters, preferring new
-        values and removing keys with a value of ``None``.
+        values and removing keys with ``None`` values.
 
         :param parameters: The new parameters to merge.
         :type parameters: dict | None
         '''
 
+        # Do nothing if no parameters were provided.
         if parameters is None:
-            self.parameters = {}
             return
 
-        # Start from the existing parameters; overlay new values.
+        # Start from the existing parameters and update with new values.
         merged = dict(self.parameters or {})
         merged.update(parameters)
 
-        # Drop keys where the value is None.
+        # Remove any keys whose value is None.
         self.parameters = {k: v for k, v in merged.items() if v is not None}
 
     # * method: set_attribute
@@ -115,10 +117,11 @@ class FeatureCommand(ModelObject):
 
         :param attribute: The attribute name to set.
         :type attribute: str
-        :param value: The value to set.
+        :param value: The value to apply to the attribute.
         :type value: Any
         '''
 
+        # Delegate to specialized helpers for parameters and pass_on_error.
         if attribute == 'parameters':
             self.set_parameters(value)
         elif attribute == 'pass_on_error':
@@ -238,27 +241,37 @@ class Feature(ModelObject):
         attribute_id: str,
         parameters: dict | None = None,
         data_key: str | None = None,
-        pass_on_error: bool | None = None,
+        pass_on_error: bool = False,
         position: int | None = None,
     ) -> FeatureCommand:
-        '''Adds a service command to the feature.
+        '''
+        Add a feature command using raw attributes.
 
-        :param name: The name of the feature command.
+        :param name: Command name.
         :type name: str
-        :param attribute_id: The container attribute ID for the feature command.
+        :param attribute_id: Container attribute ID.
         :type attribute_id: str
-        :param parameters: Optional custom parameters for the feature command.
+        :param parameters: Optional parameters dictionary.
         :type parameters: dict | None
-        :param data_key: Optional data key to store the command result under.
+        :param data_key: Optional result data key.
         :type data_key: str | None
-        :param pass_on_error: Whether to pass on errors from the command.
-        :type pass_on_error: bool | None
-        :param position: The position to add the handler at. If ``None``, the
-            command is appended.
+        :param pass_on_error: Whether to pass on errors from this command.
+        :type pass_on_error: bool
+        :param position: Insertion position (None to append).
         :type position: int | None
-        :return: The created feature command.
+        :return: Created FeatureCommand instance.
         :rtype: FeatureCommand
         '''
+
+        # Create the feature command from raw attributes.
+        command = ModelObject.new(
+            FeatureCommand,
+            name=name,
+            attribute_id=attribute_id,
+            parameters=parameters or {},
+            data_key=data_key,
+            pass_on_error=pass_on_error,
+        )
 
         # Construct the feature command from raw attributes.
         command = ModelObject.new(
@@ -278,38 +291,20 @@ class Feature(ModelObject):
 
         return command
 
-    # * method: rename
-    def rename(self, name: str) -> None:
-        '''Rename the feature.
-
-        :param name: The new name for the feature.
-        :type name: str
-        '''
-
-        self.name = name
-
-    # * method: set_description
-    def set_description(self, description: str | None) -> None:
-        '''Update the feature description.
-
-        :param description: The new description for the feature.
-        :type description: str | None
-        '''
-
-        self.description = description
-
     # * method: get_command
     def get_command(self, position: int) -> FeatureCommand | None:
         '''
         Get the feature command at the given position, or ``None`` if the
-        index is out of range.
+        index is out of range or invalid.
 
-        :param position: The index of the feature command in the commands list.
+        :param position: The index of the command to retrieve.
         :type position: int
-        :return: The feature command at the position or ``None``.
+        :return: The FeatureCommand at the position, or None.
         :rtype: FeatureCommand | None
         '''
 
+        # Attempt to retrieve the command at the specified index, returning
+        # None if the index is out of range or invalid.
         try:
             return self.commands[position]
         except (IndexError, TypeError):
@@ -319,7 +314,7 @@ class Feature(ModelObject):
     def remove_command(self, position: int) -> FeatureCommand | None:
         '''
         Remove and return the feature command at the given position, or
-        return ``None`` if the index is out of range.
+        return ``None`` if the index is out of range or invalid.
 
         :param position: The index of the feature command to remove.
         :type position: int
@@ -327,36 +322,68 @@ class Feature(ModelObject):
         :rtype: FeatureCommand | None
         '''
 
+        # Validate the position argument, ensuring it is a non-negative
+        # integer index.
+        if not isinstance(position, int) or position < 0:
+            return None
+
+        # Attempt to remove and return the command at the specified index,
+        # returning None if the index is out of range.
         try:
             return self.commands.pop(position)
-        except (IndexError, TypeError):
+        except IndexError:
             return None
 
     # * method: reorder_command
     def reorder_command(self, current_position: int, new_position: int) -> FeatureCommand | None:
         '''
         Move a feature command from its current position to a new position
-        within the commands list, shifting other commands as needed.
+        within the ``commands`` list.
 
-        :param current_position: The current index of the feature command.
+        :param current_position: Current index of the command.
         :type current_position: int
-        :param new_position: The desired index for the feature command.
+        :param new_position: Desired new index.
         :type new_position: int
-        :return: The moved feature command, or ``None`` if the current
-            position is out of range.
+        :return: Moved command or ``None`` if ``current_position`` is invalid.
         :rtype: FeatureCommand | None
         '''
 
+        # Attempt to remove the command at the current position, returning
+        # None if the index is invalid.
         try:
             command = self.commands.pop(current_position)
         except (IndexError, TypeError):
             return None
 
-        # Clamp the new position to the valid range [0, len(self.commands)].
+        # Clamp the new position index to the valid range.
         if new_position < 0:
             new_position = 0
         if new_position > len(self.commands):
             new_position = len(self.commands)
 
+        # Insert the command at the clamped position and return it.
         self.commands.insert(new_position, command)
+
         return command
+
+    # * method: rename
+    def rename(self, name: str) -> None:
+        '''
+        Update the display name of the feature.
+
+        :param name: The new name.
+        :type name: str
+        '''
+
+        self.name = name
+
+    # * method: set_description
+    def set_description(self, description: str | None) -> None:
+        '''
+        Update or clear the feature description.
+
+        :param description: The new description, or None to clear.
+        :type description: str | None
+        '''
+
+        self.description = description

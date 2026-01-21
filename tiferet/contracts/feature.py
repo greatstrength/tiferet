@@ -155,6 +155,9 @@ class FeatureRepository(Repository):
 class FeatureService(Service):
     '''
     Feature service contract.
+
+    This service provides repository-style operations for features,
+    mirroring the FeatureRepository contract.
     '''
 
     # * method: exists
@@ -179,7 +182,7 @@ class FeatureService(Service):
         :param id: The feature id.
         :type id: str
         :return: The feature object.
-        :rtype: Feature
+        :rtype: Any
         '''
         raise NotImplementedError('The get method must be implemented by the feature service.')
 
@@ -206,7 +209,7 @@ class FeatureService(Service):
         :type feature: Feature
         '''
         raise NotImplementedError('The save method must be implemented by the feature service.')
-
+    
     # * method: delete
     @abstractmethod
     def delete(self, id: str) -> None:
@@ -217,16 +220,3 @@ class FeatureService(Service):
         :type id: str
         '''
         raise NotImplementedError('The delete method must be implemented by the feature service.')
-
-    # * method: get_feature
-    @abstractmethod
-    def get_feature(self, feature_id: str) -> Feature:
-        '''
-        Get a feature by its ID.
-
-        :param feature_id: The ID of the feature to retrieve.
-        :type feature_id: str
-        :return: The feature object.
-        :rtype: Feature
-        '''
-        raise NotImplementedError('The get_feature method must be implemented by the feature service.')
