@@ -181,6 +181,24 @@ INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 # ** constant: invalid_app_interface_type_id
 INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
 
+# ** constant: sqlite_conn_already_open_id
+SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
+
+# ** constant: sqlite_invalid_mode_id
+SQLITE_INVALID_MODE_ID = 'SQLITE_INVALID_MODE'
+
+# ** constant: sqlite_file_not_found_or_readonly_id
+SQLITE_FILE_NOT_FOUND_OR_READONLY_ID = 'SQLITE_FILE_NOT_FOUND_OR_READONLY'
+
+# ** constant: sqlite_conn_failed_id
+SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+
+# ** constant: sqlite_backup_failed_id
+SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
+
+# ** constant: SQLITE_CONN_NOT_INITIALIZED_id
+SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -507,6 +525,60 @@ DEFAULT_ERRORS = {
                 'text': '{attribute} must be a non-empty string.',
             }
         ],
+    },
+
+    # * error: SQLITE_CONN_ALREADY_OPEN
+    SQLITE_CONN_ALREADY_OPEN_ID: {
+        'id': SQLITE_CONN_ALREADY_OPEN_ID,
+        'name': 'SQLite Connection Already Open',
+        'message': [
+            {'lang': 'en_US', 'text': 'Connection already open for path: {path}.'}
+        ]
+    },
+
+    # * error: SQLITE_INVALID_MODE
+    SQLITE_INVALID_MODE_ID: {
+        'id': SQLITE_INVALID_MODE_ID,
+        'name': 'Invalid SQLite Mode',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid SQLite mode: {mode}. Supported: ro, rw, rwc (or None for default auto-create).'}
+        ]
+    },
+
+    # * error: SQLITE_FILE_NOT_FOUND_OR_READONLY
+    SQLITE_FILE_NOT_FOUND_OR_READONLY_ID: {
+        'id': SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
+        'name': 'SQLite File Not Found or Read-Only',
+        'message': [
+            {'lang': 'en_US', 'text': 'Unable to open SQLite database at {path}: {original_error}. Check path exists and is writable (use mode=rwc to create).'}
+        ]
+    },
+
+    # * error: SQLITE_CONN_FAILED
+    SQLITE_CONN_FAILED_ID: {
+        'id': SQLITE_CONN_FAILED_ID,
+        'name': 'SQLite Connection Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to connect to SQLite database at {path}: {original_error}'}
+        ]
+    },
+
+    # * error: SQLITE_BACKUP_FAILED
+    SQLITE_BACKUP_FAILED_ID: {
+        'id': SQLITE_BACKUP_FAILED_ID,
+        'name': 'SQLite Backup Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Backup to {target_path} failed: {original_error}'}
+        ]
+    },
+    
+    # * error: SQLITE_CONN_NOT_INITIALIZED
+    SQLITE_CONN_NOT_INITIALIZED_ID: {
+        'id': SQLITE_CONN_NOT_INITIALIZED_ID,
+        'name': 'SQLite Connection Not Initialized',
+        'message': [
+            {'lang': 'en_US', 'text': 'SQLite connection not initialized. Must be used within a "with" block.'}
+        ]
     },
     
     # * error: INVALID_DEPENDENCY_ERROR
