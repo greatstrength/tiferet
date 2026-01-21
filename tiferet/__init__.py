@@ -25,7 +25,8 @@ try:
     )
     from .contracts import (
         ModelContract,
-        Repository
+        Repository,
+        Service,
     )
     from .data import DataObject
     from .proxies import (
