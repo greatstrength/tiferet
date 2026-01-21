@@ -210,16 +210,16 @@ def test_add_app_interface_missing_required_field(mock_app_service: AppService):
     mock_app_service.save.assert_not_called()
 
 # ** test: test_get_app_interface_not_found
-def test_get_app_interface_not_found(app_service, get_app_interface_cmd):
+def test_get_app_interface_not_found(mock_app_service: AppService):
     '''
     Test the GetAppInterface command when the app interface is not found.
     
-    :param get_app_interface_cmd: The GetAppInterface command instance.
-    :type get_app_interface_cmd: GetAppInterface
+    :param mock_app_service: The mock AppService instance.
+    :type mock_app_service: AppService
     '''
 
     # Simulate that the interface is not found.
-    app_service.get.return_value = None  
+    mock_app_service.get.return_value = None  
 
     # Attempt to get an app interface that does not exist.
     with pytest.raises(TiferetError) as exc_info:
@@ -238,8 +238,8 @@ def test_get_app_interface_success(mock_app_service: AppService, app_interface: 
     '''
     Test the GetAppInterface command when the app interface is found.
     
-    :param get_app_interface_cmd: The GetAppInterface command instance.
-    :type get_app_interface_cmd: GetAppInterface
+    :param mock_app_service: The mock AppService instance.
+    :type mock_app_service: AppService
     :param app_interface: The mock AppInterface instance.
     :type app_interface: AppInterface
     '''

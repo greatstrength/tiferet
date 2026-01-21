@@ -190,9 +190,9 @@ def test_app_manager_context_load_app_repo_default():
 def test_app_manager_context_load_app_repo_custom(settings):
     """Test loading a custom app repository with specific settings."""
 
-    ctx = AppManagerContext()
+    ctx = AppManagerContext(settings=settings)
 
-    app_service = ctx.load_app_repo(**settings)
+    app_service = ctx.load_app_repo()
 
     assert app_service
     assert isinstance(app_service, AppService)
@@ -202,13 +202,13 @@ def test_app_manager_context_load_app_repo_custom(settings):
 def test_app_manager_context_load_app_repo_invalid():
     """Test loading an app repository with invalid settings raises the proper error."""
 
-    ctx = AppManagerContext()
+    ctx = AppManagerContext(settings={
+        'app_repo_module_path': 'invalid.module.path',
+        'app_repo_class_name': 'InvalidClassName',
+    })
 
     with pytest.raises(TiferetError) as exc_info:
-        ctx.load_app_repo(
-            app_repo_module_path='invalid.module.path',
-            app_repo_class_name='InvalidClassName',
-        )
+        ctx.load_app_repo()
 
     error = exc_info.value
     assert error.error_code == APP_REPOSITORY_IMPORT_FAILED_ID
