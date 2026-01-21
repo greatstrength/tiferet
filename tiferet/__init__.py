@@ -25,7 +25,8 @@ try:
     )
     from .contracts import (
         ModelContract,
-        Repository
+        Repository,
+        Service,
     )
     from .data import DataObject
     from .proxies import (
@@ -45,9 +46,10 @@ try:
         CsvDict,
         CsvDictLoaderMiddleware
     )
-except:
+except Exception as e:
+    print(f"Warning: Failed to import Tiferet core modules: {e}")
     pass
 
 # *** version
 
-__version__ = '1.7.0'
+__version__ = '1.7.1'
