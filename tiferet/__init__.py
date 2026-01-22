@@ -47,7 +47,7 @@ try:
         CsvDictLoaderMiddleware
     )
 except Exception as e:
-    import sys
+    import os, sys
     # Only print warning if TIFERET_SILENT_IMPORTS is not set to a truthy value
     if not os.getenv('TIFERET_SILENT_IMPORTS'):
         print(f"Warning: Failed to import Tiferet core modules: {e}", file=sys.stderr)
