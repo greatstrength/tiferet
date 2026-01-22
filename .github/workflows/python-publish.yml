@@ -41,7 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event.release.prerelease == false
-
+    env:
+      TIFERET_SILENT_IMPORTS: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
