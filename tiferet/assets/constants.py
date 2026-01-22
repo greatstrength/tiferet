@@ -14,14 +14,6 @@ DEFAULT_ATTRIBUTES = [
             'container_config_file': 'app/configs/container.yml',
         },
     },
-    dict(
-        attribute_id='feature_repo',
-        module_path='tiferet.proxies.yaml.feature',
-        class_name='FeatureYamlProxy',
-        parameters=dict(
-            feature_config_file='app/configs/feature.yml',
-        ),
-    ),
     {
         'attribute_id': 'error_service',
         'module_path': 'tiferet.repos.config.error',
@@ -30,62 +22,62 @@ DEFAULT_ATTRIBUTES = [
             'error_config_file': 'app/configs/error.yml',
         },
     },
-    dict(
-        attribute_id='logging_repo',
-        module_path='tiferet.proxies.yaml.logging',
-        class_name='LoggingYamlProxy',
-        parameters=dict(
-            logging_config_file='app/configs/logging.yml',
-        ),
-    ),
-    dict(
-        attribute_id='feature_service',
-        module_path='tiferet.repos.config.feature',
-        class_name='FeatureConfigurationRepository',
-        parameters=dict(
-            feature_config_file='app/configs/feature.yml',
-        ),
-    ),
-    dict(
-        attribute_id='get_error_cmd',
-        module_path='tiferet.commands.error',
-        class_name='GetError',
-    ),
-    dict(
-        attribute_id='get_feature_cmd',
-        module_path='tiferet.commands.feature',
-        class_name='GetFeature',
-    ),
+    {
+        'attribute_id': 'logging_repo',
+        'module_path': 'tiferet.proxies.yaml.logging',
+        'class_name': 'LoggingYamlProxy',
+        'parameters': {
+            'logging_config_file': 'app/configs/logging.yml',
+        },
+    },
+    {
+        'attribute_id': 'feature_service',
+        'module_path': 'tiferet.repos.config.feature',
+        'class_name': 'FeatureConfigurationRepository',
+        'parameters': {
+            'feature_config_file': 'app/configs/feature.yml',
+        },
+    },
+    {
+        'attribute_id': 'get_error_cmd',
+        'module_path': 'tiferet.commands.error',
+        'class_name': 'GetError',
+    },
+    {
+        'attribute_id': 'get_feature_cmd',
+        'module_path': 'tiferet.commands.feature',
+        'class_name': 'GetFeature',
+    },
     {
         'attribute_id': 'container_list_all_cmd',
         'module_path': 'tiferet.commands.container',
         'class_name': 'ListAllSettings',
     },
-    dict(
-        attribute_id='logging_service',
-        module_path='tiferet.handlers.logging',
-        class_name='LoggingHandler',
-    ),
+    {
+        'attribute_id': 'logging_service',
+        'module_path': 'tiferet.handlers.logging',
+        'class_name': 'LoggingHandler',
+    },
     {
         'attribute_id': 'container',
         'module_path': 'tiferet.contexts.container',
         'class_name': 'ContainerContext',
     },
-    dict(
-        attribute_id='features',
-        module_path='tiferet.contexts.feature',
-        class_name='FeatureContext',
-    ),
+    {
+        'attribute_id': 'features',
+        'module_path': 'tiferet.contexts.feature',
+        'class_name': 'FeatureContext',
+    },
     {
         'attribute_id': 'errors',
         'module_path': 'tiferet.contexts.error',
         'class_name': 'ErrorContext',
     },
-    dict(
-        attribute_id='logging',
-        module_path='tiferet.contexts.logging',
-        class_name='LoggingContext',
-    ),
+    {
+        'attribute_id': 'logging',
+        'module_path': 'tiferet.contexts.logging',
+        'class_name': 'LoggingContext',
+    },
 ]
 
 # *** constants (errors)
@@ -98,6 +90,15 @@ ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 
 # ** constant: error_already_exists_id
 ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
+
+# ** constant: feature_name_required_id
+FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
+
+# ** constant: invalid_feature_attribute_id
+INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
+
+# ** constant: invalid_feature_command_attribute_id
+INVALID_FEATURE_COMMAND_ATTRIBUTE_ID = 'INVALID_FEATURE_COMMAND_ATTRIBUTE'
 
 # ** constant: no_error_messages_id
 NO_ERROR_MESSAGES_ID = 'NO_ERROR_MESSAGES'
@@ -192,6 +193,30 @@ SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
 # ** constant: invalid_flagged_dependency_id
 INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
+# ** constant: invalid_model_attribute_id
+INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
+
+# ** constant: invalid_app_interface_type_id
+INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+
+# ** constant: sqlite_conn_already_open_id
+SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
+
+# ** constant: sqlite_invalid_mode_id
+SQLITE_INVALID_MODE_ID = 'SQLITE_INVALID_MODE'
+
+# ** constant: sqlite_file_not_found_or_readonly_id
+SQLITE_FILE_NOT_FOUND_OR_READONLY_ID = 'SQLITE_FILE_NOT_FOUND_OR_READONLY'
+
+# ** constant: sqlite_conn_failed_id
+SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+
+# ** constant: sqlite_backup_failed_id
+SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
+
+# ** constant: SQLITE_CONN_NOT_INITIALIZED_id
+SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -220,6 +245,36 @@ DEFAULT_ERRORS = {
         'message': [
             {'lang': 'en_US', 'text': 'An error with ID {id} already exists.'}
         ]
+    },
+
+    # * error: FEATURE_NAME_REQUIRED
+    FEATURE_NAME_REQUIRED_ID: {
+        'id': FEATURE_NAME_REQUIRED_ID,
+        'name': 'Feature Name Required',
+        'message': [
+            {'lang': 'en_US', 'text': 'A feature name is required when updating the name attribute.'}
+        ]
+    },
+
+    # * error: INVALID_FEATURE_ATTRIBUTE
+    INVALID_FEATURE_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Attribute',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid feature attribute: {attribute}. Supported attributes are name and description.'}
+        ]
+    },
+
+    # * error: INVALID_FEATURE_COMMAND_ATTRIBUTE
+    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: {
+        'id': INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+        'name': 'Invalid Feature Command Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid feature command attribute: {attribute}. Supported attributes are name, attribute_id, data_key, pass_on_error, and parameters.',
+            }
+        ],
     },
 
     # * error: NO_ERROR_MESSAGES
@@ -514,6 +569,84 @@ DEFAULT_ERRORS = {
         ],
     },
 
+    # * error: INVALID_MODEL_ATTRIBUTE
+    INVALID_MODEL_ATTRIBUTE_ID: {
+        'id': INVALID_MODEL_ATTRIBUTE_ID,
+        'name': 'Invalid Model Attribute',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            }
+        ],
+    },
+
+    # * error: INVALID_APP_INTERFACE_TYPE
+    INVALID_APP_INTERFACE_TYPE_ID: {
+        'id': INVALID_APP_INTERFACE_TYPE_ID,
+        'name': 'Invalid App Interface Type',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': '{attribute} must be a non-empty string.',
+            }
+        ],
+    },
+
+    # * error: SQLITE_CONN_ALREADY_OPEN
+    SQLITE_CONN_ALREADY_OPEN_ID: {
+        'id': SQLITE_CONN_ALREADY_OPEN_ID,
+        'name': 'SQLite Connection Already Open',
+        'message': [
+            {'lang': 'en_US', 'text': 'Connection already open for path: {path}.'}
+        ]
+    },
+
+    # * error: SQLITE_INVALID_MODE
+    SQLITE_INVALID_MODE_ID: {
+        'id': SQLITE_INVALID_MODE_ID,
+        'name': 'Invalid SQLite Mode',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid SQLite mode: {mode}. Supported: ro, rw, rwc (or None for default auto-create).'}
+        ]
+    },
+
+    # * error: SQLITE_FILE_NOT_FOUND_OR_READONLY
+    SQLITE_FILE_NOT_FOUND_OR_READONLY_ID: {
+        'id': SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
+        'name': 'SQLite File Not Found or Read-Only',
+        'message': [
+            {'lang': 'en_US', 'text': 'Unable to open SQLite database at {path}: {original_error}. Check path exists and is writable (use mode=rwc to create).'}
+        ]
+    },
+
+    # * error: SQLITE_CONN_FAILED
+    SQLITE_CONN_FAILED_ID: {
+        'id': SQLITE_CONN_FAILED_ID,
+        'name': 'SQLite Connection Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to connect to SQLite database at {path}: {original_error}'}
+        ]
+    },
+
+    # * error: SQLITE_BACKUP_FAILED
+    SQLITE_BACKUP_FAILED_ID: {
+        'id': SQLITE_BACKUP_FAILED_ID,
+        'name': 'SQLite Backup Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Backup to {target_path} failed: {original_error}'}
+        ]
+    },
+    
+    # * error: SQLITE_CONN_NOT_INITIALIZED
+    SQLITE_CONN_NOT_INITIALIZED_ID: {
+        'id': SQLITE_CONN_NOT_INITIALIZED_ID,
+        'name': 'SQLite Connection Not Initialized',
+        'message': [
+            {'lang': 'en_US', 'text': 'SQLite connection not initialized. Must be used within a "with" block.'}
+        ]
+    },
+    
     # * error: INVALID_DEPENDENCY_ERROR
     'INVALID_DEPENDENCY_ERROR': {
         'id': 'INVALID_DEPENDENCY_ERROR',
