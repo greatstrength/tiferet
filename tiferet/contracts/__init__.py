@@ -45,3 +45,4 @@ from .logging import (
     LoggerContract,
     LoggingRepository
 )
+from .sqlite import SqliteService

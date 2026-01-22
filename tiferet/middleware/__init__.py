@@ -13,3 +13,4 @@ from .csv import (
     CsvDictLoaderMiddleware,
     CsvDictLoaderMiddleware as CsvDict
 )
+from .sqlite import SqliteMiddleware, SqliteMiddleware as Sqlite
