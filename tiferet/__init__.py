@@ -55,4 +55,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '1.7.2'
+__version__ = '1.7.3'
