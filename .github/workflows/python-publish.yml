@@ -41,7 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event.release.prerelease == false
-
+    env:
+      TIFERET_SILENT_IMPORTS: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,11 +61,12 @@ jobs:
         id: get_version
         run: |
           VERSION=$(python -c "from tiferet import __version__; print(__version__)")
-          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Validate version matches release tag
         run: |
           RELEASE_TAG=${{ github.event.release.tag_name }}
+          PACKAGE_VERSION=${{ steps.get_version.outputs.version }}
           if [ "$RELEASE_TAG" != "v$PACKAGE_VERSION" ]; then
             echo "Error: Release tag ($RELEASE_TAG) does not match package version ($PACKAGE_VERSION)"
             exit 1
