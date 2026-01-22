@@ -80,6 +80,12 @@ DEFAULT_ATTRIBUTES = [
     },
 ]
 
+# ** constant: default_app_service_module_path
+DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.config.app'
+
+# ** constant: default_app_service_class_name
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigurationRepository'
+
 # *** constants (errors)
 
 # ** constant: command_parameter_required_id

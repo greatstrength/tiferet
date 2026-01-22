@@ -19,13 +19,18 @@ from ..app import (
     AppManagerContext,
 )
 from ...assets import TiferetError
-from ...assets.constants import DEFAULT_ATTRIBUTES
+from ...assets.constants import (
+    DEFAULT_ATTRIBUTES,
+    DEFAULT_APP_SERVICE_MODULE_PATH,
+    DEFAULT_APP_SERVICE_CLASS_NAME,
+)
 from ...models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
 from ...contracts import AppService
+from ...repos.config.app import AppConfigurationRepository
 
 # *** fixtures
 
@@ -146,11 +151,10 @@ def app_manager_context():
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance using test settings with AppConfigurationRepository.
+    # Return the AppManagerContext instance using test settings with AppConfigurationRepository
+    # and a test-specific configuration file.
     return AppManagerContext(
         dict(
-            app_repo_module_path='tiferet.repos.config.app',
-            app_repo_class_name='AppConfigurationRepository',
             app_repo_params=dict(
                 app_config_file='tiferet/configs/tests/test_calc.yml',
             ),
@@ -158,6 +162,22 @@ def app_manager_context():
     )
 
 # *** tests
+
+# ** test: app_manager_context_load_app_repo_defaults
+def test_app_manager_context_load_app_repo_defaults():
+    """Validate that AppManagerContext defaults to AppConfigurationRepository.
+
+    This ensures that when no custom repository settings are provided, the
+    app repository is loaded using the configuration-backed implementation.
+    """
+
+    # Instantiate the AppManagerContext with default settings.
+    context = AppManagerContext()
+
+    # Load the app repository and assert that the default repository type is used.
+    repo = context.load_app_repo()
+
+    assert isinstance(repo, AppConfigurationRepository)
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context):
