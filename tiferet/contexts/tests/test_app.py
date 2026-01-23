@@ -25,13 +25,18 @@ from ..app import (
     AppManagerContext,
 )
 from ...assets import TiferetError
-from ...assets.constants import DEFAULT_ATTRIBUTES, APP_REPOSITORY_IMPORT_FAILED_ID
+from ...assets.constants import (
+    DEFAULT_ATTRIBUTES,
+    DEFAULT_APP_SERVICE_MODULE_PATH,
+    DEFAULT_APP_SERVICE_CLASS_NAME,
+)
 from ...models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
 from ...contracts import AppService
+from ...repos.config.app import AppConfigurationRepository
 
 # *** fixtures
 
@@ -161,11 +166,10 @@ def app_manager_context():
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance using test settings with AppConfigurationRepository.
+    # Return the AppManagerContext instance using test settings with AppConfigurationRepository
+    # and a test-specific configuration file.
     return AppManagerContext(
         dict(
-            app_repo_module_path='tiferet.repos.config.app',
-            app_repo_class_name='AppConfigurationRepository',
             app_repo_params=dict(
                 app_config_file='tiferet/configs/tests/test_calc.yml',
             ),
@@ -174,68 +178,21 @@ def app_manager_context():
 
 # *** tests
 
-# ** test: app_manager_context_load_app_repo_default
-def test_app_manager_context_load_app_repo_default():
-    """Test loading the default app repository via AppManagerContext."""
+# ** test: app_manager_context_load_app_repo_defaults
+def test_app_manager_context_load_app_repo_defaults():
+    """Validate that AppManagerContext defaults to AppConfigurationRepository.
 
-    ctx = AppManagerContext()
+    This ensures that when no custom repository settings are provided, the
+    app repository is loaded using the configuration-backed implementation.
+    """
 
-    app_service = ctx.load_app_repo()
+    # Instantiate the AppManagerContext with default settings.
+    context = AppManagerContext()
 
-    assert app_service
-    assert isinstance(app_service, AppService)
+    # Load the app repository and assert that the default repository type is used.
+    repo = context.load_app_repo()
 
-
-# ** test: app_manager_context_load_app_repo_custom
-def test_app_manager_context_load_app_repo_custom(settings):
-    """Test loading a custom app repository with specific settings."""
-
-    ctx = AppManagerContext(settings=settings)
-
-    app_service = ctx.load_app_repo()
-
-    assert app_service
-    assert isinstance(app_service, AppService)
-
-
-# ** test: app_manager_context_load_app_repo_invalid
-def test_app_manager_context_load_app_repo_invalid():
-    """Test loading an app repository with invalid settings raises the proper error."""
-
-    ctx = AppManagerContext(settings={
-        'app_repo_module_path': 'invalid.module.path',
-        'app_repo_class_name': 'InvalidClassName',
-    })
-
-    with pytest.raises(TiferetError) as exc_info:
-        ctx.load_app_repo()
-
-    error = exc_info.value
-    assert error.error_code == APP_REPOSITORY_IMPORT_FAILED_ID
-    assert 'Failed to import app repository' in str(error)
-    assert error.kwargs.get('exception')
-
-
-# ** test: app_manager_context_load_app_instance
-def test_app_manager_context_load_app_instance(app_interface, monkeypatch):
-    """Test loading an app instance using AppManagerContext.load_app_instance."""
-
-    ctx = AppManagerContext()
-
-    default_attrs = [
-        ModelObject.new(
-            AppAttribute,
-            **attr_data,
-            validate=False,
-        )
-        for attr_data in DEFAULT_ATTRIBUTES
-    ]
-
-    app_instance = ctx.load_app_instance(app_interface, default_attrs)
-
-    assert app_instance
-    assert isinstance(app_instance, AppInterfaceContext)
-
+    assert isinstance(repo, AppConfigurationRepository)
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context):

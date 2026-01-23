@@ -14,6 +14,8 @@ from ..assets import TiferetError
 from ..assets.constants import (
     DEFAULT_ATTRIBUTES,
     APP_REPOSITORY_IMPORT_FAILED_ID,
+    DEFAULT_APP_SERVICE_MODULE_PATH,
+    DEFAULT_APP_SERVICE_CLASS_NAME,
 )
 from ..models import (
     ModelObject,
@@ -69,11 +71,11 @@ class AppManagerContext(object):
         '''
 
         # Resolve repository module path, class name, and parameters from settings with defaults.
-        app_repo_module_path = self.settings.get('app_repo_module_path', 'tiferet.repos.config.app')
-        app_repo_class_name = self.settings.get('app_repo_class_name', 'AppConfigurationRepository')
-        app_repo_params = self.settings.get('app_repo_params', {
-            'app_config_file': 'app/configs/app.yml'
-        })
+        app_repo_module_path = self.settings.get('app_repo_module_path', DEFAULT_APP_SERVICE_MODULE_PATH)
+        app_repo_class_name = self.settings.get('app_repo_class_name', DEFAULT_APP_SERVICE_CLASS_NAME)
+        app_repo_params = self.settings.get('app_repo_params', dict(
+            app_config_file='app/configs/app.yml'
+        ))
 
         # Import and construct the app repository.
         try:

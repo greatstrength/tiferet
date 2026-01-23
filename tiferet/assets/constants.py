@@ -23,19 +23,19 @@ DEFAULT_ATTRIBUTES = [
         },
     },
     {
-        'attribute_id': 'feature_service',
-        'module_path': 'tiferet.repos.config.feature',
-        'class_name': 'FeatureConfigurationRepository',
-        'parameters': {
-            'feature_config_file': 'app/configs/feature.yml',
-        },
-    },
-    {
         'attribute_id': 'logging_repo',
         'module_path': 'tiferet.proxies.yaml.logging',
         'class_name': 'LoggingYamlProxy',
         'parameters': {
             'logging_config_file': 'app/configs/logging.yml',
+        },
+    },
+    {
+        'attribute_id': 'feature_service',
+        'module_path': 'tiferet.repos.config.feature',
+        'class_name': 'FeatureConfigurationRepository',
+        'parameters': {
+            'feature_config_file': 'app/configs/feature.yml',
         },
     },
     {
@@ -79,6 +79,12 @@ DEFAULT_ATTRIBUTES = [
         'class_name': 'LoggingContext',
     },
 ]
+
+# ** constant: default_app_service_module_path
+DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.config.app'
+
+# ** constant: default_app_service_class_name
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigurationRepository'
 
 # *** constants (errors)
 

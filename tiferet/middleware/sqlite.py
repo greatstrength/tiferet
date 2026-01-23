@@ -21,7 +21,7 @@ from ..contracts import SqliteService
 
 # *** middleware
 
-# * middleware: sqlite_middleware
+# ** middleware: sqlite_middleware
 class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
     '''
     SQLite-specific middleware built on top of FileLoaderMiddleware.

@@ -116,7 +116,7 @@ class SqliteService(Service):
         '''
         Backup the database to the specified target file.
 
-        :param target: The target file path for the backup.
+        :param target_path: The target file path for the backup.
         :type target: str
         :param pages: The number of pages to copy at a time (default is -1 for all pages).
         :type pages: int
