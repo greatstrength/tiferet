@@ -19,6 +19,7 @@ from ...commands.feature import GetFeature
 from ...models import (
     ModelObject,
     Feature,
+    FeatureCommand,
 )
 
 # *** fixtures
@@ -158,16 +159,41 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
     assert result == 'parsed-value'
     assert called['parameter'] == '$env.MY_VAR'
 
-# ** test: feature_context_load_feature_command
-def test_feature_context_load_feature_command(feature_context, test_command):
-    """Test loading a feature command from the FeatureContext."""
+# ** test: feature_context_load_feature_command_with_flags
+def test_feature_context_load_feature_command_with_flags(feature_context, container_context, test_command):
+    """Test loading a feature command that includes flags for dependency resolution."""
+
+    feature_command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='test_command',
+        flags=['flag1', 'flag2'],
+    )
 
     # Load the feature command using the feature context.
-    command = feature_context.load_feature_command('test_command')
-    
-    # Assert that the loaded command is the same as the test command.
+    command = feature_context.load_feature_command(feature_command)
+
+    # Assert that the loaded command is the same as the test command and that
+    # flags were forwarded to the container dependency resolution.
     assert command == test_command
-    assert command.execute(key='value') == {"status": "success", "data": {"key": "value"}}
+    container_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
+
+
+# ** test: feature_context_load_feature_command_without_flags
+def test_feature_context_load_feature_command_without_flags(feature_context, container_context, test_command):
+    """Test loading a feature command when no flags are configured."""
+
+    feature_command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='test_command',
+    )
+
+    command = feature_context.load_feature_command(feature_command)
+
+    assert command == test_command
+    container_context.get_dependency.assert_called_once_with('test_command')
+
 
 # ** test: feature_context_load_feature_command_failed
 def test_feature_context_load_feature_command_failed(feature_context, container_context):
@@ -179,9 +205,16 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
         'Feature command not found in container: non_existent_command',
     )
 
+    feature_command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Missing Command',
+        attribute_id='non_existent_command',
+        flags=['flagX'],
+    )
+
     # Attempt to load a non-existent feature command.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.load_feature_command('non_existent_command')
+        feature_context.load_feature_command(feature_command)
     
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'

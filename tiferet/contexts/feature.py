@@ -18,7 +18,7 @@ from ..commands import (
     ParseParameter
 )
 from ..commands.feature import GetFeature
-from ..models import Feature
+from ..models import Feature, FeatureCommand
 
 # *** contexts
 
@@ -56,19 +56,28 @@ class FeatureContext(object):
         self.get_feature_handler = get_feature_cmd.execute
 
     # * method: load_feature_command
-    def load_feature_command(self, attribute_id: str) -> Command:
+    def load_feature_command(self, feature_command: FeatureCommand) -> Command:
         '''
-        Load a feature command by its attribute ID from the container.
+        Load a feature command from the container using its attribute ID and
+        any configured flags.
 
-        :param attribute_id: The attribute ID of the command to load.
-        :type attribute_id: str
+        :param feature_command: The feature command metadata describing the
+            container attribute and flags.
+        :type feature_command: FeatureCommand
         :return: The command object.
         :rtype: Command
         '''
 
-        # Attempt to retrieve the command from the container.
+        # Resolve the attribute identifier for the command.
+        attribute_id = feature_command.attribute_id
+
+        # Attempt to retrieve the command from the container using the
+        # configured flags, if any.
         try:
-            return self.container.get_dependency(attribute_id)
+            return self.container.get_dependency(
+                attribute_id,
+                *(feature_command.flags or []),
+            )
         
         # If the command is not found, raise an error.
         except Exception as e:
@@ -204,8 +213,9 @@ class FeatureContext(object):
         # Execute the feature by iterating over its configured commands.
         for feature_command in feature.commands:
 
-            # Load the command dependency for this feature command.
-            cmd = self.load_feature_command(feature_command.attribute_id)
+            # Load the command dependency for this feature command, honoring
+            # any configured flags.
+            cmd = self.load_feature_command(feature_command)
 
             # Parse the command parameters.
             params = {
