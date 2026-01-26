@@ -85,8 +85,8 @@ class ContainerContext(object):
         dependencies = {}
         for attr in attributes:
             
-            # Get the dependency type based on the flags.
-            dep_type = attr.get_type(attr, *flags)
+            # Get the dependency type based on the flags only (no extra 'attr' parameter needed).
+            dep_type = attr.get_type(*flags)
 
             # If no type is found, raise an error.
             if not dep_type:
