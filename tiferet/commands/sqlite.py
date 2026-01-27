@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any, Sequence
+from typing import List, Dict, Any, Sequence, Optional, Callable
 import sqlite3
 
 # ** app
@@ -201,5 +201,59 @@ class BulkMutateSql(Command):
             self.raise_error(
                 'APP_ERROR',
                 f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
+
+# ** command: backup_sql
+class BackupSql(Command):
+    '''
+    Perform an online backup of the current SQLite database to a target file.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            sql.backup(target_path, pages=pages, progress=progress)
+            return {"success": True, "message": None}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        target_path: str,
+        pages: int = -1,
+        progress: Optional[Callable[[int, int, int], None]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Backup the database to the specified target path.
+
+        :param target_path: Destination file path for the backup database
+        :param pages: Number of pages to copy per step (-1 = all at once)
+        :param progress: Optional callback(status, remaining, total)
+        :return: {"success": bool, "message": str | None}
+        '''
+        # Validate target_path
+        self.verify_parameter(target_path, 'target_path', 'BackupSql')
+
+        try:
+            with self.sqlite_service as sql:
+                sql.backup(target_path, pages=pages, progress=progress)
+                
+                return {
+                    "success": True,
+                    "message": None
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                const.SQLITE_BACKUP_FAILED_ID,
+                f'Backup to {target_path} failed: {str(e)}',
+                target_path=target_path,
                 original_error=str(e)
             )
