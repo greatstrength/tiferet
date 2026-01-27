@@ -12,7 +12,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql
+from ..sqlite import QuerySql, MutateSql, BulkMutateSql
 from ..settings import Command
 from ...contracts.sqlite import SqliteService
 from ...assets import constants as const
@@ -323,6 +323,109 @@ def test_mutate_execution_error(sqlite_service_mock: mock.Mock):
             MutateSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             statement=statement
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
+
+# ** test: bulk_mutate_insert_success
+def test_bulk_mutate_insert_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful bulk INSERT execution.
+    '''
+    # Arrange
+    statement = "INSERT INTO users (name) VALUES (?)"
+    params_list = [('Alice',), ('Bob',)]
+    expected_cursor = mock.Mock()
+    expected_cursor.rowcount = 2
+    expected_cursor.lastrowid = 102
+    sqlite_service_mock.executemany.return_value = expected_cursor
+
+    # Act
+    result = Command.handle(
+        BulkMutateSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        statement=statement,
+        parameters_list=params_list
+    )
+
+    # Assert
+    assert result['total_rowcount'] == 2
+    assert result['lastrowids'] == [102]
+    sqlite_service_mock.executemany.assert_called_once_with(statement, params_list)
+    sqlite_service_mock.__enter__.assert_called_once()
+
+# ** test: bulk_mutate_update_success
+def test_bulk_mutate_update_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful bulk UPDATE execution.
+    '''
+    # Arrange
+    statement = "UPDATE users SET active = 1 WHERE id = ?"
+    params_list = [(1,), (2,)]
+    expected_cursor = mock.Mock()
+    expected_cursor.rowcount = 2
+    expected_cursor.lastrowid = None
+    sqlite_service_mock.executemany.return_value = expected_cursor
+
+    # Act
+    result = Command.handle(
+        BulkMutateSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        statement=statement,
+        parameters_list=params_list
+    )
+
+    # Assert
+    assert result['total_rowcount'] == 2
+    assert result['lastrowids'] is None
+    sqlite_service_mock.executemany.assert_called_once_with(statement, params_list)
+
+# ** test: bulk_mutate_validation_error
+def test_bulk_mutate_validation_error():
+    '''
+    Test validation failures for BulkMutateSql.
+    '''
+    # 1. Invalid statement
+    invalid_statement = "SELECT * FROM users"
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            BulkMutateSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            statement=invalid_statement,
+            parameters_list=[(1,)]
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
+
+    # 2. Empty parameters list
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            BulkMutateSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            statement="INSERT INTO users VALUES (?)",
+            parameters_list=[]
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Parameters list must not be empty" in str(exc_info.value)
+
+# ** test: bulk_mutate_execution_error
+def test_bulk_mutate_execution_error(sqlite_service_mock: mock.Mock):
+    '''
+    Test handling of underlying SQLite errors during bulk mutation.
+    '''
+    # Arrange
+    statement = "INSERT INTO users VALUES (?)"
+    params_list = [(1,), (1,)] # Duplicate ID
+    sqlite_service_mock.executemany.side_effect = sqlite3.Error("constraint failed")
+
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            BulkMutateSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            statement=statement,
+            parameters_list=params_list
         )
     
     assert exc_info.value.error_code == 'APP_ERROR'
