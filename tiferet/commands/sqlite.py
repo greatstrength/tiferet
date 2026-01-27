@@ -130,3 +130,76 @@ class QuerySql(Command):
                 f'SQLite execution failed: {str(e)}',
                 original_error=str(e)
             )
+
+# ** command: bulk_mutate_sql
+class BulkMutateSql(Command):
+    '''
+    Execute a single INSERT, UPDATE or DELETE statement across multiple parameter sets.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            cursor = sql.executemany(statement, parameters_list)
+            return {"total_rowcount": cursor.rowcount, "lastrowids": ...}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        statement: str,
+        parameters_list: Sequence[Sequence[Any] | Dict[str, Any]],
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Execute batch mutation and return aggregated metadata.
+
+        :param statement: SQL INSERT / UPDATE / DELETE statement
+        :param parameters_list: Sequence of parameter tuples or dicts
+        :return: {"total_rowcount": int, "lastrowids": List[int] | None}
+        '''
+        # Validate statement is present
+        self.verify_parameter(statement, 'statement', 'BulkMutateSql')
+
+        # Validate parameters_list is present
+        self.verify_parameter(parameters_list, 'parameters_list', 'BulkMutateSql')
+
+        # Validate statement type
+        clean_statement = statement.strip().upper()
+        self.verify(
+            any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
+            parameter='statement',
+            command='BulkMutateSql'
+        )
+
+        # Validate parameters_list is not empty
+        self.verify(
+            len(parameters_list) > 0,
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message='Parameters list must not be empty.',
+            parameter='parameters_list',
+            command='BulkMutateSql'
+        )
+
+        try:
+            with self.sqlite_service as sql:
+                cursor = sql.executemany(statement, parameters_list)
+                
+                return {
+                    "total_rowcount": cursor.rowcount,
+                    "lastrowids": [cursor.lastrowid] if clean_statement.startswith("INSERT") else None
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                'APP_ERROR',
+                f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
