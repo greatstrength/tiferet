@@ -157,6 +157,15 @@ class Feature(ModelObject):
         )
     )
 
+    # * attribute: flags
+    flags = ListType(
+        StringType(),
+        default=[],
+        metadata=dict(
+            description='List of feature flags that activate this entire feature.'
+        )
+    )
+
     # * attribute: description
     description = StringType(
         metadata=dict(

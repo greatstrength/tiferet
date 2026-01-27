@@ -56,7 +56,7 @@ class FeatureContext(object):
         self.get_feature_handler = get_feature_cmd.execute
 
     # * method: load_feature_command
-    def load_feature_command(self, feature_command: FeatureCommand) -> Command:
+    def load_feature_command(self, feature_command: FeatureCommand, feature_flags: list[str] = None) -> Command:
         '''
         Load a feature command from the container using its attribute ID and
         any configured flags.
@@ -64,6 +64,8 @@ class FeatureContext(object):
         :param feature_command: The feature command metadata describing the
             container attribute and flags.
         :type feature_command: FeatureCommand
+        :param feature_flags: Optional list of flags from the parent feature.
+        :type feature_flags: list[str]
         :return: The command object.
         :rtype: Command
         '''
@@ -71,12 +73,15 @@ class FeatureContext(object):
         # Resolve the attribute identifier for the command.
         attribute_id = feature_command.attribute_id
 
+        # Combine flags: feature-level (higher priority) first, then command-level.
+        combined_flags = (feature_flags or []) + (feature_command.flags or [])
+
         # Attempt to retrieve the command from the container using the
-        # configured flags, if any.
+        # combined flags, if any.
         try:
             return self.container.get_dependency(
                 attribute_id,
-                *(feature_command.flags or []),
+                *combined_flags,
             )
         
         # If the command is not found, raise an error.
@@ -215,7 +220,7 @@ class FeatureContext(object):
 
             # Load the command dependency for this feature command, honoring
             # any configured flags.
-            cmd = self.load_feature_command(feature_command)
+            cmd = self.load_feature_command(feature_command, feature_flags=feature.flags)
 
             # Parse the command parameters.
             params = {

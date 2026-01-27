@@ -33,6 +33,26 @@ def feature() -> Feature:
 
 # *** tests
 
+# ** test: feature_flags_creation_and_round_trip
+def test_feature_flags_creation_and_round_trip() -> None:
+    '''
+    Test that ``Feature.flags`` can be set on creation and that the
+    values are preserved through a serialization round-trip.
+    '''
+
+    feature = Feature.new(
+        name='Test Feature with Flags',
+        group_id='test_group',
+        flags=['global_flag', 'feature_specific_flag'],
+    )
+
+    assert feature.flags == ['global_flag', 'feature_specific_flag']
+
+    primitive = feature.to_primitive()
+    reloaded: Feature = ModelObject.new(Feature, **primitive)
+
+    assert reloaded.flags == ['global_flag', 'feature_specific_flag']
+
 # ** test: feature_new
 def test_feature_new():
     '''
