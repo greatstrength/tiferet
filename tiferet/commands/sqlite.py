@@ -204,6 +204,54 @@ class BulkMutateSql(Command):
                 original_error=str(e)
             )
 
+# ** command: execute_script_sql
+class ExecuteScriptSql(Command):
+    '''
+    Execute a multi-statement SQL script (DDL + DML) in a single operation.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            sql.executescript(script)
+            return {"success": True}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        script: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Run a semicolon-separated SQL script and return success status.
+
+        :param script: Multi-statement SQL script
+        :return: {"success": bool}
+        '''
+        # Validate script is present
+        self.verify_parameter(script, 'script', 'ExecuteScriptSql')
+
+        try:
+            with self.sqlite_service as sql:
+                sql.executescript(script)
+                
+                return {
+                    "success": True
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                'APP_ERROR',
+                f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
+
 # ** command: backup_sql
 class BackupSql(Command):
     '''

@@ -12,7 +12,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql
+from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql
 from ..settings import Command
 from ...contracts.sqlite import SqliteService
 from ...assets import constants as const
@@ -510,3 +510,71 @@ def test_backup_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     assert exc_info.value.error_code == const.SQLITE_BACKUP_FAILED_ID
     assert "Backup to /invalid/path/backup.db failed" in str(exc_info.value)
+
+# ** test: execute_script_sql_success
+def test_execute_script_sql_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful execution of a multi-statement script.
+    '''
+    # Arrange
+    script = "CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"
+    
+    # Act
+    result = Command.handle(
+        ExecuteScriptSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        script=script
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.executescript.assert_called_once_with(script)
+    sqlite_service_mock.__enter__.assert_called_once()
+
+# ** test: execute_script_sql_validation_error
+def test_execute_script_sql_validation_error():
+    '''
+    Test validation failures for empty script.
+    '''
+    # Act & Assert
+    # 1. Empty string
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            ExecuteScriptSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            script=""
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    # Standard message from verify_parameter check
+    assert "parameter is required" in str(exc_info.value)
+
+    # 2. Whitespace only
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            ExecuteScriptSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            script="   \n   "
+        )
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    # Standard message is sufficient as verify_parameter catches it
+    assert "parameter is required" in str(exc_info.value)
+
+# ** test: execute_script_sql_execution_error
+def test_execute_script_sql_execution_error(sqlite_service_mock: mock.Mock):
+    '''
+    Test handling of underlying SQLite errors during script execution.
+    '''
+    # Arrange
+    script = "INVALID SQL;"
+    sqlite_service_mock.executescript.side_effect = sqlite3.Error("syntax error")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            ExecuteScriptSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            script=script
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
