@@ -10,6 +10,67 @@ from ..contracts.sqlite import SqliteService
 
 # *** commands
 
+# ** command: mutate_sql
+class MutateSql(Command):
+    '''
+    Execute a single INSERT, UPDATE or DELETE statement and return operation metadata.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            cursor = sql.execute(statement, parameters)
+            return {"rowcount": cursor.rowcount, "lastrowid": cursor.lastrowid if ...}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        statement: str,
+        parameters: Sequence[Any] = (),
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Execute a mutation statement and return result metadata.
+
+        :param statement: SQL INSERT / UPDATE / DELETE statement
+        :param parameters: Bind parameters (tuple or dict)
+        :return: {"rowcount": int, "lastrowid": int | None}
+        '''
+        # Validate statement is present
+        self.verify_parameter(statement, 'statement', 'MutateSql')
+
+        # Validate statement type
+        clean_statement = statement.strip().upper()
+        self.verify(
+            any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
+            parameter='statement',
+            command='MutateSql'
+        )
+
+        try:
+            with self.sqlite_service as sql:
+                cursor = sql.execute(statement, parameters)
+                
+                return {
+                    "rowcount": cursor.rowcount,
+                    "lastrowid": cursor.lastrowid if clean_statement.startswith("INSERT") else None
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                'APP_ERROR',
+                f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
+
 # ** command: query_sql
 class QuerySql(Command):
     '''
