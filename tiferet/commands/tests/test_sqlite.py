@@ -12,7 +12,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql, BulkMutateSql
+from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql
 from ..settings import Command
 from ...contracts.sqlite import SqliteService
 from ...assets import constants as const
@@ -430,3 +430,83 @@ def test_bulk_mutate_execution_error(sqlite_service_mock: mock.Mock):
     
     assert exc_info.value.error_code == 'APP_ERROR'
     assert "SQLite execution failed" in str(exc_info.value)
+
+# ** test: backup_sql_success
+def test_backup_sql_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful database backup.
+    '''
+    # Arrange
+    target_path = '/tmp/backup.db'
+    
+    # Act
+    result = Command.handle(
+        BackupSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        target_path=target_path
+    )
+    
+    # Assert
+    assert result['success'] is True
+    assert result['message'] is None
+    sqlite_service_mock.backup.assert_called_once_with(target_path, pages=-1, progress=None)
+    sqlite_service_mock.__enter__.assert_called_once()
+
+# ** test: backup_sql_with_options
+def test_backup_sql_with_options(sqlite_service_mock: mock.Mock):
+    '''
+    Test backup with custom pages and progress callback.
+    '''
+    # Arrange
+    target_path = '/tmp/backup.db'
+    pages = 5
+    progress_callback = mock.Mock()
+    
+    # Act
+    result = Command.handle(
+        BackupSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        target_path=target_path,
+        pages=pages,
+        progress=progress_callback
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.backup.assert_called_once_with(target_path, pages=pages, progress=progress_callback)
+
+# ** test: backup_sql_validation_error
+def test_backup_sql_validation_error():
+    '''
+    Test validation failure for empty target path.
+    '''
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            BackupSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            target_path=""
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "target_path" in str(exc_info.value)
+
+# ** test: backup_sql_execution_error
+def test_backup_sql_execution_error(sqlite_service_mock: mock.Mock):
+    '''
+    Test handling of underlying SQLite errors during backup.
+    '''
+    # Arrange
+    target_path = '/invalid/path/backup.db'
+    sqlite_service_mock.backup.side_effect = sqlite3.Error("permission denied")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            BackupSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            target_path=target_path
+        )
+    
+    assert exc_info.value.error_code == const.SQLITE_BACKUP_FAILED_ID
+    assert "Backup to /invalid/path/backup.db failed" in str(exc_info.value)
