@@ -11,7 +11,7 @@ from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
-from ..assets import TiferetError
+from ..assets import TiferetError, TiferetAPIError
 from ..assets.constants import (
     DEFAULT_ATTRIBUTES,
     APP_REPOSITORY_IMPORT_FAILED_ID,
@@ -336,7 +336,7 @@ class AppInterfaceContext(object):
     # * method: handle_error
     def handle_error(self, error: Exception) -> Any:
         '''
-        Handle the error and return the response.
+        Handle the error by formatting it via ErrorContext and raising TiferetAPIError.
 
         :param error: The error to handle.
         :type error: Exception
@@ -352,8 +352,11 @@ class AppInterfaceContext(object):
                 error=str(error)
             )
 
-        # Handle the error and return the response.
-        return self.errors.handle_error(error)
+        # Get formatted response from ErrorContext.
+        formatted_error = self.errors.handle_error(error)
+
+        # Raise the API exception with the formatted payload.
+        raise TiferetAPIError(**formatted_error)
 
     # * method: handle_response
     def handle_response(self, request: RequestContext) -> Any:

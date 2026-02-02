@@ -103,12 +103,12 @@ def test_error_context_handle_error(error_context):
     error_context.get_error_handler = mock.Mock(return_value=Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID)))
 
     # Handle the error using the error context.
-    with pytest.raises(TiferetAPIError) as exc_info:
-        error_context.handle_error(tiferet_error, lang='en_US')
+    response = error_context.handle_error(tiferet_error, lang='en_US')
     
-    # Assert that the response contains the expected error message.
-    assert exc_info.value.error_code == 'ERROR_NOT_FOUND'
-    assert exc_info.value.name == 'Error Not Found'
-    assert 'Error not found: NON_EXISTENT_ERROR.' in str(exc_info.value.message)
-    assert exc_info.value.kwargs.get('id') == 'NON_EXISTENT_ERROR'
+    # Assert that the response is a dictionary containing the expected error data.
+    assert isinstance(response, dict)
+    assert response.get('error_code') == 'ERROR_NOT_FOUND'
+    assert response.get('name') == 'Error Not Found'
+    assert 'Error not found: NON_EXISTENT_ERROR.' in response.get('message', '')
+    assert response.get('id') == 'NON_EXISTENT_ERROR'
     
