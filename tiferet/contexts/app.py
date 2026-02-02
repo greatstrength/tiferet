@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import time
 from typing import Dict, Any, List
 
 # ** app
@@ -387,6 +388,9 @@ class AppInterfaceContext(object):
         :type kwargs: dict
         '''
 
+        # Start timing immediately.
+        start_time = time.perf_counter()
+
         # Create the logger for the app interface context.
         logger = self.logging.build_logger()
 
@@ -396,7 +400,6 @@ class AppInterfaceContext(object):
 
         # Execute feature context and return session.
         try:
-            logger.info(f'Executing feature: {feature_id}')
             logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(
                 feature_id=feature_id, 
@@ -409,8 +412,15 @@ class AppInterfaceContext(object):
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e)
 
-        # Handle response.
+        # Calculate execution duration in milliseconds.
+        duration_ms = round((time.perf_counter() - start_time) * 1000)
+        duration_str = f" ({duration_ms}ms)"
+
+        # Log successful execution with timing.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
+        logger.info(f'Executed Feature - {feature_id}{duration_str}')
+
+        # Handle response.
         return self.handle_response(request)
 
 # ** context: app_context (obsolete)
