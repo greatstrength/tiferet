@@ -389,12 +389,19 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
         }
     )
 
-    # Assert that the logger was created and used. -- new
+    # Assert that the logger was created and used.
     logging_context.build_logger()
     logger = logging_context.build_logger.return_value
-    # logger.debug.assert_called_with('Parsing request for feature: test_group.test_feature')
-    logger.info.assert_called_with('Executing feature: test_group.test_feature')
+
+    # Verify that debug calls were made but no pre-execution INFO log exists.
     logger.debug.assert_called()
+
+    # Verify that the final INFO log contains duration in parentheses.
+    info_calls = [call for call in logger.info.call_args_list]
+    assert len(info_calls) == 1
+    final_log = info_calls[0][0][0]
+    assert final_log.startswith('Executed Feature - test_group.test_feature')
+    assert '(ms)' in final_log or 'ms)' in final_log
 
 # ** test: app_interface_context_run_invalid
 def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
@@ -438,9 +445,183 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     assert response['error_code'] == 'FEATURE_NOT_FOUND'
     assert 'Feature not found: invalid_group.invalid_feature.' in response['message']
 
-    # Assert that the logger was created and used for error logging. -- new
+    # Assert that the logger was created and used for error logging.
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
     logger.error.assert_called_with(
         'Error executing feature invalid_group.invalid_feature: {"error_code": "FEATURE_NOT_FOUND", "message": "Feature not found: invalid_group.invalid_feature."}'
     )
+
+# ** test: app_interface_context_run_timing_success
+def test_app_interface_context_run_timing_success(app_interface_context, logging_context):
+    """
+    Test that successful execution logs duration in final INFO message.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Run the app interface context.
+    app_interface_context.run(
+        'test_group.test_feature',
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
+    )
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert only one INFO log exists.
+    assert len(info_calls) == 1
+
+    # Assert the final INFO log follows the expected format: "Executed Feature - {feature_id} ({X}ms)".
+    final_log = info_calls[0]
+    assert final_log.startswith('Executed Feature - test_group.test_feature (')
+    assert final_log.endswith('ms)')
+
+    # Extract duration and verify it's a positive integer.
+    import re
+    match = re.search(r'\((\d+)ms\)', final_log)
+    assert match is not None
+    duration_ms = int(match.group(1))
+    assert duration_ms >= 0
+
+# ** test: app_interface_context_run_timing_no_pre_execution_log
+def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_context, logging_context):
+    """
+    Test that pre-execution INFO log is removed.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Run the app interface context.
+    app_interface_context.run(
+        'test_group.test_feature',
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
+    )
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert that no pre-execution "Executing feature..." INFO log appears.
+    pre_execution_logs = [log for log in info_calls if log.startswith('Executing feature:')]
+    assert len(pre_execution_logs) == 0
+
+# ** test: app_interface_context_run_timing_error_path
+def test_app_interface_context_run_timing_error_path(app_interface_context, feature_context, error_context, logging_context):
+    """
+    Test that no duration is logged on error paths.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock the execute_feature method to raise an error.
+    feature_context.execute_feature.side_effect = TiferetError(
+        error_code='TEST_ERROR',
+        message='Test error occurred.'
+    )
+
+    # Mock the ErrorContext to handle the error.
+    error_context.handle_error.return_value = {
+        'error_code': 'TEST_ERROR',
+        'message': 'Test error occurred.'
+    }
+
+    # Run the app interface context (expect error).
+    response = app_interface_context.run(
+        'test_group.test_feature',
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
+    )
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert no INFO logs contain duration (no success log).
+    duration_logs = [log for log in info_calls if 'ms)' in log]
+    assert len(duration_logs) == 0
+
+    # Assert error was logged.
+    logger.error.assert_called_once()
+
+# ** test: app_interface_context_run_timing_zero_duration
+def test_app_interface_context_run_timing_zero_duration(app_interface_context, logging_context):
+    """
+    Test edge case where execution is extremely fast (0ms).
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock time.perf_counter to simulate zero duration.
+    with mock.patch('time.perf_counter', side_effect=[0.0, 0.0]):
+        # Run the app interface context.
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+        # Get the logger mock.
+        logger = logging_context.build_logger.return_value
+
+        # Extract all INFO log calls.
+        info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+        # Assert the final log contains (0ms).
+        assert len(info_calls) == 1
+        assert '(0ms)' in info_calls[0]
+
+# ** test: app_interface_context_run_timing_long_execution
+def test_app_interface_context_run_timing_long_execution(app_interface_context, logging_context):
+    """
+    Test that long execution durations are logged correctly.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock time.perf_counter to simulate 1.5 second duration.
+    with mock.patch('time.perf_counter', side_effect=[0.0, 1.5]):
+        # Run the app interface context.
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+        # Get the logger mock.
+        logger = logging_context.build_logger.return_value
+
+        # Extract all INFO log calls.
+        info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+        # Assert the final log contains (1500ms).
+        assert len(info_calls) == 1
+        assert '(1500ms)' in info_calls[0]
