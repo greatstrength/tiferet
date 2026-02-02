@@ -114,7 +114,10 @@ class CliContext(AppInterfaceContext):
         # Handle any TiferetError exceptions that may occur during feature execution.
         except TiferetError as e:
             logger.error(f'Error executing CLI feature {cli_request.feature_id}: {e}')
-            print(self.handle_error(e), file=sys.stderr)
+            try:
+                self.handle_error(e)
+            except TiferetAPIError as api_error:
+                print(api_error, file=sys.stderr)
             sys.exit(1)
         
         # Return the result of the command execution.
