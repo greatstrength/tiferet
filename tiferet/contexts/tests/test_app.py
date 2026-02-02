@@ -18,7 +18,7 @@ from ..app import (
     AppInterfaceContext,
     AppManagerContext,
 )
-from ...assets import TiferetError
+from ...assets import TiferetError, TiferetAPIError
 from ...assets.constants import (
     DEFAULT_ATTRIBUTES,
     DEFAULT_APP_SERVICE_MODULE_PATH,
@@ -302,14 +302,21 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
         message='This is a test error message.'
     )
 
-    # Handle an error using the app interface context.
-    error_response = app_interface_context.errors.handle_error(
-        error
-    )
+    # Mock the ErrorContext to return the formatted error dict.
+    error_context.handle_error.return_value = {
+        'error_code': 'TEST_ERROR',
+        'name': 'Test Error',
+        'message': 'This is a test error message.'
+    }
 
-    # Assert that the error response contains the expected error code and message.
-    assert error_response['error_code'] == 'TEST_ERROR'
-    assert error_response['message'] == 'This is a test error message.'
+    # Handle an error using the app interface context and verify it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.handle_error(error)
+
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.name == 'Test Error'
+    assert exc_info.value.message == 'This is a test error message.'
 
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
@@ -323,18 +330,20 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     # Create an invalid error object.
     invalid_error = Exception("This is an invalid error.")
 
-    # Mock the ErrorContext to raise a TiferetError when handling an invalid error.
+    # Mock the ErrorContext to return the formatted error dict.
     error_context.handle_error.return_value = {
         'error_code': 'APP_ERROR',
+        'name': 'App Error',
         'message': 'An error occurred in the app: This is an invalid error.'
     }
 
-    # Handle the invalid error using the app interface context.
-    error_response = app_interface_context.handle_error(invalid_error)
+    # Handle the invalid error using the app interface context and verify it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.handle_error(invalid_error)
 
-    # Assert that the error response contains a generic error code and message.
-    assert error_response['error_code'] == 'APP_ERROR'
-    assert 'An error occurred in the app' in error_response['message']
+    # Assert that the raised exception contains a generic error code and message.
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert 'An error occurred in the app' in exc_info.value.message
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
@@ -425,25 +434,28 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     # Mock the ErrorContext to handle the error and return a formatted message.
     error_context.handle_error.return_value = {
         'error_code': 'FEATURE_NOT_FOUND',
+        'name': 'Feature Not Found',
         'message': 'Feature not found: invalid_group.invalid_feature.'
     }
 
-    # Attempt to run an invalid feature and assert that it raises an error.
-    response = app_interface_context.run(
-        'invalid_group.invalid_feature',
-        headers={
-            'Content-Type': 'application/json',
-            'interface_id': app_interface_context.interface_id
-        },
-        data={
-            'key': 'value',
-            'param': 'test_param'
-        }
-    )
+    # Attempt to run an invalid feature and assert that it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.run(
+            'invalid_group.invalid_feature',
+            headers={
+                'Content-Type': 'application/json',
+                'interface_id': app_interface_context.interface_id
+            },
+            data={
+                'key': 'value',
+                'param': 'test_param'
+            }
+        )
 
-    # Assert that the formatted error message is as expected.
-    assert response['error_code'] == 'FEATURE_NOT_FOUND'
-    assert 'Feature not found: invalid_group.invalid_feature.' in response['message']
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'FEATURE_NOT_FOUND'
+    assert exc_info.value.name == 'Feature Not Found'
+    assert 'Feature not found: invalid_group.invalid_feature.' in exc_info.value.message
 
     # Assert that the logger was created and used for error logging.
     logging_context.build_logger.assert_called_once()
@@ -543,15 +555,22 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
     # Mock the ErrorContext to handle the error.
     error_context.handle_error.return_value = {
         'error_code': 'TEST_ERROR',
+        'name': 'Test Error',
         'message': 'Test error occurred.'
     }
 
-    # Run the app interface context (expect error).
-    response = app_interface_context.run(
-        'test_group.test_feature',
-        headers={'Content-Type': 'application/json'},
-        data={'key': 'value'}
-    )
+    # Run the app interface context and expect TiferetAPIError to be raised.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.name == 'Test Error'
+    assert exc_info.value.message == 'Test error occurred.'
 
     # Get the logger mock.
     logger = logging_context.build_logger.return_value
