@@ -305,3 +305,142 @@ class BackupSql(Command):
                 target_path=target_path,
                 original_error=str(e)
             )
+
+# ** command: create_table_sql
+class CreateTableSql(Command):
+    '''
+    Helper command to create a table with specified columns and constraints.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            sql.execute(generated_sql)
+            return {"success": True}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        table_name: str,
+        columns: Dict[str, str],
+        constraints: List[str] = (),
+        if_not_exists: bool = True,
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Create a table with the given structure.
+
+        :param table_name: Name of the table to create
+        :type table_name: str
+        :param columns: Dict[column_name → type_definition] e.g. {"id": "INTEGER PRIMARY KEY", "name": "TEXT NOT NULL"}
+        :type columns: Dict[str, str]
+        :param constraints: List of additional table-level constraints e.g. ["UNIQUE(name)", "CHECK(age > 0)"]
+        :type constraints: List[str]
+        :param if_not_exists: Add IF NOT EXISTS clause (default: True)
+        :type if_not_exists: bool
+        :return: {"success": bool}
+        :rtype: Dict[str, Any]
+        '''
+        # Validate table_name is present
+        self.verify_parameter(table_name, 'table_name', 'CreateTableSql')
+
+        # Validate table_name is a valid SQLite identifier (basic check)
+        self.verify(
+            table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
+            parameter='table_name',
+            command='CreateTableSql'
+        )
+
+        # Validate columns is present and non-empty
+        self.verify_parameter(columns, 'columns', 'CreateTableSql')
+        self.verify(
+            isinstance(columns, dict) and len(columns) > 0,
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message='Columns must be a non-empty dictionary.',
+            parameter='columns',
+            command='CreateTableSql'
+        )
+
+        # Validate all column names and types are non-empty strings
+        for col_name, col_type in columns.items():
+            self.verify(
+                col_name and isinstance(col_name, str),
+                const.COMMAND_PARAMETER_REQUIRED_ID,
+                message=f'Column name must be a non-empty string. Got: {col_name}',
+                parameter='columns',
+                command='CreateTableSql'
+            )
+            self.verify(
+                col_type and isinstance(col_type, str),
+                const.COMMAND_PARAMETER_REQUIRED_ID,
+                message=f'Column type for "{col_name}" must be a non-empty string. Got: {col_type}',
+                parameter='columns',
+                command='CreateTableSql'
+            )
+
+        # Generate the CREATE TABLE SQL statement
+        sql_parts = []
+        
+        # Add IF NOT EXISTS clause if requested
+        if if_not_exists:
+            sql_parts.append(f'CREATE TABLE IF NOT EXISTS "{table_name}" (')
+        else:
+            sql_parts.append(f'CREATE TABLE "{table_name}" (')
+
+        # Add column definitions
+        column_defs = [f'  "{col_name}" {col_type}' for col_name, col_type in columns.items()]
+        
+        # Add constraints if provided
+        constraint_list = list(constraints) if constraints else []
+        if constraint_list:
+            constraint_defs = [f'  {constraint}' for constraint in constraint_list]
+            all_defs = column_defs + constraint_defs
+        else:
+            all_defs = column_defs
+        
+        sql_parts.append(',\n'.join(all_defs))
+        sql_parts.append(')')
+        
+        generated_sql = '\n'.join(sql_parts)
+
+        # Execute the SQL statement
+        try:
+            with self.sqlite_service as sql:
+                sql.execute(generated_sql)
+                
+                return {
+                    "success": True
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                'APP_ERROR',
+                f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
+
+    # * method: _is_valid_identifier (static)
+    @staticmethod
+    def _is_valid_identifier(name: str) -> bool:
+        '''
+        Validate that a name is a valid SQLite identifier.
+
+        :param name: The identifier to validate
+        :type name: str
+        :return: True if valid, False otherwise
+        :rtype: bool
+        '''
+        # Basic check: alphanumeric and underscore only, doesn't start with digit
+        if not name:
+            return False
+        if name[0].isdigit():
+            return False
+        return all(c.isalnum() or c == '_' for c in name)
