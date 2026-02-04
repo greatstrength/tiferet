@@ -12,7 +12,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql
+from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql
 from ..settings import Command
 from ...contracts.sqlite import SqliteService
 from ...assets import constants as const
@@ -574,6 +574,282 @@ def test_execute_script_sql_execution_error(sqlite_service_mock: mock.Mock):
             ExecuteScriptSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             script=script
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
+
+# ** test: create_table_sql_success
+def test_create_table_sql_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful table creation with columns.
+    '''
+    # Arrange
+    table_name = 'users'
+    columns = {
+        'id': 'INTEGER PRIMARY KEY',
+        'name': 'TEXT NOT NULL',
+        'email': 'TEXT'
+    }
+    
+    # Act
+    result = Command.handle(
+        CreateTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        columns=columns
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.execute.assert_called_once()
+    
+    # Verify the generated SQL contains expected elements
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'CREATE TABLE IF NOT EXISTS "users"' in generated_sql
+    assert '"id" INTEGER PRIMARY KEY' in generated_sql
+    assert '"name" TEXT NOT NULL' in generated_sql
+    assert '"email" TEXT' in generated_sql
+    sqlite_service_mock.__enter__.assert_called_once()
+
+# ** test: create_table_sql_with_constraints
+def test_create_table_sql_with_constraints(sqlite_service_mock: mock.Mock):
+    '''
+    Test table creation with constraints.
+    '''
+    # Arrange
+    table_name = 'products'
+    columns = {
+        'id': 'INTEGER PRIMARY KEY',
+        'name': 'TEXT NOT NULL',
+        'price': 'REAL'
+    }
+    constraints = ['UNIQUE(name)', 'CHECK(price >= 0)']
+    
+    # Act
+    result = Command.handle(
+        CreateTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        columns=columns,
+        constraints=constraints
+    )
+    
+    # Assert
+    assert result['success'] is True
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'UNIQUE(name)' in generated_sql
+    assert 'CHECK(price >= 0)' in generated_sql
+
+# ** test: create_table_sql_if_not_exists_false
+def test_create_table_sql_if_not_exists_false(sqlite_service_mock: mock.Mock):
+    '''
+    Test table creation without IF NOT EXISTS clause.
+    '''
+    # Arrange
+    table_name = 'temp_table'
+    columns = {'id': 'INTEGER'}
+    
+    # Act
+    result = Command.handle(
+        CreateTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        columns=columns,
+        if_not_exists=False
+    )
+    
+    # Assert
+    assert result['success'] is True
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'CREATE TABLE "temp_table"' in generated_sql
+    assert 'IF NOT EXISTS' not in generated_sql
+
+# ** test: create_table_sql_idempotent
+def test_create_table_sql_idempotent(sqlite_service_mock: mock.Mock):
+    '''
+    Test that creating an existing table with if_not_exists=True succeeds.
+    '''
+    # Arrange
+    table_name = 'existing_table'
+    columns = {'id': 'INTEGER'}
+    
+    # Act - create twice, both should succeed
+    result1 = Command.handle(
+        CreateTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        columns=columns,
+        if_not_exists=True
+    )
+    
+    result2 = Command.handle(
+        CreateTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        columns=columns,
+        if_not_exists=True
+    )
+    
+    # Assert
+    assert result1['success'] is True
+    assert result2['success'] is True
+    assert sqlite_service_mock.execute.call_count == 2
+
+# ** test: create_table_sql_duplicate_without_if_not_exists
+def test_create_table_sql_duplicate_without_if_not_exists(sqlite_service_mock: mock.Mock):
+    '''
+    Test that creating an existing table with if_not_exists=False raises error.
+    '''
+    # Arrange
+    table_name = 'existing_table'
+    columns = {'id': 'INTEGER'}
+    sqlite_service_mock.execute.side_effect = sqlite3.Error("table existing_table already exists")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            table_name=table_name,
+            columns=columns,
+            if_not_exists=False
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
+
+# ** test: create_table_sql_validation_empty_table_name
+def test_create_table_sql_validation_empty_table_name():
+    '''
+    Test validation failure for empty table name.
+    '''
+    # Arrange
+    columns = {'id': 'INTEGER'}
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name='',
+            columns=columns
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+
+# ** test: create_table_sql_validation_invalid_table_name
+def test_create_table_sql_validation_invalid_table_name():
+    '''
+    Test validation failure for invalid table name (special characters).
+    '''
+    # Arrange
+    columns = {'id': 'INTEGER'}
+    
+    # Act & Assert - test with spaces
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name='invalid table',
+            columns=columns
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Invalid table name" in str(exc_info.value)
+    
+    # Act & Assert - test with special characters
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name='table-name',
+            columns=columns
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Invalid table name" in str(exc_info.value)
+
+# ** test: create_table_sql_validation_empty_columns
+def test_create_table_sql_validation_empty_columns():
+    '''
+    Test validation failure for empty columns dictionary.
+    '''
+    # Arrange
+    table_name = 'test_table'
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name=table_name,
+            columns={}
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Columns must be a non-empty dictionary" in str(exc_info.value)
+
+# ** test: create_table_sql_validation_invalid_column_name
+def test_create_table_sql_validation_invalid_column_name():
+    '''
+    Test validation failure for invalid column name.
+    '''
+    # Arrange
+    table_name = 'test_table'
+    columns = {'': 'INTEGER'}  # Empty column name
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name=table_name,
+            columns=columns
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Column name must be a non-empty string" in str(exc_info.value)
+
+# ** test: create_table_sql_validation_invalid_column_type
+def test_create_table_sql_validation_invalid_column_type():
+    '''
+    Test validation failure for invalid column type.
+    '''
+    # Arrange
+    table_name = 'test_table'
+    columns = {'id': ''}  # Empty column type
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name=table_name,
+            columns=columns
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Column type" in str(exc_info.value)
+    assert "must be a non-empty string" in str(exc_info.value)
+
+# ** test: create_table_sql_execution_error
+def test_create_table_sql_execution_error(sqlite_service_mock: mock.Mock):
+    '''
+    Test handling of underlying SQLite errors during table creation.
+    '''
+    # Arrange
+    table_name = 'test_table'
+    columns = {'id': 'INVALID_TYPE'}
+    sqlite_service_mock.execute.side_effect = sqlite3.Error("syntax error")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            CreateTableSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            table_name=table_name,
+            columns=columns
         )
     
     assert exc_info.value.error_code == 'APP_ERROR'
