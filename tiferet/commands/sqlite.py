@@ -444,3 +444,90 @@ class CreateTableSql(Command):
         if name[0].isdigit():
             return False
         return all(c.isalnum() or c == '_' for c in name)
+
+# ** command: drop_table_sql
+class DropTableSql(Command):
+    '''
+    Helper command to drop a table safely with optional IF EXISTS clause.
+
+    IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
+    Example:
+        with self.sqlite_service as sql:
+            sql.execute(generated_sql)
+            return {"success": True}
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        self.sqlite_service = sqlite_service
+
+    # * method: execute
+    def execute(
+        self,
+        table_name: str,
+        if_exists: bool = True,
+        **kwargs
+    ) -> Dict[str, Any]:
+        '''
+        Drop the specified table.
+
+        :param table_name: Name of the table to drop
+        :type table_name: str
+        :param if_exists: Add IF EXISTS clause (default: True)
+        :type if_exists: bool
+        :return: {"success": bool}
+        :rtype: Dict[str, Any]
+        '''
+        # Validate table_name is present
+        self.verify_parameter(table_name, 'table_name', 'DropTableSql')
+
+        # Validate table_name is a valid SQLite identifier (basic check)
+        self.verify(
+            table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
+            const.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
+            parameter='table_name',
+            command='DropTableSql'
+        )
+
+        # Generate the DROP TABLE SQL statement
+        if if_exists:
+            generated_sql = f'DROP TABLE IF EXISTS "{table_name}"'
+        else:
+            generated_sql = f'DROP TABLE "{table_name}"'
+
+        # Execute the SQL statement
+        try:
+            with self.sqlite_service as sql:
+                sql.execute(generated_sql)
+
+                return {
+                    "success": True
+                }
+        except sqlite3.Error as e:
+            self.raise_error(
+                'APP_ERROR',
+                f'SQLite execution failed: {str(e)}',
+                original_error=str(e)
+            )
+
+    # * method: _is_valid_identifier (static)
+    @staticmethod
+    def _is_valid_identifier(name: str) -> bool:
+        '''
+        Validate that a name is a valid SQLite identifier.
+
+        :param name: The identifier to validate
+        :type name: str
+        :return: True if valid, False otherwise
+        :rtype: bool
+        '''
+        # Basic check: alphanumeric and underscore only, doesn't start with digit
+        if not name:
+            return False
+        if name[0].isdigit():
+            return False
+        return all(c.isalnum() or c == '_' for c in name)
