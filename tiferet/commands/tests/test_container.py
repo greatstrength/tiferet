@@ -15,17 +15,11 @@ from ..container import (
     AddServiceConfiguration,
     RemoveServiceConfiguration,
     SetServiceConstants,
+    a,
 )
 from ...models import ModelObject, ContainerAttribute, FlaggedDependency
 from ...contracts import ContainerService
 from ...assets import TiferetError
-from ...assets.constants import (
-    INVALID_SERVICE_CONFIGURATION_ID,
-    ATTRIBUTE_ALREADY_EXISTS_ID,
-    SERVICE_CONFIGURATION_NOT_FOUND_ID,
-    INVALID_FLAGGED_DEPENDENCY_ID,
-    COMMAND_PARAMETER_REQUIRED_ID,
-)
 from ...commands import Command
 
 # *** fixtures
@@ -485,7 +479,7 @@ def test_add_service_configuration_duplicate_id(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == ATTRIBUTE_ALREADY_EXISTS_ID
+    assert error.error_code == a.const.ATTRIBUTE_ALREADY_EXISTS_ID
 
 # ** test: add_service_configuration_no_type_source
 def test_add_service_configuration_no_type_source(
@@ -512,7 +506,7 @@ def test_add_service_configuration_no_type_source(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+    assert error.error_code == a.const.INVALID_SERVICE_CONFIGURATION_ID
 
 # ** test: set_default_service_configuration_full_update
 def test_set_default_service_configuration_full_update(
@@ -662,7 +656,7 @@ def test_set_default_service_configuration_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+    assert error.error_code == a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID
 
 # ** test: set_default_service_configuration_incomplete_type
 def test_set_default_service_configuration_incomplete_type(
@@ -700,7 +694,7 @@ def test_set_default_service_configuration_incomplete_type(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+    assert error.error_code == a.const.INVALID_SERVICE_CONFIGURATION_ID
 
 
 # ** test: set_service_dependency_add_new
@@ -883,7 +877,7 @@ def test_set_service_dependency_incomplete_type(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_FLAGGED_DEPENDENCY_ID
+    assert error.error_code == a.const.INVALID_FLAGGED_DEPENDENCY_ID
 
 
 # ** test: set_service_dependency_not_found
@@ -914,7 +908,7 @@ def test_set_service_dependency_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+    assert error.error_code == a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID
 
 # ** test: remove_service_configuration_existing
 def test_remove_service_configuration_existing(
@@ -1103,7 +1097,7 @@ def test_remove_service_dependency_invalid_after_removal(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_SERVICE_CONFIGURATION_ID
+    assert error.error_code == a.const.INVALID_SERVICE_CONFIGURATION_ID
 
 # ** test: remove_service_dependency_not_found_attribute
 def test_remove_service_dependency_not_found_attribute(
@@ -1130,7 +1124,7 @@ def test_remove_service_dependency_not_found_attribute(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == SERVICE_CONFIGURATION_NOT_FOUND_ID
+    assert error.error_code == a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID
 
 # ** test: remove_service_dependency_missing_flag
 def test_remove_service_dependency_missing_flag(
@@ -1156,4 +1150,4 @@ def test_remove_service_dependency_missing_flag(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
