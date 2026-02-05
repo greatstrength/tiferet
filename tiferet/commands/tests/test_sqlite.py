@@ -12,7 +12,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql
+from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql, DropTableSql
 from ..settings import Command
 from ...contracts.sqlite import SqliteService
 from ...assets import constants as const
@@ -854,3 +854,176 @@ def test_create_table_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     assert exc_info.value.error_code == 'APP_ERROR'
     assert "SQLite execution failed" in str(exc_info.value)
+
+# ** test: drop_table_sql_success
+def test_drop_table_sql_success(sqlite_service_mock: mock.Mock):
+    '''
+    Test successful table drop.
+    '''
+    # Arrange
+    table_name = 'users'
+    
+    # Act
+    result = Command.handle(
+        DropTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.execute.assert_called_once()
+    
+    # Verify the generated SQL contains expected elements
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'DROP TABLE IF EXISTS "users"' in generated_sql
+    sqlite_service_mock.__enter__.assert_called_once()
+
+# ** test: drop_table_sql_without_if_exists
+def test_drop_table_sql_without_if_exists(sqlite_service_mock: mock.Mock):
+    '''
+    Test table drop without IF EXISTS clause.
+    '''
+    # Arrange
+    table_name = 'temp_table'
+    
+    # Act
+    result = Command.handle(
+        DropTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        if_exists=False
+    )
+    
+    # Assert
+    assert result['success'] is True
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'DROP TABLE "temp_table"' in generated_sql
+    assert 'IF EXISTS' not in generated_sql
+
+# ** test: drop_table_sql_idempotent
+def test_drop_table_sql_idempotent(sqlite_service_mock: mock.Mock):
+    '''
+    Test that dropping a non-existent table with if_exists=True succeeds.
+    '''
+    # Arrange
+    table_name = 'non_existent_table'
+    
+    # Act
+    result = Command.handle(
+        DropTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        if_exists=True
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.execute.assert_called_once()
+    generated_sql = sqlite_service_mock.execute.call_args[0][0]
+    assert 'DROP TABLE IF EXISTS "non_existent_table"' in generated_sql
+
+# ** test: drop_table_sql_non_existent_without_if_exists
+def test_drop_table_sql_non_existent_without_if_exists(sqlite_service_mock: mock.Mock):
+    '''
+    Test that dropping a non-existent table with if_exists=False raises error.
+    '''
+    # Arrange
+    table_name = 'non_existent_table'
+    sqlite_service_mock.execute.side_effect = sqlite3.Error("no such table: non_existent_table")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            DropTableSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            table_name=table_name,
+            if_exists=False
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
+    assert exc_info.value.kwargs.get('original_error') == "no such table: non_existent_table"
+
+# ** test: drop_table_sql_validation_empty_table_name
+def test_drop_table_sql_validation_empty_table_name():
+    '''
+    Test validation failure for empty table name.
+    '''
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            DropTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name=''
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+
+# ** test: drop_table_sql_validation_invalid_table_name
+def test_drop_table_sql_validation_invalid_table_name():
+    '''
+    Test validation failure for invalid table name (special characters).
+    '''
+    # Act & Assert - test with spaces
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            DropTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name='invalid table'
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Invalid table name" in str(exc_info.value)
+    
+    # Act & Assert - test with special characters
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            DropTableSql,
+            dependencies={'sqlite_service': mock.Mock()},
+            table_name='table-name'
+        )
+    
+    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert "Invalid table name" in str(exc_info.value)
+
+# ** test: drop_table_sql_with_data
+def test_drop_table_sql_with_data(sqlite_service_mock: mock.Mock):
+    '''
+    Test dropping a table with existing data succeeds.
+    '''
+    # Arrange
+    table_name = 'populated_table'
+    
+    # Act
+    result = Command.handle(
+        DropTableSql,
+        dependencies={'sqlite_service': sqlite_service_mock},
+        table_name=table_name,
+        if_exists=True
+    )
+    
+    # Assert
+    assert result['success'] is True
+    sqlite_service_mock.execute.assert_called_once()
+
+# ** test: drop_table_sql_execution_error
+def test_drop_table_sql_execution_error(sqlite_service_mock: mock.Mock):
+    '''
+    Test handling of underlying SQLite errors during table drop.
+    '''
+    # Arrange
+    table_name = 'test_table'
+    sqlite_service_mock.execute.side_effect = sqlite3.Error("database is locked")
+    
+    # Act & Assert
+    with pytest.raises(TiferetError) as exc_info:
+        Command.handle(
+            DropTableSql,
+            dependencies={'sqlite_service': sqlite_service_mock},
+            table_name=table_name
+        )
+    
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert "SQLite execution failed" in str(exc_info.value)
+    assert exc_info.value.kwargs.get('original_error') == "database is locked"
