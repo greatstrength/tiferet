@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from .settings import Command, const
+from .settings import Command, a
 from ..models import Error
 from ..contracts import ErrorService
 
@@ -83,7 +83,7 @@ class AddError(Command):
         exists = self.error_service.exists(id)
         self.verify(
             expression=exists is False,
-            error_code=const.ERROR_ALREADY_EXISTS_ID,
+            error_code=a.const.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
             id=id
         )
@@ -145,13 +145,13 @@ class GetError(Command):
 
         # If requested, check built-in defaults and return as error if found.
         if include_defaults:
-            error_data = const.DEFAULT_ERRORS.get(id)
+            error_data = a.DEFAULT_ERRORS.get(id)
             if error_data:
                 return Error.new(**error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
-            error_code=const.ERROR_NOT_FOUND_ID,
+            error_code=a.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id,
         )
@@ -193,7 +193,7 @@ class ListErrors(Command):
             return self.error_service.list()
         
         # If defaults are included, merge repository and default errors.
-        errors = {id: Error.new(**data) for id, data in const.DEFAULT_ERRORS.items()}
+        errors = {id: Error.new(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 
@@ -245,7 +245,7 @@ class RenameError(Command):
         error = self.error_service.get(id)
         self.verify(
             expression=error,
-            error_code=const.ERROR_NOT_FOUND_ID,
+            error_code=a.const.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -306,7 +306,7 @@ class SetErrorMessage(Command):
         error = self.error_service.get(id)
         self.verify(
             expression=error,
-            error_code=const.ERROR_NOT_FOUND_ID,
+            error_code=a.const.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -358,7 +358,7 @@ class RemoveErrorMessage(Command):
         error = self.error_service.get(id)
         self.verify(
             expression=error,
-            error_code=const.ERROR_NOT_FOUND_ID,
+            error_code=a.const.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -369,7 +369,7 @@ class RemoveErrorMessage(Command):
         # Verify that at least one message remains.
         self.verify(
             expression=len(error.message) > 0,
-            error_code=const.NO_ERROR_MESSAGES_ID,
+            error_code=a.const.NO_ERROR_MESSAGES_ID,
             message=f'No error messages are defined for error ID {id}.',
             id=id
         )
