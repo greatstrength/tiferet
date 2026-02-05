@@ -6,16 +6,11 @@
 from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
+from .settings import a
 from ..models import ContainerAttribute
 from ..commands import Command
 from ..contracts import ContainerService
 from ..models.settings import ModelObject
-from ..assets.constants import (
-    INVALID_SERVICE_CONFIGURATION_ID,
-    ATTRIBUTE_ALREADY_EXISTS_ID,
-    SERVICE_CONFIGURATION_NOT_FOUND_ID,
-    INVALID_FLAGGED_DEPENDENCY_ID,
-)
 
 # *** commands
 
@@ -77,7 +72,7 @@ class AddServiceConfiguration(Command):
         # Check for existing attribute id.
         self.verify(
             not self.container_service.attribute_exists(id),
-            ATTRIBUTE_ALREADY_EXISTS_ID,
+            a.const.ATTRIBUTE_ALREADY_EXISTS_ID,
             id=id,
         )
 
@@ -86,7 +81,7 @@ class AddServiceConfiguration(Command):
         has_deps = bool(dependencies)
         self.verify(
             has_default or has_deps,
-            INVALID_SERVICE_CONFIGURATION_ID,
+            a.const.INVALID_SERVICE_CONFIGURATION_ID,
         )
 
         # Create container attribute model directly from dependency dicts.
@@ -157,7 +152,7 @@ class SetDefaultServiceConfiguration(Command):
         # Verify that the attribute exists.
         self.verify(
             attribute is not None,
-            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -166,7 +161,7 @@ class SetDefaultServiceConfiguration(Command):
         if module_path is not None or class_name is not None:
             self.verify(
                 module_path is not None and class_name is not None,
-                INVALID_SERVICE_CONFIGURATION_ID,
+                a.const.INVALID_SERVICE_CONFIGURATION_ID,
             )
 
             # Update both type and parameters via the model helper.
@@ -250,7 +245,7 @@ class SetServiceDependency(Command):
         # flagged dependency.
         self.verify(
             bool(module_path) and bool(class_name),
-            INVALID_FLAGGED_DEPENDENCY_ID,
+            a.const.INVALID_FLAGGED_DEPENDENCY_ID,
         )
 
         # Retrieve the existing attribute.
@@ -259,7 +254,7 @@ class SetServiceDependency(Command):
         # Verify that the attribute exists.
         self.verify(
             attribute is not None,
-            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -331,7 +326,7 @@ class RemoveServiceDependency(Command):
         # Verify that the attribute exists.
         self.verify(
             attribute is not None,
-            SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -343,7 +338,7 @@ class RemoveServiceDependency(Command):
         has_deps = bool(attribute.dependencies)
         self.verify(
             has_default or has_deps,
-            INVALID_SERVICE_CONFIGURATION_ID,
+            a.const.INVALID_SERVICE_CONFIGURATION_ID,
         )
 
         # Persist the updated attribute.
