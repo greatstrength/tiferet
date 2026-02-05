@@ -20,7 +20,7 @@ from ..error import (
     SetErrorMessage,
     RemoveErrorMessage,
     RemoveError,
-    const
+    a
 )
 from ..settings import TiferetError
 
@@ -57,7 +57,7 @@ def default_errors() -> List[Error]:
 
     # Return a list of default Errors.
     return [
-        Error.new(**data) for data in const.DEFAULT_ERRORS.values()
+        Error.new(**data) for data in a.DEFAULT_ERRORS.values()
     ]
 
 # ** fixture: error_repo_mock
@@ -234,7 +234,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             name='Some Name',
             message='Some message.'
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert exc_info.value.kwargs.get('parameter') == 'id'
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
@@ -245,7 +245,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             name='',
             message='Some message.'
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert exc_info.value.kwargs.get('parameter') == 'name'
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
@@ -256,7 +256,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             name='Some Name',
             message=''
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert exc_info.value.kwargs.get('parameter') == 'message'
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
@@ -292,7 +292,7 @@ def test_add_error_already_exists(add_error_command: AddError, error_service_moc
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.ERROR_ALREADY_EXISTS_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.ERROR_ALREADY_EXISTS_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     assert f'An error with ID {error_id} already exists.' in str(exc_info.value), 'Exception message does not match.'
     error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
@@ -333,14 +333,14 @@ def test_get_error_found_in_defaults(error_service_mock: mock.Mock, get_error_co
     '''
 
     # Arrange the mock to return None.
-    error_id = const.ERROR_NOT_FOUND_ID
+    error_id = a.ERROR_NOT_FOUND_ID
     error_service_mock.get.return_value = None
 
     # Act to retrieve the error.
     result = get_error_command.execute(id=error_id, include_defaults=True)
 
     # Assert the result matches the expected default error.
-    expected_error = Error.new(**const.DEFAULT_ERRORS.get(error_id))
+    expected_error = Error.new(**a.DEFAULT_ERRORS.get(error_id))
     assert result == expected_error
     error_service_mock.get.assert_called_once_with(error_id)
 
@@ -364,7 +364,7 @@ def test_get_error_not_found(error_service_mock: mock.Mock, get_error_command: G
         get_error_command.execute(id=error_id, include_defaults=False)
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.ERROR_NOT_FOUND_ID
     assert exc_info.value.kwargs.get('id') == error_id
     assert f'Error not found: {error_id}.' in str(exc_info.value)
     error_service_mock.get.assert_called_once_with(error_id)
@@ -442,7 +442,7 @@ def test_list_errors_with_defaults_and_override(list_errors_command: ListErrors,
 
     # Arrange the mock to return a list of errors that overrides a default error.
     overriding_error = Error.new(
-        id=const.ERROR_NOT_FOUND_ID,
+        id=a.const.ERROR_NOT_FOUND_ID,
         name='Overriding Not Found Error',
         description='An overriding error for not found.',
         message=[{
@@ -457,7 +457,7 @@ def test_list_errors_with_defaults_and_override(list_errors_command: ListErrors,
 
     # Assert the result includes the overriding error instead of the default.
     expected_errors = [overriding_error] + [
-    error for error in default_errors if error.id != const.ERROR_NOT_FOUND_ID
+    error for error in default_errors if error.id != a.const.ERROR_NOT_FOUND_ID
     ]
     assert len(result) == len(expected_errors), 'The number of errors does not match the expected result.'
     for error in expected_errors:
@@ -547,7 +547,7 @@ def test_rename_error_empty_name(rename_error_command: RenameError, error_servic
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('parameter') == 'new_name', 'Parameter in exception does not match.'
     assert exc_info.value.kwargs.get('command') == 'RenameError', 'Command in exception does not match.'
 
@@ -577,7 +577,7 @@ def test_rename_error_not_found(rename_error_command: RenameError, error_service
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
 
@@ -645,7 +645,7 @@ def test_set_error_message_empty_message(set_error_message_command: SetErrorMess
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('parameter') == 'message', 'Parameter in exception does not match.'
     assert exc_info.value.kwargs.get('command') == 'SetErrorMessage', 'Command in exception does not match.'
 
@@ -677,7 +677,7 @@ def test_set_error_message_not_found(set_error_message_command: SetErrorMessage,
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
 
@@ -739,7 +739,7 @@ def test_remove_error_message_not_found(remove_error_message_command: RemoveErro
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
 
@@ -770,7 +770,7 @@ def test_remove_error_message_no_error_messages(remove_error_message_command: Re
         )
 
     # Verify the exception message.
-    assert exc_info.value.error_code == const.NO_ERROR_MESSAGES_ID, 'Error code does not match.'
+    assert exc_info.value.error_code == a.const.NO_ERROR_MESSAGES_ID, 'Error code does not match.'
     assert exc_info.value.kwargs.get('id') == error.id, 'Error ID in exception does not match.'
     error_service_mock.get.assert_called_once_with(error.id), 'Get method was not called correctly.'
 
@@ -813,6 +813,6 @@ def test_remove_error_invalid_parameters(remove_error_command: RemoveError):
         remove_error_command.execute(
             id=''
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert exc_info.value.kwargs.get('parameter') == 'id'
     assert exc_info.value.kwargs.get('command') == 'RemoveError'
