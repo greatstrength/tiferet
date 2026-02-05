@@ -20,19 +20,11 @@ from ..feature import (
     UpdateFeatureCommand,
     RemoveFeatureCommand,
     ReorderFeatureCommand,
+    a,
 )
 from ...models import ModelObject, Feature
 from ...contracts import FeatureService
 from ...assets import TiferetError
-from ...assets.constants import (
-    FEATURE_NOT_FOUND_ID,
-    COMMAND_PARAMETER_REQUIRED_ID,
-    FEATURE_ALREADY_EXISTS_ID,
-    FEATURE_NAME_REQUIRED_ID,
-    INVALID_FEATURE_ATTRIBUTE_ID,
-    FEATURE_COMMAND_NOT_FOUND_ID,
-    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
-)
 from ...commands import Command
 
 
@@ -112,7 +104,7 @@ def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
 
 # ** test: get_feature_missing_id
@@ -133,7 +125,7 @@ def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
 
@@ -212,7 +204,7 @@ def test_remove_feature_missing_id(mock_feature_service: FeatureService) -> None
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.delete.assert_not_called()
@@ -333,7 +325,7 @@ def test_add_feature_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.exists.assert_not_called()
@@ -362,7 +354,7 @@ def test_add_feature_duplicate_id(mock_feature_service: FeatureService) -> None:
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_ALREADY_EXISTS_ID
+    assert error.error_code == a.const.FEATURE_ALREADY_EXISTS_ID
 
     # Verify that existence was checked and the feature was not saved.
     mock_feature_service.exists.assert_called_once()
@@ -574,7 +566,7 @@ def test_update_feature_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
@@ -602,7 +594,7 @@ def test_update_feature_invalid_attribute(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_FEATURE_ATTRIBUTE_ID
+    assert error.error_code == a.const.INVALID_FEATURE_ATTRIBUTE_ID
 
     # The feature service should not be called when attribute validation fails.
     mock_feature_service.get.assert_not_called()
@@ -631,7 +623,7 @@ def test_update_feature_missing_name_value(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NAME_REQUIRED_ID
+    assert error.error_code == a.const.FEATURE_NAME_REQUIRED_ID
 
     # The feature service should not be called when name validation fails.
     mock_feature_service.get.assert_not_called()
@@ -661,7 +653,7 @@ def test_update_feature_not_found(mock_feature_service: FeatureService) -> None:
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
 
@@ -815,7 +807,7 @@ def test_add_feature_command_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
@@ -848,7 +840,7 @@ def test_add_feature_command_feature_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
 
@@ -1035,7 +1027,7 @@ def test_update_feature_command_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
@@ -1064,7 +1056,7 @@ def test_update_feature_command_invalid_attribute(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
+    assert error.error_code == a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
 
     # The feature service should not be called when attribute validation fails.
     mock_feature_service.get.assert_not_called()
@@ -1098,7 +1090,7 @@ def test_update_feature_command_missing_name_or_attribute_id_value(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when name/attribute_id
     # validation fails.
@@ -1132,7 +1124,7 @@ def test_update_feature_command_feature_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
 
@@ -1170,7 +1162,7 @@ def test_update_feature_command_command_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_COMMAND_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_COMMAND_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
     mock_feature_service.save.assert_not_called()
 
@@ -1294,7 +1286,7 @@ def test_remove_feature_command_feature_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
 
@@ -1334,7 +1326,7 @@ def test_remove_feature_command_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
@@ -1644,7 +1636,7 @@ def test_reorder_feature_command_feature_not_found(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == FEATURE_NOT_FOUND_ID
+    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
     mock_feature_service.get.assert_called_once_with('missing.feature')
     mock_feature_service.save.assert_not_called()
 
@@ -1689,7 +1681,7 @@ def test_reorder_feature_command_missing_required_parameters(
         )
 
     error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
+    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
     # The feature service should not be called when validation fails.
     mock_feature_service.get.assert_not_called()
