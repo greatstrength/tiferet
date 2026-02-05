@@ -11,6 +11,7 @@ from typing import (
 )
 
 # ** app
+from ...models import ModelObject, CliArgument
 from ...commands import RaiseError
 from ...data import DataObject, CliCommandConfigData
 from ...contracts import (
@@ -146,8 +147,8 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         # Load the YAML data for the parent arguments.
         result: List[CliArgumentContract] = self.load_yaml(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
-            data_factory=lambda data: [DataObject.from_data(
-                CliCommandConfigData.CliArgumentConfigData,
+            data_factory=lambda data: [ModelObject.new(
+                CliArgument,
                 **arg_data
             ) for arg_data in data]
         )
@@ -216,17 +217,9 @@ class CliYamlProxy(CliRepository, YamlFileProxy):
         :type parent_arguments: List[CliArgumentContract]
         '''
 
-        # Convert the parent arguments to data objects for serialization.
-        yaml_data = [
-            DataObject.from_model(
-                CliCommandConfigData.CliArgumentConfigData,
-                arg
-            ) for arg in parent_arguments
-        ]
-
         # Save the parent arguments data to the YAML file.
         # The cli argument is actually a model, so we do not use 'to_data' here.
         self.save_yaml(
-            [arg.to_primitive() for arg in yaml_data], 
+            [arg.to_primitive() for arg in parent_arguments], 
             data_yaml_path='cli/parent_args'
         )
