@@ -23,7 +23,7 @@ from ..app import (
     RemoveServiceDependency,
     RemoveAppInterface,
 )
-from ..settings import TiferetError, Command
+from ..settings import TiferetError, Command, a
 
 # *** fixtures
 
@@ -121,7 +121,7 @@ def test_get_app_interface_not_found(app_service, get_app_interface_cmd):
         get_app_interface_cmd.execute(interface_id='non_existent_id')
     
     # Assert that the error message contains the expected text.
-    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
     assert 'App interface with ID non_existent_id not found.' in str(exc_info.value)
 
 # ** test: test_get_app_interface_success
@@ -319,7 +319,7 @@ def test_set_service_dependency_missing_required_parameters(missing_param, app_s
         )
 
     # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert missing_param in str(exc_info.value)
 
 
@@ -347,7 +347,7 @@ def test_set_service_dependency_interface_not_found(app_service):
         )
 
     # Verify error code and message.
-    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
     assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 # ** test: list_app_interfaces_multiple
@@ -509,7 +509,7 @@ def test_add_app_interface_missing_required_fields(missing_param, app_service):
         )
 
     # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert missing_param in str(exc_info.value)
 
 # ** test: add_app_interface_default_fallbacks
@@ -614,7 +614,7 @@ def test_update_app_interface_missing_required_parameters(missing_param, app_ser
         )
 
     # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert missing_param in str(exc_info.value)
 
 # ** test: update_app_interface_interface_not_found
@@ -640,7 +640,7 @@ def test_update_app_interface_interface_not_found(app_service):
         )
 
     # Verify error code and message.
-    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
     assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 # ** test: update_app_interface_invalid_attribute_raises_model_error
@@ -667,7 +667,7 @@ def test_update_app_interface_invalid_attribute_raises_model_error(
         )
 
     # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
-    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    assert exc_info.value.error_code == a.const.INVALID_MODEL_ATTRIBUTE_ID
     app_service.save.assert_not_called()
 
 # ** test: update_app_interface_invalid_type_attributes_empty_value
@@ -697,7 +697,7 @@ def test_update_app_interface_invalid_type_attributes_empty_value(
         )
 
     # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
-    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
     app_service.save.assert_not_called()
 
 # ** test: set_app_constants_full_clear
@@ -816,7 +816,7 @@ def test_set_app_constants_missing_or_empty_id(invalid_id, app_service):
         )
 
     # Verify the error code and that the id parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert 'id' in str(exc_info.value)
     app_service.save.assert_not_called()
 
@@ -839,7 +839,7 @@ def test_set_app_constants_interface_not_found(app_service):
         )
 
     # Verify error code and message.
-    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
     assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 # ** test: remove_service_dependency_removes_existing_attribute
@@ -931,7 +931,7 @@ def test_remove_service_dependency_interface_not_found(app_service):
         )
 
     # Verify error code and message.
-    assert exc_info.value.error_code == 'APP_INTERFACE_NOT_FOUND'
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
     assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
 
 
@@ -962,7 +962,7 @@ def test_remove_service_dependency_missing_required_parameters(missing_param, ap
         )
 
     # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert missing_param in str(exc_info.value)
 
 # ** test: remove_app_interface_success_existing
@@ -1026,6 +1026,6 @@ def test_remove_app_interface_missing_or_empty_id(invalid_id, app_service):
         )
 
     # Verify the error code and that the id parameter is mentioned.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert 'id' in str(exc_info.value)
     app_service.delete.assert_not_called()
