@@ -4,8 +4,11 @@
 from typing import Dict, Any
 
 # ** app
-from .. import assets
-from ..assets import TiferetError, constants as const
+from ..assets import TiferetError
+from .. import assets, assets as a
+
+# -- obsolete
+from ..assets import constants as const   # prefer a.const
 
 # *** classes
 

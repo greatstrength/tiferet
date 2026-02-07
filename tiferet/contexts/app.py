@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import time
 from typing import Dict, Any, List
 
 # ** app
@@ -10,7 +11,7 @@ from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
-from ..assets import TiferetError
+from ..assets import TiferetError, TiferetAPIError
 from ..assets.constants import (
     DEFAULT_ATTRIBUTES,
     APP_REPOSITORY_IMPORT_FAILED_ID,
@@ -339,7 +340,7 @@ class AppInterfaceContext(object):
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
-        Handle the error and return the response.
+        Handle the error by formatting it via ErrorContext and raising TiferetAPIError.
 
         :param error: The error to handle.
         :type error: Exception
@@ -357,8 +358,11 @@ class AppInterfaceContext(object):
                 error=str(error)
             )
 
-        # Handle the error and return the response.
-        return self.errors.handle_error(error, **kwargs)
+        # Get formatted response from ErrorContext.
+        formatted_error = self.errors.handle_error(error)
+
+        # Raise the API exception with the formatted payload.
+        raise TiferetAPIError(**formatted_error)
 
     # * method: handle_response
     def handle_response(self, request: RequestContext, **kwargs) -> Any:
@@ -395,6 +399,9 @@ class AppInterfaceContext(object):
         :type kwargs: dict
         '''
 
+        # Start timing immediately.
+        start_time = time.perf_counter()
+
         # Create the logger for the app interface context.
         logger = self.logging.build_logger()
 
@@ -404,7 +411,6 @@ class AppInterfaceContext(object):
 
         # Execute feature context and return session.
         try:
-            logger.info(f'Executing feature: {feature_id}')
             logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(
                 feature_id=feature_id, 
@@ -417,9 +423,16 @@ class AppInterfaceContext(object):
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e, **kwargs)
 
-        # Handle response.
+        # Calculate execution duration in milliseconds.
+        duration_ms = round((time.perf_counter() - start_time) * 1000)
+        duration_str = f" ({duration_ms}ms)"
+
+        # Log successful execution with timing.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
-        return self.handle_response(request, **kwargs)
+        logger.info(f'Executed Feature - {feature_id}{duration_str}')
+
+        # Handle response.
+        return self.handle_response(request)
 
 # ** context: app_context (obsolete)
 class AppContext(AppManagerContext):

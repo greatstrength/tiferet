@@ -39,6 +39,15 @@ class FeatureCommand(ModelObject):
         )
     )
 
+    # * attribute: flags
+    flags = ListType(
+        StringType(),
+        default=[],
+        metadata=dict(
+            description='List of feature flags that activate this command.'
+        )
+    )
+
     # * attribute: parameters
     parameters = DictType(
         StringType(),
@@ -148,6 +157,15 @@ class Feature(ModelObject):
         required=True,
         metadata=dict(
             description='The name of the feature.'
+        )
+    )
+
+    # * attribute: flags
+    flags = ListType(
+        StringType(),
+        default=[],
+        metadata=dict(
+            description='List of feature flags that activate this entire feature.'
         )
     )
 

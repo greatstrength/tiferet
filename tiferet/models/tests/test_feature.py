@@ -33,6 +33,26 @@ def feature() -> Feature:
 
 # *** tests
 
+# ** test: feature_flags_creation_and_round_trip
+def test_feature_flags_creation_and_round_trip() -> None:
+    '''
+    Test that ``Feature.flags`` can be set on creation and that the
+    values are preserved through a serialization round-trip.
+    '''
+
+    feature = Feature.new(
+        name='Test Feature with Flags',
+        group_id='test_group',
+        flags=['global_flag', 'feature_specific_flag'],
+    )
+
+    assert feature.flags == ['global_flag', 'feature_specific_flag']
+
+    primitive = feature.to_primitive()
+    reloaded: Feature = ModelObject.new(Feature, **primitive)
+
+    assert reloaded.flags == ['global_flag', 'feature_specific_flag']
+
 # ** test: feature_new
 def test_feature_new():
     '''
@@ -232,6 +252,28 @@ def test_feature_set_description_none(feature: Feature) -> None:
     assert feature.feature_key == original_feature_key
     assert feature.name == original_name
     assert feature.commands == original_commands
+
+# ** test: feature_command_flags_creation_and_round_trip
+def test_feature_command_flags_creation_and_round_trip() -> None:
+    '''
+    Test that ``FeatureCommand.flags`` can be set on creation and that the
+    values are preserved through a serialization round-trip.
+    '''
+
+    command: FeatureCommand = ModelObject.new(
+        FeatureCommand,
+        name='Test Command',
+        attribute_id='attr',
+        flags=['flag1', 'flag2'],
+    )
+
+    assert command.flags == ['flag1', 'flag2']
+
+    primitive = command.to_primitive()
+    reloaded: FeatureCommand = ModelObject.new(FeatureCommand, **primitive)
+
+    assert reloaded.flags == ['flag1', 'flag2']
+
 
 # ** test: feature_command_set_pass_on_error_false_string
 def test_feature_command_set_pass_on_error_false_string() -> None:

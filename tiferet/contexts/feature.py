@@ -95,19 +95,33 @@ class FeatureContext(object):
         return result
 
     # * method: load_feature_command
-    def load_feature_command(self, attribute_id: str) -> Command:
+    def load_feature_command(self, feature_command: FeatureCommand, feature_flags: list[str] = None) -> Command:
         '''
-        Load a feature command by its attribute ID from the container.
+        Load a feature command from the container using its attribute ID and
+        any configured flags.
 
-        :param attribute_id: The attribute ID of the command to load.
-        :type attribute_id: str
+        :param feature_command: The feature command metadata describing the
+            container attribute and flags.
+        :type feature_command: FeatureCommand
+        :param feature_flags: Optional list of flags from the parent feature.
+        :type feature_flags: list[str]
         :return: The command object.
         :rtype: Command
         '''
 
-        # Attempt to retrieve the command from the container.
+        # Resolve the attribute identifier for the command.
+        attribute_id = feature_command.attribute_id
+
+        # Combine flags: feature-level (higher priority) first, then command-level.
+        combined_flags = (feature_flags or []) + (feature_command.flags or [])
+
+        # Attempt to retrieve the command from the container using the
+        # combined flags, if any.
         try:
-            return self.container.get_dependency(attribute_id)
+            return self.container.get_dependency(
+                attribute_id,
+                *combined_flags,
+            )
         
         # If the command is not found, raise an error.
         except Exception as e:
@@ -286,8 +300,9 @@ class FeatureContext(object):
         # Execute the feature by iterating over its configured commands.
         for feature_command in feature.commands:
 
-            # Load the command dependency for this feature command.
-            cmd = self.load_feature_command(feature_command.attribute_id)
+            # Load the command dependency for this feature command, honoring
+            # any configured flags.
+            cmd = self.load_feature_command(feature_command, feature_flags=feature.flags)
 
             # Parse the command parameters.
             params = {

@@ -8,7 +8,8 @@ from typing import (
     Any,
     Optional,
     List,
-    Callable
+    Callable,
+    Sequence
 )
 
 # ** app
@@ -21,6 +22,22 @@ class SqliteService(Service):
     '''
     Contract for SQLite service operations.
     '''
+
+    # * method: __enter__
+    @abstractmethod
+    def __enter__(self):
+        '''
+        Enter the runtime context related to this object.
+        '''
+        raise NotImplementedError('The __enter__ method must be implemented by the SQLite service.')
+
+    # * method: __exit__
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):
+        '''
+        Exit the runtime context related to this object.
+        '''
+        raise NotImplementedError('The __exit__ method must be implemented by the SQLite service.')
 
     # * execute
     @abstractmethod
@@ -70,24 +87,19 @@ class SqliteService(Service):
     
     # * method: fetch_one
     @abstractmethod
-    def fetch_one(self) -> Optional[Any]:
+    def fetch_one(self, query: str, parameters: Sequence[Any] = ()) -> Optional[Any]:
         '''
-        Fetch a single row from the result set.
-
-        :return: A single row from the result set.
-        :rtype: Optional[Any]
+        Execute query and return the next row (or None).
         '''
         
         raise NotImplementedError('The fetch_one method must be implemented by the SQLite service.')
     
     # * method: fetch_all
     @abstractmethod
-    def fetch_all(self) -> List[Any]:
+    def fetch_all(self, query: str, parameters: Sequence[Any] = ()) -> List[Any]:
         '''
-        Fetch all rows from the result set.
-
-        :return: All rows from the result set.
-        :rtype: List[Any]
+        Execute query and return all rows as list.
+        Row format follows current row_factory (tuple or dict-like).
         '''
         
         raise NotImplementedError('The fetch_all method must be implemented by the SQLite service.')

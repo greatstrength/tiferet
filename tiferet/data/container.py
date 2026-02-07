@@ -143,7 +143,7 @@ class ContainerAttributeConfigData(ContainerAttribute, DataObject):
         ModelType(FlaggedDependencyConfigData),
         default={},
         serialized_name='deps',
-        deserialize_from=['deps', 'dependencies'],
+        deserialize_from=['deps', 'dependencies', 'flags'],
         metadata=dict(
             description='The dependencies as key-value pairs, keyed by flags.'
         )

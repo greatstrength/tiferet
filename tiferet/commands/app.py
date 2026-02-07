@@ -4,10 +4,12 @@
 from typing import List, Dict, Any
 
 # ** app
-from .settings import Command, const
-from ..contracts.app import AppInterface as AppInterfaceContract, AppService
-from ..models.app import AppInterface
-from ..models.settings import ModelObject
+from .settings import Command, a
+from ..models import ModelObject, AppInterface
+from ..contracts import AppService, AppInterfaceContract
+
+# -- obsolete
+from .settings import const  # prefer a.const
 
 
 # *** commands
@@ -158,7 +160,7 @@ class GetAppInterface(Command):
         # Raise an error if the interface is not found.
         if not interface:
             self.raise_error(
-                const.APP_INTERFACE_NOT_FOUND_ID,
+                a.const.APP_INTERFACE_NOT_FOUND_ID,
                 f'App interface with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
@@ -341,7 +343,7 @@ class UpdateAppInterface(Command):
         # Verify that the interface exists.
         self.verify(
             expression=interface is not None,
-            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
             message=f'App interface with ID {id} not found.',
             interface_id=id,
         )
@@ -409,7 +411,7 @@ class SetAppConstants(Command):
         # Verify that the interface exists.
         self.verify(
             expression=interface is not None,
-            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
             message=f'App interface with ID {id} not found.',
             interface_id=id,
         )
@@ -537,7 +539,7 @@ class SetServiceDependency(Command):
         # Verify that the interface exists.
         self.verify(
             expression=interface is not None,
-            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
             message=f'App interface with ID {id} not found.',
             interface_id=id,
         )
@@ -610,7 +612,7 @@ class RemoveServiceDependency(Command):
         # Verify that the interface exists.
         self.verify(
             expression=interface is not None,
-            error_code=const.APP_INTERFACE_NOT_FOUND_ID,
+            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
             message=f'App interface with ID {id} not found.',
             interface_id=id,
         )

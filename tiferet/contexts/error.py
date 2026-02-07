@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 # ** app
 from .cache import CacheContext
@@ -69,16 +69,17 @@ class ErrorContext(object):
         return error
 
     # * method: handle_error
-    def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Any:
+    def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Dict[str, Any]:
         '''
-        Handle an error.
+        Format and return the structured error response dictionary.
+        Does not raise — raising is now handled by the calling context.
 
         :param exception: The exception to handle.
-        :type exception: Exception
+        :type exception: TiferetError | LegacyTiferetError
         :param lang: The language to use for the error message.
         :type lang: str
-        :return: Whether the error was handled.
-        :rtype: bool
+        :return: The formatted error response dictionary.
+        :rtype: Dict[str, Any]
         '''
 
         # Raise the exception if it is not a Tiferet error.
@@ -102,5 +103,5 @@ class ErrorContext(object):
                 **exception.kwargs
             )
 
-        # Raise a new TiferetAPIError with the formatted error message.
-        raise TiferetAPIError(**error.format_response(lang=lang, **exception.kwargs))
+        # Return the formatted response dictionary (no raise).
+        return error.format_response(lang=lang, **exception.kwargs)
