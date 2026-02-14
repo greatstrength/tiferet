@@ -18,21 +18,21 @@ from ..contracts import ErrorService
 
 # ** command: add_error
 class AddError(Command):
-    '''
+    """
     Command to add a new Error domain object to the repository.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the AddError command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
@@ -43,7 +43,7 @@ class AddError(Command):
             lang: str = 'en_US', 
             additional_messages: List[Dict[str, Any]] = []
         ) -> None:
-        '''
+        """
         Add a new Error to the app.
 
         :param id: The unique identifier of the error.
@@ -56,7 +56,7 @@ class AddError(Command):
         :type lang: str
         :param additional_messages: Additional error messages in different languages.
         :type additional_messages: List[Dict[str, Any]]
-        '''
+        """
 
         # Verfy that the id is not null/empty.
         self.verify_parameter(
@@ -104,26 +104,26 @@ class AddError(Command):
 
 # ** command: get_error
 class GetError(Command):
-    '''
+    """
     Command to retrieve an Error domain object by its ID.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the GetError command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, include_defaults: bool = False, **kwargs) -> Error:
-        '''
+        """
         Retrieve an Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -134,7 +134,7 @@ class GetError(Command):
         :type kwargs: dict
         :return: The Error domain model instance.
         :rtype: Error
-        '''
+        """
 
         # Attempt to retrieve from configured repository.
         error = self.error_service.get(id)
@@ -158,26 +158,26 @@ class GetError(Command):
 
 # ** command: list_errors
 class ListErrors(Command):
-    '''
+    """
     Command to list all Error domain objects.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the ListErrors command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, include_defaults: bool = False, **kwargs) -> List[Error]:
-        '''
+        """
         List all Errors.
 
         :return: The list of Error domain model instances.
@@ -186,7 +186,7 @@ class ListErrors(Command):
         :type include_defaults: bool
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
-        '''
+        """
 
         # If defaults are not included, retrieve from repository only.
         if not include_defaults:
@@ -202,26 +202,26 @@ class ListErrors(Command):
 
 # ** command: rename_error
 class RenameError(Command):
-    '''
+    """
     Command to rename an existing Error domain object.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the RenameError command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, new_name: str, **kwargs) -> Error:
-        '''
+        """
         Rename an existing Error by its ID.
 
         :param id: The unique identifier of the error to rename.
@@ -232,7 +232,7 @@ class RenameError(Command):
         :type kwargs: dict
         :return: The updated Error domain model instance.
         :rtype: Error
-        '''
+        """
 
         # Verify that the new name is not null/empty.
         self.verify_parameter(
@@ -263,26 +263,26 @@ class RenameError(Command):
 
 # ** command: set_error_message
 class SetErrorMessage(Command):
-    '''
+    """
     Command to set the message of an existing Error domain object.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the SetErrorMessage command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, message: str, lang: str = 'en_US', **kwargs) -> str:
-        '''
+        """
         Set the message of an existing Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -295,7 +295,7 @@ class SetErrorMessage(Command):
         :type kwargs: dict
         :return: The unique identifier of the updated error.
         :rtype: str
-        '''
+        """
 
         # Verify that the message is not null/empty.
         self.verify_parameter(
@@ -326,26 +326,26 @@ class SetErrorMessage(Command):
 
 # ** command: remove_error_message
 class RemoveErrorMessage(Command):
-    '''
+    """
     Command to remove a message from an existing Error domain object.
-    '''
+    """
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the RemoveErrorMessage command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, lang: str = 'en_US', **kwargs) -> str:
-        '''
+        """
         Remove a message from an existing Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -356,7 +356,7 @@ class RemoveErrorMessage(Command):
         :type kwargs: dict
         :return: The unique identifier of the updated error.
         :rtype: str
-        '''
+        """
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -386,33 +386,33 @@ class RemoveErrorMessage(Command):
 
 # ** command: remove_error
 class RemoveError(Command):
-    '''
+    """
     Command to remove an existing Error domain object by its ID.
-    '''
-
+    """
+    
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        '''
+        """
         Initialize the RemoveError command.
 
         :param error_repo: The error service to use.
         :type error_repo: ErrorService
-        '''
+        """
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, **kwargs) -> None:
-        '''
+        """
         Remove an existing Error by its ID.
 
         :param id: The unique identifier of the error to remove.
         :type id: str
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
-        '''
+        """
 
         # Verify that the id parameter is not null or empty.
         self.verify_parameter(
