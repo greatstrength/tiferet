@@ -1,13 +1,19 @@
 """Tiferet File Middleware"""
 
 # *** imports
+
+# ** core
 import os
 from typing import Any
 
-# *** middleware
+# ** app
+from ..commands import TiferetError, const
+from ..contracts import FileService
 
-#* middleware: file_loader
-class FileLoaderMiddleware:
+# *** classes
+
+#* class: file_loader_middleware
+class FileLoaderMiddleware(FileService):
     '''
     Middleware for loading files into the application.
     '''
@@ -42,9 +48,6 @@ class FileLoaderMiddleware:
         :type newline: str
         '''
 
-        # Verify the file path.
-        self.verify_file(path)
-
         # Verify the file mode.
         self.verify_mode(mode)
 
@@ -70,11 +73,21 @@ class FileLoaderMiddleware:
         :type path: str
         '''
 
-        # Validate the file path.
+        # Raise an error if the file does not exist.
         if not os.path.exists(path):
-            raise FileNotFoundError(f'File not found: {path}')
+            raise TiferetError(
+                const.FILE_NOT_FOUND_ID,
+                f'File not found: {path}.',
+                path=path
+            )
+        
+        # Raise an error if the path is not a file.
         if not os.path.isfile(path):
-            raise ValueError(f'Path is not a file: {path}')
+            raise TiferetError(
+                const.INVALID_FILE_ID,
+                f'Path is not a file: {path}.',
+                path=path
+            )
         
     # * method: verify_mode
     def verify_mode(self, mode: str):
@@ -88,7 +101,12 @@ class FileLoaderMiddleware:
         # Validate the file mode.
         valid_modes = ['r', 'w', 'a', 'rb', 'wb', 'ab']
         if mode not in valid_modes:
-            raise ValueError(f'Invalid file mode: {mode}. Supported modes are: {str(valid_modes)}.')
+            raise TiferetError(
+                const.INVALID_FILE_MODE_ID,
+                f'Invalid file mode: {mode}. Valid modes include {str(valid_modes)}',
+                mode=mode,
+                modes=str(valid_modes)
+            )
         
     # * method: verify_encoding
     def verify_encoding(self, encoding: str):
@@ -101,7 +119,11 @@ class FileLoaderMiddleware:
 
         # Validate the encoding.
         if encoding not in ['utf-8', 'ascii', 'latin-1']:
-            raise ValueError(f'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.')
+            raise TiferetError(
+                const.INVALID_ENCODING_ID,
+                f'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.',
+                encoding=encoding     
+            )
         
     # * method: open_file
     def open_file(self):
@@ -112,9 +134,16 @@ class FileLoaderMiddleware:
         :rtype: Any
         '''
 
+        # Verify the file before opening it.
+        self.verify_file(self.path)
+
         # Raise a RuntimeError if the file is already open to prevent multiple openings.
         if self.file is not None:
-            raise RuntimeError(f'File is already open: {self.path}')
+            raise TiferetError(
+                const.FILE_ALREADY_OPEN_ID,
+                f'File is already open: {self.path}.',
+                path=self.path
+            )
         
         # Open the file with the specified parameters.
         self.file = open(

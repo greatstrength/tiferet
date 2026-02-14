@@ -33,6 +33,7 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = [
     "tiferet",
+    "tiferet.assets",
     "tiferet.clients",
     "tiferet.commands",
     "tiferet.configs",
@@ -43,7 +44,11 @@ include = [
     "tiferet.middleware",
     "tiferet.models",
     "tiferet.proxies",
-    "tiferet.proxies.yaml"
+    "tiferet.proxies.yaml",
+    "tiferet.proxies.json",
+    "tiferet.proxies.csv",
+    "tiferet.repos",
+    "tiferet.repos.config",
 ]
 
 [tool.setuptools.dynamic]

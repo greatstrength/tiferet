@@ -38,14 +38,6 @@ class CliCommandConfigData(CliCommand, DataObject):
             'to_data.json': DataObject.deny('id', 'arguments', 'key', 'group_key'),
         }
 
-    # * class: cli_argument_config_data
-    class CliArgumentConfigData(CliArgument, DataObject):
-        '''
-        Represents the YAML data for a CLI argument.
-        '''
-
-        pass
-
     # * attribute: id
     id = StringType(
         metadata=dict(
@@ -55,7 +47,7 @@ class CliCommandConfigData(CliCommand, DataObject):
 
     # * attribute: arguments
     arguments = ListType(
-        ModelType(CliArgumentConfigData),
+        ModelType(CliArgument),
         serialized_name='args',
         deserialize_from=['args', 'arguments'],
         default=[],

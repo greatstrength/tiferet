@@ -4,8 +4,8 @@
 from typing import Dict, Any
 
 # ** app
-from ..configs import TiferetError
-
+from ..assets import TiferetError
+from .. import assets, assets as a
 
 # *** classes
 
@@ -30,7 +30,7 @@ class Command(object):
         raise NotImplementedError()
 
     # * method: raise_error
-    def raise_error(self, error_code: str, message: str = None, *args):
+    def raise_error(self, error_code: str, message: str = None, **kwargs):
         '''
         Raise an error with the given error code and arguments.
 
@@ -38,8 +38,8 @@ class Command(object):
         :type error_code: str
         :param message: The error message.
         :type message: str
-        :param args: Additional error arguments.
-        :type args: tuple
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
         '''
 
         # Raise the TiferetError with the given error code and arguments.
@@ -67,11 +67,11 @@ class Command(object):
         raise TiferetError(
             error_code,
             message,
-            *args
-        )
+            **kwargs
+        )    
 
     # * method: verify
-    def verify(self, expression: bool, error_code: str, message: str = None, *args):
+    def verify(self, expression: bool, error_code: str, message: str = None, **kwargs):
         '''
         Verify an expression and raise an error if it is false.
 
@@ -81,8 +81,8 @@ class Command(object):
         :type error_code: str
         :param message: The error message.
         :type message: str
-        :param args: Additional error arguments.
-        :type args: tuple
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
         '''
 
         # Verify the expression.
@@ -92,8 +92,30 @@ class Command(object):
             self.raise_error(
                 error_code,
                 message,
-                *args
+                **kwargs
             )
+
+    # * method: verify_parameter
+    def verify_parameter(self, parameter: Any, parameter_name: str, command_name: str):
+        '''
+        Verify that a command parameter is not null or empty.
+
+        :param parameter: The parameter to verify.
+        :type parameter: Any
+        :param parameter_name: The name of the parameter.
+        :type parameter_name: str
+        :param command_name: The name of the command.
+        :type command_name: str
+        '''
+
+        # Verify the parameter is not null or empty.
+        self.verify(
+            expression=parameter is not None and (not isinstance(parameter, str) or bool(parameter.strip())),
+            error_code=assets.COMMAND_PARAMETER_REQUIRED_ID,
+            message=f'The "{parameter_name}" parameter is required for the "{command_name}" command.',
+            parameter=parameter_name,
+            command=command_name
+        )
 
     # * method: handle
     @staticmethod

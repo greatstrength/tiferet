@@ -16,11 +16,13 @@ import yaml
 
 # ** app
 from .file import FileLoaderMiddleware
+from ..commands import TiferetError, const
+from ..contracts import ConfigurationService
 
 # *** middleware
 
 #* middleware: yaml_loader
-class YamlLoaderMiddleware(FileLoaderMiddleware):
+class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
     '''
     Middleware for loading YAML files into the application.
     '''
@@ -67,24 +69,46 @@ class YamlLoaderMiddleware(FileLoaderMiddleware):
         return super().__exit__(exc_type, exc_value, traceback)
     
     # * method: verify_file
-    @staticmethod
-    def verify_file(path: str):
+    def verify_file(self, path: str):
         '''
-        Verify that the YAML file exists and is accessible.
-
-        :param path: The path to the YAML file.
-        :type path: str
+        Verify that the opened file is a valid YAML file.
         '''
 
-        # Use the parent class's verify_file method to check file existence.
-        FileLoaderMiddleware.verify_file(path)
+        # Attempt to load the YAML content to verify its validity.
+        # Verify that the configuration file is a valid YAML file.
+        if not path or (not path.endswith('.yaml') and not path.endswith('.yml')):
+            raise TiferetError(
+                const.INVALID_YAML_FILE_ID,
+                f'File {path} is not a valid YAML file.',
+                path=path
+            )
+        
+        super().verify_file(path)
 
-        # Validate the file extension.
-        _, ext = os.path.splitext(path)
-        if ext.lower() not in ['.yml', '.yaml']:
-            raise ValueError(f'File is not a valid YAML file: {path}')
+    # * method: load
+    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+        '''
+        Load the YAML file and return its contents as a dictionary.
+
+        :param start_node: A callable to specify the starting node for loading data from the YAML file. Defaults to a lambda that returns the data as is.
+        :type start_node: Callable
+        :param data_factory: A callable to specify how to create data objects from the loaded YAML data. Defaults to a lambda that returns the data as is.
+        :type data_factory: Callable
+        :return: The contents of the YAML file as a dictionary.
+        :rtype: List[Any] | Dict[str, Any]
+        '''
+
+        # Load the YAML content from the file.
+        yaml_content = yaml.safe_load(self.file)
+        
+        # Navigate to the start node of the loaded YAML content.
+        yaml_content = start_node(yaml_content)
+
+        # Return the YAML content processed by the data factory.
+        return data_factory(yaml_content)
 
     # * method: load_yaml
+    # - obsolete, use load() instead
     def load_yaml(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
         '''
         Load the YAML file and return its contents as a dictionary.
@@ -93,30 +117,28 @@ class YamlLoaderMiddleware(FileLoaderMiddleware):
         :rtype: List[Any] | Dict[str, Any]
         '''
 
-        # Load the YAML content from the file.
-        yaml_content = yaml.safe_load(self.file)
-        
-        # Return the loaded YAML content as a dictionary.
-        return start_node(yaml_content)
-    
-    # * method: save_yaml
-    def save_yaml(self, data: Dict[str, Any], data_yaml_path: str = None):
+        # Call the load method to get the YAML content.
+        return self.load(start_node=start_node)
+
+    # * method: save
+    def save(self, data: Dict[str, Any], data_path: str = None):
         '''
         Save a dictionary as a YAML file.
 
         :param data: The dictionary to save as YAML.
         :type data: Dict[str, Any]
-        :param data_yaml_path: The path to save the YAML file to. If None, saves to the current file.
-        :type data_yaml_path: str
+        :param data_path: The path to save the YAML file to. If None, saves to the current file.
+        :type data_path: str
         '''
 
         # If a specific path is not provided, save to the current file using the context manager.
-        if not data_yaml_path:
+        if not data_path:
             yaml.safe_dump(data, self.file)
             return
 
-        # Get the data save path list.
-        save_path_list = data_yaml_path.split('/')
+        # Get the data save path list. Replace any '.' with '/' for path consistency.
+        data_path = data_path.replace('.', '/')
+        save_path_list = data_path.split('/')
 
         # Update the yaml data.
         new_yaml_data = None
@@ -150,3 +172,18 @@ class YamlLoaderMiddleware(FileLoaderMiddleware):
 
         # Save the updated yaml data.
         yaml.safe_dump(self.cache_data, self.file)
+
+    # * method: save_yaml
+    # - obsolete, use save() instead
+    def save_yaml(self, data: Dict[str, Any], data_yaml_path: str = None):
+        '''
+        Save a dictionary as a YAML file.
+
+        :param data: The dictionary to save as YAML.
+        :type data: Dict[str, Any]
+        :param data_yaml_path: The path to save the YAML file to. If None, saves to the current file.
+        :type data_yaml_path: str
+        '''
+
+        # Call the save method to save the YAML content.
+        self.save(data, data_path=data_yaml_path)

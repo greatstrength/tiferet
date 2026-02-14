@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, ContainerAttributeConfigData
 from ..container import ContainerYamlProxy
 
@@ -107,6 +107,7 @@ def test_container_yaml_proxy_load_yaml_file_not_found(container_yaml_proxy: Con
     # Verify the error message.
     assert exc_info.value.error_code == 'CONTAINER_CONFIG_LOADING_FAILED'
     assert 'Unable to load container configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test: container_yaml_proxy_list_all_empty
 def test_container_yaml_proxy_list_all_empty(container_yaml_proxy: ContainerYamlProxy, tmp_path):
@@ -128,7 +129,7 @@ def test_container_yaml_proxy_list_all_empty(container_yaml_proxy: ContainerYaml
         }, f)
 
     # Replace the config file path in the proxy.
-    container_yaml_proxy.yaml_file = file_path
+    container_yaml_proxy.yaml_file = str(file_path)
 
     # List all the container attributes.
     container_attributes, constants = container_yaml_proxy.list_all()

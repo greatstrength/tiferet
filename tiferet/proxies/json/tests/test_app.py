@@ -7,7 +7,7 @@ import pytest
 import json
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
 from ....data import DataObject, AppInterfaceConfigData
 from ..app import AppJsonProxy
 
@@ -120,6 +120,7 @@ def test_app_json_proxy_load_json_file_not_found(app_json_proxy: AppJsonProxy):
     # Check the exception message.
     assert exc_info.value.error_code == 'APP_CONFIG_LOADING_FAILED'
     assert 'Unable to load app configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == 'non_existent_file.yml'
 
 # ** test: app_json_proxy_list_interfaces
 def test_app_json_proxy_list_interfaces(app_json_proxy: AppJsonProxy):

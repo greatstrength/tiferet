@@ -3,21 +3,40 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+import time
+from typing import Dict, Any, List
 
 # ** app
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
-from ..configs.app import DEFAULT_ATTRIBUTES
+from ..assets import TiferetError, TiferetAPIError
+from ..assets.constants import (
+    DEFAULT_ATTRIBUTES,
+    APP_REPOSITORY_IMPORT_FAILED_ID,
+    DEFAULT_APP_SERVICE_MODULE_PATH,
+    DEFAULT_APP_SERVICE_CLASS_NAME,
+)
 from ..models import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
-from ..handlers.app import AppHandler
-from ..commands import TiferetError
+from ..contracts.app import AppRepository
+from ..commands import (
+    Command,
+    ImportDependency,
+    TiferetError as CommandTiferetError,
+    RaiseError,
+)
+from ..commands.dependencies import (
+    create_injector,
+    get_dependency,
+)
+from ..commands.dependencies import create_injector, get_dependency
+from ..commands.app import GetAppInterface
+from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts
 
@@ -31,25 +50,128 @@ class AppManagerContext(object):
     # * attribute: settings
     settings: Dict[str, Any]
 
-    # * attribute: app_service
-    app_service: AppHandler
-
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}, app_service: AppHandler = None):
+    def __init__(self, settings: Dict[str, Any] = {}):
         '''
-        Initialize the AppManagerContext with an application service.
+        Initialize the AppManagerContext with application settings.
 
-        :param settings: The application settings.
+        :param settings: The application settings used to configure the app repository.
         :type settings: dict
-        :param app_service: The application service to use.
-        :type app_service: AppService
         '''
 
         # Set the settings.
         self.settings = settings
 
-        # Set the app service.
-        self.app_service = app_service
+    # * method: load_app_repo
+    def load_app_repo(self) -> AppRepository:
+        '''
+        Load the application repository using the configured settings.
+
+        :return: The application repository instance.
+        :rtype: AppRepository
+        '''
+
+        # Resolve repository module path, class name, and parameters from settings with defaults.
+        app_repo_module_path = self.settings.get('app_repo_module_path', DEFAULT_APP_SERVICE_MODULE_PATH)
+        app_repo_class_name = self.settings.get('app_repo_class_name', DEFAULT_APP_SERVICE_CLASS_NAME)
+        app_repo_params = self.settings.get('app_repo_params', dict(
+            app_config_file='app/configs/app.yml'
+        ))
+
+        # Import and construct the app repository.
+        try:
+            repository_cls = ImportDependency.execute(
+                app_repo_module_path,
+                app_repo_class_name,
+            )
+            app_repo: AppRepository = repository_cls(**app_repo_params)
+
+        # Wrap import failures in a structured Tiferet error.
+        except CommandTiferetError as e:
+            RaiseError.execute(
+                APP_REPOSITORY_IMPORT_FAILED_ID,
+                f'Failed to import app repository: {e}.',
+                exception=str(e),
+            )
+
+        # Return the imported app repository.
+        return app_repo
+
+    # * method: load_default_attributes
+    def load_default_attributes(self) -> List[AppAttribute]:
+        '''
+        Load the default app attributes from the configuration constants.
+
+        :return: A list of default app attributes.
+        :rtype: List[AppAttribute]
+        '''
+
+        # Retrieve the default attributes from the configuration constants.
+        return [
+            ModelObject.new(
+                AppAttribute,
+                **attr_data,
+                validate=False,
+            )
+            for attr_data in DEFAULT_ATTRIBUTES
+        ]
+
+    # * method: load_app_instance
+    def load_app_instance(self, app_interface: Any, default_attrs: List[AppAttribute]) -> Any:
+        '''
+        Load the app instance based on the provided app interface settings.
+
+        :param app_interface: The app interface definition.
+        :type app_interface: Any
+        :param default_attrs: The default configured attributes for the app.
+        :type default_attrs: List[AppAttribute]
+        :return: The app interface context instance.
+        :rtype: Any
+        '''
+
+        # Retrieve the app context dependency and logger id.
+        dependencies = dict(
+            app_context=ImportDependency.execute(
+                app_interface.module_path,
+                app_interface.class_name,
+            ),
+            logger_id=getattr(app_interface, 'logger_id', None),
+        )
+
+        # Add the remaining app context attributes and parameters to the dependencies.
+        for attr in app_interface.attributes:
+            dependencies[attr.attribute_id] = ImportDependency.execute(
+                attr.module_path,
+                attr.class_name,
+            )
+            for param, value in attr.parameters.items():
+                dependencies[param] = value
+
+        # Add the default attributes and parameters to the dependencies if they do not already exist.
+        for attr in default_attrs:
+            if attr.attribute_id not in dependencies:
+                dependencies[attr.attribute_id] = ImportDependency.execute(
+                    attr.module_path,
+                    attr.class_name,
+                )
+                for param, value in attr.parameters.items():
+                    dependencies[param] = value
+
+        # Add the constants from the app interface to the dependencies.
+        dependencies.update(app_interface.constants)
+
+        # Create the injector.
+        injector = create_injector.execute(
+            app_interface.id,
+            dependencies,
+            interface_id=app_interface.id,
+        )
+
+        # Return the app interface context.
+        return get_dependency.execute(
+            injector,
+            dependency_name='app_context',
+        )
 
     # * method: load_interface_config
 
@@ -82,25 +204,30 @@ class AppManagerContext(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Get the app interface settings.
-        app_interface = self.app_service.get_app_interface(interface_id)
+        # Load the app repository or service implementation.
+        app_repo: AppRepository = self.load_app_repo()
+
+        # Get the app interface settings via the AppService abstraction.
+        app_interface = Command.handle(
+            GetAppInterface,
+            dependencies=dict(
+                app_service=app_repo,
+            ),
+            interface_id=interface_id,
+        )
 
         # Retrieve the default attributes from the configuration.
-        default_attrs = [ModelObject.new(
-            AppAttribute,
-            **attr_data,
-            validate=False
-        ) for attr_data in DEFAULT_ATTRIBUTES]
+        default_attrs = self.load_default_attributes()
 
         # Create the app interface context.
-        app_interface_context = self.app_service.load_app_instance(app_interface)
+        app_interface_context = self.load_app_instance(app_interface, default_attrs=default_attrs)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
             raise TiferetError(
                 'APP_INTERFACE_INVALID',
                 f'App context for interface is not valid: {interface_id}.',
-                interface_id
+                interface_id=interface_id,
             )
 
         # Return the app interface context.
@@ -233,7 +360,7 @@ class AppInterfaceContext(object):
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
-        Handle the error and return the response.
+        Handle the error by formatting it via ErrorContext and raising TiferetAPIError.
 
         :param error: The error to handle.
         :type error: Exception
@@ -248,11 +375,14 @@ class AppInterfaceContext(object):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
-                str(error)
+                error=str(error)
             )
 
-        # Handle the error and return the response.
-        return self.errors.handle_error(error, **kwargs)
+        # Get formatted response from ErrorContext.
+        formatted_error = self.errors.handle_error(error)
+
+        # Raise the API exception with the formatted payload.
+        raise TiferetAPIError(**formatted_error)
 
     # * method: handle_response
     def handle_response(self, request: RequestContext, **kwargs) -> Any:
@@ -289,6 +419,9 @@ class AppInterfaceContext(object):
         :type kwargs: dict
         '''
 
+        # Start timing immediately.
+        start_time = time.perf_counter()
+
         # Create the logger for the app interface context.
         logger = self.logging.build_logger()
 
@@ -298,7 +431,6 @@ class AppInterfaceContext(object):
 
         # Execute feature context and return session.
         try:
-            logger.info(f'Executing feature: {feature_id}')
             logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(
                 feature_id=feature_id, 
@@ -307,10 +439,35 @@ class AppInterfaceContext(object):
                 **kwargs)
 
         # Handle error and return response if triggered.
-        except TiferetError as e:
+        except (TiferetError, LegacyTiferetError) as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e, **kwargs)
 
-        # Handle response.
+        # Calculate execution duration in milliseconds.
+        duration_ms = round((time.perf_counter() - start_time) * 1000)
+        duration_str = f" ({duration_ms}ms)"
+
+        # Log successful execution with timing.
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
-        return self.handle_response(request, **kwargs)
+        logger.info(f'Executed Feature - {feature_id}{duration_str}')
+
+        # Handle response.
+        return self.handle_response(request)
+
+# ** context: app_context (obsolete)
+class AppContext(AppManagerContext):
+    '''
+    The AppContext is an obsolete class that extends the AppManagerContext.
+    It is kept for backward compatibility but should not be used in new code.
+    '''
+
+    # * init
+    def __init__(self, settings: Dict[str, Any] = {}):
+        '''
+        Initialize the obsolete AppContext.
+
+        :param settings: The application settings.
+        :type settings: dict
+        '''
+
+        super().__init__(settings)

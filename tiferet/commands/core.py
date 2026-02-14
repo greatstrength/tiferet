@@ -6,12 +6,14 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import *
+from .settings import Command
+from ..configs import TiferetError as LegacyTiferetError
 
 
 # *** commands
 
 # ** command: parse_parameter
+# -- obsolete: This command is now part of the static commands.
 class ParseParameter(Command):
     '''
     A command to parse a parameter from a string.
@@ -50,12 +52,13 @@ class ParseParameter(Command):
             self.raise_error(
                 'PARAMETER_PARSING_FAILED',
                 f'Failed to parse parameter: {parameter}. Error: {str(e)}',
-                parameter,
-                str(e)
+                parameter=parameter,
+                exception=str(e)
             )
 
 
 # ** command: import_dependency
+# -- obsolete: This command is now part of the static commands.
 class ImportDependency(Command):
     '''
     A command to import a dependency from a module.
@@ -91,6 +94,7 @@ class ImportDependency(Command):
 
 
 # ** command: raise_error
+# -- obsolete: This command is now part of the static commands.
 class RaiseError(Command):
     '''
     A command to raise an error with a specific message.
@@ -129,10 +133,13 @@ class RaiseError(Command):
 # *** command_variables
 
 # ** command_variable: parse_parameter
+# -- obsolete: This command is now part of the static commands.
 parse_parameter = ParseParameter()
 
 # ** command_variable: import_dependency
+# -- obsolete: This command is now part of the static commands.
 import_dependency = ImportDependency()
 
 # ** command_variable: raise_error
+# -- obsolete: This command is now part of the static commands.
 raise_error = RaiseError()

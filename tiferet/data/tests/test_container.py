@@ -242,15 +242,13 @@ def test_container_attribute_yaml_data_from_model(container_attribute_config_dat
     # Create a new model object from the fixture.
     model_object = container_attribute_config_data.map()
     
-    # Update the model object with a new dependency.
-    new_dep = ModelObject.new(
-        FlaggedDependency,
-        module_path='tests.repos.test',
-        class_name='TestRepoProxy3',
-        flag='test3',
-        parameters={'param3': 'value3'}
+    # Add another dependency to the model object.
+    model_object.set_dependency(
+        flag = 'test3',
+        module_path = 'tests.repos.test',
+        class_name = 'TestRepoProxy3',
+        parameters = {'param3': 'value3'}
     )
-    model_object.set_dependency(new_dep)
     
     # Create a new data object from the model object.
     data_object = ContainerAttributeConfigData.from_model(model_object)
@@ -266,3 +264,39 @@ def test_container_attribute_yaml_data_from_model(container_attribute_config_dat
         assert dep.module_path == 'tests.repos.test'
         assert dep.class_name in ['TestRepoProxy', 'TestRepoProxy2', 'TestRepoProxy3']
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}, {'param3': 'value3'}]
+
+
+# ** test: container_attribute_yaml_data_flags_alias_round_trip
+def test_container_attribute_yaml_data_flags_alias_round_trip() -> None:
+    '''
+    Test that the ``flags`` alias for dependencies is accepted on input and
+    that dependencies are still serialized under ``deps``.
+    '''
+
+    data_object = ContainerAttributeConfigData.from_data(
+        id='test_repo_flags',
+        type='data',
+        module_path='tests.repos.test',
+        class_name='DefaultTestRepoProxy',
+        flags=dict(
+            flag1=dict(
+                module_path='tests.repos.test',
+                class_name='TestRepoProxy',
+                params={'test_param': 'test_value'},
+            ),
+        ),
+        params=dict(
+            test_param='test_value',
+        ),
+    )
+
+    # The alias should populate the dependencies mapping keyed by flag.
+    assert isinstance(data_object, ContainerAttributeConfigData)
+    assert 'flag1' in data_object.dependencies
+    assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyConfigData)
+
+    # When serializing to data, dependencies should still be emitted as ``deps``.
+    primitive = data_object.to_primitive(role='to_data.yaml')
+    assert 'flags' not in primitive
+    assert 'deps' in primitive
+    assert 'flag1' in primitive['deps']

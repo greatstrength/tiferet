@@ -7,7 +7,8 @@ import pytest
 import yaml
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
+from ....models import ModelObject, CliArgument
 from ....data import DataObject, CliCommandConfigData
 from ..cli import CliYamlProxy
 
@@ -38,21 +39,23 @@ def cli_config_file(tmp_path) -> str:
                     }
                 ],
                 'cmds': {
-                    'test_group.test_feature': {
-                        'group_key': 'test-group',
-                        'key': 'test-feature',
-                        'name': 'Test Feature Command',
-                        'description': 'A test feature command.',
-                        'args': [
-                            {
-                                'name_or_flags': ['--arg1', '-a'],
-                                'description': 'Argument 1'
-                            },
-                            {
-                                'name_or_flags': ['--arg2', '-b'],
-                                'description': 'Argument 2'
-                            }
-                        ]
+                    'test_group': { 
+                        'test_feature': {
+                            'group_key': 'test-group',
+                            'key': 'test-feature',
+                            'name': 'Test Feature Command',
+                            'description': 'A test feature command.',
+                            'args': [
+                                {
+                                    'name_or_flags': ['--arg1', '-a'],
+                                    'description': 'Argument 1'
+                                },
+                                {
+                                    'name_or_flags': ['--arg2', '-b'],
+                                    'description': 'Argument 2'
+                                }
+                            ]
+                        }
                     }
                 }
             }
@@ -113,6 +116,7 @@ def test_cli_yaml_proxy_load_yaml_file_not_found(cli_yaml_proxy: CliYamlProxy):
     # Verify the error message.
     assert exc_info.value.error_code == 'CLI_CONFIG_LOADING_FAILED'
     assert 'Unable to load CLI configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('yaml_file') == 'non_existent_file.yml'
 
 # ** test: cli_yaml_proxy_get_command
 def test_cli_yaml_proxy_get_command(cli_yaml_proxy: CliYamlProxy):
@@ -281,8 +285,8 @@ def test_cli_yaml_proxy_save_parent_arguments(
 
     # Create new parent arguments to save.
     new_parent_args = [
-        DataObject.from_data(
-            CliCommandConfigData.CliArgumentConfigData,
+        ModelObject.new(
+            CliArgument,
             name_or_flags=['--new-parent-arg', '-P'],
             description='New parent argument',
             required=True

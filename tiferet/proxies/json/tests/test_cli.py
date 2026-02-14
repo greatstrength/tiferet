@@ -7,7 +7,8 @@ import pytest
 import json
 
 # ** app
-from ....commands import TiferetError
+from ....assets import TiferetError
+from ....models import ModelObject, CliArgument
 from ....data import DataObject, CliCommandConfigData
 from ..cli import CliJsonProxy
 
@@ -113,6 +114,7 @@ def test_cli_json_proxy_load_json_file_not_found(cli_json_proxy: CliJsonProxy):
     # Verify the error message.
     assert exc_info.value.error_code == 'CLI_CONFIG_LOADING_FAILED'
     assert 'Unable to load CLI configuration file' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('json_file') == cli_json_proxy.json_file
 
 # ** test: cli_json_proxy_get_command
 def test_cli_json_proxy_get_command(cli_json_proxy: CliJsonProxy):
@@ -278,8 +280,8 @@ def test_cli_json_proxy_save_parent_arguments(
 
     # Create new parent arguments to save.
     new_parent_args = [
-        DataObject.from_data(
-            CliCommandConfigData.CliArgumentConfigData,
+        ModelObject.new(
+            CliArgument,
             name_or_flags=['--new-parent-arg', '-P'],
             description='New parent argument',
             required=True

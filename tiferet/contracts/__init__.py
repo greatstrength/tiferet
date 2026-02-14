@@ -9,33 +9,40 @@ from .settings import (
     Service,
 )
 from .app import (
-    AppInterfaceContract,
-    AppAttributeContract,
-    AppRepository
+    AppInterface as AppInterfaceContract,
+    AppAttribute as AppAttributeContract,
+    AppRepository,
+    AppService,
 )
 from .cli import (
     CliArgument as CliArgumentContract,
     CliCommand as CliCommandContract,
     CliRepository
 )
+from .config import ConfigurationService
 from .container import (
     ContainerAttribute as ContainerAttributeContract,
     FlaggedDependency as FlaggedDependencyContract,
-    ContainerRepository
+    ContainerRepository,
+    ContainerService
 )
 from .error import (
     Error as ErrorContract,
     ErrorMessage as ErrorMessageContract,
-    ErrorRepository
+    ErrorRepository,
+    ErrorService
 )
 from .feature import (
-    FeatureContract,
-    FeatureCommandContract,
-    FeatureRepository
+    Feature as FeatureContract,
+    FeatureCommand as FeatureCommandContract,
+    FeatureRepository,
+    FeatureService
 )
+from .file import FileService
 from .logging import (
     FormatterContract,
     HandlerContract,
     LoggerContract,
     LoggingRepository
 )
+from .sqlite import SqliteService

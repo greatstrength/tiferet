@@ -183,7 +183,7 @@ def test_cli_context_run_with_parse_request_error(cli_context, cli_service, logg
     logger.error.assert_called_once_with('Error parsing CLI request: Parsing error')
 
 # ** test: cli_context_run_with_feature_error
-def test_cli_context_run_with_feature_error(cli_context, feature_context, logging_context):
+def test_cli_context_run_with_feature_error(cli_context, feature_context, error_context, logging_context):
     """
     Test the run method of the CLI context when there is an error in executing the feature.
 
@@ -191,6 +191,8 @@ def test_cli_context_run_with_feature_error(cli_context, feature_context, loggin
     :type cli_context: CliContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -199,6 +201,13 @@ def test_cli_context_run_with_feature_error(cli_context, feature_context, loggin
         'FEATURE_EXECUTION_FAILED',
         'Feature execution failed'
     )
+
+    # Mock the ErrorContext to return a properly formatted error dict.
+    error_context.handle_error.return_value = {
+        'error_code': 'FEATURE_EXECUTION_FAILED',
+        'name': 'Feature Execution Failed',
+        'message': 'Feature execution failed'
+    }
 
     # Run the CLI context and capture the output.
     with pytest.raises(SystemExit) as exc_info:

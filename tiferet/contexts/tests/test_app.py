@@ -15,7 +15,7 @@ from ...models import (
     AppInterface,
     AppAttribute,
 )
-from ...contracts import AppRepository
+from ...contracts import AppService
 from ..app import (
     FeatureContext,
     ErrorContext,
@@ -23,11 +23,38 @@ from ..app import (
     RequestContext,
     AppInterfaceContext,
     AppManagerContext,
-    TiferetError,
-    AppHandler,
 )
+from ...assets import TiferetError, TiferetAPIError
+from ...assets.constants import (
+    DEFAULT_ATTRIBUTES,
+    DEFAULT_APP_SERVICE_MODULE_PATH,
+    DEFAULT_APP_SERVICE_CLASS_NAME,
+)
+from ...models import (
+    ModelObject,
+    AppInterface,
+    AppAttribute,
+)
+from ...contracts import AppService
+from ...repos.config.app import AppConfigurationRepository
 
 # *** fixtures
+
+# ** fixture: settings
+@pytest.fixture
+def settings():
+    """Fixture to provide application settings for a custom app service.
+
+    Uses the AppConfigurationRepository as the backing AppService.
+    """
+
+    return {
+        'app_repo_module_path': 'tiferet.repos.config.app',
+        'app_repo_class_name': 'AppConfigurationRepository',
+        'app_repo_params': {
+            'app_config_file': 'tiferet/configs/tests/test.yml',
+        },
+    }
 
 # ** app_interface
 @pytest.fixture
@@ -48,34 +75,8 @@ def app_interface():
         description='The test app.',
         feature_flag='test',
         data_flag='test',
-        attributes=[
-            ModelObject.new(
-                AppAttribute,
-                attribute_id='test_attribute',
-                module_path='test_module_path',
-                class_name='test_class_name',
-            ),
-        ],
+        attributes=[],
     )
-
-# ** fixture: app_repo
-@pytest.fixture
-def app_repo(app_interface):
-    """
-    Fixture to create a mock AppRepository instance.
-
-    :return: A mock instance of AppRepository.
-    :rtype: AppRepository
-    """
-
-    # Create a mock AppRepository instance.
-    app_repo = mock.Mock(spec=AppRepository)
-
-    # Set the return value for the get_interface method.
-    app_repo.get_interface.return_value = app_interface
-
-    # Return the mock AppRepository instance.
-    return app_repo
 
 # ** fixture: feature_context
 @pytest.fixture
@@ -155,43 +156,24 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         logging=logging_context,
     )
 
-# ** fixture: app_service
-@pytest.fixture
-def app_service(app_interface, app_interface_context):
-    """Fixture to provide a mock app service."""
-
-    # Create a mock app service.
-    service = mock.Mock(spec=AppHandler)
-
-    # Mock the get_app_interface method to return the app interface context.
-    service.get_app_interface.return_value = app_interface
-    service.load_app_instance.return_value = app_interface_context
-
-    # Return the mock app service.
-    return service
-
 # ** fixture: app_manager_context
 @pytest.fixture
-def app_manager_context(app_service):
+def app_manager_context():
     """
     Fixture to provide an AppManagerContext instance.
 
-    :param app_service: The mock app service.
-    :type app_service: AppService
     :return: An instance of AppManagerContext.
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance.
+    # Return the AppManagerContext instance using test settings with AppConfigurationRepository
+    # and a test-specific configuration file.
     return AppManagerContext(
         dict(
-            app_repo_module_path='tiferet.proxies.yaml.app',
-            app_repo_class_name='AppYamlProxy',
             app_repo_params=dict(
-                app_config_file='tiferet/configs/app.yaml',
-            )
+                app_config_file='tiferet/configs/tests/test_calc.yml',
+            ),
         ),
-        app_service
     )
 
 # ** fixture: features
@@ -238,37 +220,24 @@ def app_context_interface(app_context, app_interface, features, container_attrib
 
 # *** tests
 
-# ** test: app_manager_context_get_app_interface
-def test_app_manager_context_get_app_interface(app_manager_context, app_repo, app_interface):
-    """
-    Test the get_app_interface method of AppManagerContext.
+# ** test: app_manager_context_load_app_repo_defaults
+def test_app_manager_context_load_app_repo_defaults():
+    """Validate that AppManagerContext defaults to AppConfigurationRepository.
 
-    :param app_manager_context: The AppManagerContext instance.
-    :type app_manager_context: AppManagerContext
-    :param app_repo: The mock AppRepository instance.
-    :type app_repo: AppRepository
-    :param app_interface: The mock AppInterface instance.
-    :type app_interface: AppInterface
+    This ensures that when no custom repository settings are provided, the
+    app repository is loaded using the configuration-backed implementation.
     """
 
-    # Get the app interface using the app manager context.
-    result = app_manager_context.get_app_interface(app_interface.id)
+    # Instantiate the AppManagerContext with default settings.
+    context = AppManagerContext()
 
-    # Assert that the result is the same as the mock app interface.
-    assert result.id == app_interface.id
-    assert result.name == app_interface.name
-    assert result.module_path == app_interface.module_path
-    assert result.class_name == app_interface.class_name
-    assert result.description == app_interface.description
-    assert result.feature_flag == app_interface.feature_flag
-    assert result.data_flag == app_interface.data_flag
-    assert any(attr.attribute_id == 'test_attribute' for attr in result.attributes)
+    # Load the app repository and assert that the default repository type is used.
+    repo = context.load_app_repo()
 
-    # Assert that the get_interface method was called with the correct argument.
-    app_repo.get_interface.assert_called_once_with(app_interface.id)
+    assert isinstance(repo, AppConfigurationRepository)
 
 # ** test: app_manager_context_load_interface
-def test_app_manager_context_load_interface(app_manager_context, app_interface):
+def test_app_manager_context_load_interface(app_manager_context):
     """
     Test the load_interface method of AppManagerContext.
 
@@ -279,21 +248,19 @@ def test_app_manager_context_load_interface(app_manager_context, app_interface):
     """
 
     # Load the app interface using the app context.
-    result = app_manager_context.load_interface(app_interface.id)
+    result = app_manager_context.load_interface('test_calc')
 
     # Assert that the result is an instance of AppInterfaceContext.
     assert result
     assert isinstance(result, AppInterfaceContext)
 
 # ** test: app_manager_context_load_interface_invalid
-def test_app_manager_context_load_interface_invalid(app_manager_context, app_service):
+def test_app_manager_context_load_interface_invalid(app_manager_context, app_interface):
     """
     Test loading an invalid app interface.
 
     :param app_manager_context: The AppManagerContext instance.
     :type app_manager_context: AppManagerContext
-    :param app_service: The mock app service.
-    :type app_service: AppService
     """
 
     # Create invalid app interface context.
@@ -301,8 +268,17 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_ser
         def __init__(self, *args, **kwargs):
             pass
 
+    # Create a fake app service that always returns the provided app_interface,
+    # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
+    # so we can exercise the "invalid app interface context" error instead.
+    fake_service = mock.Mock(spec=AppService)
+    fake_service.get.return_value = app_interface
+
+    # Mock the load_app_repo method to return the fake service.
+    app_manager_context.load_app_repo = mock.Mock(return_value=fake_service)
+
     # Mock the load_app_instance method to return an invalid app interface context.
-    app_service.load_app_instance.return_value = InvalidContext()
+    app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())
 
     # Attempt to load an invalid interface and assert that it raises an error.
     with pytest.raises(TiferetError) as exc_info:
@@ -311,6 +287,7 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_ser
     # Assert that the error message is as expected.
     assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
     assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
 
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):
@@ -382,14 +359,21 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
         message='This is a test error message.'
     )
 
-    # Handle an error using the app interface context.
-    error_response = app_interface_context.errors.handle_error(
-        error
-    )
+    # Mock the ErrorContext to return the formatted error dict.
+    error_context.handle_error.return_value = {
+        'error_code': 'TEST_ERROR',
+        'name': 'Test Error',
+        'message': 'This is a test error message.'
+    }
 
-    # Assert that the error response contains the expected error code and message.
-    assert error_response['error_code'] == 'TEST_ERROR'
-    assert error_response['message'] == 'This is a test error message.'
+    # Handle an error using the app interface context and verify it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.handle_error(error)
+
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.name == 'Test Error'
+    assert exc_info.value.message == 'This is a test error message.'
 
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
@@ -403,18 +387,20 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     # Create an invalid error object.
     invalid_error = Exception("This is an invalid error.")
 
-    # Mock the ErrorContext to raise a TiferetError when handling an invalid error.
+    # Mock the ErrorContext to return the formatted error dict.
     error_context.handle_error.return_value = {
         'error_code': 'APP_ERROR',
+        'name': 'App Error',
         'message': 'An error occurred in the app: This is an invalid error.'
     }
 
-    # Handle the invalid error using the app interface context.
-    error_response = app_interface_context.handle_error(invalid_error)
+    # Handle the invalid error using the app interface context and verify it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.handle_error(invalid_error)
 
-    # Assert that the error response contains a generic error code and message.
-    assert error_response['error_code'] == 'APP_ERROR'
-    assert 'An error occurred in the app' in error_response['message']
+    # Assert that the raised exception contains a generic error code and message.
+    assert exc_info.value.error_code == 'APP_ERROR'
+    assert 'An error occurred in the app' in exc_info.value.message
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
@@ -469,12 +455,19 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
         }
     )
 
-    # Assert that the logger was created and used. -- new
+    # Assert that the logger was created and used.
     logging_context.build_logger()
     logger = logging_context.build_logger.return_value
-    # logger.debug.assert_called_with('Parsing request for feature: test_group.test_feature')
-    logger.info.assert_called_with('Executing feature: test_group.test_feature')
+
+    # Verify that debug calls were made but no pre-execution INFO log exists.
     logger.debug.assert_called()
+
+    # Verify that the final INFO log contains duration in parentheses.
+    info_calls = [call for call in logger.info.call_args_list]
+    assert len(info_calls) == 1
+    final_log = info_calls[0][0][0]
+    assert final_log.startswith('Executed Feature - test_group.test_feature')
+    assert '(ms)' in final_log or 'ms)' in final_log
 
 # ** test: app_interface_context_run_invalid
 def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
@@ -498,29 +491,213 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     # Mock the ErrorContext to handle the error and return a formatted message.
     error_context.handle_error.return_value = {
         'error_code': 'FEATURE_NOT_FOUND',
+        'name': 'Feature Not Found',
         'message': 'Feature not found: invalid_group.invalid_feature.'
     }
 
-    # Attempt to run an invalid feature and assert that it raises an error.
-    response = app_interface_context.run(
-        'invalid_group.invalid_feature',
-        headers={
-            'Content-Type': 'application/json',
-            'interface_id': app_interface_context.interface_id
-        },
-        data={
-            'key': 'value',
-            'param': 'test_param'
-        }
-    )
+    # Attempt to run an invalid feature and assert that it raises TiferetAPIError.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.run(
+            'invalid_group.invalid_feature',
+            headers={
+                'Content-Type': 'application/json',
+                'interface_id': app_interface_context.interface_id
+            },
+            data={
+                'key': 'value',
+                'param': 'test_param'
+            }
+        )
 
-    # Assert that the formatted error message is as expected.
-    assert response['error_code'] == 'FEATURE_NOT_FOUND'
-    assert 'Feature not found: invalid_group.invalid_feature.' in response['message']
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'FEATURE_NOT_FOUND'
+    assert exc_info.value.name == 'Feature Not Found'
+    assert 'Feature not found: invalid_group.invalid_feature.' in exc_info.value.message
 
-    # Assert that the logger was created and used for error logging. -- new
+    # Assert that the logger was created and used for error logging.
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
     logger.error.assert_called_with(
         'Error executing feature invalid_group.invalid_feature: {"error_code": "FEATURE_NOT_FOUND", "message": "Feature not found: invalid_group.invalid_feature."}'
     )
+
+# ** test: app_interface_context_run_timing_success
+def test_app_interface_context_run_timing_success(app_interface_context, logging_context):
+    """
+    Test that successful execution logs duration in final INFO message.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Run the app interface context.
+    app_interface_context.run(
+        'test_group.test_feature',
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
+    )
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert only one INFO log exists.
+    assert len(info_calls) == 1
+
+    # Assert the final INFO log follows the expected format: "Executed Feature - {feature_id} ({X}ms)".
+    final_log = info_calls[0]
+    assert final_log.startswith('Executed Feature - test_group.test_feature (')
+    assert final_log.endswith('ms)')
+
+    # Extract duration and verify it's a positive integer.
+    import re
+    match = re.search(r'\((\d+)ms\)', final_log)
+    assert match is not None
+    duration_ms = int(match.group(1))
+    assert duration_ms >= 0
+
+# ** test: app_interface_context_run_timing_no_pre_execution_log
+def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_context, logging_context):
+    """
+    Test that pre-execution INFO log is removed.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Run the app interface context.
+    app_interface_context.run(
+        'test_group.test_feature',
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
+    )
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert that no pre-execution "Executing feature..." INFO log appears.
+    pre_execution_logs = [log for log in info_calls if log.startswith('Executing feature:')]
+    assert len(pre_execution_logs) == 0
+
+# ** test: app_interface_context_run_timing_error_path
+def test_app_interface_context_run_timing_error_path(app_interface_context, feature_context, error_context, logging_context):
+    """
+    Test that no duration is logged on error paths.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock the execute_feature method to raise an error.
+    feature_context.execute_feature.side_effect = TiferetError(
+        error_code='TEST_ERROR',
+        message='Test error occurred.'
+    )
+
+    # Mock the ErrorContext to handle the error.
+    error_context.handle_error.return_value = {
+        'error_code': 'TEST_ERROR',
+        'name': 'Test Error',
+        'message': 'Test error occurred.'
+    }
+
+    # Run the app interface context and expect TiferetAPIError to be raised.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+    # Assert that the raised exception contains the expected error data.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.name == 'Test Error'
+    assert exc_info.value.message == 'Test error occurred.'
+
+    # Get the logger mock.
+    logger = logging_context.build_logger.return_value
+
+    # Extract all INFO log calls.
+    info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+    # Assert no INFO logs contain duration (no success log).
+    duration_logs = [log for log in info_calls if 'ms)' in log]
+    assert len(duration_logs) == 0
+
+    # Assert error was logged.
+    logger.error.assert_called_once()
+
+# ** test: app_interface_context_run_timing_zero_duration
+def test_app_interface_context_run_timing_zero_duration(app_interface_context, logging_context):
+    """
+    Test edge case where execution is extremely fast (0ms).
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock time.perf_counter to simulate zero duration.
+    with mock.patch('time.perf_counter', side_effect=[0.0, 0.0]):
+        # Run the app interface context.
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+        # Get the logger mock.
+        logger = logging_context.build_logger.return_value
+
+        # Extract all INFO log calls.
+        info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+        # Assert the final log contains (0ms).
+        assert len(info_calls) == 1
+        assert '(0ms)' in info_calls[0]
+
+# ** test: app_interface_context_run_timing_long_execution
+def test_app_interface_context_run_timing_long_execution(app_interface_context, logging_context):
+    """
+    Test that long execution durations are logged correctly.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock time.perf_counter to simulate 1.5 second duration.
+    with mock.patch('time.perf_counter', side_effect=[0.0, 1.5]):
+        # Run the app interface context.
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'}
+        )
+
+        # Get the logger mock.
+        logger = logging_context.build_logger.return_value
+
+        # Extract all INFO log calls.
+        info_calls = [call[0][0] for call in logger.info.call_args_list]
+
+        # Assert the final log contains (1500ms).
+        assert len(info_calls) == 1
+        assert '(1500ms)' in info_calls[0]

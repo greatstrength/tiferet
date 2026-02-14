@@ -12,6 +12,32 @@ from ..container import (
     ContainerAttribute,
 )
 
+# *** classes
+
+# ** class: test_dependency
+class TestDependency:
+    '''
+    A test class for container dependency testing.
+    '''
+
+    pass
+
+# ** class: test_dependency_alpha
+class TestDependencyAlpha(TestDependency):
+    '''
+    An alpha test class for container dependency testing.
+    '''
+
+    pass
+
+# ** class: test_dependency_beta
+class TestDependencyBeta(TestDependency):
+    '''
+    A beta test class for container dependency testing.
+    '''
+
+    pass
+
 # *** fixtures
 
 # ** fixture: flagged_dependency
@@ -24,12 +50,12 @@ def flagged_dependency() -> FlaggedDependency:
     # Create a flagged dependency.
     return ModelObject.new(
         FlaggedDependency,
-        module_path='tiferet.proxies.tests',
-        class_name='AlphaTestProxy',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependencyAlpha',
         flag='test_alpha',
         parameters=dict(
             test_param='test_value',
-            param1='value1',
+            param='value1',
         )
     )
 
@@ -43,12 +69,12 @@ def flagged_dependency_to_add() -> FlaggedDependency:
     # Create a new flagged dependency.
     return ModelObject.new(
         FlaggedDependency,
-        module_path='tiferet.proxies.tests',
-        class_name='BetaTestProxy',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependencyBeta',
         flag='test_beta',
         parameters=dict(
             test_param='test_value',
-            param2='value2'
+            param='value2'
         )
     )
 
@@ -67,19 +93,89 @@ def container_attribute(flagged_dependency: FlaggedDependency) -> ContainerAttri
     # Create a container attribute with a flagged dependency.
     return ModelObject.new(
         ContainerAttribute,
-        id='test_repo',
-        module_path='tiferet.proxies.tests',
-        class_name='TestProxy',
+        id='test_dependency',
+        module_path='tiferet.models.tests.test_container',
+        class_name='TestDependency',
         dependencies=[
             flagged_dependency
         ],
         parameters=dict(
             test_param='test_value',
-            param0='value0'
+            param='value0'
+        )
+    )
+
+# ** fixture: container_attribute_no_default_type
+@pytest.fixture
+def container_attribute_no_default_type(flagged_dependency: FlaggedDependency) -> ContainerAttribute:
+    '''
+    Fixture to create a ContainerAttribute instance without a default type for testing.
+
+    :param flagged_dependency: The flagged dependency to add to the container attribute.
+    :type flagged_dependency: FlaggedDependency
+    :return: The created container attribute.
+    :rtype: ContainerAttribute
+    '''
+
+    # Create a container attribute with a flagged dependency but no default type.
+    return ModelObject.new(
+        ContainerAttribute,
+        id='test_dependency_no_default',
+        dependencies=[
+            flagged_dependency
+        ],
+        parameters=dict(
+            test_param='test_value',
+            param='value0'
         )
     )
 
 # *** tests
+
+# ** test: flagged_dependency_set_parameters_clear
+def test_flagged_dependency_set_parameters_clear(flagged_dependency: FlaggedDependency):
+    '''
+    Test that set_parameters clears all parameters when None is provided.
+
+    :param flagged_dependency: The flagged dependency to update.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Ensure there are initial parameters.
+    assert flagged_dependency.parameters == dict(
+        test_param='test_value',
+        param='value1',
+    )
+
+    # Clear parameters.
+    flagged_dependency.set_parameters(None)
+
+    assert flagged_dependency.parameters == {}
+
+
+# ** test: flagged_dependency_set_parameters_filters_none
+def test_flagged_dependency_set_parameters_filters_none(flagged_dependency: FlaggedDependency):
+    '''
+    Test that set_parameters filters out keys whose values are None.
+
+    :param flagged_dependency: The flagged dependency to update.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    flagged_dependency.set_parameters(
+        dict(
+            keep='value',
+            drop=None,
+        )
+    )
+
+    # Existing parameters should be preserved and new ones merged, while
+    # None-valued keys are removed.
+    assert flagged_dependency.parameters == dict(
+        test_param='test_value',
+        param='value1',
+        keep='value',
+    )
 
 # ** test: container_attribute_get_dependency
 def test_container_attribute_get_dependency(
@@ -116,59 +212,51 @@ def test_container_attribute_get_dependency_invalid(container_attribute: Contain
     # Assert the container dependency is invalid.
     assert container_attribute.get_dependency('invalid') is None
 
-# ** test: container_attribute_set_dependency_exists(
-def test_container_attribute_set_dependency_exists(
-    container_attribute : ContainerAttribute,
-    flagged_dependency : FlaggedDependency
+
+# ** test: container_attribute_remove_dependency_existing
+def test_container_attribute_remove_dependency_existing(
+    container_attribute: ContainerAttribute,
+    flagged_dependency: FlaggedDependency,
 ):
     '''
-    Test that the container attribute can set an existing flagged dependency.
+    Test that remove_dependency removes an existing flagged dependency by flag.
 
-    :param container_attribute: The container attribute to test.
+    :param container_attribute: The container attribute whose dependency will be removed.
     :type container_attribute: ContainerAttribute
-    :param flagged_dependency: The flagged dependency to test.
+    :param flagged_dependency: The existing flagged dependency to remove.
     :type flagged_dependency: FlaggedDependency
     '''
 
-    # Update the flagged dependency.
-    flagged_dependency.parameters['test_param_2'] = 'test_value_2'
-
-    # Set the flagged dependency.
-    container_attribute.set_dependency(flagged_dependency)
-
-    # Get the flagged dependency.
+    # Sanity check: the alpha dependency is present.
     dependency = container_attribute.get_dependency('test_alpha')
+    assert dependency is not None
 
-    # Assert the dependency is valid.
-    assert dependency.module_path == flagged_dependency.module_path
-    assert dependency.class_name == flagged_dependency.class_name
-    assert dependency.flag == flagged_dependency.flag
-    assert dependency.parameters == dict(
-        test_param='test_value',
-        param1='value1',
-        test_param_2='test_value_2'
-    )
+    # Remove the dependency by flag.
+    container_attribute.remove_dependency('test_alpha')
 
-# ** test: container_attribute_set_dependency_new
-def test_container_attribute_set_dependency_new(
-    container_attribute : ContainerAttribute,
-    flagged_dependency_to_add: FlaggedDependency
+    # The dependency list should no longer contain the alpha dependency.
+    assert container_attribute.get_dependency('test_alpha') is None
+    assert all(dep.flag != 'test_alpha' for dep in container_attribute.dependencies)
+
+# ** test: container_attribute_remove_dependency_non_existing
+def test_container_attribute_remove_dependency_non_existing(
+    container_attribute: ContainerAttribute,
 ):
     '''
-    Test that the container attribute can set a new flagged dependency.
+    Test that remove_dependency is a no-op when the flag does not exist.
 
-    :param container_attribute: The container attribute to test.
+    :param container_attribute: The container attribute whose dependencies are unaffected.
     :type container_attribute: ContainerAttribute
-    :param flagged_dependency_to_add: The flagged dependency to add.
-    :type flagged_dependency_to_add: FlaggedDependency
     '''
 
-    # Set the beta dependency.
-    container_attribute.set_dependency(flagged_dependency_to_add)
+    # Capture current dependencies.
+    before = list(container_attribute.dependencies)
 
-    # Verify that the beta dependency is set.
-    assert len(container_attribute.dependencies) == 2
-    assert container_attribute.get_dependency('test_beta') == flagged_dependency_to_add
+    # Attempt to remove a non-existent dependency.
+    container_attribute.remove_dependency('non_existent_flag')
+
+    # Dependencies should remain unchanged.
+    assert container_attribute.dependencies == before
 
 # ** test: container_attribute_get_dependency_muliple_flags
 def test_container_attribute_get_dependency_multiple_flags(
@@ -188,7 +276,12 @@ def test_container_attribute_get_dependency_multiple_flags(
     '''
 
     # Set the beta dependency.
-    container_attribute.set_dependency(flagged_dependency_to_add)
+    container_attribute.set_dependency(
+        flag=flagged_dependency_to_add.flag,
+        module_path=flagged_dependency_to_add.module_path,
+        class_name=flagged_dependency_to_add.class_name,
+        parameters=flagged_dependency_to_add.parameters,
+    )
 
     # Assert that the test_alpha dependency is returned.
     dependency = container_attribute.get_dependency('test_alpha', 'test_beta')
@@ -204,3 +297,236 @@ def test_container_attribute_get_dependency_multiple_flags(
     assert dependency.flag == flagged_dependency_to_add.flag
     assert dependency.parameters == flagged_dependency_to_add.parameters
 
+# ** test: container_attribute_set_dependency_exists(
+def test_container_attribute_set_dependency_exists(
+    container_attribute : ContainerAttribute,
+    flagged_dependency : FlaggedDependency
+):
+    '''
+    Test that the container attribute can set an existing flagged dependency.
+
+    :param container_attribute: The container attribute to test.
+    :type container_attribute: ContainerAttribute
+    :param flagged_dependency: The flagged dependency to test.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Update the flagged dependency.
+    flagged_dependency.parameters['test_param'] = 'test_value_updated'
+
+    # Set the flagged dependency.
+    container_attribute.set_dependency(
+        flag=flagged_dependency.flag,
+        module_path=flagged_dependency.module_path,
+        class_name=flagged_dependency.class_name,
+        parameters=flagged_dependency.parameters,
+    )
+
+    # Get the flagged dependency.
+    dependency = container_attribute.get_dependency('test_alpha')
+
+    # Assert the dependency is valid.
+    assert dependency.module_path == flagged_dependency.module_path
+    assert dependency.class_name == flagged_dependency.class_name
+    assert dependency.flag == flagged_dependency.flag
+    assert dependency.parameters == dict(
+        test_param='test_value_updated',
+        param='value1'
+    )
+
+
+# ** test: container_attribute_set_dependency_filters_none_parameters
+def test_container_attribute_set_dependency_filters_none_parameters(
+    container_attribute: ContainerAttribute,
+    flagged_dependency: FlaggedDependency,
+):
+    '''
+    Test that set_dependency, via FlaggedDependency.set_parameters, removes
+    parameters whose values are None when updating an existing dependency.
+
+    :param container_attribute: The container attribute to test.
+    :type container_attribute: ContainerAttribute
+    :param flagged_dependency: The flagged dependency providing updated parameters.
+    :type flagged_dependency: FlaggedDependency
+    '''
+
+    # Set one of the parameters to None to mark it for removal.
+    flagged_dependency.parameters['param'] = None
+
+    # Update the existing dependency on the container attribute.
+    container_attribute.set_dependency(
+        flag=flagged_dependency.flag,
+        module_path=flagged_dependency.module_path,
+        class_name=flagged_dependency.class_name,
+        parameters=flagged_dependency.parameters,
+    )
+
+    dependency = container_attribute.get_dependency('test_alpha')
+
+    # "param" should be removed, but test_param should remain.
+    assert dependency.parameters == dict(test_param='test_value')
+
+# ** test: container_attribute_get_type_success_default
+def test_container_attribute_get_type_success_default(
+    container_attribute : ContainerAttribute
+):
+    '''
+    Test that the container attribute can get the type with default.
+
+    :param container_attribute: The container attribute to test.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Get the type without flags (should use default).
+    dep_type = container_attribute.get_type()
+
+    # Assert the type is correct.
+    assert dep_type == TestDependency
+
+    # Get the type with the alpha flag.
+    dep_type = container_attribute.get_type('test_alpha')
+
+    # Assert the type is correct.
+    assert dep_type == TestDependencyAlpha
+
+# ** test: container_attribute_get_type_none
+def test_container_attribute_get_type_none(
+    container_attribute_no_default_type : ContainerAttribute
+):
+    '''
+    Test that the container attribute returns None when no type is found.
+
+    :param container_attribute_no_default_type: The container attribute to test.
+    :type container_attribute_no_default_type: ContainerAttribute
+    '''
+
+    # Get the type without flags (should return None).
+    dep_type = container_attribute_no_default_type.get_type()
+
+    # Assert the type is None.
+    assert dep_type is None
+
+    # Get the type with an invalid flag (should return None).
+    dep_type = container_attribute_no_default_type.get_type('test_beta')
+
+    # Assert the type is None.
+    assert dep_type is None
+
+# ** test: container_attribute_set_dependency_new
+def test_container_attribute_set_dependency_new(
+    container_attribute : ContainerAttribute,
+    flagged_dependency_to_add: FlaggedDependency
+):
+    '''
+    Test that the container attribute can set a new flagged dependency.
+
+    :param container_attribute: The container attribute to test.
+    :type container_attribute: ContainerAttribute
+    :param flagged_dependency_to_add: The flagged dependency to add.
+    :type flagged_dependency_to_add: FlaggedDependency
+    '''
+
+    # Set the beta dependency.
+    container_attribute.set_dependency(
+        flag=flagged_dependency_to_add.flag,
+        module_path=flagged_dependency_to_add.module_path,
+        class_name=flagged_dependency_to_add.class_name,
+        parameters=flagged_dependency_to_add.parameters,
+    )
+
+    # Verify that the beta dependency is set.
+    assert len(container_attribute.dependencies) == 2
+
+    dependency = container_attribute.get_dependency('test_beta')
+    assert dependency.module_path == flagged_dependency_to_add.module_path
+    assert dependency.class_name == flagged_dependency_to_add.class_name
+    assert dependency.flag == flagged_dependency_to_add.flag
+    assert dependency.parameters == flagged_dependency_to_add.parameters
+
+
+# ** test: container_attribute_set_default_type_clear
+def test_container_attribute_set_default_type_clear(container_attribute: ContainerAttribute):
+    '''
+    Test that set_default_type clears the default type and parameters when
+    both module_path and class_name are None.
+
+    :param container_attribute: The container attribute whose default type and
+        parameters are being cleared.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Sanity check initial state.
+    assert container_attribute.module_path is not None
+    assert container_attribute.class_name is not None
+    assert container_attribute.parameters == dict(
+        test_param='test_value',
+        param='value0',
+    )
+
+    # Clear the default type and parameters.
+    container_attribute.set_default_type(None, None, None)
+
+    assert container_attribute.module_path is None
+    assert container_attribute.class_name is None
+    assert container_attribute.parameters == {}
+
+
+# ** test: container_attribute_set_default_type_update_and_filter_params
+def test_container_attribute_set_default_type_update_and_filter_params(
+    container_attribute: ContainerAttribute,
+):
+    '''
+    Test that set_default_type updates the default type and parameters when
+    both module_path and class_name are provided, and that parameters with
+    values of None are removed.
+
+    :param container_attribute: The container attribute whose default type is
+        being updated.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    container_attribute.set_default_type(
+        'tiferet.models.tests.test_container',
+        'TestDependencyBeta',
+        dict(
+            keep='value',
+            drop=None,
+        ),
+    )
+
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependencyBeta'
+    assert container_attribute.parameters == dict(keep='value')
+
+
+# ** test: container_attribute_set_default_type_clear_parameters_only
+def test_container_attribute_set_default_type_clear_parameters_only(
+    container_attribute: ContainerAttribute,
+):
+    '''
+    Test that set_default_type clears parameters when parameters is None but
+    module_path and class_name remain set.
+
+    :param container_attribute: The container attribute whose parameters are
+        being cleared for an existing default type.
+    :type container_attribute: ContainerAttribute
+    '''
+
+    # Sanity check initial state.
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependency'
+    assert container_attribute.parameters == dict(
+        test_param='test_value',
+        param='value0',
+    )
+
+    # Clear only the parameters while keeping the default type.
+    container_attribute.set_default_type(
+        'tiferet.models.tests.test_container',
+        'TestDependency',
+        None,
+    )
+
+    assert container_attribute.module_path == 'tiferet.models.tests.test_container'
+    assert container_attribute.class_name == 'TestDependency'
+    assert container_attribute.parameters == {}

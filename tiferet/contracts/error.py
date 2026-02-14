@@ -62,6 +62,17 @@ class Error(ModelContract):
     # * attribute: message
     message: List[ErrorMessage]
 
+    # * method: rename
+    @abstractmethod
+    def rename(self, new_name: str) -> None:
+        '''
+        Rename the error.
+
+        :param new_name: The new name for the error.
+        :type new_name: str
+        '''
+        raise NotImplementedError('The rename method must be implemented by the error.')
+
     # * method: format_message
     @abstractmethod
     def format_message(self, lang: str = 'en_US', *args) -> str:
@@ -106,6 +117,17 @@ class Error(ModelContract):
         :type text: str
         '''
         raise NotImplementedError('The set_message method must be implemented by the error.')
+    
+    # * method: remove_message
+    @abstractmethod
+    def remove_message(self, lang: str) -> None:
+        '''
+        Remove the error message for a specified language.
+
+        :param lang: The language of the error message text to remove.
+        :type lang: str
+        '''
+        raise NotImplementedError('The remove_message method must be implemented by the error.')
 
 # ** contract: error_repository
 class ErrorRepository(Repository):
@@ -177,18 +199,66 @@ class ErrorRepository(Repository):
 # ** contract: error_service
 class ErrorService(Service):
     '''
-    Contract for an error service to handle error operations.
+    Contract for an error service to manage error objects.
     '''
 
-    # * method: load_errors
+    # * method: exists
     @abstractmethod
-    def load_errors(self, configured_errors: List[Error] = []) -> List[Error]:
+    def exists(self, id: str, **kwargs) -> bool:
         '''
-        Load errors by their codes.
+        Check if the error exists.
 
-        :param configured_errors: The list of hard-coded errors to load.
-        :type configured_errors: List[Error]
-        :return: The list of loaded errors.
+        :param id: The error id.
+        :type id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: Whether the error exists.
+        :rtype: bool
+        '''
+        raise NotImplementedError('The exists method must be implemented by the error repository.')
+
+    # * method: get
+    @abstractmethod
+    def get(self, id: str) -> Error:
+        '''
+        Get an error object by its ID.
+
+        :param id: The error id.
+        :type id: str
+        :return: The error object.
+        :rtype: Error
+        '''
+        raise NotImplementedError('The get method must be implemented by the error repository.')
+
+    # * method: list
+    @abstractmethod
+    def list(self) -> List[Error]:
+        '''
+        List all error objects.
+
+        :return: The list of error objects.
         :rtype: List[Error]
         '''
-        raise NotImplementedError('The load_errors method must be implemented by the error service.')
+        raise NotImplementedError('The list method must be implemented by the error repository.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, error: Error) -> None:
+        '''
+        Save the error.
+
+        :param error: The error.
+        :type error: Error
+        '''
+        raise NotImplementedError('The save method must be implemented by the error repository.')
+    
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete the error by its unique identifier.
+
+        :param id: The unique identifier for the error to delete.
+        :type id: str
+        '''
+        raise NotImplementedError('The delete method must be implemented by the error repository.')
