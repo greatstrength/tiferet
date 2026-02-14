@@ -1,0 +1,178 @@
+# *** imports
+
+# ** infra
+import pytest
+from unittest import mock
+
+# ** app
+from ..settings import Command, TiferetError
+
+# *** fixtures
+
+# ** fixture: command
+@pytest.fixture
+def command() -> Command:
+    '''
+    Fixture to provide a fresh Command instance.
+    
+    :return: A Command instance.
+    :rtype: Command
+    '''
+
+    # Return the Command instance.
+    return Command()
+
+# ** fixture: mocker
+@pytest.fixture
+def mocker() -> mock.Mock:
+    '''
+    Fixture to provide a mocker type for testing.
+    
+    :return: A mocker type.
+    :rtype: mock.Mock
+    '''
+
+    # Return the mocker type.
+    return mock.Mock
+
+# *** tests
+
+# ** test: test_execute_not_implemented
+def test_execute_not_implemented(command: Command):
+    '''
+    Test that execute raises NotImplementedError.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Attempt to call execute, expecting an error
+    with pytest.raises(NotImplementedError):
+        command.execute()
+
+# ** test: test_raise_error_basic
+def test_raise_error_basic(command: Command):
+    '''
+    Test raising a TiferetError with basic parameters.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Raise error with code and message, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        Command.raise_error('TEST_ERROR', 'An error has occurred.')
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    assert 'An error has occurred.' in str(exc_info.value), 'Should include the provided message'
+
+# ** test: test_raise_error_with_args
+def test_raise_error_with_args(command: Command):
+    '''
+    Test raising a TiferetError with additional arguments.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Raise error with code, message, and args, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        command.raise_error('TEST_ERROR', 'An error has occurred.', arg1='arg1', arg2='arg2')
+   
+    # Verify error code, message, and additional arguments.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    assert 'An error has occurred.' in str(exc_info.value), 'Should include the provided message'
+    assert 'arg1' in str(exc_info.value), 'Should include additional argument arg1'
+    assert 'arg2' in str(exc_info.value), 'Should include additional argument arg2'
+
+# ** test: test_verify_success
+def test_verify_success(command: Command):
+    '''
+    Test verify with a true expression.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Verify true expression, expect no error.
+    try:
+        command.verify(True, 'TEST_ERROR', 'Test message')
+    except TiferetError:
+        pytest.fail('Verify should not raise an error for true expression')
+
+# ** test: test_verify_failure
+def test_verify_failure(command: Command):
+    '''
+    Test verify with a false expression.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Verify false expression, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        command.verify(False, 'TEST_ERROR', 'Test message')
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    assert 'Test message' in str(exc_info.value), 'Should include the provided message'
+
+# ** test: verify_parameter_success
+def test_verify_parameter_success(command: Command):
+    '''
+    Test verify_parameter with a valid parameter.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Verify non-empty parameter, expect no error.
+    try:
+        command.verify_parameter('valid', 'param', 'TestCommand')
+    except TiferetError:
+        pytest.fail('verify_parameter should not raise an error for valid parameter')
+
+# ** test: verify_parameter_failure
+def test_verify_parameter_failure(command: Command):
+    '''
+    Test verify_parameter with an invalid parameter.
+    
+    :param command: The Command instance to test.
+    :type command: Command
+    '''
+
+    # Verify empty parameter, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        command.verify_parameter('', 'param', 'TestCommand')
+
+    # Verify error code and message.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED', 'Should raise error for missing parameter'
+    assert exc_info.value.kwargs.get('parameter') == 'param', 'Should include parameter_name in kwargs'
+    assert exc_info.value.kwargs.get('command') == 'TestCommand', 'Should include command_name in kwargs'
+
+# ** test: test_handle_command
+def test_handle_command(mocker: mock.Mock):
+    '''
+    Test handle method with a mock command.
+    
+    :param mocker: The mocker fixture.
+    :type mocker: mock.Mock
+    '''
+
+    # Create mock command instance and set execute return value.
+    mock_command_instance = mocker()
+    mock_command_instance.execute.return_value = 'result'
+
+    # Create mock command returning the instance.
+    mock_command = mocker(return_value=mock_command_instance)
+
+    # Call handle with dependencies and arguments.
+    result = Command.handle(mock_command, dependencies={'dep': 'value'}, arg='test')
+   
+    # Verify result
+    assert result == 'result', 'Should return the command execution result'
+
+    # Verify command instantiation and execution.
+    mock_command.assert_called_once_with(dep='value')
+    mock_command_instance.execute.assert_called_once_with(arg='test')
