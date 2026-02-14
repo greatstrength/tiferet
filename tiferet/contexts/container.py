@@ -6,10 +6,10 @@ from typing import Callable, Any, List
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..models import ContainerAttribute
-from ..commands import RaiseError, ParseParameter
-from ..commands.dependencies import *
-from ..commands.container import ListAllSettings
+from ..entities import ContainerAttribute
+from ..events import RaiseError, ParseParameter
+from ..events.dependencies import *
+from ..events.container import ListAllSettings
 
 # *** contexts
 
@@ -40,8 +40,8 @@ class ContainerContext(object):
         self.list_all_handler = container_list_all_cmd.execute
         self.cache = cache if cache else CacheContext()
 
-        # Set the container handler.
-        self.container_handler = container_handler
+        # Set the list all handler to the container list all command's execute method.
+        self.list_all_handler = container_list_all_cmd.execute
     
     # * method: create_cache_key
     def create_cache_key(self, flags: List[str] = None) -> str:
