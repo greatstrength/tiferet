@@ -1,0 +1,84 @@
+attrs:
+  add_number_cmd:
+    class_name: TestAddNumber
+    module_path: tiferet.tests_int
+  subtract_number_cmd:
+    class_name: TestSubtractNumber
+    module_path: tiferet.tests_int
+  multiply_number_cmd:
+    class_name: TestMultiplyNumber
+    module_path: tiferet.tests_int
+  divide_number_cmd:
+    class_name: TestDivideNumber
+    module_path: tiferet.tests_int
+errors:
+  DIVISION_BY_ZERO:
+    name: Division by Zero
+    description: This error occurs when an attempt is made to divide by zero.
+    error_code: DIVISION_BY_ZERO
+    message:
+    - lang: en_US
+      text: Division by zero is not allowed.
+features:
+  test_calc:
+    add_number:
+      commands:
+      - attribute_id: add_number_cmd
+        name: Add Number Command
+      description: Adds two numbers.
+      name: Add Number Feature
+    subtract_number:
+      commands:
+      - attribute_id: subtract_number_cmd
+        name: Subtract Number Command
+      description: Subtracts two numbers.
+      name: Subtract Number Feature
+    multiply_number:
+      commands:
+      - attribute_id: multiply_number_cmd
+        name: Multiply Number Command
+      description: Multiplies two numbers.
+      name: Multiply Number Feature
+    divide_number:
+      commands:
+      - attribute_id: divide_number_cmd
+        name: Divide Number Command
+      description: Divides two numbers.
+      name: Divide Number Feature
+    square_number:
+      commands:
+      - attribute_id: multiply_number_cmd
+        name: Square Number Command
+        params:
+          b: $r.a
+      description: Squares a number.
+      name: Square Number Feature
+interfaces:
+  test_calc:
+    const:
+      feature_config_file: tiferet/configs/tests/test_calc.yml
+      error_config_file: tiferet/configs/tests/test_calc.yml
+      container_config_file: tiferet/configs/tests/test_calc.yml
+      feature_config_file: tiferet/configs/tests/test_calc.yml
+      logging_config_file: tiferet/configs/tests/test_calc.yml
+    description: The interface instance for testing the calculator features.
+    name: Integration Test - Basic Int Calculator
+  test_calc_cli:
+    module_path: tiferet.contexts.cli
+    class_name: CliContext
+    attrs:
+      cli_service:
+        class_name: CliHandler
+        module_path: tiferet.handlers.cli
+      cli_repo:
+        class_name: CliYamlProxy
+        module_path: tiferet.proxies.yaml.cli
+        params:
+          cli_config_file: tiferet/configs/tests/test_calc_cli.yml
+    const:
+      container_config_file: tiferet/configs/tests/test_calc.yml
+      feature_config_file: tiferet/configs/tests/test_calc.yml
+      error_config_file: tiferet/configs/tests/test_calc.yml
+    description: The CLI interface instance for testing the calculator features.
+    name: Integration Test - Basic Int Calculator CLI
+logging: {}
