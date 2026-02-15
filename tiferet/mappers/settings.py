@@ -102,7 +102,7 @@ class TransferObject(Model):
 
     # ** method: map
     def map(self,
-            type: ModelObject,
+            type: Aggregate,
             role: str = 'to_model',
             validate: bool = True,
             **kwargs
@@ -110,11 +110,11 @@ class TransferObject(Model):
         '''
         Maps the model data to a model object.
 
-        :param type: The type of model object to map to.
+        :param type: The type of aggregate object to map to.
         :type type: type
         :param role: The role for the mapping.
         :type role: str
-        :param validate: True to validate the model object.
+        :param validate: True to validate the aggregate object.
         :type validate: bool
         :param kwargs: Additional keyword arguments for mapping.
         :type kwargs: dict
@@ -128,36 +128,36 @@ class TransferObject(Model):
         for key, value in kwargs.items():
             data_object[key] = value
 
-        # Map the data object to a model object.
-        # Attempt to create a new model object with a custom factory method.
+        # Map the data object to an aggregate object.
+        # Attempt to create a new aggregate object with a custom factory method.
         # If the factory method does not exist, employ the standard method.
         try:
-            model_object = type.new(**data_object, strict=False)
+            aggregate_object = type.new(**data_object, strict=False)
         except Exception:
-            model_object = Aggregate.new(type, **data_object, strict=False)
+            aggregate_object = Aggregate.new(type, **data_object, strict=False)
 
         # Validate if specified.
         if validate:
-            model_object.validate()
+            aggregate_object.validate()
 
-        # Return the model data.
-        return model_object
+        # Return the aggregate object.
+        return aggregate_object
 
     # ** method: from_model
     @staticmethod
     def from_model(
-        data: 'TransferObject',
-        model: ModelObject,
+        transfer_obj: 'TransferObject',
+        aggregate: Aggregate,
         validate: bool = True,
         **kwargs
     ) -> 'TransferObject':
         '''
         Initializes a new data object from a model object.
 
-        :param model: The type of model object to map from.
-        :type model: type
-        :param data: The data object to map from.
-        :type data: TransferObject
+        :param transfer_obj: The type of transfer object to map from.
+        :type transfer_obj: type
+        :param aggregate: The aggregate object to map from.
+        :type aggregate: Aggregate
         :param validate: True to validate the data object.
         :type validate: bool
         :param kwargs: Keyword arguments.
@@ -166,15 +166,15 @@ class TransferObject(Model):
         :rtype: TransferObject
         '''
 
-        # Convert the model object to a primitive dictionary and merge with the keyword arguments.
+        # Convert the aggregate object to a primitive dictionary and merge with the keyword arguments.
         # Give priority to the keyword arguments.
-        model_data = model.to_primitive()
+        aggregate_data = aggregate.to_primitive()
         for key, value in kwargs.items():
-            model_data[key] = value
+            aggregate_data[key] = value
 
         # Create a new transfer object.
-        data_object = data(dict(
-            **model_data
+        data_object = transfer_obj(dict(
+            **aggregate_data
         ), strict=False)
 
         # Validate the data object if specified.

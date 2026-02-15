@@ -1,4 +1,4 @@
-"""Tiferet App Data Object Tests"""
+"""Tiferet App Mapper Tests"""
 
 # *** imports
 
@@ -6,33 +6,25 @@
 import pytest
 
 # ** app
-from ..settings import (
-    DataObject,
-    DEFAULT_MODULE_PATH,
-    DEFAULT_CLASS_NAME
-)
-from ..app import (
-    AppInterfaceConfigData,
-    AppInterface,
-    AppAttribute,
-)
-from ...models import ModelObject
+from ...entities import AppAttribute
+from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
+from ..app import AppInterfaceAggregate, AppInterfaceYamlObject, AppAttributeYamlObject
 
 # *** fixtures
 
-# ** fixture: app_settings_config_data
+# ** fixture: app_interface_yaml_obj
 @pytest.fixture
-def app_settings_config_data() -> AppInterfaceConfigData:
+def app_interface_yaml_obj() -> AppInterfaceYamlObject:
     '''
     A fixture for an app interface yaml data object.
 
     :return: The app interface yaml data object.
-    :rtype: AppInterfaceConfigData
+    :rtype: AppInterfaceYamlObject
     '''
 
     # Create and return the app interface yaml data object.
-    return DataObject.from_data(
-        AppInterfaceConfigData,
+    return TransferObject.from_data(
+        AppInterfaceYamlObject,
         id='app_yaml_data',
         name='Test App YAML Data',
         module_path=DEFAULT_MODULE_PATH,
@@ -53,61 +45,138 @@ def app_settings_config_data() -> AppInterfaceConfigData:
         )
     )
 
-# ** fixture: sample_app_interface
+# ** fixture: app_interface_aggr
 @pytest.fixture
-def sample_app_interface() -> AppInterface:
+def app_interface_aggr() -> AppInterfaceAggregate:
     '''
     Fixture to provide a sample AppInterface model for round-trip testing.
 
     :return: A sample AppInterface instance.
-    :rtype: AppInterface
+    :rtype: AppInterfaceAggregate
     '''
 
-    return ModelObject.new(
-        AppInterface,
-        id='test.interface',
-        name='Test Interface',
-        description='The test app interface.',
-        module_path=DEFAULT_MODULE_PATH,
-        class_name=DEFAULT_CLASS_NAME,
-        feature_flag='test_feature',
-        data_flag='test_data',
-        attributes=[
-            ModelObject.new(
-                AppAttribute,
-                attribute_id='test_attribute',
-                module_path='test_module_path',
-                class_name='test_class_name',
-                parameters={
+    # Create and return a sample AppInterfaceAggregate instance.
+    app_interface_data = {
+        'id': 'test.interface',
+        'name': 'Test Interface',
+        'description': 'The test app interface.',
+        'module_path': DEFAULT_MODULE_PATH,
+        'class_name': DEFAULT_CLASS_NAME,
+        'feature_flag': 'test_feature',
+        'data_flag': 'test_data',
+        'attributes': [
+             {
+                'attribute_id': 'test_attribute',
+                'module_path': 'test_module_path',
+                'class_name': 'test_class_name',
+                'parameters': {
                     'test_param': 'test_value',
                 },
-            ),
+            }
         ],
-        constants={
+        'constants': {
             'TEST_CONST': 'test_const_value',
-        },
-    )
+        }
+    }
+
+    return AppInterfaceAggregate.new(app_interface_data=app_interface_data)
 
 # *** tests
 
+# ** test: app_interface_aggregate_new
+def test_app_interface_aggregate_new(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test creating an AppInterfaceAggregate.
+
+    :param app_interface_aggr: The app interface aggregate fixture.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(app_interface_aggr, AppInterfaceAggregate)
+    assert app_interface_aggr.id == 'test.interface'
+    assert app_interface_aggr.name == 'Test Interface'
+    assert app_interface_aggr.module_path == DEFAULT_MODULE_PATH
+    assert app_interface_aggr.class_name == DEFAULT_CLASS_NAME
+
+# ** test: app_interface_aggregate_set_attribute
+def test_app_interface_aggregate_set_attribute(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test setting attributes on an AppInterfaceAggregate.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Update the name attribute.
+    app_interface_aggr.set_attribute('name', 'Updated Name')
+
+    # Assert the attribute was updated.
+    assert app_interface_aggr.name == 'Updated Name'
+
+# ** test: app_attribute_yaml_object_map
+def test_app_attribute_yaml_object_map():
+    '''
+    Test mapping an AppAttributeYamlObject to an AppAttribute entity.
+    '''
+
+    # Create an AppAttributeYamlObject.
+    yaml_obj = TransferObject.from_data(
+        AppAttributeYamlObject,
+        module_path='test.module',
+        class_name='TestClass',
+        parameters={'key': 'value'},
+    )
+
+    # Map to entity.
+    entity = yaml_obj.map(attribute_id='test_attr')
+
+    # Assert the mapping is correct.
+    assert isinstance(entity, AppAttribute)
+    assert entity.attribute_id == 'test_attr'
+    assert entity.module_path == 'test.module'
+    assert entity.class_name == 'TestClass'
+    assert entity.parameters == {'key': 'value'}
+
+# ** test: app_interface_yaml_object_from_model
+def test_app_interface_yaml_object_from_model(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test creating an AppInterfaceYamlObject from an AppInterfaceAggregate.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Create YamlObject from aggregate using the custom from_model method.
+    yaml_obj = AppInterfaceYamlObject.from_model(app_interface_aggr)
+
+    # Assert the conversion is correct.
+    assert isinstance(yaml_obj, AppInterfaceYamlObject)
+    assert yaml_obj.id == app_interface_aggr.id
+    assert yaml_obj.name == app_interface_aggr.name
+    assert yaml_obj.module_path == app_interface_aggr.module_path
+    assert yaml_obj.class_name == app_interface_aggr.class_name
+    assert 'test_attribute' in yaml_obj.attributes
+    assert yaml_obj.constants == app_interface_aggr.constants
+
 # ** test: app_settings_yaml_data_map
-def test_app_settings_yaml_data_map(app_settings_config_data: AppInterfaceConfigData):
+def test_app_settings_yaml_data_map(app_interface_yaml_obj: AppInterfaceYamlObject):
     '''
     Tests the mapping of an app interface yaml data object to an app interface object.
 
-    :param app_settings_yaml_data: The app interface yaml data object.
-    :type app_settings_yaml_data: AppInterfaceConfigData
+    :param app_interface_yaml_obj: The app interface yaml data object.
+    :type app_interface_yaml_obj: AppInterfaceYamlObject
     '''
 
     # Map the app interface yaml data to an app interface object.
-    app_settings = app_settings_config_data.map()
+    app_settings = app_interface_yaml_obj.map()
 
     # Assert the mapped app interface is valid.
-    assert isinstance(app_settings, AppInterface)
-    assert app_settings.id == app_settings_config_data.id
-    assert app_settings.name == app_settings_config_data.name
-    assert app_settings.feature_flag == app_settings_config_data.feature_flag
-    assert app_settings.data_flag == app_settings_config_data.data_flag
+    assert isinstance(app_settings, AppInterfaceAggregate)
+    assert app_settings.id == app_interface_yaml_obj.id
+    assert app_settings.name == app_interface_yaml_obj.name
+    assert app_settings.feature_flag == app_interface_yaml_obj.feature_flag
+    assert app_settings.data_flag == app_interface_yaml_obj.data_flag
 
     # Assert that the module path and class name are correctly set.
     assert app_settings.module_path == DEFAULT_MODULE_PATH
@@ -133,27 +202,27 @@ def test_app_settings_yaml_data_map(app_settings_config_data: AppInterfaceConfig
     assert app_settings.constants['test_const'] == 'test_const_value'
 
 # ** test: app_interface_config_data_round_trip
-def test_app_interface_config_data_round_trip(sample_app_interface: AppInterface):
+def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAggregate):
     '''
-    Test round-trip mapping: model → data → model.
+    Test round-trip mapping: app interface aggregate -> app interface yaml object -> app interface aggregate.
     '''
 
-    data_obj = AppInterfaceConfigData.from_model(sample_app_interface)
+    data_obj = TransferObject.from_model(AppInterfaceYamlObject, app_interface_aggr)
     round_tripped = data_obj.map()
 
     # Core fields
-    assert round_tripped.id == sample_app_interface.id
-    assert round_tripped.name == sample_app_interface.name
-    assert round_tripped.module_path == sample_app_interface.module_path
-    assert round_tripped.class_name == sample_app_interface.class_name
+    assert round_tripped.id == app_interface_aggr.id
+    assert round_tripped.name == app_interface_aggr.name
+    assert round_tripped.module_path == app_interface_aggr.module_path
+    assert round_tripped.class_name == app_interface_aggr.class_name
 
     # Attributes
-    assert len(round_tripped.attributes) == len(sample_app_interface.attributes)
-    for orig_attr, rt_attr in zip(sample_app_interface.attributes, round_tripped.attributes):
+    assert len(round_tripped.attributes) == len(app_interface_aggr.attributes)
+    for orig_attr, rt_attr in zip(app_interface_aggr.attributes, round_tripped.attributes):
         assert rt_attr.attribute_id == orig_attr.attribute_id
         assert rt_attr.module_path == orig_attr.module_path
         assert rt_attr.class_name == orig_attr.class_name
         assert rt_attr.parameters == orig_attr.parameters
 
     # Constants
-    assert round_tripped.constants == sample_app_interface.constants
+    assert round_tripped.constants == app_interface_aggr.constants
