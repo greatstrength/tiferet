@@ -9,12 +9,10 @@ from typing import Any
 from schematics.models import Model
 
 # ** app
-from ..models import (
+from ..entities import (
     ModelObject,
 )
-from ..contracts import (
-    ModelContract,
-)
+from ..events import RaiseError, a
 
 # *** constants
 
@@ -26,8 +24,78 @@ DEFAULT_CLASS_NAME = 'AppInterfaceContext'
 
 # *** classes
 
-# ** class: data_object
-class DataObject(Model):
+# ** class: aggregate
+class Aggregate(Model):
+    '''
+    A data representation of an aggregate object.
+    '''
+
+    # * method: new
+    @staticmethod
+    def new(
+        aggregate_type: type,
+        validate: bool = True,
+        strict: bool = True,
+        **kwargs
+    ) -> 'Aggregate':
+        '''
+        Initializes a new aggregate object.
+
+        :param aggregate_type: The type of aggregate object to create.
+        :type aggregate_type: type
+        :param validate: True to validate the aggregate object.
+        :type validate: bool
+        :param strict: True to enforce strict mode for the aggregate object.
+        :type strict: bool
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new aggregate object.
+        :rtype: Aggregate
+        '''
+
+        # Create a new aggregate object.
+        aggregate_object: Aggregate = aggregate_type(dict(
+            **kwargs
+        ), strict=strict)
+
+        # Validate if specified.
+        if validate:
+            aggregate_object.validate()
+
+        # Return the new aggregate object.
+        return aggregate_object
+
+    # * method: set_attribute
+    def set_attribute(self, attribute: str, value: Any) -> None:
+        '''
+        Update an attribute on the aggregate object.
+
+        Raises an error if the attribute does not exist on the instance.
+
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value.
+        :type value: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Check if the attribute exists on the aggregate instance.
+        # If the attribute does not exist, raise an error.
+        if not hasattr(self, attribute):
+            RaiseError.execute(
+                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                attribute=attribute,
+            )
+
+        # Apply the update to the attribute.
+        setattr(self, attribute, value)
+
+        # Perform final aggregate validation.
+        self.validate()
+
+# ** class: transfer_object
+class TransferObject(Model):
     '''
     A data representation object.
     '''
@@ -38,7 +106,7 @@ class DataObject(Model):
             role: str = 'to_model',
             validate: bool = True,
             **kwargs
-            ) -> ModelContract:
+            ) -> Aggregate:
         '''
         Maps the model data to a model object.
 
@@ -50,8 +118,8 @@ class DataObject(Model):
         :type validate: bool
         :param kwargs: Additional keyword arguments for mapping.
         :type kwargs: dict
-        :return: A new model object as a contract.
-        :rtype: ModelContract
+        :return: A new aggregate object.
+        :rtype: Aggregate
         '''
 
         # Get primitive of the model data and merge with the keyword arguments.
@@ -66,7 +134,7 @@ class DataObject(Model):
         try:
             model_object = type.new(**data_object, strict=False)
         except Exception:
-            model_object = ModelObject.new(type, **data_object, strict=False)
+            model_object = Aggregate.new(type, **data_object, strict=False)
 
         # Validate if specified.
         if validate:
@@ -78,24 +146,24 @@ class DataObject(Model):
     # ** method: from_model
     @staticmethod
     def from_model(
-        data: 'DataObject',
+        data: 'TransferObject',
         model: ModelObject,
         validate: bool = True,
         **kwargs
-    ) -> 'DataObject':
+    ) -> 'TransferObject':
         '''
         Initializes a new data object from a model object.
 
         :param model: The type of model object to map from.
         :type model: type
         :param data: The data object to map from.
-        :type data: DataObject
+        :type data: TransferObject
         :param validate: True to validate the data object.
         :type validate: bool
         :param kwargs: Keyword arguments.
         :type kwargs: dict
-        :return: A new data object.
-        :rtype: DataObject
+        :return: A new transfer object.
+        :rtype: TransferObject
         '''
 
         # Convert the model object to a primitive dictionary and merge with the keyword arguments.
@@ -104,7 +172,7 @@ class DataObject(Model):
         for key, value in kwargs.items():
             model_data[key] = value
 
-        # Create a new data object.
+        # Create a new transfer object.
         data_object = data(dict(
             **model_data
         ), strict=False)
@@ -121,18 +189,18 @@ class DataObject(Model):
     def from_data(
         data: type,
         **kwargs
-    ) -> 'DataObject':
+    ) -> 'TransferObject':
         '''
-        Initializes a new data object from a dictionary.
+        Initializes a new transfer object from a dictionary.
 
-        :param data: The type of data object to map from.
+        :param data: The type of transfer object to map from.
         :param kwargs: Keyword arguments.
         :type kwargs: dict
-        :return: A new data object.
-        :rtype: DataObject
+        :return: A new transfer object.
+        :rtype: TransferObject
         '''
 
-        # Create a new data object.
+        # Create a new transfer object.
         return data(dict(**kwargs), strict=False)
 
     # ** method: allow

@@ -1,4 +1,4 @@
-"""Data Transfer Object Settings Tests"""
+"""Mapper Settings Tests"""
 
 # *** imports
 
@@ -7,13 +7,45 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...models import (
+from ...entities import (
     ModelObject,
     StringType,
 )
-from ..settings import DataObject
+from ..settings import Aggregate, TransferObject
+from ...assets import TiferetError
 
 # *** fixtures
+
+# ** fixture: test_aggregate
+@pytest.fixture
+def test_aggregate() -> type:
+    '''
+    Provides a fixture for a test Aggregate class.
+    
+    :return: The Aggregate subclass.
+    :rtype: type
+    '''
+    
+    class TestAggregate(Aggregate):
+        '''
+        A test Aggregate for testing purposes.
+        '''
+        
+        id = StringType(
+            required=True,
+            metadata=dict(
+                description='The unique identifier.'
+            )
+        )
+        
+        name = StringType(
+            required=True,
+            metadata=dict(
+                description='The name of the aggregate.'
+            )
+        )
+    
+    return TestAggregate
 
 # ** fixture: mock_model
 @pytest.fixture
@@ -38,28 +70,28 @@ def mock_model() -> ModelObject:
 
 # ** fixture: test_data_object
 @pytest.fixture
-def test_data_object() -> DataObject:
+def test_data_object() -> TransferObject:
     '''
-    Provides a fixture for a DataObject instance.
+    Provides a fixture for a TransferObject instance.
     
-    :return: The DataObject instance.
-    :rtype: DataObject
+    :return: The TransferObject instance.
+    :rtype: TransferObject
     '''
     
-    class TestDataObject(DataObject):
+    class TestDataObject(TransferObject):
         '''
-        A test DataObject for testing purposes.
+        A test TransferObject for testing purposes.
         '''
 
         class Options:
             '''
-            Options for the test DataObject.
+            Options for the test TransferObject.
             '''
 
             serialize_when_none = False
             roles = {
-                'to_data': DataObject.allow('id', 'name'),
-                'to_model': DataObject.allow('id', 'name')
+                'to_data': TransferObject.allow('id', 'name'),
+                'to_model': TransferObject.allow('id', 'name')
             }
         
         id = StringType(
@@ -80,17 +112,128 @@ def test_data_object() -> DataObject:
 
 # *** tests
 
+# ** test: aggregate_new
+def test_aggregate_new(test_aggregate: type):
+    '''
+    Test the Aggregate.new factory method.
+    
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+    
+    # Create a new aggregate instance.
+    aggregate = Aggregate.new(
+        test_aggregate,
+        id='test_id',
+        name='Test Aggregate'
+    )
+    
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(aggregate, test_aggregate)
+    assert aggregate.id == 'test_id'
+    assert aggregate.name == 'Test Aggregate'
+
+# ** test: aggregate_new_no_validation
+def test_aggregate_new_no_validation(test_aggregate: type):
+    '''
+    Test the Aggregate.new factory method without validation.
+    
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+    
+    # Create a new aggregate instance without validation.
+    aggregate = Aggregate.new(
+        test_aggregate,
+        validate=False,
+        id='test_id',
+        name='Test Aggregate'
+    )
+    
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(aggregate, test_aggregate)
+    assert aggregate.id == 'test_id'
+    assert aggregate.name == 'Test Aggregate'
+
+# ** test: aggregate_new_not_strict
+def test_aggregate_new_not_strict(test_aggregate: type):
+    '''
+    Test the Aggregate.new factory method with strict=False.
+    
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+    
+    # Create a new aggregate instance in non-strict mode.
+    aggregate = Aggregate.new(
+        test_aggregate,
+        strict=False,
+        id='test_id',
+        name='Test Aggregate',
+        extra_field='ignored'
+    )
+    
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(aggregate, test_aggregate)
+    assert aggregate.id == 'test_id'
+    assert aggregate.name == 'Test Aggregate'
+
+# ** test: aggregate_set_attribute_success
+def test_aggregate_set_attribute_success(test_aggregate: type):
+    '''
+    Test setting a valid attribute on an Aggregate instance.
+    
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+    
+    # Create an aggregate instance.
+    aggregate = Aggregate.new(
+        test_aggregate,
+        id='test_id',
+        name='Original Name'
+    )
+    
+    # Update the name attribute.
+    aggregate.set_attribute('name', 'Updated Name')
+    
+    # Assert the attribute was updated.
+    assert aggregate.name == 'Updated Name'
+
+# ** test: aggregate_set_attribute_invalid
+def test_aggregate_set_attribute_invalid(test_aggregate: type):
+    '''
+    Test setting an invalid attribute raises TiferetError.
+    
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+    
+    # Create an aggregate instance.
+    aggregate = Aggregate.new(
+        test_aggregate,
+        id='test_id',
+        name='Test Name'
+    )
+    
+    # Attempt to set an invalid attribute.
+    with pytest.raises(TiferetError) as exc_info:
+        aggregate.set_attribute('invalid_attribute', 'value')
+    
+    # Assert the correct error is raised.
+    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+
 # ** test: data_object_from_data
 def test_data_object_from_data(test_data_object: type):
     '''
-    Test the creation of a DataObject from a dictionary.
+    Test the creation of a TransferObject from a dictionary.
 
-    :param test_data_object: The DataObject subclass to test.
+    :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
     
-    # Create a DataObject from data.
-    data_object = DataObject.from_data(
+    # Create a TransferObject from data.
+    data_object = TransferObject.from_data(
         test_data_object,
         id='test_id',
         name='Test Data'
@@ -100,19 +243,19 @@ def test_data_object_from_data(test_data_object: type):
     assert isinstance(data_object, test_data_object)
     assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Test Data'}
 
-# ** test: data_object_from_model
-def test_data_object_from_model(mock_model, test_data_object):
+# ** test: transfer_object_from_model
+def test_transfer_object_from_model(mock_model, test_data_object):
     '''
-    Test the creation of a DataObject from a ModelObject.
+    Test the creation of a TransferObject from a ModelObject.
     
     :param mock_model: The mocked ModelObject instance.
     :type mock_model: ModelObject
-    :param test_data_object: The DataObject subclass to test.
+    :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
     
-    # Create a DataObject from the model.
-    data_object = DataObject.from_model(
+    # Create a TransferObject from the model.
+    data_object = TransferObject.from_model(
         test_data_object,
         mock_model
     )
@@ -121,19 +264,19 @@ def test_data_object_from_model(mock_model, test_data_object):
     assert isinstance(data_object, test_data_object)
     assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Test Model'}
 
-# ** test: data_object_from_model_with_kwargs
-def test_data_object_from_model_with_kwargs(mock_model, test_data_object):
+# ** test: transfer_object_from_model_with_kwargs
+def test_transfer_object_from_model_with_kwargs(mock_model, test_data_object):
     '''
-    Test the creation of a DataObject from a ModelObject with additional keyword arguments.
+    Test the creation of a TransferObject from a ModelObject with additional keyword arguments.
     
     :param mock_model: The mocked ModelObject instance.
     :type mock_model: ModelObject
-    :param test_data_object: The DataObject subclass to test.
+    :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
     
-    # Create a DataObject from the model with additional attributes.
-    data_object = DataObject.from_model(
+    # Create a TransferObject from the model with additional attributes.
+    data_object = TransferObject.from_model(
         test_data_object,
         mock_model,
         name='Overridden Name',
@@ -145,16 +288,16 @@ def test_data_object_from_model_with_kwargs(mock_model, test_data_object):
     
 
 # ** test: data_object_map_custom_new
-def test_data_object_map_custom_new(test_data_object: type):
+def test_transfer_object_map_custom_new(test_data_object: type):
     '''
-    Test mapping a DataObject to a ModelObject with a custom new method.
+    Test mapping a TransferObject to a ModelObject with a custom new method.
     
-    :param test_data_object: The DataObject subclass type.
+    :param test_data_object: The TransferObject subclass type.
     :type test_data_object: type
     '''
     
-    # Create a DataObject instance.
-    data_object = DataObject.from_data(
+    # Create a TransferObject instance.
+    data_object = TransferObject.from_data(
         test_data_object,
         id='test_id',
         name='Test Data'
@@ -183,8 +326,8 @@ def test_data_object_map_fallback_new(test_data_object: type):
     :type test_data_object: type
     '''
 
-    # Create a DataObject instance.
-    data_object = DataObject.from_data(
+    # Create a TransferObject instance.
+    data_object = TransferObject.from_data(
         test_data_object,
         id='test_id',
         name='Test Data'
@@ -195,7 +338,7 @@ def test_data_object_map_fallback_new(test_data_object: type):
     mock_model_type.new.side_effect = AttributeError
     mock_model_instance = mock.Mock(spec=ModelObject)
     mock_model_instance.validate.return_value = None
-    with mock.patch('tiferet.data.settings.ModelObject.new', return_value=mock_model_instance) as mock_new:
+    with mock.patch('tiferet.mappers.settings.ModelObject.new', return_value=mock_model_instance) as mock_new:
         result = data_object.map(type=mock_model_type, role='to_model', validate=True)
     
     # Assert the mapped object is valid.
@@ -210,7 +353,7 @@ def test_data_object_allow_with_args():
     '''
     
     # Create a whitelist transform with fields.
-    transform = DataObject.allow('id', 'name')
+    transform = TransferObject.allow('id', 'name')
     
     # Assert the transform is a whitelist.
     from schematics.transforms import Role
@@ -225,7 +368,7 @@ def test_data_object_allow_no_args():
     '''
     
     # Create a wholelist transform with no fields.
-    transform = DataObject.allow()
+    transform = TransferObject.allow()
     
     # Assert the transform is a wholelist.
     from schematics.transforms import Role
@@ -240,7 +383,7 @@ def test_data_object_deny():
     '''
     
     # Create a blacklist transform with fields.
-    transform = DataObject.deny('id', 'name')
+    transform = TransferObject.deny('id', 'name')
     
     # Assert the transform is a blacklist.
     from schematics.transforms import Role
