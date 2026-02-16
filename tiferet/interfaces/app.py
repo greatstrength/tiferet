@@ -4,128 +4,13 @@
 
 # ** core
 from abc import abstractmethod
-from typing import (
-    List,
-    Dict,
-    Any
-)
+from typing import List
 
 # ** app
-from .settings import (
-    ModelContract,
-    Repository,
-    Service
-)
+from ..mappers import AppInterfaceAggregate
+from .settings import Service
 
-# *** contracts
-
-# ** contract: app_attribute
-class AppAttributeContract(ModelContract):
-    '''
-    An app dependency contract that defines the dependency attributes for an app interface.
-    '''
-
-    # * attribute: module_path
-    module_path: str
-
-    # * attribute: class_name
-    class_name: str
-
-    # * attribute: attribute_id
-    attribute_id: str
-
-    # * attribute: parameters
-    parameters: Dict[str, str]
-
-# ** contract: app_interface_contract
-class AppInterfaceContract(ModelContract):
-    '''
-    An app interface settings contract that defines the settings for an app interface.
-    '''
-
-    # * attribute: id
-    id: str
-
-    # * attribute: name
-    name: str
-
-    # * attribute: module_path
-    module_path: str
-
-    # * attribute: class_name
-    class_name: str
-
-    # * attribute: description
-    description: str
-
-    # * attribute: logger_id
-    logger_id: str
-
-    # * attribute: feature_flag
-    feature_flag: str
-
-    # * attribute: data_flag
-    data_flag: str
-
-    # * attribute: attributes
-    attributes: List[AppAttributeContract]
-
-    # * attribute: constants
-    constants: Dict[str, Any]
-
-# ** interface: app_repository
-class AppRepository(Repository):
-    '''
-    An app repository is a class that is used to manage app interfaces.
-    '''
-
-    # * method: get_interface
-    @abstractmethod
-    def get_interface(self, interface_id: str) -> AppInterfaceContract:
-        '''
-        Get the app interface settings by its ID.
-
-        :param interface_id: The unique identifier for the app interface.
-        :type interface_id: str
-        :return: The app interface.
-        :rtype: AppInterface
-        '''
-        # Not implemented.
-        raise NotImplementedError('get_interface method is required for AppRepository.')
-
-    # * method: list_interfaces
-    @abstractmethod
-    def list_interfaces(self) -> List[AppInterfaceContract]:
-        '''
-        List all app inferface settings.
-
-        :return: A list of app settings.
-        :rtype: List[AppInterfaceContract]
-        '''
-        # Not implemented.
-        raise NotImplementedError('list_interfaces method is required for AppRepository.')
-    
-    # * method: save_interface
-    def save_interface(self, interface: AppInterfaceContract):
-        '''
-        Save the app interface settings.
-
-        :param interface: The app interface to save.
-        :type interface: AppInterfaceContract
-        '''
-        # Not implemented.
-        raise NotImplementedError('save_interface method is required for AppRepository.')
-    
-    # * method: delete_interface
-    def delete_interface(self, interface_id: str):
-        '''
-        Delete the app interface settings by name.
-
-        :param interface_id: The unique identifier for the app interface to delete.
-        :type interface_id: str
-        '''
-        # Not implemented.
-        raise NotImplementedError('delete_interface method is required for AppRepository.')
+# *** interfaces
 
 # ** interface: app_service
 class AppService(Service):
@@ -149,38 +34,38 @@ class AppService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> AppInterface | None:
+    def get(self, id: str) -> AppInterfaceAggregate:
         '''
         Retrieve an app interface by ID.
 
         :param id: The app interface identifier.
         :type id: str
-        :return: The app interface if found, otherwise None.
-        :rtype: AppInterface | None
+        :return: The app interface.
+        :rtype: AppInterfaceAggregate
         '''
         # Not implemented.
         raise NotImplementedError('get method is required for AppService.')
 
     # * method: list
     @abstractmethod
-    def list(self) -> List[AppInterface]:
+    def list(self) -> List[AppInterfaceAggregate]:
         '''
         List all app interfaces.
 
         :return: A list of app interfaces.
-        :rtype: List[AppInterface]
+        :rtype: List[AppInterfaceAggregate]
         '''
         # Not implemented.
         raise NotImplementedError('list method is required for AppService.')
 
     # * method: save
     @abstractmethod
-    def save(self, interface: AppInterface) -> None:
+    def save(self, interface: AppInterfaceAggregate) -> None:
         '''
         Save or update an app interface.
 
         :param interface: The app interface to save.
-        :type interface: AppInterface
+        :type interface: AppInterfaceAggregate
         :return: None
         :rtype: None
         '''
