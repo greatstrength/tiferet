@@ -7,6 +7,7 @@ import pytest
 
 # ** app
 from ...entities import AppAttribute
+from ...assets import TiferetError
 from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from ..app import AppInterfaceAggregate, AppInterfaceYamlObject, AppAttributeYamlObject
 
@@ -99,20 +100,190 @@ def test_app_interface_aggregate_new(app_interface_aggr: AppInterfaceAggregate):
     assert app_interface_aggr.module_path == DEFAULT_MODULE_PATH
     assert app_interface_aggr.class_name == DEFAULT_CLASS_NAME
 
-# ** test: app_interface_aggregate_set_attribute
-def test_app_interface_aggregate_set_attribute(app_interface_aggr: AppInterfaceAggregate):
+# ** test: app_interface_aggregate_set_attribute_valid_updates
+def test_app_interface_aggregate_set_attribute_valid_updates(app_interface_aggr: AppInterfaceAggregate):
     '''
-    Test setting attributes on an AppInterfaceAggregate.
+    Test that set_attribute successfully updates supported attributes and validates the aggregate.
 
     :param app_interface_aggr: The app interface aggregate.
     :type app_interface_aggr: AppInterfaceAggregate
     '''
 
-    # Update the name attribute.
-    app_interface_aggr.set_attribute('name', 'Updated Name')
+    # Update multiple supported attributes.
+    app_interface_aggr.set_attribute('name', 'Updated App')
+    app_interface_aggr.set_attribute('description', 'Updated description')
+    app_interface_aggr.set_attribute('logger_id', 'updated_logger')
+    app_interface_aggr.set_attribute('feature_flag', 'updated_feature')
+    app_interface_aggr.set_attribute('data_flag', 'updated_data')
 
-    # Assert the attribute was updated.
-    assert app_interface_aggr.name == 'Updated Name'
+    # Assert that the attributes were updated.
+    assert app_interface_aggr.name == 'Updated App'
+    assert app_interface_aggr.description == 'Updated description'
+    assert app_interface_aggr.logger_id == 'updated_logger'
+    assert app_interface_aggr.feature_flag == 'updated_feature'
+    assert app_interface_aggr.data_flag == 'updated_data'
+
+# ** test: app_interface_aggregate_set_attribute_invalid_name
+def test_app_interface_aggregate_set_attribute_invalid_name(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_attribute rejects an unsupported attribute name.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Attempt to update an unsupported attribute and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface_aggr.set_attribute('invalid_attribute', 'value')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    assert exc_info.value.kwargs.get('attribute') == 'invalid_attribute'
+
+# ** test: app_interface_aggregate_set_attribute_invalid_module_path
+def test_app_interface_aggregate_set_attribute_invalid_module_path(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_attribute enforces non-empty string for module_path.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Attempt to set an empty module_path and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface_aggr.set_attribute('module_path', '')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    assert exc_info.value.kwargs.get('attribute') == 'module_path'
+
+# ** test: app_interface_aggregate_set_attribute_invalid_class_name
+def test_app_interface_aggregate_set_attribute_invalid_class_name(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_attribute enforces non-empty string for class_name.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Attempt to set an empty class_name and expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        app_interface_aggr.set_attribute('class_name', '   ')
+
+    # Verify that the correct error code is raised.
+    assert exc_info.value.error_code == 'INVALID_APP_INTERFACE_TYPE'
+    assert exc_info.value.kwargs.get('attribute') == 'class_name'
+
+# ** test: app_interface_aggregate_set_constants_clears_when_none
+def test_app_interface_aggregate_set_constants_clears_when_none(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_constants clears all constants when called with None.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Seed existing constants on the aggregate.
+    app_interface_aggr.constants = {
+        'existing': 'value',
+        'another': 'value',
+    }
+
+    # Call set_constants with None to clear all constants.
+    app_interface_aggr.set_constants(None)
+
+    # All constants should be cleared.
+    assert app_interface_aggr.constants == {}
+
+# ** test: app_interface_aggregate_set_constants_merges_and_overrides
+def test_app_interface_aggregate_set_constants_merges_and_overrides(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_constants merges new constants and overrides existing keys.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Seed existing constants on the aggregate.
+    app_interface_aggr.constants = {
+        'keep': 'original',
+        'override': 'old',
+    }
+
+    # Merge new constants, overriding existing keys and adding new ones.
+    app_interface_aggr.set_constants(
+        {
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Existing keys should be preserved or overridden as appropriate.
+    assert app_interface_aggr.constants == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
+
+# ** test: app_interface_aggregate_set_constants_removes_none_valued_keys
+def test_app_interface_aggregate_set_constants_removes_none_valued_keys(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_constants removes keys whose new value is None.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Seed existing constants on the aggregate.
+    app_interface_aggr.constants = {
+        'keep': 'value',
+        'remove': 'value',
+    }
+
+    # Provide an update that sets one key to None.
+    app_interface_aggr.set_constants(
+        {
+            'remove': None,
+        },
+    )
+
+    # The key set to None should be removed, and others preserved.
+    assert app_interface_aggr.constants == {
+        'keep': 'value',
+    }
+
+# ** test: app_interface_aggregate_set_constants_mixed_operations
+def test_app_interface_aggregate_set_constants_mixed_operations(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test that set_constants supports mixed operations of clearing, overriding,
+    adding, and preserving keys in a single call.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Seed existing constants on the aggregate.
+    app_interface_aggr.constants = {
+        'remove': 'value',
+        'override': 'old',
+        'preserve': 'present',
+    }
+
+    # Perform a mixed update.
+    app_interface_aggr.set_constants(
+        {
+            'remove': None,
+            'override': 'new',
+            'add': 'added',
+        },
+    )
+
+    # Verify mixed behavior across keys.
+    assert app_interface_aggr.constants == {
+        'override': 'new',
+        'preserve': 'present',
+        'add': 'added',
+    }
 
 # ** test: app_attribute_yaml_object_map
 def test_app_attribute_yaml_object_map():

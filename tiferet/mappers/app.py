@@ -13,6 +13,7 @@ from ..entities import (
     DictType,
     ModelType,
 )
+from ..events import RaiseError, a
 from .settings import (
     Aggregate,
     TransferObject,
@@ -59,6 +60,81 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             **app_interface_data,
             **kwargs
         )
+
+    # * method: set_constants
+    def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
+        '''
+        Update the constants dictionary.
+
+        :param constants: New constants to merge, or None to clear all. Keys with None value are removed.
+        :type constants: Dict[str, Any] | None
+        :return: None
+        :rtype: None
+        '''
+
+        # Clear all constants when None is provided.
+        if constants is None:
+            self.constants = {}
+
+        # Otherwise merge new constants and remove keys with None value.
+        else:
+            self.constants.update(constants)
+            self.constants = {
+                key: value
+                for key, value in self.constants.items()
+                if value is not None
+            }
+
+    # * method: set_attribute
+    def set_attribute(self, attribute: str, value: Any) -> None:
+        '''
+        Update a supported scalar attribute on the app interface aggregate.
+
+        Supported attributes: name, description, module_path, class_name,
+        logger_id, feature_flag, data_flag.
+
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value.
+        :type value: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Define the set of supported attributes.
+        supported = {
+            'name',
+            'description',
+            'module_path',
+            'class_name',
+            'logger_id',
+            'feature_flag',
+            'data_flag',
+        }
+
+        # Validate the attribute name.
+        if attribute not in supported:
+            RaiseError.execute(
+                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+                attribute=attribute,
+                supported=', '.join(sorted(supported)),
+            )
+
+        # Specific validation for module_path and class_name.
+        if attribute in {'module_path', 'class_name'}:
+            if not value or not str(value).strip():
+                RaiseError.execute(
+                    error_code=a.const.INVALID_APP_INTERFACE_TYPE_ID,
+                    message='{attribute} must be a non-empty string.',
+                    attribute=attribute,
+                )
+
+        # Apply the update to the attribute.
+        setattr(self, attribute, value)
+
+        # Perform final aggregate validation.
+        self.validate()
 
 
 # ** mapper: app_attribute_yaml_object
