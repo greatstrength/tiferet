@@ -1,4 +1,4 @@
-"""Tiferet App Models"""
+"""Tiferet App Entity Models"""
 
 # *** imports
 
@@ -13,8 +13,7 @@ from .settings import (
     DictType,
     ModelType,
 )
-from ..commands.static import RaiseError
-from ..commands.settings import const
+from ..events import RaiseError, a
 
 # *** models
 
@@ -144,30 +143,6 @@ class AppInterface(ModelObject):
         ),
     )
 
-    # * method: set_constants
-    def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
-        '''
-        Update the constants dictionary.
-
-        :param constants: New constants to merge, or None to clear all. Keys with None value are removed.
-        :type constants: Dict[str, Any] | None
-        :return: None
-        :rtype: None
-        '''
-
-        # Clear all constants when None is provided.
-        if constants is None:
-            self.constants = {}
-
-        # Otherwise merge new constants and remove keys with None value.
-        else:
-            self.constants.update(constants)
-            self.constants = {
-                key: value
-                for key, value in self.constants.items()
-                if value is not None
-            }
-
     # * method: add_attribute
     def add_attribute(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
         '''
@@ -294,53 +269,3 @@ class AppInterface(ModelObject):
             )
             self.attributes.append(new_attr)
 
-    # * method: set_attribute
-    def set_attribute(self, attribute: str, value: Any) -> None:
-        '''
-        Update a supported scalar attribute on the app interface.
-
-        Supported attributes: name, description, module_path, class_name,
-        logger_id, feature_flag, data_flag.
-
-        :param attribute: The attribute name to update.
-        :type attribute: str
-        :param value: The new value.
-        :type value: Any
-        :return: None
-        :rtype: None
-        '''
-
-        # Define the set of supported attributes.
-        supported = {
-            'name',
-            'description',
-            'module_path',
-            'class_name',
-            'logger_id',
-            'feature_flag',
-            'data_flag',
-        }
-
-        # Validate the attribute name.
-        if attribute not in supported:
-            RaiseError.execute(
-                error_code=const.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
-                attribute=attribute,
-                supported=', '.join(sorted(supported)),
-            )
-
-        # Specific validation for module_path and class_name.
-        if attribute in {'module_path', 'class_name'}:
-            if not value or not str(value).strip():
-                RaiseError.execute(
-                    error_code=const.INVALID_APP_INTERFACE_TYPE_ID,
-                    message='{attribute} must be a non-empty string.',
-                    attribute=attribute,
-                )
-
-        # Apply the update to the attribute.
-        setattr(self, attribute, value)
-
-        # Perform final model validation.
-        self.validate()
