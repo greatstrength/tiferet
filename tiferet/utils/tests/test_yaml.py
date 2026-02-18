@@ -1,4 +1,4 @@
-"""Tiferet YAML Middleware Tests"""
+"""Tiferet YAML Utility Tests"""
 
 # *** imports
 
@@ -8,7 +8,7 @@ import yaml
 
 # ** app
 from ..yaml import (
-    YamlLoaderMiddleware, 
+    YamlLoader,
     TiferetError,
     const
 )
@@ -42,34 +42,34 @@ def temp_yaml_file(tmp_path):
 
 # *** tests
 
-# ** test: yaml_loader_middleware_init_invalid_file
-def test_yaml_loader_middleware_init_invalid_file():
+# ** test: yaml_loader_init_invalid_file
+def test_yaml_loader_init_invalid_file():
     '''
-    Test initialization of YamlLoaderMiddleware with an invalid YAML file path.
+    Test initialization of YamlLoader with an invalid YAML file path.
     '''
 
-    yaml_loader_middleware = YamlLoaderMiddleware(path='invalid_file.txt')
+    yaml_loader = YamlLoader(path='invalid_file.txt')
     
     # Attempt to initialize with an invalid file path and verify that it raises an error.
     with pytest.raises(TiferetError) as exc_info:
-        yaml_loader_middleware.open_file()
+        yaml_loader.open_file()
     
     # Verify the exception message.
     assert exc_info.value.error_code == const.INVALID_YAML_FILE_ID
     assert 'is not a valid YAML file' in str(exc_info.value)
     assert exc_info.value.kwargs.get('path') == 'invalid_file.txt'
 
-# ** test: yaml_loader_middleware_load
-def test_yaml_loader_middleware_load(temp_yaml_file: str):
+# ** test: yaml_loader_load
+def test_yaml_loader_load(temp_yaml_file: str):
     '''
-    Test successful loading of a YAML file using YamlLoaderMiddleware.
+    Test successful loading of a YAML file using YamlLoader.
 
     :param temp_yaml_file: The path to the temporary YAML file.
     :type temp_yaml_file: str
     '''
     
     # Load the YAML content.
-    with YamlLoaderMiddleware(path=temp_yaml_file) as yaml_r:
+    with YamlLoader(path=temp_yaml_file) as yaml_r:
         content = yaml_r.load()
     
     # Verify the loaded content.
@@ -79,10 +79,10 @@ def test_yaml_loader_middleware_load(temp_yaml_file: str):
     # Verify the file is closed after loading.
     assert yaml_r.file is None
 
-# ** test: yaml_loader_middleware_load_start_node
-def test_yaml_loader_middleware_load_start_node(temp_yaml_file: str):
+# ** test: yaml_loader_load_start_node
+def test_yaml_loader_load_start_node(temp_yaml_file: str):
     '''
-    Test loading a YAML file with a custom start node using YamlLoaderMiddleware.
+    Test loading a YAML file with a custom start node using YamlLoader.
     
     :param temp_yaml_file: The path to the temporary YAML file.
     :type temp_yaml_file: str
@@ -93,7 +93,7 @@ def test_yaml_loader_middleware_load_start_node(temp_yaml_file: str):
         return data.get('nested', {})
     
     # Load the YAML content using the custom start node.
-    with YamlLoaderMiddleware(path=temp_yaml_file) as yaml_r:
+    with YamlLoader(path=temp_yaml_file) as yaml_r:
         content = yaml_r.load(start_node=start_node)
 
     # Verify the loaded content is the nested dictionary.
@@ -103,10 +103,10 @@ def test_yaml_loader_middleware_load_start_node(temp_yaml_file: str):
     # Verify the file is closed after loading.
     assert yaml_r.file is None
 
-# ** test: yaml_loader_middleware_load_data_factory
-def test_yaml_loader_middleware_load_data_factory(temp_yaml_file: str):
+# ** test: yaml_loader_load_data_factory
+def test_yaml_loader_load_data_factory(temp_yaml_file: str):
     '''
-    Test loading a YAML file with a custom data factory using YamlLoaderMiddleware.
+    Test loading a YAML file with a custom data factory using YamlLoader.
 
     :param temp_yaml_file: The path to the temporary YAML file.
     :type temp_yaml_file: str
@@ -117,7 +117,7 @@ def test_yaml_loader_middleware_load_data_factory(temp_yaml_file: str):
         return {k.upper(): v for k, v in data.items()}
     
     # Load the YAML content using the custom data factory.
-    with YamlLoaderMiddleware(path=temp_yaml_file) as yaml_r:
+    with YamlLoader(path=temp_yaml_file) as yaml_r:
         content = yaml_r.load(data_factory=data_factory)
     
     # Verify the transformed content.
@@ -127,10 +127,10 @@ def test_yaml_loader_middleware_load_data_factory(temp_yaml_file: str):
     # Verify the file is closed after loading.
     assert yaml_r.file is None
 
-# ** test: yaml_loader_middleware_save
-def test_yaml_loader_middleware_save(temp_yaml_file: str):
+# ** test: yaml_loader_save
+def test_yaml_loader_save(temp_yaml_file: str):
     '''
-    Test successful saving of a dictionary to a YAML file using YamlLoaderMiddleware.
+    Test successful saving of a dictionary to a YAML file using YamlLoader.
 
     :param temp_yaml_file: The path to the temporary YAML file.
     :type temp_yaml_file: str
@@ -140,7 +140,7 @@ def test_yaml_loader_middleware_save(temp_yaml_file: str):
     data = {'new_key': 'new_value', 'nested': {'b': 2}}
     
     # Save the data to the YAML file.
-    with YamlLoaderMiddleware(path=temp_yaml_file, mode='w') as yaml_w:
+    with YamlLoader(path=temp_yaml_file, mode='w') as yaml_w:
         yaml_w.save(data)
     
     # Verify the file content.
@@ -151,10 +151,10 @@ def test_yaml_loader_middleware_save(temp_yaml_file: str):
     # Verify the file is closed after saving.
     assert yaml_w.file is None
 
-# ** test: yaml_loader_middleware_save_data_yaml_path
-def test_yaml_loader_middleware_save_data_yaml_path(temp_yaml_file: str):
+# ** test: yaml_loader_save_data_yaml_path
+def test_yaml_loader_save_data_yaml_path(temp_yaml_file: str):
     '''
-    Test saving a dictionary to a specific path in a YAML file using YamlLoaderMiddleware.
+    Test saving a dictionary to a specific path in a YAML file using YamlLoader.
 
     :param temp_yaml_file: The path to the temporary YAML file.
     :type temp_yaml_file: str
@@ -164,7 +164,7 @@ def test_yaml_loader_middleware_save_data_yaml_path(temp_yaml_file: str):
     data = {'c': 3}
     
     # Save the data to a specific path in the YAML file.
-    with YamlLoaderMiddleware(path=temp_yaml_file, mode='w') as yaml_w:
+    with YamlLoader(path=temp_yaml_file, mode='w') as yaml_w:
         yaml_w.save(data, data_path='nested/new_nested')
     
     # Load the YAML content to verify the update.

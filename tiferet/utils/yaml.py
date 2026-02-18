@@ -1,4 +1,4 @@
-"""Tiferet YAML Middleware"""
+"""Tiferet YAML Utility"""
 
 # *** imports
 
@@ -19,12 +19,12 @@ from .file import FileLoaderMiddleware
 from ..events import TiferetError, const
 from ..contracts import ConfigurationService
 
-# *** middleware
+# *** utils
 
-#* middleware: yaml_loader
-class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
+# ** util: yaml_loader
+class YamlLoader(FileLoaderMiddleware, ConfigurationService):
     '''
-    Middleware for loading YAML files into the application.
+    Utility for loading YAML files into the application.
     '''
 
     # * attribute: cache_data
@@ -35,8 +35,8 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         '''
         Enter the context manager and open the YAML file.
 
-        :return: The YamlLoaderMiddleware instance.
-        :rtype: YamlLoaderMiddleware
+        :return: The YamlLoader instance.
+        :rtype: YamlLoader
         '''
         
         # If the mode is 'w' or 'wb', read the existing YAML content to cache it before writing.
@@ -107,19 +107,6 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         # Return the YAML content processed by the data factory.
         return data_factory(yaml_content)
 
-    # * method: load_yaml
-    # - obsolete, use load() instead
-    def load_yaml(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
-        '''
-        Load the YAML file and return its contents as a dictionary.
-
-        :return: The contents of the YAML file as a dictionary.
-        :rtype: List[Any] | Dict[str, Any]
-        '''
-
-        # Call the load method to get the YAML content.
-        return self.load(start_node=start_node)
-
     # * method: save
     def save(self, data: Dict[str, Any], data_path: str = None):
         '''
@@ -172,18 +159,3 @@ class YamlLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
 
         # Save the updated yaml data.
         yaml.safe_dump(self.cache_data, self.file)
-
-    # * method: save_yaml
-    # - obsolete, use save() instead
-    def save_yaml(self, data: Dict[str, Any], data_yaml_path: str = None):
-        '''
-        Save a dictionary as a YAML file.
-
-        :param data: The dictionary to save as YAML.
-        :type data: Dict[str, Any]
-        :param data_yaml_path: The path to save the YAML file to. If None, saves to the current file.
-        :type data_yaml_path: str
-        '''
-
-        # Call the save method to save the YAML content.
-        self.save(data, data_path=data_yaml_path)
