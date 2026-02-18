@@ -9,9 +9,6 @@ from typing import Any
 from schematics.models import Model
 
 # ** app
-from ..entities import (
-    ModelObject,
-)
 from ..events import RaiseError, a
 
 # *** constants
