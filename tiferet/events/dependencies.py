@@ -8,7 +8,7 @@ from dependencies import Injector
 from dependencies.exceptions import DependencyError
 
 # ** app
-from ..commands import *
+from ..events import *
 
 
 # *** commands
