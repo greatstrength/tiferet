@@ -1,4 +1,4 @@
-"""Tiferet Container Data Object Tests"""
+"""Tiferet Container Mapper Tests"""
 
 # *** imports
 
@@ -6,50 +6,57 @@
 import pytest
 
 # ** app
-from ...models import (
-    ModelObject,
+from ..settings import (
+    TransferObject,
 )
 from ..container import (
-    ContainerAttributeConfigData,
+    ContainerAttributeYamlObject,
+    ContainerAttributeAggregate,
+    FlaggedDependencyYamlObject,
+    FlaggedDependencyAggregate,
+)
+from ...entities import (
+    ModelObject,
     ContainerAttribute,
-    FlaggedDependencyConfigData,
     FlaggedDependency,
 )
 
 # *** fixtures
 
-# ** fixture: flagged_dependency_config_data
+# ** fixture: flagged_dependency_yaml_object
 @pytest.fixture
-def flagged_dependency_config_data() -> FlaggedDependencyConfigData:
+def flagged_dependency_yaml_object() -> FlaggedDependencyYamlObject:
     '''
-    Provides a fixture for FlaggedDependency YAML data.
-    
-    :return: The FlaggedDependencyYamlData instance.
-    :rtype: FlaggedDependencyYamlData
+    Provides a fixture for FlaggedDependency YAML object.
+
+    :return: The FlaggedDependencyYamlObject instance.
+    :rtype: FlaggedDependencyYamlObject
     '''
 
-    # Create and return a FlaggedDependencyYamlData object.
-    return FlaggedDependencyConfigData.from_data(
+    # Create and return a FlaggedDependencyYamlObject.
+    return TransferObject.from_data(
+        FlaggedDependencyYamlObject,
         module_path='tests.repos.test',
         class_name='TestRepoProxy',
         flag='test',
-        parameters=dict(
+        params=dict(
             test_param='test_value'
         )
     )
 
-# ** fixture: container_attribute_config_data
+# ** fixture: container_attribute_yaml_object
 @pytest.fixture
-def container_attribute_config_data() -> ContainerAttributeConfigData:
+def container_attribute_yaml_object() -> ContainerAttributeYamlObject:
     '''
-    Provides a fixture for ContainerAttribute YAML data.
-    
-    :return: The ContainerAttributeYamlData instance.
-    :rtype: ContainerAttributeYamlData
+    Provides a fixture for ContainerAttribute YAML object.
+
+    :return: The ContainerAttributeYamlObject instance.
+    :rtype: ContainerAttributeYamlObject
     '''
-    
-    # Create and return a ContainerAttributeYamlData object.
-    return ContainerAttributeConfigData.from_data(
+
+    # Create and return a ContainerAttributeYamlObject.
+    return TransferObject.from_data(
+        ContainerAttributeYamlObject,
         id='test_repo',
         type='data',
         module_path='tests.repos.test',
@@ -74,37 +81,37 @@ def container_attribute_config_data() -> ContainerAttributeConfigData:
 
 # ** fixture: flagged_dependency_model
 @pytest.fixture
-def flagged_dependency_model(flagged_dependency_config_data: FlaggedDependencyConfigData):
+def flagged_dependency_model(flagged_dependency_yaml_object: FlaggedDependencyYamlObject):
     '''
     Fixture to create a FlaggedDependency model instance for testing.
 
-    :param flagged_dependency_yaml_data: The FlaggedDependencyYamlData instance.
-    :type flagged_dependency_yaml_data: FlaggedDependencyYamlData
+    :param flagged_dependency_yaml_object: The FlaggedDependencyYamlObject instance.
+    :type flagged_dependency_yaml_object: FlaggedDependencyYamlObject
     :return: The FlaggedDependency model instance.
     :rtype: FlaggedDependency
     '''
 
-    # Map the YAML data to a FlaggedDependency model object.
-    model = flagged_dependency_config_data.map()
+    # Map the YAML object to a FlaggedDependency model.
+    model = flagged_dependency_yaml_object.map()
     model.class_name = 'TestRepoProxy2'
     model.parameters = {'test_param2': 'test_value2'}
-    
+
     # Return the model object.
     return model
 
 # *** tests
 
-# ** test: container_attribute_config_data_to_primitive_to_data_yaml
-def test_container_attribute_config_data_to_primitive_to_data_yaml(container_attribute_config_data: ContainerAttributeConfigData):
+# ** test: container_attribute_yaml_object_to_primitive_to_data_yaml
+def test_container_attribute_yaml_object_to_primitive_to_data_yaml(container_attribute_yaml_object: ContainerAttributeYamlObject):
     '''
-    Test that the ContainerAttributeYamlData can be serialized to primitive data for YAML.
+    Test that the ContainerAttributeYamlObject can be serialized to primitive data for YAML.
 
-    :param container_attribute_yaml_data: The ContainerAttributeYamlData instance.
-    :type container_attribute_yaml_data: ContainerAttributeYamlData
+    :param container_attribute_yaml_object: The ContainerAttributeYamlObject instance.
+    :type container_attribute_yaml_object: ContainerAttributeYamlObject
     '''
 
     # Serialize the data to primitive format for YAML.
-    primitive_data = container_attribute_config_data.to_primitive(role='to_data.yaml')
+    primitive_data = container_attribute_yaml_object.to_primitive(role='to_data.yaml')
 
     # Check if the primitive data is correct.
     assert isinstance(primitive_data, dict)
@@ -131,7 +138,7 @@ def test_container_attribute_config_data_to_primitive_to_data_yaml(container_att
 
 
 # ** test: flagged_dependency_yaml_data_from_data
-def test_flagged_dependency_yaml_data_from_data(flagged_dependency_config_data: FlaggedDependencyConfigData):
+def test_flagged_dependency_yaml_data_from_data(flagged_dependency_yaml_object: FlaggedDependencyYamlObject):
     '''
     Test that the FlaggedDependencyYamlData can be initialized from data.
 
@@ -140,13 +147,13 @@ def test_flagged_dependency_yaml_data_from_data(flagged_dependency_config_data: 
     '''
 
     # Check if the data is correctly initialized.
-    assert flagged_dependency_config_data.module_path == 'tests.repos.test'
-    assert flagged_dependency_config_data.class_name == 'TestRepoProxy'
-    assert flagged_dependency_config_data.flag == 'test'
-    assert flagged_dependency_config_data.parameters == {'test_param': 'test_value'}
+    assert flagged_dependency_yaml_object.module_path == 'tests.repos.test'
+    assert flagged_dependency_yaml_object.class_name == 'TestRepoProxy'
+    assert flagged_dependency_yaml_object.flag == 'test'
+    assert flagged_dependency_yaml_object.parameters == {'test_param': 'test_value'}
 
 # ** test: flagged_dependency_yaml_data_map
-def test_flagged_dependency_yaml_data_map(flagged_dependency_config_data: FlaggedDependencyConfigData):
+def test_flagged_dependency_yaml_data_map(flagged_dependency_yaml_object: FlaggedDependencyYamlObject):
     '''
     Test that the FlaggedDependencyYamlData can be mapped to a FlaggedDependency object.
 
@@ -155,7 +162,7 @@ def test_flagged_dependency_yaml_data_map(flagged_dependency_config_data: Flagge
     '''
 
     # Map the data to a flagged dependency object.
-    mapped_dep = flagged_dependency_config_data.map()
+    mapped_dep = flagged_dependency_yaml_object.map()
 
     # Check if the mapped object is of the correct type.
     assert isinstance(mapped_dep, FlaggedDependency)
@@ -174,17 +181,17 @@ def test_flagged_dependency_yaml_data_from_model(flagged_dependency_model: Flagg
     '''
 
     # Create a new data object from the model object.
-    data_from_model = FlaggedDependencyConfigData.from_model(flagged_dependency_model)
+    data_from_model = FlaggedDependencyYamlObject.from_model(flagged_dependency_model)
     
     # Assert the data object is valid.
-    assert isinstance(data_from_model, FlaggedDependencyConfigData)
+    assert isinstance(data_from_model, FlaggedDependencyYamlObject)
     assert data_from_model.module_path == flagged_dependency_model.module_path
     assert data_from_model.class_name == flagged_dependency_model.class_name
     assert data_from_model.flag == flagged_dependency_model.flag
     assert data_from_model.parameters == flagged_dependency_model.parameters
 
 # ** test: container_attribute_yaml_data_from_data
-def test_container_attribute_yaml_data_from_data(container_attribute_config_data: ContainerAttributeConfigData):
+def test_container_attribute_yaml_data_from_data(container_attribute_yaml_object: ContainerAttributeYamlObject):
     '''
     Test that the ContainerAttributeYamlData can be initialized from data.
 
@@ -193,36 +200,36 @@ def test_container_attribute_yaml_data_from_data(container_attribute_config_data
     '''
 
     # Check if the data is correctly initialized.
-    assert container_attribute_config_data.id == 'test_repo'
-    assert len(container_attribute_config_data.dependencies) == 2
+    assert container_attribute_yaml_object.id == 'test_repo'
+    assert len(container_attribute_yaml_object.dependencies) == 2
 
     # Check if dependencies are correctly initialized
-    for flag, dep in container_attribute_config_data.dependencies.items():
+    for flag, dep in container_attribute_yaml_object.dependencies.items():
         assert flag in ['test', 'test2']
         assert dep.module_path == 'tests.repos.test'
         assert dep.class_name in ['TestRepoProxy', 'TestRepoProxy2']
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}]
 
 # ** test: container_attribute_yaml_data_map
-def test_container_attribute_yaml_data_map(container_attribute_config_data: ContainerAttributeConfigData):
+def test_container_attribute_yaml_data_map(container_attribute_yaml_object: ContainerAttributeYamlObject):
     '''
-    Test that the ContainerAttributeYamlData can be mapped to a ContainerAttribute object.
+    Test that the ContainerAttributeYamlObject can be mapped to a ContainerAttribute aggregate.
 
-    :param container_attribute_yaml_data: The ContainerAttributeYamlData instance.
-    :type container_attribute_yaml_data: ContainerAttributeYamlData
+    :param container_attribute_yaml_object: The ContainerAttributeYamlObject instance.
+    :type container_attribute_yaml_object: ContainerAttributeYamlObject
     '''
 
-    # Map the data to a container attribute object.
-    mapped_attr = container_attribute_config_data.map()
-    
+    # Map the data to a container attribute aggregate.
+    mapped_attr = container_attribute_yaml_object.map()
+
     # Assert the mapped object is valid.
-    assert isinstance(mapped_attr, ContainerAttribute)
+    assert isinstance(mapped_attr, ContainerAttributeAggregate)
     assert mapped_attr.id == 'test_repo'
     assert mapped_attr.module_path == 'tests.repos.test'
     assert mapped_attr.class_name == 'DefaultTestRepoProxy'
     assert mapped_attr.parameters == {'test_param': 'test_value', 'param0': 'value0'}
     assert len(mapped_attr.dependencies) == 2
-    
+
     # Assert the dependencies are correctly mapped.
     for dep in mapped_attr.dependencies:
         assert isinstance(dep, FlaggedDependency)
@@ -231,7 +238,7 @@ def test_container_attribute_yaml_data_map(container_attribute_config_data: Cont
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}]
 
 # ** test: container_attribute_yaml_data_from_model
-def test_container_attribute_yaml_data_from_model(container_attribute_config_data: ContainerAttributeConfigData):
+def test_container_attribute_yaml_data_from_model(container_attribute_yaml_object: ContainerAttributeYamlObject):
     '''
     Test that the ContainerAttributeYamlData can be created from a model object.
 
@@ -240,7 +247,7 @@ def test_container_attribute_yaml_data_from_model(container_attribute_config_dat
     '''
 
     # Create a new model object from the fixture.
-    model_object = container_attribute_config_data.map()
+    model_object = container_attribute_yaml_object.map()
     
     # Add another dependency to the model object.
     model_object.set_dependency(
@@ -251,16 +258,16 @@ def test_container_attribute_yaml_data_from_model(container_attribute_config_dat
     )
     
     # Create a new data object from the model object.
-    data_object = ContainerAttributeConfigData.from_model(model_object)
+    data_object = ContainerAttributeYamlObject.from_model(model_object)
     
     # Assert the data object is valid.
-    assert isinstance(data_object, ContainerAttributeConfigData)
+    assert isinstance(data_object, ContainerAttributeYamlObject)
     assert data_object.id == 'test_repo'
     assert len(data_object.dependencies) == 3
 
     # Check if all dependencies are of type ContainerDependencyYamlData
     for dep in data_object.dependencies.values():
-        assert isinstance(dep, FlaggedDependencyConfigData)
+        assert isinstance(dep, FlaggedDependencyYamlObject)
         assert dep.module_path == 'tests.repos.test'
         assert dep.class_name in ['TestRepoProxy', 'TestRepoProxy2', 'TestRepoProxy3']
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}, {'param3': 'value3'}]
@@ -273,7 +280,7 @@ def test_container_attribute_yaml_data_flags_alias_round_trip() -> None:
     that dependencies are still serialized under ``deps``.
     '''
 
-    data_object = ContainerAttributeConfigData.from_data(
+    data_object = ContainerAttributeYamlObject.from_data(
         id='test_repo_flags',
         type='data',
         module_path='tests.repos.test',
@@ -291,9 +298,9 @@ def test_container_attribute_yaml_data_flags_alias_round_trip() -> None:
     )
 
     # The alias should populate the dependencies mapping keyed by flag.
-    assert isinstance(data_object, ContainerAttributeConfigData)
+    assert isinstance(data_object, ContainerAttributeYamlObject)
     assert 'flag1' in data_object.dependencies
-    assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyConfigData)
+    assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyYamlObject)
 
     # When serializing to data, dependencies should still be emitted as ``deps``.
     primitive = data_object.to_primitive(role='to_data.yaml')
