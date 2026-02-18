@@ -17,10 +17,15 @@ from ..container import (
     SetServiceConstants,
     a,
 )
-from ...models import ModelObject, ContainerAttribute, FlaggedDependency
+from ...entities import ContainerAttribute, FlaggedDependency
+from ...mappers import (
+    ContainerAttributeAggregate,
+    FlaggedDependencyAggregate,
+)
+from ...mappers.settings import Aggregate
 from ...contracts import ContainerService
 from ...assets import TiferetError
-from ...commands import Command
+from ...events import Command
 
 # *** fixtures
 
@@ -31,8 +36,8 @@ def flagged_dependency_for_commands() -> FlaggedDependency:
     A flagged dependency instance for command tests.
     '''
 
-    return ModelObject.new(
-        FlaggedDependency,
+    return Aggregate.new(
+        FlaggedDependencyAggregate,
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependencyAlpha',
         flag='test_alpha',
@@ -49,9 +54,9 @@ def container_attribute_and_constants() -> Tuple[ContainerAttribute, Dict[str, A
     A fixture for a container attribute and constants.
     '''
 
-    # Create a container attribute.
-    container_attribute = ModelObject.new(
-        ContainerAttribute,
+    # Create a container attribute aggregate.
+    container_attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='attribute_1',
         module_path='tiferet.example.module',
         class_name='ExampleClass',
@@ -520,9 +525,9 @@ def test_set_default_service_configuration_full_update(
     :type mock_container_service: ContainerService
     '''
 
-    # Create an existing attribute.
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    # Create an existing attribute aggregate.
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_full',
         module_path='old.module',
         class_name='OldClass',
@@ -562,8 +567,8 @@ def test_set_default_service_configuration_parameters_only(
     :type mock_container_service: ContainerService
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_params',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -603,8 +608,8 @@ def test_set_default_service_configuration_clear_parameters(
     :type mock_container_service: ContainerService
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_clear',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -670,8 +675,8 @@ def test_set_default_service_configuration_incomplete_type(
     :type mock_container_service: ContainerService
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_partial',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -709,9 +714,9 @@ def test_set_service_dependency_add_new(
     :type mock_container_service: ContainerService
     '''
 
-    # Existing attribute with no dependencies.
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    # Existing attribute aggregate with no dependencies.
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_flags',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -760,9 +765,9 @@ def test_set_service_dependency_update_existing(
     :type flagged_dependency_for_commands: FlaggedDependency
     '''
 
-    # Attribute with one existing flagged dependency.
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    # Attribute aggregate with one existing flagged dependency.
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_flags_update',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -812,8 +817,8 @@ def test_set_service_dependency_missing_flag(
     :type mock_container_service: ContainerService
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_missing_flag',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -852,8 +857,8 @@ def test_set_service_dependency_incomplete_type(
     :type mock_container_service: ContainerService
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_bad_dep',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -989,8 +994,8 @@ def test_remove_service_dependency_success_with_remaining_default(
     :type flagged_dependency_for_commands: FlaggedDependency
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_remove_default',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -1032,8 +1037,8 @@ def test_remove_service_dependency_success_nonexistent_flag(
     :type flagged_dependency_for_commands: FlaggedDependency
     '''
 
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_remove_missing',
         module_path='tiferet.models.tests.test_container',
         class_name='TestDependency',
@@ -1076,9 +1081,9 @@ def test_remove_service_dependency_invalid_after_removal(
     :type flagged_dependency_for_commands: FlaggedDependency
     '''
 
-    # Attribute with only a flagged dependency and no default type.
-    attribute = ModelObject.new(
-        ContainerAttribute,
+    # Attribute aggregate with only a flagged dependency and no default type.
+    attribute = Aggregate.new(
+        ContainerAttributeAggregate,
         id='svc_invalid_after_remove',
         dependencies=[flagged_dependency_for_commands],
         parameters={},
