@@ -199,6 +199,24 @@ YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 # ** constant: unsupported_config_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
+# ** constant: csv_invalid_mode_id
+CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
+
+# ** constant: csv_handle_not_initialized_id
+CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
+
+# ** constant: csv_invalid_read_mode_id
+CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
+
+# ** constant: csv_invalid_write_mode_id
+CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
+
+# ** constant: csv_fieldnames_required_id
+CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
+
+# ** constant: csv_dict_no_header_id
+CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
+
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 

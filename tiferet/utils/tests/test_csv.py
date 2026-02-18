@@ -1,4 +1,4 @@
-"""Tiferet CSV Middleware Tests"""
+"""Tiferet CSV Utilities Tests"""
 
 # *** imports
 
@@ -8,7 +8,9 @@ from _csv import Reader, Writer
 from csv import DictReader, DictWriter
 
 # ** app
-from ..csv import CsvLoaderMiddleware, CsvDictLoaderMiddleware
+from ..csv import CsvLoader, CsvDictLoader
+from ...events import TiferetError
+from ... import assets as a
 
 # *** fixtures
 
@@ -36,40 +38,40 @@ def temp_csv_file(tmp_path):
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: csv_loader_middleware
+# ** fixture: csv_loader
 @pytest.fixture
-def csv_loader_middleware(temp_csv_file: str) -> CsvLoaderMiddleware:
+def csv_loader(temp_csv_file: str) -> CsvLoader:
     '''
-    Fixture to create a CsvLoaderMiddleware instance for reading.
+    Fixture to create a CsvLoader instance for reading.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
-    :return: A CsvLoaderMiddleware instance.
-    :rtype: CsvLoaderMiddleware
+    :return: A CsvLoader instance.
+    :rtype: CsvLoader
     '''
 
-    # Create and return a CsvLoaderMiddleware instance.
-    return CsvLoaderMiddleware(
+    # Create and return a CsvLoader instance.
+    return CsvLoader(
         path=temp_csv_file,
         mode='r',
         encoding='utf-8',
         newline=''
     )
 
-# ** fixture: csv_dict_loader_middleware
+# ** fixture: csv_dict_loader
 @pytest.fixture
-def csv_dict_loader_middleware(temp_csv_file: str) -> CsvDictLoaderMiddleware:
+def csv_dict_loader(temp_csv_file: str) -> CsvDictLoader:
     '''
-    Fixture to create a CsvLoaderMiddleware instance for reading dicts.
+    Fixture to create a CsvLoader instance for reading dicts.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
-    :return: A CsvDictLoaderMiddleware instance.
-    :rtype: CsvDictLoaderMiddleware
+    :return: A CsvDictLoader instance.
+    :rtype: CsvDictLoader
     '''
 
-    # Create and return a CsvLoaderMiddleware instance for dicts.
-    return CsvDictLoaderMiddleware(
+    # Create and return a CsvLoader instance for dicts.
+    return CsvDictLoader(
         path=temp_csv_file,
         mode='r',
         encoding='utf-8',
@@ -79,33 +81,33 @@ def csv_dict_loader_middleware(temp_csv_file: str) -> CsvDictLoaderMiddleware:
 # *** tests
 
 # ** test: csv_list_loader_creation
-def test_csv_list_loader_creation(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_creation(csv_loader: CsvLoader):
     '''
-    Test the creation of a CsvLoaderMiddleware instance.
+    Test the creation of a CsvLoader instance.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Verify that the middleware instance is created correctly.
-    assert isinstance(csv_loader_middleware, CsvLoaderMiddleware)
-    assert csv_loader_middleware.mode == 'r'
-    assert csv_loader_middleware.encoding == 'utf-8'
-    assert csv_loader_middleware.newline == ''
-    assert csv_loader_middleware.file is None
+    assert isinstance(csv_loader, CsvLoader)
+    assert csv_loader.mode == 'r'
+    assert csv_loader.encoding == 'utf-8'
+    assert csv_loader.newline == ''
+    assert csv_loader.file is None
 
 # ** test: csv_list_loader_verify_mode
-def test_csv_list_loader_creation_invalid_mode(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_creation_invalid_mode(csv_loader: CsvLoader):
     '''
-    Test that CsvLoaderMiddleware raises an error for invalid modes.
+    Test that CsvLoader raises an error for invalid modes.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
-    # Attempt to create a CsvLoaderMiddleware with an invalid mode.
-    with pytest.raises(ValueError) as exc_info:
-        CsvLoaderMiddleware(
+    # Attempt to create a CsvLoader with an invalid mode.
+    with pytest.raises(TiferetError) as exc_info:
+        CsvLoader(
             path='dummy.csv',
             mode='invalid_mode',
             encoding='utf-8',
@@ -116,16 +118,16 @@ def test_csv_list_loader_creation_invalid_mode(csv_loader_middleware: CsvLoaderM
     assert 'Invalid mode:' in str(exc_info.value)
 
 # ** test: csv_list_loader_build_reader
-def test_csv_list_loader_build_reader(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_build_reader(csv_loader: CsvLoader):
     '''
-    Test building a CSV reader from CsvLoaderMiddleware.
+    Test building a CSV reader from CsvLoader.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_loader_middleware as cmw:
+    with csv_loader as cmw:
         
         # Build the CSV reader.
         cmw.build_reader()
@@ -136,17 +138,17 @@ def test_csv_list_loader_build_reader(csv_loader_middleware: CsvLoaderMiddleware
         assert cmw.file is not None
 
 # ** test: csv_list_loader_build_reader_unopened_file
-def test_csv_list_loader_build_reader_unopened_file(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_build_reader_unopened_file(csv_loader: CsvLoader):
     '''
     Test that building a CSV reader without opening the file raises an error.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Attempt to build a CSV reader without opening the file.
-    with pytest.raises(RuntimeError) as exc_info:
-        csv_loader_middleware.build_reader()
+    with pytest.raises(TiferetError) as exc_info:
+        csv_loader.build_reader()
     
     # Verify the exception message.
     assert 'CSV handle not initialized.' in str(exc_info.value)
@@ -160,8 +162,8 @@ def test_csv_list_loader_build_reader_invalid_mode(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in write mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in write mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -172,26 +174,26 @@ def test_csv_list_loader_build_reader_invalid_mode(temp_csv_file: str):
     with cmw:
         
         # Attempt to build a CSV reader in write mode.
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             cmw.build_reader()
         
         # Verify the exception message.
         assert 'Cannot read in mode' in str(exc_info.value)
 
 # ** test: csv_list_loader_build_writer
-def test_csv_list_loader_build_writer(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_build_writer(csv_loader: CsvLoader):
     '''
-    Test building a CSV writer from CsvLoaderMiddleware.
+    Test building a CSV writer from CsvLoader.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Set the middleware to write mode.
-    csv_loader_middleware.mode = 'w'
+    csv_loader.mode = 'w'
     
     # Use the middleware within a context to open the file.
-    with csv_loader_middleware as cmw:
+    with csv_loader as cmw:
         
         # Build the CSV writer.
         cmw.build_writer()
@@ -210,8 +212,8 @@ def test_csv_list_loader_build_writer_unopened_file(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in write mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in write mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -219,7 +221,7 @@ def test_csv_list_loader_build_writer_unopened_file(temp_csv_file: str):
     )
     
     # Attempt to build a CSV writer without opening the file.
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(TiferetError) as exc_info:
         cmw.build_writer()
     
     # Verify the exception message.
@@ -234,8 +236,8 @@ def test_csv_list_loader_build_writer_invalid_mode(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in read mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in read mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='r',
         encoding='utf-8',
@@ -246,7 +248,7 @@ def test_csv_list_loader_build_writer_invalid_mode(temp_csv_file: str):
     with cmw:
         
         # Attempt to build a CSV writer in read mode.
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             cmw.build_writer()
         
         # Verify the exception message.
@@ -261,8 +263,8 @@ def test_csv_list_loader_build_reader_writer_close_file(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in read mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in read mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='r',
         encoding='utf-8',
@@ -297,16 +299,16 @@ def test_csv_list_loader_build_reader_writer_close_file(temp_csv_file: str):
     assert cmw.file is None
 
 # ** test: csv_list_loader_read_row
-def test_csv_list_loader_read_row(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_read_row(csv_loader: CsvLoader):
     '''
-    Test reading a row from the CSV using CsvLoaderMiddleware.
+    Test reading a row from the CSV using CsvLoader.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_loader_middleware as cmw:
+    with csv_loader as cmw:
         
         # Assert that the reader is None initially.
         assert cmw.reader is None
@@ -329,16 +331,16 @@ def test_csv_list_loader_read_row(csv_loader_middleware: CsvLoaderMiddleware):
         assert line_num == 2
 
 # ** test: csv_list_loader_read_all
-def test_csv_list_loader_read_all(csv_loader_middleware: CsvLoaderMiddleware):
+def test_csv_list_loader_read_all(csv_loader: CsvLoader):
     '''
-    Test reading all rows from the CSV using CsvLoaderMiddleware.
+    Test reading all rows from the CSV using CsvLoader.
 
-    :param csv_loader_middleware: The CsvLoaderMiddleware fixture.
-    :type csv_loader_middleware: CsvLoaderMiddleware
+    :param csv_loader: The CsvLoader fixture.
+    :type csv_loader: CsvLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_loader_middleware as cmw:
+    with csv_loader as cmw:
         
         # Assert that the reader is None initially.
         assert cmw.reader is None
@@ -357,14 +359,14 @@ def test_csv_list_loader_read_all(csv_loader_middleware: CsvLoaderMiddleware):
 # ** test: csv_list_loader_write_row
 def test_csv_list_loader_write_row(temp_csv_file: str):
     '''
-    Test saving a row to the CSV using CsvLoaderMiddleware.
+    Test saving a row to the CSV using CsvLoader.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in write mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in write mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -406,14 +408,14 @@ def test_csv_list_loader_write_row(temp_csv_file: str):
 # ** test: csv_list_loader_save_all
 def test_csv_list_loader_save_all(temp_csv_file: str):
     '''
-    Test saving multiple rows to the CSV using CsvLoaderMiddleware.
+    Test saving multiple rows to the CSV using CsvLoader.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
     '''
 
-    # Create a CsvLoaderMiddleware in write mode.
-    cmw = CsvLoaderMiddleware(
+    # Create a CsvLoader in write mode.
+    cmw = CsvLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -451,32 +453,32 @@ def test_csv_list_loader_save_all(temp_csv_file: str):
     assert content == 'name,age,city\r\nGeorge,40,Boston\r\nHannah,32,Denver\r\nIan,27,Austin\r\nJane,31,San Francisco\r\n'
 
 # ** test: csv_dict_loader_creation
-def test_csv_dict_loader_creation(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_creation(csv_dict_loader: CsvDictLoader):
     '''
-    Test the creation of a CsvDictLoaderMiddleware instance.
+    Test the creation of a CsvDictLoader instance.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Verify that the middleware instance is created correctly.
-    assert isinstance(csv_dict_loader_middleware, CsvDictLoaderMiddleware)
-    assert csv_dict_loader_middleware.mode == 'r'
-    assert csv_dict_loader_middleware.encoding == 'utf-8'
-    assert csv_dict_loader_middleware.newline == ''
-    assert csv_dict_loader_middleware.file is None
+    assert isinstance(csv_dict_loader, CsvDictLoader)
+    assert csv_dict_loader.mode == 'r'
+    assert csv_dict_loader.encoding == 'utf-8'
+    assert csv_dict_loader.newline == ''
+    assert csv_dict_loader.file is None
 
 # ** test: csv_dict_loader_build_reader
-def test_csv_dict_loader_build_reader(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_build_reader(csv_dict_loader: CsvDictLoader):
     '''
-    Test building a CSV Dict reader from CsvDictLoaderMiddleware.
+    Test building a CSV Dict reader from CsvDictLoader.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_dict_loader_middleware as cmw:
+    with csv_dict_loader as cmw:
         
         # Build the CSV Dict reader.
         cmw.build_reader()
@@ -487,17 +489,17 @@ def test_csv_dict_loader_build_reader(csv_dict_loader_middleware: CsvDictLoaderM
         assert cmw.file is not None
 
 # ** test: csv_dict_loader_unopened_file
-def test_csv_dict_loader_unopened_file(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_unopened_file(csv_dict_loader: CsvDictLoader):
     '''
     Test that building a CSV Dict reader without opening the file raises an error.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Attempt to build a CSV Dict reader without opening the file.
-    with pytest.raises(RuntimeError) as exc_info:
-        csv_dict_loader_middleware.build_reader()
+    with pytest.raises(TiferetError) as exc_info:
+        csv_dict_loader.build_reader()
     
     # Verify the exception message.
     assert 'CSV handle not initialized.' in str(exc_info.value)
@@ -511,8 +513,8 @@ def test_csv_dict_loader_invalid_mode(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -523,7 +525,7 @@ def test_csv_dict_loader_invalid_mode(temp_csv_file: str):
     with cmw:
         
         # Attempt to build a CSV Dict reader in write mode.
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             cmw.build_reader()
         
         # Verify the exception message.
@@ -532,14 +534,14 @@ def test_csv_dict_loader_invalid_mode(temp_csv_file: str):
 # ** test: csv_dict_loader_build_writer
 def test_csv_dict_loader_build_writer(temp_csv_file: str):
     '''
-    Test building a CSV Dict writer from CsvDictLoaderMiddleware.
+    Test building a CSV Dict writer from CsvDictLoader.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -566,8 +568,8 @@ def test_csv_dict_loader_build_writer_unopened_file(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -575,7 +577,7 @@ def test_csv_dict_loader_build_writer_unopened_file(temp_csv_file: str):
     )
     
     # Attempt to build a CSV Dict writer without opening the file.
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(TiferetError) as exc_info:
         cmw.build_writer(fieldnames=['name', 'age', 'city'])
     
     # Verify the exception message.
@@ -590,8 +592,8 @@ def test_csv_dict_loader_build_writer_invalid_mode(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in read mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in read mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='r',
         encoding='utf-8',
@@ -602,7 +604,7 @@ def test_csv_dict_loader_build_writer_invalid_mode(temp_csv_file: str):
     with cmw:
         
         # Attempt to build a CSV Dict writer in read mode.
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             cmw.build_writer(fieldnames=['name', 'age', 'city'])
         
         # Verify the exception message.
@@ -617,8 +619,8 @@ def test_csv_dict_loader_build_writer_no_fieldnames(temp_csv_file: str):
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -629,23 +631,23 @@ def test_csv_dict_loader_build_writer_no_fieldnames(temp_csv_file: str):
     with cmw:
         
         # Attempt to build a CSV Dict writer without fieldnames.
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             cmw.build_writer(fieldnames=None)
         
         # Verify the exception message.
         assert 'Fieldnames must be provided for DictWriter.' in str(exc_info.value)
 
 # ** test: csv_dict_loader_read_row
-def test_csv_dict_loader_read_row(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_read_row(csv_dict_loader: CsvDictLoader):
     '''
-    Test reading a row from the CSV as a dict using CsvDictLoaderMiddleware.
+    Test reading a row from the CSV as a dict using CsvDictLoader.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_dict_loader_middleware as cmw:
+    with csv_dict_loader as cmw:
         
         # Read the first row.
         row, line_num = cmw.read_row()
@@ -656,16 +658,16 @@ def test_csv_dict_loader_read_row(csv_dict_loader_middleware: CsvDictLoaderMiddl
         assert line_num == 2
 
 # ** test: csv_dict_loader_read_row_eof
-def test_csv_dict_loader_read_row_eof(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_read_row_eof(csv_dict_loader: CsvDictLoader):
     '''
-    Test reading rows until EOF using CsvDictLoaderMiddleware.
+    Test reading rows until EOF using CsvDictLoader.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_dict_loader_middleware as cmw:
+    with csv_dict_loader as cmw:
         
         # Read all rows until EOF.
         for _ in range(4):
@@ -679,16 +681,16 @@ def test_csv_dict_loader_read_row_eof(csv_dict_loader_middleware: CsvDictLoaderM
         assert line_num == -1
 
 # ** test: csv_dict_loader_read_all
-def test_csv_dict_loader_read_all(csv_dict_loader_middleware: CsvDictLoaderMiddleware):
+def test_csv_dict_loader_read_all(csv_dict_loader: CsvDictLoader):
     '''
-    Test reading all rows from the CSV as dicts using CsvDictLoaderMiddleware.
+    Test reading all rows from the CSV as dicts using CsvDictLoader.
 
-    :param csv_dict_loader_middleware: The CsvDictLoaderMiddleware fixture.
-    :type csv_dict_loader_middleware: CsvDictLoaderMiddleware
+    :param csv_dict_loader: The CsvDictLoader fixture.
+    :type csv_dict_loader: CsvDictLoader
     '''
 
     # Use the middleware within a context to open the file.
-    with csv_dict_loader_middleware as cmw:
+    with csv_dict_loader as cmw:
         
         # Read all rows.
         rows = cmw.read_all()
@@ -703,14 +705,14 @@ def test_csv_dict_loader_read_all(csv_dict_loader_middleware: CsvDictLoaderMiddl
 # ** test: csv_dict_loader_write_row
 def test_csv_dict_loader_write_row(temp_csv_file: str):
     '''
-    Test saving a dict row to the CSV using CsvDictLoaderMiddleware.
+    Test saving a dict row to the CSV using CsvDictLoader.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
@@ -750,14 +752,14 @@ def test_csv_dict_loader_write_row(temp_csv_file: str):
 # ** test: csv_dict_loader_write_all
 def test_csv_dict_loader_write_all(temp_csv_file: str):
     '''
-    Test saving multiple dict rows to the CSV using CsvDictLoaderMiddleware.
+    Test saving multiple dict rows to the CSV using CsvDictLoader.
 
     :param temp_csv_file: The path to the temporary CSV file.
     :type temp_csv_file: str
     '''
 
-    # Create a CsvDictLoaderMiddleware in write mode.
-    cmw = CsvDictLoaderMiddleware(
+    # Create a CsvDictLoader in write mode.
+    cmw = CsvDictLoader(
         path=temp_csv_file,
         mode='w',
         encoding='utf-8',
