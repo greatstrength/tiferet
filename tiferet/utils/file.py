@@ -8,7 +8,7 @@ from typing import Any
 
 # ** app
 from ..events import RaiseError, a
-from ..contracts import FileService
+from ..interfaces import FileService
 
 # *** utils
 
