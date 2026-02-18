@@ -3,17 +3,15 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # ** app
 from ..entities import (
     Error,
     ErrorMessage,
-    StringType,
     ListType,
     ModelType,
 )
-from ..events import RaiseError, a
 from .settings import (
     Aggregate,
     TransferObject,
