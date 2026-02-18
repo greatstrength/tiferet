@@ -9,11 +9,8 @@ from typing import Tuple, List, Dict, Any, Optional
 from .settings import a
 from ..entities import ContainerAttribute
 from ..events import Command
-from ..contracts import ContainerService
-from ..mappers import (
-    ContainerAttributeAggregate,
-    FlaggedDependencyAggregate,
-)
+from ..interfaces import ContainerService
+from ..mappers import ContainerAttributeAggregate
 from ..mappers.settings import Aggregate
 
 # *** commands
