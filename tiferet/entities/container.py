@@ -10,7 +10,9 @@ from .settings import (
     ListType,
     ModelType,
 )
-from ..commands import ImportDependency
+from ..events import ImportDependency
+from ..mappers import FlaggedDependencyAggregate
+from ..mappers.settings import Aggregate
 
 # *** models
 
@@ -267,9 +269,9 @@ class ContainerAttribute(ModelObject):
                 dep.set_parameters(parameters)
                 return
 
-        # Create a new dependency if none exists with this flag.
-        dependency = ModelObject.new(
-            FlaggedDependency,
+        # Create a new dependency aggregate if none exists with this flag.
+        dependency = Aggregate.new(
+            FlaggedDependencyAggregate,
             module_path=module_path,
             class_name=class_name,
             flag=flag,

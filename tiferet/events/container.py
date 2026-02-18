@@ -7,10 +7,14 @@ from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
 from .settings import a
-from ..models import ContainerAttribute
-from ..commands import Command
+from ..entities import ContainerAttribute
+from ..events import Command
 from ..contracts import ContainerService
-from ..models.settings import ModelObject
+from ..mappers import (
+    ContainerAttributeAggregate,
+    FlaggedDependencyAggregate,
+)
+from ..mappers.settings import Aggregate
 
 # *** commands
 
@@ -84,9 +88,9 @@ class AddServiceConfiguration(Command):
             a.const.INVALID_SERVICE_CONFIGURATION_ID,
         )
 
-        # Create container attribute model directly from dependency dicts.
-        attribute = ModelObject.new(
-            ContainerAttribute,
+        # Create container attribute aggregate from dependency dicts.
+        attribute = Aggregate.new(
+            ContainerAttributeAggregate,
             id=id,
             module_path=module_path,
             class_name=class_name,
