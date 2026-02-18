@@ -46,12 +46,12 @@ class Command(object):
         Command.raise_error(
             error_code,
             message,
-            *args
+            **kwargs
         )  
     
     # * method: raise_error
     @staticmethod
-    def raise_error(error_code: str, message: str = None, *args):
+    def raise_error(error_code: str, message: str = None, **kwargs):
         '''
         Raise an error with the given error code and arguments.
 
@@ -59,8 +59,8 @@ class Command(object):
         :type error_code: str
         :param message: The error message.
         :type message: str
-        :param args: Additional error arguments.
-        :type args: tuple
+        :param kwargs: Additional error keyword arguments.
+        :type kwargs: dict
         '''
 
         # Raise the TiferetError with the given error code and arguments.
@@ -111,7 +111,7 @@ class Command(object):
         # Verify the parameter is not null or empty.
         self.verify(
             expression=parameter is not None and (not isinstance(parameter, str) or bool(parameter.strip())),
-            error_code=assets.COMMAND_PARAMETER_REQUIRED_ID,
+            error_code=a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'The "{parameter_name}" parameter is required for the "{command_name}" command.',
             parameter=parameter_name,
             command=command_name
