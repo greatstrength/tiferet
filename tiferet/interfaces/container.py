@@ -1,4 +1,4 @@
-"""Tiferet Container Data Transfer Objects"""
+"""Tiferet Container Contracts"""
 
 # *** imports
 
@@ -12,217 +12,99 @@ from typing import (
 )
 
 # ** app
-from .settings import (
-    ModelContract,
-    Repository,
-    Service,
+from ..mappers import (
+    ContainerAttributeAggregate,
 )
+from .settings import Service
 
-# *** contracts
+# *** interfaces
 
-# ** contract: flagged_dependency
-class FlaggedDependency(ModelContract):
-    '''
-    A contract for flagged dependencies.
-    '''
-
-    # * attribute: flag
-    flag: str
-
-    # * attribute: parameters
-    parameters: Dict[str, str]
-
-    # * attribute: module_path
-    module_path: str
-
-    # * attribute: class_name
-    class_name: str
-
-# ** contract: container_attribute
-class ContainerAttribute(ModelContract):
-    '''
-    A contract defining container injector attributes.
-    '''
-
-    # * attribute: id
-    id: str
-
-    # * attribute: module_path
-    module_path: str
-
-    # * attribute: class_name
-    class_name: str
-
-    # * attribute: parameters
-    parameters: Dict[str, Any]
-
-    # * attribute: dependencies
-    dependencies: List[FlaggedDependency]
-
-    # * method: get_dependency
-    @abstractmethod
-    def get_dependency(self, *flags) -> FlaggedDependency:
-        '''
-        Gets a container dependency by flag.
-
-        :param flags: The flags for the flagged container dependency.
-        :type flags: Tuple[str, ...]
-        :return: The container dependency.
-        :rtype: FlaggedDependency
-        '''
-        raise NotImplementedError('get_dependency method must be implemented in the ContainerAttribute class.')
-    
-    # * method: get_type
-    @abstractmethod
-    def get_type(self, *flags) -> type:
-        '''
-        Gets the type of the container attribute based on the provided flags.
-
-        :param flags: The flags for the flagged container dependency.
-        :type flags: Tuple[str, ...]
-        :return: The type of the container attribute.
-        :rtype: type
-        '''
-        raise NotImplementedError('get_type method must be implemented in the ContainerAttribute class.')
-
-# ** contract: container_repository
-class ContainerRepository(Repository):
-    '''
-    An interface for accessing container attributes.
-    '''
-
-    # * method: get_attribute
-    @abstractmethod
-    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
-        '''
-        Get the attribute from the container repository.
-
-        :param attribute_id: The attribute id.
-        :type attribute_id: str
-        :param flag: An optional flag to filter the attribute.
-        :type flag: str
-        :return: The container attribute.
-        :rtype: ContainerAttribute
-        '''
-        raise NotImplementedError('get_attribute method must be implemented in the ContainerRepository class.')
-
-    # * method: list_all
-    @abstractmethod
-    def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
-        '''
-        List all the container attributes and constants.
-
-        :return: The list of container attributes and constants.
-        :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
-        '''
-        raise NotImplementedError('list_all method must be implemented in the ContainerRepository class.')
-
-    # * method: save_attribute
-    @abstractmethod
-    def save_attribute(self, attribute: ContainerAttribute):
-        '''
-        Save the container attribute.
-
-        :param attribute: The container attribute to save.
-        :type attribute: ContainerAttribute
-        '''
-        raise NotImplementedError('save_attribute method must be implemented in the ContainerRepository class.')
-    
-    @abstractmethod
-    def delete_attribute(self, attribute_id: str):
-        '''
-        Delete the container attribute by its unique identifier.
-
-        :param attribute_id: The unique identifier for the attribute to delete.
-        :type attribute_id: str
-        '''
-        raise NotImplementedError('delete_attribute method must be implemented in the ContainerRepository class.')
-    
-    @abstractmethod
-    def save_constants(self, constants: Dict[str, str]):
-        '''
-        Save the container constants.
-
-        :param constants: The container constants to save.
-        :type constants: Dict[str, str]
-        '''
-        raise NotImplementedError('save_constants method must be implemented in the ContainerRepository class.')
-
-# ** contract: container_service
+# ** interface: container_service
 class ContainerService(Service):
     '''
-    An interface for accessing container dependencies.
+    Service interface for managing container attributes and constants.
     '''
 
     # * method: attribute_exists
     @abstractmethod
     def attribute_exists(self, id: str) -> bool:
         '''
-        Check if the container attribute exists.
+        Check if a container attribute exists by ID.
 
-        :param id: The container attribute id.
+        :param id: The container attribute identifier.
         :type id: str
-        :return: Whether the container attribute exists.
+        :return: True if the container attribute exists, otherwise False.
         :rtype: bool
         '''
-        raise NotImplementedError('attribute_exists method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('attribute_exists method is required for ContainerService.')
 
     # * method: get_attribute
     @abstractmethod
-    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttribute:
+    def get_attribute(self, attribute_id: str, flag: str = None) -> ContainerAttributeAggregate:
         '''
-        Get the attribute from the container service.
+        Retrieve a container attribute by ID, optionally filtered by flag.
 
-        :param attribute_id: The attribute id.
+        :param attribute_id: The container attribute identifier.
         :type attribute_id: str
-        :param flag: An optional flag to filter the attribute.
+        :param flag: Optional flag to filter the attribute.
         :type flag: str
-        :return: The container attribute.
-        :rtype: ContainerAttribute
+        :return: The container attribute aggregate.
+        :rtype: ContainerAttributeAggregate
         '''
-        raise NotImplementedError('get_attribute method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('get_attribute method is required for ContainerService.')
 
     # * method: list_all
     @abstractmethod
-    def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
+    def list_all(self) -> Tuple[List[ContainerAttributeAggregate], Dict[str, str]]:
         '''
-        List all container attributes and constants from the service.
+        List all container attributes and constants.
 
-        :return: A tuple containing a list of container attributes and a dictionary of constants.
-        :rtype: Tuple[List[ContainerAttribute], Dict[str, str]]
+        :return: A tuple containing a list of container attribute aggregates and a dictionary of constants.
+        :rtype: Tuple[List[ContainerAttributeAggregate], Dict[str, str]]
         '''
-        raise NotImplementedError('list_all method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('list_all method is required for ContainerService.')
 
     # * method: save_attribute
     @abstractmethod
-    def save_attribute(self, attribute: ContainerAttribute):
+    def save_attribute(self, attribute: ContainerAttributeAggregate) -> None:
         '''
-        Save the container attribute through the service.
+        Save or update a container attribute.
 
-        :param attribute: The container attribute to save.
-        :type attribute: ContainerAttribute
+        :param attribute: The container attribute aggregate to save.
+        :type attribute: ContainerAttributeAggregate
+        :return: None
+        :rtype: None
         '''
-        raise NotImplementedError('save_attribute method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('save_attribute method is required for ContainerService.')
 
     # * method: delete_attribute
     @abstractmethod
-    def delete_attribute(self, attribute_id: str):
+    def delete_attribute(self, attribute_id: str) -> None:
         '''
-        Delete the container attribute by its unique identifier through
-        the service.
+        Delete a container attribute by ID. This operation should be idempotent.
 
-        :param attribute_id: The unique identifier for the attribute to delete.
+        :param attribute_id: The container attribute identifier.
         :type attribute_id: str
+        :return: None
+        :rtype: None
         '''
-        raise NotImplementedError('delete_attribute method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('delete_attribute method is required for ContainerService.')
 
     # * method: save_constants
     @abstractmethod
-    def save_constants(self, constants: Dict[str, Any] = {}):
+    def save_constants(self, constants: Dict[str, Any] = {}) -> None:
         '''
-        Save the container constants through the service.
+        Save or update container constants.
 
         :param constants: The container constants to save.
         :type constants: Dict[str, Any]
+        :return: None
+        :rtype: None
         '''
-        raise NotImplementedError('save_constants method must be implemented in the ContainerService class.')
+        # Not implemented.
+        raise NotImplementedError('save_constants method is required for ContainerService.')
