@@ -11,8 +11,10 @@ from typing import (
 
 # ** app
 from .settings import Command, a
-from ..models import Error
-from ..contracts import ErrorService
+from ..entities import Error
+from ..interfaces import ErrorService
+from ..mappers import ErrorAggregate
+from ..mappers.settings import Aggregate
 
 # *** commands
 
@@ -88,9 +90,10 @@ class AddError(Command):
             id=id
         )
 
-        # Create the Error instance.
+        # Create the Error aggregate.
         error_messages = [{'lang': lang, 'text': message}] + additional_messages
-        new_error = Error.new(
+        new_error = Aggregate.new(
+            ErrorAggregate,
             id=id,
             name=name,
             message=error_messages
@@ -143,11 +146,11 @@ class GetError(Command):
         if error:
             return error
 
-        # If requested, check built-in defaults and return as error if found.
+        # If requested, check built-in defaults and return as error aggregate if found.
         if include_defaults:
             error_data = a.DEFAULT_ERRORS.get(id)
             if error_data:
-                return Error.new(**error_data)
+                return Aggregate.new(ErrorAggregate, **error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
@@ -193,7 +196,7 @@ class ListErrors(Command):
             return self.error_service.list()
         
         # If defaults are included, merge repository and default errors.
-        errors = {id: Error.new(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
+        errors = {id: Aggregate.new(ErrorAggregate, **data) for id, data in a.const.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 
