@@ -11,8 +11,8 @@ from ..assets import (
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS
 )
-from ..models import Error
-from ..commands.error import GetError
+from ..entities import Error
+from ..events.error import GetError
 from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts

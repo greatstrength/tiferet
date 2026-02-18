@@ -9,7 +9,7 @@ import json
 
 # ** app
 from ....assets import TiferetError
-from ....data import (
+from ....mappers import (
     DataObject,
     LoggingSettingsConfigData,
     FormatterConfigData,

@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 # ** app
-from ..commands import TiferetError, const
+from ..events import TiferetError, const
 from ..contracts import FileService
 
 # *** classes

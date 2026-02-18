@@ -12,16 +12,16 @@ from ..settings import *
 
 # ** fixture: config_file_repo
 @pytest.fixture
-def config_file_repo() -> ConfigurationFileRepository:
+def config_file_repo() -> YamlFileRepository:
     '''
-    Fixture to provide an instance of ConfigurationFileRepository.
+    Fixture to provide an instance of YamlFileRepository.
 
-    :return: An instance of ConfigurationFileRepository.
-    :rtype: ConfigurationFileRepository
+    :return: An instance of YamlFileRepository.
+    :rtype: YamlFileRepository
     '''
 
-    # Return the ConfigurationFileRepository instance.
-    return ConfigurationFileRepository()
+    # Return the YamlFileRepository instance.
+    return YamlFileRepository()
 
 # *** tests
 
@@ -36,8 +36,8 @@ def test_open_config_valid_yaml_file(tmp_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write('key: value\n')
 
-    # Initialize the ConfigurationFileRepository.
-    config_repo = ConfigurationFileRepository()
+    # Initialize the YamlFileRepository.
+    config_repo = YamlFileRepository()
 
     # Open the YAML configuration file.
     config_service = config_repo.open_config(str(file_path), mode='r', encoding='utf-8')
@@ -57,8 +57,8 @@ def test_open_config_valid_json_file(tmp_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write('{"key": "value"}\n')
 
-    # Initialize the ConfigurationFileRepository.
-    config_repo = ConfigurationFileRepository()
+    # Initialize the YamlFileRepository.
+    config_repo = YamlFileRepository()
 
     # Open the JSON configuration file.
     config_service = config_repo.open_config(str(file_path), mode='r', encoding='utf-8')
@@ -78,8 +78,8 @@ def test_open_config_unsupported_file_type(tmp_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write('key=value\n')
 
-    # Initialize the ConfigurationFileRepository.
-    config_repo = ConfigurationFileRepository()
+    # Initialize the YamlFileRepository.
+    config_repo = YamlFileRepository()
 
     # Attempt to open the unsupported configuration file and verify that it raises an error.
     with pytest.raises(TiferetError) as exc_info:

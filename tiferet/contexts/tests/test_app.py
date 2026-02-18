@@ -10,7 +10,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...models import (
+from ...entities import (
     ModelObject,
     AppInterface,
     AppAttribute,
@@ -30,7 +30,7 @@ from ...assets.constants import (
     DEFAULT_APP_SERVICE_MODULE_PATH,
     DEFAULT_APP_SERVICE_CLASS_NAME,
 )
-from ...models import (
+from ...entities import (
     ModelObject,
     AppInterface,
     AppAttribute,

@@ -16,7 +16,7 @@ from typing import (
 
 # ** app
 from .file import FileLoaderMiddleware
-from ..commands import RaiseError, const
+from ..events import RaiseError, const
 from ..contracts import SqliteService
 
 # *** middleware

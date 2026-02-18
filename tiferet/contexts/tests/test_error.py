@@ -12,8 +12,8 @@ from ...assets import (
     ERROR_NOT_FOUND_ID
 )
 from ..error import ErrorContext
-from ...models import Error
-from ...commands.error import GetError
+from ...entities import Error
+from ...events.error import GetError
 
 # *** fixtures
 

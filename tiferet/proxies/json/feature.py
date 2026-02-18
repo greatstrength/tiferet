@@ -10,9 +10,9 @@ from typing import (
 )
 
 # ** app
-from ...commands import RaiseError
+from ...events import RaiseError
 from ...contracts import FeatureContract, FeatureRepository
-from ...data import DataObject, FeatureConfigData
+from ...mappers import DataObject, FeatureConfigData
 from .settings import JsonFileProxy
 
 # *** proxies

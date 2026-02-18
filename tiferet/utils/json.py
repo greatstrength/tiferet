@@ -13,7 +13,7 @@ import json
 
 # ** app
 from .file import FileLoaderMiddleware
-from ..commands import TiferetError, const
+from ..events import TiferetError, const
 from ..contracts import ConfigurationService
 
 # *** middleware

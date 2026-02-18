@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..commands import *
+from ..events import *
 
 # *** classes
 

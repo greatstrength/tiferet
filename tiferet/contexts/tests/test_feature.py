@@ -13,11 +13,11 @@ from ..feature import (
     FeatureContext,
     RequestContext,
 )
-from ...commands.feature import GetFeature
+from ...events.feature import GetFeature
 from ...assets import TiferetError
-from ...commands import Command
-from ...commands.feature import GetFeature
-from ...models import (
+from ...events import Command
+from ...events.feature import GetFeature
+from ...entities import (
     ModelObject,
     Feature,
     FeatureCommand,
@@ -159,7 +159,7 @@ def test_feature_context_parse_request_parameter_not_found(feature_context):
 def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
     """Test that non-request parameters delegate to ParseParameter.execute."""
 
-    from ...commands import static as static_commands
+    from ...events import static as static_commands
 
     called = {}
 

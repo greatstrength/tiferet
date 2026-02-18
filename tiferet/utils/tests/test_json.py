@@ -10,7 +10,7 @@ import pytest
 
 # ** app
 from ..json import JsonLoaderMiddleware
-from ...commands import TiferetError, const
+from ...events import TiferetError, const
 
 # *** fixtures
 

@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ....assets import TiferetError
-from ....middleware import CsvDict
+from ....utils import CsvDict
 from ..settings import CsvFileProxy
 
 # *** fixtures

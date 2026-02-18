@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..file import FileLoaderMiddleware
-from ...commands import (
+from ...events import (
     TiferetError,
     const
 )

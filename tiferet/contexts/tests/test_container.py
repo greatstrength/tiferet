@@ -7,7 +7,7 @@ from typing import Tuple, List, Dict
 
 # ** app
 from ..container import *
-from ...models.container import *
+from ...entities.container import *
 
 
 # *** classes

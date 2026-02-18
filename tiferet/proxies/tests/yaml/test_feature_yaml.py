@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from ....models.feature import *
+from ....entities.feature import *
 from ....configs.tests.test_feature import *
 from ....proxies.feature_yaml import FeatureYamlProxy
 

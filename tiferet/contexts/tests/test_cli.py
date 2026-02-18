@@ -10,7 +10,7 @@ from unittest import mock
 # ** app
 from ..cli import CliContext, CliService
 from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError, RequestContext
-from ...models.cli import *
+from ...entities.cli import *
 
 # *** fixtures
 

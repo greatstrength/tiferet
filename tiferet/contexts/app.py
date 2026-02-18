@@ -18,24 +18,24 @@ from ..assets.constants import (
     DEFAULT_APP_SERVICE_MODULE_PATH,
     DEFAULT_APP_SERVICE_CLASS_NAME,
 )
-from ..models import (
+from ..entities import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
 from ..contracts.app import AppRepository
-from ..commands import (
+from ..events import (
     Command,
     ImportDependency,
     TiferetError as CommandTiferetError,
     RaiseError,
 )
-from ..commands.dependencies import (
+from ..events.dependencies import (
     create_injector,
     get_dependency,
 )
-from ..commands.dependencies import create_injector, get_dependency
-from ..commands.app import GetAppInterface
+from ..events.dependencies import create_injector, get_dependency
+from ..events.app import GetAppInterface
 from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts

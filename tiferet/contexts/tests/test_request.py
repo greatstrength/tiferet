@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from ...models import ModelObject, StringType
+from ...entities import ModelObject, StringType
 from ..request import *
 
 # *** fixtures

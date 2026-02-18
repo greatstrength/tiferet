@@ -11,9 +11,9 @@ from typing import (
 )
 
 # ** app
-from ...models import ModelObject, CliArgument
-from ...commands import RaiseError
-from ...data import DataObject, CliCommandConfigData
+from ...entities import ModelObject, CliArgument
+from ...events import RaiseError
+from ...mappers import DataObject, CliCommandConfigData
 from ...contracts import (
     CliRepository,
     CliCommandContract,

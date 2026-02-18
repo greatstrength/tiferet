@@ -8,8 +8,8 @@ import yaml
 
 # ** app
 from ....assets import TiferetError
-from ....models import ModelObject, CliArgument
-from ....data import DataObject, CliCommandConfigData
+from ....entities import ModelObject, CliArgument
+from ....mappers import DataObject, CliCommandConfigData
 from ..cli import CliYamlProxy
 
 # *** fixtures

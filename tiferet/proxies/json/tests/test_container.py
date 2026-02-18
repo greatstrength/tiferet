@@ -8,7 +8,7 @@ import json
 
 # ** app
 from ....assets import TiferetError
-from ....data import DataObject, ContainerAttributeConfigData
+from ....mappers import DataObject, ContainerAttributeConfigData
 from ..container import ContainerJsonProxy
 
 # *** fixtures

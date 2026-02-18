@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 # ** app
 from .configs import *
-from .commands.app import *
+from .events.app import *
 
 
 # *** classes

@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from ....assets import TiferetError
-from ....data import DataObject, ErrorConfigData
+from ....mappers import DataObject, ErrorConfigData
 from ..error import ErrorYamlProxy
 
 # *** fixtures

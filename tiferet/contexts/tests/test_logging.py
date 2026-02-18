@@ -9,8 +9,8 @@ from unittest import mock
 # ** app
 from ..logging import *
 from ...configs import TiferetError
-from ...configs.logging import *
-from ...models.logging import *
+from ...assets.logging import *
+from ...entities.logging import *
 from ...handlers.logging import LoggingService
 
 

@@ -12,13 +12,13 @@ from ..assets.constants import (
     REQUEST_NOT_FOUND_ID,
     PARAMETER_NOT_FOUND_ID
 )
-from ..commands import (
+from ..events import (
     Command,
     RaiseError,
     ParseParameter
 )
-from ..commands.feature import GetFeature
-from ..models import Feature, FeatureCommand
+from ..events.feature import GetFeature
+from ..entities import Feature, FeatureCommand
 
 # *** contexts
 

@@ -13,7 +13,7 @@ from unittest import mock
 
 # ** app
 from ..sqlite import SqliteMiddleware
-from ...commands import TiferetError, const
+from ...events import TiferetError, const
 
 # *** fixtures
 

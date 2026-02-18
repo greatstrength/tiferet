@@ -11,8 +11,8 @@ from typing import (
 )
 
 # ** app
-from ...commands import RaiseError
-from ...data import DataObject, ErrorConfigData
+from ...events import RaiseError
+from ...mappers import DataObject, ErrorConfigData
 from ...contracts import ErrorContract, ErrorRepository
 from .settings import YamlFileProxy
 
