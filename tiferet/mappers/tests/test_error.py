@@ -1,4 +1,4 @@
-"""Tiferet Error Data Object Tests"""
+"""Tiferet Error Mapper Tests"""
 
 # *** imports
 
@@ -6,24 +6,34 @@
 import pytest
 
 # ** app
-from ..error import  ErrorConfigData
+from ..settings import (
+    TransferObject,
+)
+from ..error import (
+    ErrorYamlObject,
+    ErrorAggregate,
+    ErrorMessageYamlObject,
+)
+from ...entities import (
+    Error,
+    ErrorMessage,
+)
 
 # *** fixtures
 
-# ** fixture: error_config_data
+# ** fixture: error_yaml_object
 @pytest.fixture
-def error_config_data() -> ErrorConfigData:
+def error_yaml_object() -> ErrorYamlObject:
     '''
-    Provides an error data fixture.
+    Provides an error YAML object fixture.
 
-    :param error_message: The error message instance.
-    :type error_message: ErrorMessage
-    :return: The error data instance.
-    :rtype: ErrorData
+    :return: The error YAML object instance.
+    :rtype: ErrorYamlObject
     '''
 
-    # Create and return an error data object.
-    return ErrorConfigData.from_data(
+    # Create and return an error YAML object.
+    return TransferObject.from_data(
+        ErrorYamlObject,
         id='TEST_ERROR',
         name='TEST_ERROR',
         error_code='TEST_ERROR',
@@ -36,7 +46,7 @@ def error_config_data() -> ErrorConfigData:
 # *** tests
 
 # ** test: error_data_from_data
-def test_error_data_from_data(error_config_data: ErrorConfigData):
+def test_error_data_from_data(error_yaml_object: ErrorYamlObject):
     '''
     Test the creation of error data from a dictionary.
 
@@ -45,14 +55,14 @@ def test_error_data_from_data(error_config_data: ErrorConfigData):
     '''
 
     # Assert the error data is an instance of ErrorData.
-    assert error_config_data.name == 'TEST_ERROR'
-    assert error_config_data.error_code == 'TEST_ERROR'
-    assert len(error_config_data.message) == 1
-    assert error_config_data.message[0].lang == 'en'
-    assert error_config_data.message[0].text == 'Test error message.'
+    assert error_yaml_object.name == 'TEST_ERROR'
+    assert error_yaml_object.error_code == 'TEST_ERROR'
+    assert len(error_yaml_object.message) == 1
+    assert error_yaml_object.message[0].lang == 'en'
+    assert error_yaml_object.message[0].text == 'Test error message.'
 
 # ** test: error_data_to_primitive_to_data_yaml
-def test_error_data_to_primitive_to_data_yaml(error_config_data : ErrorConfigData):
+def test_error_data_to_primitive_to_data_yaml(error_yaml_object : ErrorYamlObject):
     '''
     Test the conversion of error data to a primitive dictionary.
 
@@ -61,7 +71,7 @@ def test_error_data_to_primitive_to_data_yaml(error_config_data : ErrorConfigDat
     '''
 
     # Convert the error data to a primitive.
-    primitive = error_config_data.to_primitive('to_data.yaml')
+    primitive = error_yaml_object.to_primitive('to_data.yaml')
 
     # Assert the primitive is a dictionary.
     assert isinstance(primitive, dict)
@@ -75,42 +85,139 @@ def test_error_data_to_primitive_to_data_yaml(error_config_data : ErrorConfigDat
     assert primitive.get('message')[0].get('text') == 'Test error message.'
 
 # ** test: error_data_map
-def test_error_data_map(error_config_data : ErrorConfigData):
+def test_error_data_map(error_yaml_object : ErrorYamlObject):
     '''
-    Test the mapping of error data to an error object.
+    Test the mapping of error YAML object to an error aggregate.
 
-    :param error_data: The error data object.
-    :type error_data: ErrorData
+    :param error_yaml_object: The error YAML object.
+    :type error_yaml_object: ErrorYamlObject
     '''
 
-    # Map the error data to an error object.
-    error = error_config_data.map()
+    # Map the error data to an error aggregate.
+    error = error_yaml_object.map()
 
-    # Assert the error is an instance of Error.
-    assert error.id == error_config_data.id
-    assert error.name == error_config_data.name
-    assert error.error_code == error_config_data.error_code
+    # Assert the error is an instance of ErrorAggregate.
+    assert isinstance(error, ErrorAggregate)
+    assert error.id == error_yaml_object.id
+    assert error.name == error_yaml_object.name
+    assert error.error_code == error_yaml_object.error_code
     assert len(error.message) == 1
     assert isinstance(error.message[0], ErrorMessage)
-    
+
     # Assert the error message attributes.
     error_message = error.message[0]
-    assert error_message.lang == 'en_US'
-    assert error_message.text == 'This is a test error message.'
+    assert error_message.lang == 'en'
+    assert error_message.text == 'Test error message.'
 
 
-# ** test: test_error_message_yaml_data_map
-def test_error_message_yaml_data_map(error_message_yaml_data):
+# ** test: error_yaml_object_from_model
+def test_error_yaml_object_from_model():
     '''
-    Test the error message data mapping.
+    Test creating an ErrorYamlObject from an Error model.
     '''
-    
-    # Map the error message data to an error message object.
-    error_message = error_message_yaml_data.map(ErrorMessage)
-    
-    # Assert the error message type.
-    assert isinstance(error_message, ErrorMessage)
-    
-    # Assert the error message attributes.
-    assert error_message.lang == 'en_US'
-    assert error_message.text == 'This is a test error message.'
+
+    # Create an error model.
+    from ...entities import ModelObject
+    error = Error.new(
+        id='test_error',
+        name='Test Error',
+        message=[
+            {'lang': 'en', 'text': 'Test message'},
+            {'lang': 'es', 'text': 'Mensaje de prueba'}
+        ]
+    )
+
+    # Create YAML object from model.
+    yaml_object = ErrorYamlObject.from_model(error)
+
+    # Assert the YAML object is valid.
+    assert isinstance(yaml_object, ErrorYamlObject)
+    assert yaml_object.id == 'test_error'
+    assert yaml_object.name == 'Test Error'
+    assert len(yaml_object.message) == 2
+    assert all(isinstance(msg, ErrorMessageYamlObject) for msg in yaml_object.message)
+
+
+# ** test: error_aggregate_new
+def test_error_aggregate_new():
+    '''
+    Test creating a new ErrorAggregate.
+    '''
+
+    # Create an error aggregate.
+    error_data = dict(
+        id='test_error',
+        name='Test Error',
+        error_code='TEST_ERROR',
+        message=[
+            ModelObject.new(ErrorMessage, lang='en', text='Test message')
+        ]
+    )
+
+    aggregate = ErrorAggregate.new(error_data)
+
+    # Assert the aggregate is valid.
+    assert isinstance(aggregate, ErrorAggregate)
+    assert aggregate.id == 'test_error'
+    assert aggregate.name == 'Test Error'
+    assert len(aggregate.message) == 1
+
+
+# ** test: error_aggregate_set_message
+def test_error_aggregate_set_message():
+    '''
+    Test setting a message on an ErrorAggregate.
+    '''
+
+    # Create an error aggregate.
+    error_data = dict(
+        id='test_error',
+        name='Test Error',
+        error_code='TEST_ERROR',
+        message=[]
+    )
+
+    aggregate = ErrorAggregate.new(error_data)
+
+    # Set a message.
+    aggregate.set_message('en', 'New test message')
+
+    # Assert the message was set.
+    assert len(aggregate.message) == 1
+    assert aggregate.message[0].lang == 'en'
+    assert aggregate.message[0].text == 'New test message'
+
+    # Update the message.
+    aggregate.set_message('en', 'Updated message')
+
+    # Assert the message was updated (not added).
+    assert len(aggregate.message) == 1
+    assert aggregate.message[0].text == 'Updated message'
+
+
+# ** test: error_aggregate_remove_message
+def test_error_aggregate_remove_message():
+    '''
+    Test removing a message from an ErrorAggregate.
+    '''
+
+    # Create an error aggregate with messages.
+    from ...entities import ModelObject
+    error_data = dict(
+        id='test_error',
+        name='Test Error',
+        error_code='TEST_ERROR',
+        message=[
+            ModelObject.new(ErrorMessage, lang='en', text='English message'),
+            ModelObject.new(ErrorMessage, lang='es', text='Spanish message')
+        ]
+    )
+
+    aggregate = ErrorAggregate.new(error_data)
+
+    # Remove one message.
+    aggregate.remove_message('en')
+
+    # Assert only one message remains.
+    assert len(aggregate.message) == 1
+    assert aggregate.message[0].lang == 'es'
