@@ -3,9 +3,6 @@
 # ** core
 from typing import Dict, Any
 
-# ** app
-from ..configs import *
-
 # *** contexts
 
 # ** context: cache_context
