@@ -34,21 +34,14 @@ where = ["."]
 include = [
     "tiferet",
     "tiferet.assets",
-    "tiferet.clients",
-    "tiferet.commands",
-    "tiferet.configs",
+    "tiferet.builders",
     "tiferet.contexts",
-    "tiferet.contracts",
-    "tiferet.data",
-    "tiferet.handlers",
-    "tiferet.middleware",
-    "tiferet.models",
-    "tiferet.proxies",
-    "tiferet.proxies.yaml",
-    "tiferet.proxies.json",
-    "tiferet.proxies.csv",
+    "tiferet.entities",
+    "tiferet.events",
+    "tiferet.interfaces",
+    "tiferet.mappers",
     "tiferet.repos",
-    "tiferet.repos.config",
+    "tiferet.utils",
 ]
 
 [tool.setuptools.dynamic]
