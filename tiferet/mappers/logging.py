@@ -1,9 +1,12 @@
-"""Tiferet Logging Data Objects"""
+"""Tiferet Logging Mappers"""
 
 # *** imports
 
+# ** core
+from typing import Dict, Any
+
 # ** app
-from ..models import (
+from ..entities import (
     Formatter,
     Handler,
     Logger,
@@ -11,21 +14,16 @@ from ..models import (
     DictType,
     ModelType,
 )
-from ..contracts import (
-    FormatterContract,
-    HandlerContract,
-    LoggerContract,
-)
 from .settings import (
-    DataObject,
+    TransferObject,
 )
 
-# *** data
+# *** mappers
 
-# ** data: formatter_config_data
-class FormatterConfigData(Formatter, DataObject):
+# ** mapper: formatter_yaml_object
+class FormatterYamlObject(Formatter, TransferObject):
     '''
-    A data representation of a logging formatter configuration.
+    A YAML data representation of a logging formatter configuration.
     '''
 
     class Options:
@@ -34,9 +32,9 @@ class FormatterConfigData(Formatter, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id'),
-            'to_data.json': DataObject.deny('id')
+            'to_model': TransferObject.allow(),
+            'to_data.yaml': TransferObject.deny('id'),
+            'to_data.json': TransferObject.deny('id')
         }
 
     # * attribute: id
@@ -47,27 +45,45 @@ class FormatterConfigData(Formatter, DataObject):
     )
 
     # * method: map
-    def map(self, role: str = 'to_model', **kwargs) -> FormatterContract:
+    def map(self, **kwargs) -> Formatter:
         '''
-        Maps the formatter data to a formatter contract.
+        Maps the formatter data to a formatter object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new formatter contract.
-        :rtype: FormatterContract
+        :return: A new formatter object.
+        :rtype: Formatter
         '''
         return super().map(
             Formatter,
-            **self.to_primitive(role),
+            **self.to_primitive('to_model'),
             **kwargs
         )
 
-# ** data: handler_config_data
-class HandlerConfigData(Handler, DataObject):
+    # * method: from_model
+    @staticmethod
+    def from_model(formatter: Formatter, **kwargs) -> 'FormatterYamlObject':
+        '''
+        Creates a FormatterYamlObject from a Formatter model.
+
+        :param formatter: The formatter model.
+        :type formatter: Formatter
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new FormatterYamlObject.
+        :rtype: FormatterYamlObject
+        '''
+        return TransferObject.from_model(
+            FormatterYamlObject,
+            formatter,
+            **kwargs,
+        )
+
+
+# ** mapper: handler_yaml_object
+class HandlerYamlObject(Handler, TransferObject):
     '''
-    A data representation of a logging handler configuration.
+    A YAML data representation of a logging handler configuration.
     '''
 
     class Options:
@@ -76,9 +92,9 @@ class HandlerConfigData(Handler, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id'),
-            'to_data.json': DataObject.deny('id')
+            'to_model': TransferObject.allow(),
+            'to_data.yaml': TransferObject.deny('id'),
+            'to_data.json': TransferObject.deny('id')
         }
 
     # * attribute: id
@@ -89,27 +105,45 @@ class HandlerConfigData(Handler, DataObject):
     )
 
     # * method: map
-    def map(self, role: str = 'to_model', **kwargs) -> HandlerContract:
+    def map(self, **kwargs) -> Handler:
         '''
-        Maps the handler data to a handler contract.
+        Maps the handler data to a handler object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new handler contract.
-        :rtype: HandlerContract
+        :return: A new handler object.
+        :rtype: Handler
         '''
         return super().map(
             Handler,
-            **self.to_primitive(role),
+            **self.to_primitive('to_model'),
             **kwargs
         )
 
-# ** data: logger_config_data
-class LoggerConfigData(Logger, DataObject):
+    # * method: from_model
+    @staticmethod
+    def from_model(handler: Handler, **kwargs) -> 'HandlerYamlObject':
+        '''
+        Creates a HandlerYamlObject from a Handler model.
+
+        :param handler: The handler model.
+        :type handler: Handler
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new HandlerYamlObject.
+        :rtype: HandlerYamlObject
+        '''
+        return TransferObject.from_model(
+            HandlerYamlObject,
+            handler,
+            **kwargs,
+        )
+
+
+# ** mapper: logger_yaml_object
+class LoggerYamlObject(Logger, TransferObject):
     '''
-    A data representation of a logger configuration.
+    A YAML data representation of a logger configuration.
     '''
 
     class Options:
@@ -118,9 +152,9 @@ class LoggerConfigData(Logger, DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.deny('id'),
-            'to_data.json': DataObject.deny('id')
+            'to_model': TransferObject.allow(),
+            'to_data.yaml': TransferObject.deny('id'),
+            'to_data.json': TransferObject.deny('id')
         }
 
     # * attribute: id
@@ -131,27 +165,45 @@ class LoggerConfigData(Logger, DataObject):
     )
 
     # * method: map
-    def map(self, role: str = 'to_model', **kwargs) -> LoggerContract:
+    def map(self, **kwargs) -> Logger:
         '''
-        Maps the logger data to a logger contract.
+        Maps the logger data to a logger object.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new logger contract.
-        :rtype: LoggerContract
+        :return: A new logger object.
+        :rtype: Logger
         '''
         return super().map(
             Logger,
-            **self.to_primitive(role),
+            **self.to_primitive('to_model'),
             **kwargs
         )
 
-# ** data: logging_settings_config_data
-class LoggingSettingsConfigData(DataObject):
+    # * method: from_model
+    @staticmethod
+    def from_model(logger: Logger, **kwargs) -> 'LoggerYamlObject':
+        '''
+        Creates a LoggerYamlObject from a Logger model.
+
+        :param logger: The logger model.
+        :type logger: Logger
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new LoggerYamlObject.
+        :rtype: LoggerYamlObject
+        '''
+        return TransferObject.from_model(
+            LoggerYamlObject,
+            logger,
+            **kwargs,
+        )
+
+
+# ** mapper: logging_settings_yaml_object
+class LoggingSettingsYamlObject(TransferObject):
     '''
-    A data representation of the overall logging configuration.
+    A YAML data representation of the overall logging configuration.
     '''
 
     class Options:
@@ -160,9 +212,9 @@ class LoggingSettingsConfigData(DataObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': DataObject.allow(),
-            'to_data.yaml': DataObject.allow(),
-            'to_data.json': DataObject.allow()
+            'to_model': TransferObject.allow(),
+            'to_data.yaml': TransferObject.allow(),
+            'to_data.json': TransferObject.allow()
         }
 
     # * attribute: id
@@ -174,7 +226,7 @@ class LoggingSettingsConfigData(DataObject):
 
     # * attribute: formatters
     formatters = DictType(
-        ModelType(FormatterConfigData),
+        ModelType(FormatterYamlObject),
         required=True,
         metadata=dict(
             description='Dictionary of formatter configurations, keyed by id.'
@@ -183,7 +235,7 @@ class LoggingSettingsConfigData(DataObject):
 
     # * attribute: handlers
     handlers = DictType(
-        ModelType(HandlerConfigData),
+        ModelType(HandlerYamlObject),
         required=True,
         metadata=dict(
             description='Dictionary of handler configurations, keyed by id.'
@@ -192,7 +244,7 @@ class LoggingSettingsConfigData(DataObject):
 
     # * attribute: loggers
     loggers = DictType(
-        ModelType(LoggerConfigData),
+        ModelType(LoggerYamlObject),
         required=True,
         metadata=dict(
             description='Dictionary of logger configurations, keyed by id.'
@@ -201,48 +253,32 @@ class LoggingSettingsConfigData(DataObject):
 
     # * method: from_data
     @staticmethod
-    def from_data(**data) -> 'LoggingSettingsConfigData':
+    def from_data(**data) -> 'LoggingSettingsYamlObject':
         '''
-        Initializes a new LoggingSettingsData object from a data representation.
+        Initializes a new LoggingSettingsYamlObject from a data representation.
 
-        :param data: The data to initialize the LoggingSettingsData object.
+        :param data: The data to initialize the LoggingSettingsYamlObject.
         :type data: dict
-        :return: A new LoggingSettingsData object.
-        :rtype: LoggingSettingsData
+        :return: A new LoggingSettingsYamlObject.
+        :rtype: LoggingSettingsYamlObject
         '''
 
-        # Create a new LoggingSettingsData object from the provided data.
-        return DataObject.from_data(
-            LoggingSettingsConfigData,
-            formatters={id: DataObject.from_data(
-                FormatterConfigData,
+        # Create a new LoggingSettingsYamlObject from the provided data.
+        return TransferObject.from_data(
+            LoggingSettingsYamlObject,
+            formatters={id: TransferObject.from_data(
+                FormatterYamlObject,
                 **formatter_data,
                 id=id
             ) for id, formatter_data in data.get('formatters', {}).items()},
-            handlers={id: DataObject.from_data(
-                HandlerConfigData,
+            handlers={id: TransferObject.from_data(
+                HandlerYamlObject,
                 **handler_data,
                 id=id
             ) for id, handler_data in data.get('handlers', {}).items()},
-            loggers={id: DataObject.from_data(
-                LoggerConfigData,
+            loggers={id: TransferObject.from_data(
+                LoggerYamlObject,
                 **logger_data,
                 id=id
             ) for id, logger_data in data.get('loggers', {}).items()},
         )
-
-    # * method: from_yaml_data
-    @staticmethod
-    def from_yaml_data(**data) -> 'LoggingSettingsConfigData':
-        '''
-        Initializes a new LoggingSettingsData object from a YAML data representation.
-        This is to be deleted for v2.0.0 in favor of from_data.
-
-        :param data: The YAML data to initialize the LoggingSettingsData object.
-        :type data: dict
-        :return: A new LoggingSettingsData object.
-        :rtype: LoggingSettingsData
-        '''
-
-        # Call the from_data method to create the LoggingSettingsData object.
-        return LoggingSettingsConfigData.from_data(**data)

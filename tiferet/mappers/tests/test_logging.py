@@ -1,4 +1,4 @@
-"""Tiferet Logging Data Objects Tests"""
+"""Tiferet Logging Mapper Tests"""
 
 # *** imports
 
@@ -6,26 +6,26 @@
 import pytest
 
 # ** app
-from ...models import (
+from ...entities import (
     Formatter,
     Handler,
     Logger,
 )
 from ..settings import (
-    DataObject,
+    TransferObject,
 )
 from ..logging import (
-    FormatterConfigData,
-    HandlerConfigData,
-    LoggerConfigData,
-    LoggingSettingsConfigData,
+    FormatterYamlObject,
+    HandlerYamlObject,
+    LoggerYamlObject,
+    LoggingSettingsYamlObject,
 )
 
 # *** fixtures
 
 # ** fixture: formatter_config_data
 @pytest.fixture
-def formatter_config_data() -> FormatterConfigData:
+def formatter_config_data() -> FormatterYamlObject:
     '''
     Fixture to create a basic FormatterData object.
 
@@ -34,8 +34,8 @@ def formatter_config_data() -> FormatterConfigData:
     '''
 
     # Return the formatter data.
-    return DataObject.from_data(
-        FormatterConfigData,
+    return TransferObject.from_data(
+        FormatterYamlObject,
         id='simple',
         name='Simple Formatter',
         description='A simple logging formatter.',
@@ -45,7 +45,7 @@ def formatter_config_data() -> FormatterConfigData:
 
 # ** fixture: handler_config_data
 @pytest.fixture
-def handler_config_data(formatter_config_data: FormatterConfigData) -> HandlerConfigData:
+def handler_config_data(formatter_config_data: FormatterYamlObject) -> HandlerYamlObject:
     '''
     Fixture to create a basic HandlerData object.
 
@@ -56,8 +56,8 @@ def handler_config_data(formatter_config_data: FormatterConfigData) -> HandlerCo
     '''
 
     # Return the handler data.
-    return DataObject.from_data(
-        HandlerConfigData,
+    return TransferObject.from_data(
+        HandlerYamlObject,
         id='console',
         name='Console Handler',
         description='A console logging handler.',
@@ -70,7 +70,7 @@ def handler_config_data(formatter_config_data: FormatterConfigData) -> HandlerCo
 
 # ** fixture: logger_config_data
 @pytest.fixture
-def logger_config_data(handler_config_data: HandlerConfigData) -> LoggerConfigData:
+def logger_config_data(handler_config_data: HandlerYamlObject) -> LoggerYamlObject:
     '''
     Fixture to create a basic LoggerData object.
 
@@ -81,8 +81,8 @@ def logger_config_data(handler_config_data: HandlerConfigData) -> LoggerConfigDa
     '''
 
     # Return the logger data.
-    return DataObject.from_data(
-        LoggerConfigData,
+    return TransferObject.from_data(
+        LoggerYamlObject,
         id='app',
         name='app',
         description='Application logger.',
@@ -95,10 +95,10 @@ def logger_config_data(handler_config_data: HandlerConfigData) -> LoggerConfigDa
 # ** fixture: logging_settings_config_data
 @pytest.fixture
 def logging_settings_config_data(
-    formatter_config_data: FormatterConfigData,
-    handler_config_data: HandlerConfigData,
-    logger_config_data: LoggerConfigData
-) -> LoggingSettingsConfigData:
+    formatter_config_data: FormatterYamlObject,
+    handler_config_data: HandlerYamlObject,
+    logger_config_data: LoggerYamlObject
+) -> LoggingSettingsYamlObject:
     '''
     Fixture to create a LoggingSettingsData object with formatter, handler, and logger data.
     
@@ -113,8 +113,8 @@ def logging_settings_config_data(
     '''
 
     # Return the logging settings data.
-    return DataObject.from_data(
-        LoggingSettingsConfigData,
+    return TransferObject.from_data(
+        LoggingSettingsYamlObject,
         formatters={formatter_config_data.id: formatter_config_data},
         handlers={handler_config_data.id: handler_config_data},
         loggers={logger_config_data.id: logger_config_data}
@@ -123,7 +123,7 @@ def logging_settings_config_data(
 # *** tests
 
 # ** test: formatter_data_map_success
-def test_formatter_data_map_success(formatter_config_data: FormatterConfigData):
+def test_formatter_data_map_success(formatter_config_data: FormatterYamlObject):
     '''
     Test successful mapping of FormatterData to Formatter.
 
@@ -132,7 +132,7 @@ def test_formatter_data_map_success(formatter_config_data: FormatterConfigData):
     '''
 
     # Map the formatter data to a formatter object.
-    formatter = formatter_config_data.map(role='to_model')
+    formatter = formatter_config_data.map()
 
     # Assert the formatter object attributes.
     assert isinstance(formatter, Formatter)
@@ -146,7 +146,7 @@ def test_formatter_data_map_success(formatter_config_data: FormatterConfigData):
     }
 
 # ** test: handler_data_map_success
-def test_handler_data_map_success(handler_config_data: HandlerConfigData):
+def test_handler_data_map_success(handler_config_data: HandlerYamlObject):
     '''
     Test successful mapping of HandlerData to Handler.
 
@@ -155,7 +155,7 @@ def test_handler_data_map_success(handler_config_data: HandlerConfigData):
     '''
 
     # Map the handler data to a handler object.
-    handler = handler_config_data.map(role='to_model')
+    handler = handler_config_data.map()
 
     # Assert the handler object attributes.
     assert isinstance(handler, Handler)
@@ -173,7 +173,7 @@ def test_handler_data_map_success(handler_config_data: HandlerConfigData):
     }
 
 # ** test: handler_data_map_no_optional
-def test_handler_data_map_no_optional(formatter_config_data: FormatterConfigData):
+def test_handler_data_map_no_optional(formatter_config_data: FormatterYamlObject):
     '''
     Test HandlerData mapping without optional attributes.
 
@@ -182,8 +182,8 @@ def test_handler_data_map_no_optional(formatter_config_data: FormatterConfigData
     '''
 
     # Create a handler data object without optional attributes.
-    handler_data = DataObject.from_data(
-        HandlerConfigData,
+    handler_data = TransferObject.from_data(
+        HandlerYamlObject,
         id='minimal',
         name='Minimal Handler',
         description='A minimal logging handler.',
@@ -192,7 +192,7 @@ def test_handler_data_map_no_optional(formatter_config_data: FormatterConfigData
         level='DEBUG',
         formatter=formatter_config_data.id
     )
-    handler = handler_data.map(role='to_model')
+    handler = handler_data.map()
 
     # Assert the handler object attributes.
     assert isinstance(handler, Handler)
@@ -206,7 +206,7 @@ def test_handler_data_map_no_optional(formatter_config_data: FormatterConfigData
     }
 
 # ** test: logger_data_map_success
-def test_logger_data_map_success(logger_config_data: LoggerConfigData):
+def test_logger_data_map_success(logger_config_data: LoggerYamlObject):
     '''
     Test successful mapping of LoggerData to Logger.
 
@@ -215,7 +215,7 @@ def test_logger_data_map_success(logger_config_data: LoggerConfigData):
     '''
 
     # Map the logger data to a logger object.
-    logger = logger_config_data.map(role='to_model')
+    logger = logger_config_data.map()
 
     # Assert the logger object attributes.
     assert isinstance(logger, Logger)
@@ -238,8 +238,8 @@ def test_logger_data_map_empty_handlers():
     '''
 
     # Create a logger data object with empty handlers.
-    logger_data = DataObject.from_data(
-        LoggerConfigData,
+    logger_data = TransferObject.from_data(
+        LoggerYamlObject,
         id='empty',
         name='empty',
         description='Logger with no handlers.',
@@ -248,7 +248,7 @@ def test_logger_data_map_empty_handlers():
         propagate=False,
         is_root=True
     )
-    logger = logger_data.map(role='to_model')
+    logger = logger_data.map()
 
     # Assert the logger object attributes.
     assert isinstance(logger, Logger)
@@ -301,10 +301,10 @@ def test_logging_settings_data_from_data_success():
     }
 
     # Instantiate LoggingSettingsData from the YAML data.
-    settings = LoggingSettingsConfigData.from_data(**data)
+    settings = LoggingSettingsYamlObject.from_data(**data)
 
     # Assert the logging settings data attributes.
-    assert isinstance(settings, LoggingSettingsConfigData)
+    assert isinstance(settings, LoggingSettingsYamlObject)
     assert len(settings.formatters) == 1
     assert settings.formatters['simple'].id == 'simple'
     assert len(settings.handlers) == 1
@@ -320,10 +320,10 @@ def test_logging_settings_data_from_data_empty():
 
     # Instantiate LoggingSettingsData from empty YAML data.
     data = {}
-    settings = LoggingSettingsConfigData.from_data(**data)
+    settings = LoggingSettingsYamlObject.from_data(**data)
 
     # Assert the logging settings data attributes.
-    assert isinstance(settings, LoggingSettingsConfigData)
+    assert isinstance(settings, LoggingSettingsYamlObject)
     assert settings.formatters == {}
     assert settings.handlers == {}
     assert settings.loggers == {}
