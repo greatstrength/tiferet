@@ -181,6 +181,15 @@ INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
+# ** constant: yaml_file_not_found_id
+YAML_FILE_NOT_FOUND_ID = 'YAML_FILE_NOT_FOUND'
+
+# ** constant: yaml_file_load_error_id
+YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
+
+# ** constant: yaml_file_save_error_id
+YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
+
 # ** constant: unsupported_config_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
@@ -502,6 +511,33 @@ DEFAULT_ERRORS = {
         'name': 'Invalid YAML File',
         'message': [
             {'lang': 'en_US', 'text': 'File is not a valid YAML file: {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_NOT_FOUND
+    YAML_FILE_NOT_FOUND_ID: {
+        'id': YAML_FILE_NOT_FOUND_ID,
+        'name': 'YAML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'YAML file not found: {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_LOAD_ERROR
+    YAML_FILE_LOAD_ERROR_ID: {
+        'id': YAML_FILE_LOAD_ERROR_ID,
+        'name': 'YAML File Load Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while loading the YAML file {path}: {exception}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_SAVE_ERROR
+    YAML_FILE_SAVE_ERROR_ID: {
+        'id': YAML_FILE_SAVE_ERROR_ID,
+        'name': 'YAML File Save Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while saving to the YAML file {path}: {exception}.'}
         ]
     },
 

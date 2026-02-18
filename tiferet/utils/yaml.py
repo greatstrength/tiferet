@@ -16,19 +16,82 @@ import yaml
 
 # ** app
 from .file import FileLoaderMiddleware
-from ..events import TiferetError, const
-from ..contracts import ConfigurationService
+from ..events import RaiseError, a
 
 # *** utils
 
 # ** util: yaml_loader
-class YamlLoader(FileLoaderMiddleware, ConfigurationService):
+class YamlLoader(FileLoaderMiddleware):
     '''
     Utility for loading YAML files into the application.
     '''
 
     # * attribute: cache_data
     cache_data: Dict[str, Any]
+
+    # * method: verify_yaml_file (static)
+    @staticmethod
+    def verify_yaml_file(yaml_file: str, default_path: str = None) -> str:
+        '''
+        Verify that the YAML file exists and is a valid YAML file.
+
+        :param yaml_file: The YAML file path to verify.
+        :type yaml_file: str
+        :param default_path: An optional default path location to search for the YAML file.
+        :type default_path: str
+        :return: The verified YAML file path.
+        :rtype: str
+        '''
+
+        # Generate possible paths for the YAML file.
+        yaml_files = [yaml_file]
+        if default_path:
+            yaml_files.append(os.path.join(default_path, yaml_file))
+
+        # Verify the YAML is valid and file exists in one of the possible paths.
+        last_exception = None
+        for file in yaml_files:
+            try:
+                # Check if file exists.
+                if not os.path.exists(file):
+                    RaiseError.execute(
+                        a.const.YAML_FILE_NOT_FOUND_ID,
+                        f'YAML file {file} does not exist.',
+                        path=file
+                    )
+
+                # Verify the file is a valid YAML file.
+                if not file.endswith('.yaml') and not file.endswith('.yml'):
+                    RaiseError.execute(
+                        a.const.INVALID_YAML_FILE_ID,
+                        f'File {file} is not a valid YAML file.',
+                        path=file
+                    )
+
+                # Return the verified file path.
+                return file
+
+            # Try the next possible path if file not found.
+            except Exception as e:
+                if hasattr(e, 'error_code') and e.error_code == a.const.YAML_FILE_NOT_FOUND_ID:
+                    last_exception = e
+                    continue
+                # Break on any other exception.
+                last_exception = e
+                break
+
+            # Break on any other exception.
+            except Exception as e:
+                last_exception = e
+                break
+
+        # Raise an error if no valid YAML file was found.
+        RaiseError.execute(
+            a.const.YAML_FILE_NOT_FOUND_ID,
+            f'Valid YAML file not found at path: {yaml_file}',
+            yaml_file=yaml_file,
+            exception=str(last_exception) if last_exception else None
+        )
 
     # * method: __enter__
     def __enter__(self):
@@ -77,8 +140,8 @@ class YamlLoader(FileLoaderMiddleware, ConfigurationService):
         # Attempt to load the YAML content to verify its validity.
         # Verify that the configuration file is a valid YAML file.
         if not path or (not path.endswith('.yaml') and not path.endswith('.yml')):
-            raise TiferetError(
-                const.INVALID_YAML_FILE_ID,
+            RaiseError.execute(
+                a.const.INVALID_YAML_FILE_ID,
                 f'File {path} is not a valid YAML file.',
                 path=path
             )
@@ -98,14 +161,25 @@ class YamlLoader(FileLoaderMiddleware, ConfigurationService):
         :rtype: List[Any] | Dict[str, Any]
         '''
 
-        # Load the YAML content from the file.
-        yaml_content = yaml.safe_load(self.file)
-        
-        # Navigate to the start node of the loaded YAML content.
-        yaml_content = start_node(yaml_content)
+        # Load the YAML file with exception handling.
+        try:
+            # Load the YAML content from the file.
+            yaml_content = yaml.safe_load(self.file)
+            
+            # Navigate to the start node of the loaded YAML content.
+            yaml_content = start_node(yaml_content)
 
-        # Return the YAML content processed by the data factory.
-        return data_factory(yaml_content)
+            # Return the YAML content processed by the data factory.
+            return data_factory(yaml_content)
+
+        # Handle any exceptions that occur during YAML loading and raise a custom error.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.YAML_FILE_LOAD_ERROR_ID,
+                f'An error occurred while loading the YAML file {self.path}: {str(e)}',
+                path=self.path,
+                exception=str(e)
+            )
 
     # * method: save
     def save(self, data: Dict[str, Any], data_path: str = None):
@@ -118,44 +192,55 @@ class YamlLoader(FileLoaderMiddleware, ConfigurationService):
         :type data_path: str
         '''
 
-        # If a specific path is not provided, save to the current file using the context manager.
-        if not data_path:
-            yaml.safe_dump(data, self.file)
-            return
-
-        # Get the data save path list. Replace any '.' with '/' for path consistency.
-        data_path = data_path.replace('.', '/')
-        save_path_list = data_path.split('/')
-
-        # Update the yaml data.
-        new_yaml_data = None
-        for fragment in save_path_list[:-1]:
-
-            # If the new yaml data exists, update it.
-            try:
-                new_yaml_data = new_yaml_data[fragment]
-
-            # If the new yaml data does not exist, create it from the yaml data.
-            except TypeError:
-                try:
-                    new_yaml_data = self.cache_data[fragment]
-                    continue  
-            
-                # If the fragment does not exist, create it.
-                except KeyError:
-                    new_yaml_data = self.cache_data[fragment] = {}
-
-            # If the fragment does not exist, create it.
-            except KeyError: 
-                new_yaml_data[fragment] = {}
-                new_yaml_data = new_yaml_data[fragment]
-
-        # Update the yaml data.
+        # Save the YAML data with exception handling.
         try:
-            new_yaml_data[save_path_list[-1]] = data
-        # if there is a type error because the new yaml data is None, update the yaml data directly.
-        except TypeError:
-            self.cache_data[save_path_list[-1]] = data
+            # If a specific path is not provided, save to the current file using the context manager.
+            if not data_path:
+                yaml.safe_dump(data, self.file)
+                return
 
-        # Save the updated yaml data.
-        yaml.safe_dump(self.cache_data, self.file)
+            # Get the data save path list. Replace any '.' with '/' for path consistency.
+            data_path = data_path.replace('.', '/')
+            save_path_list = data_path.split('/')
+
+            # Update the yaml data.
+            new_yaml_data = None
+            for fragment in save_path_list[:-1]:
+
+                # If the new yaml data exists, update it.
+                try:
+                    new_yaml_data = new_yaml_data[fragment]
+
+                # If the new yaml data does not exist, create it from the yaml data.
+                except TypeError:
+                    try:
+                        new_yaml_data = self.cache_data[fragment]
+                        continue  
+                
+                    # If the fragment does not exist, create it.
+                    except KeyError:
+                        new_yaml_data = self.cache_data[fragment] = {}
+
+                # If the fragment does not exist, create it.
+                except KeyError: 
+                    new_yaml_data[fragment] = {}
+                    new_yaml_data = new_yaml_data[fragment]
+
+            # Update the yaml data.
+            try:
+                new_yaml_data[save_path_list[-1]] = data
+            # if there is a type error because the new yaml data is None, update the yaml data directly.
+            except TypeError:
+                self.cache_data[save_path_list[-1]] = data
+
+            # Save the updated yaml data.
+            yaml.safe_dump(self.cache_data, self.file)
+
+        # Handle any exceptions that occur during YAML saving and raise a custom error.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.YAML_FILE_SAVE_ERROR_ID,
+                f'An error occurred while saving to the YAML file {self.path}: {str(e)}',
+                path=self.path,
+                exception=str(e)
+            )

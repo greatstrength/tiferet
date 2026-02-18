@@ -7,11 +7,7 @@ import pytest
 import yaml
 
 # ** app
-from ..yaml import (
-    YamlLoader,
-    TiferetError,
-    const
-)
+from ..yaml import YamlLoader, TiferetError, a
 
 # *** fixtures
 
@@ -55,7 +51,7 @@ def test_yaml_loader_init_invalid_file():
         yaml_loader.open_file()
     
     # Verify the exception message.
-    assert exc_info.value.error_code == const.INVALID_YAML_FILE_ID
+    assert exc_info.value.error_code == a.const.INVALID_YAML_FILE_ID
     assert 'is not a valid YAML file' in str(exc_info.value)
     assert exc_info.value.kwargs.get('path') == 'invalid_file.txt'
 
@@ -184,3 +180,76 @@ def test_yaml_loader_save_data_yaml_path(temp_yaml_file: str):
     # Verify the file is closed after saving and that the cache data is cleared.
     assert yaml_w.file is None
     assert yaml_w.cache_data is None
+
+# ** test: verify_yaml_file_success
+def test_verify_yaml_file_success(temp_yaml_file: str):
+    '''
+    Test successful verification of a YAML file.
+
+    :param temp_yaml_file: The path to the temporary YAML file.
+    :type temp_yaml_file: str
+    '''
+
+    # Verify the YAML file exists and is valid.
+    verified_path = YamlLoader.verify_yaml_file(temp_yaml_file)
+
+    # Verify the returned path matches the input.
+    assert verified_path == temp_yaml_file
+
+# ** test: verify_yaml_file_with_default_path
+def test_verify_yaml_file_with_default_path(tmp_path):
+    '''
+    Test verification of a YAML file with default path.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a YAML file in a subdirectory.
+    subdir = tmp_path / 'configs'
+    subdir.mkdir()
+    yaml_file = subdir / 'config.yaml'
+    with open(yaml_file, 'w', encoding='utf-8') as f:
+        yaml.safe_dump({'test': 'data'}, f)
+
+    # Verify using just the filename and default path.
+    verified_path = YamlLoader.verify_yaml_file('config.yaml', default_path=str(subdir))
+
+    # Verify the returned path is the full path.
+    assert verified_path == str(yaml_file)
+
+# ** test: verify_yaml_file_not_found
+def test_verify_yaml_file_not_found():
+    '''
+    Test verification of a non-existent YAML file.
+    '''
+
+    # Attempt to verify a non-existent file.
+    with pytest.raises(TiferetError) as exc_info:
+        YamlLoader.verify_yaml_file('nonexistent.yaml')
+
+    # Verify the error code.
+    assert exc_info.value.error_code == a.const.YAML_FILE_NOT_FOUND_ID
+    assert 'not found' in str(exc_info.value).lower()
+
+# ** test: verify_yaml_file_invalid_extension
+def test_verify_yaml_file_invalid_extension(tmp_path):
+    '''
+    Test verification of a file with invalid YAML extension.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a file with invalid extension.
+    invalid_file = tmp_path / 'config.txt'
+    with open(invalid_file, 'w', encoding='utf-8') as f:
+        f.write('test: data\n')
+
+    # Attempt to verify the invalid file.
+    with pytest.raises(TiferetError) as exc_info:
+        YamlLoader.verify_yaml_file(str(invalid_file))
+
+    # Verify the error code.
+    assert exc_info.value.error_code == a.const.INVALID_YAML_FILE_ID
+    assert 'not a valid YAML file' in str(exc_info.value)
