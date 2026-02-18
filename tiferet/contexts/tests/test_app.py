@@ -15,7 +15,7 @@ from ...entities import (
     AppInterface,
     AppAttribute,
 )
-from ...contracts import AppService
+from ...interfaces import AppService
 from ..app import (
     FeatureContext,
     ErrorContext,
@@ -25,18 +25,8 @@ from ..app import (
     AppManagerContext,
 )
 from ...assets import TiferetError, TiferetAPIError
-from ...assets.constants import (
-    DEFAULT_ATTRIBUTES,
-    DEFAULT_APP_SERVICE_MODULE_PATH,
-    DEFAULT_APP_SERVICE_CLASS_NAME,
-)
-from ...entities import (
-    ModelObject,
-    AppInterface,
-    AppAttribute,
-)
-from ...contracts import AppService
-from ...repos.config.app import AppConfigurationRepository
+from ... import assets as a
+from ...repos.app import AppYamlRepository
 
 # *** fixtures
 
@@ -45,14 +35,14 @@ from ...repos.config.app import AppConfigurationRepository
 def settings():
     """Fixture to provide application settings for a custom app service.
 
-    Uses the AppConfigurationRepository as the backing AppService.
+    Uses the AppYamlRepository as the backing AppService.
     """
 
     return {
-        'app_repo_module_path': 'tiferet.repos.config.app',
-        'app_repo_class_name': 'AppConfigurationRepository',
+        'app_repo_module_path': 'tiferet.repos.app',
+        'app_repo_class_name': 'AppYamlRepository',
         'app_repo_params': {
-            'app_config_file': 'tiferet/configs/tests/test.yml',
+            'yaml_file': 'tiferet/tests_int/fixtures/test.yml',
         },
     }
 
@@ -166,12 +156,12 @@ def app_manager_context():
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance using test settings with AppConfigurationRepository
+    # Return the AppManagerContext instance using test settings with AppYamlRepository
     # and a test-specific configuration file.
     return AppManagerContext(
         dict(
             app_repo_params=dict(
-                app_config_file='tiferet/configs/tests/test_calc.yml',
+                yaml_file='tiferet/tests_int/fixtures/test_calc.yml',
             ),
         ),
     )
@@ -222,10 +212,10 @@ def app_context_interface(app_context, app_interface, features, container_attrib
 
 # ** test: app_manager_context_load_app_repo_defaults
 def test_app_manager_context_load_app_repo_defaults():
-    """Validate that AppManagerContext defaults to AppConfigurationRepository.
+    """Validate that AppManagerContext defaults to AppYamlRepository.
 
     This ensures that when no custom repository settings are provided, the
-    app repository is loaded using the configuration-backed implementation.
+    app repository is loaded using the YAML-backed implementation.
     """
 
     # Instantiate the AppManagerContext with default settings.
@@ -234,7 +224,7 @@ def test_app_manager_context_load_app_repo_defaults():
     # Load the app repository and assert that the default repository type is used.
     repo = context.load_app_repo()
 
-    assert isinstance(repo, AppConfigurationRepository)
+    assert isinstance(repo, AppYamlRepository)
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context):
@@ -285,7 +275,7 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_int
         app_manager_context.load_interface('invalid_interface_id')
 
     # Assert that the error message is as expected.
-    assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
+    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
     assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
     assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
 
