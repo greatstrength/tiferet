@@ -178,6 +178,12 @@ INVALID_ENCODING_ID = 'INVALID_ENCODING'
 # ** constant: invalid_json_file_id
 INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 
+# ** constant: json_file_load_error_id
+JSON_FILE_LOAD_ERROR_ID = 'JSON_FILE_LOAD_ERROR'
+
+# ** constant: json_file_save_error_id
+JSON_FILE_SAVE_ERROR_ID = 'JSON_FILE_SAVE_ERROR'
+
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
@@ -502,6 +508,24 @@ DEFAULT_ERRORS = {
         'name': 'Invalid JSON File',
         'message': [
             {'lang': 'en_US', 'text': 'File is not a valid JSON file: {path}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_LOAD_ERROR
+    JSON_FILE_LOAD_ERROR_ID: {
+        'id': JSON_FILE_LOAD_ERROR_ID,
+        'name': 'JSON File Load Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while loading the JSON file {path}: {exception}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_SAVE_ERROR
+    JSON_FILE_SAVE_ERROR_ID: {
+        'id': JSON_FILE_SAVE_ERROR_ID,
+        'name': 'JSON File Save Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while saving to the JSON file {path}: {exception}.'}
         ]
     },
 

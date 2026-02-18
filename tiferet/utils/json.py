@@ -1,4 +1,4 @@
-"""Tiferet JSON Middleware"""
+"""Tiferet JSON Utility"""
 
 # *** imports
 
@@ -12,16 +12,15 @@ from typing import (
 import json
 
 # ** app
-from .file import FileLoaderMiddleware
-from ..events import TiferetError, const
-from ..contracts import ConfigurationService
+from .file import FileLoader
+from ..events import RaiseError, a
 
-# *** middleware
+# *** utils
 
-#* middleware: json_loader
-class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
+# ** util: json_loader
+class JsonLoader(FileLoader):
     '''
-    Middleware for loading JSON files into the application.
+    Utility for loading JSON files into the application.
     '''
 
     # * attribute: cache_data
@@ -32,8 +31,8 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         '''
         Enter the context manager and open the JSON file.
 
-        :return: The JsonLoaderMiddleware instance.
-        :rtype: JsonLoaderMiddleware
+        :return: The JsonLoader instance.
+        :rtype: JsonLoader
         '''
         
         # If the mode is 'w' or 'wb', read the existing JSON content to cache it before writing.
@@ -76,8 +75,8 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
 
         # Verify that the configuration file is a valid JSON file.
         if not path or not path.endswith('.json'):
-            raise TiferetError(
-                const.INVALID_JSON_FILE_ID,
+            RaiseError.execute(
+                a.const.INVALID_JSON_FILE_ID,
                 f'File is not a valid JSON file: {path}.',
                 path=path
             )
@@ -95,29 +94,32 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
 
         :param start_node: A callable to specify the starting node for loading data from the JSON file. Defaults to a lambda that returns the data as is.
         :type start_node: Callable
+        :param data_factory: A callable to specify how to create data objects from the loaded JSON data. Defaults to a lambda that returns the data as is.
+        :type data_factory: Callable
+        :return: The contents of the JSON file.
+        :rtype: List[Any] | Dict[str, Any]
         '''
 
-        # Load the JSON content from the file.
-        json_content = json.load(self.file)
+        # Load the JSON file with exception handling.
+        try:
+            # Load the JSON content from the file.
+            json_content = json.load(self.file)
 
-        # Navigate to the start node of the loaded JSON content.
-        json_content = start_node(json_content)
+            # Navigate to the start node of the loaded JSON content.
+            json_content = start_node(json_content)
 
-        # Return the JSON content processed by the data factory.
-        return data_factory(json_content)
+            # Return the JSON content processed by the data factory.
+            return data_factory(json_content)
 
-    # * method: load_json
-    # - obsolete: use load instead
-    def load_json(self, start_node: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
-        '''
-        Load data from the JSON configuration file.
+        # Handle any exceptions that occur during JSON loading and raise a custom error.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.JSON_FILE_LOAD_ERROR_ID,
+                f'An error occurred while loading the JSON file {self.path}: {str(e)}',
+                path=self.path,
+                exception=str(e)
+            )
 
-        :param start_node: A callable to specify the starting node for loading data from the JSON file. Defaults to a lambda that returns the data as is.
-        :type start_node: Callable
-        '''
-
-        # Call the load method to load the JSON content.
-        return self.load(start_node)
     
     # * method: parse_json_path
     def parse_json_path(self, path: str) -> List[str | int]:
@@ -158,55 +160,50 @@ class JsonLoaderMiddleware(FileLoaderMiddleware, ConfigurationService):
         :type kwargs: dict
         '''
 
-        # Save the JSON data to the file with the specified indentation if no specific path is provided. 
-        if not data_path:
-            json.dump(data, self.file, indent=indent)
-            return
+        # Save the JSON data with exception handling.
+        try:
+            # Save the JSON data to the file with the specified indentation if no specific path is provided. 
+            if not data_path:
+                json.dump(data, self.file, indent=indent)
+                return
 
-        # Get the data save path list and navigate to the correct location in the JSON structure to save the data.
-        save_path_list = self.parse_json_path(data_path)
+            # Get the data save path list and navigate to the correct location in the JSON structure to save the data.
+            save_path_list = self.parse_json_path(data_path)
 
-        # Update the JSON data at the specified path.
-        current_data = self.cache_data
-        for part in save_path_list[:-1]:
-            if isinstance(part, int):
-                # Handle list index
-                while len(current_data) <= part:
+            # Update the JSON data at the specified path.
+            current_data = self.cache_data
+            for part in save_path_list[:-1]:
+                if isinstance(part, int):
+                    # Handle list index
+                    while len(current_data) <= part:
+                        current_data.append({})
+                    current_data = current_data[part]
+                else:
+                    # Handle dictionary key
+                    if part not in current_data:
+                        current_data[part] = {}
+                    current_data = current_data[part]
+
+            # Set the final value at the specified path.
+            final_part = save_path_list[-1]
+            if isinstance(final_part, int):
+                # Handle list index for the final part
+                while len(current_data) <= final_part:
                     current_data.append({})
-                current_data = current_data[part]
+                current_data[final_part] = data
             else:
-                # Handle dictionary key
-                if part not in current_data:
-                    current_data[part] = {}
-                current_data = current_data[part]
+                # Handle dictionary key for the final part
+                current_data[final_part] = data
 
-        # Set the final value at the specified path.
-        final_part = save_path_list[-1]
-        if isinstance(final_part, int):
-            # Handle list index for the final part
-            while len(current_data) <= final_part:
-                current_data.append({})
-            current_data[final_part] = data
-        else:
-            # Handle dictionary key for the final part
-            current_data[final_part] = data
+            # Save the updated JSON data to the file with the specified indentation.
+            json.dump(self.cache_data, self.file, indent=indent)
 
-        # Save the updated JSON data to the file with the specified indentation.
-        json.dump(self.cache_data, self.file, indent=indent)
+        # Handle any exceptions that occur during JSON saving and raise a custom error.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.JSON_FILE_SAVE_ERROR_ID,
+                f'An error occurred while saving to the JSON file {self.path}: {str(e)}',
+                path=self.path,
+                exception=str(e)
+            )
 
-    # * method: save_json
-    # - obsolete: use save instead
-    def save_json(self, data: Dict[str, Any], data_json_path: str = None, indent: int = 4):
-        '''
-        Save data to the JSON configuration file.
-
-        :param data: The data to save to the JSON file.
-        :type data: Dict[str, Any]
-        :param data_json_path: The path within the JSON file where the data should be saved. If None, saves to the root of the JSON file.
-        :type data_json_path: str
-        :param indent: The number of spaces to use for indentation in the JSON file. Defaults to 4.
-        :type indent: int
-        '''
-
-        # Use the save method to save the JSON data.
-        self.save(data, data_json_path, indent)
