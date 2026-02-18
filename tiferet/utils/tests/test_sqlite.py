@@ -1,4 +1,4 @@
-"""Tests for SqliteMiddleware"""
+"""Tests for SqliteClient"""
 
 # *** imports
 
@@ -12,24 +12,25 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import SqliteMiddleware
-from ...events import TiferetError, const
+from ..sqlite import SqliteClient
+from ...events import TiferetError
+from ... import assets as a
 
 # *** fixtures
 
 # ** fixture: sqlite_mw_in_memory
 @pytest.fixture
-def sqlite_mw_in_memory() -> Generator[SqliteMiddleware, None, None]:
+def sqlite_mw_in_memory() -> Generator[SqliteClient, None, None]:
     '''
-    Provides a SqliteMiddleware connected to an in-memory database.
+    Provides a SqliteClient connected to an in-memory database.
     The connection is automatically closed after the test.
 
-    :yield: The SqliteMiddleware instance.
-    :rtype: Generator[SqliteMiddleware]
+    :yield: The SqliteClient instance.
+    :rtype: Generator[SqliteClient]
     '''
 
     # Create the in-memory database middleware.
-    mw = SqliteMiddleware(
+    mw = SqliteClient(
         path=':memory:',
         row_factory_dict=True,
         isolation_level=None,
@@ -51,7 +52,7 @@ def sqlite_mw_in_memory() -> Generator[SqliteMiddleware, None, None]:
 @pytest.fixture
 def db_file(tmp_path: Path) -> str:
     '''
-    Provides a SqliteMiddleware connected to a temporary file database.
+    Provides a SqliteClient connected to a temporary file database.
     The connection is automatically closed after the test.
 
     :param tmp_path: Pytest temporary path fixture.
@@ -62,7 +63,7 @@ def db_file(tmp_path: Path) -> str:
 
     # Create the temporary database file.
     db_file = str(tmp_path / "test_db.sqlite")
-    mw = SqliteMiddleware(
+    mw = SqliteClient(
         path=str(db_file),
         row_factory_dict=True,
         isolation_level=None,           # autocommit for simpler test assertions
@@ -103,7 +104,7 @@ def test_sqlite_middleware_context_manager_opens_and_closes_connection():
     '''
 
     # Create the middleware instance.
-    mw = SqliteMiddleware(path=':memory:')
+    mw = SqliteClient(path=':memory:')
     assert mw.conn is None
 
     # Use context manager to open connection.
@@ -123,14 +124,14 @@ def test_sqlite_middleware_invalid_mode_raises_error():
 
     # Attempt to create middleware with invalid mode.
     with pytest.raises(TiferetError) as exc_info:
-        SqliteMiddleware(path=':memory:', mode='invalid_mode')
+        SqliteClient(path=':memory:', mode='invalid_mode')
 
     # Verify the error code and message.
-    assert exc_info.value.error_code == const.SQLITE_INVALID_MODE_ID
+    assert exc_info.value.error_code == a.const.SQLITE_INVALID_MODE_ID
     assert exc_info.value.kwargs.get('mode') == 'invalid_mode'
 
 # ** test: sqlite_middleware_open_when_already_open_raises_error
-def test_sqlite_middleware_open_when_already_open_raises_error(sqlite_mw_in_memory: SqliteMiddleware):
+def test_sqlite_middleware_open_when_already_open_raises_error(sqlite_mw_in_memory: SqliteClient):
     '''
     Verify that attempting to open an already open connection raises an error.
     '''
@@ -143,7 +144,7 @@ def test_sqlite_middleware_open_when_already_open_raises_error(sqlite_mw_in_memo
         mw.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_ALREADY_OPEN_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_ALREADY_OPEN_ID
     assert exc_info.value.kwargs.get('path') == ':memory:'
 
 # ** test: sqlite_middleware_open_when_file_path_invalid_raises_error
@@ -157,12 +158,12 @@ def test_sqlite_middleware_open_when_file_path_invalid_raises_error(tmp_path: Pa
 
     # Create middleware with invalid file path.
     invalid_path = str(tmp_path / "non_existent_dir" / "db.sqlite")
-    mw = SqliteMiddleware(path=invalid_path, mode='rw')
+    mw = SqliteClient(path=invalid_path, mode='rw')
 
     with pytest.raises(TiferetError) as exc_info:
         mw.open_file()
 
-    assert exc_info.value.error_code == const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID
+    assert exc_info.value.error_code == a.const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID
     assert exc_info.value.kwargs.get('path') == invalid_path
 
 # ** test: sqlite_middleware_open_invalid_connection_raises_error
@@ -177,18 +178,18 @@ def test_sqlite_middleware_open_invalid_connection_raises_error(tmp_path: Path):
 
     # Create corrupt database file.
     non_existent_file = str(tmp_path / "non_existent_db.sqlite")
-    mw = SqliteMiddleware(path=non_existent_file, mode='ro')
+    mw = SqliteClient(path=non_existent_file, mode='ro')
 
     # Attempt to open the file.
     with pytest.raises(TiferetError) as exc_info:
         mw.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_FAILED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_FAILED_ID
     assert exc_info.value.kwargs.get('path') == non_existent_file
 
 # ** test: sqlite_middleware_insert_and_fetch_one
-def test_sqlite_middleware_insert_and_fetch_one(sqlite_mw_in_memory: SqliteMiddleware):
+def test_sqlite_middleware_insert_and_fetch_one(sqlite_mw_in_memory: SqliteClient):
     '''
     Insert a row and retrieve it with fetch_one().
     '''
@@ -211,12 +212,12 @@ def test_sqlite_middleware_insert_and_fetch_one(sqlite_mw_in_memory: SqliteMiddl
     assert row['age'] == 42
 
 # ** test: sqlite_middleware_fetch_all_as_dicts
-def test_sqlite_middleware_fetch_all_as_dicts(sqlite_mw_in_memory: SqliteMiddleware, sample_users_data: List[Dict[str, Any]]):
+def test_sqlite_middleware_fetch_all_as_dicts(sqlite_mw_in_memory: SqliteClient, sample_users_data: List[Dict[str, Any]]):
     '''
     Insert multiple rows and verify fetch_all returns list of dicts.
 
-    :param sqlite_mw_in_memory: Fixture providing SqliteMiddleware with in-memory DB.
-    :type sqlite_mw_in_memory: SqliteMiddleware
+    :param sqlite_mw_in_memory: Fixture providing SqliteClient with in-memory DB.
+    :type sqlite_mw_in_memory: SqliteClient
     :param sample_users_data: Fixture providing sample user data.
     :type sample_users_data: List[Dict[str, Any]]
     '''
@@ -247,7 +248,7 @@ def test_sqlite_middleware_fetch_all_as_tuples_when_row_factory_disabled():
     '''
 
     # Create middleware with row_factory_dict disabled.
-    mw = SqliteMiddleware(path=':memory:', row_factory_dict=False)
+    mw = SqliteClient(path=':memory:', row_factory_dict=False)
     with mw:
 
         # Create a test table and insert data.
@@ -272,14 +273,14 @@ def test_sqlite_middleware_execute_sqlite_connection_not_initialized_error():
     '''
 
     # Get the middleware instance.
-    mw = SqliteMiddleware(path=':memory:')
+    mw = SqliteClient(path=':memory:')
 
     # Attempt to execute SQL without opening connection.
     with pytest.raises(TiferetError) as exc_info:
         mw.execute("SELECT 1")
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_middleware_fetch_one_sqlite_connection_not_initialized_error
 def test_sqlite_middleware_fetch_one_sqlite_connection_not_initialized_error():
@@ -288,14 +289,14 @@ def test_sqlite_middleware_fetch_one_sqlite_connection_not_initialized_error():
     '''
 
     # Get the middleware instance.
-    mw = SqliteMiddleware(path=':memory:')
+    mw = SqliteClient(path=':memory:')
 
     # Attempt to fetch one row without opening connection.
     with pytest.raises(TiferetError) as exc_info:
         mw.fetch_one("SELECT 1")
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_middleware_executemany_sqlite_connection_not_initialized_error
 def test_sqlite_middleware_executemany_sqlite_connection_not_initialized_error():
@@ -304,14 +305,14 @@ def test_sqlite_middleware_executemany_sqlite_connection_not_initialized_error()
     '''
 
     # Get the middleware instance.
-    mw = SqliteMiddleware(path=':memory:')
+    mw = SqliteClient(path=':memory:')
 
     # Attempt to execute many without opening connection.
     with pytest.raises(TiferetError) as exc_info:
         mw.executemany("SELECT 1", [()])
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_middleware_executescript_sqlite_connection_not_initialized_error
 def test_sqlite_middleware_executescript_sqlite_connection_not_initialized_error():
@@ -320,14 +321,14 @@ def test_sqlite_middleware_executescript_sqlite_connection_not_initialized_error
     '''
 
     # Get the middleware instance.
-    mw = SqliteMiddleware(path=':memory:')
+    mw = SqliteClient(path=':memory:')
 
     # Attempt to execute script without opening connection.
     with pytest.raises(TiferetError) as exc_info:
         mw.executescript("SELECT 1;")
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_middleware_transaction_commit_on_success
 def test_sqlite_middleware_transaction_commit_on_success(db_file: str):
@@ -339,7 +340,7 @@ def test_sqlite_middleware_transaction_commit_on_success(db_file: str):
     '''
 
     # Get the middleware instance and close it to test re-opening
-    mw = SqliteMiddleware(
+    mw = SqliteClient(
         path=db_file,
         row_factory_dict=True,
     )
@@ -365,7 +366,7 @@ def test_sqlite_middleware_transaction_rollback_on_exception(db_file: str):
     '''
 
     # Get the middleware instance.
-    mw = SqliteMiddleware(
+    mw = SqliteClient(
         path=db_file,
         row_factory_dict=True
     )
@@ -398,7 +399,7 @@ def test_sqlite_middleware_custom_function_registration():
         return x * x
 
     # Create middleware with the custom function.
-    mw = SqliteMiddleware(
+    mw = SqliteClient(
         path=':memory:',
         custom_functions={'square': (square, 1, True)}
     )
@@ -426,7 +427,7 @@ def test_sqlite_middleware_backup(tmp_path: Path):
     dest_db = tmp_path / "backup.db"
 
     # Create source DB with some data.
-    mw_src = SqliteMiddleware(path=str(src_db))
+    mw_src = SqliteClient(path=str(src_db))
     with mw_src:
         mw_src.executescript("""
             CREATE TABLE test (id INT PRIMARY KEY, value TEXT);
@@ -438,7 +439,7 @@ def test_sqlite_middleware_backup(tmp_path: Path):
         mw_src.backup(str(dest_db), pages=-1)
 
     # Verify destination DB has the data.
-    mw_dest = SqliteMiddleware(path=str(dest_db))
+    mw_dest = SqliteClient(path=str(dest_db))
     with mw_dest:
         rows = mw_dest.fetch_all("SELECT * FROM test ORDER BY id")
         assert len(rows) == 2
@@ -459,14 +460,14 @@ def test_sqlite_middleware_backup_without_open_connection_raises_error(tmp_path:
     dest_db = tmp_path / "backup.db"
 
     # Create source DB.
-    mw = SqliteMiddleware(path=str(src_db))
+    mw = SqliteClient(path=str(src_db))
 
     # Attempt backup without opening connection.
     with pytest.raises(TiferetError) as exc_info:
         mw.backup(str(dest_db), pages=-1)
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_middleware_backup_to_invalid_path_raises_error
 def test_sqlite_middleware_backup_to_invalid_path_raises_error(tmp_path: Path):
@@ -482,7 +483,7 @@ def test_sqlite_middleware_backup_to_invalid_path_raises_error(tmp_path: Path):
     invalid_dest_db = tmp_path / "non_existent_dir" / "backup.db"
 
     # Create source DB.
-    mw = SqliteMiddleware(path=str(src_db))
+    mw = SqliteClient(path=str(src_db))
     with mw:
         mw.executescript("""
             CREATE TABLE test (id INT PRIMARY KEY, value TEXT);
@@ -495,5 +496,5 @@ def test_sqlite_middleware_backup_to_invalid_path_raises_error(tmp_path: Path):
             mw.backup(str(invalid_dest_db), pages=-1)
 
     # Verify the error code.
-    assert exc_info.value.error_code == const.SQLITE_BACKUP_FAILED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
     assert exc_info.value.kwargs.get('target_path') == str(invalid_dest_db)

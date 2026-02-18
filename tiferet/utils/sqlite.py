@@ -1,4 +1,4 @@
-"""Tiferet SQLite Middleware"""
+"""Tiferet SQLite Utilities"""
 
 # *** imports
 import sqlite3
@@ -15,16 +15,17 @@ from typing import (
 )
 
 # ** app
-from .file import FileLoaderMiddleware
-from ..events import RaiseError, const
-from ..contracts import SqliteService
+from .file import FileLoader
+from ..events import RaiseError
+from ..interfaces import SqliteService
+from .. import assets as a
 
-# *** middleware
+# *** utils
 
-# ** middleware: sqlite_middleware
-class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
+# ** util: sqlite_client
+class SqliteClient(FileLoader, SqliteService):
     '''
-    SQLite-specific middleware built on top of FileLoaderMiddleware.
+    SQLite client utility built on top of FileLoader.
     Manages connections to SQLite database files (or :memory:), provides
     safe query execution, transaction control, data fetching, and backup
     capabilities using Python's built-in sqlite3 module.
@@ -114,7 +115,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         valid_modes = {'ro', 'rw', 'rwc'}
         if mode and mode not in valid_modes:
             RaiseError.execute(
-                const.SQLITE_INVALID_MODE_ID,
+                a.const.SQLITE_INVALID_MODE_ID,
                 mode=mode
             )
 
@@ -128,7 +129,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if connection already open.
         if self.conn is not None:
             RaiseError.execute(
-                const.SQLITE_CONN_ALREADY_OPEN_ID,
+                a.const.SQLITE_CONN_ALREADY_OPEN_ID,
                 path=self.path
             )
         
@@ -169,7 +170,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if file path invalid or inaccessible.
         except sqlite3.OperationalError as e:
             RaiseError.execute(
-                const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
+                a.const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
                 original_error=str(e),
                 path=self.path,
                 mode=self.mode
@@ -178,7 +179,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error for other database errors.
         except (sqlite3.DatabaseError, Exception) as e:
             RaiseError.execute(
-                const.SQLITE_CONN_FAILED_ID,
+                a.const.SQLITE_CONN_FAILED_ID,
                 original_error=str(e),
                 path=self.path
         )
@@ -246,7 +247,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if connection not initialized.
         if self.cursor is None:
             RaiseError.execute(
-                const.SQLITE_CONN_NOT_INITIALIZED_ID
+                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
             )
 
         # Execute the statement with parameters if provided.
@@ -266,7 +267,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if connection not initialized.
         if self.cursor is None:
             RaiseError.execute(
-                const.SQLITE_CONN_NOT_INITIALIZED_ID
+                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
             )
 
         # Execute the statement with multiple parameter sets.
@@ -286,7 +287,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if connection not initialized.
         if self.cursor is None:
             RaiseError.execute(
-                const.SQLITE_CONN_NOT_INITIALIZED_ID
+                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
             )
 
         # Execute the script.
@@ -367,7 +368,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Raise error if connection not initialized.
         if self.conn is None:
             RaiseError.execute(
-                const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
                 message='Connection not initialized for backup.'
             )
 
@@ -386,7 +387,7 @@ class SqliteMiddleware(FileLoaderMiddleware, SqliteService):
         # Handle backup errors.
         except sqlite3.Error as e:
             RaiseError.execute(
-                const.SQLITE_BACKUP_FAILED_ID,
+                a.const.SQLITE_BACKUP_FAILED_ID,
                 original_error=str(e),
                 target_path=target_path
             )
