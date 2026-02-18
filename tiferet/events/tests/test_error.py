@@ -23,6 +23,8 @@ from ..error import (
     a
 )
 from ..settings import assets, TiferetError
+from ...mappers import ErrorAggregate
+from ...mappers.settings import Aggregate
 
 # *** fixtures
 @pytest.fixture
@@ -34,8 +36,9 @@ def error() -> Error:
     :rtype: Error
     '''
 
-    # Return a sample Error.
-    return Error.new(
+    # Return a sample Error aggregate.
+    return Aggregate.new(
+        ErrorAggregate,
         id='TEST_ERROR',
         name='Test Error',
         description='A detailed description of the test error.',
@@ -55,9 +58,9 @@ def default_errors() -> List[Error]:
     :rtype: List[Error]
     '''
 
-    # Return a list of default Errors.
+    # Return a list of default Error aggregates.
     return [
-        Error.new(**data) for data in a.DEFAULT_ERRORS.values()
+        Aggregate.new(ErrorAggregate, **data) for data in a.DEFAULT_ERRORS.values()
     ]
 
 # ** fixture: error_repo_mock
@@ -340,7 +343,7 @@ def test_get_error_found_in_defaults(error_service_mock: mock.Mock, get_error_co
     result = get_error_command.execute(id=error_id, include_defaults=True)
 
     # Assert the result matches the expected default error.
-    expected_error = Error.new(**a.DEFAULT_ERRORS.get(error_id))
+    expected_error = Aggregate.new(ErrorAggregate, **a.DEFAULT_ERRORS.get(error_id))
     assert result == expected_error
     error_service_mock.get.assert_called_once_with(error_id)
 
@@ -406,7 +409,8 @@ def test_list_errors_with_defaults(list_errors_command: ListErrors, error_servic
     '''
 
     # Arrange the mock to return a list of errors.
-    existing_error = Error.new(
+    existing_error = Aggregate.new(
+        ErrorAggregate,
         id='EXISTING_ERROR',
         name='Existing Error',
         description='An existing error in the repository.',
@@ -441,7 +445,8 @@ def test_list_errors_with_defaults_and_override(list_errors_command: ListErrors,
     '''
 
     # Arrange the mock to return a list of errors that overrides a default error.
-    overriding_error = Error.new(
+    overriding_error = Aggregate.new(
+        ErrorAggregate,
         id=a.const.ERROR_NOT_FOUND_ID,
         name='Overriding Not Found Error',
         description='An overriding error for not found.',
