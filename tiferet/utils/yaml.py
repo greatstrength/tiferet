@@ -15,13 +15,13 @@ from typing import (
 import yaml
 
 # ** app
-from .file import FileLoaderMiddleware
+from .file import FileLoader
 from ..events import RaiseError, a
 
 # *** utils
 
 # ** util: yaml_loader
-class YamlLoader(FileLoaderMiddleware):
+class YamlLoader(FileLoader):
     '''
     Utility for loading YAML files into the application.
     '''

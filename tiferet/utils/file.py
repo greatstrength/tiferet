@@ -1,4 +1,4 @@
-"""Tiferet File Middleware"""
+"""Tiferet File Utility"""
 
 # *** imports
 
@@ -7,15 +7,15 @@ import os
 from typing import Any
 
 # ** app
-from ..events import TiferetError, const
+from ..events import RaiseError, a
 from ..contracts import FileService
 
-# *** classes
+# *** utils
 
-#* class: file_loader_middleware
-class FileLoaderMiddleware(FileService):
+# ** util: file_loader
+class FileLoader(FileService):
     '''
-    Middleware for loading files into the application.
+    Utility for loading files into the application.
     '''
 
     # * attribute: path
@@ -75,16 +75,16 @@ class FileLoaderMiddleware(FileService):
 
         # Raise an error if the file does not exist.
         if not os.path.exists(path):
-            raise TiferetError(
-                const.FILE_NOT_FOUND_ID,
+            RaiseError.execute(
+                a.const.FILE_NOT_FOUND_ID,
                 f'File not found: {path}.',
                 path=path
             )
         
         # Raise an error if the path is not a file.
         if not os.path.isfile(path):
-            raise TiferetError(
-                const.INVALID_FILE_ID,
+            RaiseError.execute(
+                a.const.INVALID_FILE_ID,
                 f'Path is not a file: {path}.',
                 path=path
             )
@@ -101,8 +101,8 @@ class FileLoaderMiddleware(FileService):
         # Validate the file mode.
         valid_modes = ['r', 'w', 'a', 'rb', 'wb', 'ab']
         if mode not in valid_modes:
-            raise TiferetError(
-                const.INVALID_FILE_MODE_ID,
+            RaiseError.execute(
+                a.const.INVALID_FILE_MODE_ID,
                 f'Invalid file mode: {mode}. Valid modes include {str(valid_modes)}',
                 mode=mode,
                 modes=str(valid_modes)
@@ -119,8 +119,8 @@ class FileLoaderMiddleware(FileService):
 
         # Validate the encoding.
         if encoding not in ['utf-8', 'ascii', 'latin-1']:
-            raise TiferetError(
-                const.INVALID_ENCODING_ID,
+            RaiseError.execute(
+                a.const.INVALID_ENCODING_ID,
                 f'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.',
                 encoding=encoding     
             )
@@ -139,8 +139,8 @@ class FileLoaderMiddleware(FileService):
 
         # Raise a RuntimeError if the file is already open to prevent multiple openings.
         if self.file is not None:
-            raise TiferetError(
-                const.FILE_ALREADY_OPEN_ID,
+            RaiseError.execute(
+                a.const.FILE_ALREADY_OPEN_ID,
                 f'File is already open: {self.path}.',
                 path=self.path
             )
@@ -170,7 +170,7 @@ class FileLoaderMiddleware(FileService):
         Enter the runtime context related to this object. This method is called when the with statement is executed.
         
         :return: The file loader instance itself, which can be used to access the opened file.
-        :rtype: FileLoaderMiddleware
+        :rtype: FileLoader
         '''
 
         # Open the file and return the file loader instance for use within the context. 
