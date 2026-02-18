@@ -6,11 +6,9 @@
 from typing import List, Any
 
 # ** app
-from ..models.feature import (
-    Feature,
-    FeatureCommand,
-)
-from ..contracts.feature import FeatureService
+from ..entities import Feature
+from ..interfaces import FeatureService
+from ..mappers import Aggregate, FeatureAggregate
 from .settings import Command, a
 
 
@@ -84,8 +82,9 @@ class AddFeature(Command):
             command_name=self.__class__.__name__,
         )
 
-        # Create feature using the model factory.
-        feature = Feature.new(
+        # Create feature using the aggregate factory.
+        feature = Aggregate.new(
+            FeatureAggregate,
             name=name,
             group_id=group_id,
             feature_key=feature_key,

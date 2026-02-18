@@ -22,10 +22,11 @@ from ..feature import (
     ReorderFeatureCommand,
     a,
 )
-from ...models import ModelObject, Feature
-from ...contracts import FeatureService
+from ...entities import Feature
+from ...interfaces import FeatureService
+from ...mappers import Aggregate, FeatureAggregate
 from ...assets import TiferetError
-from ...commands import Command
+from ...events import Command
 
 
 # *** fixtures
@@ -47,8 +48,8 @@ def sample_feature() -> Feature:
     A sample Feature instance for testing.
     '''
 
-    return ModelObject.new(
-        Feature,
+    return Aggregate.new(
+        FeatureAggregate,
         id='group.sample_feature',
         name='Sample Feature',
         group_id='group',
