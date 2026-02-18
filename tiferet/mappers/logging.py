@@ -15,10 +15,42 @@ from ..entities import (
     ModelType,
 )
 from .settings import (
+    Aggregate,
     TransferObject,
 )
 
 # *** mappers
+
+# ** mapper: formatter_aggregate
+class FormatterAggregate(Formatter, Aggregate):
+    '''
+    An aggregate for logging formatter configuration with domain logic.
+    '''
+
+    # * method: new
+    @staticmethod
+    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'FormatterAggregate':
+        '''
+        Create a new FormatterAggregate from a data dictionary.
+
+        :param data_dict: The data dictionary.
+        :type data_dict: Dict[str, Any]
+        :param validate: Whether to validate the data.
+        :type validate: bool
+        :param strict: Whether to use strict validation.
+        :type strict: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new FormatterAggregate.
+        :rtype: FormatterAggregate
+        '''
+        return Aggregate.new(
+            FormatterAggregate,
+            data_dict,
+            validate,
+            strict,
+            **kwargs
+        )
 
 # ** mapper: formatter_yaml_object
 class FormatterYamlObject(Formatter, TransferObject):
@@ -45,29 +77,29 @@ class FormatterYamlObject(Formatter, TransferObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> Formatter:
+    def map(self, **kwargs) -> FormatterAggregate:
         '''
-        Maps the formatter data to a formatter object.
+        Maps the formatter data to a formatter aggregate.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new formatter object.
-        :rtype: Formatter
+        :return: A new formatter aggregate.
+        :rtype: FormatterAggregate
         '''
         return super().map(
-            Formatter,
+            FormatterAggregate,
             **self.to_primitive('to_model'),
             **kwargs
         )
 
     # * method: from_model
     @staticmethod
-    def from_model(formatter: Formatter, **kwargs) -> 'FormatterYamlObject':
+    def from_model(formatter: FormatterAggregate, **kwargs) -> 'FormatterYamlObject':
         '''
-        Creates a FormatterYamlObject from a Formatter model.
+        Creates a FormatterYamlObject from a Formatter aggregate.
 
-        :param formatter: The formatter model.
-        :type formatter: Formatter
+        :param formatter: The formatter aggregate.
+        :type formatter: FormatterAggregate
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FormatterYamlObject.
@@ -79,6 +111,36 @@ class FormatterYamlObject(Formatter, TransferObject):
             **kwargs,
         )
 
+# ** mapper: handler_aggregate
+class HandlerAggregate(Handler, Aggregate):
+    '''
+    An aggregate for logging handler configuration with domain logic.
+    '''
+
+    # * method: new
+    @staticmethod
+    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'HandlerAggregate':
+        '''
+        Create a new HandlerAggregate from a data dictionary.
+
+        :param data_dict: The data dictionary.
+        :type data_dict: Dict[str, Any]
+        :param validate: Whether to validate the data.
+        :type validate: bool
+        :param strict: Whether to use strict validation.
+        :type strict: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new HandlerAggregate.
+        :rtype: HandlerAggregate
+        '''
+        return Aggregate.new(
+            HandlerAggregate,
+            data_dict,
+            validate,
+            strict,
+            **kwargs
+        )
 
 # ** mapper: handler_yaml_object
 class HandlerYamlObject(Handler, TransferObject):
@@ -105,29 +167,29 @@ class HandlerYamlObject(Handler, TransferObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> Handler:
+    def map(self, **kwargs) -> HandlerAggregate:
         '''
-        Maps the handler data to a handler object.
+        Maps the handler data to a handler aggregate.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new handler object.
-        :rtype: Handler
+        :return: A new handler aggregate.
+        :rtype: HandlerAggregate
         '''
         return super().map(
-            Handler,
+            HandlerAggregate,
             **self.to_primitive('to_model'),
             **kwargs
         )
 
     # * method: from_model
     @staticmethod
-    def from_model(handler: Handler, **kwargs) -> 'HandlerYamlObject':
+    def from_model(handler: HandlerAggregate, **kwargs) -> 'HandlerYamlObject':
         '''
-        Creates a HandlerYamlObject from a Handler model.
+        Creates a HandlerYamlObject from a Handler aggregate.
 
-        :param handler: The handler model.
-        :type handler: Handler
+        :param handler: The handler aggregate.
+        :type handler: HandlerAggregate
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new HandlerYamlObject.
@@ -139,6 +201,36 @@ class HandlerYamlObject(Handler, TransferObject):
             **kwargs,
         )
 
+# ** mapper: logger_aggregate
+class LoggerAggregate(Logger, Aggregate):
+    '''
+    An aggregate for logger configuration with domain logic.
+    '''
+
+    # * method: new
+    @staticmethod
+    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'LoggerAggregate':
+        '''
+        Create a new LoggerAggregate from a data dictionary.
+
+        :param data_dict: The data dictionary.
+        :type data_dict: Dict[str, Any]
+        :param validate: Whether to validate the data.
+        :type validate: bool
+        :param strict: Whether to use strict validation.
+        :type strict: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A new LoggerAggregate.
+        :rtype: LoggerAggregate
+        '''
+        return Aggregate.new(
+            LoggerAggregate,
+            data_dict,
+            validate,
+            strict,
+            **kwargs
+        )
 
 # ** mapper: logger_yaml_object
 class LoggerYamlObject(Logger, TransferObject):
@@ -165,29 +257,29 @@ class LoggerYamlObject(Logger, TransferObject):
     )
 
     # * method: map
-    def map(self, **kwargs) -> Logger:
+    def map(self, **kwargs) -> LoggerAggregate:
         '''
-        Maps the logger data to a logger object.
+        Maps the logger data to a logger aggregate.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new logger object.
-        :rtype: Logger
+        :return: A new logger aggregate.
+        :rtype: LoggerAggregate
         '''
         return super().map(
-            Logger,
+            LoggerAggregate,
             **self.to_primitive('to_model'),
             **kwargs
         )
 
     # * method: from_model
     @staticmethod
-    def from_model(logger: Logger, **kwargs) -> 'LoggerYamlObject':
+    def from_model(logger: LoggerAggregate, **kwargs) -> 'LoggerYamlObject':
         '''
-        Creates a LoggerYamlObject from a Logger model.
+        Creates a LoggerYamlObject from a Logger aggregate.
 
-        :param logger: The logger model.
-        :type logger: Logger
+        :param logger: The logger aggregate.
+        :type logger: LoggerAggregate
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new LoggerYamlObject.

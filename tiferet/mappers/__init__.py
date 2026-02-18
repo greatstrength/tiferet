@@ -34,8 +34,11 @@ from .feature import (
     FeatureCommandYamlObject,
 )
 from .logging import (
-    LoggingSettingsYamlObject,
+    FormatterAggregate,
     FormatterYamlObject,
+    HandlerAggregate,
     HandlerYamlObject,
+    LoggerAggregate,
     LoggerYamlObject,
+    LoggingSettingsYamlObject,
 )

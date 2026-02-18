@@ -12,11 +12,15 @@ from ...entities import (
     Logger,
 )
 from ..settings import (
+    Aggregate,
     TransferObject,
 )
 from ..logging import (
+    FormatterAggregate,
     FormatterYamlObject,
+    HandlerAggregate,
     HandlerYamlObject,
+    LoggerAggregate,
     LoggerYamlObject,
     LoggingSettingsYamlObject,
 )
@@ -327,3 +331,129 @@ def test_logging_settings_data_from_data_empty():
     assert settings.formatters == {}
     assert settings.handlers == {}
     assert settings.loggers == {}
+
+# ** test: formatter_aggregate_new_success
+def test_formatter_aggregate_new_success():
+    '''
+    Test successful creation of FormatterAggregate using new().
+    '''
+
+    # Create a formatter aggregate.
+    formatter = Aggregate.new(
+        FormatterAggregate,
+        id='test_formatter',
+        name='Test Formatter',
+        description='A test formatter',
+        format='%(message)s',
+        datefmt='%Y-%m-%d'
+    )
+
+    # Assert the formatter aggregate attributes.
+    assert isinstance(formatter, FormatterAggregate)
+    assert isinstance(formatter, Formatter)
+    assert formatter.id == 'test_formatter'
+    assert formatter.name == 'Test Formatter'
+    assert formatter.format == '%(message)s'
+    assert formatter.datefmt == '%Y-%m-%d'
+
+# ** test: handler_aggregate_new_success
+def test_handler_aggregate_new_success():
+    '''
+    Test successful creation of HandlerAggregate using new().
+    '''
+
+    # Create a handler aggregate.
+    handler = Aggregate.new(
+        HandlerAggregate,
+        id='test_handler',
+        name='Test Handler',
+        description='A test handler',
+        module_path='logging',
+        class_name='StreamHandler',
+        level='DEBUG',
+        formatter='test_formatter'
+    )
+
+    # Assert the handler aggregate attributes.
+    assert isinstance(handler, HandlerAggregate)
+    assert isinstance(handler, Handler)
+    assert handler.id == 'test_handler'
+    assert handler.name == 'Test Handler'
+    assert handler.module_path == 'logging'
+    assert handler.class_name == 'StreamHandler'
+    assert handler.level == 'DEBUG'
+
+# ** test: logger_aggregate_new_success
+def test_logger_aggregate_new_success():
+    '''
+    Test successful creation of LoggerAggregate using new().
+    '''
+
+    # Create a logger aggregate.
+    logger = Aggregate.new(
+        LoggerAggregate,
+        id='test_logger',
+        name='test',
+        description='A test logger',
+        level='INFO',
+        handlers=['test_handler'],
+        propagate=False,
+        is_root=False
+    )
+
+    # Assert the logger aggregate attributes.
+    assert isinstance(logger, LoggerAggregate)
+    assert isinstance(logger, Logger)
+    assert logger.id == 'test_logger'
+    assert logger.name == 'test'
+    assert logger.level == 'INFO'
+    assert logger.handlers == ['test_handler']
+    assert logger.propagate is False
+
+# ** test: formatter_yaml_object_map_returns_aggregate
+def test_formatter_yaml_object_map_returns_aggregate(formatter_config_data: FormatterYamlObject):
+    '''
+    Test that FormatterYamlObject.map() returns FormatterAggregate.
+
+    :param formatter_config_data: The formatter config data.
+    :type formatter_config_data: FormatterYamlObject
+    '''
+
+    # Map to aggregate.
+    formatter = formatter_config_data.map()
+
+    # Assert it's an aggregate.
+    assert isinstance(formatter, FormatterAggregate)
+    assert isinstance(formatter, Formatter)
+
+# ** test: handler_yaml_object_map_returns_aggregate
+def test_handler_yaml_object_map_returns_aggregate(handler_config_data: HandlerYamlObject):
+    '''
+    Test that HandlerYamlObject.map() returns HandlerAggregate.
+
+    :param handler_config_data: The handler config data.
+    :type handler_config_data: HandlerYamlObject
+    '''
+
+    # Map to aggregate.
+    handler = handler_config_data.map()
+
+    # Assert it's an aggregate.
+    assert isinstance(handler, HandlerAggregate)
+    assert isinstance(handler, Handler)
+
+# ** test: logger_yaml_object_map_returns_aggregate
+def test_logger_yaml_object_map_returns_aggregate(logger_config_data: LoggerYamlObject):
+    '''
+    Test that LoggerYamlObject.map() returns LoggerAggregate.
+
+    :param logger_config_data: The logger config data.
+    :type logger_config_data: LoggerYamlObject
+    '''
+
+    # Map to aggregate.
+    logger = logger_config_data.map()
+
+    # Assert it's an aggregate.
+    assert isinstance(logger, LoggerAggregate)
+    assert isinstance(logger, Logger)
