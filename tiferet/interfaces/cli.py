@@ -4,193 +4,84 @@
 
 # ** core
 from abc import abstractmethod
-from typing import (
-    List,
-    Dict,
-    Any
-)
+from typing import List
 
 # ** app
-from .settings import (
-    ModelContract,
-    Repository,
-    Service
-)
+from ..mappers import CliCommandAggregate
+from .settings import Service
 
-# *** contracts
+# *** interfaces
 
-# ** contract: cli_argument
-class CliArgument(ModelContract):
-    '''
-    A contract representing a command line argument.
-    '''
-
-    # * attribute: name_or_flags
-    name_or_flags: List[str]
-
-    # * attribute: description
-    description: str
-
-    # * attribute: required
-    required: bool
-
-    # * attribute: default
-    default: str
-
-    # * attribute: choices
-    choices: List[str]
-
-    # * attribute: nargs
-    nargs: str
-
-    # * attribute: action
-    action: str
-
-    # * method: get_type
-    def get_type(self) -> str | int | float:
-        '''
-        Get the type of the argument.
-        :return: The type of the argument.
-        :rtype: str | int | float
-        '''
-        raise NotImplementedError('get_type method must be implemented in the CliArgument contract.')
-
-# ** contract: cli_command
-class CliCommand(ModelContract):
-    '''
-    A contract representing a command in the command line interface.
-    '''
-
-    # * attribute: id
-    id: str
-
-    # * attribute: name
-    name: str
-
-    # * attribute: key
-    key: str
-
-    # * attribute: group_key
-    group_key: str
-
-    # * attribute: description
-    description: str
-
-    # * attribute: arguments
-    arguments: List[CliArgument]
-
-    # * method: has_argument
-    @abstractmethod
-    def has_argument(self, flags: List[str]) -> bool:
-        '''
-        Check if the command has an argument with the given flags.
-
-        :param flags: The flags to check for.
-        :type flags: List[str]
-        :return: True if the command has the argument, False otherwise.
-        :rtype: bool
-        '''
-        raise NotImplementedError('has_argument method must be implemented in the CliCommand contract.')
-
-    # * method: add_argument
-    @abstractmethod
-    def add_argument(self, cli_argument: CliArgument):
-        '''
-        Add an argument to the command.
-
-        :param cli_argument: The CLI argument to add.
-        :type cli_argument: CliArgument
-        '''
-        raise NotImplementedError('add_argument method must be implemented in the CliCommand contract.')
-
-# ** contract: cli_repository
-class CliRepository(Repository):
-    '''
-    The CLI repository interface is used to manage the command line interface commands and arguments.
-    It provides methods to retrieve and manipulate CLI commands and their arguments.
-    '''
-
-    # * method: get_commands
-    @abstractmethod
-    def get_commands(self) -> List[CliCommand]:
-        '''
-        Get all commands available in the CLI repository.
-
-        :return: A list of CLI commands.
-        :rtype: List[CliCommand]
-        '''
-        raise NotImplementedError('get_commands method must be implemented in the CLI repository.')
-
-    # * method: get_parent_arguments
-    @abstractmethod
-    def get_parent_arguments(self) -> List[CliArgument]:
-        '''
-        Get the parent arguments for the command line interface.
-
-        :return: A list of parent arguments.
-        :rtype: List[CliArgument]
-        '''
-        raise NotImplementedError('get_parent_arguments method must be implemented in the CLI repository.')
-    
-    # method: save_command
-    @abstractmethod
-    def save_command(self, cli_command: CliCommand):
-        '''
-        Save a CLI command to the repository.
-
-        :param cli_command: The CLI command to save.
-        :type cli_command: CliCommand
-        '''
-        raise NotImplementedError('save_command method must be implemented in the CLI repository.')
-    
-    # method: delete_command
-    @abstractmethod
-    def delete_command(self, command_id: str):
-        '''
-        Delete a CLI command from the repository by its unique identifier.
-
-        :param command_id: The unique identifier for the command to delete.
-        :type command_id: str
-        '''
-        raise NotImplementedError('delete_command method must be implemented in the CLI repository.')
-    
-    # * method: save_parent_arguments
-    @abstractmethod
-    def save_parent_arguments(self, parent_arguments: List[CliArgument]):
-        '''
-        Save the parent arguments for the command line interface.
-
-        :param parent_arguments: A list of parent arguments to save.
-        :type parent_arguments: List[CliArgument]
-        '''
-        raise NotImplementedError('save_parent_arguments method must be implemented in the CLI repository.')
-
-# ** contract: cli_service
+# ** interface: cli_service
 class CliService(Service):
     '''
-    The CLI service interface is used to manage the command line interface of the application.
+    Service interface for managing CLI commands using a repository-style API.
     '''
 
-    # * method: get_commands
+    # * method: exists
     @abstractmethod
-    def get_commands(self) -> Dict[str, CliCommand]:
+    def exists(self, id: str) -> bool:
         '''
-        Get all commands available in the CLI service mapped by their group keys.
+        Check if a CLI command exists by ID.
 
-        :return: A dictionary of CLI commands mapped by their group keys.
-        :rtype: Dict[str, CliCommand]
+        :param id: The CLI command identifier.
+        :type id: str
+        :return: True if the CLI command exists, otherwise False.
+        :rtype: bool
         '''
-        raise NotImplementedError('get_commands method must be implemented in the CLI service.')
+        # Not implemented.
+        raise NotImplementedError('exists method is required for CliService.')
 
-    # * method: parse_arguments
+    # * method: get
     @abstractmethod
-    def parse_arguments(self, cli_command: CliCommand) -> Dict[str, Any]:
+    def get(self, id: str) -> CliCommandAggregate:
         '''
-        Parse the command line arguments for a given CLI command.
+        Retrieve a CLI command by ID.
 
-        :param cli_command: The CLI command to parse arguments for.
-        :type cli_command: CliCommand
-        :return: A dictionary of parsed arguments.
-        :rtype: Dict[str, Any]
+        :param id: The CLI command identifier.
+        :type id: str
+        :return: The CLI command aggregate.
+        :rtype: CliCommandAggregate
         '''
-        raise NotImplementedError('parse_arguments method must be implemented in the CLI service.')
+        # Not implemented.
+        raise NotImplementedError('get method is required for CliService.')
+
+    # * method: list
+    @abstractmethod
+    def list(self) -> List[CliCommandAggregate]:
+        '''
+        List all CLI commands.
+
+        :return: A list of CLI command aggregates.
+        :rtype: List[CliCommandAggregate]
+        '''
+        # Not implemented.
+        raise NotImplementedError('list method is required for CliService.')
+
+    # * method: save
+    @abstractmethod
+    def save(self, command: CliCommandAggregate) -> None:
+        '''
+        Save or update a CLI command.
+
+        :param command: The CLI command aggregate to save.
+        :type command: CliCommandAggregate
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('save method is required for CliService.')
+
+    # * method: delete
+    @abstractmethod
+    def delete(self, id: str) -> None:
+        '''
+        Delete a CLI command by ID. This operation should be idempotent.
+
+        :param id: The CLI command identifier.
+        :type id: str
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('delete method is required for CliService.')

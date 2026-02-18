@@ -3,15 +3,39 @@
 # *** exports
 
 # ** app
-from .settings import DataObject
-from .app import AppAttributeConfigData, AppInterfaceConfigData
-from .cli import CliCommandConfigData
-from .container import FlaggedDependencyConfigData, ContainerAttributeConfigData
-from .error import ErrorConfigData
-from .feature import FeatureConfigData, FeatureCommandConfigData
+from .settings import (
+    Aggregate,
+    TransferObject,
+)
+from .app import (
+    AppInterfaceAggregate,
+    AppInterfaceYamlObject,
+)
+from .cli import (
+    CliCommandAggregate,
+    CliCommandYamlObject,
+    CliArgumentYamlObject,
+)
+from .container import (
+    FlaggedDependencyAggregate,
+    FlaggedDependencyYamlObject,
+    ContainerAttributeAggregate,
+    ContainerAttributeYamlObject,
+)
+from .error import (
+    ErrorAggregate,
+    ErrorYamlObject,
+    ErrorMessageYamlObject,
+)
+from .feature import (
+    FeatureAggregate,
+    FeatureYamlObject,
+    FeatureCommandAggregate,
+    FeatureCommandYamlObject,
+)
 from .logging import (
-    LoggingSettingsConfigData,
-    FormatterConfigData,
-    HandlerConfigData,
-    LoggerConfigData,
+    LoggingSettingsYamlObject,
+    FormatterYamlObject,
+    HandlerYamlObject,
+    LoggerYamlObject,
 )
