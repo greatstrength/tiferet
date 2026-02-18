@@ -23,7 +23,7 @@ from ...mappers import (
     FlaggedDependencyAggregate,
 )
 from ...mappers.settings import Aggregate
-from ...contracts import ContainerService
+from ...interfaces import ContainerService
 from ...assets import TiferetError
 from ...events import Command
 
