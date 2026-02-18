@@ -12,31 +12,22 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 from ..assets import TiferetError, TiferetAPIError
-from ..assets.constants import (
-    DEFAULT_ATTRIBUTES,
-    APP_REPOSITORY_IMPORT_FAILED_ID,
-    DEFAULT_APP_SERVICE_MODULE_PATH,
-    DEFAULT_APP_SERVICE_CLASS_NAME,
-)
+from .. import assets as a
 from ..entities import (
     ModelObject,
     AppInterface,
     AppAttribute,
 )
-from ..contracts.app import AppRepository
 from ..events import (
     Command,
     ImportDependency,
-    TiferetError as CommandTiferetError,
     RaiseError,
 )
 from ..events.dependencies import (
     create_injector,
     get_dependency,
 )
-from ..events.dependencies import create_injector, get_dependency
 from ..events.app import GetAppInterface
-from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts
 
@@ -63,17 +54,17 @@ class AppManagerContext(object):
         self.settings = settings
 
     # * method: load_app_repo
-    def load_app_repo(self) -> AppRepository:
+    def load_app_repo(self):
         '''
         Load the application repository using the configured settings.
 
         :return: The application repository instance.
-        :rtype: AppRepository
+        :rtype: Any
         '''
 
         # Resolve repository module path, class name, and parameters from settings with defaults.
-        app_repo_module_path = self.settings.get('app_repo_module_path', DEFAULT_APP_SERVICE_MODULE_PATH)
-        app_repo_class_name = self.settings.get('app_repo_class_name', DEFAULT_APP_SERVICE_CLASS_NAME)
+        app_repo_module_path = self.settings.get('app_repo_module_path', a.const.DEFAULT_APP_SERVICE_MODULE_PATH)
+        app_repo_class_name = self.settings.get('app_repo_class_name', a.const.DEFAULT_APP_SERVICE_CLASS_NAME)
         app_repo_params = self.settings.get('app_repo_params', dict(
             app_config_file='app/configs/app.yml'
         ))
@@ -84,12 +75,12 @@ class AppManagerContext(object):
                 app_repo_module_path,
                 app_repo_class_name,
             )
-            app_repo: AppRepository = repository_cls(**app_repo_params)
+            app_repo = repository_cls(**app_repo_params)
 
         # Wrap import failures in a structured Tiferet error.
-        except CommandTiferetError as e:
+        except TiferetError as e:
             RaiseError.execute(
-                APP_REPOSITORY_IMPORT_FAILED_ID,
+                a.const.APP_REPOSITORY_IMPORT_FAILED_ID,
                 f'Failed to import app repository: {e}.',
                 exception=str(e),
             )
@@ -113,7 +104,7 @@ class AppManagerContext(object):
                 **attr_data,
                 validate=False,
             )
-            for attr_data in DEFAULT_ATTRIBUTES
+            for attr_data in a.const.DEFAULT_ATTRIBUTES
         ]
 
     # * method: load_app_instance
@@ -173,26 +164,6 @@ class AppManagerContext(object):
             dependency_name='app_context',
         )
 
-    # * method: load_interface_config
-
-    # * method: load_default_attributes
-    def load_default_attributes(self, app_interface: AppInterface):
-        '''
-        Load the default attributes for the app interface.
-
-        :param app_interface: The app interface.
-        :type app_interface: AppInterface
-        '''
-
-        attribute_ids = [attr.attribute_id for attr in app_interface.attributes]
-
-        # Load the default attributes from the configuration.
-        # Add any default attributes that are not already present in the app interface.
-        for attr_data in DEFAULT_ATTRIBUTES:
-            if attr_data.get('attribute_id') in attribute_ids:
-                continue
-            app_interface.add_attribute(**attr_data)
-
     # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
         '''
@@ -205,7 +176,7 @@ class AppManagerContext(object):
         '''
 
         # Load the app repository or service implementation.
-        app_repo: AppRepository = self.load_app_repo()
+        app_repo = self.load_app_repo()
 
         # Get the app interface settings via the AppService abstraction.
         app_interface = Command.handle(
@@ -224,8 +195,8 @@ class AppManagerContext(object):
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
-            raise TiferetError(
-                'APP_INTERFACE_INVALID',
+            RaiseError.execute(
+                a.const.INVALID_APP_INTERFACE_TYPE_ID,
                 f'App context for interface is not valid: {interface_id}.',
                 interface_id=interface_id,
             )
@@ -439,7 +410,7 @@ class AppInterfaceContext(object):
                 **kwargs)
 
         # Handle error and return response if triggered.
-        except (TiferetError, LegacyTiferetError) as e:
+        except TiferetError as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e, **kwargs)
 
