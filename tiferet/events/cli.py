@@ -1,104 +1,171 @@
+"""Tiferet CLI Commands"""
+
 # *** imports
 
+# ** core
+from typing import Optional
+
 # ** app
-from ..models.cli import (
-    ModelObject,
-    CliCommand,
-    CliArgument
-)
-from ..contracts.cli import (
-    CliRepository
-)
+from ..entities import CliCommand
+from ..events import Command
+from ..interfaces import CliService
+from ..mappers import CliCommandAggregate
+from ..mappers.settings import Aggregate
 
 # *** commands
 
 # ** command: add_cli_command
-class AddCliCommand(object):
+class AddCliCommand(Command):
+    '''
+    Command to add a new CLI command.
+    '''
 
-    # * attribute: cli_repo
-    cli_repo: CliRepository
+    # * attribute: cli_service
+    cli_service: CliService
 
-    def __init__(self, cli_repo: CliRepository):
+    # * method: init
+    def __init__(self, cli_service: CliService):
         '''
-        Initialize the command.
+        Initialize the add CLI command.
 
-        :param cli_repo: The CLI interface repository.
-        :type cli_repo: CliRepository
+        :param cli_service: The CLI service.
+        :type cli_service: CliService
         '''
 
-        # Set the CLI interface repository.
-        self.cli_repo = cli_repo
+        # Set the command attributes.
+        self.cli_service = cli_service
 
-    def execute(self, interface_id: str, **kwargs):
+    # * method: execute
+    def execute(
+        self,
+        id: str,
+        name: str,
+        key: str,
+        group_key: str,
+        description: Optional[str] = None,
+        arguments: Optional[list] = [],
+        **kwargs,
+    ) -> CliCommand:
+        '''
+        Add a new CLI command.
 
-        # Get CLI interface using the interface ID.
-        cli_interface = self.cli_repo.get(interface_id)
+        :param id: Required unique identifier.
+        :type id: str
+        :param name: The command name.
+        :type name: str
+        :param key: The command key.
+        :type key: str
+        :param group_key: The group key.
+        :type group_key: str
+        :param description: Optional command description.
+        :type description: str | None
+        :param arguments: Optional list of arguments.
+        :type arguments: list | None
+        :return: Created CliCommand model.
+        :rtype: CliCommand
+        '''
 
-        # Assert that the CLI interface exists.
-        assert cli_interface is not None, f'CLI_INTERFACE_NOT_FOUND: {interface_id}'
-
-        # Create the new CLI command.
-        command = ModelObject.new(
-            CliCommand,
-            **kwargs
+        # Validate required id using base verify_parameter helper.
+        self.verify_parameter(
+            parameter=id,
+            parameter_name='id',
+            command_name=self.__class__.__name__,
         )
 
-        # Assert that the feature does not already exist.
-        assert not cli_interface.get_command(
-            command.feature_id), f'CLI_COMMAND_ALREADY_EXISTS: {command.feature_id}'
+        # Check for existing command id.
+        self.verify(
+            not self.cli_service.exists(id),
+            'CLI_COMMAND_ALREADY_EXISTS',
+            id=id,
+        )
 
-        # Add the command to the CLI interface.
-        cli_interface.add_command(command)
+        # Create CLI command aggregate.
+        command = Aggregate.new(
+            CliCommandAggregate,
+            id=id,
+            name=name,
+            key=key,
+            group_key=group_key,
+            description=description,
+            arguments=arguments,
+        )
 
-        # Save the CLI interface.
-        self.cli_repo.save(cli_interface)
-
-        # Return the new command.
+        # Save the new command and return it.
+        self.cli_service.save(command)
         return command
 
 
-class AddCliArgument(object):
+# ** command: add_cli_argument
+class AddCliArgument(Command):
+    '''
+    Command to add an argument to an existing CLI command.
+    '''
 
-    def __init__(self, cli_repo: CliRepository):
-        self.cli_repo = cli_repo
+    # * attribute: cli_service
+    cli_service: CliService
 
-    def execute(self, interface_id: str, name: str, help: str, arg_type: str, feature_id: str = None, **kwargs):
+    # * method: init
+    def __init__(self, cli_service: CliService):
         '''
-        Execute the command to add a new CLI argument to a CLI interface.
+        Initialize the add CLI argument command.
 
-        :param interface_id: The ID of the CLI interface.
-        :type interface_id: str
-        :param name: The name of the CLI argument.
-        :type name: str
-        :param help: The help text for the CLI argument.
-        :type help: str
-        :param arg_type: The type of CLI argument.
-        :type arg_type: str
-        :param feature_id: The feature ID if the CLI argument is to be added to a CLI command.
-        :type feature_id: str
+        :param cli_service: The CLI service.
+        :type cli_service: CliService
         '''
 
-        # Get CLI interface using the interface ID.
-        cli_interface: CliCommand = self.cli_repo.get(interface_id)
+        # Set the command attributes.
+        self.cli_service = cli_service
 
-        # Assert that the CLI interface exists.
-        assert cli_interface is not None, f'CLI_INTERFACE_NOT_FOUND: {interface_id}'
+    # * method: execute
+    def execute(
+        self,
+        command_id: str,
+        name_or_flags: list,
+        description: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        '''
+        Add an argument to an existing CLI command.
 
-        # Create the new CLI argument.
-        argument = CliArgument.new(
-            name=name,
-            help=help,
-            **kwargs
+        :param command_id: The CLI command identifier.
+        :type command_id: str
+        :param name_or_flags: The argument name or flags.
+        :type name_or_flags: list
+        :param description: Optional argument description.
+        :type description: str | None
+        :return: The CLI command id.
+        :rtype: str
+        '''
+
+        # Validate required command_id.
+        self.verify_parameter(
+            parameter=command_id,
+            parameter_name='command_id',
+            command_name=self.__class__.__name__,
         )
 
-        # Set the argument to the CLI interface.
-        cli_interface.set_argument(
-            argument=argument,
-            arg_type=arg_type,
-            feature_id=feature_id)
+        # Retrieve the existing CLI command.
+        command = self.cli_service.get(command_id)
 
-        # Save the CLI interface.
-        self.cli_repo.save(cli_interface)
+        # Verify that the command exists.
+        self.verify(
+            command is not None,
+            'CLI_COMMAND_NOT_FOUND',
+            command_id=command_id,
+        )
 
-        # Return the new argument.
-        return argument
+        # Add the argument via the aggregate's method.
+        command.add_argument(
+            Aggregate.new(
+                type('CliArgument', (), {}),
+                name_or_flags=name_or_flags,
+                description=description,
+                **kwargs,
+            )
+        )
+
+        # Persist the updated command.
+        self.cli_service.save(command)
+
+        # Return the id for confirmation.
+        return command_id
