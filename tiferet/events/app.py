@@ -5,12 +5,9 @@ from typing import List, Dict, Any
 
 # ** app
 from .settings import Command, a
-from ..models import ModelObject, AppInterface
-from ..contracts import AppService, AppInterfaceContract
-
-# -- obsolete
-from .settings import const  # prefer a.const
-
+from ..entities import AppInterface
+from ..interfaces import AppService
+from ..mappers import AppInterfaceAggregate
 
 # *** commands
 
@@ -48,7 +45,7 @@ class AddAppInterface(Command):
         attributes: List[Dict[str, Any]] = [],
         constants: Dict[str, str] = {},
         **kwargs,
-    ) -> AppInterfaceContract:
+    ) -> AppInterface:
         '''
         Create and save a new AppInterface using the injected AppService.
 
@@ -76,8 +73,8 @@ class AddAppInterface(Command):
         :type attributes: List[Dict[str, Any]] | None
         :param constants: Optional dictionary of constant values.
         :type constants: Dict[str, str] | None
-        :return: The created AppInterface contract.
-        :rtype: AppInterfaceContract
+        :return: The created AppInterface.
+        :rtype: AppInterface
         '''
 
         # Validate required scalar parameters.
@@ -93,31 +90,30 @@ class AddAppInterface(Command):
                 command_name=self.__class__.__name__,
             )
 
-        # Normalize collection defaults.
-        attributes = attributes or []
-        constants = constants or {}
+        # Collect the app interface data.
+        app_interface_data = {
+            'id': id,
+            'name': name,
+            'module_path': module_path,
+            'class_name': class_name,
+            'description': description,
+            'logger_id': logger_id,
+            'feature_flag': feature_flag,
+            'data_flag': data_flag,
+            'attributes': attributes,
+            'constants': constants,
+        }
 
         # Create the AppInterface model; feature_flag and data_flag default to 'default'.
-        interface: AppInterface = ModelObject.new(
-            AppInterface,
-            id=id,
-            name=name,
-            description=description,
-            module_path=module_path,
-            class_name=class_name,
-            logger_id=logger_id or 'default',
-            feature_flag=feature_flag or 'default',
-            data_flag=data_flag or 'default',
-            attributes=attributes,
-            constants=constants,
+        interface = AppInterfaceAggregate.new(
+            app_interface_data=app_interface_data
         )
 
         # Persist the new interface via the app service.
         self.app_service.save(interface)
 
-        # Return the contract type (AppInterfaceContract) instance.
+        # Return the created AppInterface instance.
         return interface
-
 
 # ** command: get_app_interface
 class GetAppInterface(Command):
@@ -166,125 +162,6 @@ class GetAppInterface(Command):
             )
 
         # Return the loaded application interface.
-        return interface
-
-
-# ** command: add_app_interface
-class AddAppInterface(Command):
-    '''
-    Command to add a new application interface via the ``AppService``.
-    '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the AddAppInterface command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
-
-    # * method: execute
-    def execute(
-            self,
-            id: str,
-            name: str,
-            module_path: str,
-            class_name: str,
-            description: str | None = None,
-            logger_id: str = 'default',
-            feature_flag: str = 'default',
-            data_flag: str = 'default',
-            attributes: list[dict[str, object]] = [],
-            constants: dict[str, str] = {},
-            **kwargs,
-        ) -> AppInterface:
-        '''
-        Add a new app interface configuration.
-
-        :param id: The unique identifier for the app interface.
-        :type id: str
-        :param name: The display name of the app interface.
-        :type name: str
-        :param module_path: The module path for the app context implementation.
-        :type module_path: str
-        :param class_name: The class name for the app context implementation.
-        :type class_name: str
-        :param description: Optional human-readable description of the interface.
-        :type description: str | None
-        :param logger_id: Optional logger identifier (defaults to ``"default"``).
-        :type logger_id: str
-        :param feature_flag: Optional feature flag identifier (defaults to ``"default"``).
-        :type feature_flag: str
-        :param data_flag: Optional data flag identifier (defaults to ``"default"``).
-        :type data_flag: str
-        :param attributes: Optional list of attribute definitions for the interface.
-        :type attributes: list[dict[str, object]]
-        :param constants: Optional dictionary of constant values injected into the app context.
-        :type constants: dict[str, str]
-        :param kwargs: Additional keyword arguments forwarded to the model factory.
-        :type kwargs: dict
-        :return: The created ``AppInterface`` model instance.
-        :rtype: AppInterface
-        '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=name,
-            parameter_name='name',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=module_path,
-            parameter_name='module_path',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=class_name,
-            parameter_name='class_name',
-            command_name=self.__class__.__name__,
-        )
-
-        # Normalize logger_id, feature_flag, and data_flag to 'default' when falsy.
-        normalized_logger_id = logger_id or 'default'
-        normalized_feature_flag = feature_flag or 'default'
-        normalized_data_flag = data_flag or 'default'
-
-        # Ensure attributes and constants have sensible defaults.
-        interface_attributes = attributes or []
-        interface_constants = constants or {}
-
-        # Construct the AppInterface model via the model factory.
-        interface = ModelObject.new(
-            AppInterface,
-            id=id,
-            name=name,
-            module_path=module_path,
-            class_name=class_name,
-            description=description,
-            logger_id=normalized_logger_id,
-            feature_flag=normalized_feature_flag,
-            data_flag=normalized_data_flag,
-            attributes=interface_attributes,
-            constants=interface_constants,
-            **kwargs,
-        )
-
-        # Persist the new app interface via the app service.
-        self.app_service.save(interface)
-
-        # Return the created app interface.
         return interface
 
 # ** command: update_app_interface

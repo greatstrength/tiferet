@@ -17,15 +17,14 @@ from ..app import (
     RemoveServiceDependency,
     RemoveAppInterface,
 )
-from ..settings import TiferetError, Command
+from ..settings import TiferetError, Command, a
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
-from ...models import (
-    ModelObject,
+from ...entities import (
     AppInterface,
     AppAttribute,
 )
-from ...contracts import AppService
-from ..settings import TiferetError, Command, a
+from ...interfaces import AppService
+from ...mappers import Aggregate, AppInterfaceAggregate
 
 # *** fixtures
 
@@ -49,8 +48,8 @@ def app_interface():
     :rtype: AppInterface
     '''
     # Create a test AppInterface instance.
-    return ModelObject.new(
-        AppInterface,
+    return Aggregate.new(
+        AppInterfaceAggregate,
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
@@ -59,7 +58,7 @@ def app_interface():
         feature_flag='test',
         data_flag='test',
         attributes=[
-            ModelObject.new(
+            Aggregate.new(
                 AppAttribute,
                 attribute_id='test_attribute',
                 module_path='test_module_path',
@@ -478,8 +477,8 @@ def test_list_app_interfaces_multiple(app_service, app_interface):
     '''
 
     # Configure the service to return multiple interfaces.
-    another_interface = ModelObject.new(
-        AppInterface,
+    another_interface = Aggregate.new(
+        AppInterfaceAggregate,
         id='other',
         name='Other App',
         module_path='tiferet.contexts.app',

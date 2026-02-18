@@ -3,8 +3,7 @@
 # *** exports
 
 # ** app
-from .settings import Command, TiferetError
-from .core import *
+from .settings import Command, TiferetError, a
 from .static import (
     ParseParameter, 
     ImportDependency, 
