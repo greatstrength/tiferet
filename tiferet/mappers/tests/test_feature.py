@@ -1,4 +1,4 @@
-"""Tiferet Feature Data Object Tests"""
+"""Tiferet Feature Mapper Tests"""
 
 # *** imports
 
@@ -6,52 +6,61 @@
 import pytest
 
 # ** app
-from ...models import (
-    Feature,
-    FeatureCommand,
+from ..settings import (
+    TransferObject,
 )
 from ..feature import (
-    FeatureConfigData,
-    FeatureCommandConfigData,
+    FeatureYamlObject,
+    FeatureCommandYamlObject,
+    FeatureAggregate,
+    FeatureCommandAggregate,
+)
+from ...entities import (
+    Feature,
+    FeatureCommand,
 )
 
 # *** fixtures
 
-# ** fixture: feature_command_config_data
+# ** fixture: feature_command_yaml_object
 @pytest.fixture
-def feature_command_config_data() -> FeatureCommandConfigData:
+def feature_command_yaml_object() -> FeatureCommandYamlObject:
     '''
-    A fixture for a feature command data object.
+    A fixture for a feature command YAML object.
 
-    :return: The feature command data object.
-    :rtype: FeatureCommandData
+    :return: The feature command YAML object.
+    :rtype: FeatureCommandYamlObject
     '''
-    
-    # Return the feature command data.
-    return FeatureCommandConfigData(dict(
+
+    # Return the feature command YAML object.
+    return TransferObject.from_data(
+        FeatureCommandYamlObject,
         name='Test Feature Command',
         attribute_id='test_feature_command',
         params={},
         return_to_data=True,
         data_key='test_data',
         pass_on_error=True
-    ))
+    )
 
-# ** fixture: feature_config_data
+# ** fixture: feature_yaml_object
 @pytest.fixture
-def feature_config_data() -> FeatureConfigData:
+def feature_yaml_object() -> FeatureYamlObject:
     '''
-    A fixture for a feature data object.
+    A fixture for a feature YAML object.
 
-    :return: The feature data object.
-    :rtype: FeatureData
+    :return: The feature YAML object.
+    :rtype: FeatureYamlObject
     '''
 
-    # Return the feature data.
-    return FeatureConfigData.from_data(
+    # Return the feature YAML object.
+    return TransferObject.from_data(
+        FeatureYamlObject,
         id='test_group.test_feature',
         name='Test Feature',
         description='This is a test feature.',
+        feature_key='test_feature',
+        group_id='test_group',
         commands=[
             dict(
                 name='Test Feature Command',
@@ -67,7 +76,7 @@ def feature_config_data() -> FeatureConfigData:
 # *** tests
 
 # ** test: feature_command_data_init
-def test_feature_command_data_init(feature_command_config_data: FeatureCommandConfigData):
+def test_feature_command_data_init(feature_command_yaml_object: FeatureCommandYamlObject):
     '''
     Test the feature command data initialization.
 
@@ -76,15 +85,15 @@ def test_feature_command_data_init(feature_command_config_data: FeatureCommandCo
     '''
 
     # Assert the feature command data attributes.
-    assert feature_command_config_data.name == 'Test Feature Command'
-    assert feature_command_config_data.attribute_id == 'test_feature_command'
-    assert feature_command_config_data.parameters == {}
-    assert feature_command_config_data.return_to_data == True
-    assert feature_command_config_data.data_key == 'test_data'
-    assert feature_command_config_data.pass_on_error == True
+    assert feature_command_yaml_object.name == 'Test Feature Command'
+    assert feature_command_yaml_object.attribute_id == 'test_feature_command'
+    assert feature_command_yaml_object.parameters == {}
+    assert feature_command_yaml_object.return_to_data == True
+    assert feature_command_yaml_object.data_key == 'test_data'
+    assert feature_command_yaml_object.pass_on_error == True
 
 # ** test: feature_command_data_map
-def test_feature_command_data_map(feature_command_config_data: FeatureCommandConfigData):
+def test_feature_command_data_map(feature_command_yaml_object: FeatureCommandYamlObject):
     '''
     Test the feature command data mapping.
 
@@ -93,7 +102,7 @@ def test_feature_command_data_map(feature_command_config_data: FeatureCommandCon
     '''
 
     # Map the feature command data to a feature command object.
-    feature_command = feature_command_config_data.map()
+    feature_command = feature_command_yaml_object.map()
 
     # Assert the feature command type.
     assert isinstance(feature_command, FeatureCommand)
@@ -107,7 +116,7 @@ def test_feature_command_data_map(feature_command_config_data: FeatureCommandCon
     assert feature_command.pass_on_error == True
 
 # ** test: feature_data_from_data
-def test_feature_data_from_data(feature_config_data: FeatureConfigData):
+def test_feature_data_from_data(feature_yaml_object: FeatureYamlObject):
     '''
     Test the feature data from data method.
 
@@ -116,14 +125,14 @@ def test_feature_data_from_data(feature_config_data: FeatureConfigData):
     '''
 
     # Assert the feature data attributes.
-    assert feature_config_data.name == 'Test Feature'
-    assert feature_config_data.feature_key == 'test_feature'
-    assert feature_config_data.description == 'This is a test feature.'
-    assert feature_config_data.group_id == 'test_group'
-    assert len(feature_config_data.commands) == 1
+    assert feature_yaml_object.name == 'Test Feature'
+    assert feature_yaml_object.feature_key == 'test_feature'
+    assert feature_yaml_object.description == 'This is a test feature.'
+    assert feature_yaml_object.group_id == 'test_group'
+    assert len(feature_yaml_object.commands) == 1
 
     # Assert the feature command data attributes.
-    feature_command_data = feature_config_data.commands[0]
+    feature_command_data = feature_yaml_object.commands[0]
     assert feature_command_data.name == 'Test Feature Command'
     assert feature_command_data.attribute_id == 'test_feature_command'
     assert feature_command_data.parameters == {}
@@ -132,19 +141,19 @@ def test_feature_data_from_data(feature_config_data: FeatureConfigData):
     assert feature_command_data.pass_on_error == True
 
 # ** test: feature_data_map
-def test_feature_data_map(feature_config_data: FeatureConfigData):
+def test_feature_data_map(feature_yaml_object: FeatureYamlObject):
     '''
-    Test the feature data mapping.
+    Test the feature YAML object mapping.
 
-    :param feature_data: The feature data object.
-    :type feature_data: FeatureData
+    :param feature_yaml_object: The feature YAML object.
+    :type feature_yaml_object: FeatureYamlObject
     '''
 
-    # Map the feature data to a feature object.
-    feature = feature_config_data.map()
+    # Map the feature data to a feature aggregate.
+    feature = feature_yaml_object.map()
 
     # Assert the feature type.
-    assert isinstance(feature, Feature)
+    assert isinstance(feature, FeatureAggregate)
 
     # Assert the feature attributes.
     assert feature.name == 'Test Feature'
