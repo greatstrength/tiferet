@@ -59,7 +59,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the interfaces mapping from the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='r',
             encoding=self.encoding,
@@ -85,7 +85,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the specific interface data from the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='r',
             encoding=self.encoding,
@@ -117,7 +117,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load all interfaces data from the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='r',
             encoding=self.encoding,
@@ -153,7 +153,7 @@ class AppYamlRepository(AppService):
         interface_data = AppInterfaceYamlObject.from_model(interface)
 
         # Load the existing interfaces mapping from the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='r',
             encoding=self.encoding,
@@ -168,7 +168,7 @@ class AppYamlRepository(AppService):
         interfaces_data[interface.id] = interface_data.to_primitive(self.default_role)
 
         # Persist the updated interfaces mapping under the interfaces root.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
@@ -192,7 +192,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the interfaces mapping from the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='r',
             encoding=self.encoding,
@@ -207,7 +207,7 @@ class AppYamlRepository(AppService):
         interfaces_data.pop(id, None)
 
         # Write the updated interfaces mapping back to the configuration file.
-        with Yaml(self.yaml_file, 
+        with Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
