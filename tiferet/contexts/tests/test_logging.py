@@ -109,14 +109,14 @@ def default_configs():
             'description': 'A default logging handler.',
             'module_path': 'logging',
             'class_name': 'NullHandler',
-            'level': 'NOTSET',
+            'level': 'INFO',
             'formatter': 'default'
         }],
         'DEFAULT_LOGGERS': [{
             'id': 'root',
             'name': '',
             'description': 'Default root logger.',
-            'level': 'NOTSET',
+            'level': 'INFO',
             'handlers': ['default'],
             'propagate': False,
             'is_root': True
