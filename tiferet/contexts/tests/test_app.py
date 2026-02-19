@@ -158,7 +158,7 @@ def app_manager_context():
     return AppManagerContext(
         dict(
             app_repo_params=dict(
-                yaml_file='tiferet/tests_int/fixtures/test_calc.yml',
+                app_yaml_file='tiferet/assets/tests/test_calc.yml',
             ),
         ),
     )

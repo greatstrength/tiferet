@@ -66,7 +66,7 @@ class AppManagerContext(object):
         app_repo_module_path = self.settings.get('app_repo_module_path', a.const.DEFAULT_APP_SERVICE_MODULE_PATH)
         app_repo_class_name = self.settings.get('app_repo_class_name', a.const.DEFAULT_APP_SERVICE_CLASS_NAME)
         app_repo_params = self.settings.get('app_repo_params', dict(
-            app_config_file='app/configs/app.yml'
+            app_yaml_file='app/configs/app.yml'
         ))
 
         # Import and construct the app repository.
