@@ -190,7 +190,7 @@ def test_cli_command_aggregate_new():
         arguments=[]
     )
 
-    aggregate = CliCommandAggregate.new(cli_command_data)
+    aggregate = CliCommandAggregate.new(**cli_command_data)
 
     # Assert the aggregate is valid.
     assert isinstance(aggregate, CliCommandAggregate)
@@ -216,7 +216,7 @@ def test_cli_command_aggregate_add_argument():
         arguments=[]
     )
 
-    aggregate = CliCommandAggregate.new(cli_command_data)
+    aggregate = CliCommandAggregate.new(**cli_command_data)
 
     # Add an argument using individual attributes.
     aggregate.add_argument(
@@ -247,7 +247,7 @@ def test_cli_command_aggregate_set_attribute():
         arguments=[]
     )
 
-    aggregate = CliCommandAggregate.new(cli_command_data)
+    aggregate = CliCommandAggregate.new(**cli_command_data)
 
     # Update the name attribute.
     aggregate.set_attribute('name', 'Updated Feature Name')
