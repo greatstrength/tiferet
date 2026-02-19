@@ -18,7 +18,7 @@ from ..mappers import (
     Aggregate,
 )
 from ..utils import Yaml
-from ..events import RaiseError, const
+from ..events import RaiseError
 
 # *** repos
 

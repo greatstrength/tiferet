@@ -3,7 +3,6 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
 import sqlite3
 import inspect
 
@@ -13,10 +12,8 @@ from unittest import mock
 
 # ** app
 from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql, DropTableSql
-from ..settings import Command
-from ...contracts.sqlite import SqliteService
-from ...assets import constants as const
-from ...assets import TiferetError
+from ..settings import Command, a, TiferetError
+from ...interfaces import SqliteService
 
 # *** fixtures
 
@@ -143,7 +140,7 @@ def test_execute_validation_error():
             query=invalid_query
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Query must start with SELECT or WITH" in str(exc_info.value)
 
     # Test empty query
@@ -154,7 +151,7 @@ def test_execute_validation_error():
             query=""
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
 # ** test: execute_malformed_sql
 def test_execute_malformed_sql(sqlite_service_mock: mock.Mock):
@@ -305,7 +302,7 @@ def test_mutate_validation_error():
             statement=invalid_statement
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
 # ** test: mutate_execution_error
@@ -395,7 +392,7 @@ def test_bulk_mutate_validation_error():
             statement=invalid_statement,
             parameters_list=[(1,)]
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
     # 2. Empty parameters list
@@ -406,7 +403,7 @@ def test_bulk_mutate_validation_error():
             statement="INSERT INTO users VALUES (?)",
             parameters_list=[]
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Parameters list must not be empty" in str(exc_info.value)
 
 # ** test: bulk_mutate_execution_error
@@ -488,7 +485,7 @@ def test_backup_sql_validation_error():
             target_path=""
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "target_path" in str(exc_info.value)
 
 # ** test: backup_sql_execution_error
@@ -508,7 +505,7 @@ def test_backup_sql_execution_error(sqlite_service_mock: mock.Mock):
             target_path=target_path
         )
     
-    assert exc_info.value.error_code == const.SQLITE_BACKUP_FAILED_ID
+    assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
     assert "Backup to /invalid/path/backup.db failed" in str(exc_info.value)
 
 # ** test: execute_script_sql_success
@@ -544,7 +541,7 @@ def test_execute_script_sql_validation_error():
             dependencies={'sqlite_service': mock.Mock()},
             script=""
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     # Standard message from verify_parameter check
     assert "parameter is required" in str(exc_info.value)
 
@@ -555,7 +552,7 @@ def test_execute_script_sql_validation_error():
             dependencies={'sqlite_service': mock.Mock()},
             script="   \n   "
         )
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     # Standard message is sufficient as verify_parameter catches it
     assert "parameter is required" in str(exc_info.value)
 
@@ -736,7 +733,7 @@ def test_create_table_sql_validation_empty_table_name():
             columns=columns
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
 # ** test: create_table_sql_validation_invalid_table_name
 def test_create_table_sql_validation_invalid_table_name():
@@ -755,7 +752,7 @@ def test_create_table_sql_validation_invalid_table_name():
             columns=columns
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Invalid table name" in str(exc_info.value)
     
     # Act & Assert - test with special characters
@@ -767,7 +764,7 @@ def test_create_table_sql_validation_invalid_table_name():
             columns=columns
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Invalid table name" in str(exc_info.value)
 
 # ** test: create_table_sql_validation_empty_columns
@@ -787,7 +784,7 @@ def test_create_table_sql_validation_empty_columns():
             columns={}
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Columns must be a non-empty dictionary" in str(exc_info.value)
 
 # ** test: create_table_sql_validation_invalid_column_name
@@ -808,7 +805,7 @@ def test_create_table_sql_validation_invalid_column_name():
             columns=columns
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Column name must be a non-empty string" in str(exc_info.value)
 
 # ** test: create_table_sql_validation_invalid_column_type
@@ -829,7 +826,7 @@ def test_create_table_sql_validation_invalid_column_type():
             columns=columns
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Column type" in str(exc_info.value)
     assert "must be a non-empty string" in str(exc_info.value)
 
@@ -958,7 +955,7 @@ def test_drop_table_sql_validation_empty_table_name():
             table_name=''
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
 # ** test: drop_table_sql_validation_invalid_table_name
 def test_drop_table_sql_validation_invalid_table_name():
@@ -973,7 +970,7 @@ def test_drop_table_sql_validation_invalid_table_name():
             table_name='invalid table'
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Invalid table name" in str(exc_info.value)
     
     # Act & Assert - test with special characters
@@ -984,7 +981,7 @@ def test_drop_table_sql_validation_invalid_table_name():
             table_name='table-name'
         )
     
-    assert exc_info.value.error_code == const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
     assert "Invalid table name" in str(exc_info.value)
 
 # ** test: drop_table_sql_with_data

@@ -9,8 +9,8 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, CliCommandYamlObject
-from ...entities import CliCommand, CliArgument, Aggregate
+from ...mappers import TransferObject, CliCommandYamlObject, Aggregate
+from ...entities import CliCommand, CliArgument
 from ..cli import CliYamlRepository
 
 # *** constants

@@ -7,7 +7,8 @@ import pytest
 import yaml
 
 # ** app
-from ..yaml import YamlLoader, TiferetError, a
+from ..yaml import YamlLoader
+from ...events import TiferetError, a
 
 # *** fixtures
 

@@ -9,8 +9,8 @@ import json
 import pytest
 
 # ** app
-from ..json import JsonLoaderMiddleware
-from ...events import TiferetError, const
+from ..json import JsonLoader
+from ...events import TiferetError, a
 
 # *** fixtures
 
@@ -47,7 +47,7 @@ def temp_json_file(tmp_path):
 # ** test: json_loader_middleware_verify_file_invalid_json
 def test_json_loader_middleware_verify_file_invalid_json(tmp_path):
     '''
-    Test that JsonLoaderMiddleware raises an error when the file contains invalid JSON.
+    Test that JsonLoader raises an error when the file contains invalid JSON.
 
     :param tmp_path: The temporary directory path provided by pytest.
     :type tmp_path: pathlib.Path
@@ -55,28 +55,28 @@ def test_json_loader_middleware_verify_file_invalid_json(tmp_path):
     
     # Create a temporary file with invalid JSON content.
     file_path = tmp_path / 'invalid.txt'
-    json_file_middleware = JsonLoaderMiddleware(path=str(file_path))
+    json_file_middleware = JsonLoader(path=str(file_path))
 
     # Attempt to load the invalid JSON file and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
         json_file_middleware.verify_file(str(file_path))
     
     # Verify that the exception message indicates a JSON file extension error.
-    assert exc_info.value.error_code == const.INVALID_JSON_FILE_ID
+    assert exc_info.value.error_code == a.const.INVALID_JSON_FILE_ID
     assert 'File is not a valid JSON file:' in str(exc_info.value)
     assert exc_info.value.kwargs.get('path') == str(file_path)
 
 # ** test: json_loader_middleware_load
 def test_json_loader_middleware_load(temp_json_file: str):
     '''
-    Test successful loading of a JSON file using JsonLoaderMiddleware.
+    Test successful loading of a JSON file using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
     '''
     
     # Load the JSON content.
-    with JsonLoaderMiddleware(path=temp_json_file) as json_r:
+    with JsonLoader(path=temp_json_file) as json_r:
         content = json_r.load()
     
     # Verify the loaded content.
@@ -89,7 +89,7 @@ def test_json_loader_middleware_load(temp_json_file: str):
 # ** test: json_loader_middleware_load_start_node
 def test_json_loader_middleware_load_start_node(temp_json_file: str):
     '''
-    Test loading a JSON file with a custom start node using JsonLoaderMiddleware.
+    Test loading a JSON file with a custom start node using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
@@ -100,7 +100,7 @@ def test_json_loader_middleware_load_start_node(temp_json_file: str):
         return data.get('nested', {})
     
     # Load the JSON content using the custom start node.
-    with JsonLoaderMiddleware(path=temp_json_file) as json_r:
+    with JsonLoader(path=temp_json_file) as json_r:
         content = json_r.load(start_node=start_node)
     
     # Verify the loaded content is the nested dictionary.
@@ -113,7 +113,7 @@ def test_json_loader_middleware_load_start_node(temp_json_file: str):
 # ** test: json_loader_middleware_load_data_factory
 def test_json_loader_middleware_load_data_factory(temp_json_file: str):
     '''
-    Test loading a JSON file with a custom data factory using JsonLoaderMiddleware.
+    Test loading a JSON file with a custom data factory using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
@@ -124,7 +124,7 @@ def test_json_loader_middleware_load_data_factory(temp_json_file: str):
         return {k.upper(): v for k, v in data.items()}
     
     # Load the JSON content using the custom data factory.
-    with JsonLoaderMiddleware(path=temp_json_file) as json_r:
+    with JsonLoader(path=temp_json_file) as json_r:
         content = json_r.load(data_factory=data_factory)
     
     # Verify the loaded content has keys transformed to uppercase.
@@ -137,14 +137,14 @@ def test_json_loader_middleware_load_data_factory(temp_json_file: str):
 # ** test: json_loader_middleware_parse_path
 def test_json_loader_middleware_parse_path(temp_json_file: str):
     '''
-    Test parsing a JSON path to extract specific data from a JSON file using JsonLoaderMiddleware.
+    Test parsing a JSON path to extract specific data from a JSON file using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
     '''
     
     # Load the JSON content and parse a JSON path.
-    with JsonLoaderMiddleware(path=temp_json_file, mode='w') as json_w:
+    with JsonLoader(path=temp_json_file, mode='w') as json_w:
         path = json_w.parse_json_path('list[0].b')
     
     # Verify the parsed path is correct.
@@ -153,7 +153,7 @@ def test_json_loader_middleware_parse_path(temp_json_file: str):
 # ** test: json_loader_middleware_save
 def test_json_loader_middleware_save(temp_json_file: str):
     '''
-    Test saving a dictionary to a JSON file using JsonLoaderMiddleware.
+    Test saving a dictionary to a JSON file using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
@@ -163,7 +163,7 @@ def test_json_loader_middleware_save(temp_json_file: str):
     data = {'new_key': 'new_value', 'nested': {'b': 2}, 'list': [{'c': 3}]}
     
     # Save the data to the JSON file.
-    with JsonLoaderMiddleware(path=temp_json_file, mode='w') as json_w:
+    with JsonLoader(path=temp_json_file, mode='w') as json_w:
         json_w.save(data)
     
     # Load the JSON content to verify the update.
@@ -181,7 +181,7 @@ def test_json_loader_middleware_save(temp_json_file: str):
 # ** test: json_loader_middleware_save_data_path
 def test_json_loader_middleware_save_data_path(temp_json_file: str):
     '''
-    Test saving a dictionary to a specific path in a JSON file using JsonLoaderMiddleware.
+    Test saving a dictionary to a specific path in a JSON file using JsonLoader.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
@@ -191,7 +191,7 @@ def test_json_loader_middleware_save_data_path(temp_json_file: str):
     data = {'c': 3}
     
     # Save the data to a specific path in the JSON file.
-    with JsonLoaderMiddleware(path=temp_json_file, mode='w') as json_w:
+    with JsonLoader(path=temp_json_file, mode='w') as json_w:
         json_w.save(data, data_path='nested.new_nested')
     
     # Load the JSON content to verify the update.
@@ -218,7 +218,7 @@ def test_json_loader_middleware_save_data_path(temp_json_file: str):
 # ** test: json_loader_middleware_save_data_path_list
 def test_json_loader_middleware_save_data_path_list(temp_json_file: str):
     '''
-    Test saving a dictionary to a specific path in a JSON file using JsonLoaderMiddleware with a list path.
+    Test saving a dictionary to a specific path in a JSON file using JsonLoader with a list path.
 
     :param temp_json_file: The path to the temporary JSON file.
     :type temp_json_file: str
@@ -228,7 +228,7 @@ def test_json_loader_middleware_save_data_path_list(temp_json_file: str):
     data = {'d': 4}
     
     # Save the data to a specific path in the JSON file using a list for the path.
-    with JsonLoaderMiddleware(path=temp_json_file, mode='w') as json_w:
+    with JsonLoader(path=temp_json_file, mode='w') as json_w:
         json_w.save(data, data_path='list[0]')
     
     # Load the JSON content to verify the update.

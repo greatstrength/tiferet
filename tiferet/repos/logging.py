@@ -9,16 +9,14 @@ from typing import (
 )
 
 # ** app
-from ..interfaces import (
-    Formatter,
-    Handler,
-    Logger,
-    LoggingService
-)
+from ..interfaces import LoggingService
 from ..mappers import (
     LoggingSettingsYamlObject,
+    FormatterAggregate,
     FormatterYamlObject,
+    HandlerAggregate,
     HandlerYamlObject,
+    LoggerAggregate,
     LoggerYamlObject,
     TransferObject
 )
@@ -58,12 +56,12 @@ class LoggingYamlRepository(LoggingService):
         self.encoding = encoding
 
     # * method: list_all
-    def list_all(self) -> Tuple[List[Formatter], List[Handler], List[Logger]]:
+    def list_all(self) -> Tuple[List[FormatterAggregate], List[HandlerAggregate], List[LoggerAggregate]]:
         '''
         List all formatter, handler, and logger configurations.
 
         :return: Tuple of (formatters, handlers, loggers)
-        :rtype: Tuple[List[Formatter], List[Handler], List[Logger]]
+        :rtype: Tuple[List[FormatterAggregate], List[HandlerAggregate], List[LoggerAggregate]]
         '''
 
         # Load the logging data from the yaml configuration file.
@@ -87,12 +85,12 @@ class LoggingYamlRepository(LoggingService):
         )
 
     # * method: save_formatter
-    def save_formatter(self, formatter: Formatter):
+    def save_formatter(self, formatter: FormatterAggregate):
         '''
         Save/update a formatter configuration.
 
         :param formatter: The formatter configuration to save.
-        :type formatter: Formatter
+        :type formatter: FormatterAggregate
         '''
 
         # Create formatter data object from the model.
@@ -115,12 +113,12 @@ class LoggingYamlRepository(LoggingService):
             )
 
     # * method: save_handler
-    def save_handler(self, handler: Handler):
+    def save_handler(self, handler: HandlerAggregate):
         '''
         Save/update a handler configuration.
 
         :param handler: The handler configuration to save.
-        :type handler: Handler
+        :type handler: HandlerAggregate
         '''
 
         # Create handler data object from the model.
@@ -143,12 +141,12 @@ class LoggingYamlRepository(LoggingService):
             )
 
     # * method: save_logger
-    def save_logger(self, logger: Logger):
+    def save_logger(self, logger: LoggerAggregate):
         '''
         Save/update a logger configuration.
 
         :param logger: The logger configuration to save.
-        :type logger: Logger
+        :type logger: LoggerAggregate
         '''
 
         # Create logger data object from the model.

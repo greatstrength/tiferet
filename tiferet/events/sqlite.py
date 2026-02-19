@@ -5,8 +5,8 @@ from typing import List, Dict, Any, Sequence, Optional, Callable
 import sqlite3
 
 # ** app
-from .settings import Command, const
-from ..contracts.sqlite import SqliteService
+from .settings import Command, a
+from ..interfaces.sqlite import SqliteService
 
 # *** commands
 
@@ -50,7 +50,7 @@ class MutateSql(Command):
         clean_statement = statement.strip().upper()
         self.verify(
             any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
             parameter='statement',
             command='MutateSql'
@@ -110,7 +110,7 @@ class QuerySql(Command):
         clean_query = query.strip().upper()
         self.verify(
             clean_query.startswith('SELECT') or clean_query.startswith('WITH'),
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Query must start with SELECT or WITH. Got: {query[:20]}...',
             parameter='query',
             command='QuerySql'
@@ -174,7 +174,7 @@ class BulkMutateSql(Command):
         clean_statement = statement.strip().upper()
         self.verify(
             any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
             parameter='statement',
             command='BulkMutateSql'
@@ -183,7 +183,7 @@ class BulkMutateSql(Command):
         # Validate parameters_list is not empty
         self.verify(
             len(parameters_list) > 0,
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message='Parameters list must not be empty.',
             parameter='parameters_list',
             command='BulkMutateSql'
@@ -300,7 +300,7 @@ class BackupSql(Command):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                const.SQLITE_BACKUP_FAILED_ID,
+                a.const.SQLITE_BACKUP_FAILED_ID,
                 f'Backup to {target_path} failed: {str(e)}',
                 target_path=target_path,
                 original_error=str(e)
@@ -354,7 +354,7 @@ class CreateTableSql(Command):
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
             command='CreateTableSql'
@@ -364,7 +364,7 @@ class CreateTableSql(Command):
         self.verify_parameter(columns, 'columns', 'CreateTableSql')
         self.verify(
             isinstance(columns, dict) and len(columns) > 0,
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message='Columns must be a non-empty dictionary.',
             parameter='columns',
             command='CreateTableSql'
@@ -374,14 +374,14 @@ class CreateTableSql(Command):
         for col_name, col_type in columns.items():
             self.verify(
                 col_name and isinstance(col_name, str),
-                const.COMMAND_PARAMETER_REQUIRED_ID,
+                a.const.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Column name must be a non-empty string. Got: {col_name}',
                 parameter='columns',
                 command='CreateTableSql'
             )
             self.verify(
                 col_type and isinstance(col_type, str),
-                const.COMMAND_PARAMETER_REQUIRED_ID,
+                a.const.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Column type for "{col_name}" must be a non-empty string. Got: {col_type}',
                 parameter='columns',
                 command='CreateTableSql'
@@ -487,7 +487,7 @@ class DropTableSql(Command):
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
-            const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
             command='DropTableSql'

@@ -9,4 +9,3 @@ from .static import (
     ImportDependency, 
     RaiseError
 )
-from ..assets import constants as const
