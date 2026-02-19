@@ -378,7 +378,7 @@ def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAg
     Test round-trip mapping: app interface aggregate -> app interface yaml object -> app interface aggregate.
     '''
 
-    data_obj = TransferObject.from_model(AppInterfaceYamlObject, app_interface_aggr)
+    data_obj = AppInterfaceYamlObject.from_model(app_interface_aggr)
     round_tripped = data_obj.map()
 
     # Core fields

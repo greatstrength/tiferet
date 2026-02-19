@@ -280,12 +280,12 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(app_interface: AppInterface, **kwargs) -> 'AppInterfaceYamlObject':
+    def from_model(app_interface: AppInterfaceAggregate, **kwargs) -> 'AppInterfaceYamlObject':
         '''
-        Creates an AppInterfaceYamlObject from an AppInterface model.
+        Creates an AppInterfaceYamlObject from an AppInterfaceAggregate model.
 
         :param app_interface: The app interface model.
-        :type app_interface: AppInterface
+        :type app_interface: AppInterfaceAggregate
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new AppInterfaceYamlObject.
