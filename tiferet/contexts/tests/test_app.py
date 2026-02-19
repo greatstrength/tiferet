@@ -10,11 +10,8 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...entities import (
-    ModelObject,
-    AppInterface,
-    AppAttribute,
-)
+from ...assets.tests import TEST_FEATURE, TEST_ERROR, TEST_SERVICE_COMMAND_ATTRIBUTE
+from ...entities import ModelObject, AppInterface, Feature, ContainerAttribute, Error
 from ...interfaces import AppService
 from ..app import (
     FeatureContext,
