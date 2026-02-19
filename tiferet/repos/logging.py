@@ -73,7 +73,7 @@ class LoggingYamlRepository(LoggingService):
 
             # Load the logging settings data.
             data = yaml_file.load(
-                data_factory=lambda d: LoggingSettingsYamlObject.from_yaml_data(**d),
+                data_factory=lambda d: LoggingSettingsYamlObject.from_data(**d),
                 start_node=lambda d: d.get('logging', {})
             )
 
