@@ -235,27 +235,25 @@ def test_cli_config_repo_save(
 
     # Create new command.
     new_command = CliCommandAggregate.new(
-        dict(
-            id='calc.multiply',
-            group_key='calc',
-            key='multiply',
-            name='Multiply Command',
-            description='Multiply two numbers',
-            arguments=[
-                dict(
-                    name_or_flags=['--value1'],
-                    description='First value',
-                    type='float',
-                    required=True
-                ),
-                dict(
-                    name_or_flags=['--value2'],
-                    description='Second value',
-                    type='float',
-                    required=True
-                )
-            ]
-        )
+        id='calc.multiply',
+        group_key='calc',
+        key='multiply',
+        name='Multiply Command',
+        description='Multiply two numbers',
+        arguments=[
+            dict(
+                name_or_flags=['--value1'],
+                description='First value',
+                type='float',
+                required=True
+            ),
+            dict(
+                name_or_flags=['--value2'],
+                description='Second value',
+                type='float',
+                required=True
+            )
+        ]
     )
 
     # Save the new command.
