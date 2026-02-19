@@ -150,11 +150,11 @@ def test_error_aggregate_new():
         name='Test Error',
         error_code='TEST_ERROR',
         message=[
-            ModelObject.new(ErrorMessage, lang='en', text='Test message')
+            {'lang': 'en', 'text': 'Test message'}
         ]
     )
 
-    aggregate = ErrorAggregate.new(error_data)
+    aggregate = ErrorAggregate.new(**error_data)
 
     # Assert the aggregate is valid.
     assert isinstance(aggregate, ErrorAggregate)
@@ -177,7 +177,7 @@ def test_error_aggregate_set_message():
         message=[]
     )
 
-    aggregate = ErrorAggregate.new(error_data)
+    aggregate = ErrorAggregate.new(**error_data)
 
     # Set a message.
     aggregate.set_message('en', 'New test message')
@@ -202,18 +202,17 @@ def test_error_aggregate_remove_message():
     '''
 
     # Create an error aggregate with messages.
-    from ...entities import ModelObject
     error_data = dict(
         id='test_error',
         name='Test Error',
         error_code='TEST_ERROR',
         message=[
-            ModelObject.new(ErrorMessage, lang='en', text='English message'),
-            ModelObject.new(ErrorMessage, lang='es', text='Spanish message')
+            {'lang': 'en', 'text': 'English message'},
+            {'lang': 'es', 'text': 'Spanish message'}
         ]
     )
 
-    aggregate = ErrorAggregate.new(error_data)
+    aggregate = ErrorAggregate.new(**error_data)
 
     # Remove one message.
     aggregate.remove_message('en')

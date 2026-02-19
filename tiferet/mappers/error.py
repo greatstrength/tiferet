@@ -28,7 +28,6 @@ class ErrorAggregate(Error, Aggregate):
     # * method: new
     @staticmethod
     def new(
-        error_data: Dict[str, Any],
         validate: bool = True,
         strict: bool = True,
         **kwargs
@@ -36,8 +35,6 @@ class ErrorAggregate(Error, Aggregate):
         '''
         Initializes a new error aggregate.
 
-        :param error_data: The data to create the error aggregate from.
-        :type error_data: dict
         :param validate: True to validate the aggregate object.
         :type validate: bool
         :param strict: True to enforce strict mode for the aggregate object.
@@ -53,7 +50,6 @@ class ErrorAggregate(Error, Aggregate):
             ErrorAggregate,
             validate=validate,
             strict=strict,
-            **error_data,
             **kwargs
         )
 
