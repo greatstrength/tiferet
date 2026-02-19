@@ -31,7 +31,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
     # * method: new
     @staticmethod
     def new(
-        cli_command_data: Dict[str, Any],
         validate: bool = True,
         strict: bool = True,
         **kwargs
@@ -39,8 +38,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
         '''
         Initializes a new CLI command aggregate.
 
-        :param cli_command_data: The data to create the CLI command aggregate from.
-        :type cli_command_data: dict
         :param validate: True to validate the aggregate object.
         :type validate: bool
         :param strict: True to enforce strict mode for the aggregate object.
@@ -56,7 +53,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
             CliCommandAggregate,
             validate=validate,
             strict=strict,
-            **cli_command_data,
             **kwargs
         )
 

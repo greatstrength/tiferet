@@ -31,7 +31,6 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
     # * method: new
     @staticmethod
     def new(
-        feature_command_data: Dict[str, Any],
         validate: bool = True,
         strict: bool = True,
         **kwargs
@@ -39,8 +38,6 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
         '''
         Initializes a new feature command aggregate.
 
-        :param feature_command_data: The data to create the feature command aggregate from.
-        :type feature_command_data: dict
         :param validate: True to validate the aggregate object.
         :type validate: bool
         :param strict: True to enforce strict mode for the aggregate object.
@@ -56,7 +53,6 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
             FeatureCommandAggregate,
             validate=validate,
             strict=strict,
-            **feature_command_data,
             **kwargs
         )
 
@@ -202,7 +198,11 @@ class FeatureAggregate(Feature, Aggregate):
     # * method: new
     @staticmethod
     def new(
-        feature_data: Dict[str, Any],
+        name: str = None,
+        group_id: str = None,
+        feature_key: str = None,
+        id: str = None,
+        description: str = None,
         validate: bool = True,
         strict: bool = True,
         **kwargs
@@ -210,8 +210,16 @@ class FeatureAggregate(Feature, Aggregate):
         '''
         Initializes a new feature aggregate.
 
-        :param feature_data: The data to create the feature aggregate from.
-        :type feature_data: dict
+        :param name: The name of the feature.
+        :type name: str
+        :param group_id: The context group identifier of the feature.
+        :type group_id: str
+        :param feature_key: The key of the feature.
+        :type feature_key: str
+        :param id: The identifier of the feature.
+        :type id: str
+        :param description: The description of the feature.
+        :type description: str
         :param validate: True to validate the aggregate object.
         :type validate: bool
         :param strict: True to enforce strict mode for the aggregate object.
@@ -222,12 +230,32 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: FeatureAggregate
         '''
 
+        # Derive group_id and feature_key from id if provided.
+        if id and '.' in id and (not group_id or not feature_key):
+            group_id, feature_key = id.split('.', 1)
+
+        # Set the feature key as the snake case of the name if not provided.
+        if name and not feature_key:
+            feature_key = name.lower().replace(' ', '_')
+
+        # Feature ID is the group ID and feature key separated by a period.
+        if not id and group_id and feature_key:
+            id = f'{group_id}.{feature_key}'
+
+        # Set the description as the name if not provided.
+        if name and not description:
+            description = name
+
         # Create a new feature aggregate from the provided data.
         return Aggregate.new(
             FeatureAggregate,
             validate=validate,
             strict=strict,
-            **feature_data,
+            id=id,
+            name=name,
+            group_id=group_id,
+            feature_key=feature_key,
+            description=description,
             **kwargs
         )
 

@@ -209,49 +209,6 @@ class Feature(ModelObject):
         )
     )
 
-    # * method: new
-    @staticmethod
-    def new(name: str, group_id: str, feature_key: str = None, id: str = None, description: str = None, **kwargs) -> 'Feature':
-        '''Initializes a new Feature object.
-
-        :param name: The name of the feature.
-        :type name: str
-        :param group_id: The context group identifier of the feature.
-        :type group_id: str
-        :param feature_key: The key of the feature.
-        :type feature_key: str
-        :param id: The identifier of the feature.
-        :type id: str
-        :param description: The description of the feature.
-        :type description: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new Feature object.
-        '''
-
-        # Set the feature key as the snake case of the name if not provided.
-        if not feature_key:
-            feature_key = name.lower().replace(' ', '_')
-
-        # Feature ID is the group ID and feature key separated by a period.
-        if not id:
-            id = f'{group_id}.{feature_key}'
-
-        # Set the description as the name if not provided.
-        if not description:
-            description = name
-
-        # Create and return a new Feature object.
-        return ModelObject.new(
-            Feature,
-            id=id,
-            name=name,
-            group_id=group_id,
-            feature_key=feature_key,
-            description=description,
-            **kwargs
-        )
-
     # * method: add_command
     def add_command(
         self,

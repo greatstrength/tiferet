@@ -25,98 +25,17 @@ def feature() -> Feature:
     :rtype: Feature
     '''
 
-    return Feature.new(
+    return ModelObject.new(
+        Feature,
+        id='test_group.test_feature',
         name='Test Feature',
         group_id='test_group',
+        feature_key='test_feature',
+        description='Test Feature',
         commands=[],
     )
 
 # *** tests
-
-# ** test: feature_flags_creation_and_round_trip
-def test_feature_flags_creation_and_round_trip() -> None:
-    '''
-    Test that ``Feature.flags`` can be set on creation and that the
-    values are preserved through a serialization round-trip.
-    '''
-
-    feature = Feature.new(
-        name='Test Feature with Flags',
-        group_id='test_group',
-        flags=['global_flag', 'feature_specific_flag'],
-    )
-
-    assert feature.flags == ['global_flag', 'feature_specific_flag']
-
-    primitive = feature.to_primitive()
-    reloaded: Feature = ModelObject.new(Feature, **primitive)
-
-    assert reloaded.flags == ['global_flag', 'feature_specific_flag']
-
-# ** test: feature_new
-def test_feature_new():
-    '''
-    Test creating a Feature instance with all attributes.
-    '''
-
-    # Create new feature with all attributes.
-    feature = Feature.new(
-        name='Test Feature',
-        group_id='test_group',
-        feature_key='test_feature',
-        id='test_group.test_feature',
-        description='A test feature.',
-        commands=[],
-    )
-
-    # Test that the feature is created correctly.
-    assert feature.name == 'Test Feature'
-    assert feature.group_id == 'test_group'
-    assert feature.feature_key == 'test_feature'
-    assert feature.id == 'test_group.test_feature'
-    assert feature.description == 'A test feature.'
-    assert len(feature.commands) == 0
-
-# ** test: feature_new_no_description
-def test_feature_new_no_description():
-    '''
-    Test creating a Feature instance without a description.
-    '''
-
-    # Create new feature with no description.
-    feature = Feature.new(
-        name='Test Feature',
-        group_id='test_group',
-        feature_key='test_feature',
-        id='test_group.test_feature',
-        commands=[],
-    )
-
-    # Test that the default description is set correctly.
-    assert feature.name == 'Test Feature'
-    assert feature.group_id == 'test_group'
-    assert feature.feature_key == 'test_feature'
-    assert feature.id == 'test_group.test_feature'
-    assert feature.description == feature.name
-    assert len(feature.commands) == 0
-
-# ** test: feature_new_name_and_group_only
-def test_feature_new_name_and_group_only():
-
-    # Create the feature with only the name and group ID.
-    feature = Feature.new(
-        name='Test Feature',
-        group_id='test_group',
-        description='A test feature.',
-    )    
-
-    # Test that the feature is created correctly.
-    assert feature.name == 'Test Feature'
-    assert feature.group_id == 'test_group'
-    assert feature.feature_key == 'test_feature'
-    assert feature.id == 'test_group.test_feature'
-    assert feature.description == 'A test feature.'
-    assert len(feature.commands) == 0
 
 # ** test: feature_add_service_command
 def test_feature_add_service_command(feature: Feature):
@@ -477,9 +396,13 @@ def test_feature_remove_command_invalid_positions(feature: Feature) -> None:
     assert feature.commands == original_commands
 
     # Empty list should remain unchanged when attempting removal.
-    empty_feature = Feature.new(
+    empty_feature = ModelObject.new(
+        Feature,
+        id='empty_group.empty_feature',
         name='Empty Feature',
         group_id='empty_group',
+        feature_key='empty_feature',
+        description='Empty Feature',
         commands=[],
     )
 
@@ -545,9 +468,13 @@ def test_feature_reorder_command_clamp_positions() -> None:
     '''
 
     # Create a feature with three commands.
-    feature = Feature.new(
+    feature = ModelObject.new(
+        Feature,
+        id='clamp_group.clamp_feature',
         name='Clamp Feature',
         group_id='clamp_group',
+        feature_key='clamp_feature',
+        description='Clamp Feature',
         commands=[],
     )
 

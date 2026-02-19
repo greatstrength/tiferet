@@ -123,7 +123,8 @@ class FeatureYamlRepository(FeatureService):
             return None
 
         # Map the feature data to a Feature model and return it.
-        return FeatureYamlObject.from_data(
+        return TransferObject.from_data(
+            FeatureYamlObject,
             id=f'{group_id}.{feature_name}',
             **feature_data
         ).map()
@@ -158,7 +159,8 @@ class FeatureYamlRepository(FeatureService):
         if group_id:
             group_features = groups_data.get(group_id, {})
             for feature_id, feature_data in group_features.items():
-                features.append(FeatureYamlObject.from_data(
+                features.append(TransferObject.from_data(
+                    FeatureYamlObject,
                     id=f'{group_id}.{feature_id}',
                     **feature_data
                 ))
@@ -167,7 +169,8 @@ class FeatureYamlRepository(FeatureService):
         else:
             for group, group_features in groups_data.items():
                 for feature_id, feature_data in group_features.items():
-                    features.append(FeatureYamlObject.from_data(
+                    features.append(TransferObject.from_data(
+                        FeatureYamlObject,
                         id=f'{group}.{feature_id}',
                         **feature_data
                     ))
