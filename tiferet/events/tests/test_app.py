@@ -643,10 +643,7 @@ def test_add_app_interface_default_fallbacks(app_service):
         id='test.interface',
         name='Test Interface',
         module_path='tiferet.contexts.app',
-        class_name='AppContext',
-        logger_id='',
-        feature_flag='',
-        data_flag='',
+        class_name='AppContext'
     )
 
     # All flags should be normalized to 'default'.
@@ -670,7 +667,6 @@ def test_add_app_interface_default_fallbacks(app_service):
         ('data_flag', 'updated_data_flag'),
     ],
 )
-
 def test_update_app_interface_success_supported_attributes(
     app_service, app_interface, attribute, new_value
 ):
