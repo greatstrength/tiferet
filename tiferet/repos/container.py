@@ -33,18 +33,18 @@ class ContainerYamlRepository(ContainerService):
     encoding: str
 
     # * method: init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8'):
+    def __init__(self, container_yaml_file: str, encoding: str = 'utf-8'):
         '''
         Initialize the container YAML repository.
 
-        :param yaml_file: The container configuration file.
-        :type yaml_file: str
+        :param container_yaml_file: The container YAML configuration file.
+        :type container_yaml_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = yaml_file
+        self.yaml_file = container_yaml_file
         self.default_role = 'to_data.yaml'
         self.encoding = encoding
 

@@ -34,9 +34,9 @@ CONTAINER_DATA = {
 
 # *** fixtures
 
-# ** fixture: container_config_file
+# ** fixture: container_yaml_file
 @pytest.fixture
-def container_config_file(tmp_path) -> str:
+def container_yaml_file(tmp_path) -> str:
     '''
     Fixture to provide the path to the container YAML configuration file.
 
@@ -54,19 +54,19 @@ def container_config_file(tmp_path) -> str:
 
 # ** fixture: container_config_repo
 @pytest.fixture
-def container_config_repo(container_config_file: str) -> ContainerYamlRepository:
+def container_config_repo(container_yaml_file: str) -> ContainerYamlRepository:
     '''
     Fixture to provide a ContainerYamlRepository instance.
 
-    :param container_config_file: The container YAML configuration file path.
-    :type container_config_file: str
+    :param container_yaml_file: The container YAML configuration file path.
+    :type container_yaml_file: str
     :return: The ContainerYamlRepository instance.
     :rtype: ContainerYamlRepository
     '''
 
     # Create and return the ContainerYamlRepository instance.
     return ContainerYamlRepository(
-        yaml_file=container_config_file,
+        container_yaml_file=container_yaml_file,
         encoding='utf-8'
     )
 

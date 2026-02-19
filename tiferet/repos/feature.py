@@ -37,18 +37,18 @@ class FeatureYamlRepository(FeatureService):
     encoding: str
 
     # * method: init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8'):
+    def __init__(self, feature_yaml_file: str, encoding: str = 'utf-8'):
         '''
         Initialize the feature YAML repository.
 
-        :param yaml_file: The feature configuration file.
-        :type yaml_file: str
+        :param feature_yaml_file: The feature YAML configuration file.
+        :type feature_yaml_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = yaml_file
+        self.yaml_file = feature_yaml_file
         self.default_role = 'to_data.yaml'
         self.encoding = encoding
 

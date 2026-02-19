@@ -85,9 +85,9 @@ CLI_DATA = {
 
 # *** fixtures
 
-# ** fixture: cli_config_file
+# ** fixture: cli_yaml_file
 @pytest.fixture
-def cli_config_file(tmp_path) -> str:
+def cli_yaml_file(tmp_path) -> str:
     '''
     Fixture to provide the path to the CLI YAML configuration file.
 
@@ -107,18 +107,19 @@ def cli_config_file(tmp_path) -> str:
 
 # ** fixture: cli_config_repo
 @pytest.fixture
-def cli_config_repo(cli_config_file: str) -> CliYamlRepository:
+def cli_config_repo(cli_yaml_file: str) -> CliYamlRepository:
     '''
     Fixture to create an instance of the CLI Configuration Repository.
 
-    :param cli_config_file: The CLI YAML configuration file path.
-    :type cli_config_file: str
+    :param cli_yaml_file: The CLI YAML configuration file path.
+    :type cli_yaml_file: str
     :return: An instance of CliYamlRepository.
     :rtype: CliYamlRepository
     '''
 
     # Create and return the CliYamlRepository instance.
-    return CliYamlRepository(cli_config_file)
+    return CliYamlRepository(
+        cli_yaml_file=cli_yaml_file)
 
 # *** tests
 

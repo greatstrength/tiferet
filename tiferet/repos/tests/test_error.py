@@ -45,9 +45,9 @@ ERROR_DATA = {
 }
 # *** fixtures
 
-# ** fixture: error_config_file
+# ** fixture: error_yaml_file
 @pytest.fixture
-def error_config_file(tmp_path) -> str:
+def error_yaml_file(tmp_path) -> str:
     '''
     Fixture to provide the path to the error YAML configuration file.
 
@@ -67,18 +67,19 @@ def error_config_file(tmp_path) -> str:
 
 # ** fixture: error_config_repo
 @pytest.fixture
-def error_config_repo(error_config_file: str) -> ErrorYamlRepository:
+def error_config_repo(error_yaml_file: str) -> ErrorYamlRepository:
     '''
     Fixture to create an instance of the Error Configuration Repository.
 
-    :param error_read_config_file: The error YAML configuration file path.
-    :type error_ModelObject_file: str
+    :param error_yaml_file: The error YAML configuration file path.
+    :type error_yaml_file: str
     :return: An instance of ErrorYamlRepository.
     :rtype: ErrorYamlRepository
     '''
 
     # Create and return the ErrorYamlRepository instance.
-    return ErrorYamlRepository(error_config_file)
+    return ErrorYamlRepository(
+        error_yaml_file=error_yaml_file)
 
 # *** tests
 

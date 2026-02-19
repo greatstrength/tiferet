@@ -40,18 +40,18 @@ class LoggingYamlRepository(LoggingService):
     encoding: str
 
     # * init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8'):
+    def __init__(self, logging_yaml_file: str, encoding: str = 'utf-8'):
         '''
         Initialize the logging YAML repository.
 
-        :param yaml_file: Path to YAML logging config file
-        :type yaml_file: str
+        :param logging_yaml_file: Path to YAML logging config file
+        :type logging_yaml_file: str
         :param encoding: File encoding (default 'utf-8')
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = yaml_file
+        self.yaml_file = logging_yaml_file
         self.default_role = 'to_data.yaml'
         self.encoding = encoding
 

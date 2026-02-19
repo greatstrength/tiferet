@@ -32,18 +32,18 @@ class AppYamlRepository(AppService):
     default_role: str
 
     # * method: init
-    def __init__(self, yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, app_yaml_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the app YAML repository.
 
-        :param yaml_file: The YAML configuration file path.
-        :type yaml_file: str
+        :param app_yaml_file: The YAML configuration file path.
+        :type app_yaml_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = yaml_file
+        self.yaml_file = app_yaml_file
         self.encoding = encoding
         self.default_role = 'to_data.yaml'
 

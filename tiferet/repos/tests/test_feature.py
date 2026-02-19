@@ -63,9 +63,9 @@ FEATURE_DATA: Dict[str, Dict] = {
 
 # *** fixtures
 
-# ** fixture: feature_config_file
+# ** fixture: feature_yaml_file
 @pytest.fixture
-def feature_config_file(tmp_path) -> str:
+def feature_yaml_file(tmp_path) -> str:
     '''
     Fixture to provide the path to the feature YAML configuration file.
 
@@ -85,18 +85,18 @@ def feature_config_file(tmp_path) -> str:
 
 # ** fixture: feature_config_repo
 @pytest.fixture
-def feature_config_repo(feature_config_file: str) -> FeatureYamlRepository:
+def feature_config_repo(feature_yaml_file: str) -> FeatureYamlRepository:
     '''
     Fixture to create an instance of the Feature Configuration Repository.
 
-    :param feature_config_file: The feature YAML configuration file path.
-    :type feature_config_file: str
+    :param feature_yaml_file: The feature YAML configuration file path.
+    :type feature_yaml_file: str
     :return: An instance of FeatureYamlRepository.
     :rtype: FeatureYamlRepository
     '''
 
     # Create and return the FeatureYamlRepository instance.
-    return FeatureYamlRepository(feature_config_file)
+    return FeatureYamlRepository(feature_yaml_file=feature_yaml_file)
 
 
 # *** tests
