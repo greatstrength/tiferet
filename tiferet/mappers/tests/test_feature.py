@@ -135,7 +135,7 @@ def test_feature_data_from_data(feature_yaml_object: FeatureYamlObject):
     feature_command_data = feature_yaml_object.commands[0]
     assert feature_command_data.name == 'Test Feature Command'
     assert feature_command_data.attribute_id == 'test_feature_command'
-    assert feature_command_data.parameters == {}
+    assert feature_command_data.parameters == {'test_param': 'test_value'}
     assert feature_command_data.return_to_data == True
     assert feature_command_data.data_key == 'test_data'
     assert feature_command_data.pass_on_error == True
@@ -166,7 +166,7 @@ def test_feature_data_map(feature_yaml_object: FeatureYamlObject):
     feature_command = feature.commands[0]
     assert feature_command.name == 'Test Feature Command'
     assert feature_command.attribute_id == 'test_feature_command'
-    assert feature_command.parameters == {}
+    assert feature_command.parameters == {'test_param': 'test_value'}
     assert feature_command.return_to_data == True
     assert feature_command.data_key == 'test_data'
     assert feature_command.pass_on_error == True
