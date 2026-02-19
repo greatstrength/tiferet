@@ -4,7 +4,6 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from .cache import CacheContext
 from ..assets import (
     TiferetError, 
     TiferetAPIError,
@@ -13,7 +12,6 @@ from ..assets import (
 )
 from ..entities import Error
 from ..events.error import GetError
-from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts
 
@@ -69,13 +67,13 @@ class ErrorContext(object):
         return error
 
     # * method: handle_error
-    def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Dict[str, Any]:
+    def handle_error(self, exception: TiferetError, lang: str = 'en_US') -> Dict[str, Any]:
         '''
         Format and return the structured error response dictionary.
         Does not raise — raising is now handled by the calling context.
 
         :param exception: The exception to handle.
-        :type exception: TiferetError | LegacyTiferetError
+        :type exception: TiferetError
         :param lang: The language to use for the error message.
         :type lang: str
         :return: The formatted error response dictionary.
@@ -83,7 +81,7 @@ class ErrorContext(object):
         '''
 
         # Raise the exception if it is not a Tiferet error.
-        if not isinstance(exception, (TiferetError, LegacyTiferetError)):
+        if not isinstance(exception, TiferetError):
             raise exception
 
         # Retrieve the error details.
@@ -91,17 +89,11 @@ class ErrorContext(object):
             exception.error_code
         )
 
-        # Format the error response.
-        if isinstance(exception, LegacyTiferetError):
-            error_message = error.format_message(
-                lang,
-                *exception.args
-            )
-        else:
-            error_message = error.format_message(
-                lang,
-                **exception.kwargs
-            )
+        # Format the error response with exception kwargs.
+        error_message = error.format_message(
+            lang,
+            **exception.kwargs
+        )
 
         # Return the formatted response dictionary (no raise).
         return error.format_response(lang=lang, **exception.kwargs)
