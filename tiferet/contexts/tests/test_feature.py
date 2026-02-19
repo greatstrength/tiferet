@@ -97,15 +97,6 @@ def feature():
     )
 
 
-# ** fixture: feature_context
-@pytest.fixture
-def feature_context(container_context, feature_repo, features):
-
-    return FeatureContext(
-        feature_repo=feature_repo(features=features),
-        container_context=container_context
-    )
-
 # *** tests
 
 # ** test: feature_context_parse_request_parameter_success
