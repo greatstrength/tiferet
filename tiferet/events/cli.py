@@ -227,12 +227,9 @@ class AddCliArgument(Command):
 
         # Add the argument via the aggregate's method.
         command.add_argument(
-            Aggregate.new(
-                type('CliArgument', (), {}),
-                name_or_flags=name_or_flags,
-                description=description,
-                **kwargs,
-            )
+            name_or_flags=name_or_flags,
+            description=description,
+            **kwargs,
         )
 
         # Persist the updated command.
