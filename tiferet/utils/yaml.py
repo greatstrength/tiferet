@@ -85,6 +85,11 @@ class YamlLoader(FileLoader):
                 last_exception = e
                 break
 
+        # Re-raise the last exception if it's not a YAML_FILE_NOT_FOUND error.
+        if last_exception and hasattr(last_exception, 'error_code'):
+            if last_exception.error_code != a.const.YAML_FILE_NOT_FOUND_ID:
+                raise last_exception
+
         # Raise an error if no valid YAML file was found.
         RaiseError.execute(
             a.const.YAML_FILE_NOT_FOUND_ID,
