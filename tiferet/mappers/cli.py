@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 from ..entities import (
     CliCommand,
     CliArgument,
+    ModelObject,
     StringType,
     ListType,
     ModelType,
@@ -60,15 +61,51 @@ class CliCommandAggregate(CliCommand, Aggregate):
         )
 
     # * method: add_argument
-    def add_argument(self, argument: CliArgument) -> None:
+    def add_argument(self,
+            name_or_flags: list,
+            description: str = None,
+            type: str = None,
+            required: bool = None,
+            default: str = None,
+            choices: list = None,
+            nargs: str = None,
+            action: str = None
+        ) -> None:
         '''
         Add an argument to the command.
 
-        :param argument: The argument to add.
-        :type argument: CliArgument
+        :param name_or_flags: The name or flags of the argument.
+        :type name_or_flags: list
+        :param description: A brief description of the argument.
+        :type description: str
+        :param type: The type of the argument (str, int, float).
+        :type type: str
+        :param required: Whether the argument is required.
+        :type required: bool
+        :param default: The default value of the argument.
+        :type default: str
+        :param choices: A list of valid choices for the argument.
+        :type choices: list
+        :param nargs: The number of arguments to consume.
+        :type nargs: str
+        :param action: The action to take when the argument is encountered.
+        :type action: str
         :return: None
         :rtype: None
         '''
+
+        # Create a new CliArgument instance using ModelObject.new.
+        argument = ModelObject.new(
+            CliArgument,
+            name_or_flags=name_or_flags,
+            description=description,
+            type=type,
+            required=required,
+            default=default,
+            choices=choices,
+            nargs=nargs,
+            action=action
+        )
 
         # Append the argument to the command's arguments list.
         self.arguments.append(argument)
@@ -111,43 +148,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
         # Perform final aggregate validation.
         self.validate()
 
-
-# ** mapper: cli_argument_yaml_object
-class CliArgumentYamlObject(CliArgument, TransferObject):
-    '''
-    A YAML data representation of a CLI argument object.
-    '''
-
-    class Options():
-        '''
-        The options for the CLI argument data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny(),
-            'to_data.yaml': TransferObject.deny(),
-            'to_data.json': TransferObject.deny(),
-        }
-
-    # * method: map
-    def map(self, **kwargs) -> CliArgument:
-        '''
-        Maps the CLI argument data to a CLI argument object.
-
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new CLI argument object.
-        :rtype: CliArgument
-        '''
-
-        # Map to the CLI argument object.
-        return super().map(
-            CliArgument,
-            **self.to_primitive('to_model'),
-            **kwargs
-        )
-
 # ** mapper: cli_command_yaml_object
 class CliCommandYamlObject(CliCommand, TransferObject):
     '''
@@ -161,20 +161,41 @@ class CliCommandYamlObject(CliCommand, TransferObject):
         serialize_when_none = False
         roles = {
             'to_model': TransferObject.deny('arguments'),
-            'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id', 'key', 'group_key'),
+            'to_data.yaml': TransferObject.deny('id', 'arguments'),
         }
 
     # * attribute: arguments
     arguments = ListType(
-        ModelType(CliArgumentYamlObject),
-        serialized_name='args',
-        deserialize_from=['args', 'arguments'],
+        ModelType(CliArgument),
         default=[],
-        metadata=dict(
-            description='A list of arguments for the command.'
+        deserialize_from=['args', 'arguments'],
+        serialized_name='args',
+        metadata={
+            'description': 'The list of arguments for the CLI command.'
+        })
+
+    # * method: to_primitive
+    def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
+        '''
+        Converts the CLI command data to a primitive dictionary representation.
+
+        :param role: The role to use for the conversion.
+        :type role: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: A primitive dictionary representation of the CLI command data.
+        :rtype: dict
+        '''
+
+        # Convert the CLI command data to a primitive dictionary, converting
+        # the arguments list into dictionaries as well.
+        return dict(
+            **super().to_primitive(role=role, **kwargs),
+            args=[
+                arg.to_primitive()
+                for arg in self.arguments
+            ]
         )
-    )
 
     # * method: map
     def map(self, **kwargs) -> CliCommandAggregate:
@@ -190,14 +211,17 @@ class CliCommandYamlObject(CliCommand, TransferObject):
         # Map the CLI command data.
         return super().map(
             CliCommandAggregate,
-            arguments=[arg.map() for arg in self.arguments],
+            arguments=[
+                arg.to_primitive()
+                for arg in self.arguments
+            ],
             **self.to_primitive('to_model'),
             **kwargs
         )
 
     # * method: from_model
     @staticmethod
-    def from_model(cli_command: CliCommand, **kwargs) -> 'CliCommandYamlObject':
+    def from_model(cli_command: CliCommandAggregate, **kwargs) -> 'CliCommandYamlObject':
         '''
         Creates a CliCommandYamlObject from a CliCommand model.
 
@@ -215,7 +239,7 @@ class CliCommandYamlObject(CliCommand, TransferObject):
             CliCommandYamlObject,
             cli_command,
             arguments=[
-                TransferObject.from_model(CliArgumentYamlObject, arg)
+                arg.to_primitive()
                 for arg in cli_command.arguments
             ],
             **kwargs,

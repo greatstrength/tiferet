@@ -12,12 +12,8 @@ from ..settings import (
 from ..cli import (
     CliCommandYamlObject,
     CliCommandAggregate,
-    CliArgumentYamlObject,
 )
-from ...entities import (
-    CliCommand,
-    CliArgument,
-)
+from ...entities import CliCommand
 
 # *** fixtures
 
@@ -153,12 +149,12 @@ def test_cli_command_yaml_object_from_model():
         name='Test Feature',
         description='This is a test feature command.',
         arguments=[
-            CliArgument(
+            dict(
                 name_or_flags=['--arg1', '-a'],
                 description='Argument 1',
                 required=True
             ),
-            CliArgument(
+            dict(
                 name_or_flags=['--arg2', '-b'],
                 description='Argument 2',
                 required=False
@@ -222,18 +218,18 @@ def test_cli_command_aggregate_add_argument():
 
     aggregate = CliCommandAggregate.new(cli_command_data)
 
-    # Add an argument.
-    new_arg = CliArgument(
+    # Add an argument using individual attributes.
+    aggregate.add_argument(
         name_or_flags=['--new-arg', '-n'],
         description='New argument',
         required=False
     )
-    aggregate.add_argument(new_arg)
 
     # Assert the argument was added.
     assert len(aggregate.arguments) == 1
     assert aggregate.arguments[0].name_or_flags == ['--new-arg', '-n']
     assert aggregate.arguments[0].description == 'New argument'
+    assert aggregate.arguments[0].required is False
 
 # ** test: cli_command_aggregate_set_attribute
 def test_cli_command_aggregate_set_attribute():

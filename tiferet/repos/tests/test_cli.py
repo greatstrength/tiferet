@@ -122,8 +122,8 @@ def cli_config_repo(cli_config_file: str) -> CliYamlRepository:
 
 # *** tests
 
-# ** test_int: cli_config_repo_list
-def test_int_cli_config_repo_list(
+# ** test: cli_config_repo_list
+def test_cli_config_repo_list(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -143,8 +143,8 @@ def test_int_cli_config_repo_list(
     assert TEST_COMMAND_ID_ADD in command_ids
     assert TEST_COMMAND_ID_SUBTRACT in command_ids
 
-# ** test_int: cli_config_repo_get
-def test_int_cli_config_repo_get(
+# ** test: cli_config_repo_get
+def test_cli_config_repo_get(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -178,8 +178,8 @@ def test_int_cli_config_repo_get(
     assert subtract_command.id == TEST_COMMAND_ID_SUBTRACT
     assert subtract_command.name == 'Subtract Command'
 
-# ** test_int: cli_config_repo_get_not_found
-def test_int_cli_config_repo_get_not_found(
+# ** test: cli_config_repo_get_not_found
+def test_cli_config_repo_get_not_found(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -195,8 +195,8 @@ def test_int_cli_config_repo_get_not_found(
     # Check the command.
     assert not command
 
-# ** test_int: cli_config_repo_get_parent_arguments
-def test_int_cli_config_repo_get_parent_arguments(
+# ** test: cli_config_repo_get_parent_arguments
+def test_cli_config_repo_get_parent_arguments(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -219,8 +219,8 @@ def test_int_cli_config_repo_get_parent_arguments(
     assert parent_args[1].description == 'Configuration file path'
     assert parent_args[1].type == 'str'
 
-# ** test_int: cli_config_repo_save
-def test_int_cli_config_repo_save(
+# ** test: cli_config_repo_save
+def test_cli_config_repo_save(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -236,20 +236,19 @@ def test_int_cli_config_repo_save(
     # Create new command.
     new_command = CliCommandAggregate.new(
         dict(
+            id='calc.multiply',
             group_key='calc',
             key='multiply',
             name='Multiply Command',
             description='Multiply two numbers',
             arguments=[
-                Aggregate.new(
-                    CliArgument,
+                dict(
                     name_or_flags=['--value1'],
                     description='First value',
                     type='float',
                     required=True
                 ),
-                Aggregate.new(
-                    CliArgument,
+                dict(
                     name_or_flags=['--value2'],
                     description='Second value',
                     type='float',
@@ -273,8 +272,8 @@ def test_int_cli_config_repo_save(
     assert len(saved_command.arguments) == 2
     assert saved_command.arguments[0].name_or_flags == ['--value1']
 
-# ** test_int: cli_config_repo_delete
-def test_int_cli_config_repo_delete(
+# ** test: cli_config_repo_delete
+def test_cli_config_repo_delete(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -297,8 +296,8 @@ def test_int_cli_config_repo_delete(
     remaining_command = cli_config_repo.get(TEST_COMMAND_ID_ADD)
     assert remaining_command
 
-# ** test_int: cli_config_repo_delete_idempotent
-def test_int_cli_config_repo_delete_idempotent(
+# ** test: cli_config_repo_delete_idempotent
+def test_cli_config_repo_delete_idempotent(
         cli_config_repo: CliYamlRepository,
     ):
     '''
@@ -315,8 +314,8 @@ def test_int_cli_config_repo_delete_idempotent(
     commands = cli_config_repo.list()
     assert len(commands) == 2
 
-# ** test_int: cli_config_repo_save_parent_arguments
-def test_int_cli_config_repo_save_parent_arguments(
+# ** test: cli_config_repo_save_parent_arguments
+def test_cli_config_repo_save_parent_arguments(
         cli_config_repo: CliYamlRepository,
     ):
     '''

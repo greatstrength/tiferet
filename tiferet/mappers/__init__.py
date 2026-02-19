@@ -13,8 +13,7 @@ from .app import (
 )
 from .cli import (
     CliCommandAggregate,
-    CliCommandYamlObject,
-    CliArgumentYamlObject,
+    CliCommandYamlObject
 )
 from .container import (
     FlaggedDependencyAggregate,
