@@ -83,8 +83,7 @@ class AddFeature(Command):
         )
 
         # Create feature using the aggregate factory.
-        feature = Aggregate.new(
-            FeatureAggregate,
+        feature = FeatureAggregate.new(
             name=name,
             group_id=group_id,
             feature_key=feature_key,
