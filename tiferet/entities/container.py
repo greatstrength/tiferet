@@ -11,8 +11,6 @@ from .settings import (
     ModelType,
 )
 from ..events import ImportDependency
-from ..mappers import FlaggedDependencyAggregate
-from ..mappers.settings import Aggregate
 
 # *** models
 
@@ -54,29 +52,6 @@ class FlaggedDependency(ModelObject):
             description='The container dependency parameters.'
         )
     )
-
-    # * method: set_parameters
-    def set_parameters(self, parameters=None):
-        '''
-        Update the parameters dictionary for this flagged dependency.
-
-        :param parameters: New parameters, or None to clear all.
-                           Keys with None values are removed.
-        :type parameters: Dict[str, Any] | None
-        '''
-
-        # If parameters is None, clear all.
-        if parameters is None:
-            self.parameters = {}
-        else:
-            # Merge existing parameters with new ones (new values win).
-            merged = dict(self.parameters or {})
-            merged.update(parameters)
-
-            # Filter out keys where the value is None.
-            self.parameters = {
-                k: v for k, v in merged.items() if v is not None
-            }
 
 # ** model: container_attribute
 class ContainerAttribute(ModelObject):
@@ -131,41 +106,6 @@ class ContainerAttribute(ModelObject):
         )
     )
 
-    # * method: set_default_type
-    def set_default_type(
-        self,
-        module_path=None,
-        class_name=None,
-        parameters=None,
-    ):
-        '''
-        Update the default type and parameters for this container attribute.
-
-        :param module_path: New module path (or None to clear).
-        :type module_path: Optional[str]
-        :param class_name: New class name (or None to clear).
-        :type class_name: Optional[str]
-        :param parameters: New parameters dict (or None to clear all).
-        :type parameters: Optional[Dict[str, Any]]
-        '''
-
-        # If both type fields are None, clear default type.
-        if module_path is None and class_name is None:
-            self.module_path = None
-            self.class_name = None
-            self.parameters = {}
-            
-        # Otherwise, set them to whatever is provided.
-        else:
-            self.module_path = module_path
-            self.class_name = class_name
-
-        # Update parameters: if parameters is None, clear all; otherwise replace.
-        if parameters is None:
-            self.parameters = {}
-        else:
-            self.parameters = {k: v for k, v in parameters.items() if v != None}
-
     # * method: get_dependency
     def get_dependency(self, *flags) -> FlaggedDependency:
         '''
@@ -219,63 +159,3 @@ class ContainerAttribute(ModelObject):
         
         # Return None if no type is found.
         return None
-
-    # * method: remove_dependency
-    def remove_dependency(self, flag):
-        '''
-        Remove a flagged container dependency by its flag.
-
-        :param flag: The flag identifying the dependency to remove.
-        :type flag: str
-        '''
-
-        # Filter out any dependency whose flag matches the provided flag.
-        self.dependencies = [
-            dependency
-            for dependency in self.dependencies
-            if dependency.flag != flag
-        ]
-
-    # * method: set_dependency
-    def set_dependency(
-        self,
-        flag,
-        module_path=None,
-        class_name=None,
-        parameters=None,
-    ):
-        '''
-        Sets or updates a flagged container dependency.
-
-        :param flag: The flag that identifies the dependency.
-        :type flag: str
-        :param module_path: The module path for the dependency.
-        :type module_path: Optional[str]
-        :param class_name: The class name for the dependency.
-        :type class_name: Optional[str]
-        :param parameters: The parameters for the dependency (empty dict by default).
-        :type parameters: Dict[str, Any] | None
-        '''
-
-        # Normalize parameters to a dict; None is treated as an empty mapping here
-        # and the final cleaning is delegated to FlaggedDependency.set_parameters.
-        parameters = parameters or {}
-
-        # Replace the value of the dependency if a dependency with the same flag exists.
-        for dep in self.dependencies:
-            if dep.flag == flag:
-                dep.module_path = module_path
-                dep.class_name = class_name
-                dep.set_parameters(parameters)
-                return
-
-        # Create a new dependency aggregate if none exists with this flag.
-        dependency = Aggregate.new(
-            FlaggedDependencyAggregate,
-            module_path=module_path,
-            class_name=class_name,
-            flag=flag,
-            parameters=parameters,
-        )
-
-        self.dependencies.append(dependency)
