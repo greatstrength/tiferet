@@ -13,11 +13,8 @@ from ..container import (
     ContainerAttributeYamlObject,
     ContainerAttributeAggregate,
     FlaggedDependencyYamlObject,
-    FlaggedDependencyAggregate,
 )
 from ...entities import (
-    ModelObject,
-    ContainerAttribute,
     FlaggedDependency,
 )
 
@@ -280,7 +277,8 @@ def test_container_attribute_yaml_data_flags_alias_round_trip() -> None:
     that dependencies are still serialized under ``deps``.
     '''
 
-    data_object = ContainerAttributeYamlObject.from_data(
+    data_object = TransferObject.from_data(
+        ContainerAttributeYamlObject,
         id='test_repo_flags',
         type='data',
         module_path='tests.repos.test',

@@ -13,7 +13,6 @@ from ..entities import (
     DictType,
     ModelType,
 )
-from ..events import RaiseError, a
 from .settings import (
     Aggregate,
     TransferObject,
@@ -128,11 +127,11 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
         '''
 
         # Map to the flagged dependency object.
+        # Note: parent map() already calls to_primitive, so we only pass overrides.
         return super().map(
             FlaggedDependency,
             flag=flag or self.flag,
             parameters=self.parameters,
-            **self.to_primitive('to_model'),
             **kwargs
         )
 
