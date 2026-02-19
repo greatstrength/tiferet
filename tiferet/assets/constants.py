@@ -8,55 +8,65 @@
 DEFAULT_ATTRIBUTES = [
     {
         'attribute_id': 'container_service',
-        'module_path': 'tiferet.repos.config.container',
-        'class_name': 'ContainerConfigurationRepository',
+        'module_path': 'tiferet.repos.container',
+        'class_name': 'ContainerYamlRepository',
         'parameters': {
-            'container_config_file': 'app/configs/container.yml',
+            'container_yaml_file': 'app/configs/container.yml',
         },
     },
     {
         'attribute_id': 'error_service',
-        'module_path': 'tiferet.repos.config.error',
-        'class_name': 'ErrorConfigurationRepository',
+        'module_path': 'tiferet.repos.error',
+        'class_name': 'ErrorYamlRepository',
         'parameters': {
-            'error_config_file': 'app/configs/error.yml',
+            'error_yaml_file': 'app/configs/error.yml',
         },
     },
     {
-        'attribute_id': 'logging_repo',
-        'module_path': 'tiferet.proxies.yaml.logging',
-        'class_name': 'LoggingYamlProxy',
+        'attribute_id': 'logging_service',
+        'module_path': 'tiferet.repos.logging',
+        'class_name': 'LoggingYamlRepository',
         'parameters': {
-            'logging_config_file': 'app/configs/logging.yml',
+            'logging_yaml_file': 'app/configs/logging.yml',
         },
     },
     {
         'attribute_id': 'feature_service',
-        'module_path': 'tiferet.repos.config.feature',
-        'class_name': 'FeatureConfigurationRepository',
+        'module_path': 'tiferet.repos.feature',
+        'class_name': 'FeatureYamlRepository',
         'parameters': {
-            'feature_config_file': 'app/configs/feature.yml',
+            'feature_yaml_file': 'app/configs/feature.yml',
         },
     },
     {
         'attribute_id': 'get_error_cmd',
-        'module_path': 'tiferet.commands.error',
+        'module_path': 'tiferet.events.error',
         'class_name': 'GetError',
     },
     {
         'attribute_id': 'get_feature_cmd',
-        'module_path': 'tiferet.commands.feature',
+        'module_path': 'tiferet.events.feature',
         'class_name': 'GetFeature',
     },
     {
         'attribute_id': 'container_list_all_cmd',
-        'module_path': 'tiferet.commands.container',
+        'module_path': 'tiferet.events.container',
         'class_name': 'ListAllSettings',
     },
     {
-        'attribute_id': 'logging_service',
-        'module_path': 'tiferet.handlers.logging',
-        'class_name': 'LoggingHandler',
+        'attribute_id': 'list_all_cmd',
+        'module_path': 'tiferet.events.logging',
+        'class_name': 'ListAllLoggingConfigs',
+    },
+    {
+        'attribute_id': 'list_commands_cmd',
+        'module_path': 'tiferet.events.cli',
+        'class_name': 'ListCliCommands',
+    },
+    {
+        'attribute_id': 'get_parent_args_cmd',
+        'module_path': 'tiferet.events.cli',
+        'class_name': 'GetParentArguments',
     },
     {
         'attribute_id': 'container',
@@ -81,10 +91,10 @@ DEFAULT_ATTRIBUTES = [
 ]
 
 # ** constant: default_app_service_module_path
-DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.config.app'
+DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.app'
 
 # ** constant: default_app_service_class_name
-DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigurationRepository'
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppYamlRepository'
 
 # *** constants (errors)
 
@@ -196,7 +206,7 @@ YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
 # ** constant: yaml_file_save_error_id
 YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 
-# ** constant: unsupported_config_file_type_id
+# ** constant: unsupported_yaml_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
 # ** constant: csv_invalid_mode_id

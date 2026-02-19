@@ -14,10 +14,10 @@ def app_context():
 
     return App(
         {
-            'app_repo_module_path': 'tiferet.repos.config.app',
-            'app_repo_class_name': 'AppConfigurationRepository',
+            'app_repo_module_path': 'tiferet.repos.app',
+            'app_repo_class_name': 'AppYamlRepository',
             'app_repo_params': {
-                'app_config_file': 'tiferet/configs/tests/test_calc.yml',
+                'app_yaml_file': 'tiferet/assets/tests/test_calc.yml',
             },
         }
     )

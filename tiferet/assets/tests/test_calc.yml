@@ -56,11 +56,11 @@ features:
 interfaces:
   test_calc:
     const:
-      feature_config_file: tiferet/configs/tests/test_calc.yml
-      error_config_file: tiferet/configs/tests/test_calc.yml
-      container_config_file: tiferet/configs/tests/test_calc.yml
-      feature_config_file: tiferet/configs/tests/test_calc.yml
-      logging_config_file: tiferet/configs/tests/test_calc.yml
+      feature_yaml_file: tiferet/assets/tests/test_calc.yml
+      error_yaml_file: tiferet/assets/tests/test_calc.yml
+      container_yaml_file: tiferet/assets/tests/test_calc.yml
+      feature_yaml_file: tiferet/assets/tests/test_calc.yml
+      logging_yaml_file: tiferet/assets/tests/test_calc.yml
     description: The interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator
   test_calc_cli:
@@ -74,11 +74,11 @@ interfaces:
         class_name: CliYamlProxy
         module_path: tiferet.proxies.yaml.cli
         params:
-          cli_config_file: tiferet/configs/tests/test_calc_cli.yml
+          cli_config_file: tiferet/assets/tests/test_calc_cli.yml
     const:
-      container_config_file: tiferet/configs/tests/test_calc.yml
-      feature_config_file: tiferet/configs/tests/test_calc.yml
-      error_config_file: tiferet/configs/tests/test_calc.yml
+      container_yaml_file: tiferet/assets/tests/test_calc.yml
+      feature_yaml_file: tiferet/assets/tests/test_calc.yml
+      error_yaml_file: tiferet/assets/tests/test_calc.yml
     description: The CLI interface instance for testing the calculator features.
     name: Integration Test - Basic Int Calculator CLI
 logging: {}
