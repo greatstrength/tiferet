@@ -336,15 +336,15 @@ def test_data_object_map_fallback_new(test_data_object: type):
     # Mock a ModelObject class without a custom new method.
     mock_model_type = mock.Mock()
     mock_model_type.new.side_effect = AttributeError
-    mock_model_instance = mock.Mock(spec=ModelObject)
-    mock_model_instance.validate.return_value = None
-    with mock.patch('tiferet.mappers.settings.ModelObject.new', return_value=mock_model_instance) as mock_new:
+    mock_aggregate_instance = mock.Mock(spec=Aggregate)
+    mock_aggregate_instance.validate.return_value = None
+    with mock.patch.object(Aggregate, 'new', return_value=mock_aggregate_instance) as mock_new:
         result = data_object.map(type=mock_model_type, role='to_model', validate=True)
     
     # Assert the mapped object is valid.
-    assert result == mock_model_instance
+    assert result == mock_aggregate_instance
     mock_new.assert_called_once_with(mock_model_type, id='test_id', name='Test Data', strict=False)
-    mock_model_instance.validate.assert_called_once()
+    mock_aggregate_instance.validate.assert_called_once()
 
 # ** test: data_object_allow_with_args
 def test_data_object_allow_with_args():
