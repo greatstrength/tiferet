@@ -9,8 +9,8 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, CliCommandYamlObject, Aggregate
-from ...entities import CliCommand, CliArgument
+from ...mappers import TransferObject, CliCommandYamlObject, Aggregate, CliCommandAggregate
+from ...entities import CliArgument
 from ..cli import CliYamlRepository
 
 # *** constants
@@ -122,19 +122,19 @@ def cli_config_repo(cli_config_file: str) -> CliYamlRepository:
 
 # *** tests
 
-# ** test_int: cli_config_repo_get_commands
-def test_int_cli_config_repo_get_commands(
+# ** test_int: cli_config_repo_list
+def test_int_cli_config_repo_list(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test the get_commands method of the CliYamlRepository.
+    Test the list method of the CliYamlRepository.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
     # List all commands.
-    commands = cli_config_repo.get_commands()
+    commands = cli_config_repo.list()
 
     # Check the commands.
     assert commands
@@ -143,19 +143,19 @@ def test_int_cli_config_repo_get_commands(
     assert TEST_COMMAND_ID_ADD in command_ids
     assert TEST_COMMAND_ID_SUBTRACT in command_ids
 
-# ** test_int: cli_config_repo_get_command
-def test_int_cli_config_repo_get_command(
+# ** test_int: cli_config_repo_get
+def test_int_cli_config_repo_get(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test the get_command method of the CliYamlRepository.
+    Test the get method of the CliYamlRepository.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
     # Get the add command.
-    add_command = cli_config_repo.get_command(TEST_COMMAND_ID_ADD)
+    add_command = cli_config_repo.get(TEST_COMMAND_ID_ADD)
 
     # Check the add command.
     assert add_command
@@ -171,26 +171,26 @@ def test_int_cli_config_repo_get_command(
     assert add_command.arguments[0].required == True
 
     # Get the subtract command.
-    subtract_command = cli_config_repo.get_command(TEST_COMMAND_ID_SUBTRACT)
+    subtract_command = cli_config_repo.get(TEST_COMMAND_ID_SUBTRACT)
 
     # Check the subtract command.
     assert subtract_command
     assert subtract_command.id == TEST_COMMAND_ID_SUBTRACT
     assert subtract_command.name == 'Subtract Command'
 
-# ** test_int: cli_config_repo_get_command_not_found
-def test_int_cli_config_repo_get_command_not_found(
+# ** test_int: cli_config_repo_get_not_found
+def test_int_cli_config_repo_get_not_found(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test the get_command method of the CliYamlRepository for a non-existent command.
+    Test the get method of the CliYamlRepository for a non-existent command.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
     # Get a non-existent command.
-    command = cli_config_repo.get_command('calc.nonexistent')
+    command = cli_config_repo.get('calc.nonexistent')
 
     # Check the command.
     assert not command
@@ -219,12 +219,12 @@ def test_int_cli_config_repo_get_parent_arguments(
     assert parent_args[1].description == 'Configuration file path'
     assert parent_args[1].type == 'str'
 
-# ** test_int: cli_config_repo_save_command
-def test_int_cli_config_repo_save_command(
+# ** test_int: cli_config_repo_save
+def test_int_cli_config_repo_save(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test the save_command method of the CliYamlRepository.
+    Test the save method of the CliYamlRepository.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
@@ -234,34 +234,36 @@ def test_int_cli_config_repo_save_command(
     NEW_TEST_COMMAND_ID = 'calc.multiply'
 
     # Create new command.
-    new_command = CliCommand.new(
-        group_key='calc',
-        key='multiply',
-        name='Multiply Command',
-        description='Multiply two numbers',
-        arguments=[
-            ModelObject.new(
-                CliArgument,
-                name_or_flags=['--value1'],
-                description='First value',
-                type='float',
-                required=True
-            ),
-            ModelObject.new(
-                CliArgument,
-                name_or_flags=['--value2'],
-                description='Second value',
-                type='float',
-                required=True
-            )
-        ]
+    new_command = CliCommandAggregate.new(
+        dict(
+            group_key='calc',
+            key='multiply',
+            name='Multiply Command',
+            description='Multiply two numbers',
+            arguments=[
+                Aggregate.new(
+                    CliArgument,
+                    name_or_flags=['--value1'],
+                    description='First value',
+                    type='float',
+                    required=True
+                ),
+                Aggregate.new(
+                    CliArgument,
+                    name_or_flags=['--value2'],
+                    description='Second value',
+                    type='float',
+                    required=True
+                )
+            ]
+        )
     )
 
     # Save the new command.
-    cli_config_repo.save_command(new_command)
+    cli_config_repo.save(new_command)
 
     # Reload the command to verify the changes.
-    saved_command = cli_config_repo.get_command(NEW_TEST_COMMAND_ID)
+    saved_command = cli_config_repo.get(NEW_TEST_COMMAND_ID)
 
     # Check the new command.
     assert saved_command
@@ -271,46 +273,46 @@ def test_int_cli_config_repo_save_command(
     assert len(saved_command.arguments) == 2
     assert saved_command.arguments[0].name_or_flags == ['--value1']
 
-# ** test_int: cli_config_repo_delete_command
-def test_int_cli_config_repo_delete_command(
+# ** test_int: cli_config_repo_delete
+def test_int_cli_config_repo_delete(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test the delete_command method of the CliYamlRepository.
+    Test the delete method of the CliYamlRepository.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
     # Delete an existing command.
-    cli_config_repo.delete_command(TEST_COMMAND_ID_SUBTRACT)
+    cli_config_repo.delete(TEST_COMMAND_ID_SUBTRACT)
 
     # Attempt to get the deleted command.
-    deleted_command = cli_config_repo.get_command(TEST_COMMAND_ID_SUBTRACT)
+    deleted_command = cli_config_repo.get(TEST_COMMAND_ID_SUBTRACT)
 
     # Check that the command is None.
     assert not deleted_command
 
     # Verify the remaining command still exists.
-    remaining_command = cli_config_repo.get_command(TEST_COMMAND_ID_ADD)
+    remaining_command = cli_config_repo.get(TEST_COMMAND_ID_ADD)
     assert remaining_command
 
-# ** test_int: cli_config_repo_delete_command_idempotent
-def test_int_cli_config_repo_delete_command_idempotent(
+# ** test_int: cli_config_repo_delete_idempotent
+def test_int_cli_config_repo_delete_idempotent(
         cli_config_repo: CliYamlRepository,
     ):
     '''
-    Test that delete_command is idempotent (can delete non-existent command).
+    Test that delete is idempotent (can delete non-existent command).
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
     # Delete a non-existent command (should not raise an error).
-    cli_config_repo.delete_command('calc.nonexistent')
+    cli_config_repo.delete('calc.nonexistent')
 
     # Verify existing commands are still intact.
-    commands = cli_config_repo.get_commands()
+    commands = cli_config_repo.list()
     assert len(commands) == 2
 
 # ** test_int: cli_config_repo_save_parent_arguments
@@ -326,13 +328,13 @@ def test_int_cli_config_repo_save_parent_arguments(
 
     # Create new parent arguments.
     new_parent_args = [
-        ModelObject.new(
+        Aggregate.new(
             CliArgument,
             name_or_flags=['--debug', '-d'],
             description='Enable debug mode',
             action='store_true'
         ),
-        ModelObject.new(
+        Aggregate.new(
             CliArgument,
             name_or_flags=['--output', '-o'],
             description='Output file path',

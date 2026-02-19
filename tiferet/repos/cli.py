@@ -53,8 +53,8 @@ class CliYamlRepository(CliService):
         self.default_role = 'to_data.yaml'
         self.encoding = encoding
 
-    # * method: get_commands
-    def get_commands(self) -> List[CliCommand]:
+    # * method: list
+    def list(self) -> List[CliCommand]:
         '''
         List all CLI command configurations.
 
@@ -80,19 +80,33 @@ class CliYamlRepository(CliService):
         # Return the mapped command objects.
         return [cmd.map() for cmd in cmds_data.values()]
 
-    # * method: get_command
-    def get_command(self, command_id: str) -> CliCommand | None:
+    # * method: exists
+    def exists(self, id: str) -> bool:
+        '''
+        Check if a CLI command exists by ID.
+
+        :param id: The CLI command identifier.
+        :type id: str
+        :return: True if the CLI command exists, otherwise False.
+        :rtype: bool
+        '''
+
+        # Check if the command exists by attempting to retrieve it.
+        return self.get(id) is not None
+
+    # * method: get
+    def get(self, id: str) -> CliCommand | None:
         '''
         Get a CLI command by its full ID (group.key).
 
-        :param command_id: Command identifier (e.g., 'calc.add')
-        :type command_id: str
+        :param id: Command identifier (e.g., 'calc.add')
+        :type id: str
         :return: CLI command or None if not found
         :rtype: CliCommand | None
         '''
 
         # Split the command ID into group and command keys.
-        group_key, command_key = command_id.split('.', 1)
+        group_key, command_key = id.split('.', 1)
 
         # Load the command data from the yaml configuration file.
         with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
@@ -109,7 +123,7 @@ class CliYamlRepository(CliService):
         # Map the command data to the command object and return it.
         return TransferObject.from_data(
             CliCommandYamlObject,
-            id=command_id,
+            id=id,
             **cmd_data
         ).map()
 
@@ -134,23 +148,23 @@ class CliYamlRepository(CliService):
                 ) for arg in d]
             )
 
-    # * method: save_command
-    def save_command(self, cli_command: CliCommand):
+    # * method: save
+    def save(self, command: CliCommand):
         '''
         Save/update a CLI command configuration.
 
-        :param cli_command: The CLI command to save.
-        :type cli_command: CliCommand
+        :param command: The CLI command to save.
+        :type command: CliCommand
         '''
 
         # Create updated command data.
         cmd_data = TransferObject.from_model(
             CliCommandYamlObject,
-            cli_command
+            command
         )
 
         # Split the command ID into group and command keys.
-        group_key, command_key = cli_command.id.split('.', 1)
+        group_key, command_key = command.id.split('.', 1)
 
         # Update the command data.
         with Yaml(self.yaml_file, mode='w', encoding=self.encoding) as yaml_file:
@@ -161,17 +175,17 @@ class CliYamlRepository(CliService):
                 data_path=f'cli.cmds.{group_key}.{command_key}'
             )
 
-    # * method: delete_command
-    def delete_command(self, command_id: str):
+    # * method: delete
+    def delete(self, id: str):
         '''
         Delete a CLI command by ID (idempotent).
 
-        :param command_id: The command id.
-        :type command_id: str
+        :param id: The command id.
+        :type id: str
         '''
 
         # Split the command ID into group and command keys.
-        group_key, command_key = command_id.split('.', 1)
+        group_key, command_key = id.split('.', 1)
 
         # Retrieve the group data from the yaml file.
         with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
