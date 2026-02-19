@@ -85,3 +85,15 @@ class CliService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('delete method is required for CliService.')
+
+    # * method: get_parent_arguments
+    @abstractmethod
+    def get_parent_arguments(self) -> List:
+        '''
+        Get all parent-level CLI arguments.
+
+        :return: A list of parent CLI arguments.
+        :rtype: List
+        '''
+        # Not implemented.
+        raise NotImplementedError('get_parent_arguments method is required for CliService.')

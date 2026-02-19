@@ -13,8 +13,10 @@ from unittest import mock
 from ..cli import (
     AddCliCommand,
     AddCliArgument,
+    ListCliCommands,
+    GetParentArguments,
 )
-from ...entities import CliCommand, CliArgument
+from ...entities import CliCommand, CliArgument, ModelObject
 from ...mappers import (
     CliCommandAggregate,
 )
@@ -384,3 +386,195 @@ def test_add_cli_argument_multiple_arguments(
 
     assert len(sample_cli_command.arguments) == 2
     assert mock_cli_service.save.call_count == 2
+
+# ** test: list_cli_commands_success
+def test_list_cli_commands_success(
+    mock_cli_service: CliService,
+    sample_cli_command: CliCommand,
+):
+    '''
+    Test that ListCliCommands successfully lists all CLI commands.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    :param sample_cli_command: Sample CLI command.
+    :type sample_cli_command: CliCommand
+    '''
+
+    # Arrange the mock service to return a list of commands.
+    command_list = [
+        sample_cli_command,
+        Aggregate.new(
+            CliCommandAggregate,
+            id='test.another',
+            name='Another Command',
+            key='another',
+            group_key='test',
+            description='Another test command',
+            arguments=[],
+        )
+    ]
+    mock_cli_service.list.return_value = command_list
+
+    command = ListCliCommands(cli_service=mock_cli_service)
+
+    result = command.execute()
+
+    # Assert the result is a list of CLI commands.
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert result[0].id == 'test.command'
+    assert result[1].id == 'test.another'
+
+    # Assert the service was called.
+    mock_cli_service.list.assert_called_once()
+
+# ** test: list_cli_commands_empty
+def test_list_cli_commands_empty(
+    mock_cli_service: CliService,
+):
+    '''
+    Test that ListCliCommands handles empty command lists.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    '''
+
+    # Arrange the mock service to return an empty list.
+    mock_cli_service.list.return_value = []
+
+    command = ListCliCommands(cli_service=mock_cli_service)
+
+    result = command.execute()
+
+    # Assert the result is an empty list.
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+    # Assert the service was called.
+    mock_cli_service.list.assert_called_once()
+
+# ** test: list_cli_commands_via_command_handle
+def test_list_cli_commands_via_command_handle(
+    mock_cli_service: CliService,
+    sample_cli_command: CliCommand,
+):
+    '''
+    Test that ListCliCommands works via Command.handle.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    :param sample_cli_command: Sample CLI command.
+    :type sample_cli_command: CliCommand
+    '''
+
+    mock_cli_service.list.return_value = [sample_cli_command]
+
+    result = Command.handle(
+        ListCliCommands,
+        dependencies={'cli_service': mock_cli_service},
+    )
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0].id == 'test.command'
+    mock_cli_service.list.assert_called_once()
+
+# ** test: get_parent_arguments_success
+def test_get_parent_arguments_success(
+    mock_cli_service: CliService,
+):
+    '''
+    Test that GetParentArguments successfully retrieves parent arguments.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    '''
+
+    # Arrange the mock service to return parent arguments.
+    parent_args = [
+        ModelObject.new(
+            CliArgument,
+            name_or_flags=['--verbose', '-v'],
+            description='Enable verbose output',
+            type='str',
+            required=False,
+        ),
+        ModelObject.new(
+            CliArgument,
+            name_or_flags=['--debug'],
+            description='Enable debug mode',
+            type='str',
+            required=False,
+        )
+    ]
+    mock_cli_service.get_parent_arguments.return_value = parent_args
+
+    command = GetParentArguments(cli_service=mock_cli_service)
+
+    result = command.execute()
+
+    # Assert the result is a list of parent arguments.
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert '--verbose' in result[0].name_or_flags
+    assert '--debug' in result[1].name_or_flags
+
+    # Assert the service was called.
+    mock_cli_service.get_parent_arguments.assert_called_once()
+
+# ** test: get_parent_arguments_empty
+def test_get_parent_arguments_empty(
+    mock_cli_service: CliService,
+):
+    '''
+    Test that GetParentArguments handles empty parent argument lists.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    '''
+
+    # Arrange the mock service to return an empty list.
+    mock_cli_service.get_parent_arguments.return_value = []
+
+    command = GetParentArguments(cli_service=mock_cli_service)
+
+    result = command.execute()
+
+    # Assert the result is an empty list.
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+    # Assert the service was called.
+    mock_cli_service.get_parent_arguments.assert_called_once()
+
+# ** test: get_parent_arguments_via_command_handle
+def test_get_parent_arguments_via_command_handle(
+    mock_cli_service: CliService,
+):
+    '''
+    Test that GetParentArguments works via Command.handle.
+
+    :param mock_cli_service: The mock CLI service.
+    :type mock_cli_service: CliService
+    '''
+
+    parent_args = [
+        ModelObject.new(
+            CliArgument,
+            name_or_flags=['--config'],
+            description='Config file path',
+            type='str',
+        )
+    ]
+    mock_cli_service.get_parent_arguments.return_value = parent_args
+
+    result = Command.handle(
+        GetParentArguments,
+        dependencies={'cli_service': mock_cli_service},
+    )
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert '--config' in result[0].name_or_flags
+    mock_cli_service.get_parent_arguments.assert_called_once()

@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Optional
+from typing import Optional, List
 
 # ** app
 from ..entities import CliCommand
@@ -13,6 +13,77 @@ from ..mappers import CliCommandAggregate
 from ..mappers.settings import Aggregate
 
 # *** commands
+
+# ** command: list_cli_commands
+class ListCliCommands(Command):
+    '''
+    Command to list all CLI commands.
+    '''
+
+    # * attribute: cli_service
+    cli_service: CliService
+
+    # * init
+    def __init__(self, cli_service: CliService):
+        '''
+        Initialize the list CLI commands command.
+
+        :param cli_service: The CLI service.
+        :type cli_service: CliService
+        '''
+
+        # Set the command attributes.
+        self.cli_service = cli_service
+
+    # * method: execute
+    def execute(self, **kwargs) -> List[CliCommand]:
+        '''
+        List all CLI commands.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: List of CLI commands.
+        :rtype: List[CliCommand]
+        '''
+
+        # Delegate to the CLI service.
+        return self.cli_service.list()
+
+
+# ** command: get_parent_arguments
+class GetParentArguments(Command):
+    '''
+    Command to retrieve parent-level CLI arguments.
+    '''
+
+    # * attribute: cli_service
+    cli_service: CliService
+
+    # * init
+    def __init__(self, cli_service: CliService):
+        '''
+        Initialize the get parent arguments command.
+
+        :param cli_service: The CLI service.
+        :type cli_service: CliService
+        '''
+
+        # Set the command attributes.
+        self.cli_service = cli_service
+
+    # * method: execute
+    def execute(self, **kwargs) -> List:
+        '''
+        Get parent-level CLI arguments.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: List of parent CLI arguments.
+        :rtype: List
+        '''
+
+        # Delegate to the CLI service.
+        return self.cli_service.get_parent_arguments()
 
 # ** command: add_cli_command
 class AddCliCommand(Command):
