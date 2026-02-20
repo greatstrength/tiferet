@@ -32,6 +32,7 @@ class AddAppInterface(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name'])
     def execute(
         self,
         id: str,
@@ -76,19 +77,6 @@ class AddAppInterface(DomainEvent):
         :return: The created AppInterface.
         :rtype: AppInterface
         '''
-
-        # Validate required scalar parameters.
-        for param_name, value in (
-            ('id', id),
-            ('name', name),
-            ('module_path', module_path),
-            ('class_name', class_name),
-        ):
-            self.verify_parameter(
-                parameter=value,
-                parameter_name=param_name,
-                command_name=self.__class__.__name__,
-            )
 
         # Collect the app interface data.
         app_interface_data = {
@@ -186,6 +174,7 @@ class UpdateAppInterface(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'attribute'])
     def execute(self, id: str, attribute: str, value: Any, **kwargs) -> str:
         '''
         Update a scalar attribute on an existing app interface.
@@ -201,18 +190,6 @@ class UpdateAppInterface(DomainEvent):
         :return: The ID of the updated app interface.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute,
-            parameter_name='attribute',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the app interface via the app service.
         interface = self.app_service.get(id)
@@ -256,6 +233,7 @@ class SetAppConstants(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(
             self,
             id: str,
@@ -274,13 +252,6 @@ class SetAppConstants(DomainEvent):
         :return: The ID of the app interface whose constants were updated.
         :rtype: str
         '''
-
-        # Validate required id parameter.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the app interface via the app service.
         interface = self.app_service.get(id)
@@ -360,6 +331,7 @@ class SetServiceDependency(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'attribute_id', 'module_path', 'class_name'])
     def execute(
             self,
             id: str,
@@ -387,28 +359,6 @@ class SetServiceDependency(DomainEvent):
         :return: The ID of the app interface whose dependency was set.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute_id,
-            parameter_name='attribute_id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=module_path,
-            parameter_name='module_path',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=class_name,
-            parameter_name='class_name',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the app interface via the app service.
         interface = self.app_service.get(id)
@@ -457,6 +407,7 @@ class RemoveServiceDependency(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'attribute_id'])
     def execute(self, id: str, attribute_id: str, **kwargs) -> str:
         '''
         Remove a dependency attribute by attribute_id.
@@ -470,18 +421,6 @@ class RemoveServiceDependency(DomainEvent):
         :return: The ID of the app interface whose dependency was removed.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute_id,
-            parameter_name='attribute_id',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the app interface via the app service.
         interface = self.app_service.get(id)
@@ -525,6 +464,7 @@ class RemoveAppInterface(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove an app interface by ID.
@@ -536,13 +476,6 @@ class RemoveAppInterface(DomainEvent):
         :return: The removed interface ID.
         :rtype: str
         '''
-
-        # Validate required id parameter.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
 
         # Delegate deletion to the app service (idempotent operation).
         self.app_service.delete(id)

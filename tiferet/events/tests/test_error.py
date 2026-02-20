@@ -238,7 +238,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             message='Some message.'
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert exc_info.value.kwargs.get('parameter') == 'id'
+    assert 'id' in exc_info.value.kwargs.get('parameters')
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
     # Test with empty name.
@@ -249,7 +249,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             message='Some message.'
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert exc_info.value.kwargs.get('parameter') == 'name'
+    assert 'name' in exc_info.value.kwargs.get('parameters')
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
     # Test with empty message.
@@ -260,7 +260,7 @@ def test_add_error_already_invalid_parameters(add_error_command: AddError):
             message=''
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert exc_info.value.kwargs.get('parameter') == 'message'
+    assert 'message' in exc_info.value.kwargs.get('parameters')
     assert exc_info.value.kwargs.get('command') == 'AddError'
 
 # ** test: add_error_already_exists
@@ -553,7 +553,7 @@ def test_rename_error_empty_name(rename_error_command: RenameError, error_servic
 
     # Verify the exception message.
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('parameter') == 'new_name', 'Parameter in exception does not match.'
+    assert 'new_name' in exc_info.value.kwargs.get('parameters'), 'Parameter in exception does not match.'
     assert exc_info.value.kwargs.get('command') == 'RenameError', 'Command in exception does not match.'
 
 # ** test: rename_error_not_found
@@ -651,7 +651,7 @@ def test_set_error_message_empty_message(set_error_message_command: SetErrorMess
 
     # Verify the exception message.
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('parameter') == 'message', 'Parameter in exception does not match.'
+    assert 'message' in exc_info.value.kwargs.get('parameters'), 'Parameter in exception does not match.'
     assert exc_info.value.kwargs.get('command') == 'SetErrorMessage', 'Command in exception does not match.'
 
 # ** test: set_error_message_not_found
@@ -819,5 +819,5 @@ def test_remove_error_invalid_parameters(remove_error_command: RemoveError):
             id=''
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert exc_info.value.kwargs.get('parameter') == 'id'
+    assert 'id' in exc_info.value.kwargs.get('parameters')
     assert exc_info.value.kwargs.get('command') == 'RemoveError'

@@ -30,6 +30,7 @@ class MutateSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['statement'])
     def execute(
         self,
         statement: str,
@@ -43,9 +44,6 @@ class MutateSql(DomainEvent):
         :param parameters: Bind parameters (tuple or dict)
         :return: {"rowcount": int, "lastrowid": int | None}
         '''
-        # Validate statement is present
-        self.verify_parameter(statement, 'statement', 'MutateSql')
-
         # Validate statement type
         clean_statement = statement.strip().upper()
         self.verify(
@@ -88,6 +86,7 @@ class QuerySql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['query'])
     def execute(
         self,
         query: str,
@@ -103,9 +102,6 @@ class QuerySql(DomainEvent):
         :param fetch_one: If True, return single row or None instead of list
         :return: List of row dicts, or single dict/None if fetch_one=True
         '''
-        # Validate query is present
-        self.verify_parameter(query, 'query', 'QuerySql')
-
         # Validate query starts with SELECT or WITH
         clean_query = query.strip().upper()
         self.verify(
@@ -151,6 +147,7 @@ class BulkMutateSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['statement', 'parameters_list'])
     def execute(
         self,
         statement: str,
@@ -164,12 +161,6 @@ class BulkMutateSql(DomainEvent):
         :param parameters_list: Sequence of parameter tuples or dicts
         :return: {"total_rowcount": int, "lastrowids": List[int] | None}
         '''
-        # Validate statement is present
-        self.verify_parameter(statement, 'statement', 'BulkMutateSql')
-
-        # Validate parameters_list is present
-        self.verify_parameter(parameters_list, 'parameters_list', 'BulkMutateSql')
-
         # Validate statement type
         clean_statement = statement.strip().upper()
         self.verify(
@@ -224,6 +215,7 @@ class ExecuteScriptSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['script'])
     def execute(
         self,
         script: str,
@@ -235,9 +227,6 @@ class ExecuteScriptSql(DomainEvent):
         :param script: Multi-statement SQL script
         :return: {"success": bool}
         '''
-        # Validate script is present
-        self.verify_parameter(script, 'script', 'ExecuteScriptSql')
-
         try:
             with self.sqlite_service as sql:
                 sql.executescript(script)
@@ -272,6 +261,7 @@ class BackupSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['target_path'])
     def execute(
         self,
         target_path: str,
@@ -287,9 +277,6 @@ class BackupSql(DomainEvent):
         :param progress: Optional callback(status, remaining, total)
         :return: {"success": bool, "message": str | None}
         '''
-        # Validate target_path
-        self.verify_parameter(target_path, 'target_path', 'BackupSql')
-
         try:
             with self.sqlite_service as sql:
                 sql.backup(target_path, pages=pages, progress=progress)
@@ -326,6 +313,7 @@ class CreateTableSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['table_name', 'columns'])
     def execute(
         self,
         table_name: str,
@@ -348,9 +336,6 @@ class CreateTableSql(DomainEvent):
         :return: {"success": bool}
         :rtype: Dict[str, Any]
         '''
-        # Validate table_name is present
-        self.verify_parameter(table_name, 'table_name', 'CreateTableSql')
-
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
@@ -361,7 +346,6 @@ class CreateTableSql(DomainEvent):
         )
 
         # Validate columns is present and non-empty
-        self.verify_parameter(columns, 'columns', 'CreateTableSql')
         self.verify(
             isinstance(columns, dict) and len(columns) > 0,
             a.const.COMMAND_PARAMETER_REQUIRED_ID,
@@ -465,6 +449,7 @@ class DropTableSql(DomainEvent):
         self.sqlite_service = sqlite_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['table_name'])
     def execute(
         self,
         table_name: str,
@@ -481,9 +466,6 @@ class DropTableSql(DomainEvent):
         :return: {"success": bool}
         :rtype: Dict[str, Any]
         '''
-        # Validate table_name is present
-        self.verify_parameter(table_name, 'table_name', 'DropTableSql')
-
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),

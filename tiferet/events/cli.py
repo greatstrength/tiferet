@@ -107,6 +107,7 @@ class AddCliCommand(DomainEvent):
         self.cli_service = cli_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(
         self,
         id: str,
@@ -135,13 +136,6 @@ class AddCliCommand(DomainEvent):
         :return: Created CliCommand model.
         :rtype: CliCommand
         '''
-
-        # Validate required id using base verify_parameter helper.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
 
         # Check for existing command id.
         self.verify(
@@ -188,6 +182,7 @@ class AddCliArgument(DomainEvent):
         self.cli_service = cli_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['command_id'])
     def execute(
         self,
         command_id: str,
@@ -207,13 +202,6 @@ class AddCliArgument(DomainEvent):
         :return: The CLI command id.
         :rtype: str
         '''
-
-        # Validate required command_id.
-        self.verify_parameter(
-            parameter=command_id,
-            parameter_name='command_id',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the existing CLI command.
         command = self.cli_service.get(command_id)

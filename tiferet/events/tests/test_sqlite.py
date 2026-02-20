@@ -542,8 +542,7 @@ def test_execute_script_sql_validation_error():
             script=""
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    # Standard message from verify_parameter check
-    assert "parameter is required" in str(exc_info.value)
+    assert 'script' in exc_info.value.kwargs.get('parameters')
 
     # 2. Whitespace only
     with pytest.raises(TiferetError) as exc_info:
@@ -553,8 +552,7 @@ def test_execute_script_sql_validation_error():
             script="   \n   "
         )
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    # Standard message is sufficient as verify_parameter catches it
-    assert "parameter is required" in str(exc_info.value)
+    assert 'script' in exc_info.value.kwargs.get('parameters')
 
 # ** test: execute_script_sql_execution_error
 def test_execute_script_sql_execution_error(sqlite_service_mock: mock.Mock):

@@ -38,6 +38,7 @@ class AddError(DomainEvent):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'message'])
     def execute(self,
             id: str,
             name: str,
@@ -59,27 +60,6 @@ class AddError(DomainEvent):
         :param additional_messages: Additional error messages in different languages.
         :type additional_messages: List[Dict[str, Any]]
         """
-
-        # Verfy that the id is not null/empty.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name='AddError'
-        )
-
-        # Verify that the name is not null/empty.
-        self.verify_parameter(
-            parameter=name,
-            parameter_name='name',
-            command_name='AddError'
-        )
-
-        # Verify that the message is not null/empty.
-        self.verify_parameter(
-            parameter=message,
-            parameter_name='message',
-            command_name='AddError'
-        )
 
         # Check if an error with the same ID already exists.
         exists = self.error_service.exists(id)
@@ -223,6 +203,7 @@ class RenameError(DomainEvent):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['new_name'])
     def execute(self, id: str, new_name: str, **kwargs) -> Error:
         """
         Rename an existing Error by its ID.
@@ -236,13 +217,6 @@ class RenameError(DomainEvent):
         :return: The updated Error domain model instance.
         :rtype: Error
         """
-
-        # Verify that the new name is not null/empty.
-        self.verify_parameter(
-            parameter=new_name,
-            parameter_name='new_name',
-            command_name='RenameError'
-        )
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -284,6 +258,7 @@ class SetErrorMessage(DomainEvent):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['message'])
     def execute(self, id: str, message: str, lang: str = 'en_US', **kwargs) -> str:
         """
         Set the message of an existing Error by its ID.
@@ -299,13 +274,6 @@ class SetErrorMessage(DomainEvent):
         :return: The unique identifier of the updated error.
         :rtype: str
         """
-
-        # Verify that the message is not null/empty.
-        self.verify_parameter(
-            parameter=message,
-            parameter_name='message',
-            command_name='SetErrorMessage'
-        )
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -407,6 +375,7 @@ class RemoveError(DomainEvent):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> None:
         """
         Remove an existing Error by its ID.
@@ -416,13 +385,6 @@ class RemoveError(DomainEvent):
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
         """
-
-        # Verify that the id parameter is not null or empty.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name='RemoveError'
-        )
 
         # Remove the error.
         self.error_service.delete(id)

@@ -72,6 +72,7 @@ class AddFormatter(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'format'])
     def execute(
             self,
             id: str,
@@ -99,11 +100,6 @@ class AddFormatter(DomainEvent):
         :return: The created Formatter aggregate.
         :rtype: Formatter
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
-        self.verify_parameter(name, 'name', self.__class__.__name__)
-        self.verify_parameter(format, 'format', self.__class__.__name__)
 
         # Create the formatter aggregate.
         formatter = Aggregate.new(
@@ -145,6 +141,7 @@ class RemoveFormatter(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove a formatter by ID.
@@ -156,9 +153,6 @@ class RemoveFormatter(DomainEvent):
         :return: The removed formatter ID.
         :rtype: str
         '''
-
-        # Validate required parameter.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
 
         # Delete the formatter (idempotent operation).
         self.logging_service.delete_formatter(id)
@@ -189,6 +183,7 @@ class AddHandler(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name', 'level', 'formatter'])
     def execute(
             self,
             id: str,
@@ -228,14 +223,6 @@ class AddHandler(DomainEvent):
         :return: The created Handler aggregate.
         :rtype: Handler
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
-        self.verify_parameter(name, 'name', self.__class__.__name__)
-        self.verify_parameter(module_path, 'module_path', self.__class__.__name__)
-        self.verify_parameter(class_name, 'class_name', self.__class__.__name__)
-        self.verify_parameter(level, 'level', self.__class__.__name__)
-        self.verify_parameter(formatter, 'formatter', self.__class__.__name__)
 
         # Create the handler aggregate.
         handler = Aggregate.new(
@@ -281,6 +268,7 @@ class RemoveHandler(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove a handler by ID.
@@ -292,9 +280,6 @@ class RemoveHandler(DomainEvent):
         :return: The removed handler ID.
         :rtype: str
         '''
-
-        # Validate required parameter.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
 
         # Delete the handler (idempotent operation).
         self.logging_service.delete_handler(id)
@@ -325,6 +310,7 @@ class AddLogger(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'level', 'handlers'])
     def execute(
             self,
             id: str,
@@ -355,12 +341,6 @@ class AddLogger(DomainEvent):
         :return: The created Logger aggregate.
         :rtype: Logger
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
-        self.verify_parameter(name, 'name', self.__class__.__name__)
-        self.verify_parameter(level, 'level', self.__class__.__name__)
-        self.verify_parameter(handlers, 'handlers', self.__class__.__name__)
 
         # Create the logger aggregate.
         logger = Aggregate.new(
@@ -403,6 +383,7 @@ class RemoveLogger(DomainEvent):
         self.logging_service = logging_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove a logger by ID.
@@ -414,9 +395,6 @@ class RemoveLogger(DomainEvent):
         :return: The removed logger ID.
         :rtype: str
         '''
-
-        # Validate required parameter.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
 
         # Delete the logger (idempotent operation).
         self.logging_service.delete_logger(id)
