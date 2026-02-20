@@ -8,12 +8,12 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import Command, TiferetError
+from .settings import DomainEvent, TiferetError
 
 # *** commands
 
 # ** command: parse_parameter
-class ParseParameter(Command):
+class ParseParameter(DomainEvent):
     '''
     A command to parse a parameter from a string.
     '''
@@ -57,7 +57,7 @@ class ParseParameter(Command):
             )
         
 # ** command: import_dependency
-class ImportDependency(Command):
+class ImportDependency(DomainEvent):
     '''
     A command to import a dependency from a module.
     '''
@@ -93,7 +93,7 @@ class ImportDependency(Command):
             )
         
 # ** command: raise_error
-class RaiseError(Command):
+class RaiseError(DomainEvent):
     '''
     A command to raise an error with a specific message.
     '''

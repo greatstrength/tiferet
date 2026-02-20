@@ -5,6 +5,7 @@ from typing import Dict, Any
 
 # ** app
 from .configs import *
+from .events import DomainEvent
 from .events.app import *
 
 
@@ -42,7 +43,7 @@ class AppManager(object):
         '''
 
         # Load the application settings.
-        return Command.handle(
+        return DomainEvent.handle(
             LoadAppSettings,
             **self.settings,
             app_name=app_name,
@@ -68,7 +69,7 @@ class AppManager(object):
         settings = self.load_settings(app_name, **kwargs)
 
         # Execute the command to load the app instance.
-        return Command.handle(
+        return DomainEvent.handle(
             LoadAppContext,
             settings=settings,
             dependencies=dependencies,

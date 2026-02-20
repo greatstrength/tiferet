@@ -17,7 +17,7 @@ from ..app import (
     RemoveServiceDependency,
     RemoveAppInterface,
 )
-from ..settings import TiferetError, Command, a
+from ..settings import TiferetError, DomainEvent, a
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 from ...entities import (
     AppInterface,
@@ -121,7 +121,7 @@ def test_add_app_interface_success(mock_app_service: AppService):
     Ensure AddAppInterface creates and saves a new AppInterface.
     '''
 
-    result: AppInterface = Command.handle(
+    result: AppInterface = DomainEvent.handle(
         AddAppInterface,
         dependencies={'app_service': mock_app_service},
         id='test.app',
@@ -172,7 +172,7 @@ def test_add_app_interface_defaults(mock_app_service: AppService):
     Ensure AddAppInterface applies default flags and empty attributes/constants.
     '''
 
-    result: AppInterface = Command.handle(
+    result: AppInterface = DomainEvent.handle(
         AddAppInterface,
         dependencies={'app_service': mock_app_service},
         id='test.app',
@@ -196,7 +196,7 @@ def test_add_app_interface_missing_required_field(mock_app_service: AppService):
     '''
 
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddAppInterface,
             dependencies={'app_service': mock_app_service},
             id=' ',  # invalid
@@ -223,7 +223,7 @@ def test_get_app_interface_not_found(mock_app_service: AppService):
 
     # Attempt to get an app interface that does not exist.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             GetAppInterface,
             dependencies={'app_service': mock_app_service},
             interface_id='non_existent_id',
@@ -246,8 +246,8 @@ def test_get_app_interface_success(mock_app_service: AppService, app_interface: 
 
     mock_app_service.get.return_value = app_interface
 
-    # Execute the command to get the app interface via Command.handle.
-    result = Command.handle(
+    # Execute the command to get the app interface via DomainEvent.handle.
+    result = DomainEvent.handle(
         GetAppInterface,
         dependencies={'app_service': mock_app_service},
         interface_id='test',
@@ -268,8 +268,8 @@ def test_list_app_interfaces_empty(app_service):
     # Configure the service to return an empty list.
     app_service.list.return_value = []
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         ListAppInterfaces,
         dependencies={'app_service': app_service},
     )
@@ -293,8 +293,8 @@ def test_set_service_dependency_creates_new_attribute(app_service, app_interface
     # Ensure no attribute with the target id exists initially.
     assert app_interface.get_attribute('new_dependency') is None
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         SetServiceDependency,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -335,8 +335,8 @@ def test_set_service_dependency_updates_existing_attribute_and_merges_parameters
     existing_attr = app_interface.get_attribute('test_attribute')
     existing_attr.parameters = {'keep': 'value', 'override': 'old', 'remove': 'to_be_removed'}
 
-    # Execute the command via Command.handle with updated fields and parameters.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle with updated fields and parameters.
+    result = DomainEvent.handle(
         SetServiceDependency,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -384,7 +384,7 @@ def test_set_service_dependency_parameters_none_clears_existing(app_service, app
     existing_attr.parameters = {'key': 'value'}
 
     # Execute the command with parameters set to None.
-    result = Command.handle(
+    result = DomainEvent.handle(
         SetServiceDependency,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -427,7 +427,7 @@ def test_set_service_dependency_missing_required_parameters(missing_param, app_s
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             SetServiceDependency,
             dependencies={'app_service': app_service},
             **kwargs,
@@ -452,7 +452,7 @@ def test_set_service_dependency_interface_not_found(app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             SetServiceDependency,
             dependencies={'app_service': app_service},
             id='missing.interface',
@@ -486,8 +486,8 @@ def test_list_app_interfaces_multiple(app_service, app_interface):
     )
     app_service.list.return_value = [app_interface, another_interface]
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         ListAppInterfaces,
         dependencies={'app_service': app_service},
     )
@@ -505,8 +505,8 @@ def test_add_app_interface_minimal_success(app_service):
     :type app_service: AppService
     '''
 
-    # Execute the command with only required parameters via Command.handle.
-    interface = Command.handle(
+    # Execute the command with only required parameters via DomainEvent.handle.
+    interface = DomainEvent.handle(
         AddAppInterface,
         dependencies={'app_service': app_service},
         id='test.interface',
@@ -552,8 +552,8 @@ def test_add_app_interface_full_parameters(app_service):
         'TEST_CONST': 'test_const_value',
     }
 
-    # Execute the command via Command.handle with full parameters.
-    interface = Command.handle(
+    # Execute the command via DomainEvent.handle with full parameters.
+    interface = DomainEvent.handle(
         AddAppInterface,
         dependencies={'app_service': app_service},
         id='test.interface',
@@ -617,7 +617,7 @@ def test_add_app_interface_missing_required_fields(missing_param, app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             AddAppInterface,
             dependencies={'app_service': app_service},
             **kwargs,
@@ -637,7 +637,7 @@ def test_add_app_interface_default_fallbacks(app_service):
     '''
 
     # Execute the command with explicit falsy values for flags.
-    interface = Command.handle(
+    interface = DomainEvent.handle(
         AddAppInterface,
         dependencies={'app_service': app_service},
         id='test.interface',
@@ -679,8 +679,8 @@ def test_update_app_interface_success_supported_attributes(
     :type app_interface: AppInterface
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         UpdateAppInterface,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -718,7 +718,7 @@ def test_update_app_interface_missing_required_parameters(missing_param, app_ser
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             UpdateAppInterface,
             dependencies={'app_service': app_service},
             **kwargs,
@@ -742,7 +742,7 @@ def test_update_app_interface_interface_not_found(app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             UpdateAppInterface,
             dependencies={'app_service': app_service},
             id='missing.interface',
@@ -769,7 +769,7 @@ def test_update_app_interface_invalid_attribute_raises_model_error(
 
     # Execute the command with an unsupported attribute name.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             UpdateAppInterface,
             dependencies={'app_service': app_service},
             id=app_interface.id,
@@ -799,7 +799,7 @@ def test_update_app_interface_invalid_type_attributes_empty_value(
 
     # Execute the command with an empty value for a type-constrained attribute.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             UpdateAppInterface,
             dependencies={'app_service': app_service},
             id=app_interface.id,
@@ -823,8 +823,8 @@ def test_set_app_constants_full_clear(app_service, app_interface):
         'OTHER': 'other_value',
     }
 
-    # Execute the command via Command.handle with constants=None.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle with constants=None.
+    result = DomainEvent.handle(
         SetAppConstants,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -854,7 +854,7 @@ def test_set_app_constants_merge_override_and_remove(app_service, app_interface)
     }
 
     # Execute the command with mixed updates.
-    result = Command.handle(
+    result = DomainEvent.handle(
         SetAppConstants,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -888,7 +888,7 @@ def test_set_app_constants_add_new_constants(app_service, app_interface):
     assert app_interface.constants == {}
 
     # Execute the command with new constants.
-    result = Command.handle(
+    result = DomainEvent.handle(
         SetAppConstants,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -919,7 +919,7 @@ def test_set_app_constants_missing_or_empty_id(invalid_id, app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             SetAppConstants,
             dependencies={'app_service': app_service},
             id=invalid_id,
@@ -942,7 +942,7 @@ def test_set_app_constants_interface_not_found(app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             SetAppConstants,
             dependencies={'app_service': app_service},
             id='missing.interface',
@@ -969,8 +969,8 @@ def test_remove_service_dependency_removes_existing_attribute(app_service, app_i
     assert existing_attr is not None
     initial_count = len(app_interface.attributes)
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         RemoveServiceDependency,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -1002,8 +1002,8 @@ def test_remove_service_dependency_missing_attribute_is_idempotent(app_service, 
     assert app_interface.get_attribute('missing_attribute') is None
     initial_count = len(app_interface.attributes)
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         RemoveServiceDependency,
         dependencies={'app_service': app_service},
         id=app_interface.id,
@@ -1034,7 +1034,7 @@ def test_remove_service_dependency_interface_not_found(app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             RemoveServiceDependency,
             dependencies={'app_service': app_service},
             id='missing.interface',
@@ -1066,7 +1066,7 @@ def test_remove_service_dependency_missing_required_parameters(missing_param, ap
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             RemoveServiceDependency,
             dependencies={'app_service': app_service},
             **kwargs,
@@ -1085,8 +1085,8 @@ def test_remove_app_interface_success_existing(app_service):
     :type app_service: AppService
     '''
 
-    # Execute the command via Command.handle for an existing interface.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle for an existing interface.
+    result = DomainEvent.handle(
         RemoveAppInterface,
         dependencies={'app_service': app_service},
         id='existing.interface',
@@ -1105,8 +1105,8 @@ def test_remove_app_interface_success_missing_is_idempotent(app_service):
     :type app_service: AppService
     '''
 
-    # Execute the command via Command.handle for a missing interface.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle for a missing interface.
+    result = DomainEvent.handle(
         RemoveAppInterface,
         dependencies={'app_service': app_service},
         id='missing.interface',
@@ -1130,7 +1130,7 @@ def test_remove_app_interface_missing_or_empty_id(invalid_id, app_service):
 
     # Execute the command and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             RemoveAppInterface,
             dependencies={'app_service': app_service},
             id=invalid_id,

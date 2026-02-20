@@ -21,7 +21,7 @@ from ...entities import Formatter, Handler, Logger
 from ...interfaces import LoggingService
 from ...mappers import Aggregate, FormatterAggregate, HandlerAggregate, LoggerAggregate
 from ...assets import TiferetError
-from ...events import Command
+from ...events import DomainEvent
 
 
 # *** fixtures
@@ -119,8 +119,8 @@ def test_list_all_logging_configs_success(
         [sample_logger],
     )
 
-    # Execute the command via Command.handle.
-    formatters, handlers, loggers = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    formatters, handlers, loggers = DomainEvent.handle(
         ListAllLoggingConfigs,
         dependencies={'logging_service': mock_logging_service},
     )
@@ -144,8 +144,8 @@ def test_list_all_logging_configs_empty(mock_logging_service: LoggingService) ->
     # Arrange the logging service to return empty lists.
     mock_logging_service.list_all.return_value = ([], [], [])
 
-    # Execute the command via Command.handle.
-    formatters, handlers, loggers = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    formatters, handlers, loggers = DomainEvent.handle(
         ListAllLoggingConfigs,
         dependencies={'logging_service': mock_logging_service},
     )
@@ -166,8 +166,8 @@ def test_add_formatter_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         AddFormatter,
         dependencies={'logging_service': mock_logging_service},
         id='detailed',
@@ -198,7 +198,7 @@ def test_add_formatter_minimal(mock_logging_service: LoggingService) -> None:
     '''
 
     # Execute the command with only required fields.
-    result = Command.handle(
+    result = DomainEvent.handle(
         AddFormatter,
         dependencies={'logging_service': mock_logging_service},
         id='minimal',
@@ -226,7 +226,7 @@ def test_add_formatter_missing_required(mock_logging_service: LoggingService) ->
 
     # Execute with missing 'format' parameter.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddFormatter,
             dependencies={'logging_service': mock_logging_service},
             id='test',
@@ -248,8 +248,8 @@ def test_remove_formatter_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         RemoveFormatter,
         dependencies={'logging_service': mock_logging_service},
         id='old_formatter',
@@ -269,8 +269,8 @@ def test_add_handler_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         AddHandler,
         dependencies={'logging_service': mock_logging_service},
         id='file_handler',
@@ -302,7 +302,7 @@ def test_add_handler_with_stream(mock_logging_service: LoggingService) -> None:
     '''
 
     # Execute the command with stream parameter.
-    result = Command.handle(
+    result = DomainEvent.handle(
         AddHandler,
         dependencies={'logging_service': mock_logging_service},
         id='stderr_handler',
@@ -330,8 +330,8 @@ def test_remove_handler_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         RemoveHandler,
         dependencies={'logging_service': mock_logging_service},
         id='old_handler',
@@ -351,8 +351,8 @@ def test_add_logger_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         AddLogger,
         dependencies={'logging_service': mock_logging_service},
         id='app.database',
@@ -383,7 +383,7 @@ def test_add_logger_minimal(mock_logging_service: LoggingService) -> None:
     '''
 
     # Execute the command with only required fields.
-    result = Command.handle(
+    result = DomainEvent.handle(
         AddLogger,
         dependencies={'logging_service': mock_logging_service},
         id='simple_logger',
@@ -408,8 +408,8 @@ def test_remove_logger_success(mock_logging_service: LoggingService) -> None:
     :type mock_logging_service: LoggingService
     '''
 
-    # Execute the command via Command.handle.
-    result = Command.handle(
+    # Execute the command via DomainEvent.handle.
+    result = DomainEvent.handle(
         RemoveLogger,
         dependencies={'logging_service': mock_logging_service},
         id='old_logger',
@@ -431,7 +431,7 @@ def test_remove_logger_missing_id(mock_logging_service: LoggingService) -> None:
 
     # Execute with empty id.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             RemoveLogger,
             dependencies={'logging_service': mock_logging_service},
             id='',

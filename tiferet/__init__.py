@@ -19,6 +19,7 @@ try:
         ModelType,
     )
     from .events import (
+        DomainEvent,
         Command,
         ParseParameter
     )

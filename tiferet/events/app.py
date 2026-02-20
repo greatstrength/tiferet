@@ -4,7 +4,7 @@
 from typing import List, Dict, Any
 
 # ** app
-from .settings import Command, a
+from .settings import DomainEvent, a
 from ..entities import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
@@ -12,7 +12,7 @@ from ..mappers import AppInterfaceAggregate
 # *** commands
 
 # ** command: add_app_interface
-class AddAppInterface(Command):
+class AddAppInterface(DomainEvent):
     '''
     Command to add a new application interface configuration via the AppService.
     '''
@@ -116,7 +116,7 @@ class AddAppInterface(Command):
         return interface
 
 # ** command: get_app_interface
-class GetAppInterface(Command):
+class GetAppInterface(DomainEvent):
     '''
     Command to retrieve an app interface using the ``AppService`` abstraction.
     '''
@@ -165,7 +165,7 @@ class GetAppInterface(Command):
         return interface
 
 # ** command: update_app_interface
-class UpdateAppInterface(Command):
+class UpdateAppInterface(DomainEvent):
     '''
     Command to update scalar attributes of an existing app interface.
     '''
@@ -235,7 +235,7 @@ class UpdateAppInterface(Command):
         return id
 
 # ** command: set_app_constants
-class SetAppConstants(Command):
+class SetAppConstants(DomainEvent):
     '''
     Command to set or clear constants on an app interface.
     '''
@@ -303,7 +303,7 @@ class SetAppConstants(Command):
         return id
 
 # ** command: list_app_interfaces
-class ListAppInterfaces(Command):
+class ListAppInterfaces(DomainEvent):
     '''
     Command to list all configured app interfaces.
     '''
@@ -339,7 +339,7 @@ class ListAppInterfaces(Command):
 
 
 # ** command: set_service_dependency
-class SetServiceDependency(Command):
+class SetServiceDependency(DomainEvent):
     '''
     Command to set or update a dependency attribute on an app interface.
     '''
@@ -436,7 +436,7 @@ class SetServiceDependency(Command):
         return id
 
 # ** command: remove_service_dependency
-class RemoveServiceDependency(Command):
+class RemoveServiceDependency(DomainEvent):
     '''
     Command to remove a dependency attribute from an app interface (idempotent).
     '''
@@ -504,7 +504,7 @@ class RemoveServiceDependency(Command):
         return id
 
 # ** command: remove_app_interface
-class RemoveAppInterface(Command):
+class RemoveAppInterface(DomainEvent):
     '''
     Command to remove an entire app interface configuration by ID (idempotent).
     '''

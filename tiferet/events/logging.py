@@ -9,13 +9,13 @@ from typing import List, Tuple
 from ..entities import Formatter, Handler, Logger
 from ..interfaces import LoggingService
 from ..mappers import Aggregate, FormatterAggregate, HandlerAggregate, LoggerAggregate
-from .settings import Command, a
+from .settings import DomainEvent, a
 
 
 # *** commands
 
 # ** command: list_all_logging_configs
-class ListAllLoggingConfigs(Command):
+class ListAllLoggingConfigs(DomainEvent):
     '''
     Command to list all logging configurations (formatters, handlers, loggers).
     '''
@@ -51,7 +51,7 @@ class ListAllLoggingConfigs(Command):
 
 
 # ** command: add_formatter
-class AddFormatter(Command):
+class AddFormatter(DomainEvent):
     '''
     Command to add a new logging formatter configuration.
     '''
@@ -124,7 +124,7 @@ class AddFormatter(Command):
 
 
 # ** command: remove_formatter
-class RemoveFormatter(Command):
+class RemoveFormatter(DomainEvent):
     '''
     Command to remove a formatter configuration by ID (idempotent).
     '''
@@ -168,7 +168,7 @@ class RemoveFormatter(Command):
 
 
 # ** command: add_handler
-class AddHandler(Command):
+class AddHandler(DomainEvent):
     '''
     Command to add a new logging handler configuration.
     '''
@@ -260,7 +260,7 @@ class AddHandler(Command):
 
 
 # ** command: remove_handler
-class RemoveHandler(Command):
+class RemoveHandler(DomainEvent):
     '''
     Command to remove a handler configuration by ID (idempotent).
     '''
@@ -304,7 +304,7 @@ class RemoveHandler(Command):
 
 
 # ** command: add_logger
-class AddLogger(Command):
+class AddLogger(DomainEvent):
     '''
     Command to add a new logger configuration.
     '''
@@ -382,7 +382,7 @@ class AddLogger(Command):
 
 
 # ** command: remove_logger
-class RemoveLogger(Command):
+class RemoveLogger(DomainEvent):
     '''
     Command to remove a logger configuration by ID (idempotent).
     '''

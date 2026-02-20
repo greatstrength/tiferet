@@ -5,13 +5,13 @@ from typing import List, Dict, Any, Sequence, Optional, Callable
 import sqlite3
 
 # ** app
-from .settings import Command, a
+from .settings import DomainEvent, a
 from ..interfaces.sqlite import SqliteService
 
 # *** commands
 
 # ** command: mutate_sql
-class MutateSql(Command):
+class MutateSql(DomainEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement and return operation metadata.
 
@@ -72,7 +72,7 @@ class MutateSql(Command):
             )
 
 # ** command: query_sql
-class QuerySql(Command):
+class QuerySql(DomainEvent):
     '''
     Execute a read-only SQL query and return results as list of dictionaries.
 
@@ -132,7 +132,7 @@ class QuerySql(Command):
             )
 
 # ** command: bulk_mutate_sql
-class BulkMutateSql(Command):
+class BulkMutateSql(DomainEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement across multiple parameter sets.
 
@@ -205,7 +205,7 @@ class BulkMutateSql(Command):
             )
 
 # ** command: execute_script_sql
-class ExecuteScriptSql(Command):
+class ExecuteScriptSql(DomainEvent):
     '''
     Execute a multi-statement SQL script (DDL + DML) in a single operation.
 
@@ -253,7 +253,7 @@ class ExecuteScriptSql(Command):
             )
 
 # ** command: backup_sql
-class BackupSql(Command):
+class BackupSql(DomainEvent):
     '''
     Perform an online backup of the current SQLite database to a target file.
 
@@ -307,7 +307,7 @@ class BackupSql(Command):
             )
 
 # ** command: create_table_sql
-class CreateTableSql(Command):
+class CreateTableSql(DomainEvent):
     '''
     Helper command to create a table with specified columns and constraints.
 
@@ -446,7 +446,7 @@ class CreateTableSql(Command):
         return all(c.isalnum() or c == '_' for c in name)
 
 # ** command: drop_table_sql
-class DropTableSql(Command):
+class DropTableSql(DomainEvent):
     '''
     Helper command to drop a table safely with optional IF EXISTS clause.
 

@@ -19,7 +19,7 @@ from ..entities import (
     AppAttribute,
 )
 from ..events import (
-    Command,
+    DomainEvent,
     ImportDependency,
     RaiseError,
 )
@@ -179,7 +179,7 @@ class AppManagerContext(object):
         app_repo = self.load_app_repo()
 
         # Get the app interface settings via the AppService abstraction.
-        app_interface = Command.handle(
+        app_interface = DomainEvent.handle(
             GetAppInterface,
             dependencies=dict(
                 app_service=app_repo,

@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from .settings import Command, a
+from .settings import DomainEvent, a
 from ..entities import Error
 from ..interfaces import ErrorService
 from ..mappers import ErrorAggregate
@@ -19,7 +19,7 @@ from ..mappers.settings import Aggregate
 # *** commands
 
 # ** command: add_error
-class AddError(Command):
+class AddError(DomainEvent):
     """
     Command to add a new Error domain object to the repository.
     """
@@ -106,7 +106,7 @@ class AddError(Command):
         return new_error
 
 # ** command: get_error
-class GetError(Command):
+class GetError(DomainEvent):
     """
     Command to retrieve an Error domain object by its ID.
     """
@@ -160,7 +160,7 @@ class GetError(Command):
         )
 
 # ** command: list_errors
-class ListErrors(Command):
+class ListErrors(DomainEvent):
     """
     Command to list all Error domain objects.
     """
@@ -204,7 +204,7 @@ class ListErrors(Command):
         return list(errors.values())
 
 # ** command: rename_error
-class RenameError(Command):
+class RenameError(DomainEvent):
     """
     Command to rename an existing Error domain object.
     """
@@ -265,7 +265,7 @@ class RenameError(Command):
         return error
 
 # ** command: set_error_message
-class SetErrorMessage(Command):
+class SetErrorMessage(DomainEvent):
     """
     Command to set the message of an existing Error domain object.
     """
@@ -328,7 +328,7 @@ class SetErrorMessage(Command):
         return id
 
 # ** command: remove_error_message
-class RemoveErrorMessage(Command):
+class RemoveErrorMessage(DomainEvent):
     """
     Command to remove a message from an existing Error domain object.
     """
@@ -388,7 +388,7 @@ class RemoveErrorMessage(Command):
         return id
 
 # ** command: remove_error
-class RemoveError(Command):
+class RemoveError(DomainEvent):
     """
     Command to remove an existing Error domain object by its ID.
     """

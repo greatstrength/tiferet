@@ -9,13 +9,13 @@ from typing import List, Any
 from ..entities import Feature
 from ..interfaces import FeatureService
 from ..mappers import Aggregate, FeatureAggregate
-from .settings import Command, a
+from .settings import DomainEvent, a
 
 
 # *** commands
 
 # ** command: add_feature
-class AddFeature(Command):
+class AddFeature(DomainEvent):
     '''
     Command to add a new feature configuration.
     '''
@@ -110,7 +110,7 @@ class AddFeature(Command):
 
 
 # ** command: get_feature
-class GetFeature(Command):
+class GetFeature(DomainEvent):
     '''
     Command to retrieve a feature by its identifier.
     '''
@@ -164,7 +164,7 @@ class GetFeature(Command):
         return feature
 
 # ** command: list_features
-class ListFeatures(Command):
+class ListFeatures(DomainEvent):
     '''
     Command to list feature configurations.
     '''
@@ -202,7 +202,7 @@ class ListFeatures(Command):
 
 
 # ** command: remove_feature
-class RemoveFeature(Command):
+class RemoveFeature(DomainEvent):
     '''
     Command to remove an entire feature configuration by ID (idempotent).
 
@@ -251,7 +251,7 @@ class RemoveFeature(Command):
 
 
 # ** command: update_feature
-class UpdateFeature(Command):
+class UpdateFeature(DomainEvent):
     '''
     Command to update basic metadata of an existing feature.
 
@@ -351,7 +351,7 @@ class UpdateFeature(Command):
 
 
 # ** command: add_feature_command
-class AddFeatureCommand(Command):
+class AddFeatureCommand(DomainEvent):
     '''
     Command to add a command to an existing feature.
     '''
@@ -449,7 +449,7 @@ class AddFeatureCommand(Command):
         return id
 
 # ** command: update_feature_command
-class UpdateFeatureCommand(Command):
+class UpdateFeatureCommand(DomainEvent):
     '''
     Command to update an existing ``FeatureCommand`` within a feature's
     command workflow.
@@ -594,7 +594,7 @@ class UpdateFeatureCommand(Command):
         return id
 
 # ** command: remove_feature_command
-class RemoveFeatureCommand(Command):
+class RemoveFeatureCommand(DomainEvent):
     '''
     Command to remove a command from an existing feature by position.
 
@@ -674,7 +674,7 @@ class RemoveFeatureCommand(Command):
 
 
 # ** command: reorder_feature_command
-class ReorderFeatureCommand(Command):
+class ReorderFeatureCommand(DomainEvent):
     '''
     Command to reorder an existing feature command within a feature's
     command workflow.

@@ -23,7 +23,7 @@ from ...mappers import (
 from ...mappers.settings import Aggregate
 from ...interfaces import CliService
 from ...assets import TiferetError
-from ...events import Command
+from ...events import DomainEvent
 
 # *** fixtures
 
@@ -191,7 +191,7 @@ def test_add_cli_command_via_command_handle(
     mock_cli_service: CliService,
 ):
     '''
-    Test that AddCliCommand works via Command.handle.
+    Test that AddCliCommand works via DomainEvent.handle.
 
     :param mock_cli_service: The mock CLI service.
     :type mock_cli_service: CliService
@@ -199,7 +199,7 @@ def test_add_cli_command_via_command_handle(
 
     mock_cli_service.exists.return_value = False
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         AddCliCommand,
         dependencies={'cli_service': mock_cli_service},
         id='test.handle_command',
@@ -329,7 +329,7 @@ def test_add_cli_argument_via_command_handle(
     sample_cli_command: CliCommand,
 ):
     '''
-    Test that AddCliArgument works via Command.handle.
+    Test that AddCliArgument works via DomainEvent.handle.
 
     :param mock_cli_service: The mock CLI service.
     :type mock_cli_service: CliService
@@ -339,7 +339,7 @@ def test_add_cli_argument_via_command_handle(
 
     mock_cli_service.get.return_value = sample_cli_command
 
-    result_id = Command.handle(
+    result_id = DomainEvent.handle(
         AddCliArgument,
         dependencies={'cli_service': mock_cli_service},
         command_id='test.command',
@@ -460,7 +460,7 @@ def test_list_cli_commands_via_command_handle(
     sample_cli_command: CliCommand,
 ):
     '''
-    Test that ListCliCommands works via Command.handle.
+    Test that ListCliCommands works via DomainEvent.handle.
 
     :param mock_cli_service: The mock CLI service.
     :type mock_cli_service: CliService
@@ -470,7 +470,7 @@ def test_list_cli_commands_via_command_handle(
 
     mock_cli_service.list.return_value = [sample_cli_command]
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         ListCliCommands,
         dependencies={'cli_service': mock_cli_service},
     )
@@ -553,7 +553,7 @@ def test_get_parent_arguments_via_command_handle(
     mock_cli_service: CliService,
 ):
     '''
-    Test that GetParentArguments works via Command.handle.
+    Test that GetParentArguments works via DomainEvent.handle.
 
     :param mock_cli_service: The mock CLI service.
     :type mock_cli_service: CliService
@@ -569,7 +569,7 @@ def test_get_parent_arguments_via_command_handle(
     ]
     mock_cli_service.get_parent_arguments.return_value = parent_args
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         GetParentArguments,
         dependencies={'cli_service': mock_cli_service},
     )

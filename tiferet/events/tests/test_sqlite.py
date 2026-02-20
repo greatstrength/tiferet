@@ -12,7 +12,7 @@ from unittest import mock
 
 # ** app
 from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql, DropTableSql
-from ..settings import Command, a, TiferetError
+from ..settings import DomainEvent, a, TiferetError
 from ...interfaces import SqliteService
 
 # *** fixtures
@@ -45,7 +45,7 @@ def test_execute_success_fetch_all(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.fetch_all.return_value = expected_result
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         QuerySql,
         dependencies={'sqlite_service': sqlite_service_mock},
         query=query
@@ -69,7 +69,7 @@ def test_execute_success_fetch_one(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.fetch_one.return_value = expected_result
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         QuerySql,
         dependencies={'sqlite_service': sqlite_service_mock},
         query=query,
@@ -92,7 +92,7 @@ def test_execute_empty_result(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.fetch_all.return_value = []
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         QuerySql,
         dependencies={'sqlite_service': sqlite_service_mock},
         query=query
@@ -113,7 +113,7 @@ def test_execute_parameterized(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.fetch_all.return_value = expected_result
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         QuerySql,
         dependencies={'sqlite_service': sqlite_service_mock},
         query=query,
@@ -134,7 +134,7 @@ def test_execute_validation_error():
 
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             QuerySql,
             dependencies={'sqlite_service': mock.Mock()},
             query=invalid_query
@@ -145,7 +145,7 @@ def test_execute_validation_error():
 
     # Test empty query
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             QuerySql,
             dependencies={'sqlite_service': mock.Mock()},
             query=""
@@ -164,7 +164,7 @@ def test_execute_malformed_sql(sqlite_service_mock: mock.Mock):
 
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             QuerySql,
             dependencies={'sqlite_service': sqlite_service_mock},
             query=query
@@ -203,7 +203,7 @@ def test_mutate_insert_success(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.execute.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         MutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement
@@ -228,7 +228,7 @@ def test_mutate_update_success(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.execute.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         MutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement
@@ -251,7 +251,7 @@ def test_mutate_delete_success(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.execute.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         MutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement
@@ -275,7 +275,7 @@ def test_mutate_parameterized(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.execute.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         MutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement,
@@ -296,7 +296,7 @@ def test_mutate_validation_error():
 
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             MutateSql,
             dependencies={'sqlite_service': mock.Mock()},
             statement=invalid_statement
@@ -316,7 +316,7 @@ def test_mutate_execution_error(sqlite_service_mock: mock.Mock):
 
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             MutateSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             statement=statement
@@ -339,7 +339,7 @@ def test_bulk_mutate_insert_success(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.executemany.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         BulkMutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement,
@@ -366,7 +366,7 @@ def test_bulk_mutate_update_success(sqlite_service_mock: mock.Mock):
     sqlite_service_mock.executemany.return_value = expected_cursor
 
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         BulkMutateSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         statement=statement,
@@ -386,7 +386,7 @@ def test_bulk_mutate_validation_error():
     # 1. Invalid statement
     invalid_statement = "SELECT * FROM users"
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             BulkMutateSql,
             dependencies={'sqlite_service': mock.Mock()},
             statement=invalid_statement,
@@ -397,7 +397,7 @@ def test_bulk_mutate_validation_error():
 
     # 2. Empty parameters list
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             BulkMutateSql,
             dependencies={'sqlite_service': mock.Mock()},
             statement="INSERT INTO users VALUES (?)",
@@ -418,7 +418,7 @@ def test_bulk_mutate_execution_error(sqlite_service_mock: mock.Mock):
 
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             BulkMutateSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             statement=statement,
@@ -437,7 +437,7 @@ def test_backup_sql_success(sqlite_service_mock: mock.Mock):
     target_path = '/tmp/backup.db'
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         BackupSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         target_path=target_path
@@ -460,7 +460,7 @@ def test_backup_sql_with_options(sqlite_service_mock: mock.Mock):
     progress_callback = mock.Mock()
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         BackupSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         target_path=target_path,
@@ -479,7 +479,7 @@ def test_backup_sql_validation_error():
     '''
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             BackupSql,
             dependencies={'sqlite_service': mock.Mock()},
             target_path=""
@@ -499,7 +499,7 @@ def test_backup_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             BackupSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             target_path=target_path
@@ -517,7 +517,7 @@ def test_execute_script_sql_success(sqlite_service_mock: mock.Mock):
     script = "CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         ExecuteScriptSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         script=script
@@ -536,7 +536,7 @@ def test_execute_script_sql_validation_error():
     # Act & Assert
     # 1. Empty string
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             ExecuteScriptSql,
             dependencies={'sqlite_service': mock.Mock()},
             script=""
@@ -547,7 +547,7 @@ def test_execute_script_sql_validation_error():
 
     # 2. Whitespace only
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             ExecuteScriptSql,
             dependencies={'sqlite_service': mock.Mock()},
             script="   \n   "
@@ -567,7 +567,7 @@ def test_execute_script_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             ExecuteScriptSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             script=script
@@ -590,7 +590,7 @@ def test_create_table_sql_success(sqlite_service_mock: mock.Mock):
     }
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         CreateTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -624,7 +624,7 @@ def test_create_table_sql_with_constraints(sqlite_service_mock: mock.Mock):
     constraints = ['UNIQUE(name)', 'CHECK(price >= 0)']
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         CreateTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -648,7 +648,7 @@ def test_create_table_sql_if_not_exists_false(sqlite_service_mock: mock.Mock):
     columns = {'id': 'INTEGER'}
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         CreateTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -672,7 +672,7 @@ def test_create_table_sql_idempotent(sqlite_service_mock: mock.Mock):
     columns = {'id': 'INTEGER'}
     
     # Act - create twice, both should succeed
-    result1 = Command.handle(
+    result1 = DomainEvent.handle(
         CreateTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -680,7 +680,7 @@ def test_create_table_sql_idempotent(sqlite_service_mock: mock.Mock):
         if_not_exists=True
     )
     
-    result2 = Command.handle(
+    result2 = DomainEvent.handle(
         CreateTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -705,7 +705,7 @@ def test_create_table_sql_duplicate_without_if_not_exists(sqlite_service_mock: m
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             table_name=table_name,
@@ -726,7 +726,7 @@ def test_create_table_sql_validation_empty_table_name():
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name='',
@@ -745,7 +745,7 @@ def test_create_table_sql_validation_invalid_table_name():
     
     # Act & Assert - test with spaces
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name='invalid table',
@@ -757,7 +757,7 @@ def test_create_table_sql_validation_invalid_table_name():
     
     # Act & Assert - test with special characters
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name='table-name',
@@ -777,7 +777,7 @@ def test_create_table_sql_validation_empty_columns():
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name=table_name,
@@ -798,7 +798,7 @@ def test_create_table_sql_validation_invalid_column_name():
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name=table_name,
@@ -819,7 +819,7 @@ def test_create_table_sql_validation_invalid_column_type():
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name=table_name,
@@ -842,7 +842,7 @@ def test_create_table_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             CreateTableSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             table_name=table_name,
@@ -861,7 +861,7 @@ def test_drop_table_sql_success(sqlite_service_mock: mock.Mock):
     table_name = 'users'
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         DropTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name
@@ -885,7 +885,7 @@ def test_drop_table_sql_without_if_exists(sqlite_service_mock: mock.Mock):
     table_name = 'temp_table'
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         DropTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -907,7 +907,7 @@ def test_drop_table_sql_idempotent(sqlite_service_mock: mock.Mock):
     table_name = 'non_existent_table'
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         DropTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -931,7 +931,7 @@ def test_drop_table_sql_non_existent_without_if_exists(sqlite_service_mock: mock
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             DropTableSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             table_name=table_name,
@@ -949,7 +949,7 @@ def test_drop_table_sql_validation_empty_table_name():
     '''
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             DropTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name=''
@@ -964,7 +964,7 @@ def test_drop_table_sql_validation_invalid_table_name():
     '''
     # Act & Assert - test with spaces
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             DropTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name='invalid table'
@@ -975,7 +975,7 @@ def test_drop_table_sql_validation_invalid_table_name():
     
     # Act & Assert - test with special characters
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             DropTableSql,
             dependencies={'sqlite_service': mock.Mock()},
             table_name='table-name'
@@ -993,7 +993,7 @@ def test_drop_table_sql_with_data(sqlite_service_mock: mock.Mock):
     table_name = 'populated_table'
     
     # Act
-    result = Command.handle(
+    result = DomainEvent.handle(
         DropTableSql,
         dependencies={'sqlite_service': sqlite_service_mock},
         table_name=table_name,
@@ -1015,7 +1015,7 @@ def test_drop_table_sql_execution_error(sqlite_service_mock: mock.Mock):
     
     # Act & Assert
     with pytest.raises(TiferetError) as exc_info:
-        Command.handle(
+        DomainEvent.handle(
             DropTableSql,
             dependencies={'sqlite_service': sqlite_service_mock},
             table_name=table_name

@@ -22,7 +22,7 @@ from ..error import (
     RemoveError,
     a
 )
-from ..settings import assets, TiferetError
+from ..settings import a, TiferetError
 from ...mappers import ErrorAggregate
 from ...mappers.settings import Aggregate
 

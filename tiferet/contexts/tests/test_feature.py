@@ -15,7 +15,7 @@ from ..feature import (
 )
 from ...events.feature import GetFeature
 from ...assets import TiferetError
-from ...events import Command
+from ...events import DomainEvent
 from ...events.feature import GetFeature
 from ...entities import (
     ModelObject,
@@ -65,8 +65,8 @@ def feature_context(get_feature_cmd, container_context):
 @pytest.fixture
 def test_command():
 
-    class TestCommand(Command):
-        """A mock command for testing purposes."""
+    class TestEvent(DomainEvent):
+        """A mock domain event for testing purposes."""
         
         def execute(self, key: str, param: str = None, **kwargs) -> Any:
             """Mock execute method that returns a test response."""
@@ -79,8 +79,8 @@ def test_command():
                 return {"status": "success", "data": {"key": key}}
             return {"status": "success", "data": {"key": key, "param": param}}
         
-    # Return an instance of the mock command.
-    return TestCommand()
+    # Return an instance of the mock event.
+    return TestEvent()
 
 # ** fixture: feature
 @pytest.fixture

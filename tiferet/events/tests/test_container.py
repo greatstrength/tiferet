@@ -25,7 +25,7 @@ from ...mappers import (
 from ...mappers.settings import Aggregate
 from ...interfaces import ContainerService
 from ...assets import TiferetError
-from ...events import Command
+from ...events import DomainEvent
 
 # *** fixtures
 
@@ -927,7 +927,7 @@ def test_remove_service_configuration_existing(
     :type mock_container_service: ContainerService
     '''
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         RemoveServiceConfiguration,
         dependencies={'container_service': mock_container_service},
         id='svc_to_delete',
@@ -948,7 +948,7 @@ def test_remove_service_configuration_nonexistent_id(
     :type mock_container_service: ContainerService
     '''
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         RemoveServiceConfiguration,
         dependencies={'container_service': mock_container_service},
         id='missing_id',
@@ -970,7 +970,7 @@ def test_remove_service_configuration_missing_id(
     '''
 
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             RemoveServiceConfiguration,
             dependencies={'container_service': mock_container_service},
             id=' ',

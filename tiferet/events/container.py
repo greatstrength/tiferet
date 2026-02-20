@@ -8,7 +8,7 @@ from typing import Tuple, List, Dict, Any, Optional
 # ** app
 from .settings import a
 from ..entities import ContainerAttribute
-from ..events import Command
+from ..events import DomainEvent
 from ..interfaces import ContainerService
 from ..mappers import ContainerAttributeAggregate
 from ..mappers.settings import Aggregate
@@ -16,7 +16,7 @@ from ..mappers.settings import Aggregate
 # *** commands
 
 # ** command: add_service_configuration
-class AddServiceConfiguration(Command):
+class AddServiceConfiguration(DomainEvent):
     '''
     Command to add a new container attribute (service configuration).
     '''
@@ -100,7 +100,7 @@ class AddServiceConfiguration(Command):
         return attribute
 
 # ** command: set_default_service_configuration
-class SetDefaultServiceConfiguration(Command):
+class SetDefaultServiceConfiguration(DomainEvent):
     '''
     Command to set or update the default service configuration for an
     existing container attribute.
@@ -186,7 +186,7 @@ class SetDefaultServiceConfiguration(Command):
         return attribute
 
 # ** command: set_service_dependency
-class SetServiceDependency(Command):
+class SetServiceDependency(DomainEvent):
     '''
     Command to set or update a flagged dependency on an existing container
     attribute.
@@ -275,7 +275,7 @@ class SetServiceDependency(Command):
 
 
 # ** command: remove_service_dependency
-class RemoveServiceDependency(Command):
+class RemoveServiceDependency(DomainEvent):
     '''
     Command to remove a flagged dependency from an existing container
     attribute.
@@ -349,7 +349,7 @@ class RemoveServiceDependency(Command):
         return id
 
 # ** command: remove_service_configuration
-class RemoveServiceConfiguration(Command):
+class RemoveServiceConfiguration(DomainEvent):
     '''
     Command to remove a container attribute (service configuration) by ID.
     '''
@@ -397,7 +397,7 @@ class RemoveServiceConfiguration(Command):
 
 
 # ** command: set_service_constants
-class SetServiceConstants(Command):
+class SetServiceConstants(DomainEvent):
     '''
     Command to set or clear container-level constants.
     '''
@@ -459,7 +459,7 @@ class SetServiceConstants(Command):
 
 
 # ** command: list_all_settings
-class ListAllSettings(Command):
+class ListAllSettings(DomainEvent):
     '''
     A command to list all container attributes from the container service.
     '''

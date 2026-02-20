@@ -26,7 +26,7 @@ from ...entities import Feature
 from ...interfaces import FeatureService
 from ...mappers import Aggregate, FeatureAggregate
 from ...assets import TiferetError
-from ...events import Command
+from ...events import DomainEvent
 
 
 # *** fixtures
@@ -73,8 +73,8 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         GetFeature,
         dependencies={'feature_service': mock_feature_service},
         id='group.sample_feature',
@@ -98,7 +98,7 @@ def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             GetFeature,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -119,7 +119,7 @@ def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
 
     # Execute the command with an invalid id and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             GetFeature,
             dependencies={'feature_service': mock_feature_service},
             id=' ',
@@ -140,9 +140,9 @@ def test_remove_feature_success(mock_feature_service: FeatureService) -> None:
     :type mock_feature_service: FeatureService
     '''
 
-    # Execute the command via the static Command.handle interface.
+    # Execute the command via the static DomainEvent.handle interface.
     feature_id = 'group.sample_feature'
-    result = Command.handle(
+    result = DomainEvent.handle(
         RemoveFeature,
         dependencies={'feature_service': mock_feature_service},
         id=feature_id,
@@ -168,12 +168,12 @@ def test_remove_feature_idempotent_multiple_calls(
     feature_id = 'group.sample_feature'
 
     # Call the command twice for the same feature identifier.
-    result_first = Command.handle(
+    result_first = DomainEvent.handle(
         RemoveFeature,
         dependencies={'feature_service': mock_feature_service},
         id=feature_id,
     )
-    result_second = Command.handle(
+    result_second = DomainEvent.handle(
         RemoveFeature,
         dependencies={'feature_service': mock_feature_service},
         id=feature_id,
@@ -198,7 +198,7 @@ def test_remove_feature_missing_id(mock_feature_service: FeatureService) -> None
 
     # Execute the command with an invalid id and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             RemoveFeature,
             dependencies={'feature_service': mock_feature_service},
             id=' ',
@@ -223,8 +223,8 @@ def test_add_feature_minimal_success(mock_feature_service: FeatureService) -> No
     # Arrange the feature service to indicate the feature does not already exist.
     mock_feature_service.exists.return_value = False
 
-    # Execute the command via the static Command.handle interface with minimal parameters.
-    result: Feature = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface with minimal parameters.
+    result: Feature = DomainEvent.handle(
         AddFeature,
         dependencies={'feature_service': mock_feature_service},
         name='New Feature',
@@ -266,7 +266,7 @@ def test_add_feature_full_parameters(mock_feature_service: FeatureService) -> No
     log_params = {'foo': 'bar'}
 
     # Execute the command with all parameters provided.
-    result: Feature = Command.handle(
+    result: Feature = DomainEvent.handle(
         AddFeature,
         dependencies={'feature_service': mock_feature_service},
         name=feature_name,
@@ -318,7 +318,7 @@ def test_add_feature_missing_required_parameters(
 
     # Execute the command with invalid parameters and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddFeature,
             dependencies={'feature_service': mock_feature_service},
             name=name,
@@ -347,7 +347,7 @@ def test_add_feature_duplicate_id(mock_feature_service: FeatureService) -> None:
 
     # Execute the command and expect a TiferetError with ERROR_ALREADY_EXISTS_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddFeature,
             dependencies={'feature_service': mock_feature_service},
             name='Duplicate Feature',
@@ -375,8 +375,8 @@ def test_list_features_all(mock_feature_service: FeatureService, sample_feature:
     # Arrange the feature service to return all features.
     mock_feature_service.list.return_value = [sample_feature]
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         ListFeatures,
         dependencies={'feature_service': mock_feature_service},
         group_id=None,
@@ -401,8 +401,8 @@ def test_list_features_by_group_id(mock_feature_service: FeatureService, sample_
     group_id = 'group'
     mock_feature_service.list.return_value = [sample_feature]
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         ListFeatures,
         dependencies={'feature_service': mock_feature_service},
         group_id=group_id,
@@ -424,8 +424,8 @@ def test_list_features_empty_result(mock_feature_service: FeatureService) -> Non
     # Arrange the feature service to return an empty list.
     mock_feature_service.list.return_value = []
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         ListFeatures,
         dependencies={'feature_service': mock_feature_service},
         group_id=None,
@@ -452,8 +452,8 @@ def test_update_feature_name_success(
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Execute the command via the static Command.handle interface.
-    result: Feature = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result: Feature = DomainEvent.handle(
         UpdateFeature,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -485,7 +485,7 @@ def test_update_feature_description_success(
     mock_feature_service.get.return_value = sample_feature
 
     # Execute the command to update the description.
-    result: Feature = Command.handle(
+    result: Feature = DomainEvent.handle(
         UpdateFeature,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -517,7 +517,7 @@ def test_update_feature_clear_description(
     mock_feature_service.get.return_value = sample_feature
 
     # Execute the command to clear the description.
-    result: Feature = Command.handle(
+    result: Feature = DomainEvent.handle(
         UpdateFeature,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -558,7 +558,7 @@ def test_update_feature_missing_required_parameters(
 
     # Execute the command with invalid parameters and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeature,
             dependencies={'feature_service': mock_feature_service},
             id=id,
@@ -586,7 +586,7 @@ def test_update_feature_invalid_attribute(
 
     # Execute the command with an invalid attribute and expect an error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeature,
             dependencies={'feature_service': mock_feature_service},
             id='group.sample_feature',
@@ -615,7 +615,7 @@ def test_update_feature_missing_name_value(
 
     # Execute the command with an empty name value and expect an error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeature,
             dependencies={'feature_service': mock_feature_service},
             id='group.sample_feature',
@@ -645,7 +645,7 @@ def test_update_feature_not_found(mock_feature_service: FeatureService) -> None:
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeature,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -676,8 +676,8 @@ def test_add_feature_command_append_success(
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         AddFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -738,7 +738,7 @@ def test_add_feature_command_insert_success(
     mock_feature_service.get.return_value = sample_feature
 
     # Execute the command inserting at position 1.
-    result = Command.handle(
+    result = DomainEvent.handle(
         AddFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -799,7 +799,7 @@ def test_add_feature_command_missing_required_parameters(
 
     # Execute the command with invalid parameters and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id=id,
@@ -832,7 +832,7 @@ def test_add_feature_command_feature_not_found(
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             AddFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -889,8 +889,8 @@ def test_update_feature_command_update_string_attributes_success(
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         UpdateFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -931,7 +931,7 @@ def test_update_feature_command_update_parameters_success(
     mock_feature_service.get.return_value = sample_feature
 
     # Update parameters, adding a new key and clearing an existing one.
-    result = Command.handle(
+    result = DomainEvent.handle(
         UpdateFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -973,7 +973,7 @@ def test_update_feature_command_update_pass_on_error_success(
     mock_feature_service.get.return_value = sample_feature
 
     # Update the pass_on_error flag.
-    result = Command.handle(
+    result = DomainEvent.handle(
         UpdateFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1019,7 +1019,7 @@ def test_update_feature_command_missing_required_parameters(
 
     # Execute the command with invalid parameters and expect a validation error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id=id,
@@ -1048,7 +1048,7 @@ def test_update_feature_command_invalid_attribute(
 
     # Execute the command with an invalid attribute and expect an error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='group.sample_feature',
@@ -1081,7 +1081,7 @@ def test_update_feature_command_missing_name_or_attribute_id_value(
 
     # Execute the command with an empty value and expect an error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='group.sample_feature',
@@ -1115,7 +1115,7 @@ def test_update_feature_command_feature_not_found(
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -1153,7 +1153,7 @@ def test_update_feature_command_command_not_found(
     # Execute the command and expect a TiferetError with
     # FEATURE_COMMAND_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             UpdateFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id=sample_feature.id,
@@ -1201,8 +1201,8 @@ def test_remove_feature_command_success(
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Execute the command via the static Command.handle interface.
-    result = Command.handle(
+    # Execute the command via the static DomainEvent.handle interface.
+    result = DomainEvent.handle(
         RemoveFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1246,7 +1246,7 @@ def test_remove_feature_command_invalid_position_idempotent(
 
     # Execute the command with an out-of-range position; this should be a
     # silent, idempotent no-op.
-    result = Command.handle(
+    result = DomainEvent.handle(
         RemoveFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1279,7 +1279,7 @@ def test_remove_feature_command_feature_not_found(
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             RemoveFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -1319,7 +1319,7 @@ def test_remove_feature_command_missing_required_parameters(
     # Execute the command with invalid parameters and expect a validation
     # error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             RemoveFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id=id,
@@ -1373,7 +1373,7 @@ def test_reorder_feature_command_success_forward(
     mock_feature_service.get.return_value = sample_feature
 
     # Move the first command to the end.
-    result = Command.handle(
+    result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1429,7 +1429,7 @@ def test_reorder_feature_command_success_backward(
     mock_feature_service.get.return_value = sample_feature
 
     # Move the last command to the front.
-    result = Command.handle(
+    result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1485,7 +1485,7 @@ def test_reorder_feature_command_clamp_low(
     mock_feature_service.get.return_value = sample_feature
 
     # Move the last command to a negative index; it should be clamped to 0.
-    result = Command.handle(
+    result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1542,7 +1542,7 @@ def test_reorder_feature_command_clamp_high(
     mock_feature_service.get.return_value = sample_feature
 
     # Move the first command beyond the end; it should be clamped to the end.
-    result = Command.handle(
+    result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1595,7 +1595,7 @@ def test_reorder_feature_command_invalid_start_position_idempotent(
 
     # Attempt to move a command from an out-of-range position; this should be
     # a silent, idempotent no-op.
-    result = Command.handle(
+    result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
         id=sample_feature.id,
@@ -1628,7 +1628,7 @@ def test_reorder_feature_command_feature_not_found(
 
     # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             ReorderFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id='missing.feature',
@@ -1673,7 +1673,7 @@ def test_reorder_feature_command_missing_required_parameters(
     # Execute the command with invalid parameters and expect a validation
     # error.
     with pytest.raises(TiferetError) as excinfo:
-        Command.handle(
+        DomainEvent.handle(
             ReorderFeatureCommand,
             dependencies={'feature_service': mock_feature_service},
             id=id,

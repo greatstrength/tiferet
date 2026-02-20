@@ -7,7 +7,7 @@ from typing import Optional, List
 
 # ** app
 from ..entities import CliCommand
-from ..events import Command
+from ..events import DomainEvent
 from ..interfaces import CliService
 from ..mappers import CliCommandAggregate
 from ..mappers.settings import Aggregate
@@ -15,7 +15,7 @@ from ..mappers.settings import Aggregate
 # *** commands
 
 # ** command: list_cli_commands
-class ListCliCommands(Command):
+class ListCliCommands(DomainEvent):
     '''
     Command to list all CLI commands.
     '''
@@ -51,7 +51,7 @@ class ListCliCommands(Command):
 
 
 # ** command: get_parent_arguments
-class GetParentArguments(Command):
+class GetParentArguments(DomainEvent):
     '''
     Command to retrieve parent-level CLI arguments.
     '''
@@ -86,7 +86,7 @@ class GetParentArguments(Command):
         return self.cli_service.get_parent_arguments()
 
 # ** command: add_cli_command
-class AddCliCommand(Command):
+class AddCliCommand(DomainEvent):
     '''
     Command to add a new CLI command.
     '''
@@ -167,7 +167,7 @@ class AddCliCommand(Command):
 
 
 # ** command: add_cli_argument
-class AddCliArgument(Command):
+class AddCliArgument(DomainEvent):
     '''
     Command to add an argument to an existing CLI command.
     '''

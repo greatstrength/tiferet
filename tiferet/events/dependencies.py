@@ -14,7 +14,7 @@ from ..events import *
 # *** commands
 
 # ** command: create_injector
-class CreateInjector(Command):
+class CreateInjector(DomainEvent):
     '''
     A command to create a dependencies (library) injector object with the given dependencies.
     '''
@@ -36,7 +36,7 @@ class CreateInjector(Command):
 
 
 # ** command: get_dependency
-class GetDependency(Command):
+class GetDependency(DomainEvent):
     '''
     A command to get a dependency from the injector.
     '''
