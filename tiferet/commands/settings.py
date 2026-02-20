@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 # ** app
 from ..assets import TiferetError
-from .. import assets, assets as a
+from .. import assets as a
 
 # -- obsolete
 from ..assets import constants as const   # prefer a.const
@@ -15,7 +15,7 @@ from ..assets import constants as const   # prefer a.const
 # ** class: command
 class Command(object):
     '''
-    A base class for an app command object.
+    A base class for an app command object.f
     '''
 
     # * method: execute
@@ -93,7 +93,7 @@ class Command(object):
         # Verify the parameter is not null or empty.
         self.verify(
             expression=parameter is not None and (not isinstance(parameter, str) or bool(parameter.strip())),
-            error_code=assets.COMMAND_PARAMETER_REQUIRED_ID,
+            error_code=a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'The "{parameter_name}" parameter is required for the "{command_name}" command.',
             parameter=parameter_name,
             command=command_name
