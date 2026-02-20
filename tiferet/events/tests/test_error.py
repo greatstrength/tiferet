@@ -19,8 +19,7 @@ from ..error import (
     RenameError,
     SetErrorMessage,
     RemoveErrorMessage,
-    RemoveError,
-    a
+    RemoveError
 )
 from ..settings import a, TiferetError
 from ...mappers import ErrorAggregate
