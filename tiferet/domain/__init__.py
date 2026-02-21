@@ -1,10 +1,10 @@
-"""Tiferet Models Exports"""
+"""Tiferet Domain Exports"""
 
 # *** imports
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     IntegerType,
     FloatType,

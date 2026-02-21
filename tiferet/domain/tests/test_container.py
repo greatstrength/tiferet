@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..container import (
-    ModelObject,
+    DomainObject,
     FlaggedDependency,
     ContainerAttribute,
 )
@@ -48,9 +48,9 @@ def flagged_dependency() -> FlaggedDependency:
     '''
 
     # Create a flagged dependency.
-    return ModelObject.new(
+    return DomainObject.new(
         FlaggedDependency,
-        module_path='tiferet.entities.tests.test_container',
+        module_path='tiferet.domain.tests.test_container',
         class_name='TestDependencyAlpha',
         flag='test_alpha',
         parameters=dict(
@@ -67,9 +67,9 @@ def flagged_dependency_to_add() -> FlaggedDependency:
     '''
 
     # Create a new flagged dependency.
-    return ModelObject.new(
+    return DomainObject.new(
         FlaggedDependency,
-        module_path='tiferet.entities.tests.test_container',
+        module_path='tiferet.domain.tests.test_container',
         class_name='TestDependencyBeta',
         flag='test_beta',
         parameters=dict(
@@ -91,10 +91,10 @@ def container_attribute(flagged_dependency: FlaggedDependency) -> ContainerAttri
     '''
 
     # Create a container attribute with a flagged dependency.
-    return ModelObject.new(
+    return DomainObject.new(
         ContainerAttribute,
         id='test_dependency',
-        module_path='tiferet.entities.tests.test_container',
+        module_path='tiferet.domain.tests.test_container',
         class_name='TestDependency',
         dependencies=[
             flagged_dependency
@@ -118,7 +118,7 @@ def container_attribute_no_default_type(flagged_dependency: FlaggedDependency) -
     '''
 
     # Create a container attribute with a flagged dependency but no default type.
-    return ModelObject.new(
+    return DomainObject.new(
         ContainerAttribute,
         id='test_dependency_no_default',
         dependencies=[
@@ -148,10 +148,10 @@ def container_attribute_multiple_deps(
     '''
 
     # Create a container attribute with multiple flagged dependencies.
-    return ModelObject.new(
+    return DomainObject.new(
         ContainerAttribute,
         id='test_dependency_multi',
-        module_path='tiferet.entities.tests.test_container',
+        module_path='tiferet.domain.tests.test_container',
         class_name='TestDependency',
         dependencies=[
             flagged_dependency,

@@ -1,4 +1,4 @@
-"""Tiferet Feature Models"""
+"""Tiferet Feature Domain Models"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ from typing import Any
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     BooleanType,
     DictType,
@@ -18,7 +18,7 @@ from .settings import (
 # *** models
 
 # ** model: feature_command
-class FeatureCommand(ModelObject):
+class FeatureCommand(DomainObject):
     '''
     A command object for a feature command.
     '''
@@ -139,7 +139,7 @@ class FeatureCommand(ModelObject):
             setattr(self, attribute, value)
 
 # ** model: feature
-class Feature(ModelObject):
+class Feature(DomainObject):
     '''
     A feature object.
     '''
@@ -239,7 +239,7 @@ class Feature(ModelObject):
         '''
 
         # Create the feature command from raw attributes.
-        command = ModelObject.new(
+        command = DomainObject.new(
             FeatureCommand,
             name=name,
             attribute_id=attribute_id,
@@ -249,7 +249,7 @@ class Feature(ModelObject):
         )
 
         # Construct the feature command from raw attributes.
-        command = ModelObject.new(
+        command = DomainObject.new(
             FeatureCommand,
             name=name,
             attribute_id=attribute_id,

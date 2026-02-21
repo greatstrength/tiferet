@@ -1,4 +1,4 @@
-"""Tiferet App Entity Models"""
+"""Tiferet App Domain Models"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     ListType,
     DictType,
@@ -18,7 +18,7 @@ from ..events import RaiseError, a
 # *** models
 
 # ** model: app_attribute
-class AppAttribute(ModelObject):
+class AppAttribute(DomainObject):
     '''
     An app dependency attribute that defines the dependency attributes for an app interface.
     '''
@@ -57,7 +57,7 @@ class AppAttribute(ModelObject):
     )
 
 # ** model: app_interface
-class AppInterface(ModelObject):
+class AppInterface(DomainObject):
     '''
     The base application interface object.
     '''
@@ -159,7 +159,7 @@ class AppInterface(ModelObject):
         '''
 
         # Create a new AppDependency object.
-        dependency = ModelObject.new(
+        dependency = DomainObject.new(
             AppAttribute,
             module_path=module_path,
             class_name=class_name,
@@ -260,7 +260,7 @@ class AppInterface(ModelObject):
 
         # If the dependency does not exist, create a new one and append.
         else:
-            new_attr = ModelObject.new(
+            new_attr = DomainObject.new(
                 AppAttribute,
                 attribute_id=attribute_id,
                 module_path=module_path,

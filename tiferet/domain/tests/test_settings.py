@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..settings import (
-    ModelObject,
+    DomainObject,
     StringType,
 )
 
@@ -15,16 +15,16 @@ from ..settings import (
 
 # ** fixture: test_model_object
 @pytest.fixture
-def test_model_object() -> ModelObject:
+def test_model_object() -> DomainObject:
     '''
-    Fixture for a basic ModelObject subclass.
+    Fixture for a basic DomainObject subclass.
 
-    :return: The ModelObject subclass.
-    :rtype: ModelObject
+    :return: The DomainObject subclass.
+    :rtype: DomainObject
     '''
 
-    # Define a simple ModelObject subclass.
-    class TestModelObject(ModelObject):
+    # Define a simple DomainObject subclass.
+    class TestDomainObject(DomainObject):
         attribute = StringType(
             required=True,
             metadata=dict(
@@ -33,21 +33,21 @@ def test_model_object() -> ModelObject:
         )
 
     # Return the class.
-    return TestModelObject
+    return TestDomainObject
 
 # *** tests
 
 # ** test: model_object_new
-def test_model_object_new(test_model_object: ModelObject):
+def test_model_object_new(test_model_object: DomainObject):
     '''
-    Test the ModelObject.new method.
+    Test the DomainObject.new method.
 
-    :param test_model_object: The ModelObject subclass to test.
-    :type test_model_object: ModelObject
+    :param test_model_object: The DomainObject subclass to test.
+    :type test_model_object: DomainObject
     '''
 
     # Create a new model object using the fixture.
-    model_object = ModelObject.new(test_model_object, attribute='test')
+    model_object = DomainObject.new(test_model_object, attribute='test')
 
     # Assert the model object is valid.
     assert isinstance(model_object, test_model_object)

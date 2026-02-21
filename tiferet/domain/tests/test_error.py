@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..error import (
-    ModelObject,
+    DomainObject,
     Error,
     ErrorMessage
 )
@@ -25,7 +25,7 @@ def error_message() -> ErrorMessage:
     '''
 
     # Create the error message object.
-    return ModelObject.new(
+    return DomainObject.new(
         ErrorMessage,
         lang='en_US',
         text='An error occurred.'
@@ -42,7 +42,7 @@ def formatted_error_message() -> ErrorMessage:
     '''
 
     # Create the formatted error message object.
-    return ModelObject.new(
+    return DomainObject.new(
         ErrorMessage,
         lang='en_US',
         text='An error occurred: {error}'

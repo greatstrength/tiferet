@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..cli import (
-    ModelObject,
+    DomainObject,
     CliArgument,
     CliCommand,
 )
@@ -26,7 +26,7 @@ def cli_argument() -> CliArgument:
     '''
 
     # Create the CLI argument.
-    return ModelObject.new(
+    return DomainObject.new(
         CliArgument,
         name_or_flags=['--test-arg', '-t'],
         description='A test argument for CLI commands.',
@@ -52,7 +52,7 @@ def cli_command() -> CliCommand:
         name='Test Feature Command',
         description='A command for testing CLI features.',
         arguments=[
-            ModelObject.new(
+            DomainObject.new(
                 CliArgument,
                 name_or_flags=['--arg1', '-a'],
                 description='An argument for the test command.',
@@ -156,7 +156,7 @@ def test_cli_command_add_argument(cli_command: CliCommand):
     '''
 
     # Create a new argument.
-    new_argument = ModelObject.new(
+    new_argument = DomainObject.new(
         CliArgument,
         name_or_flags=['--new-arg', '-n'],
         description='A new argument for the command.',

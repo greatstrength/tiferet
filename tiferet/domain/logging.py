@@ -1,4 +1,4 @@
-"""Tiferet Logging Models"""
+"""Tiferet Logging Domain Models"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     BooleanType,
     ListType,
@@ -16,7 +16,7 @@ from .settings import (
 # *** models
 
 # ** model: formatter
-class Formatter(ModelObject):
+class Formatter(DomainObject):
     '''
     An entity representing a logging formatter configuration.
     '''
@@ -75,7 +75,7 @@ class Formatter(ModelObject):
         }
 
 # ** model: handler
-class Handler(ModelObject):
+class Handler(DomainObject):
     '''
     An entity representing a logging handler configuration.
     '''
@@ -176,7 +176,7 @@ class Handler(ModelObject):
         return config
 
 # ** model: logger
-class Logger(ModelObject):
+class Logger(DomainObject):
     '''
     An entity representing a logger configuration.
     '''

@@ -1,4 +1,4 @@
-"""Tiferet Error Models"""
+"""Tiferet Error Domain Models"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     ListType,
     ModelType,
@@ -16,7 +16,7 @@ from .settings import (
 # *** models
 
 # ** model: error_message
-class ErrorMessage(ModelObject):
+class ErrorMessage(DomainObject):
     '''
     An error message object.
     '''
@@ -56,7 +56,7 @@ class ErrorMessage(ModelObject):
         return self.text.format(**kwargs)
 
 # ** model: error
-class Error(ModelObject):
+class Error(DomainObject):
     '''
     An error object.
     '''
@@ -120,7 +120,7 @@ class Error(ModelObject):
         error_code = id.upper().replace(' ', '_')
 
         # Create and return a new Error object.
-        return ModelObject.new(
+        return DomainObject.new(
             Error,
             id=id,
             name=name,
@@ -211,7 +211,7 @@ class Error(ModelObject):
 
         # If not, create a new ErrorMessage object and add it to the message list.
         self.message.append(
-            ModelObject.new(
+            DomainObject.new(
                 ErrorMessage,
                 lang=lang,
                 text=text

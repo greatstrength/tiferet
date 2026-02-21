@@ -1,4 +1,4 @@
-"""Tiferet Model Settings"""
+"""Tiferet Domain Settings"""
 
 # *** imports
 
@@ -63,8 +63,8 @@ class ModelType(t.ModelType):
 
     pass
 
-# ** class: model_object
-class ModelObject(Model):
+# ** class: domain_object
+class DomainObject(Model):
     '''
     A domain model object.
     '''
@@ -76,33 +76,33 @@ class ModelObject(Model):
         validate: bool = True,
         strict: bool = True,
         **kwargs
-    ) -> 'ModelObject':
+    ) -> 'DomainObject':
         '''
-        Initializes a new model object.
+        Initializes a new domain object.
 
-        :param model_type: The type of model object to create.
+        :param model_type: The type of domain object to create.
         :type model_type: type
-        :param validate: True to validate the model object.
+        :param validate: True to validate the domain object.
         :type validate: bool
-        :param strict: True to enforce strict mode for the model object.
+        :param strict: True to enforce strict mode for the domain object.
         :type strict: bool
         :param kwargs: Keyword arguments.
         :type kwargs: dict
-        :return: A new model object.
-        :rclass: ModelObject
+        :return: A new domain object.
+        :rclass: DomainObject
         '''
 
-        # Create a new model object.
-        model_object: ModelObject = model_type(dict(
+        # Create a new domain object.
+        domain_object: DomainObject = model_type(dict(
             **kwargs
         ), strict=strict)
 
         # Validate if specified.
         if validate:
-            model_object.validate()
+            domain_object.validate()
 
-        # Return the new model object.
-        return model_object
+        # Return the new domain object.
+        return domain_object
     
     # * method: validate
     def validate(self, **kwargs):

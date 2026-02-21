@@ -6,12 +6,11 @@
 import pytest
 
 # ** app
-from ...entities import (
-    ModelObject,
+from ..app import (
+    DomainObject,
     AppAttribute,
     AppInterface,
 )
-from ...events.static import TiferetError
 
 # *** fixtures
 
@@ -26,7 +25,7 @@ def app_attribute() -> AppAttribute:
     '''
 
     # Create a container service attribute.
-    return ModelObject.new(
+    return DomainObject.new(
         AppAttribute,
         attribute_id='test_attribute',
         module_path='test_module_path',
@@ -50,7 +49,7 @@ def app_interface(app_attribute: AppAttribute) -> AppInterface:
     '''
 
     # Create the app interface.
-    return ModelObject.new(
+    return DomainObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -106,19 +105,19 @@ def test_app_interface_remove_attribute_removes_matching_from_middle_start_end()
     '''
 
     # Create three attributes with distinct attribute_ids.
-    first = ModelObject.new(
+    first = DomainObject.new(
         AppAttribute,
         attribute_id='first',
         module_path='module.first',
         class_name='FirstClass',
     )
-    middle = ModelObject.new(
+    middle = DomainObject.new(
         AppAttribute,
         attribute_id='middle',
         module_path='module.middle',
         class_name='MiddleClass',
     )
-    last = ModelObject.new(
+    last = DomainObject.new(
         AppAttribute,
         attribute_id='last',
         module_path='module.last',
@@ -126,7 +125,7 @@ def test_app_interface_remove_attribute_removes_matching_from_middle_start_end()
     )
 
     # Create an app interface seeded with the three attributes.
-    app_interface = ModelObject.new(
+    app_interface = DomainObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -161,19 +160,19 @@ def test_app_interface_remove_attribute_missing_returns_none_and_does_not_modify
     '''
 
     # Create two attributes and an app interface seeded with them.
-    first = ModelObject.new(
+    first = DomainObject.new(
         AppAttribute,
         attribute_id='first',
         module_path='module.first',
         class_name='FirstClass',
     )
-    second = ModelObject.new(
+    second = DomainObject.new(
         AppAttribute,
         attribute_id='second',
         module_path='module.second',
         class_name='SecondClass',
     )
-    app_interface = ModelObject.new(
+    app_interface = DomainObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -200,7 +199,7 @@ def test_app_interface_remove_attribute_on_empty_attributes_returns_none() -> No
     '''
 
     # Create an app interface with no attributes.
-    app_interface = ModelObject.new(
+    app_interface = DomainObject.new(
         AppInterface,
         id='test',
         name='Test App',

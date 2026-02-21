@@ -1,4 +1,4 @@
-"""Tiferet CLI Models"""
+"""Tiferet CLI Domain Models"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ from typing import List
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     BooleanType,
     ListType,
@@ -17,7 +17,7 @@ from .settings import (
 # *** models
 
 # ** model: cli_argument
-class CliArgument(ModelObject):
+class CliArgument(DomainObject):
     '''
     Represents a command line argument.
     '''
@@ -106,7 +106,7 @@ class CliArgument(ModelObject):
             return str
 
 # ** model: cli_command
-class CliCommand(ModelObject):
+class CliCommand(DomainObject):
     '''
     Represents a command line command.
     '''
@@ -183,7 +183,7 @@ class CliCommand(ModelObject):
         id = '{}.{}'.format(group_key.replace('-', '_'), key.replace('-', '_'))
 
         # Create and return the command object.
-        return ModelObject.new(
+        return DomainObject.new(
             CliCommand,
             id=id,
             group_key=group_key,

@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from ..logging import (
-    ModelObject,
+    DomainObject,
     Formatter,
     Handler,
     Logger,
@@ -26,7 +26,7 @@ def formatter() -> Formatter:
     '''
 
     # Create the formatter with all attributes.
-    return ModelObject.new(
+    return DomainObject.new(
         Formatter,
         id='simple',
         name='Simple Formatter',
@@ -46,7 +46,7 @@ def handler(formatter: Formatter) -> Handler:
     '''
 
     # Create the handler with all attributes.
-    return ModelObject.new(
+    return DomainObject.new(
         Handler,
         id='console',
         name='Console Handler',
@@ -69,7 +69,7 @@ def handler_no_optional(formatter: Formatter) -> Handler:
     '''
 
     # Create the handler without optional attributes.
-    return ModelObject.new(
+    return DomainObject.new(
         Handler,
         id='minimal',
         name='Minimal Handler',
@@ -91,7 +91,7 @@ def logger(handler: Handler) -> Logger:
     '''
 
     # Create the logger with all attributes.
-    return ModelObject.new(
+    return DomainObject.new(
         Logger,
         id='app',
         name='app',
@@ -113,7 +113,7 @@ def logger_empty_handlers() -> Logger:
     '''
 
     # Create the logger with empty handlers.
-    return ModelObject.new(
+    return DomainObject.new(
         Logger,
         id='empty',
         name='empty',
@@ -148,7 +148,7 @@ def test_formatter_format_config_no_datefmt():
     '''
 
     # Create a formatter without datefmt.
-    formatter = ModelObject.new(
+    formatter = DomainObject.new(
         Formatter,
         id='no_date',
         name='No Date Formatter',

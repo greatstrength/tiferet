@@ -9,7 +9,7 @@ import pytest
 from ..feature import (
     Feature,
     FeatureCommand,
-    ModelObject
+    DomainObject
 )
 
 # *** fixtures
@@ -25,7 +25,7 @@ def feature() -> Feature:
     :rtype: Feature
     '''
 
-    return ModelObject.new(
+    return DomainObject.new(
         Feature,
         id='test_group.test_feature',
         name='Test Feature',
@@ -179,7 +179,7 @@ def test_feature_command_flags_creation_and_round_trip() -> None:
     values are preserved through a serialization round-trip.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -189,7 +189,7 @@ def test_feature_command_flags_creation_and_round_trip() -> None:
     assert command.flags == ['flag1', 'flag2']
 
     primitive = command.to_primitive()
-    reloaded: FeatureCommand = ModelObject.new(FeatureCommand, **primitive)
+    reloaded: FeatureCommand = DomainObject.new(FeatureCommand, **primitive)
 
     assert reloaded.flags == ['flag1', 'flag2']
 
@@ -201,7 +201,7 @@ def test_feature_command_set_pass_on_error_false_string() -> None:
     ``False`` and uses standard bool conversion otherwise.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -226,7 +226,7 @@ def test_feature_command_set_parameters_merge_and_cleanup() -> None:
     ``None`` values.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -244,7 +244,7 @@ def test_feature_command_set_parameters_none_noop() -> None:
     Test that ``set_parameters`` is a no-op when ``None`` is provided.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -262,7 +262,7 @@ def test_feature_command_set_attribute_delegates() -> None:
     ``parameters`` and ``pass_on_error``.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -284,7 +284,7 @@ def test_feature_command_set_attribute_fallback() -> None:
     attributes.
     '''
 
-    command: FeatureCommand = ModelObject.new(
+    command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='attr',
@@ -396,7 +396,7 @@ def test_feature_remove_command_invalid_positions(feature: Feature) -> None:
     assert feature.commands == original_commands
 
     # Empty list should remain unchanged when attempting removal.
-    empty_feature = ModelObject.new(
+    empty_feature = DomainObject.new(
         Feature,
         id='empty_group.empty_feature',
         name='Empty Feature',
@@ -468,7 +468,7 @@ def test_feature_reorder_command_clamp_positions() -> None:
     '''
 
     # Create a feature with three commands.
-    feature = ModelObject.new(
+    feature = DomainObject.new(
         Feature,
         id='clamp_group.clamp_feature',
         name='Clamp Feature',

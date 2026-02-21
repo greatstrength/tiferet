@@ -1,10 +1,10 @@
-"""Tiferet Container Models"""
+"""Tiferet Container Domain Models"""
 
 # *** imports
 
 # ** app
 from .settings import (
-    ModelObject,
+    DomainObject,
     StringType,
     DictType,
     ListType,
@@ -15,7 +15,7 @@ from ..events import ImportDependency
 # *** models
 
 # ** model: flagged_dependency
-class FlaggedDependency(ModelObject):
+class FlaggedDependency(DomainObject):
     '''
     A flagged container dependency object.
     '''
@@ -54,7 +54,7 @@ class FlaggedDependency(ModelObject):
     )
 
 # ** model: container_attribute
-class ContainerAttribute(ModelObject):
+class ContainerAttribute(DomainObject):
     '''
     An attribute that defines container injectior behavior.
     '''
