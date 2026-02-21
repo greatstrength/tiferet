@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from ..entities import Feature
+from ..domain import Feature
 from ..interfaces import FeatureService
 from ..mappers import (
     TransferObject,

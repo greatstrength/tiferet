@@ -6,7 +6,7 @@
 from typing import List
 
 # ** app
-from ..entities import AppInterface
+from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import (
     TransferObject,

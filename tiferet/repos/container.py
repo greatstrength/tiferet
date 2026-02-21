@@ -6,7 +6,7 @@
 from typing import Tuple, Any, List, Dict
 
 # ** app
-from ..entities import ContainerAttribute
+from ..domain import ContainerAttribute
 from ..interfaces import ContainerService
 from ..mappers import (
     TransferObject, 

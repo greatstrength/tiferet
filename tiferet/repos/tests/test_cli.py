@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from ...mappers import TransferObject, CliCommandYamlObject, Aggregate, CliCommandAggregate
-from ...entities import CliArgument
+from ...domain import CliArgument
 from ..cli import CliYamlRepository
 
 # *** constants

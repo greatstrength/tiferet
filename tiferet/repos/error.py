@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from ..entities import Error
+from ..domain import Error
 from ..interfaces import ErrorService
 from ..mappers import TransferObject, ErrorYamlObject
 from ..utils import Yaml

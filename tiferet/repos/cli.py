@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from ..entities import CliCommand, CliArgument
+from ..domain import CliCommand, CliArgument
 from ..interfaces import CliService
 from ..mappers import (
     CliCommandYamlObject,
