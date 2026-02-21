@@ -10,14 +10,14 @@ from typing import (
 )
 
 # ** app
-from .settings import Command, a
+from ..events.settings import DomainEvent, a
 from ..models import Error
 from ..contracts import ErrorService
 
 # *** commands
 
 # ** command: add_error
-class AddError(Command):
+class AddError(DomainEvent):
     """
     Command to add a new Error domain object to the repository.
     """
@@ -36,6 +36,7 @@ class AddError(Command):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'message'])
     def execute(self,
             id: str,
             name: str,
@@ -57,27 +58,6 @@ class AddError(Command):
         :param additional_messages: Additional error messages in different languages.
         :type additional_messages: List[Dict[str, Any]]
         """
-
-        # Verfy that the id is not null/empty.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name='AddError'
-        )
-
-        # Verify that the name is not null/empty.
-        self.verify_parameter(
-            parameter=name,
-            parameter_name='name',
-            command_name='AddError'
-        )
-
-        # Verify that the message is not null/empty.
-        self.verify_parameter(
-            parameter=message,
-            parameter_name='message',
-            command_name='AddError'
-        )
 
         # Check if an error with the same ID already exists.
         exists = self.error_service.exists(id)
@@ -103,7 +83,7 @@ class AddError(Command):
         return new_error
 
 # ** command: get_error
-class GetError(Command):
+class GetError(DomainEvent):
     """
     Command to retrieve an Error domain object by its ID.
     """
@@ -157,7 +137,7 @@ class GetError(Command):
         )
 
 # ** command: list_errors
-class ListErrors(Command):
+class ListErrors(DomainEvent):
     """
     Command to list all Error domain objects.
     """
@@ -201,7 +181,7 @@ class ListErrors(Command):
         return list(errors.values())
 
 # ** command: rename_error
-class RenameError(Command):
+class RenameError(DomainEvent):
     """
     Command to rename an existing Error domain object.
     """
@@ -220,6 +200,7 @@ class RenameError(Command):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['new_name'])
     def execute(self, id: str, new_name: str, **kwargs) -> Error:
         """
         Rename an existing Error by its ID.
@@ -233,13 +214,6 @@ class RenameError(Command):
         :return: The updated Error domain model instance.
         :rtype: Error
         """
-
-        # Verify that the new name is not null/empty.
-        self.verify_parameter(
-            parameter=new_name,
-            parameter_name='new_name',
-            command_name='RenameError'
-        )
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -262,7 +236,7 @@ class RenameError(Command):
         return error
 
 # ** command: set_error_message
-class SetErrorMessage(Command):
+class SetErrorMessage(DomainEvent):
     """
     Command to set the message of an existing Error domain object.
     """
@@ -281,6 +255,7 @@ class SetErrorMessage(Command):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['message'])
     def execute(self, id: str, message: str, lang: str = 'en_US', **kwargs) -> str:
         """
         Set the message of an existing Error by its ID.
@@ -296,13 +271,6 @@ class SetErrorMessage(Command):
         :return: The unique identifier of the updated error.
         :rtype: str
         """
-
-        # Verify that the message is not null/empty.
-        self.verify_parameter(
-            parameter=message,
-            parameter_name='message',
-            command_name='SetErrorMessage'
-        )
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -325,7 +293,7 @@ class SetErrorMessage(Command):
         return id
 
 # ** command: remove_error_message
-class RemoveErrorMessage(Command):
+class RemoveErrorMessage(DomainEvent):
     """
     Command to remove a message from an existing Error domain object.
     """
@@ -385,7 +353,7 @@ class RemoveErrorMessage(Command):
         return id
 
 # ** command: remove_error
-class RemoveError(Command):
+class RemoveError(DomainEvent):
     """
     Command to remove an existing Error domain object by its ID.
     """
@@ -404,6 +372,7 @@ class RemoveError(Command):
         self.error_service = error_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> None:
         """
         Remove an existing Error by its ID.
@@ -413,13 +382,6 @@ class RemoveError(Command):
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
         """
-
-        # Verify that the id parameter is not null or empty.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name='RemoveError'
-        )
 
         # Remove the error.
         self.error_service.delete(id)
