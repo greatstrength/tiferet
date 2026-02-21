@@ -8,8 +8,8 @@
 try:
     from .assets import TiferetError, TiferetAPIError
     from .contexts import AppManagerContext as App
-    from .entities import (
-        ModelObject,
+    from .domain import (
+        DomainObject,
         StringType,
         IntegerType,
         BooleanType,
