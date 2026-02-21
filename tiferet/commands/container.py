@@ -6,16 +6,15 @@
 from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
-from .settings import a
+from ..events.settings import DomainEvent, a
 from ..models import ContainerAttribute
-from ..commands import Command
 from ..contracts import ContainerService
 from ..models.settings import ModelObject
 
 # *** commands
 
 # ** command: add_service_configuration
-class AddServiceConfiguration(Command):
+class AddServiceConfiguration(DomainEvent):
     '''
     Command to add a new container attribute (service configuration).
     '''
@@ -36,6 +35,7 @@ class AddServiceConfiguration(Command):
         self.container_service = container_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(
         self,
         id: str,
@@ -61,13 +61,6 @@ class AddServiceConfiguration(Command):
         :return: Created ContainerAttribute model.
         :rtype: ContainerAttribute
         '''
-
-        # Validate required id using base verify_parameter helper.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
 
         # Check for existing attribute id.
         self.verify(
@@ -99,7 +92,7 @@ class AddServiceConfiguration(Command):
         return attribute
 
 # ** command: set_default_service_configuration
-class SetDefaultServiceConfiguration(Command):
+class SetDefaultServiceConfiguration(DomainEvent):
     '''
     Command to set or update the default service configuration for an
     existing container attribute.
@@ -185,7 +178,7 @@ class SetDefaultServiceConfiguration(Command):
         return attribute
 
 # ** command: set_service_dependency
-class SetServiceDependency(Command):
+class SetServiceDependency(DomainEvent):
     '''
     Command to set or update a flagged dependency on an existing container
     attribute.
@@ -207,6 +200,7 @@ class SetServiceDependency(Command):
         self.container_service = container_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['flag'])
     def execute(
         self,
         id: str,
@@ -233,13 +227,6 @@ class SetServiceDependency(Command):
         :return: The container attribute id.
         :rtype: str
         '''
-
-        # Validate required flag (id is validated implicitly via lookup).
-        self.verify_parameter(
-            parameter=flag,
-            parameter_name='flag',
-            command_name=self.__class__.__name__,
-        )
 
         # Ensure module_path and class_name are both provided for a valid
         # flagged dependency.
@@ -274,7 +261,7 @@ class SetServiceDependency(Command):
 
 
 # ** command: remove_service_dependency
-class RemoveServiceDependency(Command):
+class RemoveServiceDependency(DomainEvent):
     '''
     Command to remove a flagged dependency from an existing container
     attribute.
@@ -296,6 +283,7 @@ class RemoveServiceDependency(Command):
         self.container_service = container_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['flag'])
     def execute(
         self,
         id: str,
@@ -312,13 +300,6 @@ class RemoveServiceDependency(Command):
         :return: The container attribute id.
         :rtype: str
         '''
-
-        # Validate required flag.
-        self.verify_parameter(
-            parameter=flag,
-            parameter_name='flag',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the existing attribute.
         attribute = self.container_service.get_attribute(id)
@@ -348,7 +329,7 @@ class RemoveServiceDependency(Command):
         return id
 
 # ** command: remove_service_configuration
-class RemoveServiceConfiguration(Command):
+class RemoveServiceConfiguration(DomainEvent):
     '''
     Command to remove a container attribute (service configuration) by ID.
     '''
@@ -369,6 +350,7 @@ class RemoveServiceConfiguration(Command):
         self.container_service = container_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove a container attribute.
@@ -381,13 +363,6 @@ class RemoveServiceConfiguration(Command):
         :rtype: str
         '''
 
-        # Validate required id (non-empty string).
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-
         # Delete (idempotent; underlying service handles non-existent IDs).
         self.container_service.delete_attribute(id)
 
@@ -396,7 +371,7 @@ class RemoveServiceConfiguration(Command):
 
 
 # ** command: set_service_constants
-class SetServiceConstants(Command):
+class SetServiceConstants(DomainEvent):
     '''
     Command to set or clear container-level constants.
     '''
@@ -458,7 +433,7 @@ class SetServiceConstants(Command):
 
 
 # ** command: list_all_settings
-class ListAllSettings(Command):
+class ListAllSettings(DomainEvent):
     '''
     A command to list all container attributes from the container service.
     '''
