@@ -10,7 +10,7 @@ from unittest import mock
 from ..logging import *
 from ...assets import TiferetError
 from ...assets.logging import *
-from ...entities.logging import *
+from ...domain.logging import *
 
 
 # *** fixtures
@@ -22,7 +22,7 @@ def formatter():
     '''
     Fixture to create a Formatter instance.
     '''
-    return ModelObject.new(
+    return DomainObject.new(
         Formatter,
         id='simple',
         name='Simple Formatter',
@@ -38,7 +38,7 @@ def handler(formatter):
     '''
     Fixture to create a Handler instance.
     '''
-    return ModelObject.new(
+    return DomainObject.new(
         Handler,
         id='console',
         name='Console Handler',
@@ -57,7 +57,7 @@ def logger_root(handler):
     '''
     Fixture to create a root Logger instance.
     '''
-    return ModelObject.new(
+    return DomainObject.new(
         Logger,
         id='root',
         name='',
@@ -194,7 +194,7 @@ def test_logging_context_format_config_non_root_logger(logging_context, formatte
     Test LoggingContext format_config with non-root logger.
     '''
     # Create a non-root logger.
-    non_root_logger = ModelObject.new(
+    non_root_logger = DomainObject.new(
         Logger,
         id='app',
         name='app',
@@ -285,7 +285,7 @@ def test_logging_context_build_logger_error(logging_context, list_all_cmd):
     Test LoggingContext build_logger with invalid configuration.
     '''
     # Mock list_all to return invalid configurations that will fail.
-    invalid_formatter = ModelObject.new(
+    invalid_formatter = DomainObject.new(
         Formatter,
         id='invalid',
         name='Invalid Formatter',

@@ -12,8 +12,8 @@ from typing import (
 
 # ** app
 from ..assets.logging import *
-from ..entities import (
-    ModelObject,
+from ..domain import (
+    DomainObject,
     Formatter,
     Handler,
     Logger
@@ -131,17 +131,17 @@ class LoggingContext(object):
 
         # Set the default configurations if not provided.
         if not formatters:
-            formatters = [ModelObject.new(
+            formatters = [DomainObject.new(
                 Formatter,
                 **data
             ) for data in DEFAULT_FORMATTERS]
         if not handlers:
-            handlers = [ModelObject.new(
+            handlers = [DomainObject.new(
                 Handler,
                 **data
             ) for data in DEFAULT_HANDLERS]
         if not loggers:
-            loggers = [ModelObject.new(
+            loggers = [DomainObject.new(
                 Logger,
                 **data
             ) for data in DEFAULT_LOGGERS]

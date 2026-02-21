@@ -10,7 +10,7 @@ from unittest import mock
 # ** app
 from ..cli import CliContext
 from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError, RequestContext
-from ...entities.cli import *
+from ...domain.cli import *
 from ...events.cli import ListCliCommands, GetParentArguments
 
 # *** fixtures
@@ -28,7 +28,7 @@ def cli_command_list():
             name='Test Feature Command',
             description='A test feature command.',
             arguments=[
-                ModelObject.new(
+                DomainObject.new(
                     CliArgument,
                     name_or_flags=['--arg1', '-a'],
                     description='Test argument 1',

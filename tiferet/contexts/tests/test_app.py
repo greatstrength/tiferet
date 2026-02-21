@@ -11,7 +11,7 @@ from unittest import mock
 
 # ** app
 from ...assets.tests import TEST_FEATURE, TEST_ERROR, TEST_SERVICE_COMMAND_ATTRIBUTE
-from ...entities import ModelObject, AppInterface, Feature, ContainerAttribute, Error
+from ...domain import DomainObject, AppInterface, Feature, ContainerAttribute, Error
 from ...interfaces import AppService
 from ..app import (
     FeatureContext,
@@ -53,7 +53,7 @@ def app_interface():
     :rtype: AppInterface
     '''
     # Create a test AppInterface instance.
-    return ModelObject.new(
+    return DomainObject.new(
         AppInterface,
         id='test',
         name='Test App',
@@ -167,7 +167,7 @@ def app_manager_context():
 @pytest.fixture
 def features():
     return [
-        ModelObject.new(
+        DomainObject.new(
             Feature,
             **TEST_FEATURE,
         )
@@ -177,7 +177,7 @@ def features():
 @pytest.fixture
 def container_attributes():
     return [
-        ModelObject.new(
+        DomainObject.new(
             ContainerAttribute,
             **TEST_SERVICE_COMMAND_ATTRIBUTE
         )
@@ -187,7 +187,7 @@ def container_attributes():
 @pytest.fixture
 def errors():
     return [
-        ModelObject.new(
+        DomainObject.new(
             Error,
             **TEST_ERROR
         )

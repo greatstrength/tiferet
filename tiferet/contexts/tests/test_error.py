@@ -12,7 +12,7 @@ from ...assets import (
     ERROR_NOT_FOUND_ID
 )
 from ..error import ErrorContext
-from ...entities import Error
+from ...domain import Error
 from ...events.error import GetError
 
 # *** fixtures

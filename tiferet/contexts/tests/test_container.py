@@ -7,7 +7,7 @@ from typing import Tuple, List, Dict
 
 # ** app
 from ..container import *
-from ...entities.container import *
+from ...domain.container import *
 
 
 # *** classes
@@ -44,13 +44,13 @@ def container_service_content() -> Tuple[List[ContainerAttribute], Dict[str, str
 
     # Create a list of container attributes.
     attributes = [
-        ModelObject.new(
+        DomainObject.new(
             ContainerAttribute,
             id='test_container',
             module_path='tiferet.contexts.tests.test_container',
             class_name='TestContainer',
             dependencies=[
-                ModelObject.new(
+                DomainObject.new(
                     FlaggedDependency,
                     module_path='tiferet.contexts.tests.test_container',
                     class_name='TestContainer',

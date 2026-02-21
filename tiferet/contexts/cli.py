@@ -7,7 +7,7 @@ from typing import Dict, Any, Callable
 
 # ** app
 from .app import *
-from ..entities import CliCommand
+from ..domain import CliCommand
 from ..events.cli import ListCliCommands, GetParentArguments
 
 # *** contexts

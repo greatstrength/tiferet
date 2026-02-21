@@ -18,7 +18,7 @@ from ..events import (
     ParseParameter
 )
 from ..events.feature import GetFeature
-from ..entities import Feature, FeatureCommand
+from ..domain import Feature, FeatureCommand
 
 # *** contexts
 

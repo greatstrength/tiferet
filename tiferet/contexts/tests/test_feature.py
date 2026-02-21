@@ -17,8 +17,8 @@ from ...events.feature import GetFeature
 from ...assets import TiferetError
 from ...events import DomainEvent
 from ...events.feature import GetFeature
-from ...entities import (
-    ModelObject,
+from ...domain import (
+    DomainObject,
     Feature,
     FeatureCommand,
 )
@@ -86,7 +86,7 @@ def test_command():
 @pytest.fixture
 def feature():
 
-    return ModelObject.new(
+    return DomainObject.new(
         Feature,
         id='test_group.test_feature',
         group_id='test_group',
@@ -167,7 +167,7 @@ def test_feature_context_load_feature_command_with_combined_flags(feature_contex
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
     
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
@@ -196,7 +196,7 @@ def test_feature_context_load_feature_command_only_feature_flags(feature_context
 
     feature_flags = ['feature_flag']
     
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
@@ -212,7 +212,7 @@ def test_feature_context_load_feature_command_only_feature_flags(feature_context
 def test_feature_context_load_feature_command_only_command_flags(feature_context, container_context, test_command):
     """Test loading a feature command with only command flags."""
 
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
@@ -228,7 +228,7 @@ def test_feature_context_load_feature_command_only_command_flags(feature_context
 def test_feature_context_load_feature_command_with_flags(feature_context, container_context, test_command):
     """Test loading a feature command that includes flags for dependency resolution."""
 
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
@@ -248,7 +248,7 @@ def test_feature_context_load_feature_command_with_flags(feature_context, contai
 def test_feature_context_load_feature_command_without_flags(feature_context, container_context, test_command):
     """Test loading a feature command when no flags are configured."""
 
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
@@ -270,7 +270,7 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
         'Feature command not found in container: non_existent_command',
     )
 
-    feature_command: FeatureCommand = ModelObject.new(
+    feature_command: FeatureCommand = DomainObject.new(
         FeatureCommand,
         name='Missing Command',
         attribute_id='non_existent_command',

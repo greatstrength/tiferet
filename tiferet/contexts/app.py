@@ -13,8 +13,8 @@ from .logging import LoggingContext
 from .request import RequestContext
 from ..assets import TiferetError, TiferetAPIError
 from .. import assets as a
-from ..entities import (
-    ModelObject,
+from ..domain import (
+    DomainObject,
     AppInterface,
     AppAttribute,
 )
@@ -99,7 +99,7 @@ class AppManagerContext(object):
 
         # Retrieve the default attributes from the configuration constants.
         return [
-            ModelObject.new(
+            DomainObject.new(
                 AppAttribute,
                 **attr_data,
                 validate=False,

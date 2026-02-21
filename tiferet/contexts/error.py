@@ -10,7 +10,7 @@ from ..assets import (
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS
 )
-from ..entities import Error
+from ..domain import Error
 from ..events.error import GetError
 
 # *** contexts
