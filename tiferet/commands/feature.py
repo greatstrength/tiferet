@@ -6,18 +6,15 @@
 from typing import List, Any
 
 # ** app
-from ..models.feature import (
-    Feature,
-    FeatureCommand,
-)
+from ..events.settings import DomainEvent, a
+from ..models.feature import Feature
 from ..contracts.feature import FeatureService
-from .settings import Command, a
 
 
 # *** commands
 
 # ** command: add_feature
-class AddFeature(Command):
+class AddFeature(DomainEvent):
     '''
     Command to add a new feature configuration.
     '''
@@ -38,6 +35,7 @@ class AddFeature(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['name', 'group_id'])
     def execute(
             self,
             name: str,
@@ -72,18 +70,6 @@ class AddFeature(Command):
         :rtype: Feature
         '''
 
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=name,
-            parameter_name='name',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=group_id,
-            parameter_name='group_id',
-            command_name=self.__class__.__name__,
-        )
-
         # Create feature using the model factory.
         feature = Feature.new(
             name=name,
@@ -112,7 +98,7 @@ class AddFeature(Command):
 
 
 # ** command: get_feature
-class GetFeature(Command):
+class GetFeature(DomainEvent):
     '''
     Command to retrieve a feature by its identifier.
     '''
@@ -133,6 +119,7 @@ class GetFeature(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> Feature:
         '''
         Execute the command to retrieve a feature.
@@ -144,13 +131,6 @@ class GetFeature(Command):
         :return: The retrieved feature.
         :rtype: Feature
         '''
-
-        # Validate the required feature identifier.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the feature from the feature service.
         feature = self.feature_service.get(id)
@@ -166,7 +146,7 @@ class GetFeature(Command):
         return feature
 
 # ** command: list_features
-class ListFeatures(Command):
+class ListFeatures(DomainEvent):
     '''
     Command to list feature configurations.
     '''
@@ -204,7 +184,7 @@ class ListFeatures(Command):
 
 
 # ** command: remove_feature
-class RemoveFeature(Command):
+class RemoveFeature(DomainEvent):
     '''
     Command to remove an entire feature configuration by ID (idempotent).
 
@@ -229,6 +209,7 @@ class RemoveFeature(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
         Remove a feature by ID.
@@ -241,9 +222,6 @@ class RemoveFeature(Command):
         :rtype: str
         '''
 
-        # Validate required id.
-        self.verify_parameter(id, 'id', self.__class__.__name__)
-
         # Delete the feature using the feature service. Deletion is idempotent
         # and treated as a successful no-op when the feature does not exist.
         self.feature_service.delete(id)
@@ -253,7 +231,7 @@ class RemoveFeature(Command):
 
 
 # ** command: update_feature
-class UpdateFeature(Command):
+class UpdateFeature(DomainEvent):
     '''
     Command to update basic metadata of an existing feature.
 
@@ -278,6 +256,7 @@ class UpdateFeature(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'attribute'])
     def execute(
             self,
             id: str,
@@ -300,18 +279,6 @@ class UpdateFeature(Command):
         :return: The updated Feature instance.
         :rtype: Feature
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute,
-            parameter_name='attribute',
-            command_name=self.__class__.__name__,
-        )
 
         # Validate that the attribute is supported.
         self.verify(
@@ -353,7 +320,7 @@ class UpdateFeature(Command):
 
 
 # ** command: add_feature_command
-class AddFeatureCommand(Command):
+class AddFeatureCommand(DomainEvent):
     '''
     Command to add a command to an existing feature.
     '''
@@ -374,6 +341,7 @@ class AddFeatureCommand(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'name', 'attribute_id'])
     def execute(
             self,
             id: str,
@@ -408,23 +376,6 @@ class AddFeatureCommand(Command):
         :rtype: str
         '''
 
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=name,
-            parameter_name='name',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute_id,
-            parameter_name='attribute_id',
-            command_name=self.__class__.__name__,
-        )
-
         # Retrieve the feature from the feature service.
         feature = self.feature_service.get(id)
         self.verify(
@@ -451,7 +402,7 @@ class AddFeatureCommand(Command):
         return id
 
 # ** command: update_feature_command
-class UpdateFeatureCommand(Command):
+class UpdateFeatureCommand(DomainEvent):
     '''
     Command to update an existing ``FeatureCommand`` within a feature's
     command workflow.
@@ -478,6 +429,7 @@ class UpdateFeatureCommand(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'position', 'attribute'])
     def execute(
             self,
             id: str,
@@ -507,23 +459,6 @@ class UpdateFeatureCommand(Command):
         :return: The feature identifier.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=position,
-            parameter_name='position',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=attribute,
-            parameter_name='attribute',
-            command_name=self.__class__.__name__,
-        )
 
         # Validate that the attribute name is supported.
         valid_attributes = {
@@ -596,7 +531,7 @@ class UpdateFeatureCommand(Command):
         return id
 
 # ** command: remove_feature_command
-class RemoveFeatureCommand(Command):
+class RemoveFeatureCommand(DomainEvent):
     '''
     Command to remove a command from an existing feature by position.
 
@@ -621,6 +556,7 @@ class RemoveFeatureCommand(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'position'])
     def execute(
             self,
             id: str,
@@ -639,18 +575,6 @@ class RemoveFeatureCommand(Command):
         :return: The feature identifier.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=position,
-            parameter_name='position',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the feature from the feature service.
         feature = self.feature_service.get(id)
@@ -676,7 +600,7 @@ class RemoveFeatureCommand(Command):
 
 
 # ** command: reorder_feature_command
-class ReorderFeatureCommand(Command):
+class ReorderFeatureCommand(DomainEvent):
     '''
     Command to reorder an existing feature command within a feature's
     command workflow.
@@ -703,6 +627,7 @@ class ReorderFeatureCommand(Command):
         self.feature_service = feature_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['id', 'start_position', 'end_position'])
     def execute(
             self,
             id: str,
@@ -726,23 +651,6 @@ class ReorderFeatureCommand(Command):
         :return: The feature identifier.
         :rtype: str
         '''
-
-        # Validate required parameters.
-        self.verify_parameter(
-            parameter=id,
-            parameter_name='id',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=start_position,
-            parameter_name='start_position',
-            command_name=self.__class__.__name__,
-        )
-        self.verify_parameter(
-            parameter=end_position,
-            parameter_name='end_position',
-            command_name=self.__class__.__name__,
-        )
 
         # Retrieve the feature from the feature service.
         feature = self.feature_service.get(id)
