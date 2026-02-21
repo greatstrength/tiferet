@@ -17,7 +17,7 @@ from ..logging import (
     RemoveLogger,
     a,
 )
-from ...entities import Formatter, Handler, Logger
+from ...domain import Formatter, Handler, Logger
 from ...interfaces import LoggingService
 from ...mappers import Aggregate, FormatterAggregate, HandlerAggregate, LoggerAggregate
 from ...assets import TiferetError

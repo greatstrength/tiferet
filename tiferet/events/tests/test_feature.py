@@ -22,7 +22,7 @@ from ..feature import (
     ReorderFeatureCommand,
     a,
 )
-from ...entities import Feature
+from ...domain import Feature
 from ...interfaces import FeatureService
 from ...mappers import Aggregate, FeatureAggregate
 from ...assets import TiferetError

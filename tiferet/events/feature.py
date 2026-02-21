@@ -6,7 +6,7 @@
 from typing import List, Any
 
 # ** app
-from ..entities import Feature
+from ..domain import Feature
 from ..interfaces import FeatureService
 from ..mappers import Aggregate, FeatureAggregate
 from .settings import DomainEvent, a

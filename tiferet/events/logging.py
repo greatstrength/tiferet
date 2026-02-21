@@ -6,7 +6,7 @@
 from typing import List, Tuple
 
 # ** app
-from ..entities import Formatter, Handler, Logger
+from ..domain import Formatter, Handler, Logger
 from ..interfaces import LoggingService
 from ..mappers import Aggregate, FormatterAggregate, HandlerAggregate, LoggerAggregate
 from .settings import DomainEvent, a

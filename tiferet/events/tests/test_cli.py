@@ -16,7 +16,7 @@ from ..cli import (
     ListCliCommands,
     GetParentArguments,
 )
-from ...entities import CliCommand, CliArgument, ModelObject
+from ...domain import CliCommand, CliArgument, DomainObject
 from ...mappers import (
     CliCommandAggregate,
 )
@@ -493,14 +493,14 @@ def test_get_parent_arguments_success(
 
     # Arrange the mock service to return parent arguments.
     parent_args = [
-        ModelObject.new(
+        DomainObject.new(
             CliArgument,
             name_or_flags=['--verbose', '-v'],
             description='Enable verbose output',
             type='str',
             required=False,
         ),
-        ModelObject.new(
+        DomainObject.new(
             CliArgument,
             name_or_flags=['--debug'],
             description='Enable debug mode',
@@ -560,7 +560,7 @@ def test_get_parent_arguments_via_command_handle(
     '''
 
     parent_args = [
-        ModelObject.new(
+        DomainObject.new(
             CliArgument,
             name_or_flags=['--config'],
             description='Config file path',

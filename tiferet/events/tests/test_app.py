@@ -19,7 +19,7 @@ from ..app import (
 )
 from ..settings import TiferetError, DomainEvent, a
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
-from ...entities import (
+from ...domain import (
     AppInterface,
     AppAttribute,
 )

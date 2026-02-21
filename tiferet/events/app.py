@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 # ** app
 from .settings import DomainEvent, a
-from ..entities import AppInterface
+from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
 

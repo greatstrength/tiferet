@@ -11,7 +11,7 @@ from typing import (
 
 # ** app
 from .settings import DomainEvent, a
-from ..entities import Error
+from ..domain import Error
 from ..interfaces import ErrorService
 from ..mappers import ErrorAggregate
 from ..mappers.settings import Aggregate
