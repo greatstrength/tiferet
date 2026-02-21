@@ -13,7 +13,7 @@ from ..cli import (
     CliCommandYamlObject,
     CliCommandAggregate,
 )
-from ...entities import CliCommand
+from ...domain import CliCommand
 
 # *** fixtures
 

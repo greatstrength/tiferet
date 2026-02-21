@@ -15,7 +15,7 @@ from ..feature import (
     FeatureAggregate,
     FeatureCommandAggregate,
 )
-from ...entities import (
+from ...domain import (
     Feature,
     FeatureCommand,
 )

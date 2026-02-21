@@ -6,7 +6,7 @@
 from typing import Dict, Any
 
 # ** app
-from ..entities import (
+from ..domain import (
     AppAttribute,
     AppInterface,
     StringType,

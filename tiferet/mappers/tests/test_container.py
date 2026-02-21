@@ -14,7 +14,7 @@ from ..container import (
     ContainerAttributeAggregate,
     FlaggedDependencyYamlObject,
 )
-from ...entities import (
+from ...domain import (
     FlaggedDependency,
 )
 

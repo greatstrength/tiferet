@@ -7,8 +7,8 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...entities import (
-    ModelObject,
+from ...domain import (
+    DomainObject,
     StringType,
 )
 from ..settings import Aggregate, TransferObject
@@ -49,16 +49,16 @@ def test_aggregate() -> type:
 
 # ** fixture: mock_model
 @pytest.fixture
-def mock_model() -> ModelObject:
+def mock_model() -> DomainObject:
     '''
-    Provides a fixture for a mocked ModelObject instance.
+    Provides a fixture for a mocked DomainObject instance.
     
-    :return: The mocked ModelObject instance.
-    :rtype: ModelObject
+    :return: The mocked DomainObject instance.
+    :rtype: DomainObject
     '''
     
-    # Create a mocked ModelObject instance.
-    model = mock.Mock(spec=ModelObject)
+    # Create a mocked DomainObject instance.
+    model = mock.Mock(spec=DomainObject)
     model.to_primitive.return_value = {
         'id': 'test_id',
         'name': 'Test Model'
@@ -246,10 +246,10 @@ def test_data_object_from_data(test_data_object: type):
 # ** test: transfer_object_from_model
 def test_transfer_object_from_model(mock_model, test_data_object):
     '''
-    Test the creation of a TransferObject from a ModelObject.
+    Test the creation of a TransferObject from a DomainObject.
     
-    :param mock_model: The mocked ModelObject instance.
-    :type mock_model: ModelObject
+    :param mock_model: The mocked DomainObject instance.
+    :type mock_model: DomainObject
     :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
@@ -267,10 +267,10 @@ def test_transfer_object_from_model(mock_model, test_data_object):
 # ** test: transfer_object_from_model_with_kwargs
 def test_transfer_object_from_model_with_kwargs(mock_model, test_data_object):
     '''
-    Test the creation of a TransferObject from a ModelObject with additional keyword arguments.
+    Test the creation of a TransferObject from a DomainObject with additional keyword arguments.
     
-    :param mock_model: The mocked ModelObject instance.
-    :type mock_model: ModelObject
+    :param mock_model: The mocked DomainObject instance.
+    :type mock_model: DomainObject
     :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
@@ -290,7 +290,7 @@ def test_transfer_object_from_model_with_kwargs(mock_model, test_data_object):
 # ** test: data_object_map_custom_new
 def test_transfer_object_map_custom_new(test_data_object: type):
     '''
-    Test mapping a TransferObject to a ModelObject with a custom new method.
+    Test mapping a TransferObject to a DomainObject with a custom new method.
     
     :param test_data_object: The TransferObject subclass type.
     :type test_data_object: type
@@ -303,9 +303,9 @@ def test_transfer_object_map_custom_new(test_data_object: type):
         name='Test Data'
     )
 
-    # Mock a ModelObject class with a custom new method.
+    # Mock a DomainObject class with a custom new method.
     mock_model_type = mock.Mock()
-    mock_model_instance = mock.Mock(spec=ModelObject)
+    mock_model_instance = mock.Mock(spec=DomainObject)
     mock_model_instance.validate.return_value = None
     mock_model_type.new.return_value = mock_model_instance
     
@@ -320,7 +320,7 @@ def test_transfer_object_map_custom_new(test_data_object: type):
 # ** test: data_object_map_fallback_new
 def test_data_object_map_fallback_new(test_data_object: type):
     '''
-    Test mapping a DataObject to a ModelObject using the fallback ModelObject.new.
+    Test mapping a DataObject to a DomainObject using the fallback DomainObject.new.
     
     :param test_data_object: The DataObject subclass type.
     :type test_data_object: type
@@ -333,7 +333,7 @@ def test_data_object_map_fallback_new(test_data_object: type):
         name='Test Data'
     )
     
-    # Mock a ModelObject class without a custom new method.
+    # Mock a DomainObject class without a custom new method.
     mock_model_type = mock.Mock()
     mock_model_type.new.side_effect = AttributeError
     mock_aggregate_instance = mock.Mock(spec=Aggregate)

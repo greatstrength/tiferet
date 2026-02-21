@@ -6,7 +6,7 @@
 from typing import Dict, Any
 
 # ** app
-from ..entities import (
+from ..domain import (
     FlaggedDependency,
     ContainerAttribute,
     StringType,
@@ -266,8 +266,8 @@ class ContainerAttributeAggregate(ContainerAttribute, Aggregate):
                 return
 
         # Create a new dependency if none exists with this flag.
-        from ..entities import ModelObject
-        dependency = ModelObject.new(
+        from ..domain import DomainObject
+        dependency = DomainObject.new(
             FlaggedDependency,
             module_path=module_path,
             class_name=class_name,

@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from ...entities import (
+from ...domain import (
     Formatter,
     Handler,
     Logger,

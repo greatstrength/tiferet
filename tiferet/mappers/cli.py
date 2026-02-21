@@ -6,10 +6,10 @@
 from typing import Dict, Any, List
 
 # ** app
-from ..entities import (
+from ..domain import (
     CliCommand,
     CliArgument,
-    ModelObject,
+    DomainObject,
     StringType,
     ListType,
     ModelType,
@@ -90,8 +90,8 @@ class CliCommandAggregate(CliCommand, Aggregate):
         :rtype: None
         '''
 
-        # Create a new CliArgument instance using ModelObject.new.
-        argument = ModelObject.new(
+        # Create a new CliArgument instance using DomainObject.new.
+        argument = DomainObject.new(
             CliArgument,
             name_or_flags=name_or_flags,
             description=description,

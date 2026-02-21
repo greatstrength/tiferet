@@ -6,7 +6,7 @@
 from typing import Dict, Any
 
 # ** app
-from ..entities import (
+from ..domain import (
     Error,
     ErrorMessage,
     ListType,
@@ -90,9 +90,9 @@ class ErrorAggregate(Error, Aggregate):
                 return
 
         # If not, create a new ErrorMessage object and add it to the message list.
-        from ..entities import ModelObject
+        from ..domain import DomainObject
         self.message.append(
-            ModelObject.new(
+            DomainObject.new(
                 ErrorMessage,
                 lang=lang,
                 text=text

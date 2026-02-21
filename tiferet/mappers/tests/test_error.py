@@ -14,7 +14,7 @@ from ..error import (
     ErrorAggregate,
     ErrorMessageYamlObject,
 )
-from ...entities import (
+from ...domain import (
     Error,
     ErrorMessage,
 )
@@ -117,7 +117,7 @@ def test_error_yaml_object_from_model():
     '''
 
     # Create an error model.
-    from ...entities import ModelObject
+    from ...domain import DomainObject
     error = Error.new(
         id='test_error',
         name='Test Error',

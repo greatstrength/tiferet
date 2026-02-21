@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from ...entities import AppAttribute
+from ...domain import AppAttribute
 from ...assets import TiferetError
 from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from ..app import AppInterfaceAggregate, AppInterfaceYamlObject, AppAttributeYamlObject

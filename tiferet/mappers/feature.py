@@ -6,7 +6,7 @@
 from typing import Dict, Any, List
 
 # ** app
-from ..entities import (
+from ..domain import (
     Feature,
     FeatureCommand,
     ListType,
@@ -289,8 +289,8 @@ class FeatureAggregate(Feature, Aggregate):
         '''
 
         # Create the feature command from raw attributes.
-        from ..entities import ModelObject
-        command = ModelObject.new(
+        from ..domain import DomainObject
+        command = DomainObject.new(
             FeatureCommand,
             name=name,
             attribute_id=attribute_id,
