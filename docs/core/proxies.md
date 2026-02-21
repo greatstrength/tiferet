@@ -6,11 +6,11 @@ Proxies, or Domain Proxies, are a core component of the Tiferet framework, provi
 
 A Proxy in Tiferet is a class that implements a `Repository` Contract, providing domain-specific data access (e.g., retrieving or saving features, errors) using a specific middleware service (e.g., YAML, SQLite). Proxies are typically subclasses of a middleware-specific base class (e.g., `YamlConfigurationProxy`) and are organized in a file structure that reflects their domain and middleware (e.g., `tiferet/proxies/yaml/error.py`). They align with DDD’s repository pattern, abstracting data access while returning `ModelContract`-compliant objects.
 
-- **Role in Runtime**: Proxies are used by Handlers (e.g., `FeatureHandler`, `ErrorHandler`) and Commands to load or save data from configuration files (e.g., `feature.yml`, `error.yml`) or other storage mediums, ensuring compliance with `Repository` Contracts.
+- **Role in Runtime**: Proxies are used by handlers/services (e.g., error handlers) and commands to load or save data from configuration files (e.g., `feature.yml`, `error.yml`) or other storage mediums, ensuring compliance with `Repository` Contracts.
 - **Contract-Based**: Proxies implement `Repository` Contracts (e.g., `FeatureRepository`, `ErrorRepository`), returning `ModelContract` objects (e.g., `Feature`, `Error`) without directly interacting with Models.
 - **File Structure**: Proxies are organized under `tiferet/proxies/<middleware>/<domain>.py` (e.g., `tiferet/proxies/yaml/feature.py`), reflecting their domain and middleware service.
 - **Accessibility**: Proxies are not directly accessible to Initializer Scripts but are used implicitly by Handlers and Commands through their Repository interface, configured via YAML files (e.g., `app.yml`).
-- **Examples**: In the calculator application, `FeatureYamlProxy` retrieves `Feature` objects from `feature.yml` for `FeatureHandler`, while `ErrorYamlProxy` manages `Error` objects for `ErrorHandler` (e.g., `DIVISION_BY_ZERO`).
+- **Examples**: In the calculator application, `FeatureYamlProxy` retrieves `Feature` objects from `feature.yml` for feature-related commands and contexts, while `ErrorYamlProxy` manages `Error` objects for error handling (e.g., `DIVISION_BY_ZERO`).
 
 ## Structured Code Design of Proxies
 
@@ -78,7 +78,7 @@ Attributes and methods in Proxies are designed to implement `Repository` Contrac
 - **Methods**: Implement `Repository` Contract methods (e.g., `get`, `list`, `save`), using middleware clients (e.g., `yaml_client`) and Data Transfer Objects (e.g., `ErrorData`) to manage data, with error handling via `raise_error`.
 - **Extensibility**: Proxies can be extended by adding new methods or implementing additional `Repository` Contracts, with `**kwargs` for flexibility.
 
-Example: In the calculator application, `ErrorYamlProxy.save` persists `Error` objects to `error.yml` for `ErrorHandler`, ensuring `DIVISION_BY_ZERO` errors are stored correctly.
+Example: In the calculator application, `ErrorYamlProxy.save` persists `Error` objects to `error.yml` for the error handling pipeline, ensuring `DIVISION_BY_ZERO` errors are stored correctly.
 
 ## Creating New and Extending Existing Proxies
 
