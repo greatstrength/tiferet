@@ -51,6 +51,7 @@ include = [
     "tiferet.proxies.csv",
     "tiferet.repos",
     "tiferet.repos.config",
+    "tiferet.mappers",
 ]
 
 [tool.setuptools.dynamic]
