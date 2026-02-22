@@ -44,6 +44,7 @@ include = [
     "tiferet.middleware",
     "tiferet.models",
     "tiferet.domain",
+    "tiferet.events",
     "tiferet.proxies",
     "tiferet.proxies.yaml",
     "tiferet.proxies.json",
