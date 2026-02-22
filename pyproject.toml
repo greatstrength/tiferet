@@ -43,6 +43,7 @@ include = [
     "tiferet.handlers",
     "tiferet.middleware",
     "tiferet.models",
+    "tiferet.domain",
     "tiferet.proxies",
     "tiferet.proxies.yaml",
     "tiferet.proxies.json",
