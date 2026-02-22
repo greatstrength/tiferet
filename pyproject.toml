@@ -41,6 +41,7 @@ include = [
     "tiferet.contracts",
     "tiferet.data",
     "tiferet.handlers",
+    "tiferet.interfaces",
     "tiferet.middleware",
     "tiferet.models",
     "tiferet.domain",
