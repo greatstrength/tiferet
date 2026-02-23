@@ -10,8 +10,7 @@ from .settings import a
 from ..domain import ContainerAttribute
 from ..events import DomainEvent
 from ..interfaces import ContainerService
-from ..mappers import ContainerAttributeAggregate
-from ..mappers.settings import Aggregate
+from ..mappers import Aggregate, ContainerAttributeAggregate
 
 # *** commands
 

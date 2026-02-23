@@ -9,6 +9,3 @@ from .static import (
     ImportDependency, 
     RaiseError
 )
-
-# ** backward compatibility
-Command = DomainEvent

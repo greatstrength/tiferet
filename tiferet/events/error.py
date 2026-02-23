@@ -13,8 +13,7 @@ from typing import (
 from .settings import DomainEvent, a
 from ..domain import Error
 from ..interfaces import ErrorService
-from ..mappers import ErrorAggregate
-from ..mappers.settings import Aggregate
+from ..mappers import Aggregate, ErrorAggregate
 
 # *** commands
 

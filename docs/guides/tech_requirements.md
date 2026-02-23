@@ -85,13 +85,24 @@ Every TRD must include a **"Related Code Style Documentation"** section at the e
 
 **Rule for inclusion:**
 - Always include the general `code_style.md`.
-- Include a component-specific guide (models.md, commands.md, contexts.md, etc.) **only if the story directly adds, modifies, or refactors code in that component type**.
+- Include a component-specific guide **only if the story directly adds, modifies, or refactors code in that component type**.
 - Do not include unrelated guides to avoid clutter.
 
-Current available guides (located in `tiferet/assets/docs/core/`):
-- **[code_style.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
-- **[models.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
-- **[commands.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
-- **[contexts.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
+Current available guides (located in `docs/core/` on the `v1.9.x-maintenance` branch):
+- **[code_style.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
+- **[domain.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/domain.md)** – Domain model and aggregate conventions.
+- **[events.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/events.md)** – Domain event patterns and usage.
+- **[mappers.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/mappers.md)** – Data mapping, DTOs, and transformation conventions.
+- **[contexts.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
+- **[interfaces.md](https://github.com/greatstrength/tiferet/blob/v1.9.x-maintenance/docs/core/interfaces.md)** – Interface / contract / service conventions.
 
 Additional component-specific style guides will be added as the framework evolves. Always consult the relevant documents when implementing or extending components.
+
+## Process Conventions (for TRD authors and executors)
+
+- Commit hygiene: separate functional code changes from documentation/config/packaging in distinct, atomic commits. Title commits by scope (e.g., "Interfaces – base class" vs "Docs/Packaging").
+- Versioning & tagging (when the story includes a release): specify the target version, branch, and bump type. Acceptance Criteria should include: (1) version bump commit, (2) annotated tag pushed, (3) published release with notes following the previous release style.
+- Source-of-truth references: when instructing to "retrofit from …", include the exact branch and path (and optionally the commit SHA) that contains the source document.
+- Reporting: upon completion, publish a Collaboration Report as a comment on the originating issue; include links to the PR, tag, and release.
+- Tooling fallback: if first-choice automation (e.g., MCP tools) is unavailable, specify the approved fallback (e.g., `gh` CLI) and prerequisites (authenticated session).
+- Cross-branch artifacts: if the referenced source does not exist locally on the working branch, it is acceptable to retrieve it via `git show <branch>:<path>` or include the minimal excerpts inline within the TRD.
