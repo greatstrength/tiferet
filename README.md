@@ -4,7 +4,7 @@
 
 Tiferet is a Python framework that elegantly distills Domain-Driven Design (DDD) into a practical, powerful tool. Drawing inspiration from the concept of beauty in balance as expressed in Kabbalah, Tiferet weaves purpose and functionality into software that not only performs but resonates deeply with its intended vision. As a cornerstone for crafting diverse applications, Tiferet empowers developers to build solutions with clarity, grace, and thoughtful design.
 
-Tiferet embraces the complexity of real-world processes through DDD, transforming intricate business logic and evolving requirements into clear, manageable models. Far from merely navigating this labyrinth, Tiferet provides a graceful path to craft software that reflects its intended purpose with wisdom and precision, embodying beauty and balance in form and function. This tutorial guides you through building a simple calculator application, demonstrating how Tiferet harmonizes code and concept. By defining commands and their configurations, you’ll create a robust and extensible calculator that resonates with Tiferet’s philosophy.
+Tiferet embraces the complexity of real-world processes through DDD, transforming intricate business logic and evolving requirements into clear, manageable models. Far from merely navigating this labyrinth, Tiferet provides a graceful path to craft software that reflects its intended purpose with wisdom and precision, embodying beauty and balance in form and function. This tutorial guides you through building a simple calculator application, demonstrating how Tiferet harmonizes code and concept. By defining domain events and their configurations, you'll create a robust and extensible calculator that resonates with Tiferet's philosophy.
 
 ## Getting Started with Tiferet
 Embark on your Tiferet journey with a few simple steps to set up your Python environment. Whether you're new to Python or a seasoned developer, these instructions will prepare you to craft a calculator application with grace and precision.
@@ -92,7 +92,7 @@ project_root/
 ├── basic_calc.py
 ├── calc_cli.py
 └── app/
-    ├── commands/
+    ├── events/
     │   ├── __init__.py
     │   ├── calc.py
     │   └── settings.py
@@ -106,31 +106,31 @@ project_root/
         └── logging.yml
 ```
 
-The `app/commands/` directory holds command classes for arithmetic operations (`calc.py`) and input validation (`settings.py`). The `app/configs/` directory contains configuration files for application settings (`app.yml`), CLI commands (`cli.yml`), dependency injection (`container.yml`), error handling (`error.yml`), feature workflows (`feature.yml`), and logging (`logging.yml`). The `basic_calc.py` script at the root initializes and runs the application. We recommend keeping the `app` directory name for internal projects to ensure consistency, though it can be customized for package releases. The `calc_cli.py` script provides a flexible command-line interface, easily integrated with shell scripts or external systems.
+The `app/events/` directory holds domain event classes for arithmetic operations (`calc.py`) and input validation (`settings.py`). The `app/configs/` directory contains configuration files for application settings (`app.yml`), CLI commands (`cli.yml`), dependency injection (`container.yml`), error handling (`error.yml`), feature workflows (`feature.yml`), and logging (`logging.yml`). The `basic_calc.py` script at the root initializes and runs the application. We recommend keeping the `app` directory name for internal projects to ensure consistency, though it can be customized for package releases. The `calc_cli.py` script provides a flexible command-line interface, easily integrated with shell scripts or external systems.
 
 ## Crafting the Calculator Application
-With Tiferet installed and your project structured, it’s time to build your calculator application. This section guides you through creating a base command for numeric validation, defining arithmetic commands, and setting up the application’s behavior with configurations. By weaving together commands and configurations, you’ll experience Tiferet’s elegant design, harmonizing functionality with clarity and precision.
+With Tiferet installed and your project structured, it's time to build your calculator application. This section guides you through creating a base domain event for numeric validation, defining arithmetic domain events, and setting up the application's behavior with configurations. By weaving together domain events and configurations, you'll experience Tiferet's elegant design, harmonizing functionality with clarity and precision.
 
-### Defining Base and Arithmetic Command Classes
-Start by creating command classes for numeric validation and arithmetic operations. The `BasicCalcCommand` in `app/commands/settings.py` provides validation logic, while arithmetic commands (`AddNumber`, `SubtractNumber`, `MultiplyNumber`, `DivideNumber`, `ExponentiateNumber`) in `app/commands/calc.py` perform calculations. All arithmetic commands inherit from `BasicCalcCommand`, which extends Tiferet’s `Command` class, ensuring robust numeric validation and core command functionality.
+### Defining Base and Arithmetic Domain Event Classes
+Start by creating domain event classes for numeric validation and arithmetic operations. The `BasicCalcEvent` in `app/events/settings.py` provides validation logic, while arithmetic domain events (`AddNumber`, `SubtractNumber`, `MultiplyNumber`, `DivideNumber`, `ExponentiateNumber`) in `app/events/calc.py` perform calculations. All arithmetic domain events inherit from `BasicCalcEvent`, which extends Tiferet's `DomainEvent` class, ensuring robust numeric validation and core event functionality.
 
-#### Base Command in commands/settings.py
-Numeric validation is critical to ensure the calculator handles inputs correctly, preventing errors from invalid data. The `BasicCalcCommand` class centralizes validation logic, making it reusable across all arithmetic commands by converting string inputs to integers or floats.
+#### Base Domain Event in events/settings.py
+Numeric validation is critical to ensure the calculator handles inputs correctly, preventing errors from invalid data. The `BasicCalcEvent` class centralizes validation logic, making it reusable across all arithmetic domain events by converting string inputs to integers or floats.
 
-Create `app/commands/settings.py` with the following contents:
+Create `app/events/settings.py` with the following contents:
 
 ```python
 # *** imports
 
 # ** infra
-from tiferet.commands import *
+from tiferet.events import *
 
-# *** commands
+# *** events
 
-# ** command: basic_calc_command
-class BasicCalcCommand(Command):
+# ** event: basic_calc_event
+class BasicCalcEvent(DomainEvent):
     '''
-    A command to validate that a value can be a Number object.
+    A domain event to validate that a value can be a Number object.
     '''
     
     # * method: verify_number
@@ -161,12 +161,12 @@ class BasicCalcCommand(Command):
         return int(value)
 ```
 
-The `BasicCalcCommand` extends Tiferet’s `Command` class, providing a `verify_number` method that validates string inputs and returns them as `int` or `float`. It raises an `INVALID_INPUT` error for invalid inputs, ensuring all arithmetic commands inherit robust validation.
+The `BasicCalcEvent` extends Tiferet's `DomainEvent` class, providing a `verify_number` method that validates string inputs and returns them as `int` or `float`. It raises an `INVALID_INPUT` error for invalid inputs, ensuring all arithmetic domain events inherit robust validation.
 
-#### Arithmetic Commands in commands/calc.py
-The arithmetic commands are the heart of the calculator, delivering core mathematical operations: addition, subtraction, multiplication, division, and exponentiation. These commands leverage Python’s numeric capabilities, processing validated inputs to produce precise results.
+#### Arithmetic Domain Events in events/calc.py
+The arithmetic domain events are the heart of the calculator, delivering core mathematical operations: addition, subtraction, multiplication, division, and exponentiation. These domain events leverage Python's numeric capabilities, processing validated inputs to produce precise results.
 
-Create `app/commands/calc.py` with the following content:
+Create `app/events/calc.py` with the following content:
 
 ```python
 # *** imports
@@ -175,21 +175,21 @@ Create `app/commands/calc.py` with the following content:
 from typing import Any
 
 # ** infra
-from tiferet.commands import *
+from tiferet.events import *
 
 # ** app
-from .settings import BasicCalcCommand
+from .settings import BasicCalcEvent
 
-# *** commands
+# *** events
 
-# ** command: add_number
-class AddNumber(BasicCalcCommand):
+# ** event: add_number
+class AddNumber(BasicCalcEvent):
     '''
-    A command to perform addition of two numbers.
+    A domain event to perform addition of two numbers.
     '''
     def execute(self, a: Any, b: Any, **kwargs) -> int | float:
         '''
-        Execute the addition command.
+        Execute the addition event.
 
         :param a: A number representing the first operand.
         :type a: Any
@@ -210,14 +210,14 @@ class AddNumber(BasicCalcCommand):
         # Return the result.
         return result
 
-# ** command: subtract_number
-class SubtractNumber(BasicCalcCommand):
+# ** event: subtract_number
+class SubtractNumber(BasicCalcEvent):
     '''
-    A command to perform subtraction of two numbers.
+    A domain event to perform subtraction of two numbers.
     '''
     def execute(self, a: Any, b: Any, **kwargs) -> int | float:
         '''
-        Execute the subtraction command.
+        Execute the subtraction event.
 
         :param a: A number representing the first operand.
         :type a: Any
@@ -238,14 +238,14 @@ class SubtractNumber(BasicCalcCommand):
         # Return the result.
         return result
 
-# ** command: multiply_number
-class MultiplyNumber(BasicCalcCommand):
+# ** event: multiply_number
+class MultiplyNumber(BasicCalcEvent):
     '''
-    A command to perform multiplication of two numbers.
+    A domain event to perform multiplication of two numbers.
     '''
     def execute(self, a: Any, b: Any, **kwargs) -> int | float:
         '''
-        Execute the multiplication command.
+        Execute the multiplication event.
 
         :param a: A number representing the first operand.
         :type a: Any
@@ -266,14 +266,14 @@ class MultiplyNumber(BasicCalcCommand):
         # Return the result.
         return result
 
-# ** command: divide_number
-class DivideNumber(BasicCalcCommand):
+# ** event: divide_number
+class DivideNumber(BasicCalcEvent):
     '''
-    A command to perform division of two numbers.
+    A domain event to perform division of two numbers.
     '''
     def execute(self, a: Any, b: Any, **kwargs) -> int | float:
         '''
-        Execute the division command.
+        Execute the division event.
 
         :param a: A number representing the numerator.
         :type a: Any
@@ -297,14 +297,14 @@ class DivideNumber(BasicCalcCommand):
         # Return the result.
         return result
 
-# ** command: exponentiate_number
-class ExponentiateNumber(BasicCalcCommand):
+# ** event: exponentiate_number
+class ExponentiateNumber(BasicCalcEvent):
     '''
-    A command to perform exponentiation of two numbers.
+    A domain event to perform exponentiation of two numbers.
     '''
     def execute(self, a: Any, b: Any, **kwargs) -> int | float:
         '''
-        Execute the exponentiation command.
+        Execute the exponentiation event.
 
         :param a: A number representing the base.
         :type a: Any
@@ -326,13 +326,13 @@ class ExponentiateNumber(BasicCalcCommand):
         return result
 ```
 
-These commands perform arithmetic operations on flexible input values, validated by `BasicCalcCommand.verify_number` to ensure they are valid integers or floats. The method converts string inputs to `int` or `float` before computation, returning the result as a numeric value. The `DivideNumber` command includes a check to prevent division by zero, raising a configured `DIVISION_BY_ZERO` error if needed.
+These domain events perform arithmetic operations on flexible input values, validated by `BasicCalcEvent.verify_number` to ensure they are valid integers or floats. The method converts string inputs to `int` or `float` before computation, returning the result as a numeric value. The `DivideNumber` event includes a check to prevent division by zero, raising a configured `DIVISION_BY_ZERO` error if needed.
 
 ### Configuring the Calculator Application
-With command classes defined, it’s time to configure the Tiferet application to recognize and orchestrate them, enabling seamless user interaction through features and interfaces. This section guides you through setting up the application interface (`app/configs/app.yml`), defining command classes as container attributes (`app/configs/container.yml`), specifying error messages (`app/configs/error.yml`), and organizing features (`app/configs/feature.yml`). These configurations weave together Tiferet’s dependency injection and feature-driven design, ensuring a robust and extensible calculator.
+With domain event classes defined, it's time to configure the Tiferet application to recognize and orchestrate them, enabling seamless user interaction through features and interfaces. This section guides you through setting up the application interface (`app/configs/app.yml`), defining domain event classes as container attributes (`app/configs/container.yml`), specifying error messages (`app/configs/error.yml`), and organizing features (`app/configs/feature.yml`). These configurations weave together Tiferet's dependency injection and feature-driven design, ensuring a robust and extensible calculator.
 
 #### Configuring the App Interface in `configs/app.yml`
-Define the calculator’s user interface in `app/configs/app.yml` to specify the interface type and its core attributes. This configuration enables Tiferet to initialize the application with default settings, supporting multiple interfaces for flexible command execution.
+Define the calculator's user interface in `app/configs/app.yml` to specify the interface type and its core attributes. This configuration enables Tiferet to initialize the application with default settings, supporting multiple interfaces for flexible feature execution.
 
 Create `app/configs/app.yml` with the following content:
 
@@ -343,33 +343,33 @@ interfaces:
     description: Perform basic calculator operations
 ```
 
-The `interfaces` section configures the `basic_calc` interface with a name and description, using Tiferet’s default settings to streamline application setup. This setup aligns with the project structure, preparing the calculator for command and feature integration.
+The `interfaces` section configures the `basic_calc` interface with a name and description, using Tiferet's default settings to streamline application setup. This setup aligns with the project structure, preparing the calculator for domain event and feature integration.
 
 #### Configuring the Container in `configs/container.yml`
-Expose command classes to Tiferet by defining them as container attributes in `app/configs/container.yml`. This configuration maps each command to its module and class, enabling dependency injection for seamless feature execution.
+Expose domain event classes to Tiferet by defining them as container attributes in `app/configs/container.yml`. This configuration maps each domain event to its module and class, enabling dependency injection for seamless feature execution.
 
 Create the `app/configs/container.yml` with the following content:
 
 ```yaml
 attrs:
-  add_number_cmd:
-    module_path: app.commands.calc
+  add_number_event:
+    module_path: app.events.calc
     class_name: AddNumber
-  subtract_number_cmd:
-    module_path: app.commands.calc
+  subtract_number_event:
+    module_path: app.events.calc
     class_name: SubtractNumber
-  multiply_number_cmd:
-    module_path: app.commands.calc
+  multiply_number_event:
+    module_path: app.events.calc
     class_name: MultiplyNumber
-  divide_number_cmd:
-    module_path: app.commands.calc
+  divide_number_event:
+    module_path: app.events.calc
     class_name: DivideNumber
-  exponentiate_number_cmd:
-    module_path: app.commands.calc
+  exponentiate_number_event:
+    module_path: app.events.calc
     class_name: ExponentiateNumber
 ```
 
-The `attrs` section lists each command with a unique identifier (ending in `_cmd`), specifying its module path and class name. This setup ensures Tiferet can instantiate and execute the calculator’s arithmetic commands efficiently.
+The `attrs` section lists each domain event with a unique identifier (ending in `_event`), specifying its module path and class name. This setup ensures Tiferet can instantiate and execute the calculator's arithmetic domain events efficiently.
 
 #### Configuring the Errors in `configs/error.yml`
 Handle errors gracefully by defining error messages in `app/configs/error.yml`. This configuration specifies error codes and multilingual messages, ensuring clear feedback for invalid inputs or operations.
@@ -397,7 +397,7 @@ errors:
 The `errors` section defines `invalid_input` for failed numeric validations and `division_by_zero` for division errors, supporting English (`en_US`) and Spanish (`es_ES`) messages. This configuration enhances user experience with localized, precise error handling.
 
 #### Configuring the Features in `configs/feature.yml`
-Orchestrate command execution by defining features in `app/configs/feature.yml`. This configuration organizes arithmetic operations into reusable workflows, mapping each feature to its corresponding command for streamlined execution.
+Orchestrate domain event execution by defining features in `app/configs/feature.yml`. This configuration organizes arithmetic operations into reusable workflows, mapping each feature to its corresponding domain event for streamlined execution.
 
 Create `app/configs/feature.yml` with the following content:
 
@@ -408,43 +408,43 @@ features:
       name: 'Add Number'
       description: 'Adds one number to another'
       commands:
-        - attribute_id: add_number_cmd
+        - attribute_id: add_number_event
           name: Add `a` and `b`
     subtract:
       name: 'Subtract Number'
       description: 'Subtracts one number from another'
       commands:
-        - attribute_id: subtract_number_cmd
+        - attribute_id: subtract_number_event
           name: Subtract `b` from `a`
     multiply:
       name: 'Multiply Number'
       description: 'Multiplies one number by another'
       commands:
-        - attribute_id: multiply_number_cmd
+        - attribute_id: multiply_number_event
           name: Multiply `a` and `b`
     divide:
       name: 'Divide Number'
       description: 'Divides one number by another'
       commands:
-        - attribute_id: divide_number_cmd
+        - attribute_id: divide_number_event
           name: Divide `a` by `b`
     exp:
       name: 'Exponentiate Number'
       description: 'Raises one number to the power of another'
       commands:
-        - attribute_id: exponentiate_number_cmd
+        - attribute_id: exponentiate_number_event
           name: Raise `a` to the power of `b`
     sqrt:
       name: 'Square Root'
       description: 'Calculates the square root of a number'
       commands:
-        - attribute_id: exponentiate_number_cmd
+        - attribute_id: exponentiate_number_event
           name: Calculate square root of `a`
           params:
             b: '0.5'  # Square root is equivalent to raising to the power of 0.5
 ```
 
-The `features` section maps each operation (e.g., `calc.add`, `calc.sqrt`) to its command via `attribute_id`, with descriptive names and parameters. The `calc.sqrt` feature reuses `exponentiate_number_cmd` with a fixed `b` value of `0.5`, showcasing Tiferet’s flexible workflow design.
+The `features` section maps each operation (e.g., `calc.add`, `calc.sqrt`) to its domain event via `attribute_id`, with descriptive names and parameters. The `calc.sqrt` feature reuses `exponentiate_number_event` with a fixed `b` value of `0.5`, showcasing Tiferet's flexible workflow design.
 
 ### Initializing and Demonstrating the Calculator in basic_calc.py
 Bring the Tiferet calculator to life with `basic_calc.py`, a script that initializes the application and demonstrates its arithmetic prowess. This script leverages Tiferet’s `App` class to load the `basic_calc` interface and execute features, showcasing robust calculations and error handling.
@@ -636,6 +636,6 @@ python calc_cli.py calc divide 5 0
 The `calc_cli.py` script offers a versatile, scriptable interface that integrates effortlessly with shell scripts or external systems, powered by `CliContext` for robust command execution. For quick testing or debugging, use `basic_calc.py` to run individual features with predefined values, while the CLI provides precise, argument-driven control.
 
 ## Conclusion
-Embark on a journey of elegance and precision with Tiferet’s Domain-Driven Design framework, as this tutorial has crafted a robust calculator application. You’ve defined arithmetic and validation commands in `app/commands/calc.py` and `app/commands/settings.py`, orchestrated them with configurations in `app/configs/app.yml`, `app/configs/feature.yml`, and `app/configs/cli.yml`, and brought them to life through `basic_calc.py` and the `CliContext`-powered `calc_cli.py`. This configuration-driven approach, enriched with dependency injection and multilingual error handling, reflects Tiferet’s harmonious balance of clarity and power, making development both functional and delightful.
+Embark on a journey of elegance and precision with Tiferet's Domain-Driven Design framework, as this tutorial has crafted a robust calculator application. You've defined arithmetic and validation domain events in `app/events/calc.py` and `app/events/settings.py`, orchestrated them with configurations in `app/configs/app.yml`, `app/configs/feature.yml`, and `app/configs/cli.yml`, and brought them to life through `basic_calc.py` and the `CliContext`-powered `calc_cli.py`. This configuration-driven approach, enriched with dependency injection and multilingual error handling, reflects Tiferet's harmonious balance of clarity and power, making development both functional and delightful.
 
-Extend your calculator’s potential with Tiferet’s modular design. Create a terminal user interface (TUI) in `calc_tui.py`, leveraging `CliContext` for interactive operation, or define a scientific calculator interface (`sci_calc`) in `app/configs/app.yml` with advanced features like trigonometric functions. Integrate the calculator into larger systems, such as financial modeling, by adding new commands and features in `app/configs/feature.yml`. Experiment with `calc_cli.py` to test additional operations, tweak configurations in `app/configs/`, or explore Tiferet’s documentation for advanced DDD techniques. Let Tiferet’s graceful framework guide you to solutions that resonate with purpose and precision, transforming complexity into clarity.
+Extend your calculator's potential with Tiferet's modular design. Create a terminal user interface (TUI) in `calc_tui.py`, leveraging `CliContext` for interactive operation, or define a scientific calculator interface (`sci_calc`) in `app/configs/app.yml` with advanced features like trigonometric functions. Integrate the calculator into larger systems, such as financial modeling, by adding new domain events and features in `app/configs/feature.yml`. Experiment with `calc_cli.py` to test additional operations, tweak configurations in `app/configs/`, or explore Tiferet's documentation for advanced DDD techniques. Let Tiferet's graceful framework guide you to solutions that resonate with purpose and precision, transforming complexity into clarity.
