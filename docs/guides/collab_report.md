@@ -70,3 +70,14 @@ End with a note like: “This log captures the iterative AI ↔ human collaborat
 
 **Output**: Return only the final Markdown report. No additional commentary.
 ```
+
+### Delivery Destination
+- Post the report as a comment on the originating GitHub issue once the human signals completion (e.g., "issue is completed").
+- If the issue is locked or comments are restricted, post to the associated PR and include a backlink to the issue.
+- If neither is possible, return the report in chat and request permission or an alternative destination.
+
+### Process Conventions
+- Include links to the tag and published release when applicable.
+- Include the PR link and short commit hashes in the Git/Branch State section.
+- Use exact calendar dates (e.g., February 22, 2026) rather than relative dates.
+- Keep overall length to ~1–2 pages when rendered; prioritize signal over detail.

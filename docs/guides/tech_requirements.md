@@ -95,3 +95,12 @@ Current available guides (located in `tiferet/assets/docs/core/`):
 - **[contexts.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
 
 Additional component-specific style guides will be added as the framework evolves. Always consult the relevant documents when implementing or extending components.
+
+## Process Conventions (for TRD authors and executors)
+
+- Commit hygiene: separate functional code changes from documentation/config/packaging in distinct, atomic commits. Title commits by scope (e.g., "Interfaces – base class" vs "Docs/Packaging").
+- Versioning & tagging (when the story includes a release): specify the target version, branch, and bump type. Acceptance Criteria should include: (1) version bump commit, (2) annotated tag pushed, (3) published release with notes following the previous release style.
+- Source-of-truth references: when instructing to "retrofit from …", include the exact branch and path (and optionally the commit SHA) that contains the source document.
+- Reporting: upon completion, publish a Collaboration Report as a comment on the originating issue; include links to the PR, tag, and release.
+- Tooling fallback: if first-choice automation (e.g., MCP tools) is unavailable, specify the approved fallback (e.g., `gh` CLI) and prerequisites (authenticated session).
+- Cross-branch artifacts: if the referenced source does not exist locally on the working branch, it is acceptable to retrieve it via `git show <branch>:<path>` or include the minimal excerpts inline within the TRD.
