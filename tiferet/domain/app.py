@@ -13,7 +13,6 @@ from .settings import (
     DictType,
     ModelType,
 )
-from ..events import RaiseError, a
 
 # *** models
 
