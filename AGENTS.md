@@ -204,7 +204,7 @@ Applications are configured via YAML files in `app/configs/`:
 
 ### v2.0-proto Note
 
-Some tests may fail during collection due to the ongoing v1.x → v2.0 migration (e.g., `Command` alias removed from exports). This is expected on this branch.
+All `Command` references in framework code have been migrated to `DomainEvent`. The `Command` alias is no longer exported from `tiferet/events/`. New code must use `DomainEvent` exclusively.
 
 ## Utilities
 
@@ -224,7 +224,7 @@ The top-level `tiferet/__init__.py` exports:
 - `App` (alias for `AppManagerContext`)
 - `TiferetError`, `TiferetAPIError`
 - `DomainObject` and Schematics type wrappers
-- `DomainEvent`, `Command` (alias), `ParseParameter`
+- `DomainEvent`, `ParseParameter`
 - `Service`
 - `DataObject` (backward compat alias for mappers)
 - File utilities: `File`, `Yaml`, `Json`, `Csv`, `CsvDict`
@@ -249,7 +249,8 @@ v2.0 renames and restructures several packages from v1.x:
 - `commands/` → `events/` (`Command` → `DomainEvent`)
 - `contracts/` → `interfaces/` (artifact comments `# *** contracts` → `# *** interfaces`)
 - `data/` → `mappers/` (`DataObject` split into `Aggregate` + `TransferObject`)
-- Backward compatibility aliases exist but new code should use the v2.0 names.
+- The `Command` alias has been fully removed; all framework code now uses `DomainEvent`.
+- Other backward compatibility aliases may still exist but new code should use the v2.0 names.
 
 ## Contributing
 

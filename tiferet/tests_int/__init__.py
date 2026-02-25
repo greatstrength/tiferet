@@ -6,7 +6,7 @@ from ..events import *
 # *** classes
 
 # ** class: TestAddNumber
-class TestAddNumber(Command):
+class TestAddNumber(DomainEvent):
     '''
     A command to add two numbers.
     '''
@@ -31,7 +31,7 @@ class TestAddNumber(Command):
     
 
 # ** class: TestSubtractNumber
-class TestSubtractNumber(Command):
+class TestSubtractNumber(DomainEvent):
     '''
     A command to subtract two numbers.
     '''
@@ -56,7 +56,7 @@ class TestSubtractNumber(Command):
     
 
 # ** class: TestMultiplyNumber
-class TestMultiplyNumber(Command):
+class TestMultiplyNumber(DomainEvent):
     '''
     A command to multiply two numbers.
     '''
@@ -81,7 +81,7 @@ class TestMultiplyNumber(Command):
     
 
 # ** class: TestDivideNumber
-class TestDivideNumber(Command):
+class TestDivideNumber(DomainEvent):
     '''
     A command to divide two numbers.
     '''

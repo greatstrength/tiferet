@@ -13,7 +13,7 @@ from ..assets.constants import (
     PARAMETER_NOT_FOUND_ID
 )
 from ..events import (
-    Command,
+    DomainEvent,
     RaiseError,
     ParseParameter
 )
@@ -116,7 +116,7 @@ class FeatureContext(object):
         return feature
 
     # * method: load_feature_command
-    def load_feature_command(self, feature_command: FeatureCommand, feature_flags: list[str] = None) -> Command:
+    def load_feature_command(self, feature_command: FeatureCommand, feature_flags: list[str] = None) -> DomainEvent:
         '''
         Load a feature command from the container using its attribute ID and
         any configured flags.
@@ -176,7 +176,7 @@ class FeatureContext(object):
         return feature
     # * method: handle_command
     def handle_command(self,
-        command: Command, 
+        command: DomainEvent, 
         request: RequestContext,
         data_key: str = None,
         pass_on_error: bool = False,
@@ -219,7 +219,7 @@ class FeatureContext(object):
 
     # * method: handle_feature_command
     def handle_feature_command(self,
-        command: Command,
+        command: DomainEvent,
         request: RequestContext,
         feature_command: FeatureCommand,
         **kwargs
