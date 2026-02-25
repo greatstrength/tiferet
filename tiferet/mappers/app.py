@@ -9,6 +9,7 @@ from typing import Dict, Any
 from ..domain import (
     AppAttribute,
     AppInterface,
+    DomainObject,
     StringType,
     DictType,
     ModelType,
@@ -60,6 +61,120 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             **app_interface_data,
             **kwargs
         )
+
+    # * method: add_attribute
+    def add_attribute(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
+        '''
+        Add a dependency attribute to the app interface.
+
+        :param module_path: The module path for the app dependency attribute.
+        :type module_path: str
+        :param class_name: The class name for the app dependency attribute.
+        :type class_name: str
+        :param attribute_id: The id for the app dependency attribute.
+        :type attribute_id: str
+        :param parameters: Additional parameters for the app dependency attribute.
+        :type parameters: dict
+        :return: None
+        :rtype: None
+        '''
+
+        # Create a new AppAttribute object.
+        dependency = DomainObject.new(
+            AppAttribute,
+            module_path=module_path,
+            class_name=class_name,
+            attribute_id=attribute_id,
+            parameters=parameters,
+        )
+
+        # Add the dependency to the list of dependencies.
+        self.attributes.append(dependency)
+
+    # * method: remove_attribute
+    def remove_attribute(self, attribute_id: str) -> AppAttribute:
+        '''
+        Remove and return a dependency attribute by its attribute_id (idempotent).
+
+        If an attribute with the given attribute_id exists, it is removed.
+        If no matching attribute exists, no action is taken (silent success).
+
+        :param attribute_id: The attribute_id of the dependency to remove.
+        :type attribute_id: str
+        :return: The removed AppAttribute or None.
+        :rtype: AppAttribute
+        '''
+
+        # Iterate over attributes and remove the first match by attribute_id.
+        for index, attr in enumerate(self.attributes):
+            if attr.attribute_id == attribute_id:
+                return self.attributes.pop(index)
+
+        # If no attribute matches, return None without modifying the list.
+        return None
+
+    # * method: set_dependency
+    def set_dependency(
+        self,
+        attribute_id: str,
+        module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] = None,
+    ) -> None:
+        '''
+        Set or update a dependency attribute by attribute_id (PUT semantics).
+
+        If a dependency with the given attribute_id exists:
+          - Update module_path and class_name.
+          - Merge parameters (favor new values; remove keys with None value).
+          - Clear parameters if parameters is None.
+
+        If no dependency exists:
+          - Create new AppAttribute and append to attributes.
+
+        :param attribute_id: The dependency identifier.
+        :type attribute_id: str
+        :param module_path: The module path.
+        :type module_path: str
+        :param class_name: The class name.
+        :type class_name: str
+        :param parameters: New parameters (None to clear).
+        :type parameters: Dict[str, Any]
+        :return: None
+        :rtype: None
+        '''
+
+        # Find the existing dependency attribute by attribute_id.
+        attr = self.get_attribute(attribute_id)
+
+        # If the dependency exists, update its type fields and merge parameters.
+        if attr is not None:
+            attr.module_path = module_path
+            attr.class_name = class_name
+
+            # Clear parameters when parameters is None.
+            if parameters is None:
+                attr.parameters = {}
+
+            # Otherwise merge and then remove keys whose value is None.
+            else:
+                attr.parameters.update(parameters)
+                attr.parameters = {
+                    key: value
+                    for key, value in attr.parameters.items()
+                    if value is not None
+                }
+
+        # If the dependency does not exist, create a new one and append.
+        else:
+            new_attr = DomainObject.new(
+                AppAttribute,
+                attribute_id=attribute_id,
+                module_path=module_path,
+                class_name=class_name,
+                parameters=parameters or {},
+            )
+            self.attributes.append(new_attr)
 
     # * method: set_constants
     def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
