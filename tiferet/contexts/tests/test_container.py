@@ -284,6 +284,66 @@ def test_container_context_get_dependency(container_context, test_container):
     assert dependency.param_config == test_container.param_config
     assert dependency.flagged_config == test_container.flagged_config
 
+# ** test: container_context_get_attribute_type_success_default
+def test_container_context_get_attribute_type_success_default(
+    container_context: ContainerContext,
+    container_service_content,
+):
+    '''
+    Test that get_attribute_type resolves the correct type with and without flags.
+
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    :param container_service_content: The content for the container service.
+    :type container_service_content: Tuple[List[ContainerAttribute], Dict[str, str]]
+    '''
+
+    # Unpack the container service content.
+    attributes, _ = container_service_content
+    attr = attributes[0]
+
+    # Get the type without flags (should use default module_path/class_name).
+    dep_type = container_context.get_attribute_type(attr)
+
+    # Assert the type is correct.
+    assert dep_type == TestContainer
+
+    # Get the type with the test flag (should resolve the flagged dependency).
+    dep_type = container_context.get_attribute_type(attr, 'test')
+
+    # Assert the type is still TestContainer (same class in fixture).
+    assert dep_type == TestContainer
+
+# ** test: container_context_get_attribute_type_none
+def test_container_context_get_attribute_type_none(
+    container_context: ContainerContext,
+):
+    '''
+    Test that get_attribute_type returns None when no type is found.
+
+    :param container_context: The container context to test.
+    :type container_context: ContainerContext
+    '''
+
+    # Create a container attribute with no default type and no matching dependencies.
+    attr = DomainObject.new(
+        ContainerAttribute,
+        id='no_type',
+        dependencies=[],
+    )
+
+    # Get the type without flags (should return None).
+    dep_type = container_context.get_attribute_type(attr)
+
+    # Assert the type is None.
+    assert dep_type is None
+
+    # Get the type with an invalid flag (should return None).
+    dep_type = container_context.get_attribute_type(attr, 'missing_flag')
+
+    # Assert the type is None.
+    assert dep_type is None
+
 # ** test: test_container_handler_load_constants_with_flagged_dependencies
 def test_container_handler_load_constants_with_flagged_dependencies(
         container_context: ContainerContext, 

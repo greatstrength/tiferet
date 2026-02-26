@@ -7,7 +7,7 @@ from typing import Callable, Any, List
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..domain import ContainerAttribute
-from ..events import RaiseError, ParseParameter
+from ..events import RaiseError, ImportDependency, ParseParameter
 from ..events.dependencies import *
 from ..events.container import ListAllSettings
 
@@ -88,8 +88,8 @@ class ContainerContext(object):
         dependencies = {}
         for attr in attributes:
             
-            # Get the dependency type based on the flags only (no extra 'attr' parameter needed).
-            dep_type = attr.get_type(*flags)
+            # Get the dependency type based on the flags.
+            dep_type = self.get_attribute_type(attr, *flags)
 
             # If no type is found, raise an error.
             if not dep_type:
@@ -137,6 +137,41 @@ class ContainerContext(object):
         # Return the dependency.
         return dependency
     
+    # * method: get_attribute_type
+    def get_attribute_type(self, attribute: ContainerAttribute, *flags) -> type:
+        '''
+        Gets the type of a container attribute based on the provided flags.
+
+        Checks flagged dependencies first (in flag priority order), then
+        falls back to the attribute's default module_path/class_name.
+
+        :param attribute: The container attribute to resolve.
+        :type attribute: ContainerAttribute
+        :param flags: The flags for the flagged container dependency.
+        :type flags: Tuple[str, ...]
+        :return: The type of the container attribute.
+        :rtype: type
+        '''
+
+        # Check the flagged dependencies for the type first.
+        for flag in flags:
+            dependency = attribute.get_dependency(flag)
+            if dependency:
+                return ImportDependency.execute(
+                    dependency.module_path,
+                    dependency.class_name
+                )
+
+        # Otherwise defer to an available default type.
+        if attribute.module_path and attribute.class_name:
+            return ImportDependency.execute(
+                attribute.module_path,
+                attribute.class_name
+            )
+
+        # Return None if no type is found.
+        return None
+
     # * method: load_constants
     def load_constants(self, attributes: List[ContainerAttribute] = [], constants: Dict[str, str] = {}, flags: List[str] = []) -> Dict[str, str]:
         '''
