@@ -1,4 +1,3 @@
-```markdown
 # Utilities in Tiferet
 
 **Project:** Tiferet Framework  
@@ -504,4 +503,3 @@ Utilities are the infrastructure backbone of the Tiferet framework, encapsulatin
 Their consistent design pattern — Service contract implementation, structured error handling via `RaiseError`, context manager lifecycle for resource management, and artifact comment organization — ensures that utilities are reliable, testable, and aligned with the framework's design philosophy. The current file and data access utilities establish the pattern; future computational utilities extend the same architecture into new domains.
 
 Explore source in `tiferet/utils/` for current utilities, `tiferet/contracts/` for the contracts they implement, and `tiferet/utils/tests/` for test examples.
-```
