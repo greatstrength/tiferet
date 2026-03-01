@@ -639,3 +639,19 @@ The `calc_cli.py` script offers a versatile, scriptable interface that integrate
 Embark on a journey of elegance and precision with Tiferet's Domain-Driven Design framework, as this tutorial has crafted a robust calculator application. You've defined arithmetic and validation domain events in `app/events/calc.py` and `app/events/settings.py`, orchestrated them with configurations in `app/configs/app.yml`, `app/configs/feature.yml`, and `app/configs/cli.yml`, and brought them to life through `basic_calc.py` and the `CliContext`-powered `calc_cli.py`. This configuration-driven approach, enriched with dependency injection and multilingual error handling, reflects Tiferet's harmonious balance of clarity and power, making development both functional and delightful.
 
 Extend your calculator's potential with Tiferet's modular design. Create a terminal user interface (TUI) in `calc_tui.py`, leveraging `CliContext` for interactive operation, or define a scientific calculator interface (`sci_calc`) in `app/configs/app.yml` with advanced features like trigonometric functions. Integrate the calculator into larger systems, such as financial modeling, by adding new domain events and features in `app/configs/feature.yml`. Experiment with `calc_cli.py` to test additional operations, tweak configurations in `app/configs/`, or explore Tiferet's documentation for advanced DDD techniques. Let Tiferet's graceful framework guide you to solutions that resonate with purpose and precision, transforming complexity into clarity.
+
+## Documentation
+
+### Guides
+- **[FileLoader Utility](docs/guides/utils/file.md)** — Using `FileLoader` for file I/O in domain events and application code.
+- **[Technical Requirements Documents](docs/guides/tech_requirements.md)** — Instructions for drafting TRDs.
+- **[Collaboration Reports](docs/guides/collab_report.md)** — How to generate collaboration summary reports.
+
+### Core Reference (Contributors)
+- **[Structured Code Style](docs/core/code_style.md)** — Artifact comments, spacing, docstrings, and formatting conventions.
+- **[Domain Objects](docs/core/domain.md)** — Domain model conventions and the `DomainObject` base class.
+- **[Domain Events](docs/core/events.md)** — Event patterns, validation, dependency injection, and testing.
+- **[Interfaces](docs/core/interfaces.md)** — Service contract definitions and conventions.
+- **[Mappers](docs/core/mappers.md)** — Aggregates, TransferObjects, and data transformation.
+- **[Contexts](docs/core/contexts.md)** — Runtime orchestration and lifecycle.
+- **[Utilities](docs/core/utils.md)** — Building and extending utilities in the framework.

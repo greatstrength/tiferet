@@ -195,3 +195,5 @@ Future utilities (e.g., `EmbeddingClient`) follow the same pattern: define Servi
 Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes behind injectable Services. Their consistent pattern — Service implementation, `RaiseError` handling, context-manager lifecycle, and artifact organization — ensures reliability and alignment with the framework.
 
 Explore source in `tiferet/utils/`, contracts in `tiferet/interfaces/`, and tests in `tiferet/utils/tests/`.
+
+For a user-facing guide on consuming utilities directly in domain events and application code, see **[docs/guides/utils/file.md](../guides/utils/file.md)**.
