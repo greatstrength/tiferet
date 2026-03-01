@@ -229,8 +229,10 @@ YAML_FILE_NOT_FOUND_ID          = 'YAML_FILE_NOT_FOUND'
 YAML_FILE_LOAD_ERROR_ID         = 'YAML_FILE_LOAD_ERROR'
 YAML_FILE_SAVE_ERROR_ID         = 'YAML_FILE_SAVE_ERROR'
 
+JSON_FILE_NOT_FOUND_ID          = 'JSON_FILE_NOT_FOUND'
 JSON_FILE_LOAD_ERROR_ID         = 'JSON_FILE_LOAD_ERROR'
 JSON_FILE_SAVE_ERROR_ID         = 'JSON_FILE_SAVE_ERROR'
+INVALID_JSON_PATH_ID            = 'INVALID_JSON_PATH'
 
 CSV_INVALID_MODE_ID             = 'CSV_INVALID_MODE'
 CSV_HANDLE_NOT_INITIALIZED_ID   = 'CSV_HANDLE_NOT_INITIALIZED'
@@ -801,6 +803,15 @@ DEFAULT_ERRORS = {
         ]
     },
 
+    # * error: JSON_FILE_NOT_FOUND
+    JSON_FILE_NOT_FOUND_ID: {
+        'id': JSON_FILE_NOT_FOUND_ID,
+        'name': 'JSON File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified JSON file could not be found at {path}.'}
+        ]
+    },
+
     # * error: JSON_FILE_LOAD_ERROR
     JSON_FILE_LOAD_ERROR_ID: {
         'id': JSON_FILE_LOAD_ERROR_ID,
@@ -816,6 +827,15 @@ DEFAULT_ERRORS = {
         'name': 'JSON Save Failure',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to serialize/write JSON: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_JSON_PATH
+    INVALID_JSON_PATH_ID: {
+        'id': INVALID_JSON_PATH_ID,
+        'name': 'Invalid JSON Path',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid JSON path: {path}. Failed at segment: {part}.'}
         ]
     },
 
