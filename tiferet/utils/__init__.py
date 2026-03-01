@@ -4,3 +4,4 @@
 
 # ** app
 from .file import FileLoader, FileLoader as File
+from .yaml import YamlLoader, YamlLoader as Yaml
