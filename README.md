@@ -635,6 +635,31 @@ python calc_cli.py calc divide 5 0
 
 The `calc_cli.py` script offers a versatile, scriptable interface that integrates effortlessly with shell scripts or external systems, powered by `CliContext` for robust command execution. For quick testing or debugging, use `basic_calc.py` to run individual features with predefined values, while the CLI provides precise, argument-driven control.
 
+## Documentation
+
+Tiferet provides detailed documentation for framework internals and utility usage.
+
+### Core Design Documents
+
+Architectural references for framework contributors and advanced users:
+
+- [Code Style](docs/core/code_style.md) — Artifact comments, spacing, docstrings, and formatting conventions
+- [Domain Objects](docs/core/domain.md) — Domain model structure and factory patterns
+- [Domain Events](docs/core/events.md) — Event patterns, validation, and testing
+- [Interfaces](docs/core/interfaces.md) — Service contract conventions
+- [Mappers](docs/core/mappers.md) — Aggregate and TransferObject patterns
+- [Utilities](docs/core/utils.md) — Infrastructure utilities design and best practices
+
+### Utility Guides
+
+Practical guides for using Tiferet's built-in utilities:
+
+- [FileLoader (File)](docs/guides/utils/file.md) — Base file I/O with context-manager lifecycle
+- [YamlLoader (Yaml)](docs/guides/utils/yaml.md) — YAML read/write with node navigation
+- [JsonLoader (Json)](docs/guides/utils/json.md) — JSON read/write with path support
+- [CsvLoader (Csv)](docs/guides/utils/csv.md) — List and dict-based CSV operations
+- [SqliteClient (Sqlite)](docs/guides/utils/sqlite.md) — SQLite database client with transaction management
+
 ## Conclusion
 Embark on a journey of elegance and precision with Tiferet's Domain-Driven Design framework, as this tutorial has crafted a robust calculator application. You've defined arithmetic and validation domain events in `app/events/calc.py` and `app/events/settings.py`, orchestrated them with configurations in `app/configs/app.yml`, `app/configs/feature.yml`, and `app/configs/cli.yml`, and brought them to life through `basic_calc.py` and the `CliContext`-powered `calc_cli.py`. This configuration-driven approach, enriched with dependency injection and multilingual error handling, reflects Tiferet's harmonious balance of clarity and power, making development both functional and delightful.
 
