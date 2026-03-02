@@ -27,10 +27,11 @@ tiferet/
 ├── handlers/             # Handler implementations
 ├── interfaces/           # Forward: Service ABC
 ├── mappers/              # Forward: Aggregate + TransferObject
-├── middleware/           # File I/O middleware
+├── middleware/           # File I/O middleware (deprecated — use utils/)
 ├── models/               # Legacy: ModelObject
 ├── proxies/              # YAML/JSON/CSV proxies
 ├── repos/                # Repository implementations
+├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
 ```
 
@@ -219,14 +220,17 @@ Applications are configured via YAML files in `app/configs/`:
 
 ## Utilities
 
-`tiferet/utils/` provides file I/O wrappers:
+`tiferet/utils/` provides concrete infrastructure implementations satisfying Service interfaces (`FileService`, `SqliteService`, etc.). Utilities encapsulate repeatable processes — physical (file I/O, database) and computational (algorithms, inference, transformations) — behind injectable, testable contracts.
 
-- `FileLoader` / `File` — Base file operations (open, close, read, write) with context manager support.
-- `YamlLoader` / `Yaml` — YAML read/write via PyYAML.
-- `JsonLoader` / `Json` — JSON read/write.
-- `CsvLoader` / `Csv` — CSV read/write.
-- `CsvDictLoader` / `CsvDict` — CSV with dict reader/writer.
-- `SqliteClient` / `Sqlite` — SQLite connection management with context manager.
+See [docs/core/utils.md](docs/core/utils.md) for the full design document.
+
+Current utilities:
+- `File` / `FileLoader` — Base file I/O implementing `FileService`.
+- `Yaml` / `YamlLoader` — YAML read/write via PyYAML.
+- `Json` / `JsonLoader` — JSON read/write with path support.
+- `Csv` / `CsvLoader` — List-based CSV with helpers.
+- `CsvDict` / `CsvDictLoader` — Dict-based CSV.
+- `Sqlite` / `SqliteClient` — SQLite client implementing `SqliteService` and `FileService`.
 
 ## Package Exports
 
