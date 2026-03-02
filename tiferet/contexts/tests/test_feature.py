@@ -345,10 +345,11 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
 def test_feature_context_execute_feature(feature_context, get_feature_cmd, feature):
 
     # Add a standard feature command with no data key or pass on error.
-    feature.add_command(
+    feature.commands.append(DomainObject.new(
+        FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
-    )
+    ))
 
     # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature
@@ -376,14 +377,15 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     """Test executing a feature with a request parameter in the FeatureContext."""
     
     # Add a standard feature command with a data key.
-    feature.add_command(
+    feature.commands.append(DomainObject.new(
+        FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
         parameters=dict(
             param='$r.key',
         ),
         data_key='response_data',
-    )
+    ))
 
     # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature
@@ -406,11 +408,12 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
     """Test executing a feature with pass_on_error in the FeatureContext."""
     
     # Add a standard feature command and enable pass_on_error.
-    feature_command = feature.add_command(
+    feature.commands.append(DomainObject.new(
+        FeatureCommand,
         name='Test Command',
         attribute_id='test_command',
-    )
-    feature_command.pass_on_error = True
+        pass_on_error=True,
+    ))
 
     # Set the feature as the GetFeature command's return value.
     get_feature_cmd.execute.return_value = feature

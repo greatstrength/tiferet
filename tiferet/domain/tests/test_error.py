@@ -108,23 +108,6 @@ def test_error_new(error: Error, error_message: ErrorMessage):
     assert error.name == 'Test Error'
     assert len(error.message) == 1
     assert error.message[0] == error_message
-
-# ** test: error_message_rename
-def test_error_message_rename(error: Error):
-    '''
-    Test renaming an error.
-
-    :param error: The error to test.
-    :type error: Error
-    '''
-
-    # Rename the error.
-    new_name = 'Renamed Test Error'
-    error.rename(new_name)
-
-    # Verify the name is updated.
-    assert error.name == new_name
-
 # ** test: error_message_format
 def test_error_message_format(
         error_message: ErrorMessage,
@@ -227,55 +210,3 @@ def test_error_format_response_unsupported_lang(error: Error):
 
     # Verify that the response is None.
     assert not response
-
-# ** test: error_set_message
-def test_error_set_message(error: Error):
-    '''
-    Test setting a new error message for a specific language.
-
-    :param error: The error to test.
-    :type error: Error
-    '''
-
-    # Set a new message for the 'en_US' language.
-    error.set_message('en_US', 'A new error occurred.')
-
-    # Verify that the message is updated.
-    assert len(error.message) == 1
-    assert error.message[0].lang == 'en_US'
-    assert error.message[0].text == 'A new error occurred.'
-
-# ** test: error_set_message_new_lang
-def test_error_set_message_new_lang(error: Error):
-    '''
-    Test setting a new error message for a new language.
-
-    :param error: The error to test.
-    :type error: Error
-    '''
-
-    # Set a new message for the 'fr_FR' language.
-    error.set_message('fr_FR', 'Une nouvelle erreur est survenue.')
-
-    # Verify that the new message is added.
-    assert len(error.message) == 2
-    assert error.message[1].lang == 'fr_FR'
-    assert error.message[1].text == 'Une nouvelle erreur est survenue.'
-
-# ** test: error_remove_message
-def test_error_remove_message(error: Error):
-    '''
-    Test removing an error message for a specific language.
-
-    :param error: The error to test.
-    :type error: Error
-    '''
-
-    # Add a message for removal test.
-    error.set_message('fr_FR', 'Une erreur est survenue.')
-
-    # Remove the message for the 'en_US' language.
-    error.remove_message('fr_FR')
-
-    # Verify that the message is removed.
-    assert len(error.message) == 1

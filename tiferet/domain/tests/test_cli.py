@@ -145,27 +145,3 @@ def test_cli_command_has_argument(cli_command: CliCommand):
     # Assert that the command has the argument.
     assert cli_command.has_argument(['-a', '--arg1'])
     assert not cli_command.has_argument(['-b', '--arg2'])
-
-# ** test: cli_command_add_argument
-def test_cli_command_add_argument(cli_command: CliCommand):
-    '''
-    Test that a CLI command can add an argument.
-
-    :param cli_command: The CLI command to test.
-    :type cli_command: CliCommand
-    '''
-
-    # Create a new argument.
-    new_argument = DomainObject.new(
-        CliArgument,
-        name_or_flags=['--new-arg', '-n'],
-        description='A new argument for the command.',
-        required=False,
-        type='str'
-    )
-
-    # Add the new argument to the command.
-    cli_command.add_argument(new_argument)
-
-    # Assert that the new argument is now part of the command's arguments.
-    assert cli_command.has_argument(['-n', '--new-arg'])

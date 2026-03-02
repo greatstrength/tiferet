@@ -163,6 +163,28 @@ def test_error_aggregate_new():
     assert len(aggregate.message) == 1
 
 
+# ** test: error_aggregate_rename
+def test_error_aggregate_rename():
+    '''
+    Test renaming an error via ErrorAggregate.
+    '''
+
+    # Create an error aggregate.
+    aggregate = ErrorAggregate.new(
+        id='test_error',
+        name='Test Error',
+        error_code='TEST_ERROR',
+        message=[
+            {'lang': 'en', 'text': 'Test message'}
+        ]
+    )
+
+    # Rename the error.
+    aggregate.rename('Renamed Error')
+
+    # Assert the name was updated.
+    assert aggregate.name == 'Renamed Error'
+
 # ** test: error_aggregate_set_message
 def test_error_aggregate_set_message():
     '''

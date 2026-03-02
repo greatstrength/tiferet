@@ -160,9 +160,9 @@ class FeatureCommandYamlObject(FeatureCommand, TransferObject):
         :rtype: FeatureCommand
         '''
 
-        # Map to the feature command object.
+        # Map to the feature command aggregate.
         return super().map(
-            FeatureCommand,
+            FeatureCommandAggregate,
             parameters=self.parameters,
             **self.to_primitive('to_model'),
             **kwargs
@@ -289,9 +289,7 @@ class FeatureAggregate(Feature, Aggregate):
         '''
 
         # Create the feature command from raw attributes.
-        from ..domain import DomainObject
-        command = DomainObject.new(
-            FeatureCommand,
+        command = FeatureCommandAggregate.new(
             name=name,
             attribute_id=attribute_id,
             parameters=parameters or {},

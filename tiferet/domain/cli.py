@@ -211,15 +211,3 @@ class CliCommand(DomainObject):
 
         # Return False if no argument was found
         return False
-
-    # * method: add_argument
-    def add_argument(self, argument: CliArgument):
-        '''
-        Add an argument to the command.
-
-        :param argument: The argument to add.
-        :type argument: CliArgument
-        '''
-
-        # Append the argument to the command's arguments list.
-        self.arguments.append(argument)

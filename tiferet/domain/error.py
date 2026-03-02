@@ -128,19 +128,6 @@ class Error(DomainObject):
             message=message,
             **kwargs
         )
-    
-    # * method: rename
-    def rename(self, new_name: str):
-        '''
-        Renames the error.
-
-        :param new_name: The new name for the error.
-        :type new_name: str
-        '''
-
-        # Update the name.
-        self.name = new_name
-
     # * method: format_message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         '''
@@ -191,41 +178,3 @@ class Error(DomainObject):
             message=error_message,
             **kwargs
         )
-
-    # * method: set_message
-    def set_message(self, lang: str, text: str):
-        '''
-        Sets the error message text for the specified language.
-
-        :param lang: The language of the error message text.
-        :type lang: str
-        :param text: The error message text.
-        :type text: str
-        '''
-
-        # Check if the message already exists for the language.
-        for msg in self.message:
-            if msg.lang == lang:
-                msg.text = text
-                return
-
-        # If not, create a new ErrorMessage object and add it to the message list.
-        self.message.append(
-            DomainObject.new(
-                ErrorMessage,
-                lang=lang,
-                text=text
-            )
-        )
-
-    # * method: remove_message
-    def remove_message(self, lang: str):
-        '''
-        Removes the error message for the specified language.
-
-        :param lang: The language of the error message to remove.
-        :type lang: str
-        '''
-
-        # Filter out the message with the specified language.
-        self.message = [msg for msg in self.message if msg.lang != lang]

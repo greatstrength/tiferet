@@ -170,3 +170,231 @@ def test_feature_data_map(feature_yaml_object: FeatureYamlObject):
     assert feature_command.return_to_data == True
     assert feature_command.data_key == 'test_data'
     assert feature_command.pass_on_error == True
+
+# ** test: feature_aggregate_new
+def test_feature_aggregate_new():
+    '''
+    Test creating a new FeatureAggregate.
+    '''
+
+    # Create a feature aggregate.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+    )
+
+    # Assert the aggregate is valid.
+    assert isinstance(aggregate, FeatureAggregate)
+    assert aggregate.id == 'test_group.test_feature'
+    assert aggregate.feature_key == 'test_feature'
+    assert aggregate.name == 'Test Feature'
+
+# ** test: feature_aggregate_add_command
+def test_feature_aggregate_add_command():
+    '''
+    Test adding a command to a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+        commands=[],
+    )
+
+    # Add a command using raw attributes.
+    command = aggregate.add_command(
+        name='Test Command',
+        attribute_id='test_attr',
+        parameters={'p1': 'v1'},
+    )
+
+    # Assert the command was added.
+    assert len(aggregate.commands) == 1
+    assert aggregate.commands[0] is command
+    assert command.pass_on_error is False
+
+# ** test: feature_aggregate_add_command_position
+def test_feature_aggregate_add_command_position():
+    '''
+    Test inserting a command at a specific position in a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+        commands=[],
+    )
+
+    # Add two commands.
+    first = aggregate.add_command(
+        name='First Command',
+        attribute_id='first_attr',
+    )
+    inserted = aggregate.add_command(
+        name='Inserted Command',
+        attribute_id='inserted_attr',
+        position=0,
+    )
+
+    # Assert the inserted command is at position 0.
+    assert aggregate.commands[0] is inserted
+    assert aggregate.commands[1] is first
+
+# ** test: feature_aggregate_remove_command
+def test_feature_aggregate_remove_command():
+    '''
+    Test removing a command from a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate with commands.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+        commands=[],
+    )
+    first = aggregate.add_command(name='First', attribute_id='a')
+    second = aggregate.add_command(name='Second', attribute_id='b')
+
+    # Remove the first command.
+    removed = aggregate.remove_command(0)
+    assert removed is first
+    assert aggregate.commands == [second]
+
+    # Invalid positions return None.
+    assert aggregate.remove_command(5) is None
+    assert aggregate.remove_command(-1) is None
+
+# ** test: feature_aggregate_reorder_command
+def test_feature_aggregate_reorder_command():
+    '''
+    Test reordering commands in a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate with commands.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+        commands=[],
+    )
+    first = aggregate.add_command(name='First', attribute_id='a')
+    second = aggregate.add_command(name='Second', attribute_id='b')
+    third = aggregate.add_command(name='Third', attribute_id='c')
+
+    # Move first command to the end.
+    moved = aggregate.reorder_command(0, 2)
+    assert moved is first
+    assert aggregate.commands == [second, third, first]
+
+    # Invalid current position returns None.
+    assert aggregate.reorder_command(5, 0) is None
+
+# ** test: feature_aggregate_rename
+def test_feature_aggregate_rename():
+    '''
+    Test renaming a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate.
+    aggregate = FeatureAggregate.new(
+        name='Original Name',
+        group_id='test_group',
+    )
+
+    # Rename the feature.
+    aggregate.rename('Renamed Feature')
+
+    # Assert only the name changed.
+    assert aggregate.name == 'Renamed Feature'
+    assert aggregate.id == 'test_group.original_name'
+
+# ** test: feature_aggregate_set_description
+def test_feature_aggregate_set_description():
+    '''
+    Test setting description on a FeatureAggregate.
+    '''
+
+    # Create a feature aggregate.
+    aggregate = FeatureAggregate.new(
+        name='Test Feature',
+        group_id='test_group',
+    )
+
+    # Set a new description.
+    aggregate.set_description('New description.')
+    assert aggregate.description == 'New description.'
+
+    # Clear the description.
+    aggregate.set_description(None)
+    assert aggregate.description is None
+
+# ** test: feature_command_aggregate_set_pass_on_error
+def test_feature_command_aggregate_set_pass_on_error():
+    '''
+    Test ``set_pass_on_error`` on FeatureCommandAggregate.
+    '''
+
+    # Create a feature command aggregate.
+    aggregate = FeatureCommandAggregate.new(
+        name='Test Command',
+        attribute_id='attr',
+    )
+
+    # Explicit "false" string should result in False.
+    aggregate.set_pass_on_error('false')
+    assert aggregate.pass_on_error is False
+
+    # Mixed-case should also be False.
+    aggregate.set_pass_on_error('False')
+    assert aggregate.pass_on_error is False
+
+    # Truthy value should result in True.
+    aggregate.set_pass_on_error(1)
+    assert aggregate.pass_on_error is True
+
+# ** test: feature_command_aggregate_set_parameters
+def test_feature_command_aggregate_set_parameters():
+    '''
+    Test ``set_parameters`` merge and cleanup on FeatureCommandAggregate.
+    '''
+
+    # Create a feature command aggregate with initial parameters.
+    aggregate = FeatureCommandAggregate.new(
+        name='Test Command',
+        attribute_id='attr',
+        parameters={'a': '1', 'b': '2'},
+    )
+
+    # Merge new parameters.
+    aggregate.set_parameters({'b': '3', 'c': None})
+    assert aggregate.parameters == {'a': '1', 'b': '3'}
+
+    # None should be a no-op.
+    aggregate.set_parameters(None)
+    assert aggregate.parameters == {'a': '1', 'b': '3'}
+
+# ** test: feature_command_aggregate_set_attribute
+def test_feature_command_aggregate_set_attribute():
+    '''
+    Test ``set_attribute`` delegation on FeatureCommandAggregate.
+    '''
+
+    # Create a feature command aggregate.
+    aggregate = FeatureCommandAggregate.new(
+        name='Test Command',
+        attribute_id='attr',
+        parameters={'a': '1'},
+    )
+
+    # Update parameters via set_attribute.
+    aggregate.set_attribute('parameters', {'a': None, 'b': '2'})
+    assert aggregate.parameters == {'b': '2'}
+
+    # Update pass_on_error via set_attribute.
+    aggregate.set_attribute('pass_on_error', 'false')
+    assert aggregate.pass_on_error is False
+
+    # Fallback to setattr for other attributes.
+    aggregate.set_attribute('data_key', 'result')
+    assert aggregate.data_key == 'result'
