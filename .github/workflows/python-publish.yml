@@ -1,10 +1,10 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# Unified workflow: builds and publishes Tiferet to PyPI for both stable
+# releases and pre-releases.  Triggered on any GitHub Release (published).
+#
+# - Tests run for every release.
+# - Build validates the version tag, runs twine check, and uploads artifacts.
+# - Publish branches on the pre-release flag to select the correct PyPI
+#   environment ("pypi" for stable, "pypi-pre-release" for alpha/beta).
 
 name: Build and Publish Tiferet
 
@@ -40,7 +40,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: test
-    if: github.event.release.prerelease == false
     env:
       TIFERET_SILENT_IMPORTS: "1"
     steps:
@@ -90,10 +89,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event.release.prerelease == false
-    environment: pypi  # Specify the GitHub Actions environment
+    environment: pypi
 
     permissions:
-      id-token: write  # Required for OIDC authentication with PyPI
+      id-token: write
 
     steps:
       - name: Download artifacts
@@ -103,6 +102,27 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+
+  publish-pre-release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.release.prerelease == true
+    environment: pypi-pre-release
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: package-dist
+          path: dist/
+
+      - name: Publish to PyPI (pre-release)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
