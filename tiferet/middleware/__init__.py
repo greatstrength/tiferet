@@ -1,4 +1,13 @@
-"""Tiferet Middleware Exports"""
+"""
+Tiferet Middleware Exports
+
+.. deprecated::
+    The ``tiferet.middleware`` package is deprecated and will be removed in a
+    future release.  Use the ``tiferet.utils`` package instead, which provides
+    the same file-I/O utilities under their canonical names (``FileLoader``,
+    ``YamlLoader``, ``JsonLoader``, ``CsvLoader``, ``CsvDictLoader``,
+    ``SqliteClient``).
+"""
 
 # *** exports
 

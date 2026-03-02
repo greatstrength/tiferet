@@ -46,6 +46,20 @@ try:
         CsvDict,
         CsvDictLoaderMiddleware
     )
+    from .utils import (
+        FileLoader,
+        FileLoader as File,
+        YamlLoader,
+        YamlLoader as Yaml,
+        JsonLoader,
+        JsonLoader as Json,
+        CsvLoader,
+        CsvLoader as Csv,
+        CsvDictLoader,
+        CsvDictLoader as CsvDict,
+        SqliteClient,
+        SqliteClient as Sqlite,
+    )
 except Exception as e:
     import os, sys
     # Only print warning if TIFERET_SILENT_IMPORTS is not set to a truthy value
@@ -55,4 +69,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '1.9.5'
+__version__ = '2.0.0a1'

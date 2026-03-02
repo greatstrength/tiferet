@@ -53,6 +53,7 @@ include = [
     "tiferet.repos",
     "tiferet.repos.config",
     "tiferet.mappers",
+    "tiferet.utils",
 ]
 
 [tool.setuptools.dynamic]
