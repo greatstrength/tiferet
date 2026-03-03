@@ -156,6 +156,6 @@ Each section maps to the corresponding domain object type, keyed by ID.
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/contexts.md) — Context conventions and lifecycle
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/guides/domain/app.md) — App domain guide
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide

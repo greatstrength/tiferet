@@ -41,9 +41,8 @@ class AddAppInterface(DomainEvent):
         class_name: str,
         description: str | None = None,
         logger_id: str = 'default',
-        feature_flag: str = 'default',
-        data_flag: str = 'default',
-        attributes: List[Dict[str, Any]] = [],
+        flags: List[str] = ['default'],
+        services: List[Dict[str, Any]] = [],
         constants: Dict[str, str] = {},
         **kwargs,
     ) -> AppInterface:
@@ -64,14 +63,12 @@ class AddAppInterface(DomainEvent):
         :type description: str | None
         :param logger_id: Optional logger identifier, defaults to ``'default'``.
         :type logger_id: str | None
-        :param feature_flag: Optional feature flag, defaults to ``'default'``.
-        :type feature_flag: str | None
-        :param data_flag: Optional data flag, defaults to ``'default'``.
-        :type data_flag: str | None
-        :param attributes: Optional list of attribute definitions; each item is a
+        :param flags: Optional list of flags, defaults to ``['default']``.
+        :type flags: List[str]
+        :param services: Optional list of service dependency definitions; each item is a
             dict with keys ``attribute_id``, ``module_path``, ``class_name`` and
             optional ``parameters``.
-        :type attributes: List[Dict[str, Any]] | None
+        :type services: List[Dict[str, Any]] | None
         :param constants: Optional dictionary of constant values.
         :type constants: Dict[str, str] | None
         :return: The created AppInterface.
@@ -86,13 +83,12 @@ class AddAppInterface(DomainEvent):
             'class_name': class_name,
             'description': description,
             'logger_id': logger_id,
-            'feature_flag': feature_flag,
-            'data_flag': data_flag,
-            'attributes': attributes,
+            'flags': flags,
+            'services': services,
             'constants': constants,
         }
 
-        # Create the AppInterface model; feature_flag and data_flag default to 'default'.
+        # Create the AppInterface model; flags defaults to ['default'].
         interface = AppInterfaceAggregate.new(
             app_interface_data=app_interface_data
         )
@@ -371,8 +367,8 @@ class SetServiceDependency(DomainEvent):
             interface_id=id,
         )
 
-        # Set or update the dependency via the model method.
-        interface.set_dependency(
+        # Set or update the service dependency via the model method.
+        interface.set_service(
             attribute_id=attribute_id,
             module_path=module_path,
             class_name=class_name,
@@ -433,8 +429,8 @@ class RemoveServiceDependency(DomainEvent):
             interface_id=id,
         )
 
-        # Remove the attribute idempotently via the model method.
-        interface.remove_attribute(attribute_id)
+        # Remove the service dependency idempotently via the model method.
+        interface.remove_service(attribute_id)
 
         # Persist the updated interface.
         self.app_service.save(interface)

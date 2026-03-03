@@ -650,6 +650,12 @@ Architectural references for framework contributors and advanced users:
 - [Mappers](docs/core/mappers.md) — Aggregate and TransferObject patterns
 - [Utilities](docs/core/utils.md) — Infrastructure utilities design and best practices
 
+### Domain Guides
+
+Practical guides for working with Tiferet's domain layers:
+
+- [Mappers – Strategies and Patterns](docs/guides/mappers.md) — Aggregate and TransferObject design decisions, nested sub-objects, role strategies, and round-trip mapping
+
 ### Utility Guides
 
 Practical guides for using Tiferet's built-in utilities:

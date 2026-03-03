@@ -9,7 +9,7 @@ Utilities are a core component of the Tiferet framework, providing concrete infr
 
 The utility pattern encapsulates **any reusable infrastructure concern** behind a consistent, injectable, and testable Service contract. While the current `tiferet/utils/` package contains file and data access utilities (YAML, JSON, CSV, SQLite), the architectural role extends to computational infrastructure as well — sorting algorithms, heuristics, AI model invocations, embedding pipelines, or any other repeatable process that domain events should consume without coupling to implementation details.
 
-This document describes the structure, design principles, and best practices for writing and extending utilities, adhering to Tiferet's structured code style ([docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/v2.0a1-release/docs/core/code_style.md)).
+This document describes the structure, design principles, and best practices for writing and extending utilities, adhering to Tiferet's structured code style ([docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
 ## What is a Utility?
 

@@ -88,13 +88,13 @@ Every TRD must include a **"Related Code Style Documentation"** section at the e
 - Include a component-specific guide **only if the story directly adds, modifies, or refactors code in that component type**.
 - Do not include unrelated guides to avoid clutter.
 
-Current available guides (located in `docs/core/` on the `v2.0-proto` branch):
-- **[code_style.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
-- **[domain.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/domain.md)** – Domain model and aggregate conventions.
-- **[events.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/events.md)** – Domain event patterns and usage.
-- **[mappers.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/mappers.md)** – Data mapping, DTOs, and transformation conventions.
-- **[contexts.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
-- **[interfaces.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/interfaces.md)** – Interface / contract / service conventions.
+Current available guides (located in `docs/core/` on the `main` branch):
+- **[code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
+- **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain model and aggregate conventions.
+- **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event patterns and usage.
+- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Data mapping, DTOs, and transformation conventions.
+- **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
+- **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Interface / contract / service conventions.
 
 Additional component-specific style guides will be added as the framework evolves. Always consult the relevant documents when implementing or extending components.
 
@@ -110,7 +110,7 @@ All work in the Tiferet project follows a standard GitHub branching workflow. TR
   - Issue #568 "Interfaces – File, Configuration, and SQLite Service Contracts" → `568-interfaces-file-configuration-and-sqlite-service-contracts`
 
 ### Branch Workflow
-- **Feature branches** are created from and target the current **release branch** (e.g., `v2.0a1-release`).
+- **Feature branches** are created from and target `main`.
 - PRs are opened against the release branch, not `main`.
 - Upon completion of all release work, the **release branch is rebased into `main`**.
 - After merge, the feature branch is deleted (both remote and local).

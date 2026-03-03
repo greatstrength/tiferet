@@ -5,7 +5,7 @@
 **Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML-based configuration files and `schematics` for model validation.
 
 - **Repository:** https://github.com/greatstrength/tiferet
-- **Branch:** `v1.9.x-maintenance`
+- **Branch:** `main`
 - **Python:** ≥ 3.10
 - **Version:** `1.9.x`
 
@@ -13,7 +13,7 @@
 
 ### Layer Overview
 
-The v1.9.x branch maintains a **dual-package structure**: legacy packages from v1.x coexist alongside forward-compatible packages that introduce the v2.0 naming and design. Both are fully supported; new code should prefer the forward-compatible packages.
+The codebase maintains a **dual-package structure**: legacy packages from v1.x coexist alongside forward-compatible packages that introduce the v2.0 naming and design. Both are fully supported; new code should prefer the forward-compatible packages.
 
 ```
 tiferet/
@@ -258,7 +258,7 @@ The top-level `tiferet/__init__.py` exports:
 
 ## Forward-Compatible Packages
 
-The following packages are available on v1.9.x-maintenance as forward-compatible successors to legacy packages. New code should prefer these packages. Legacy packages remain fully supported.
+The following forward-compatible packages are successors to legacy packages. New code should prefer these packages. Legacy packages remain fully supported.
 
 - **`tiferet/domain/`** → `DomainObject` — drop-in successor to `ModelObject` (`models/`). Same API, new name.
 - **`tiferet/events/`** → `DomainEvent` — successor to `Command` (`commands/`). Adds `@parameters_required` decorator and `DomainEvent.handle()` for testing.

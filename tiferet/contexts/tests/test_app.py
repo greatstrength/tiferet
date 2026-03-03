@@ -60,9 +60,8 @@ def app_interface():
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
         description='The test app.',
-        feature_flag='test',
-        data_flag='test',
-        attributes=[],
+        flags=['test'],
+        services=[],
     )
 
 # ** fixture: feature_context

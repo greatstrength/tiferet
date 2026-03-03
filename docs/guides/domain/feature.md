@@ -149,7 +149,7 @@ The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `comm
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/contexts.md) — Context conventions and lifecycle
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/events.md) — Domain event patterns
-- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/guides/domain/di.md) — DI domain guide
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
+- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns
+- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide

@@ -21,7 +21,7 @@ from ..settings import TiferetError, DomainEvent, a
 from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 from ...domain import (
     AppInterface,
-    AppAttribute,
+    AppServiceDependency,
 )
 from ...interfaces import AppService
 from ...mappers import Aggregate, AppInterfaceAggregate
@@ -55,11 +55,10 @@ def app_interface():
         module_path='tiferet.contexts.app',
         class_name='AppContext',
         description='The test app.',
-        feature_flag='test',
-        data_flag='test',
-        attributes=[
+        flags=['test'],
+        services=[
             Aggregate.new(
-                AppAttribute,
+                AppServiceDependency,
                 attribute_id='test_attribute',
                 module_path='test_module_path',
                 class_name='test_class_name',
@@ -130,9 +129,8 @@ def test_add_app_interface_success(mock_app_service: AppService):
         class_name='AppInterfaceContext',
         description='A test app interface.',
         logger_id='test_logger',
-        feature_flag='test_feature',
-        data_flag='test_data',
-        attributes=[
+        flags=['test_feature', 'test_data'],
+        services=[
             {
                 'attribute_id': 'attr1',
                 'module_path': 'test.module',
@@ -150,10 +148,9 @@ def test_add_app_interface_success(mock_app_service: AppService):
     assert result.class_name == 'AppInterfaceContext'
     assert result.description == 'A test app interface.'
     assert result.logger_id == 'test_logger'
-    assert result.feature_flag == 'test_feature'
-    assert result.data_flag == 'test_data'
-    assert len(result.attributes) == 1
-    attr = result.attributes[0]
+    assert result.flags == ['test_feature', 'test_data']
+    assert len(result.services) == 1
+    attr = result.services[0]
     assert attr.attribute_id == 'attr1'
     assert attr.module_path == 'test.module'
     assert attr.class_name == 'TestClass'
@@ -181,9 +178,8 @@ def test_add_app_interface_defaults(mock_app_service: AppService):
         class_name='AppInterfaceContext',
     )
 
-    assert result.feature_flag == 'default'
-    assert result.data_flag == 'default'
-    assert result.attributes == []
+    assert result.flags == ['default']
+    assert result.services == []
     assert result.constants == {}
 
     mock_app_service.save.assert_called_once()
@@ -291,7 +287,7 @@ def test_set_service_dependency_creates_new_attribute(app_service, app_interface
     '''
 
     # Ensure no attribute with the target id exists initially.
-    assert app_interface.get_attribute('new_dependency') is None
+    assert app_interface.get_service('new_dependency') is None
 
     # Execute the command via DomainEvent.handle.
     result = DomainEvent.handle(
@@ -308,7 +304,7 @@ def test_set_service_dependency_creates_new_attribute(app_service, app_interface
     assert result == app_interface.id
 
     # A new attribute should be created with the provided values.
-    new_attr = app_interface.get_attribute('new_dependency')
+    new_attr = app_interface.get_service('new_dependency')
     assert new_attr is not None
     assert new_attr.module_path == 'new.module.path'
     assert new_attr.class_name == 'NewClass'
@@ -332,7 +328,7 @@ def test_set_service_dependency_updates_existing_attribute_and_merges_parameters
     '''
 
     # Precondition: existing attribute from fixture.
-    existing_attr = app_interface.get_attribute('test_attribute')
+    existing_attr = app_interface.get_service('test_attribute')
     existing_attr.parameters = {'keep': 'value', 'override': 'old', 'remove': 'to_be_removed'}
 
     # Execute the command via DomainEvent.handle with updated fields and parameters.
@@ -354,7 +350,7 @@ def test_set_service_dependency_updates_existing_attribute_and_merges_parameters
     assert result == app_interface.id
 
     # Attribute should be updated.
-    updated_attr = app_interface.get_attribute('test_attribute')
+    updated_attr = app_interface.get_service('test_attribute')
     assert updated_attr.module_path == 'updated.module.path'
     assert updated_attr.class_name == 'UpdatedClass'
     # Parameters merged: keep preserved, override updated, remove dropped, new_param added.
@@ -380,7 +376,7 @@ def test_set_service_dependency_parameters_none_clears_existing(app_service, app
     '''
 
     # Precondition: existing attribute has parameters.
-    existing_attr = app_interface.get_attribute('test_attribute')
+    existing_attr = app_interface.get_service('test_attribute')
     existing_attr.parameters = {'key': 'value'}
 
     # Execute the command with parameters set to None.
@@ -398,7 +394,7 @@ def test_set_service_dependency_parameters_none_clears_existing(app_service, app
     assert result == app_interface.id
 
     # Parameters should be cleared.
-    cleared_attr = app_interface.get_attribute('test_attribute')
+    cleared_attr = app_interface.get_service('test_attribute')
     assert cleared_attr.parameters == {}
 
     # The updated interface should be saved.
@@ -523,9 +519,8 @@ def test_add_app_interface_minimal_success(app_service):
     assert interface.class_name == 'AppContext'
     assert interface.description is None
     assert interface.logger_id == 'default'
-    assert interface.feature_flag == 'default'
-    assert interface.data_flag == 'default'
-    assert interface.attributes == []
+    assert interface.flags == ['default']
+    assert interface.services == []
     assert interface.constants == {}
 
     # Assert the interface is saved via the app service.
@@ -562,9 +557,8 @@ def test_add_app_interface_full_parameters(app_service):
         class_name='AppContext',
         description='The test interface.',
         logger_id='custom_logger',
-        feature_flag='feature_flag_value',
-        data_flag='data_flag_value',
-        attributes=attributes,
+        flags=['flags_value'],
+        services=attributes,
         constants=constants,
     )
 
@@ -577,13 +571,12 @@ def test_add_app_interface_full_parameters(app_service):
 
     # Flags and logger.
     assert interface.logger_id == 'custom_logger'
-    assert interface.feature_flag == 'feature_flag_value'
-    assert interface.data_flag == 'data_flag_value'
+    assert interface.flags == ['flags_value']
 
-    # Attributes should be materialized as AppAttribute models.
-    assert len(interface.attributes) == 1
-    attr = interface.attributes[0]
-    assert isinstance(attr, AppAttribute)
+    # Services should be materialized as AppServiceDependency models.
+    assert len(interface.services) == 1
+    attr = interface.services[0]
+    assert isinstance(attr, AppServiceDependency)
     assert attr.attribute_id == 'test_attribute'
     assert attr.module_path == 'test_module_path'
     assert attr.class_name == 'test_class_name'
@@ -630,7 +623,7 @@ def test_add_app_interface_missing_required_fields(missing_param, app_service):
 # ** test: add_app_interface_default_fallbacks
 def test_add_app_interface_default_fallbacks(app_service):
     '''
-    Test that falsy logger_id, feature_flag, and data_flag values fall back to 'default'.
+    Test that falsy logger_id, flags, and flags values fall back to 'default'.
 
     :param app_service: The mock AppService instance.
     :type app_service: AppService
@@ -648,8 +641,7 @@ def test_add_app_interface_default_fallbacks(app_service):
 
     # All flags should be normalized to 'default'.
     assert interface.logger_id == 'default'
-    assert interface.feature_flag == 'default'
-    assert interface.data_flag == 'default'
+    assert interface.flags == ['default']
 
     # Assert the interface is saved via the app service.
     app_service.save.assert_called_once_with(interface)
@@ -663,8 +655,7 @@ def test_add_app_interface_default_fallbacks(app_service):
         ('module_path', 'updated.module.path'),
         ('class_name', 'UpdatedClass'),
         ('logger_id', 'updated_logger'),
-        ('feature_flag', 'updated_feature_flag'),
-        ('data_flag', 'updated_data_flag'),
+        ('flags', ['updated_flags']),
     ],
 )
 def test_update_app_interface_success_supported_attributes(

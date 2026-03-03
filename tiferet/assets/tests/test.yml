@@ -40,9 +40,9 @@ interfaces:
         module_path: test_module_path
     const:
       test_const: test_const_value
-    data_flag: test_app_yaml_proxy
     description: The context for testing the app yaml proxy.
-    feature_flag: test_app_yaml_proxy
+    flags:
+      - test_app_yaml_proxy
     name: Test App YAML Proxy
 cli:
   cmds:

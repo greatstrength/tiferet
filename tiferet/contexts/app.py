@@ -16,7 +16,7 @@ from .. import assets as a
 from ..domain import (
     DomainObject,
     AppInterface,
-    AppAttribute,
+    AppServiceDependency,
 )
 from ..events import (
     DomainEvent,
@@ -88,19 +88,19 @@ class AppManagerContext(object):
         # Return the imported app repository.
         return app_repo
 
-    # * method: load_default_attributes
-    def load_default_attributes(self) -> List[AppAttribute]:
+    # * method: load_default_services
+    def load_default_services(self) -> List[AppServiceDependency]:
         '''
-        Load the default app attributes from the configuration constants.
+        Load the default app service dependencies from the configuration constants.
 
-        :return: A list of default app attributes.
-        :rtype: List[AppAttribute]
+        :return: A list of default app service dependencies.
+        :rtype: List[AppServiceDependency]
         '''
 
-        # Retrieve the default attributes from the configuration constants.
+        # Retrieve the default service dependencies from the configuration constants.
         return [
             DomainObject.new(
-                AppAttribute,
+                AppServiceDependency,
                 **attr_data,
                 validate=False,
             )
@@ -108,14 +108,14 @@ class AppManagerContext(object):
         ]
 
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: Any, default_attrs: List[AppAttribute]) -> Any:
+    def load_app_instance(self, app_interface: Any, default_services: List[AppServiceDependency]) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface definition.
         :type app_interface: Any
-        :param default_attrs: The default configured attributes for the app.
-        :type default_attrs: List[AppAttribute]
+        :param default_services: The default configured service dependencies for the app.
+        :type default_services: List[AppServiceDependency]
         :return: The app interface context instance.
         :rtype: Any
         '''
@@ -129,23 +129,23 @@ class AppManagerContext(object):
             logger_id=getattr(app_interface, 'logger_id', None),
         )
 
-        # Add the remaining app context attributes and parameters to the dependencies.
-        for attr in app_interface.attributes:
-            dependencies[attr.attribute_id] = ImportDependency.execute(
-                attr.module_path,
-                attr.class_name,
+        # Add the remaining app context service dependencies and parameters.
+        for dep in app_interface.services:
+            dependencies[dep.attribute_id] = ImportDependency.execute(
+                dep.module_path,
+                dep.class_name,
             )
-            for param, value in attr.parameters.items():
+            for param, value in dep.parameters.items():
                 dependencies[param] = value
 
-        # Add the default attributes and parameters to the dependencies if they do not already exist.
-        for attr in default_attrs:
-            if attr.attribute_id not in dependencies:
-                dependencies[attr.attribute_id] = ImportDependency.execute(
-                    attr.module_path,
-                    attr.class_name,
+        # Add the default service dependencies and parameters if they do not already exist.
+        for dep in default_services:
+            if dep.attribute_id not in dependencies:
+                dependencies[dep.attribute_id] = ImportDependency.execute(
+                    dep.module_path,
+                    dep.class_name,
                 )
-                for param, value in attr.parameters.items():
+                for param, value in dep.parameters.items():
                     dependencies[param] = value
 
         # Add the constants from the app interface to the dependencies.
@@ -187,11 +187,11 @@ class AppManagerContext(object):
             interface_id=interface_id,
         )
 
-        # Retrieve the default attributes from the configuration.
-        default_attrs = self.load_default_attributes()
+        # Retrieve the default service dependencies from the configuration.
+        default_services = self.load_default_services()
 
         # Create the app interface context.
-        app_interface_context = self.load_app_instance(app_interface, default_attrs=default_attrs)
+        app_interface_context = self.load_app_instance(app_interface, default_services=default_services)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
