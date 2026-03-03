@@ -7,7 +7,7 @@ from typing import Tuple, Any, List, Dict
 
 # ** app
 from ..domain.container import ContainerAttribute
-from ..interfaces import ContainerService
+from ..interfaces.container import ContainerService
 from ..mappers import TransferObject
 from ..mappers.container import (
     ContainerAttributeYamlObject,

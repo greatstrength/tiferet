@@ -9,7 +9,7 @@ from typing import Tuple, List, Dict, Any, Optional
 from .settings import a
 from ..domain.container import ContainerAttribute
 from ..events import DomainEvent
-from ..interfaces import ContainerService
+from ..interfaces.container import ContainerService
 from ..mappers import Aggregate
 from ..mappers.container import ContainerAttributeAggregate
 

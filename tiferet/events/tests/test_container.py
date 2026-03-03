@@ -23,7 +23,7 @@ from ...mappers.container import (
     FlaggedDependencyAggregate,
 )
 from ...mappers.settings import Aggregate
-from ...interfaces import ContainerService
+from ...interfaces.container import ContainerService
 from ...assets import TiferetError
 from ...events import DomainEvent
 
