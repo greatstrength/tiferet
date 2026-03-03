@@ -15,13 +15,6 @@ from .cli import (
     CliCommandAggregate,
     CliCommandYamlObject,
 )
-# NOTE: container mappers excluded from exports pending domain alignment.
-# from .container import (
-#     FlaggedDependencyAggregate,
-#     FlaggedDependencyYamlObject,
-#     ContainerAttributeAggregate,
-#     ContainerAttributeYamlObject,
-# )
 from .di import (
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
