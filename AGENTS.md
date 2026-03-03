@@ -156,11 +156,11 @@ result = DomainEvent.handle(
 
 ### Domain Modules
 
-- `domain/app.py` — `AppInterface`, `AppAttribute`
+- `domain/app.py` — `AppInterface`, `AppServiceDependency`
 - `domain/cli.py` — `CliCommand`, `CliArgument`
-- `domain/container.py` — `ContainerAttribute`, `FlaggedDependency`
+- `domain/di.py` — `ServiceConfiguration`, `FlaggedDependency`
 - `domain/error.py` — `Error`, `ErrorMessage`
-- `domain/feature.py` — `Feature`, `FeatureCommand`
+- `domain/feature.py` — `Feature`, `FeatureStep`, `FeatureEvent`
 - `domain/logging.py` — `Formatter`, `Handler`, `Logger`
 
 ## Interfaces (Services)
@@ -179,8 +179,8 @@ Split into two classes:
 
 ### Naming Convention
 
-- `<Domain>Aggregate` (e.g., `FeatureAggregate`, `ErrorAggregate`)
-- `<Domain>YamlObject` (e.g., `FeatureYamlObject`, `ErrorYamlObject`)
+- `<Domain>Aggregate` (e.g., `FeatureAggregate`, `ErrorAggregate`, `ServiceConfigurationAggregate`)
+- `<Domain>YamlObject` (e.g., `FeatureYamlObject`, `ErrorYamlObject`, `ServiceConfigurationYamlObject`)
 
 ## Repositories
 
