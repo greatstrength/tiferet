@@ -15,14 +15,14 @@ from .settings import (
 )
 from .app import (
     AppInterface,
-    AppDependency,
+    AppServiceDependency,
 )
 from .cli import (
     CliArgument,
     CliCommand,
 )
-from .container import (
-    ContainerAttribute,
+from .di import (
+    ServiceConfiguration,
     FlaggedDependency,
 )
 from .error import (
