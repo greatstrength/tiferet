@@ -13,10 +13,10 @@ from .settings import (
 
 # *** models
 
-# ** model: app_attribute
-class AppAttribute(DomainObject):
+# ** model: app_service_dependency
+class AppServiceDependency(DomainObject):
     '''
-    An app dependency attribute that defines the dependency attributes for an app interface.
+    An app service dependency that defines the service configuration for an app interface.
     '''
 
     # * attribute: module_path
@@ -105,29 +105,22 @@ class AppInterface(DomainObject):
         ),
     )
 
-    # * attribute: feature_flag
-    feature_flag = StringType(
-        default='default',
+    # * attribute: flags
+    flags = ListType(
+        StringType(),
+        default=['default'],
         metadata=dict(
-            description='The feature flag.'
+            description='The flags for the application interface.'
         ),
     )
 
-    # * attribute: data_flag
-    data_flag = StringType(
-        default='default',
-        metadata=dict(
-            description='The data flag.'
-        ),
-    )
-
-    # * attribute: attributes
-    attributes = ListType(
-        ModelType(AppAttribute),
+    # * attribute: services
+    services = ListType(
+        ModelType(AppServiceDependency),
         required=True,
         default=[],
         metadata=dict(
-            description='The application instance attributes.'
+            description='The application instance service dependencies.'
         ),
     )
 
@@ -140,18 +133,18 @@ class AppInterface(DomainObject):
         ),
     )
 
-    # * method: get_attribute
-    def get_attribute(self, attribute_id: str) -> AppAttribute:
+    # * method: get_service
+    def get_service(self, attribute_id: str) -> AppServiceDependency:
         '''
-        Get the dependency attribute by attribute id.
+        Get the service dependency by attribute id.
 
-        :param attribute_id: The attribute id of the dependency attribute.
+        :param attribute_id: The attribute id of the service dependency.
         :type attribute_id: str
-        :return: The dependency attribute.
-        :rtype: AppAttribute
+        :return: The service dependency.
+        :rtype: AppServiceDependency
         '''
 
-        # Get the dependency attribute by attribute id.
-        return next((attr for attr in self.attributes if attr.attribute_id == attribute_id), None)
+        # Get the service dependency by attribute id.
+        return next((dep for dep in self.services if dep.attribute_id == attribute_id), None)
 
 
