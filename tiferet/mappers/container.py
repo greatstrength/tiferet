@@ -7,12 +7,11 @@ from typing import Dict, Any
 
 # ** app
 from ..domain import (
-    FlaggedDependency,
-    ContainerAttribute,
     StringType,
     DictType,
     ModelType,
 )
+from ..domain.container import ContainerAttribute, FlaggedDependency
 from .settings import (
     Aggregate,
     TransferObject,

@@ -17,8 +17,8 @@ from ..container import (
     SetServiceConstants,
     a,
 )
-from ...domain import ContainerAttribute, FlaggedDependency
-from ...mappers import (
+from ...domain.container import ContainerAttribute, FlaggedDependency
+from ...mappers.container import (
     ContainerAttributeAggregate,
     FlaggedDependencyAggregate,
 )

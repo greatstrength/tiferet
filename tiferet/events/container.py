@@ -7,10 +7,11 @@ from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
 from .settings import a
-from ..domain import ContainerAttribute
+from ..domain.container import ContainerAttribute
 from ..events import DomainEvent
 from ..interfaces import ContainerService
-from ..mappers import Aggregate, ContainerAttributeAggregate
+from ..mappers import Aggregate
+from ..mappers.container import ContainerAttributeAggregate
 
 # *** commands
 

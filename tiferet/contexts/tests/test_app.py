@@ -11,7 +11,8 @@ from unittest import mock
 
 # ** app
 from ...assets.tests import TEST_FEATURE, TEST_ERROR, TEST_SERVICE_COMMAND_ATTRIBUTE
-from ...domain import DomainObject, AppInterface, Feature, ContainerAttribute, Error
+from ...domain import DomainObject, AppInterface, Feature, Error
+from ...domain.container import ContainerAttribute
 from ...interfaces import AppService
 from ..app import (
     FeatureContext,

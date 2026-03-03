@@ -12,7 +12,7 @@ from typing import (
 )
 
 # ** app
-from ..mappers import (
+from ..mappers.container import (
     ContainerAttributeAggregate,
 )
 from .settings import Service

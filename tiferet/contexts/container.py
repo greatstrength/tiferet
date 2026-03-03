@@ -6,7 +6,7 @@ from typing import Callable, Any, List
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..domain import ContainerAttribute
+from ..domain.container import ContainerAttribute
 from ..events import RaiseError, ImportDependency, ParseParameter
 from ..events.dependencies import *
 from ..events.container import ListAllSettings

@@ -6,12 +6,12 @@
 from typing import Tuple, Any, List, Dict
 
 # ** app
-from ..domain import ContainerAttribute
+from ..domain.container import ContainerAttribute
 from ..interfaces import ContainerService
-from ..mappers import (
-    TransferObject, 
+from ..mappers import TransferObject
+from ..mappers.container import (
     ContainerAttributeYamlObject,
-    FlaggedDependencyYamlObject
+    FlaggedDependencyYamlObject,
 )
 from ..utils import Yaml
 

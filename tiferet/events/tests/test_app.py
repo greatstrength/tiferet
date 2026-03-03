@@ -955,10 +955,10 @@ def test_remove_service_dependency_removes_existing_attribute(app_service, app_i
     :type app_interface: AppInterface
     '''
 
-    # Precondition: the attribute exists on the interface.
-    existing_attr = app_interface.get_attribute('test_attribute')
+    # Precondition: the service dependency exists on the interface.
+    existing_attr = app_interface.get_service('test_attribute')
     assert existing_attr is not None
-    initial_count = len(app_interface.attributes)
+    initial_count = len(app_interface.services)
 
     # Execute the command via DomainEvent.handle.
     result = DomainEvent.handle(
@@ -971,9 +971,9 @@ def test_remove_service_dependency_removes_existing_attribute(app_service, app_i
     # Command should return the interface id.
     assert result == app_interface.id
 
-    # The attribute should be removed and the list size decreased by one.
-    assert app_interface.get_attribute('test_attribute') is None
-    assert len(app_interface.attributes) == initial_count - 1
+    # The service dependency should be removed and the list size decreased by one.
+    assert app_interface.get_service('test_attribute') is None
+    assert len(app_interface.services) == initial_count - 1
 
     # The updated interface should be saved.
     app_service.save.assert_called_once_with(app_interface)
@@ -989,9 +989,9 @@ def test_remove_service_dependency_missing_attribute_is_idempotent(app_service, 
     :type app_interface: AppInterface
     '''
 
-    # Precondition: no attribute with the given id exists.
-    assert app_interface.get_attribute('missing_attribute') is None
-    initial_count = len(app_interface.attributes)
+    # Precondition: no service dependency with the given id exists.
+    assert app_interface.get_service('missing_attribute') is None
+    initial_count = len(app_interface.services)
 
     # Execute the command via DomainEvent.handle.
     result = DomainEvent.handle(
@@ -1004,9 +1004,9 @@ def test_remove_service_dependency_missing_attribute_is_idempotent(app_service, 
     # Command should return the interface id.
     assert result == app_interface.id
 
-    # Attributes list should remain unchanged and still not contain the attribute.
-    assert app_interface.get_attribute('missing_attribute') is None
-    assert len(app_interface.attributes) == initial_count
+    # Services list should remain unchanged and still not contain the dependency.
+    assert app_interface.get_service('missing_attribute') is None
+    assert len(app_interface.services) == initial_count
 
     # The updated interface should be saved.
     app_service.save.assert_called_once_with(app_interface)

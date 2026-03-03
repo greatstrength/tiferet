@@ -10,7 +10,8 @@ import pytest
 import yaml
 
 # ** app
-from ...mappers import TransferObject, ContainerAttributeYamlObject
+from ...mappers import TransferObject
+from ...mappers.container import ContainerAttributeYamlObject
 from ..container import ContainerYamlRepository
 
 # *** constants
