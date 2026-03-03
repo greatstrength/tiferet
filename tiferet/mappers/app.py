@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 # ** app
 from ..domain import (
-    AppAttribute,
+    AppServiceDependency,
     AppInterface,
     DomainObject,
     StringType,
@@ -62,59 +62,59 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             **kwargs
         )
 
-    # * method: add_attribute
-    def add_attribute(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
+    # * method: add_service
+    def add_service(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
         '''
-        Add a dependency attribute to the app interface.
+        Add a service dependency to the app interface.
 
-        :param module_path: The module path for the app dependency attribute.
+        :param module_path: The module path for the service dependency.
         :type module_path: str
-        :param class_name: The class name for the app dependency attribute.
+        :param class_name: The class name for the service dependency.
         :type class_name: str
-        :param attribute_id: The id for the app dependency attribute.
+        :param attribute_id: The id for the service dependency.
         :type attribute_id: str
-        :param parameters: Additional parameters for the app dependency attribute.
+        :param parameters: Additional parameters for the service dependency.
         :type parameters: dict
         :return: None
         :rtype: None
         '''
 
-        # Create a new AppAttribute object.
+        # Create a new AppServiceDependency object.
         dependency = DomainObject.new(
-            AppAttribute,
+            AppServiceDependency,
             module_path=module_path,
             class_name=class_name,
             attribute_id=attribute_id,
             parameters=parameters,
         )
 
-        # Add the dependency to the list of dependencies.
-        self.attributes.append(dependency)
+        # Add the service dependency to the list of services.
+        self.services.append(dependency)
 
-    # * method: remove_attribute
-    def remove_attribute(self, attribute_id: str) -> AppAttribute:
+    # * method: remove_service
+    def remove_service(self, attribute_id: str) -> AppServiceDependency:
         '''
-        Remove and return a dependency attribute by its attribute_id (idempotent).
+        Remove and return a service dependency by its attribute_id (idempotent).
 
-        If an attribute with the given attribute_id exists, it is removed.
-        If no matching attribute exists, no action is taken (silent success).
+        If a service dependency with the given attribute_id exists, it is removed.
+        If no matching service dependency exists, no action is taken (silent success).
 
-        :param attribute_id: The attribute_id of the dependency to remove.
+        :param attribute_id: The attribute_id of the service dependency to remove.
         :type attribute_id: str
-        :return: The removed AppAttribute or None.
-        :rtype: AppAttribute
+        :return: The removed AppServiceDependency or None.
+        :rtype: AppServiceDependency
         '''
 
-        # Iterate over attributes and remove the first match by attribute_id.
-        for index, attr in enumerate(self.attributes):
-            if attr.attribute_id == attribute_id:
-                return self.attributes.pop(index)
+        # Iterate over services and remove the first match by attribute_id.
+        for index, dep in enumerate(self.services):
+            if dep.attribute_id == attribute_id:
+                return self.services.pop(index)
 
-        # If no attribute matches, return None without modifying the list.
+        # If no service dependency matches, return None without modifying the list.
         return None
 
-    # * method: set_dependency
-    def set_dependency(
+    # * method: set_service
+    def set_service(
         self,
         attribute_id: str,
         module_path: str,
@@ -122,17 +122,17 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         parameters: Dict[str, Any] = None,
     ) -> None:
         '''
-        Set or update a dependency attribute by attribute_id (PUT semantics).
+        Set or update a service dependency by attribute_id (PUT semantics).
 
-        If a dependency with the given attribute_id exists:
+        If a service dependency with the given attribute_id exists:
           - Update module_path and class_name.
           - Merge parameters (favor new values; remove keys with None value).
           - Clear parameters if parameters is None.
 
-        If no dependency exists:
-          - Create new AppAttribute and append to attributes.
+        If no service dependency exists:
+          - Create new AppServiceDependency and append to services.
 
-        :param attribute_id: The dependency identifier.
+        :param attribute_id: The service dependency identifier.
         :type attribute_id: str
         :param module_path: The module path.
         :type module_path: str
@@ -144,37 +144,37 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :rtype: None
         '''
 
-        # Find the existing dependency attribute by attribute_id.
-        attr = self.get_attribute(attribute_id)
+        # Find the existing service dependency by attribute_id.
+        dep = self.get_service(attribute_id)
 
-        # If the dependency exists, update its type fields and merge parameters.
-        if attr is not None:
-            attr.module_path = module_path
-            attr.class_name = class_name
+        # If the service dependency exists, update its type fields and merge parameters.
+        if dep is not None:
+            dep.module_path = module_path
+            dep.class_name = class_name
 
             # Clear parameters when parameters is None.
             if parameters is None:
-                attr.parameters = {}
+                dep.parameters = {}
 
             # Otherwise merge and then remove keys whose value is None.
             else:
-                attr.parameters.update(parameters)
-                attr.parameters = {
+                dep.parameters.update(parameters)
+                dep.parameters = {
                     key: value
-                    for key, value in attr.parameters.items()
+                    for key, value in dep.parameters.items()
                     if value is not None
                 }
 
-        # If the dependency does not exist, create a new one and append.
+        # If the service dependency does not exist, create a new one and append.
         else:
-            new_attr = DomainObject.new(
-                AppAttribute,
+            new_dep = DomainObject.new(
+                AppServiceDependency,
                 attribute_id=attribute_id,
                 module_path=module_path,
                 class_name=class_name,
                 parameters=parameters or {},
             )
-            self.attributes.append(new_attr)
+            self.services.append(new_dep)
 
     # * method: set_constants
     def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
@@ -206,7 +206,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         Update a supported scalar attribute on the app interface aggregate.
 
         Supported attributes: name, description, module_path, class_name,
-        logger_id, feature_flag, data_flag.
+        logger_id, flags.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -223,8 +223,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             'module_path',
             'class_name',
             'logger_id',
-            'feature_flag',
-            'data_flag',
+            'flags',
         }
 
         # Validate the attribute name.
@@ -252,10 +251,10 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         self.validate()
 
 
-# ** mapper: app_attribute_yaml_object
-class AppAttributeYamlObject(AppAttribute, TransferObject):
+# ** mapper: app_service_dependency_yaml_object
+class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
     '''
-    A YAML data representation of an app dependency attribute object.
+    A YAML data representation of an app service dependency object.
     '''
 
     # * attribute: attribute_id
@@ -289,21 +288,21 @@ class AppAttributeYamlObject(AppAttribute, TransferObject):
         }
 
     # * method: map
-    def map(self, attribute_id: str, **kwargs) -> AppAttribute:
+    def map(self, attribute_id: str, **kwargs) -> AppServiceDependency:
         '''
-        Maps the app dependency data to an app dependency object.
+        Maps the app service dependency data to an app service dependency object.
 
-        :param attribute_id: The id for the app dependency attribute.
+        :param attribute_id: The id for the app service dependency.
         :type attribute_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new app attribute dependency object.
-        :rtype: AppAttribute
+        :return: A new app service dependency object.
+        :rtype: AppServiceDependency
         '''
 
-        # Map to the app dependency object.
+        # Map to the app service dependency object.
         return super().map(
-            AppAttribute,
+            AppServiceDependency,
             attribute_id=attribute_id,
             parameters=self.parameters,
             **self.to_primitive('to_model'),
@@ -322,7 +321,7 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         '''
         serialize_when_none = False
         roles = {
-            'to_model': TransferObject.deny('attributes', 'constants', 'module_path', 'class_name'),
+            'to_model': TransferObject.deny('services', 'constants', 'module_path', 'class_name'),
             'to_data.yaml': TransferObject.deny('id'),
             'to_data.json': TransferObject.deny('id'),
         }
@@ -347,14 +346,14 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         ),
     )
 
-    # * attribute: attributes
-    attributes = DictType(
-        ModelType(AppAttributeYamlObject),
+    # * attribute: services
+    services = DictType(
+        ModelType(AppServiceDependencyYamlObject),
         default={},
         serialized_name='attrs',
-        deserialize_from=['attrs', 'attributes'],
+        deserialize_from=['attrs', 'services', 'dependencies', 'attributes'],
         metadata=dict(
-            description='The app instance attributes.'
+            description='The app instance service dependencies.'
         ),
     )
 
@@ -387,7 +386,7 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
             AppInterfaceAggregate,
             module_path=self.module_path,
             class_name=self.class_name,
-            attributes=[attr.map(attribute_id=attr_id) for attr_id, attr in self.attributes.items()],
+            services=[dep.map(attribute_id=dep_id) for dep_id, dep in self.services.items()],
             constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs
@@ -408,13 +407,13 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         '''
 
         # Create a new AppInterfaceYamlObject from the model, converting
-        # the attributes list into a dictionary keyed by attribute_id.
+        # the services list into a dictionary keyed by attribute_id.
         return TransferObject.from_model(
             AppInterfaceYamlObject,
             app_interface,
-            attributes={
-                attr.attribute_id: TransferObject.from_model(AppAttributeYamlObject, attr)
-                for attr in app_interface.attributes
+            services={
+                dep.attribute_id: TransferObject.from_model(AppServiceDependencyYamlObject, dep)
+                for dep in app_interface.services
             },
             **kwargs,
         )

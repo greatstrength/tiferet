@@ -6,10 +6,10 @@
 import pytest
 
 # ** app
-from ...domain import AppAttribute, DomainObject
+from ...domain import AppServiceDependency, DomainObject
 from ...assets import TiferetError
 from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
-from ..app import AppInterfaceAggregate, AppInterfaceYamlObject, AppAttributeYamlObject
+from ..app import AppInterfaceAggregate, AppInterfaceYamlObject, AppServiceDependencyYamlObject
 
 # *** fixtures
 
@@ -30,9 +30,8 @@ def app_interface_yaml_obj() -> AppInterfaceYamlObject:
         name='Test App YAML Data',
         module_path=DEFAULT_MODULE_PATH,
         class_name=DEFAULT_CLASS_NAME,
-        feature_flag='test_app_yaml_data',
-        data_flag='test_app_yaml_data',
-        attributes=dict(
+        flags=['test_app_yaml_data'],
+        services=dict(
             test_attribute=dict(
                 module_path='test_module_path',
                 class_name='test_class_name',
@@ -63,9 +62,8 @@ def app_interface_aggr() -> AppInterfaceAggregate:
         'description': 'The test app interface.',
         'module_path': DEFAULT_MODULE_PATH,
         'class_name': DEFAULT_CLASS_NAME,
-        'feature_flag': 'test_feature',
-        'data_flag': 'test_data',
-        'attributes': [
+        'flags': ['test_feature', 'test_data'],
+        'services': [
              {
                 'attribute_id': 'test_attribute',
                 'module_path': 'test_module_path',
@@ -113,15 +111,13 @@ def test_app_interface_aggregate_set_attribute_valid_updates(app_interface_aggr:
     app_interface_aggr.set_attribute('name', 'Updated App')
     app_interface_aggr.set_attribute('description', 'Updated description')
     app_interface_aggr.set_attribute('logger_id', 'updated_logger')
-    app_interface_aggr.set_attribute('feature_flag', 'updated_feature')
-    app_interface_aggr.set_attribute('data_flag', 'updated_data')
+    app_interface_aggr.set_attribute('flags', ['updated_flag'])
 
     # Assert that the attributes were updated.
     assert app_interface_aggr.name == 'Updated App'
     assert app_interface_aggr.description == 'Updated description'
     assert app_interface_aggr.logger_id == 'updated_logger'
-    assert app_interface_aggr.feature_flag == 'updated_feature'
-    assert app_interface_aggr.data_flag == 'updated_data'
+    assert app_interface_aggr.flags == ['updated_flag']
 
 # ** test: app_interface_aggregate_set_attribute_invalid_name
 def test_app_interface_aggregate_set_attribute_invalid_name(app_interface_aggr: AppInterfaceAggregate):
@@ -288,12 +284,12 @@ def test_app_interface_aggregate_set_constants_mixed_operations(app_interface_ag
 # ** test: app_attribute_yaml_object_map
 def test_app_attribute_yaml_object_map():
     '''
-    Test mapping an AppAttributeYamlObject to an AppAttribute entity.
+    Test mapping an AppServiceDependencyYamlObject to an AppServiceDependency entity.
     '''
 
-    # Create an AppAttributeYamlObject.
+    # Create an AppServiceDependencyYamlObject.
     yaml_obj = TransferObject.from_data(
-        AppAttributeYamlObject,
+        AppServiceDependencyYamlObject,
         module_path='test.module',
         class_name='TestClass',
         parameters={'key': 'value'},
@@ -303,7 +299,7 @@ def test_app_attribute_yaml_object_map():
     entity = yaml_obj.map(attribute_id='test_attr')
 
     # Assert the mapping is correct.
-    assert isinstance(entity, AppAttribute)
+    assert isinstance(entity, AppServiceDependency)
     assert entity.attribute_id == 'test_attr'
     assert entity.module_path == 'test.module'
     assert entity.class_name == 'TestClass'
@@ -327,7 +323,7 @@ def test_app_interface_yaml_object_from_model(app_interface_aggr: AppInterfaceAg
     assert yaml_obj.name == app_interface_aggr.name
     assert yaml_obj.module_path == app_interface_aggr.module_path
     assert yaml_obj.class_name == app_interface_aggr.class_name
-    assert 'test_attribute' in yaml_obj.attributes
+    assert 'test_attribute' in yaml_obj.services
     assert yaml_obj.constants == app_interface_aggr.constants
 
 # ** test: app_settings_yaml_data_map
@@ -346,102 +342,101 @@ def test_app_settings_yaml_data_map(app_interface_yaml_obj: AppInterfaceYamlObje
     assert isinstance(app_settings, AppInterfaceAggregate)
     assert app_settings.id == app_interface_yaml_obj.id
     assert app_settings.name == app_interface_yaml_obj.name
-    assert app_settings.feature_flag == app_interface_yaml_obj.feature_flag
-    assert app_settings.data_flag == app_interface_yaml_obj.data_flag
+    assert app_settings.flags == app_interface_yaml_obj.flags
 
     # Assert that the module path and class name are correctly set.
     assert app_settings.module_path == DEFAULT_MODULE_PATH
     assert app_settings.class_name == DEFAULT_CLASS_NAME
 
-    # Assert that the mapped app attribute contains the correct data.
-    attr = next(
-        attr for attr in app_settings.attributes if attr.attribute_id == 'test_attribute')
-    assert attr is not None
-    assert isinstance(attr, AppAttribute)
-    assert attr.module_path == 'test_module_path'
-    assert attr.class_name == 'test_class_name'
+    # Assert that the mapped service contains the correct data.
+    svc = next(
+        svc for svc in app_settings.services if svc.attribute_id == 'test_attribute')
+    assert svc is not None
+    assert isinstance(svc, AppServiceDependency)
+    assert svc.module_path == 'test_module_path'
+    assert svc.class_name == 'test_class_name'
 
     # Assert that the parameters are correctly set.
     param = next(
-        (p for p in attr.parameters if p == 'test_param'), None)
+        (p for p in svc.parameters if p == 'test_param'), None)
     assert param is not None
     assert param == 'test_param'
-    assert attr.parameters['test_param'] == 'test_value'
+    assert svc.parameters['test_param'] == 'test_value'
 
     # Assert that the constants are correctly set.
     assert app_settings.constants
     assert app_settings.constants['test_const'] == 'test_const_value'
 
-# ** test: app_interface_aggregate_remove_attribute_removes_matching_from_middle_start_end
-def test_app_interface_aggregate_remove_attribute_removes_matching_from_middle_start_end() -> None:
+# ** test: app_interface_aggregate_remove_service_removes_matching_from_middle_start_end
+def test_app_interface_aggregate_remove_service_removes_matching_from_middle_start_end() -> None:
     '''
-    Test that remove_attribute removes and returns attributes when attribute_id
+    Test that remove_service removes and returns services when attribute_id
     matches for items in the middle, start, and end positions.
     '''
 
-    # Create three attributes with distinct attribute_ids.
+    # Create three service dependencies with distinct attribute_ids.
     first = DomainObject.new(
-        AppAttribute,
+        AppServiceDependency,
         attribute_id='first',
         module_path='module.first',
         class_name='FirstClass',
     )
     middle = DomainObject.new(
-        AppAttribute,
+        AppServiceDependency,
         attribute_id='middle',
         module_path='module.middle',
         class_name='MiddleClass',
     )
     last = DomainObject.new(
-        AppAttribute,
+        AppServiceDependency,
         attribute_id='last',
         module_path='module.last',
         class_name='LastClass',
     )
 
-    # Create an app interface aggregate seeded with the three attributes.
+    # Create an app interface aggregate seeded with the three services.
     app_interface = AppInterfaceAggregate.new(app_interface_data=dict(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
-        attributes=[first, middle, last],
+        services=[first, middle, last],
     ))
 
-    # Remove the middle attribute and verify it is returned and removed.
-    removed_middle = app_interface.remove_attribute('middle')
+    # Remove the middle service and verify it is returned and removed.
+    removed_middle = app_interface.remove_service('middle')
     assert removed_middle is not None
     assert removed_middle.attribute_id == 'middle'
-    assert [attr.attribute_id for attr in app_interface.attributes] == ['first', 'last']
+    assert [svc.attribute_id for svc in app_interface.services] == ['first', 'last']
 
-    # Remove the first attribute and verify it is returned and removed.
-    removed_first = app_interface.remove_attribute('first')
+    # Remove the first service and verify it is returned and removed.
+    removed_first = app_interface.remove_service('first')
     assert removed_first is not None
     assert removed_first.attribute_id == 'first'
-    assert [attr.attribute_id for attr in app_interface.attributes] == ['last']
+    assert [svc.attribute_id for svc in app_interface.services] == ['last']
 
-    # Remove the last remaining attribute and verify it is returned and removed.
-    removed_last = app_interface.remove_attribute('last')
+    # Remove the last remaining service and verify it is returned and removed.
+    removed_last = app_interface.remove_service('last')
     assert removed_last is not None
     assert removed_last.attribute_id == 'last'
-    assert app_interface.attributes == []
+    assert app_interface.services == []
 
-# ** test: app_interface_aggregate_remove_attribute_missing_returns_none_and_does_not_modify
-def test_app_interface_aggregate_remove_attribute_missing_returns_none_and_does_not_modify() -> None:
+# ** test: app_interface_aggregate_remove_service_missing_returns_none_and_does_not_modify
+def test_app_interface_aggregate_remove_service_missing_returns_none_and_does_not_modify() -> None:
     '''
-    Test that remove_attribute returns None and leaves the attributes list
-    unchanged when no attribute with the given attribute_id exists.
+    Test that remove_service returns None and leaves the services list
+    unchanged when no service with the given attribute_id exists.
     '''
 
-    # Create two attributes and an app interface aggregate seeded with them.
+    # Create two service dependencies and an app interface aggregate seeded with them.
     first = DomainObject.new(
-        AppAttribute,
+        AppServiceDependency,
         attribute_id='first',
         module_path='module.first',
         class_name='FirstClass',
     )
     second = DomainObject.new(
-        AppAttribute,
+        AppServiceDependency,
         attribute_id='second',
         module_path='module.second',
         class_name='SecondClass',
@@ -451,45 +446,45 @@ def test_app_interface_aggregate_remove_attribute_missing_returns_none_and_does_
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
-        attributes=[first, second],
+        services=[first, second],
     ))
 
-    # Capture the original list of attributes for comparison.
-    original_attributes = list(app_interface.attributes)
+    # Capture the original list of services for comparison.
+    original_services = list(app_interface.services)
 
-    # Attempt to remove a non-existent attribute.
-    result = app_interface.remove_attribute('missing')
+    # Attempt to remove a non-existent service.
+    result = app_interface.remove_service('missing')
 
     # Verify the method returns None and the list is unchanged.
     assert result is None
-    assert app_interface.attributes == original_attributes
+    assert app_interface.services == original_services
 
-# ** test: app_interface_aggregate_remove_attribute_on_empty_attributes_returns_none
-def test_app_interface_aggregate_remove_attribute_on_empty_attributes_returns_none() -> None:
+# ** test: app_interface_aggregate_remove_service_on_empty_services_returns_none
+def test_app_interface_aggregate_remove_service_on_empty_services_returns_none() -> None:
     '''
-    Test that remove_attribute returns None when called on an app interface aggregate with
-    an empty attributes list.
+    Test that remove_service returns None when called on an app interface aggregate with
+    an empty services list.
     '''
 
-    # Create an app interface aggregate with no attributes.
+    # Create an app interface aggregate with no services.
     app_interface = AppInterfaceAggregate.new(app_interface_data=dict(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
-        attributes=[],
+        services=[],
     ))
 
-    # Attempt to remove any attribute and verify None is returned.
-    result = app_interface.remove_attribute('anything')
+    # Attempt to remove any service and verify None is returned.
+    result = app_interface.remove_service('anything')
     assert result is None
 
-# ** test: app_interface_aggregate_set_dependency_updates_existing_and_merges_parameters
-def test_app_interface_aggregate_set_dependency_updates_existing_and_merges_parameters(
+# ** test: app_interface_aggregate_set_service_updates_existing_and_merges_parameters
+def test_app_interface_aggregate_set_service_updates_existing_and_merges_parameters(
     app_interface_aggr: AppInterfaceAggregate,
 ) -> None:
     '''
-    Test that set_dependency updates an existing dependency and merges parameters,
+    Test that set_service updates an existing dependency and merges parameters,
     removing keys whose values are None.
 
     :param app_interface_aggr: The app interface aggregate to test.
@@ -497,7 +492,7 @@ def test_app_interface_aggregate_set_dependency_updates_existing_and_merges_para
     '''
 
     # Seed existing parameters on the dependency.
-    dependency = app_interface_aggr.get_attribute('test_attribute')
+    dependency = app_interface_aggr.get_service('test_attribute')
     dependency.parameters = {
         'keep': 'original',
         'override': 'old',
@@ -505,7 +500,7 @@ def test_app_interface_aggregate_set_dependency_updates_existing_and_merges_para
     }
 
     # Perform an update with new type information and parameter overrides.
-    app_interface_aggr.set_dependency(
+    app_interface_aggr.set_service(
         attribute_id='test_attribute',
         module_path='updated.module',
         class_name='UpdatedClass',
@@ -517,7 +512,7 @@ def test_app_interface_aggregate_set_dependency_updates_existing_and_merges_para
     )
 
     # Reload the dependency and assert type fields were updated.
-    updated = app_interface_aggr.get_attribute('test_attribute')
+    updated = app_interface_aggr.get_service('test_attribute')
     assert updated.module_path == 'updated.module'
     assert updated.class_name == 'UpdatedClass'
 
@@ -528,25 +523,25 @@ def test_app_interface_aggregate_set_dependency_updates_existing_and_merges_para
         'add': 'added',
     }
 
-# ** test: app_interface_aggregate_set_dependency_clears_parameters_when_none
-def test_app_interface_aggregate_set_dependency_clears_parameters_when_none(
+# ** test: app_interface_aggregate_set_service_clears_parameters_when_none
+def test_app_interface_aggregate_set_service_clears_parameters_when_none(
     app_interface_aggr: AppInterfaceAggregate,
 ) -> None:
     '''
-    Test that set_dependency clears parameters when parameters is None.
+    Test that set_service clears parameters when parameters is None.
 
     :param app_interface_aggr: The app interface aggregate to test.
     :type app_interface_aggr: AppInterfaceAggregate
     '''
 
     # Seed parameters on the dependency.
-    dependency = app_interface_aggr.get_attribute('test_attribute')
+    dependency = app_interface_aggr.get_service('test_attribute')
     dependency.parameters = {
         'existing': 'value',
     }
 
-    # Call set_dependency with parameters=None.
-    app_interface_aggr.set_dependency(
+    # Call set_service with parameters=None.
+    app_interface_aggr.set_service(
         attribute_id='test_attribute',
         module_path='cleared.module',
         class_name='ClearedClass',
@@ -554,27 +549,27 @@ def test_app_interface_aggregate_set_dependency_clears_parameters_when_none(
     )
 
     # Parameters should be cleared while type fields are updated.
-    updated = app_interface_aggr.get_attribute('test_attribute')
+    updated = app_interface_aggr.get_service('test_attribute')
     assert updated.module_path == 'cleared.module'
     assert updated.class_name == 'ClearedClass'
     assert updated.parameters == {}
 
-# ** test: app_interface_aggregate_set_dependency_creates_new
-def test_app_interface_aggregate_set_dependency_creates_new(
+# ** test: app_interface_aggregate_set_service_creates_new
+def test_app_interface_aggregate_set_service_creates_new(
     app_interface_aggr: AppInterfaceAggregate,
 ) -> None:
     '''
-    Test that set_dependency creates a new dependency when none exists.
+    Test that set_service creates a new dependency when none exists.
 
     :param app_interface_aggr: The app interface aggregate to test.
     :type app_interface_aggr: AppInterfaceAggregate
     '''
 
     # Ensure that no dependency exists with the new attribute_id.
-    assert app_interface_aggr.get_attribute('new_attribute') is None
+    assert app_interface_aggr.get_service('new_attribute') is None
 
-    # Create a new dependency via set_dependency.
-    app_interface_aggr.set_dependency(
+    # Create a new dependency via set_service.
+    app_interface_aggr.set_service(
         attribute_id='new_attribute',
         module_path='new.module',
         class_name='NewClass',
@@ -584,11 +579,11 @@ def test_app_interface_aggregate_set_dependency_creates_new(
     )
 
     # Verify that the dependency was created with the correct values.
-    new_attr = app_interface_aggr.get_attribute('new_attribute')
-    assert new_attr is not None
-    assert new_attr.module_path == 'new.module'
-    assert new_attr.class_name == 'NewClass'
-    assert new_attr.parameters == {'param': 'value'}
+    new_svc = app_interface_aggr.get_service('new_attribute')
+    assert new_svc is not None
+    assert new_svc.module_path == 'new.module'
+    assert new_svc.class_name == 'NewClass'
+    assert new_svc.parameters == {'param': 'value'}
 
 # ** test: app_interface_config_data_round_trip
 def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAggregate):
@@ -605,13 +600,13 @@ def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAg
     assert round_tripped.module_path == app_interface_aggr.module_path
     assert round_tripped.class_name == app_interface_aggr.class_name
 
-    # Attributes
-    assert len(round_tripped.attributes) == len(app_interface_aggr.attributes)
-    for orig_attr, rt_attr in zip(app_interface_aggr.attributes, round_tripped.attributes):
-        assert rt_attr.attribute_id == orig_attr.attribute_id
-        assert rt_attr.module_path == orig_attr.module_path
-        assert rt_attr.class_name == orig_attr.class_name
-        assert rt_attr.parameters == orig_attr.parameters
+    # Services
+    assert len(round_tripped.services) == len(app_interface_aggr.services)
+    for orig_svc, rt_svc in zip(app_interface_aggr.services, round_tripped.services):
+        assert rt_svc.attribute_id == orig_svc.attribute_id
+        assert rt_svc.module_path == orig_svc.module_path
+        assert rt_svc.class_name == orig_svc.class_name
+        assert rt_svc.parameters == orig_svc.parameters
 
     # Constants
     assert round_tripped.constants == app_interface_aggr.constants
