@@ -29,8 +29,8 @@ from .error import (
 from .feature import (
     FeatureAggregate,
     FeatureYamlObject,
-    FeatureCommandAggregate,
-    FeatureCommandYamlObject,
+    FeatureEventAggregate,
+    FeatureEventYamlObject,
 )
 from .logging import (
     FormatterAggregate,

@@ -11,32 +11,32 @@ from ..settings import (
 )
 from ..feature import (
     FeatureYamlObject,
-    FeatureCommandYamlObject,
+    FeatureEventYamlObject,
     FeatureAggregate,
-    FeatureCommandAggregate,
+    FeatureEventAggregate,
 )
 from ...domain import (
     Feature,
-    FeatureCommand,
+    FeatureEvent,
 )
 
 # *** fixtures
 
-# ** fixture: feature_command_yaml_object
+# ** fixture: feature_event_yaml_object
 @pytest.fixture
-def feature_command_yaml_object() -> FeatureCommandYamlObject:
+def feature_event_yaml_object() -> FeatureEventYamlObject:
     '''
-    A fixture for a feature command YAML object.
+    A fixture for a feature event YAML object.
 
-    :return: The feature command YAML object.
-    :rtype: FeatureCommandYamlObject
+    :return: The feature event YAML object.
+    :rtype: FeatureEventYamlObject
     '''
 
-    # Return the feature command YAML object.
+    # Return the feature event YAML object.
     return TransferObject.from_data(
-        FeatureCommandYamlObject,
-        name='Test Feature Command',
-        attribute_id='test_feature_command',
+        FeatureEventYamlObject,
+        name='Test Feature Event',
+        attribute_id='test_feature_event',
         params={},
         return_to_data=True,
         data_key='test_data',
@@ -61,10 +61,10 @@ def feature_yaml_object() -> FeatureYamlObject:
         description='This is a test feature.',
         feature_key='test_feature',
         group_id='test_group',
-        commands=[
+        steps=[
             dict(
-                name='Test Feature Command',
-                attribute_id='test_feature_command',
+                name='Test Feature Event',
+                attribute_id='test_feature_event',
                 params={'test_param': 'test_value'},
                 return_to_data=True,
                 data_key='test_data',
@@ -75,45 +75,45 @@ def feature_yaml_object() -> FeatureYamlObject:
 
 # *** tests
 
-# ** test: feature_command_data_init
-def test_feature_command_data_init(feature_command_yaml_object: FeatureCommandYamlObject):
+# ** test: feature_event_data_init
+def test_feature_event_data_init(feature_event_yaml_object: FeatureEventYamlObject):
     '''
-    Test the feature command data initialization.
+    Test the feature event data initialization.
 
-    :param feature_command_data: The feature command data object.
-    :type feature_command_data: FeatureCommandData
-    '''
-
-    # Assert the feature command data attributes.
-    assert feature_command_yaml_object.name == 'Test Feature Command'
-    assert feature_command_yaml_object.attribute_id == 'test_feature_command'
-    assert feature_command_yaml_object.parameters == {}
-    assert feature_command_yaml_object.return_to_data == True
-    assert feature_command_yaml_object.data_key == 'test_data'
-    assert feature_command_yaml_object.pass_on_error == True
-
-# ** test: feature_command_data_map
-def test_feature_command_data_map(feature_command_yaml_object: FeatureCommandYamlObject):
-    '''
-    Test the feature command data mapping.
-
-    :param feature_command_data: The feature command data object.
-    :type feature_command_data: FeatureCommandData
+    :param feature_event_yaml_object: The feature event YAML object.
+    :type feature_event_yaml_object: FeatureEventYamlObject
     '''
 
-    # Map the feature command data to a feature command object.
-    feature_command = feature_command_yaml_object.map()
+    # Assert the feature event data attributes.
+    assert feature_event_yaml_object.name == 'Test Feature Event'
+    assert feature_event_yaml_object.attribute_id == 'test_feature_event'
+    assert feature_event_yaml_object.parameters == {}
+    assert feature_event_yaml_object.return_to_data == True
+    assert feature_event_yaml_object.data_key == 'test_data'
+    assert feature_event_yaml_object.pass_on_error == True
 
-    # Assert the feature command type.
-    assert isinstance(feature_command, FeatureCommand)
+# ** test: feature_event_data_map
+def test_feature_event_data_map(feature_event_yaml_object: FeatureEventYamlObject):
+    '''
+    Test the feature event data mapping.
 
-    # Assert the feature command attributes.
-    assert feature_command.name == 'Test Feature Command'
-    assert feature_command.attribute_id == 'test_feature_command'
-    assert feature_command.parameters == {}
-    assert feature_command.return_to_data == True
-    assert feature_command.data_key == 'test_data'
-    assert feature_command.pass_on_error == True
+    :param feature_event_yaml_object: The feature event YAML object.
+    :type feature_event_yaml_object: FeatureEventYamlObject
+    '''
+
+    # Map the feature event data to a feature event object.
+    feature_event = feature_event_yaml_object.map()
+
+    # Assert the feature event type.
+    assert isinstance(feature_event, FeatureEvent)
+
+    # Assert the feature event attributes.
+    assert feature_event.name == 'Test Feature Event'
+    assert feature_event.attribute_id == 'test_feature_event'
+    assert feature_event.parameters == {}
+    assert feature_event.return_to_data == True
+    assert feature_event.data_key == 'test_data'
+    assert feature_event.pass_on_error == True
 
 # ** test: feature_data_from_data
 def test_feature_data_from_data(feature_yaml_object: FeatureYamlObject):
@@ -129,16 +129,16 @@ def test_feature_data_from_data(feature_yaml_object: FeatureYamlObject):
     assert feature_yaml_object.feature_key == 'test_feature'
     assert feature_yaml_object.description == 'This is a test feature.'
     assert feature_yaml_object.group_id == 'test_group'
-    assert len(feature_yaml_object.commands) == 1
+    assert len(feature_yaml_object.steps) == 1
 
-    # Assert the feature command data attributes.
-    feature_command_data = feature_yaml_object.commands[0]
-    assert feature_command_data.name == 'Test Feature Command'
-    assert feature_command_data.attribute_id == 'test_feature_command'
-    assert feature_command_data.parameters == {'test_param': 'test_value'}
-    assert feature_command_data.return_to_data == True
-    assert feature_command_data.data_key == 'test_data'
-    assert feature_command_data.pass_on_error == True
+    # Assert the feature event data attributes.
+    feature_event_data = feature_yaml_object.steps[0]
+    assert feature_event_data.name == 'Test Feature Event'
+    assert feature_event_data.attribute_id == 'test_feature_event'
+    assert feature_event_data.parameters == {'test_param': 'test_value'}
+    assert feature_event_data.return_to_data == True
+    assert feature_event_data.data_key == 'test_data'
+    assert feature_event_data.pass_on_error == True
 
 # ** test: feature_data_map
 def test_feature_data_map(feature_yaml_object: FeatureYamlObject):
@@ -160,16 +160,16 @@ def test_feature_data_map(feature_yaml_object: FeatureYamlObject):
     assert feature.feature_key == 'test_feature'
     assert feature.description == 'This is a test feature.'
     assert feature.group_id == 'test_group'
-    assert len(feature.commands) == 1
+    assert len(feature.steps) == 1
 
-    # Assert the feature command attributes.
-    feature_command = feature.commands[0]
-    assert feature_command.name == 'Test Feature Command'
-    assert feature_command.attribute_id == 'test_feature_command'
-    assert feature_command.parameters == {'test_param': 'test_value'}
-    assert feature_command.return_to_data == True
-    assert feature_command.data_key == 'test_data'
-    assert feature_command.pass_on_error == True
+    # Assert the feature event attributes.
+    feature_event = feature.steps[0]
+    assert feature_event.name == 'Test Feature Event'
+    assert feature_event.attribute_id == 'test_feature_event'
+    assert feature_event.parameters == {'test_param': 'test_value'}
+    assert feature_event.return_to_data == True
+    assert feature_event.data_key == 'test_data'
+    assert feature_event.pass_on_error == True
 
 # ** test: feature_aggregate_new
 def test_feature_aggregate_new():
@@ -189,106 +189,106 @@ def test_feature_aggregate_new():
     assert aggregate.feature_key == 'test_feature'
     assert aggregate.name == 'Test Feature'
 
-# ** test: feature_aggregate_add_command
-def test_feature_aggregate_add_command():
+# ** test: feature_aggregate_add_step
+def test_feature_aggregate_add_step():
     '''
-    Test adding a command to a FeatureAggregate.
+    Test adding a step to a FeatureAggregate.
     '''
 
     # Create a feature aggregate.
     aggregate = FeatureAggregate.new(
         name='Test Feature',
         group_id='test_group',
-        commands=[],
+        steps=[],
     )
 
-    # Add a command using raw attributes.
-    command = aggregate.add_command(
-        name='Test Command',
+    # Add a step using raw attributes.
+    step = aggregate.add_step(
+        name='Test Step',
         attribute_id='test_attr',
         parameters={'p1': 'v1'},
     )
 
-    # Assert the command was added.
-    assert len(aggregate.commands) == 1
-    assert aggregate.commands[0] is command
-    assert command.pass_on_error is False
+    # Assert the step was added.
+    assert len(aggregate.steps) == 1
+    assert aggregate.steps[0] is step
+    assert step.pass_on_error is False
 
-# ** test: feature_aggregate_add_command_position
-def test_feature_aggregate_add_command_position():
+# ** test: feature_aggregate_add_step_position
+def test_feature_aggregate_add_step_position():
     '''
-    Test inserting a command at a specific position in a FeatureAggregate.
+    Test inserting a step at a specific position in a FeatureAggregate.
     '''
 
     # Create a feature aggregate.
     aggregate = FeatureAggregate.new(
         name='Test Feature',
         group_id='test_group',
-        commands=[],
+        steps=[],
     )
 
-    # Add two commands.
-    first = aggregate.add_command(
-        name='First Command',
+    # Add two steps.
+    first = aggregate.add_step(
+        name='First Step',
         attribute_id='first_attr',
     )
-    inserted = aggregate.add_command(
-        name='Inserted Command',
+    inserted = aggregate.add_step(
+        name='Inserted Step',
         attribute_id='inserted_attr',
         position=0,
     )
 
-    # Assert the inserted command is at position 0.
-    assert aggregate.commands[0] is inserted
-    assert aggregate.commands[1] is first
+    # Assert the inserted step is at position 0.
+    assert aggregate.steps[0] is inserted
+    assert aggregate.steps[1] is first
 
-# ** test: feature_aggregate_remove_command
-def test_feature_aggregate_remove_command():
+# ** test: feature_aggregate_remove_step
+def test_feature_aggregate_remove_step():
     '''
-    Test removing a command from a FeatureAggregate.
+    Test removing a step from a FeatureAggregate.
     '''
 
-    # Create a feature aggregate with commands.
+    # Create a feature aggregate with steps.
     aggregate = FeatureAggregate.new(
         name='Test Feature',
         group_id='test_group',
-        commands=[],
+        steps=[],
     )
-    first = aggregate.add_command(name='First', attribute_id='a')
-    second = aggregate.add_command(name='Second', attribute_id='b')
+    first = aggregate.add_step(name='First', attribute_id='a')
+    second = aggregate.add_step(name='Second', attribute_id='b')
 
-    # Remove the first command.
-    removed = aggregate.remove_command(0)
+    # Remove the first step.
+    removed = aggregate.remove_step(0)
     assert removed is first
-    assert aggregate.commands == [second]
+    assert aggregate.steps == [second]
 
     # Invalid positions return None.
-    assert aggregate.remove_command(5) is None
-    assert aggregate.remove_command(-1) is None
+    assert aggregate.remove_step(5) is None
+    assert aggregate.remove_step(-1) is None
 
-# ** test: feature_aggregate_reorder_command
-def test_feature_aggregate_reorder_command():
+# ** test: feature_aggregate_reorder_step
+def test_feature_aggregate_reorder_step():
     '''
-    Test reordering commands in a FeatureAggregate.
+    Test reordering steps in a FeatureAggregate.
     '''
 
-    # Create a feature aggregate with commands.
+    # Create a feature aggregate with steps.
     aggregate = FeatureAggregate.new(
         name='Test Feature',
         group_id='test_group',
-        commands=[],
+        steps=[],
     )
-    first = aggregate.add_command(name='First', attribute_id='a')
-    second = aggregate.add_command(name='Second', attribute_id='b')
-    third = aggregate.add_command(name='Third', attribute_id='c')
+    first = aggregate.add_step(name='First', attribute_id='a')
+    second = aggregate.add_step(name='Second', attribute_id='b')
+    third = aggregate.add_step(name='Third', attribute_id='c')
 
-    # Move first command to the end.
-    moved = aggregate.reorder_command(0, 2)
+    # Move first step to the end.
+    moved = aggregate.reorder_step(0, 2)
     assert moved is first
-    assert aggregate.commands == [second, third, first]
+    assert aggregate.steps == [second, third, first]
 
     # Invalid current position returns None.
-    assert aggregate.reorder_command(5, 0) is None
+    assert aggregate.reorder_step(5, 0) is None
 
 # ** test: feature_aggregate_rename
 def test_feature_aggregate_rename():
@@ -329,15 +329,15 @@ def test_feature_aggregate_set_description():
     aggregate.set_description(None)
     assert aggregate.description is None
 
-# ** test: feature_command_aggregate_set_pass_on_error
-def test_feature_command_aggregate_set_pass_on_error():
+# ** test: feature_event_aggregate_set_pass_on_error
+def test_feature_event_aggregate_set_pass_on_error():
     '''
-    Test ``set_pass_on_error`` on FeatureCommandAggregate.
+    Test ``set_pass_on_error`` on FeatureEventAggregate.
     '''
 
-    # Create a feature command aggregate.
-    aggregate = FeatureCommandAggregate.new(
-        name='Test Command',
+    # Create a feature event aggregate.
+    aggregate = FeatureEventAggregate.new(
+        name='Test Step',
         attribute_id='attr',
     )
 
@@ -353,15 +353,15 @@ def test_feature_command_aggregate_set_pass_on_error():
     aggregate.set_pass_on_error(1)
     assert aggregate.pass_on_error is True
 
-# ** test: feature_command_aggregate_set_parameters
-def test_feature_command_aggregate_set_parameters():
+# ** test: feature_event_aggregate_set_parameters
+def test_feature_event_aggregate_set_parameters():
     '''
-    Test ``set_parameters`` merge and cleanup on FeatureCommandAggregate.
+    Test ``set_parameters`` merge and cleanup on FeatureEventAggregate.
     '''
 
-    # Create a feature command aggregate with initial parameters.
-    aggregate = FeatureCommandAggregate.new(
-        name='Test Command',
+    # Create a feature event aggregate with initial parameters.
+    aggregate = FeatureEventAggregate.new(
+        name='Test Step',
         attribute_id='attr',
         parameters={'a': '1', 'b': '2'},
     )
@@ -374,15 +374,15 @@ def test_feature_command_aggregate_set_parameters():
     aggregate.set_parameters(None)
     assert aggregate.parameters == {'a': '1', 'b': '3'}
 
-# ** test: feature_command_aggregate_set_attribute
-def test_feature_command_aggregate_set_attribute():
+# ** test: feature_event_aggregate_set_attribute
+def test_feature_event_aggregate_set_attribute():
     '''
-    Test ``set_attribute`` delegation on FeatureCommandAggregate.
+    Test ``set_attribute`` delegation on FeatureEventAggregate.
     '''
 
-    # Create a feature command aggregate.
-    aggregate = FeatureCommandAggregate.new(
-        name='Test Command',
+    # Create a feature event aggregate.
+    aggregate = FeatureEventAggregate.new(
+        name='Test Step',
         attribute_id='attr',
         parameters={'a': '1'},
     )

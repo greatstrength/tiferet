@@ -8,7 +8,8 @@ from typing import Dict, Any, List
 # ** app
 from ..domain import (
     Feature,
-    FeatureCommand,
+    FeatureStep,
+    FeatureEvent,
     ListType,
     ModelType,
     DictType,
@@ -22,10 +23,10 @@ from .settings import (
 
 # *** mappers
 
-# ** mapper: feature_command_aggregate
-class FeatureCommandAggregate(FeatureCommand, Aggregate):
+# ** mapper: feature_event_aggregate
+class FeatureEventAggregate(FeatureEvent, Aggregate):
     '''
-    An aggregate representation of a feature command.
+    An aggregate representation of a feature event.
     '''
 
     # * method: new
@@ -34,9 +35,9 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
         validate: bool = True,
         strict: bool = True,
         **kwargs
-    ) -> 'FeatureCommandAggregate':
+    ) -> 'FeatureEventAggregate':
         '''
-        Initializes a new feature command aggregate.
+        Initializes a new feature event aggregate.
 
         :param validate: True to validate the aggregate object.
         :type validate: bool
@@ -44,13 +45,13 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
         :type strict: bool
         :param kwargs: Keyword arguments.
         :type kwargs: dict
-        :return: A new feature command aggregate.
-        :rtype: FeatureCommandAggregate
+        :return: A new feature event aggregate.
+        :rtype: FeatureEventAggregate
         '''
 
-        # Create a new feature command aggregate from the provided data.
+        # Create a new feature event aggregate from the provided data.
         return Aggregate.new(
-            FeatureCommandAggregate,
+            FeatureEventAggregate,
             validate=validate,
             strict=strict,
             **kwargs
@@ -120,22 +121,22 @@ class FeatureCommandAggregate(FeatureCommand, Aggregate):
             setattr(self, attribute, value)
 
 
-# ** mapper: feature_command_yaml_object
-class FeatureCommandYamlObject(FeatureCommand, TransferObject):
+# ** mapper: feature_event_yaml_object
+class FeatureEventYamlObject(FeatureEvent, TransferObject):
     '''
-    A YAML data representation of a feature command object.
+    A YAML data representation of a feature event object.
     '''
 
     class Options():
         '''
-        The options for the feature command data.
+        The options for the feature event data.
         '''
 
         serialize_when_none = False
         roles = {
-            'to_model': TransferObject.deny(),
-            'to_data.yaml': TransferObject.deny(),
-            'to_data.json': TransferObject.deny()
+            'to_model': TransferObject.deny('type'),
+            'to_data.yaml': TransferObject.deny('type'),
+            'to_data.json': TransferObject.deny('type')
         }
 
     # * attribute: parameters
@@ -145,24 +146,24 @@ class FeatureCommandYamlObject(FeatureCommand, TransferObject):
         serialized_name='params',
         deserialize_from=['params', 'parameters'],
         metadata=dict(
-            description='The parameters for the feature.'
+            description='The parameters for the feature event.'
         )
     )
 
     # * method: map
-    def map(self, **kwargs) -> FeatureCommand:
+    def map(self, **kwargs) -> FeatureEvent:
         '''
-        Maps the feature command data to a feature command object.
+        Maps the feature event data to a feature event object.
 
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new feature command object.
-        :rtype: FeatureCommand
+        :return: A new feature event object.
+        :rtype: FeatureEvent
         '''
 
-        # Map to the feature command aggregate.
+        # Map to the feature event aggregate.
         return super().map(
-            FeatureCommandAggregate,
+            FeatureEventAggregate,
             parameters=self.parameters,
             **self.to_primitive('to_model'),
             **kwargs
@@ -170,22 +171,22 @@ class FeatureCommandYamlObject(FeatureCommand, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(feature_command: FeatureCommand, **kwargs) -> 'FeatureCommandYamlObject':
+    def from_model(feature_event: FeatureEvent, **kwargs) -> 'FeatureEventYamlObject':
         '''
-        Creates a FeatureCommandYamlObject from a FeatureCommand model.
+        Creates a FeatureEventYamlObject from a FeatureEvent model.
 
-        :param feature_command: The feature command model.
-        :type feature_command: FeatureCommand
+        :param feature_event: The feature event model.
+        :type feature_event: FeatureEvent
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A new FeatureCommandYamlObject.
-        :rtype: FeatureCommandYamlObject
+        :return: A new FeatureEventYamlObject.
+        :rtype: FeatureEventYamlObject
         '''
 
-        # Create a new FeatureCommandYamlObject from the model.
+        # Create a new FeatureEventYamlObject from the model.
         return TransferObject.from_model(
-            FeatureCommandYamlObject,
-            feature_command,
+            FeatureEventYamlObject,
+            feature_event,
             **kwargs,
         )
 
@@ -259,8 +260,8 @@ class FeatureAggregate(Feature, Aggregate):
             **kwargs
         )
 
-    # * method: add_command
-    def add_command(
+    # * method: add_step
+    def add_step(
         self,
         name: str,
         attribute_id: str,
@@ -268,11 +269,11 @@ class FeatureAggregate(Feature, Aggregate):
         data_key: str | None = None,
         pass_on_error: bool = False,
         position: int | None = None,
-    ) -> FeatureCommand:
+    ) -> FeatureEvent:
         '''
-        Add a feature command using raw attributes.
+        Add a feature event step using raw attributes.
 
-        :param name: Command name.
+        :param name: Step name.
         :type name: str
         :param attribute_id: Container attribute ID.
         :type attribute_id: str
@@ -280,16 +281,16 @@ class FeatureAggregate(Feature, Aggregate):
         :type parameters: dict | None
         :param data_key: Optional result data key.
         :type data_key: str | None
-        :param pass_on_error: Whether to pass on errors from this command.
+        :param pass_on_error: Whether to pass on errors from this step.
         :type pass_on_error: bool
         :param position: Insertion position (None to append).
         :type position: int | None
-        :return: Created FeatureCommand instance.
-        :rtype: FeatureCommand
+        :return: Created FeatureEvent instance.
+        :rtype: FeatureEvent
         '''
 
-        # Create the feature command from raw attributes.
-        command = FeatureCommandAggregate.new(
+        # Create the feature event from raw attributes.
+        step = FeatureEventAggregate.new(
             name=name,
             attribute_id=attribute_id,
             parameters=parameters or {},
@@ -297,84 +298,84 @@ class FeatureAggregate(Feature, Aggregate):
             pass_on_error=pass_on_error,
         )
 
-        # Add the feature command to the feature.
+        # Add the feature event step to the feature.
         if position is not None:
-            self.commands.insert(position, command)
+            self.steps.insert(position, step)
         else:
-            self.commands.append(command)
+            self.steps.append(step)
 
-        return command
+        return step
 
-    # * method: get_command
-    def get_command(self, position: int) -> FeatureCommand | None:
+    # * method: get_step
+    def get_step(self, position: int) -> FeatureStep | None:
         '''
-        Get the feature command at the given position, or ``None`` if the
+        Get the feature step at the given position, or ``None`` if the
         index is out of range or invalid.
 
-        :param position: The index of the command to retrieve.
+        :param position: The index of the step to retrieve.
         :type position: int
-        :return: The FeatureCommand at the position, or None.
-        :rtype: FeatureCommand | None
+        :return: The FeatureStep at the position, or None.
+        :rtype: FeatureStep | None
         '''
 
-        # Attempt to retrieve the command at the specified index.
+        # Attempt to retrieve the step at the specified index.
         try:
-            return self.commands[position]
+            return self.steps[position]
         except (IndexError, TypeError):
             return None
 
-    # * method: remove_command
-    def remove_command(self, position: int) -> FeatureCommand | None:
+    # * method: remove_step
+    def remove_step(self, position: int) -> FeatureStep | None:
         '''
-        Remove and return the feature command at the given position, or
+        Remove and return the feature step at the given position, or
         return ``None`` if the index is out of range or invalid.
 
-        :param position: The index of the feature command to remove.
+        :param position: The index of the feature step to remove.
         :type position: int
-        :return: The removed feature command or ``None``.
-        :rtype: FeatureCommand | None
+        :return: The removed feature step or ``None``.
+        :rtype: FeatureStep | None
         '''
 
         # Validate the position argument.
         if not isinstance(position, int) or position < 0:
             return None
 
-        # Attempt to remove and return the command at the specified index.
+        # Attempt to remove and return the step at the specified index.
         try:
-            return self.commands.pop(position)
+            return self.steps.pop(position)
         except IndexError:
             return None
 
-    # * method: reorder_command
-    def reorder_command(self, current_position: int, new_position: int) -> FeatureCommand | None:
+    # * method: reorder_step
+    def reorder_step(self, current_position: int, new_position: int) -> FeatureStep | None:
         '''
-        Move a feature command from its current position to a new position
-        within the ``commands`` list.
+        Move a feature step from its current position to a new position
+        within the ``steps`` list.
 
-        :param current_position: Current index of the command.
+        :param current_position: Current index of the step.
         :type current_position: int
         :param new_position: Desired new index.
         :type new_position: int
-        :return: Moved command or ``None`` if ``current_position`` is invalid.
-        :rtype: FeatureCommand | None
+        :return: Moved step or ``None`` if ``current_position`` is invalid.
+        :rtype: FeatureStep | None
         '''
 
-        # Attempt to remove the command at the current position.
+        # Attempt to remove the step at the current position.
         try:
-            command = self.commands.pop(current_position)
+            step = self.steps.pop(current_position)
         except (IndexError, TypeError):
             return None
 
         # Clamp the new position index to the valid range.
         if new_position < 0:
             new_position = 0
-        if new_position > len(self.commands):
-            new_position = len(self.commands)
+        if new_position > len(self.steps):
+            new_position = len(self.steps)
 
-        # Insert the command at the clamped position and return it.
-        self.commands.insert(new_position, command)
+        # Insert the step at the clamped position and return it.
+        self.steps.insert(new_position, step)
 
-        return command
+        return step
 
     # * method: rename
     def rename(self, name: str) -> None:
@@ -419,15 +420,15 @@ class FeatureYamlObject(Feature, TransferObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': TransferObject.deny('commands'),
+            'to_model': TransferObject.deny('steps'),
             'to_data.yaml': TransferObject.deny('feature_key', 'group_id', 'id'),
             'to_data.json': TransferObject.deny('feature_key', 'group_id', 'id')
         }
 
-    # * attribute: commands
-    commands = ListType(
-        ModelType(FeatureCommandYamlObject),
-        deserialize_from=['handlers', 'functions', 'commands'],
+    # * attribute: steps
+    steps = ListType(
+        ModelType(FeatureEventYamlObject),
+        deserialize_from=['handlers', 'functions', 'commands', 'steps'],
         default=[],
     )
 
@@ -445,7 +446,7 @@ class FeatureYamlObject(Feature, TransferObject):
         # Map the feature data.
         return super().map(
             FeatureAggregate,
-            commands=[command.map() for command in (self.commands or [])],
+            steps=[step.map() for step in (self.steps or [])],
             **self.to_primitive('to_model'),
             **kwargs
         )
@@ -465,13 +466,13 @@ class FeatureYamlObject(Feature, TransferObject):
         '''
 
         # Create a new FeatureYamlObject from the model, converting
-        # the commands list into FeatureCommandYamlObject instances.
+        # the steps list into FeatureEventYamlObject instances.
         return TransferObject.from_model(
             FeatureYamlObject,
             feature,
-            commands=[
-                TransferObject.from_model(FeatureCommandYamlObject, cmd)
-                for cmd in feature.commands
+            steps=[
+                TransferObject.from_model(FeatureEventYamlObject, step)
+                for step in feature.steps
             ],
             **kwargs,
         )

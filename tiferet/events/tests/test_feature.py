@@ -284,7 +284,7 @@ def test_add_feature_full_parameters(mock_feature_service: FeatureService) -> No
     assert result.feature_key == feature_key
     assert result.id == feature_id
     assert result.description == description
-    assert result.commands == commands
+    assert result.steps == commands
     assert result.log_params == log_params
 
     # Verify that existence was checked and the feature was saved.
@@ -691,14 +691,14 @@ def test_add_feature_command_append_success(
     # Assert that the feature ID is returned.
     assert result == sample_feature.id
 
-    # Assert that a command was appended to the feature.
-    assert len(sample_feature.commands) == 1
-    command = sample_feature.commands[0]
-    assert command.name == 'do_something'
-    assert command.attribute_id == 'container.attribute'
-    assert command.parameters == {'foo': 'bar'}
-    assert command.data_key == 'result_key'
-    assert command.pass_on_error is True
+    # Assert that a step was appended to the feature.
+    assert len(sample_feature.steps) == 1
+    step = sample_feature.steps[0]
+    assert step.name == 'do_something'
+    assert step.attribute_id == 'container.attribute'
+    assert step.parameters == {'foo': 'bar'}
+    assert step.data_key == 'result_key'
+    assert step.pass_on_error is True
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -719,15 +719,15 @@ def test_add_feature_command_insert_success(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with two commands.
-    sample_feature.add_command(
+    # Pre-populate the feature with two steps.
+    sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
         pass_on_error=False,
     )
-    sample_feature.add_command(
+    sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
@@ -752,13 +752,13 @@ def test_add_feature_command_insert_success(
     # Assert that the feature ID is returned.
     assert result == sample_feature.id
 
-    # Assert that the command list has three entries with correct ordering.
-    assert len(sample_feature.commands) == 3
-    assert sample_feature.commands[0].name == 'first'
-    assert sample_feature.commands[1].name == 'inserted'
-    assert sample_feature.commands[2].name == 'second'
+    # Assert that the step list has three entries with correct ordering.
+    assert len(sample_feature.steps) == 3
+    assert sample_feature.steps[0].name == 'first'
+    assert sample_feature.steps[1].name == 'inserted'
+    assert sample_feature.steps[2].name == 'second'
 
-    inserted_command = sample_feature.commands[1]
+    inserted_command = sample_feature.steps[1]
     assert inserted_command.attribute_id == 'container.inserted'
     assert inserted_command.parameters.get('index') == '1'
     assert inserted_command.data_key == 'inserted_key'
@@ -877,8 +877,8 @@ def test_update_feature_command_update_string_attributes_success(
     :type getter: Callable
     '''
 
-    # Pre-populate the feature with a single command.
-    command = sample_feature.add_command(
+    # Pre-populate the feature with a single step.
+    command = sample_feature.add_step(
         name='original',
         attribute_id='container.original',
         parameters={'foo': 'bar'},
@@ -919,8 +919,8 @@ def test_update_feature_command_update_parameters_success(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with a command that has existing parameters.
-    command = sample_feature.add_command(
+    # Pre-populate the feature with a step that has existing parameters.
+    command = sample_feature.add_step(
         name='with_params',
         attribute_id='container.with_params',
         parameters={'foo': 'bar', 'remove_me': 'x'},
@@ -960,8 +960,8 @@ def test_update_feature_command_update_pass_on_error_success(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with a command where pass_on_error is False.
-    command = sample_feature.add_command(
+    # Pre-populate the feature with a step where pass_on_error is False.
+    command = sample_feature.add_step(
         name='handler',
         attribute_id='container.handler',
         parameters={},
@@ -1144,8 +1144,8 @@ def test_update_feature_command_command_not_found(
     :type sample_feature: Feature
     '''
 
-    # Ensure the feature has no commands so that get_command returns None.
-    assert sample_feature.commands == []
+    # Ensure the feature has no steps so that get_step returns None.
+    assert sample_feature.steps == []
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
@@ -1182,21 +1182,21 @@ def test_remove_feature_command_success(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with two commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with two steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
 
-    assert sample_feature.commands == [first_command, second_command]
+    assert sample_feature.steps == [first_command, second_command]
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
@@ -1212,7 +1212,7 @@ def test_remove_feature_command_success(
     # Assert that the feature ID is returned and the first command was
     # removed.
     assert result == sample_feature.id
-    assert sample_feature.commands == [second_command]
+    assert sample_feature.steps == [second_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1233,8 +1233,8 @@ def test_remove_feature_command_invalid_position_idempotent(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with a single command.
-    original_command = sample_feature.add_command(
+    # Pre-populate the feature with a single step.
+    original_command = sample_feature.add_step(
         name='only',
         attribute_id='container.only',
         parameters={'index': 0},
@@ -1256,7 +1256,7 @@ def test_remove_feature_command_invalid_position_idempotent(
     # Assert that the feature ID is returned and the commands list is
     # unchanged.
     assert result == sample_feature.id
-    assert sample_feature.commands == [original_command]
+    assert sample_feature.steps == [original_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1347,27 +1347,27 @@ def test_reorder_feature_command_success_forward(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with three commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with three steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
-    third_command = sample_feature.add_command(
+    third_command = sample_feature.add_step(
         name='third',
         attribute_id='container.third',
         parameters={'index': 2},
         data_key='third_key',
     )
 
-    assert sample_feature.commands == [first_command, second_command, third_command]
+    assert sample_feature.steps == [first_command, second_command, third_command]
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
@@ -1383,7 +1383,7 @@ def test_reorder_feature_command_success_forward(
 
     # Assert that the feature ID is returned and ordering is updated.
     assert result == sample_feature.id
-    assert sample_feature.commands == [second_command, third_command, first_command]
+    assert sample_feature.steps == [second_command, third_command, first_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1403,27 +1403,27 @@ def test_reorder_feature_command_success_backward(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with three commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with three steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
-    third_command = sample_feature.add_command(
+    third_command = sample_feature.add_step(
         name='third',
         attribute_id='container.third',
         parameters={'index': 2},
         data_key='third_key',
     )
 
-    assert sample_feature.commands == [first_command, second_command, third_command]
+    assert sample_feature.steps == [first_command, second_command, third_command]
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
@@ -1439,7 +1439,7 @@ def test_reorder_feature_command_success_backward(
 
     # Assert that the feature ID is returned and ordering is updated.
     assert result == sample_feature.id
-    assert sample_feature.commands == [third_command, first_command, second_command]
+    assert sample_feature.steps == [third_command, first_command, second_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1459,32 +1459,32 @@ def test_reorder_feature_command_clamp_low(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with three commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with three steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
-    third_command = sample_feature.add_command(
+    third_command = sample_feature.add_step(
         name='third',
         attribute_id='container.third',
         parameters={'index': 2},
         data_key='third_key',
     )
 
-    assert sample_feature.commands == [first_command, second_command, third_command]
+    assert sample_feature.steps == [first_command, second_command, third_command]
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Move the last command to a negative index; it should be clamped to 0.
+    # Move the last step to a negative index; it should be clamped to 0.
     result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
@@ -1495,7 +1495,7 @@ def test_reorder_feature_command_clamp_low(
 
     # Assert that the feature ID is returned and ordering is updated.
     assert result == sample_feature.id
-    assert sample_feature.commands == [third_command, first_command, second_command]
+    assert sample_feature.steps == [third_command, first_command, second_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1516,32 +1516,32 @@ def test_reorder_feature_command_clamp_high(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with three commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with three steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
-    third_command = sample_feature.add_command(
+    third_command = sample_feature.add_step(
         name='third',
         attribute_id='container.third',
         parameters={'index': 2},
         data_key='third_key',
     )
 
-    assert sample_feature.commands == [first_command, second_command, third_command]
+    assert sample_feature.steps == [first_command, second_command, third_command]
 
     # Arrange the feature service to return the sample feature.
     mock_feature_service.get.return_value = sample_feature
 
-    # Move the first command beyond the end; it should be clamped to the end.
+    # Move the first step beyond the end; it should be clamped to the end.
     result = DomainEvent.handle(
         ReorderFeatureCommand,
         dependencies={'feature_service': mock_feature_service},
@@ -1552,7 +1552,7 @@ def test_reorder_feature_command_clamp_high(
 
     # Assert that the feature ID is returned and ordering is updated.
     assert result == sample_feature.id
-    assert sample_feature.commands == [second_command, third_command, first_command]
+    assert sample_feature.steps == [second_command, third_command, first_command]
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)
@@ -1573,21 +1573,21 @@ def test_reorder_feature_command_invalid_start_position_idempotent(
     :type sample_feature: Feature
     '''
 
-    # Pre-populate the feature with two commands.
-    first_command = sample_feature.add_command(
+    # Pre-populate the feature with two steps.
+    first_command = sample_feature.add_step(
         name='first',
         attribute_id='container.first',
         parameters={'index': 0},
         data_key='first_key',
     )
-    second_command = sample_feature.add_command(
+    second_command = sample_feature.add_step(
         name='second',
         attribute_id='container.second',
         parameters={'index': 1},
         data_key='second_key',
     )
 
-    original_commands = list(sample_feature.commands)
+    original_commands = list(sample_feature.steps)
     assert original_commands == [first_command, second_command]
 
     # Arrange the feature service to return the sample feature.
@@ -1605,7 +1605,7 @@ def test_reorder_feature_command_invalid_start_position_idempotent(
 
     # Assert that the feature ID is returned and the commands list is unchanged.
     assert result == sample_feature.id
-    assert sample_feature.commands == original_commands
+    assert sample_feature.steps == original_commands
 
     # Verify that the feature was retrieved and saved.
     mock_feature_service.get.assert_called_once_with(sample_feature.id)

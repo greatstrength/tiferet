@@ -8,7 +8,7 @@ from typing import List, Any
 # ** app
 from ..domain import Feature
 from ..interfaces import FeatureService
-from ..mappers import Aggregate, FeatureAggregate
+from ..mappers import Aggregate, FeatureAggregate, FeatureEventAggregate
 from .settings import DomainEvent, a
 
 
@@ -78,7 +78,7 @@ class AddFeature(DomainEvent):
             feature_key=feature_key,
             id=id,
             description=description,
-            commands=commands or [],
+            steps=commands or [],
             log_params=log_params or {},
             **kwargs,
         )
@@ -386,8 +386,8 @@ class AddFeatureCommand(DomainEvent):
             feature_id=id,
         )
 
-        # Add the command using the Feature model helper.
-        feature.add_command(
+        # Add the step using the Feature model helper.
+        feature.add_step(
             name=name,
             attribute_id=attribute_id,
             parameters=parameters or {},
@@ -507,23 +507,23 @@ class UpdateFeatureCommand(DomainEvent):
             feature_id=id,
         )
 
-        # Retrieve the target command from the feature.
-        command = feature.get_command(position)
+        # Retrieve the target step from the feature.
+        step = feature.get_step(position)
 
-        # Verify that the command exists at the given position.
+        # Verify that the step exists at the given position.
         self.verify(
-            expression=command is not None,
+            expression=step is not None,
             error_code=a.const.FEATURE_COMMAND_NOT_FOUND_ID,
             message=(
-                f'Feature command not found for feature {id} '
+                f'Feature step not found for feature {id} '
                 f'at position {position}.'
             ),
             feature_id=id,
             position=position,
         )
 
-        # Apply the attribute update using the FeatureCommand helper.
-        command.set_attribute(attribute, value)
+        # Apply the attribute update using the FeatureEvent helper.
+        step.set_attribute(attribute, value)
 
         # Persist the updated feature.
         self.feature_service.save(feature)
@@ -588,10 +588,10 @@ class RemoveFeatureCommand(DomainEvent):
             feature_id=id,
         )
 
-        # Attempt safe removal of the command at the given position. The
-        # underlying Feature.remove_command helper is idempotent and will
+        # Attempt safe removal of the step at the given position. The
+        # underlying Feature.remove_step helper is idempotent and will
         # return None without raising if the position is invalid.
-        feature.remove_command(position)
+        feature.remove_step(position)
 
         # Persist the feature, even if no command was removed.
         self.feature_service.save(feature)
@@ -667,7 +667,7 @@ class ReorderFeatureCommand(DomainEvent):
         # Delegate the reordering logic to the Feature model helper. This
         # method clamps ``end_position`` and is idempotent for invalid
         # ``start_position`` values.
-        feature.reorder_command(start_position, end_position)
+        feature.reorder_step(start_position, end_position)
 
         # Persist the updated feature configuration.
         self.feature_service.save(feature)

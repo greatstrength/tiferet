@@ -15,7 +15,7 @@ from .settings import (
 )
 from .app import (
     AppInterface,
-    AppAttribute,
+    AppDependency,
 )
 from .cli import (
     CliArgument,
@@ -31,7 +31,8 @@ from .error import (
 )
 from .feature import (
     Feature,
-    FeatureCommand,
+    FeatureStep,
+    FeatureEvent,
 )
 from .logging import (
     Formatter,

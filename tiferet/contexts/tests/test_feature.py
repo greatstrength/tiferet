@@ -20,7 +20,7 @@ from ...events.feature import GetFeature
 from ...domain import (
     DomainObject,
     Feature,
-    FeatureCommand,
+    FeatureEvent,
 )
 
 # *** fixtures
@@ -93,7 +93,7 @@ def feature():
         feature_key='test_feature',
         name='Test Feature',
         description='A feature for testing purposes.',
-        commands=[]
+        steps=[]
     )
 
 
@@ -161,21 +161,21 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
     assert result == 'parsed-value'
     assert called['parameter'] == '$env.MY_VAR'
 
-# ** test: feature_context_load_feature_command_with_combined_flags
-def test_feature_context_load_feature_command_with_combined_flags(feature_context, container_context, test_command):
+# ** test: feature_context_load_feature_step_with_combined_flags
+def test_feature_context_load_feature_step_with_combined_flags(feature_context, container_context, test_command):
     """Test loading a feature command combining feature and command flags with correct priority."""
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
     
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
     )
 
     # Load the feature command using the feature context, passing the feature flags.
-    command = feature_context.load_feature_command(feature_command, feature_flags=feature_flags)
+    command = feature_context.load_feature_step(feature_command, feature_flags=feature_flags)
 
     # Assert that the loaded command is the same as the test command and that
     # flags were forwarded to the container dependency resolution in the correct order:
@@ -190,53 +190,53 @@ def test_feature_context_load_feature_command_with_combined_flags(feature_contex
     )
 
 
-# ** test: feature_context_load_feature_command_only_feature_flags
-def test_feature_context_load_feature_command_only_feature_flags(feature_context, container_context, test_command):
+# ** test: feature_context_load_feature_step_only_feature_flags
+def test_feature_context_load_feature_step_only_feature_flags(feature_context, container_context, test_command):
     """Test loading a feature command with only feature flags."""
 
     feature_flags = ['feature_flag']
     
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         flags=[],
     )
 
-    command = feature_context.load_feature_command(feature_command, feature_flags=feature_flags)
+    command = feature_context.load_feature_step(feature_command, feature_flags=feature_flags)
 
     assert command == test_command
     container_context.get_dependency.assert_called_once_with('test_command', 'feature_flag')
 
-# ** test: feature_context_load_feature_command_only_command_flags
-def test_feature_context_load_feature_command_only_command_flags(feature_context, container_context, test_command):
+# ** test: feature_context_load_feature_step_only_command_flags
+def test_feature_context_load_feature_step_only_command_flags(feature_context, container_context, test_command):
     """Test loading a feature command with only command flags."""
 
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         flags=['command_flag'],
     )
 
-    command = feature_context.load_feature_command(feature_command)
+    command = feature_context.load_feature_step(feature_command)
 
     assert command == test_command
     container_context.get_dependency.assert_called_once_with('test_command', 'command_flag')
 
-# ** test: feature_context_load_feature_command_with_flags
-def test_feature_context_load_feature_command_with_flags(feature_context, container_context, test_command):
+# ** test: feature_context_load_feature_step_with_flags
+def test_feature_context_load_feature_step_with_flags(feature_context, container_context, test_command):
     """Test loading a feature command that includes flags for dependency resolution."""
 
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         flags=['flag1', 'flag2'],
     )
 
     # Load the feature command using the feature context.
-    command = feature_context.load_feature_command(feature_command)
+    command = feature_context.load_feature_step(feature_command)
 
     # Assert that the loaded command is the same as the test command and that
     # flags were forwarded to the container dependency resolution.
@@ -244,24 +244,24 @@ def test_feature_context_load_feature_command_with_flags(feature_context, contai
     container_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
 
 
-# ** test: feature_context_load_feature_command_without_flags
-def test_feature_context_load_feature_command_without_flags(feature_context, container_context, test_command):
+# ** test: feature_context_load_feature_step_without_flags
+def test_feature_context_load_feature_step_without_flags(feature_context, container_context, test_command):
     """Test loading a feature command when no flags are configured."""
 
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
     )
 
-    command = feature_context.load_feature_command(feature_command)
+    command = feature_context.load_feature_step(feature_command)
 
     assert command == test_command
     container_context.get_dependency.assert_called_once_with('test_command')
 
 
-# ** test: feature_context_load_feature_command_failed
-def test_feature_context_load_feature_command_failed(feature_context, container_context):
+# ** test: feature_context_load_feature_step_failed
+def test_feature_context_load_feature_step_failed(feature_context, container_context):
     """Test loading a feature command that does not exist in the FeatureContext."""
     
     # Add a side effect to the container context to raise an exception when trying to get a non-existent command.
@@ -270,8 +270,8 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
         'Feature command not found in container: non_existent_command',
     )
 
-    feature_command: FeatureCommand = DomainObject.new(
-        FeatureCommand,
+    feature_command: FeatureEvent = DomainObject.new(
+        FeatureEvent,
         name='Missing Command',
         attribute_id='non_existent_command',
         flags=['flagX'],
@@ -279,12 +279,12 @@ def test_feature_context_load_feature_command_failed(feature_context, container_
 
     # Attempt to load a non-existent feature command.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.load_feature_command(feature_command)
+        feature_context.load_feature_step(feature_command)
     
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
     assert exc_info.value.kwargs.get('attribute_id') == 'non_existent_command'
-    assert 'Failed to load feature command attribute: non_existent_command' in str(exc_info.value)
+    assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
 
 # ** test: feature_context_handle_command
 def test_feature_context_handle_command(feature_context, test_command):
@@ -345,8 +345,8 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
 def test_feature_context_execute_feature(feature_context, get_feature_cmd, feature):
 
     # Add a standard feature command with no data key or pass on error.
-    feature.commands.append(DomainObject.new(
-        FeatureCommand,
+    feature.steps.append(DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
     ))
@@ -360,10 +360,10 @@ def test_feature_context_execute_feature(feature_context, get_feature_cmd, featu
     # Execute the feature using the feature context.
     feature_context.execute_feature(feature.id, request)
 
-    # Assert that the load_feature_command was called with the feature flags.
+    # Assert that the load_feature_step was called with the feature flags.
     # Note: feature fixture has empty flags by default, so we expect None or [] depending on impl,
     # but more importantly, we want to ensure execute_feature passes feature.flags.
-    # We can inspect the call to load_feature_command if we mock it, or rely on the fact that
+    # We can inspect the call to load_feature_step if we mock it, or rely on the fact that
     # integration logic is covered by the unit tests above.
     
     # Assert that the request handled the response correctly.
@@ -377,8 +377,8 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     """Test executing a feature with a request parameter in the FeatureContext."""
     
     # Add a standard feature command with a data key.
-    feature.commands.append(DomainObject.new(
-        FeatureCommand,
+    feature.steps.append(DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         parameters=dict(
@@ -408,8 +408,8 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
     """Test executing a feature with pass_on_error in the FeatureContext."""
     
     # Add a standard feature command and enable pass_on_error.
-    feature.commands.append(DomainObject.new(
-        FeatureCommand,
+    feature.steps.append(DomainObject.new(
+        FeatureEvent,
         name='Test Command',
         attribute_id='test_command',
         pass_on_error=True,

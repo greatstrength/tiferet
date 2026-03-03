@@ -18,7 +18,7 @@ from ..events import (
     ParseParameter
 )
 from ..events.feature import GetFeature
-from ..domain import Feature, FeatureCommand
+from ..domain import Feature, FeatureEvent
 
 # *** contexts
 
@@ -115,26 +115,26 @@ class FeatureContext(object):
         # Return the feature.
         return feature
 
-    # * method: load_feature_command
-    def load_feature_command(self, feature_command: FeatureCommand, feature_flags: list[str] = None) -> DomainEvent:
+    # * method: load_feature_step
+    def load_feature_step(self, feature_event: FeatureEvent, feature_flags: list[str] = None) -> DomainEvent:
         '''
-        Load a feature command from the container using its attribute ID and
+        Load a feature event step from the container using its attribute ID and
         any configured flags.
 
-        :param feature_command: The feature command metadata describing the
+        :param feature_event: The feature event metadata describing the
             container attribute and flags.
-        :type feature_command: FeatureCommand
+        :type feature_event: FeatureEvent
         :param feature_flags: Optional list of flags from the parent feature.
         :type feature_flags: list[str]
         :return: The command object.
-        :rtype: Command
+        :rtype: DomainEvent
         '''
 
-        # Resolve the attribute identifier for the command.
-        attribute_id = feature_command.attribute_id
+        # Resolve the attribute identifier for the event.
+        attribute_id = feature_event.attribute_id
 
-        # Combine flags: feature-level (higher priority) first, then command-level.
-        combined_flags = (feature_flags or []) + (feature_command.flags or [])
+        # Combine flags: feature-level (higher priority) first, then step-level.
+        combined_flags = (feature_flags or []) + (feature_event.flags or [])
 
         # Attempt to retrieve the command from the container using the
         # combined flags, if any.
@@ -148,7 +148,7 @@ class FeatureContext(object):
         except Exception as e:
             RaiseError.execute(
                 FEATURE_COMMAND_LOADING_FAILED_ID,
-                f'Failed to load feature command attribute: {attribute_id}. Ensure the container attributes is configured with the appropriate default settings/flags.',
+                f'Failed to load feature step attribute: {attribute_id}. Ensure the container is configured with the appropriate default settings/flags.',
                 attribute_id=attribute_id,
                 exception=str(e)
             )
@@ -221,29 +221,29 @@ class FeatureContext(object):
     def handle_feature_command(self,
         command: DomainEvent,
         request: RequestContext,
-        feature_command: FeatureCommand,
+        feature_event: FeatureEvent,
         **kwargs
     ):
         '''
-        Handle the execution of a feature command with the provided request and command-handling options.
+        Handle the execution of a feature event step with the provided request and command-handling options.
         :param command: The command to execute.
-        :type command: Command
+        :type command: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
-        :param feature_command: The feature command metadata.
-        :type feature_command: FeatureCommand
+        :param feature_event: The feature event metadata.
+        :type feature_event: FeatureEvent
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Handle the command with the request and feature command options.
-        # NOTE: The  method executed is to be obsoleted, and this to be consolidated with handle_command for v2.
+        # Handle the command with the request and feature event options.
+        # NOTE: The method executed is to be obsoleted, and this to be consolidated with handle_command for v2.
         self.handle_command(
             command,
             request,
-            data_key=feature_command.data_key,
-            pass_on_error=feature_command.pass_on_error,
-            **{id: self.parse_parameter(param, request) for id, param in feature_command.parameters.items()},
+            data_key=feature_event.data_key,
+            pass_on_error=feature_event.pass_on_error,
+            **{id: self.parse_parameter(param, request) for id, param in feature_event.parameters.items()},
             **kwargs
         )
 
@@ -320,25 +320,25 @@ class FeatureContext(object):
         # Load the feature by id, using the cache when possible.
         feature = self.load_feature(feature_id)
 
-        # Execute the feature by iterating over its configured commands.
-        for feature_command in feature.commands:
+        # Execute the feature by iterating over its configured steps.
+        for feature_event in feature.steps:
 
-            # Load the command dependency for this feature command, honoring
+            # Load the command dependency for this feature event step, honoring
             # any configured flags.
-            cmd = self.load_feature_command(feature_command, feature_flags=feature.flags)
+            cmd = self.load_feature_step(feature_event, feature_flags=feature.flags)
 
-            # Parse the command parameters.
+            # Parse the event parameters.
             params = {
                 param: self.parse_request_parameter(value, request)
-                for param, value in feature_command.parameters.items()
+                for param, value in feature_event.parameters.items()
             }
 
             # Execute the command with the request data and parameters.
             self.handle_command(
                 cmd,
                 request,
-                data_key=feature_command.data_key,
-                pass_on_error=feature_command.pass_on_error,
+                data_key=feature_event.data_key,
+                pass_on_error=feature_event.pass_on_error,
                 **params,
                 container=self.container,
                 cache=self.cache,
