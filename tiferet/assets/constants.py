@@ -266,6 +266,24 @@ SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
 # ** constant: SQLITE_CONN_NOT_INITIALIZED_id
 SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
 
+# ** constants: utils_errors
+
+YAML_FILE_NOT_FOUND_ID          = 'YAML_FILE_NOT_FOUND'
+YAML_FILE_LOAD_ERROR_ID         = 'YAML_FILE_LOAD_ERROR'
+YAML_FILE_SAVE_ERROR_ID         = 'YAML_FILE_SAVE_ERROR'
+
+JSON_FILE_NOT_FOUND_ID          = 'JSON_FILE_NOT_FOUND'
+JSON_FILE_LOAD_ERROR_ID         = 'JSON_FILE_LOAD_ERROR'
+JSON_FILE_SAVE_ERROR_ID         = 'JSON_FILE_SAVE_ERROR'
+INVALID_JSON_PATH_ID            = 'INVALID_JSON_PATH'
+
+CSV_INVALID_MODE_ID             = 'CSV_INVALID_MODE'
+CSV_HANDLE_NOT_INITIALIZED_ID   = 'CSV_HANDLE_NOT_INITIALIZED'
+CSV_INVALID_READ_MODE_ID        = 'CSV_INVALID_READ_MODE'
+CSV_INVALID_WRITE_MODE_ID       = 'CSV_INVALID_WRITE_MODE'
+CSV_FIELDNAMES_REQUIRED_ID      = 'CSV_FIELDNAMES_REQUIRED'
+CSV_DICT_NO_HEADER_ID           = 'CSV_DICT_NO_HEADER'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -844,5 +862,122 @@ DEFAULT_ERRORS = {
                 'text': '{attribute} must be a non-empty string.',
             },
         ],
+    },
+
+    # * error: YAML_FILE_NOT_FOUND
+    YAML_FILE_NOT_FOUND_ID: {
+        'id': YAML_FILE_NOT_FOUND_ID,
+        'name': 'YAML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified YAML file could not be found at {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_LOAD_ERROR
+    YAML_FILE_LOAD_ERROR_ID: {
+        'id': YAML_FILE_LOAD_ERROR_ID,
+        'name': 'YAML Load Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to parse YAML file: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_SAVE_ERROR
+    YAML_FILE_SAVE_ERROR_ID: {
+        'id': YAML_FILE_SAVE_ERROR_ID,
+        'name': 'YAML Save Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to write YAML file: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_NOT_FOUND
+    JSON_FILE_NOT_FOUND_ID: {
+        'id': JSON_FILE_NOT_FOUND_ID,
+        'name': 'JSON File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified JSON file could not be found at {path}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_LOAD_ERROR
+    JSON_FILE_LOAD_ERROR_ID: {
+        'id': JSON_FILE_LOAD_ERROR_ID,
+        'name': 'JSON Load Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to parse JSON: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_SAVE_ERROR
+    JSON_FILE_SAVE_ERROR_ID: {
+        'id': JSON_FILE_SAVE_ERROR_ID,
+        'name': 'JSON Save Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to serialize/write JSON: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_JSON_PATH
+    INVALID_JSON_PATH_ID: {
+        'id': INVALID_JSON_PATH_ID,
+        'name': 'Invalid JSON Path',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid JSON path: {path}. Failed at segment: {part}.'}
+        ]
+    },
+
+    # * error: CSV_INVALID_MODE
+    CSV_INVALID_MODE_ID: {
+        'id': CSV_INVALID_MODE_ID,
+        'name': 'Invalid CSV Mode',
+        'message': [
+            {'lang': 'en_US', 'text': 'Invalid file mode for CSV operation: {mode}. Expected r, w, a, etc.'}
+        ]
+    },
+
+    # * error: CSV_HANDLE_NOT_INITIALIZED
+    CSV_HANDLE_NOT_INITIALIZED_ID: {
+        'id': CSV_HANDLE_NOT_INITIALIZED_ID,
+        'name': 'CSV Handle Not Initialized',
+        'message': [
+            {'lang': 'en_US', 'text': 'CSV file must be opened before reading/writing.'}
+        ]
+    },
+
+    # * error: CSV_INVALID_READ_MODE
+    CSV_INVALID_READ_MODE_ID: {
+        'id': CSV_INVALID_READ_MODE_ID,
+        'name': 'Invalid CSV Read Mode',
+        'message': [
+            {'lang': 'en_US', 'text': 'File not opened in readable mode for CSV reading.'}
+        ]
+    },
+
+    # * error: CSV_INVALID_WRITE_MODE
+    CSV_INVALID_WRITE_MODE_ID: {
+        'id': CSV_INVALID_WRITE_MODE_ID,
+        'name': 'Invalid CSV Write Mode',
+        'message': [
+            {'lang': 'en_US', 'text': 'File not opened in writable mode for CSV writing.'}
+        ]
+    },
+
+    # * error: CSV_FIELDNAMES_REQUIRED
+    CSV_FIELDNAMES_REQUIRED_ID: {
+        'id': CSV_FIELDNAMES_REQUIRED_ID,
+        'name': 'CSV Fieldnames Required',
+        'message': [
+            {'lang': 'en_US', 'text': 'Fieldnames must be provided when writing dict-based CSV rows.'}
+        ]
+    },
+
+    # * error: CSV_DICT_NO_HEADER
+    CSV_DICT_NO_HEADER_ID: {
+        'id': CSV_DICT_NO_HEADER_ID,
+        'name': 'CSV Dict Reader Without Header',
+        'message': [
+            {'lang': 'en_US', 'text': 'Dict reader expects header row; file appears to lack one or was not read correctly.'}
+        ]
     },
 }

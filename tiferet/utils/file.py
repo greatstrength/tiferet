@@ -1,192 +1,219 @@
-"""Tiferet File Utility"""
+"""Tiferet Utils File"""
 
 # *** imports
 
 # ** core
-import os
-from typing import Any
+from pathlib import Path
+from typing import IO, Any, Optional
 
 # ** app
+from ..interfaces.file import FileService
 from ..events import RaiseError, a
-from ..interfaces import FileService
 
 # *** utils
 
 # ** util: file_loader
 class FileLoader(FileService):
     '''
-    Utility for loading files into the application.
+    Base utility for low-level file stream operations with validation and context support.
+    Implements the FileService contract.
     '''
 
     # * attribute: path
-    path: str
+    path: Path
 
     # * attribute: mode
     mode: str
 
     # * attribute: encoding
-    encoding: str
+    encoding: Optional[str]
 
     # * attribute: newline
-    newline: str
+    newline: Optional[str]
 
     # * attribute: file
-    file: Any
+    file: Optional[IO[Any]]
 
     # * init
-    def __init__(self, path: str, mode: str = 'r', encoding: str = 'utf-8', newline: str = None):
+    def __init__(self,
+            path: str | Path,
+            mode: str = 'r',
+            encoding: Optional[str] = None,
+            newline: Optional[str] = None,
+            **kwargs,
+        ):
         '''
-        Initialize the FileLoaderMiddleware with a file path, mode, and encoding.
-        
-        :param path: The path to the file to load.
-        :type path: str
-        :param mode: The mode in which to open the file (default is 'r' for read).
+        Initialize FileLoader with path and open parameters.
+
+        :param path: File system path (str or Path).
+        :type path: str | Path
+        :param mode: File open mode.
         :type mode: str
-        :param encoding: The encoding to use when reading the file (default is 'utf-8').
-        :type encoding: str
-        :param newline: The newline parameter to use when opening the file (default is None).
-        :type newline: str
+        :param encoding: Text encoding for text modes.
+        :type encoding: Optional[str]
+        :param newline: Newline handling mode.
+        :type newline: Optional[str]
+        :param kwargs: Additional parameters (ignored).
+        :type kwargs: dict
         '''
 
-        # Verify the file mode.
-        self.verify_mode(mode)
+        # Set the file path as a Path object.
+        self.path = Path(path)
 
-        # Validate the encoding.
-        self.verify_encoding(encoding)
-        
-        # Set the path, mode, and encoding for the file loader.
+        # Set the file mode.
         self.mode = mode
-        self.path = path
+
+        # Set the encoding for text modes.
         self.encoding = encoding
+
+        # Set the newline handling mode.
         self.newline = newline
 
-        # Set the file stream to None initially. It will be opened when the context is entered.
+        # Initialize the file stream to None.
         self.file = None
 
-    # * method: verify_file
+    # * method: verify_file (static)
     @staticmethod
-    def verify_file(path: str):
+    def verify_file(path: Path, mode: str = 'r'):
         '''
-        Verify that the file exists and is accessible.
+        Verify that the file or parent directory exists as appropriate.
 
-        :param path: The path to the file to verify.
-        :type path: str
-        '''
+        For write/append/exclusive modes, verifies the parent directory exists.
+        For read modes, verifies the file itself exists.
 
-        # Raise an error if the file does not exist.
-        if not os.path.exists(path):
-            RaiseError.execute(
-                a.const.FILE_NOT_FOUND_ID,
-                f'File not found: {path}.',
-                path=path
-            )
-        
-        # Raise an error if the path is not a file.
-        if not os.path.isfile(path):
-            RaiseError.execute(
-                a.const.INVALID_FILE_ID,
-                f'Path is not a file: {path}.',
-                path=path
-            )
-        
-    # * method: verify_mode
-    def verify_mode(self, mode: str):
-        '''
-        Verify that the file mode is valid.
-
-        :param mode: The mode in which to open the file.
+        :param path: The file path to verify.
+        :type path: Path
+        :param mode: The file open mode (used to determine verification strategy).
         :type mode: str
         '''
 
-        # Validate the file mode.
-        valid_modes = ['r', 'w', 'a', 'rb', 'wb', 'ab']
-        if mode not in valid_modes:
+        # For write, append, or exclusive modes, verify the parent directory exists.
+        if any(c in mode for c in ('w', 'a', 'x')):
+            if not path.parent.exists():
+                RaiseError.execute(
+                    error_code=a.const.FILE_NOT_FOUND_ID,
+                    path=str(path),
+                )
+
+        # For read modes, verify the file itself exists.
+        else:
+            if not path.exists():
+                RaiseError.execute(
+                    error_code=a.const.FILE_NOT_FOUND_ID,
+                    path=str(path),
+                )
+
+    # * method: verify_mode
+    def verify_mode(self):
+        '''
+        Validate the file mode string.
+
+        :raises TiferetError: If the mode is not in the set of valid modes.
+        '''
+
+        # Define the set of valid file modes.
+        valid = {
+            'r', 'rb', 'w', 'wb', 'a', 'ab',
+            'x', 'xb', 'r+', 'rb+', 'w+', 'wb+', 'a+', 'ab+',
+        }
+
+        # Raise an error if the mode is not valid.
+        if self.mode not in valid:
             RaiseError.execute(
-                a.const.INVALID_FILE_MODE_ID,
-                f'Invalid file mode: {mode}. Valid modes include {str(valid_modes)}',
-                mode=mode,
-                modes=str(valid_modes)
+                error_code=a.const.INVALID_FILE_MODE_ID,
+                mode=self.mode,
             )
-        
+
     # * method: verify_encoding
-    def verify_encoding(self, encoding: str):
+    def verify_encoding(self):
         '''
-        Verify that the encoding is valid.
+        Ensure encoding is provided when required for text modes.
 
-        :param encoding: The encoding to use when reading the file.
-        :type encoding: str
+        :raises TiferetError: If encoding is None for a text (non-binary) mode.
         '''
 
-        # Validate the encoding.
-        if encoding not in ['utf-8', 'ascii', 'latin-1']:
+        # Raise an error if encoding is missing for a text mode.
+        if 'b' not in self.mode and self.encoding is None:
             RaiseError.execute(
-                a.const.INVALID_ENCODING_ID,
-                f'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.',
-                encoding=encoding     
+                error_code=a.const.INVALID_ENCODING_ID,
+                encoding=None,
             )
-        
+
     # * method: open_file
-    def open_file(self):
+    def open_file(self) -> IO[Any]:
         '''
-        Open the file with the specified path, mode, and encoding. This method is called when the context is entered.
-        
+        Open the file stream if not already open.
+
         :return: The opened file stream.
-        :rtype: Any
+        :rtype: IO[Any]
+        :raises TiferetError: If the file is already open, the path is invalid,
+            the mode is invalid, or encoding is missing for text modes.
         '''
 
-        # Verify the file before opening it.
-        self.verify_file(self.path)
-
-        # Raise a RuntimeError if the file is already open to prevent multiple openings.
+        # Raise an error if the file is already open.
         if self.file is not None:
             RaiseError.execute(
-                a.const.FILE_ALREADY_OPEN_ID,
-                f'File is already open: {self.path}.',
-                path=self.path
+                error_code=a.const.FILE_ALREADY_OPEN_ID,
+                path=str(self.path),
             )
-        
+
+        # Verify the file path exists as appropriate for the mode.
+        self.verify_file(self.path, self.mode)
+
+        # Validate the file mode.
+        self.verify_mode()
+
+        # Validate the encoding for text modes.
+        self.verify_encoding()
+
         # Open the file with the specified parameters.
         self.file = open(
-            self.path, 
-            mode=self.mode, 
+            self.path,
+            mode=self.mode,
             encoding=self.encoding,
-            newline=self.newline
+            newline=self.newline,
         )
 
+        # Return the opened file stream.
+        return self.file
+
     # * method: close_file
-    def close_file(self):
+    def close_file(self) -> None:
         '''
-        Close the file if it is open. This method is called when the context is exited.
+        Close the open file stream if present.
         '''
 
-        # Close the file if it is open and set the file attribute to None.
+        # Close the file if it is open and reset the attribute.
         if self.file is not None:
             self.file.close()
             self.file = None
 
     # * method: __enter__
-    def __enter__(self):
+    def __enter__(self) -> IO[Any]:
         '''
-        Enter the runtime context related to this object. This method is called when the with statement is executed.
-        
-        :return: The file loader instance itself, which can be used to access the opened file.
-        :rtype: FileLoader
+        Enter the runtime context and open the file stream.
+
+        :return: The opened file stream.
+        :rtype: IO[Any]
         '''
 
-        # Open the file and return the file loader instance for use within the context. 
-        # The opened file stream can be accessed via the 'file' attribute of this instance.
-        self.open_file()
-        return self
-    
+        # Open and return the file stream.
+        return self.open_file()
+
     # * method: __exit__
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         '''
-        Exit the runtime context and close the file if it is open. This method is called when the with statement block is exited.
-        
-        :param exc_type: The type of exception raised (if any).
-        :param exc_value: The value of the exception raised (if any).
-        :param traceback: The traceback of the exception raised (if any).
+        Exit the runtime context and close the file stream.
+
+        :param exc_type: The exception type (if any).
+        :param exc_val: The exception value (if any).
+        :param exc_tb: The exception traceback (if any).
+        :return: False to propagate exceptions.
+        :rtype: bool
         '''
 
-        # Close the file.
+        # Close the file stream.
         self.close_file()
+
+        # Do not suppress exceptions.
+        return False

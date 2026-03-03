@@ -1,13 +1,13 @@
-"""Tiferet Contracts Settings"""
+"""Tiferet Interfaces Settings"""
 
 # *** imports
 
 # ** infra
 from abc import ABC
 
-# *** classes
+# *** interfaces
 
-# ** class: service
+# ** interface: service
 class Service(ABC):
     '''
     The service interface as an abstract base class.

@@ -1,4 +1,4 @@
-"""Tiferet Data Transfer Objects Exports"""
+"""Tiferet Mappers Exports"""
 
 # *** exports
 
@@ -13,7 +13,7 @@ from .app import (
 )
 from .cli import (
     CliCommandAggregate,
-    CliCommandYamlObject
+    CliCommandYamlObject,
 )
 from .container import (
     FlaggedDependencyAggregate,

@@ -103,7 +103,7 @@ class DomainObject(Model):
 
         # Return the new domain object.
         return domain_object
-    
+
     # * method: validate
     def validate(self, **kwargs):
 

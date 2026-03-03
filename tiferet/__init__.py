@@ -20,17 +20,26 @@ try:
     )
     from .events import (
         DomainEvent,
-        Command,
-        ParseParameter
+        ParseParameter,
     )
     from .interfaces import Service
-    from .mappers import DataObject
+    from .mappers import (
+        Aggregate,
+        TransferObject,
+    )
     from .utils import (
-        File,
-        Yaml,
-        Json,
-        Csv,
-        CsvDict,
+        FileLoader,
+        FileLoader as File,
+        YamlLoader,
+        YamlLoader as Yaml,
+        JsonLoader,
+        JsonLoader as Json,
+        CsvLoader,
+        CsvLoader as Csv,
+        CsvDictLoader,
+        CsvDictLoader as CsvDict,
+        SqliteClient,
+        SqliteClient as Sqlite,
     )
 except Exception as e:
     import os, sys
@@ -41,4 +50,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.0a0'
+__version__ = '2.0.0a1'

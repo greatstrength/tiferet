@@ -1,136 +1,127 @@
-"""Tiferet Static Commands Tests"""
-
 # *** imports
-
-# ** core
-from typing import Any
-import os
 
 # ** infra
 import pytest
+import os
 
 # ** app
-from ..static import (
-    ParseParameter,
-    ImportDependency,
-    RaiseError,
-    TiferetError
-)
+from ..static import ParseParameter, ImportDependency, RaiseError
+from ..settings import TiferetError
 
 # *** tests
 
 # ** test: test_parse_parameter_env_variable
-def test_parse_parameter_env_variable(monkeypatch: Any):
+def test_parse_parameter_env_variable():
     '''
-    Test parsing an environment variable.
-
-    :param monkeypatch: The pytest monkeypatch fixture.
-    :type monkeypatch: Callable
+    Test that ParseParameter resolves an existing environment variable.
     '''
 
-    # Set an environment variable for testing.
-    monkeypatch.setenv('TEST_VAR', 'test_value')
+    # Set a test environment variable.
+    os.environ['TIFERET_TEST_VAR'] = 'hello_world'
 
-    # Parse the environment variable.
-    result = ParseParameter.execute('$env.TEST_VAR')
+    # Parse the environment variable parameter.
+    result = ParseParameter.execute('$env.TIFERET_TEST_VAR')
 
-    # Verify the result.
-    assert result == 'test_value', 'Should return the environment variable value'
+    # Verify the resolved value.
+    assert result == 'hello_world', 'Should resolve the environment variable value'
+
+    # Clean up.
+    del os.environ['TIFERET_TEST_VAR']
 
 # ** test: test_parse_parameter_missing_env_variable
 def test_parse_parameter_missing_env_variable():
     '''
-    Test parsing a missing environment variable.
+    Test that ParseParameter raises on a missing environment variable.
     '''
 
-    # Attempt to parse a missing environment variable and expect an error.
-    with pytest.raises(TiferetError) as exc_info:
-        ParseParameter.execute('$env.MISSING_VAR')
+    # Ensure the variable does not exist.
+    os.environ.pop('TIFERET_NONEXISTENT_VAR', None)
 
-    # Verify the error.
-    assert exc_info.value.error_code == 'PARAMETER_PARSING_FAILED', 'Should raise PARAMETER_PARSING_FAILED error'
-    assert exc_info.value.kwargs.get('parameter') == '$env.MISSING_VAR', 'Should include parameter in error'
-    assert exc_info.value.kwargs.get('exception') is not None, 'Should include exception message in error'
+    # Attempt to parse a missing env variable, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        ParseParameter.execute('$env.TIFERET_NONEXISTENT_VAR')
+
+    # Verify error code and kwargs.
+    assert exc_info.value.error_code == 'PARAMETER_PARSING_FAILED', 'Should raise PARAMETER_PARSING_FAILED'
+    assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR', 'Should include the parameter'
 
 # ** test: test_parse_parameter_non_env_string
 def test_parse_parameter_non_env_string():
     '''
-    Test parsing a non-environment variable string.
+    Test that ParseParameter passes through a plain string unchanged.
     '''
 
-    # Parse a regular string.
-    result = ParseParameter.execute('plain_string')
+    # Parse a non-environment variable string.
+    result = ParseParameter.execute('plain_value')
 
-    # Verify the result.
-    assert result == 'plain_string', 'Should return the input string unchanged'
+    # Verify the value is returned unchanged.
+    assert result == 'plain_value', 'Should return the plain string unchanged'
 
 # ** test: test_import_dependency_success
 def test_import_dependency_success():
     '''
-    Test successful import of a dependency.
+    Test that ImportDependency successfully imports a known class.
     '''
 
-    # Import a known module and class.
+    # Import os.getenv via ImportDependency.
     result = ImportDependency.execute('os', 'getenv')
 
-    # Verify the result.
-    assert result == os.getenv, 'Should return the correct class/function from module'
+    # Verify the imported attribute is os.getenv.
+    assert result is os.getenv, 'Should import os.getenv successfully'
 
 # ** test: test_import_dependency_failure
 def test_import_dependency_failure():
     '''
-    Test failed import of a dependency.
+    Test that ImportDependency raises on an invalid module/class.
     '''
 
-    # Attempt to import a non-existent module and class, expecting an error.
+    # Attempt to import a nonexistent module, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        ImportDependency.execute('non_existent_module', 'NonExistentClass')
+        ImportDependency.execute('nonexistent.module', 'FakeClass')
 
-    # Verify the error.
-    assert exc_info.value.error_code == 'IMPORT_DEPENDENCY_FAILED', 'Should raise IMPORT_DEPENDENCY_FAILED error'
-    assert exc_info.value.kwargs.get('module_path') == 'non_existent_module', 'Should include module path in error'
-    assert exc_info.value.kwargs.get('class_name') == 'NonExistentClass', 'Should include class name in error'
+    # Verify error code and kwargs.
+    assert exc_info.value.error_code == 'IMPORT_DEPENDENCY_FAILED', 'Should raise IMPORT_DEPENDENCY_FAILED'
+    assert exc_info.value.kwargs.get('module_path') == 'nonexistent.module', 'Should include module_path'
+    assert exc_info.value.kwargs.get('class_name') == 'FakeClass', 'Should include class_name'
 
 # ** test: test_raise_error_basic
 def test_raise_error_basic():
     '''
-    Test raising an error with basic parameters.
+    Test that RaiseError raises a TiferetError with code only.
     '''
 
-    # Attempt to raise an error and verify it.
+    # Raise error with code only, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        RaiseError.execute('TEST_ERROR', 'Test message')
+        RaiseError.execute('BASIC_ERROR')
 
-    # Verify the error.
-    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
-    assert 'Test message' in str(exc_info.value), 'Should include the provided message'
-
+    # Verify error code.
+    assert exc_info.value.error_code == 'BASIC_ERROR', 'Should raise with the correct error code'
 
 # ** test: test_raise_error_with_args
 def test_raise_error_with_args():
     '''
-    Test raising an error with additional arguments.
+    Test that RaiseError raises with message and kwargs.
     '''
 
-    # Attempt to raise an error with additional arguments and verify it.
+    # Raise error with code, message, and kwargs, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        RaiseError.execute('TEST_ERROR', 'Test message with args', arg1='arg1', arg2='arg2')
+        RaiseError.execute('ARG_ERROR', message='Something failed', detail='extra')
 
-    # Verify the error.
-    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
-    assert exc_info.value.kwargs.get('arg1') == 'arg1', 'Should include arg1 in error'
-    assert exc_info.value.kwargs.get('arg2') == 'arg2', 'Should include arg2 in error'
-
+    # Verify error code, message, and kwargs.
+    assert exc_info.value.error_code == 'ARG_ERROR', 'Should raise with the correct error code'
+    assert 'Something failed' in str(exc_info.value), 'Should include the message'
+    assert exc_info.value.kwargs.get('detail') == 'extra', 'Should include the kwargs'
 
 # ** test: test_raise_error_no_message
 def test_raise_error_no_message():
     '''
-    Test raising an error without a message.
+    Test that RaiseError raises with code and kwargs but no message.
     '''
 
-    # Attempt to raise an error without a message and verify it.
+    # Raise error with code and kwargs only, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        RaiseError.execute('TEST_ERROR')
+        RaiseError.execute('NO_MSG_ERROR', reason='missing')
 
-    # Verify the error.
-    assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
+    # Verify error code and kwargs.
+    assert exc_info.value.error_code == 'NO_MSG_ERROR', 'Should raise with the correct error code'
+    assert exc_info.value.kwargs.get('reason') == 'missing', 'Should include the kwargs'

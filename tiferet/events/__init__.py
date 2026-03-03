@@ -1,11 +1,11 @@
-"""Tiferet Domain Event Exports"""
+"""Tiferet Events Exports"""
 
 # *** exports
 
 # ** app
 from .settings import DomainEvent, TiferetError, a
 from .static import (
-    ParseParameter, 
-    ImportDependency, 
-    RaiseError
+    ParseParameter,
+    ImportDependency,
+    RaiseError,
 )

@@ -1,4 +1,4 @@
-"""Configuration Service Contract"""
+"""Tiferet Interfaces Configuration"""
 
 # *** imports
 
@@ -9,42 +9,45 @@ from typing import Any, Callable
 # ** app
 from .settings import Service
 
-# *** contracts
+# *** interfaces
 
-# ** contract: configuration_service
+# ** interface: configuration_service
 class ConfigurationService(Service):
     '''
-    Abstract contract for loading and saving structured configuration data (YAML, JSON, etc.).
+    Service contract for loading and persisting structured configuration data.
     '''
 
     # * method: load
     @abstractmethod
-    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> Any:
+    def load(self,
+            start_node: Callable[[Any], Any] = lambda x: x,
+            data_factory: Callable[[Any], Any] = lambda x: x,
+            **kwargs) -> Any:
         '''
-        Load and return configuration data.
+        Load structured configuration data, optionally transforming it.
 
-        :param start_node: Optional callable to select starting node in loaded structure.
-        :type start_node: Callable
-        :param data_factory: Optional callable to transform loaded data into desired format.
-        :type data_factory: Callable
-        :return: Parsed configuration data.
+        :param start_node: Callable to select the starting node of the data.
+        :type start_node: Callable[[Any], Any]
+        :param data_factory: Callable to transform the loaded data.
+        :type data_factory: Callable[[Any], Any]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The loaded configuration data.
         :rtype: Any
         '''
-        
-        raise NotImplementedError('load method must be implemented in the ConfigurationService class.')
+        raise NotImplementedError()
 
     # * method: save
     @abstractmethod
-    def save(self, data: Any, data_path: str = None, **kwargs):
+    def save(self, data: Any, data_path: str | None = None, **kwargs) -> None:
         '''
-        Save data to the configuration file.
+        Persist structured configuration data.
 
-        :param data: The data to persist.
+        :param data: The configuration data to persist.
         :type data: Any
-        :param data_path: Optional path within the configuration structure to save data.
-        :type data_path: str
-        :param kwargs: Additional keyword arguments for saving.
+        :param data_path: Optional path within the data structure.
+        :type data_path: str | None
+        :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
-        
-        raise NotImplementedError('save method must be implemented in the ConfigurationService class.')
+        raise NotImplementedError()

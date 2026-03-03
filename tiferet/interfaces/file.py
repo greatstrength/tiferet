@@ -1,35 +1,48 @@
-"""Tiferet File Contract"""
+"""Tiferet Interfaces File"""
 
 # *** imports
 
 # ** core
 from abc import abstractmethod
+from typing import IO, Any
 
 # ** app
 from .settings import Service
 
-# *** contracts
+# *** interfaces
 
-# ** contract: file_service
+# ** interface: file_service
 class FileService(Service):
     '''
-    Abstract contract for low-level file stream management.
+    Service contract for low-level file stream operations.
     '''
 
     # * method: open_file
     @abstractmethod
-    def open_file(self):
+    def open_file(self, path: str, mode: str = 'r', encoding: str | None = None, **kwargs) -> IO[Any]:
         '''
-        Open the file stream with configured path, mode, and encoding.
+        Open a file stream.
+
+        :param path: File system path.
+        :type path: str
+        :param mode: File open mode (r, w, a, etc.).
+        :type mode: str
+        :param encoding: Text encoding (for text modes).
+        :type encoding: str | None
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: Open file object.
+        :rtype: IO[Any]
         '''
-        
-        raise NotImplementedError('The open_file method must be implemented by the file service.')
+        raise NotImplementedError()
 
     # * method: close_file
     @abstractmethod
-    def close_file(self):
+    def close_file(self, file: IO[Any]) -> None:
         '''
-        Close the file stream if open.
+        Safely close an open file stream.
+
+        :param file: The open file object to close.
+        :type file: IO[Any]
         '''
-        
-        raise NotImplementedError('The close_file method must be implemented by the file service.')
+        raise NotImplementedError()

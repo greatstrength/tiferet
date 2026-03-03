@@ -1,8 +1,5 @@
 # *** imports
 
-# ** core
-from typing import Any
-
 # ** infra
 import pytest
 from unittest import mock
@@ -12,12 +9,12 @@ from ..settings import DomainEvent, TiferetError
 
 # *** fixtures
 
-# ** fixture: domain_event
+# ** fixture: event
 @pytest.fixture
-def domain_event() -> DomainEvent:
+def event() -> DomainEvent:
     '''
     Fixture to provide a fresh DomainEvent instance.
-    
+
     :return: A DomainEvent instance.
     :rtype: DomainEvent
     '''
@@ -30,7 +27,7 @@ def domain_event() -> DomainEvent:
 def mocker() -> mock.Mock:
     '''
     Fixture to provide a mocker type for testing.
-    
+
     :return: A mocker type.
     :rtype: mock.Mock
     '''
@@ -41,81 +38,75 @@ def mocker() -> mock.Mock:
 # *** tests
 
 # ** test: test_execute_not_implemented
-def test_execute_not_implemented(domain_event: DomainEvent):
+def test_execute_not_implemented(event: DomainEvent):
     '''
     Test that execute raises NotImplementedError.
-    
-    :param domain_event: The DomainEvent instance to test.
-    :type domain_event: DomainEvent
+
+    :param event: The DomainEvent instance to test.
+    :type event: DomainEvent
     '''
 
-    # Attempt to call execute, expecting an error
+    # Attempt to call execute, expecting an error.
     with pytest.raises(NotImplementedError):
-        domain_event.execute()
+        event.execute()
 
 # ** test: test_raise_error_basic
-def test_raise_error_basic(domain_event: DomainEvent):
+def test_raise_error_basic():
     '''
     Test raising a TiferetError with basic parameters.
-    
-    :param domain_event: The DomainEvent instance to test.
-    :type domain_event: DomainEvent
     '''
 
     # Raise error with code and message, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        domain_event.raise_error('TEST_ERROR', 'An error has occurred.')
+        DomainEvent.raise_error('TEST_ERROR', 'An error has occurred.')
 
     # Verify error code and message.
     assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
     assert 'An error has occurred.' in str(exc_info.value), 'Should include the provided message'
 
 # ** test: test_raise_error_with_args
-def test_raise_error_with_args(domain_event: DomainEvent):
+def test_raise_error_with_args():
     '''
     Test raising a TiferetError with additional arguments.
-    
-    :param domain_event: The DomainEvent instance to test.
-    :type domain_event: DomainEvent
     '''
 
     # Raise error with code, message, and args, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        domain_event.raise_error('TEST_ERROR', 'An error has occurred.', arg1='arg1', arg2='arg2')
-   
+        DomainEvent.raise_error('TEST_ERROR', 'An error has occurred.', arg1='arg1', arg2='arg2')
+
     # Verify error code, message, and additional arguments.
     assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
     assert 'An error has occurred.' in str(exc_info.value), 'Should include the provided message'
-    assert 'arg1' in str(exc_info.value), 'Should include additional argument arg1'
-    assert 'arg2' in str(exc_info.value), 'Should include additional argument arg2'
+    assert exc_info.value.kwargs.get('arg1') == 'arg1', 'Should include additional argument arg1'
+    assert exc_info.value.kwargs.get('arg2') == 'arg2', 'Should include additional argument arg2'
 
 # ** test: test_verify_success
-def test_verify_success(domain_event: DomainEvent):
+def test_verify_success(event: DomainEvent):
     '''
     Test verify with a true expression.
-    
-    :param domain_event: The DomainEvent instance to test.
-    :type domain_event: DomainEvent
+
+    :param event: The DomainEvent instance to test.
+    :type event: DomainEvent
     '''
 
     # Verify true expression, expect no error.
     try:
-        domain_event.verify(True, 'TEST_ERROR', 'Test message')
+        event.verify(True, 'TEST_ERROR', 'Test message')
     except TiferetError:
         pytest.fail('Verify should not raise an error for true expression')
 
 # ** test: test_verify_failure
-def test_verify_failure(domain_event: DomainEvent):
+def test_verify_failure(event: DomainEvent):
     '''
     Test verify with a false expression.
-    
-    :param domain_event: The DomainEvent instance to test.
-    :type domain_event: DomainEvent
+
+    :param event: The DomainEvent instance to test.
+    :type event: DomainEvent
     '''
 
     # Verify false expression, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        domain_event.verify(False, 'TEST_ERROR', 'Test message')
+        event.verify(False, 'TEST_ERROR', 'Test message')
 
     # Verify error code and message.
     assert exc_info.value.error_code == 'TEST_ERROR', 'Should raise error with correct code'
@@ -124,8 +115,8 @@ def test_verify_failure(domain_event: DomainEvent):
 # ** test: test_handle_command
 def test_handle_command(mocker: mock.Mock):
     '''
-    Test handle method with a mock domain event.
-    
+    Test handle method with a mock command.
+
     :param mocker: The mocker fixture.
     :type mocker: mock.Mock
     '''
@@ -139,9 +130,9 @@ def test_handle_command(mocker: mock.Mock):
 
     # Call handle with dependencies and arguments.
     result = DomainEvent.handle(mock_command, dependencies={'dep': 'value'}, arg='test')
-   
-    # Verify result
-    assert result == 'result', 'Should return the command execution result'
+
+    # Verify result.
+    assert result == 'result', 'Should return the event execution result'
 
     # Verify command instantiation and execution.
     mock_command.assert_called_once_with(dep='value')
@@ -150,101 +141,104 @@ def test_handle_command(mocker: mock.Mock):
 # ** test: test_parameters_required_raises_on_missing_param
 def test_parameters_required_raises_on_missing_param():
     '''
-    Test that the parameter_required decorator raises on a missing parameter.
+    Test that parameters_required raises on a missing parameter.
     '''
 
-    # Define a test event with a decorated execute method.
+    # Define a test event with parameters_required decorator.
     class TestEvent(DomainEvent):
+
         @DomainEvent.parameters_required(['id'])
-        def execute(self, id: str = None, **kwargs) -> Any:
-            return id
+        def execute(self, **kwargs):
+            return 'ok'
 
-    # Invoke without providing 'id', expect TiferetError.
+    # Execute without the required parameter, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(TestEvent)
+        DomainEvent.handle(TestEvent, id=None)
 
-    # Verify error details.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
-    assert 'id' in exc_info.value.kwargs.get('parameters', [])
-    assert exc_info.value.kwargs.get('command') == 'TestEvent'
+    # Verify the error contains the missing parameter.
+    assert 'id' in exc_info.value.kwargs.get('parameters', []), 'Should list missing parameter'
+    assert exc_info.value.kwargs.get('command') == 'TestEvent', 'Should include the command name'
 
 # ** test: test_parameters_required_raises_on_none_value
 def test_parameters_required_raises_on_none_value():
     '''
-    Test that the parameter_required decorator raises when a parameter is None.
+    Test that parameters_required raises when a parameter value is None.
     '''
 
-    # Define a test event with a decorated execute method.
+    # Define a test event with parameters_required decorator.
     class TestEvent(DomainEvent):
-        @DomainEvent.parameters_required(['id'])
-        def execute(self, id: str = None, **kwargs) -> Any:
-            return id
 
-    # Invoke with id=None, expect TiferetError.
+        @DomainEvent.parameters_required(['name'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute with None value, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(TestEvent, id=None)
+        DomainEvent.handle(TestEvent, name=None)
 
-    # Verify error details.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
-    assert 'id' in exc_info.value.kwargs.get('parameters', [])
+    # Verify the error contains the None parameter.
+    assert 'name' in exc_info.value.kwargs.get('parameters', []), 'Should list None parameter'
 
 # ** test: test_parameters_required_raises_on_empty_string
 def test_parameters_required_raises_on_empty_string():
     '''
-    Test that the parameter_required decorator raises on an empty string (after strip).
+    Test that parameters_required raises when a parameter is an empty/whitespace string.
     '''
 
-    # Define a test event with a decorated execute method.
+    # Define a test event with parameters_required decorator.
     class TestEvent(DomainEvent):
-        @DomainEvent.parameters_required(['name'])
-        def execute(self, name: str = None, **kwargs) -> Any:
-            return name
 
-    # Invoke with name='   ', expect TiferetError.
+        @DomainEvent.parameters_required(['name'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute with whitespace-only string, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
         DomainEvent.handle(TestEvent, name='   ')
 
-    # Verify error details.
-    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED'
-    assert 'name' in exc_info.value.kwargs.get('parameters', [])
+    # Verify the error contains the empty string parameter.
+    assert 'name' in exc_info.value.kwargs.get('parameters', []), 'Should list empty string parameter'
 
 # ** test: test_parameters_required_passes_valid_value
 def test_parameters_required_passes_valid_value():
     '''
-    Test that the parameter_required decorator passes a valid value through.
+    Test that parameters_required passes when a valid string value is provided.
     '''
 
-    # Define a test event with a decorated execute method.
+    # Define a test event with parameters_required decorator.
     class TestEvent(DomainEvent):
-        @DomainEvent.parameters_required(['id'])
-        def execute(self, id: str = None, **kwargs) -> Any:
-            return id
 
-    # Invoke with a valid id, expect no error.
+        @DomainEvent.parameters_required(['id'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute with a valid value, expect success.
     result = DomainEvent.handle(TestEvent, id='valid_id')
-    assert result == 'valid_id'
+    assert result == 'ok', 'Should return the execution result'
 
 # ** test: test_parameters_required_multiple_missing
 def test_parameters_required_multiple_missing():
     '''
-    Test that the parameter_required decorator collects all missing parameters.
+    Test that parameters_required collects all violations in a single error.
     '''
 
     # Define a test event with multiple required parameters.
     class TestEvent(DomainEvent):
-        @DomainEvent.parameters_required(['id', 'name', 'message'])
-        def execute(self, id: str = None, name: str = None, message: str = None, **kwargs) -> Any:
-            return id
 
-    # Invoke with all missing, expect TiferetError listing all three.
+        @DomainEvent.parameters_required(['id', 'name', 'value'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute with all parameters missing or invalid, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(TestEvent)
+        DomainEvent.handle(TestEvent, name=None, value='  ')
 
-    # Verify all missing parameters are listed.
+    # Verify all three parameters are collected in a single error.
     missing = exc_info.value.kwargs.get('parameters', [])
-    assert 'id' in missing
-    assert 'name' in missing
-    assert 'message' in missing
+    assert 'id' in missing, 'Should list missing parameter id'
+    assert 'name' in missing, 'Should list None parameter name'
+    assert 'value' in missing, 'Should list empty string parameter value'
+    assert len(missing) == 3, 'Should collect exactly three violations'
 
 # ** test: test_parameters_required_non_string_falsy_passes
 def test_parameters_required_non_string_falsy_passes():
@@ -252,33 +246,35 @@ def test_parameters_required_non_string_falsy_passes():
     Test that non-string falsy values (0, [], {}, False) pass validation.
     '''
 
-    # Define a test event with a decorated execute method.
+    # Define a test event with parameters_required decorator.
     class TestEvent(DomainEvent):
-        @DomainEvent.parameters_required(['count', 'items', 'meta', 'flag'])
-        def execute(self, count=None, items=None, meta=None, flag=None, **kwargs) -> Any:
-            return {'count': count, 'items': items, 'meta': meta, 'flag': flag}
 
-    # Invoke with falsy non-string values, expect success.
-    result = DomainEvent.handle(TestEvent, count=0, items=[], meta={}, flag=False)
-    assert result == {'count': 0, 'items': [], 'meta': {}, 'flag': False}
+        @DomainEvent.parameters_required(['a', 'b', 'c', 'd'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute with falsy-but-valid non-string values, expect success.
+    result = DomainEvent.handle(TestEvent, a=0, b=[], c={}, d=False)
+    assert result == 'ok', 'Should accept non-string falsy values'
 
 # ** test: test_parameters_required_error_message_content
 def test_parameters_required_error_message_content():
     '''
-    Test that the error message includes the correct parameter and command names.
+    Test that the error kwargs contain the correct command name and parameters list.
     '''
 
-    # Define a test event with a decorated execute method.
-    class MySpecialEvent(DomainEvent):
-        @DomainEvent.parameters_required(['id'])
-        def execute(self, id: str = None, **kwargs) -> Any:
-            return id
+    # Define a test event with parameters_required decorator.
+    class MyCustomEvent(DomainEvent):
 
-    # Invoke without providing 'id', expect TiferetError.
+        @DomainEvent.parameters_required(['id', 'name'])
+        def execute(self, **kwargs):
+            return 'ok'
+
+    # Execute without required parameters, expect TiferetError.
     with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(MySpecialEvent)
+        DomainEvent.handle(MyCustomEvent)
 
-    # Verify error message content.
-    assert 'MySpecialEvent' in str(exc_info.value)
-    assert exc_info.value.kwargs.get('command') == 'MySpecialEvent'
-    assert exc_info.value.kwargs.get('parameters') == ['id']
+    # Verify error kwargs contain the correct command and parameters.
+    assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED', 'Should use correct error code'
+    assert exc_info.value.kwargs.get('command') == 'MyCustomEvent', 'Should include the event class name'
+    assert exc_info.value.kwargs.get('parameters') == ['id', 'name'], 'Should list all missing parameters'

@@ -1,34 +1,79 @@
 # Domain Events in Tiferet
 
-Domain Events are the primary operational units in the Tiferet framework. They encapsulate focused domain actions, validation, and service interactions in a consistent, injectable, and testable way.
+**Project:** Tiferet Framework  
+**Repository:** https://github.com/greatstrength/tiferet  
 
-This document describes the structure, design principles, and best practices for writing Domain Events, using the feature event suite as an example.
+## Overview
 
-## What is a Domain Event?
+Domain events are the operational core of the Tiferet framework. Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet.events.settings`.
 
-A Domain Event is a class that performs a single, well-defined domain operation (e.g., `AddFeature`, `GetFeature`, `SetAppConstants`). Key characteristics:
-- Extends the base `DomainEvent` class (`tiferet/events/settings.py`).
-- Receives dependencies via constructor injection (usually a service or repository).
-- Exposes an `execute(**kwargs)` method as the entry point.
-- Uses `@DomainEvent.parameters_required([...])` for declarative input validation.
-- Uses `verify` for domain-specific rule enforcement.
-- Raises structured `TiferetError` instances via `raise_error`.
-- Is invoked in production and tests via the static `DomainEvent.handle` method.
+`DomainEvent` provides:
+- Core orchestration (`execute`, `handle`)
+- Structured validation (`verify`)
+- Error raising (`raise_error`)
+- A declarative parameter validator via the static `@parameters_required` decorator
 
-Domain Events are called by Contexts (often through injected handler callables) and return domain models, identifiers, or results.
+This class serves as the base for all domain event implementations. It centralizes execution patterns, validation, and error handling into a single, testable abstraction.
 
-### Role in Runtime
-- **Execution**: Contexts use events to perform business logic (e.g., `FeatureContext` loads and executes feature events).
-- **Validation**: Declarative parameter checks and domain rule enforcement prevent invalid operations.
-- **Error Handling**: Consistent structured errors via `TiferetError`.
-- **Dependency Injection**: Events are wired via `DomainEvent.handle` or container.
+## The DomainEvent Base Class
 
-## Structured Code Design of Domain Events
+`DomainEvent` extends `object` and provides the foundational methods for all domain operations:
 
-Domain Events follow a strict artifact comment structure:
+```python
+# tiferet/events/settings.py
 
-- `# *** events` – top-level section.
-- `# ** event: <name>` – individual event (snake_case).
+class DomainEvent(object):
+    '''
+    A base class for a domain event object.
+    '''
+
+    # * method: execute
+    def execute(self, **kwargs) -> Any:
+        '''Abstract execution entry point.'''
+        raise NotImplementedError()
+
+    # * method: raise_error (static)
+    @staticmethod
+    def raise_error(error_code: str, message: str = None, **kwargs):
+        '''Raise a structured TiferetError.'''
+        raise TiferetError(error_code, message, **kwargs)
+
+    # * method: verify
+    def verify(self, expression: bool, error_code: str, message: str = None, **kwargs):
+        '''Assert expression; raise on failure.'''
+        try:
+            assert expression
+        except AssertionError:
+            self.raise_error(error_code, message, **kwargs)
+
+    # * method: parameters_required (static)
+    @staticmethod
+    def parameters_required(param_names: list):
+        '''Declarative parameter validator – raises aggregated error.'''
+        ...
+
+    # * method: handle (static)
+    @staticmethod
+    def handle(command: type, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
+        '''Instantiate → execute pattern.'''
+        command_handler = command(**dependencies)
+        result = command_handler.execute(**kwargs)
+        return result
+```
+
+Key characteristics:
+- **`execute(**kwargs)`** is the abstract entry point; subclasses must override it.
+- **`raise_error`** is static — usable from both instance and class context.
+- **`verify`** wraps `assert` with structured error raising for domain rule validation.
+- **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts.
+- **`@parameters_required`** provides declarative, aggregated parameter validation.
+
+## Structured Code Design
+
+Domain events follow the standard Tiferet artifact comment structure:
+
+- `# *** events` – top-level section (use `# *** classes` in `settings.py`).
+- `# ** event: <name>` – individual domain event (snake_case).
 - `# * attribute: <name>` – injected dependencies.
 - `# * init` – constructor.
 - `# * method: execute` – main execution method.
@@ -38,212 +83,106 @@ Domain Events follow a strict artifact comment structure:
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets.
 
-**Example** – `tiferet/events/feature.py`:
+## Creating Domain Events
+
+### 1. Define the Event Class
+- Extend `DomainEvent`.
+- Declare dependencies under `# * attribute`.
+- Implement `__init__` and `execute`.
+- Use `@DomainEvent.parameters_required` for declarative parameter validation.
+
+**Example** – `AddError`:
 ```python
 # *** imports
 
 # ** core
-from typing import List, Any
+from typing import List, Dict, Any
 
 # ** app
-from ..entities import Feature
-from ..interfaces import FeatureService
-from ..mappers import FeatureAggregate
-from .settings import DomainEvent, a
+from tiferet.events import DomainEvent, a
+from tiferet.contracts import ErrorService
+from tiferet.domain.error import Error
 
 # *** events
 
-# ** event: add_feature
-class AddFeature(DomainEvent):
+# ** event: add_error
+class AddError(DomainEvent):
     '''
-    Event to add a new feature configuration.
+    Event to add a new Error domain object to the repository.
     '''
 
-    # * attribute: feature_service
-    feature_service: FeatureService
+    # * attribute: error_service
+    error_service: ErrorService
 
     # * init
-    def __init__(self, feature_service: FeatureService):
+    def __init__(self, error_service: ErrorService):
         '''
-        Initialize the AddFeature event.
-
-        :param feature_service: The feature service to use for managing feature configurations.
-        :type feature_service: FeatureService
+        Initialize the AddError event.
         '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
+        self.error_service = error_service
 
     # * method: execute
-    @DomainEvent.parameters_required(['name', 'group_id'])
-    def execute(self,
-            name: str,
-            group_id: str,
-            feature_key: str | None = None,
-            id: str | None = None,
-            description: str | None = None,
-            commands: list | None = None,
-            log_params: dict | None = None,
-            **kwargs,
-        ) -> Feature:
+    @DomainEvent.parameters_required(['id', 'name', 'message'])
+    def execute(self, **kwargs) -> Error:
         '''
-        Add a new feature.
-
-        :param name: Required feature name.
-        :type name: str
-        :param group_id: Required group identifier.
-        :type group_id: str
-        :param feature_key: Optional explicit key.
-        :type feature_key: str | None
-        :param id: Optional explicit full ID.
-        :type id: str | None
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The created Feature.
-        :rtype: Feature
+        Add a new Error.
         '''
 
-        # Create feature using the aggregate factory.
-        feature = FeatureAggregate.new(
-            name=name,
-            group_id=group_id,
-            feature_key=feature_key,
-            id=id,
-            description=description,
-            commands=commands or [],
-            log_params=log_params or {},
-            **kwargs,
-        )
+        # Unpack parameters.
+        id = kwargs['id']
+        name = kwargs['name']
+        message = kwargs['message']
 
-        # Check for duplicate feature identifier.
+        # Check existence.
         self.verify(
-            expression=not self.feature_service.exists(feature.id),
-            error_code=a.const.FEATURE_ALREADY_EXISTS_ID,
-            message=f'Feature with ID {feature.id} already exists.',
-            id=feature.id,
+            not self.error_service.exists(id),
+            a.const.ERROR_ALREADY_EXISTS_ID,
+            message=f'An error with ID {id} already exists.',
+            id=id
         )
 
-        # Persist the new feature.
-        self.feature_service.save(feature)
+        # Create and save.
+        new_error = Error.new(id=id, name=name, message=message)
+        self.error_service.save(new_error)
 
-        # Return the created feature.
-        return feature
-```
-
-## Parameter Validation
-
-### Declarative: `@parameters_required`
-
-The `@DomainEvent.parameters_required([...])` decorator is placed directly above the `execute` method. It validates all listed parameters **before** the method body runs and raises a single aggregated `TiferetError` if any fail.
-
-A parameter is **invalid** if it is:
-- Missing from `kwargs`
-- `None`
-- A `str` that is empty after `.strip()`
-
-**Falsy-but-valid** values pass validation: `0`, `0.0`, `False`, `[]`, `{}`.
-
-```python
-# * method: execute
-@DomainEvent.parameters_required(['id', 'name', 'attribute_id'])
-def execute(self, id: str, name: str, attribute_id: str, **kwargs) -> str:
-    ...
-```
-
-### Domain Rules: `verify`
-
-Domain-specific checks (existence, uniqueness, attribute validity, etc.) remain as manual `self.verify(…)` calls inside `execute`:
-
-```python
-# Verify that the feature exists.
-self.verify(
-    expression=feature is not None,
-    error_code=a.const.FEATURE_NOT_FOUND_ID,
-    feature_id=id,
-)
-```
-
-### When to Use Which
-
-- **`@parameters_required`**: Required input presence — applied to `execute` as a decorator.
-- **`verify`**: Business rules, existence checks, constraint enforcement — called inside `execute`.
-- **`raise_error`**: Direct error raising when `verify` is not appropriate (e.g., inside `if` blocks).
-
-## Creating New and Extending Existing Domain Events
-
-### 1. Define the Event Class
-- Place under `# *** events` in a domain-specific module.
-- Extend `DomainEvent`.
-- Declare dependencies under `# * attribute`.
-- Implement `__init__` and `execute`.
-- Add `@DomainEvent.parameters_required([...])` for required inputs.
-
-**Example** – `GetFeature`:
-```python
-# ** event: get_feature
-class GetFeature(DomainEvent):
-    '''
-    Event to retrieve a feature by its identifier.
-    '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService):
-        '''
-        Initialize the GetFeature event.
-
-        :param feature_service: The feature service to use for retrieving features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
-
-    # * method: execute
-    @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> Feature:
-        '''
-        Retrieve a feature by ID.
-
-        :param id: The feature identifier.
-        :type id: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The retrieved feature.
-        :rtype: Feature
-        '''
-
-        # Retrieve the feature from the feature service.
-        feature = self.feature_service.get(id)
-
-        # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
-        self.verify(
-            expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
-            feature_id=id,
-        )
-
-        # Return the retrieved feature.
-        return feature
+        return new_error
 ```
 
 ### 2. Use in Context or Integration
 - Inject event instance into contexts.
-- Call via `event.execute(...)` or `DomainEvent.handle` in tests.
+- Call via `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`.
 
-### Best Practices
-- Use `# * attribute`, `# * init`, `# * method: execute` consistently.
-- Use `@DomainEvent.parameters_required([...])` for all required input parameters.
-- Use `verify` for domain rules.
-- Raise structured errors via `raise_error`.
-- Return domain models or identifiers.
-- Keep events focused on one operation.
+## The `@parameters_required` Decorator
+
+The `@parameters_required` decorator provides declarative, aggregated parameter validation:
+
+```python
+@DomainEvent.parameters_required(['id', 'name'])
+def execute(self, **kwargs) -> Any:
+    ...
+```
+
+### Validation Rules
+- Inspects `**kwargs` keys (compatible with `handle` which calls `execute(**kwargs)`).
+- A parameter is **missing/invalid** if:
+  - Not present in `kwargs`
+  - Value is `None`
+  - Value is `str` and `.strip() == ""`
+- **Falsy-but-valid** cases (pass validation):
+  - `0`, `0.0`, `False`, `[]`, `{}`, `set()`, etc.
+- Collects **all** violations → raises **single** `TiferetError`.
+- Error uses constant `a.const.COMMAND_PARAMETER_REQUIRED_ID`.
+- Error `kwargs`: `{'parameters': ['id', 'name'], 'command': 'ClassName'}`.
+
+### Comparison: `@parameters_required` vs `verify` vs `raise_error`
+
+- **`@parameters_required`**: Declarative, applied as a decorator. Best for validating that required kwargs are present and non-empty before execution begins. Aggregates all violations into one error.
+- **`verify`**: Imperative, called within `execute`. Best for domain rule assertions (e.g., "entity must not already exist").
+- **`raise_error`**: Low-level, raises a single `TiferetError`. Use directly when custom error logic is needed.
 
 ## Testing Domain Events
 
-Tests validate parameter validation, service interactions, and error handling.
+Tests validate input validation, service interactions, and error handling using `pytest`.
 
 **Structure:**
 - `# *** fixtures`
@@ -253,46 +192,36 @@ Tests validate parameter validation, service interactions, and error handling.
 
 **Invocation**: Always use `DomainEvent.handle` in tests.
 
-**Example** – `GetFeature` tests:
+**Example** – `AddError` test:
 ```python
-# ** test: get_feature_success
-def test_get_feature_success(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
-    '''
-    Test successful retrieval of a feature via GetFeature.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Execute the command via the static DomainEvent.handle interface.
+def test_add_error_success(mock_error_service):
+    mock_error_service.exists.return_value = False
     result = DomainEvent.handle(
-        GetFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id='group.sample_feature',
+        AddError,
+        dependencies={'error_service': mock_error_service},
+        id='TEST_001',
+        name='Test Error',
+        message='A test error.'
     )
-
-    # Assert that the feature is returned and the service was called as expected.
-    assert result is sample_feature
-    mock_feature_service.get.assert_called_once_with('group.sample_feature')
+    assert result is not None
+    mock_error_service.save.assert_called_once()
 ```
 
 ### Best Practices
 - Mock injected services.
 - Test success, validation failures, and not-found cases.
 - Verify service calls and return values.
+- Use `DomainEvent.handle` for consistent instantiation and execution.
+
+## Package Layout
+
+Domain events are defined in `tiferet/events/`:
+
+- `settings.py` – `DomainEvent` base class, `@parameters_required` decorator.
+- `__init__.py` – Public exports (`DomainEvent`, `TiferetError`, `a`).
+
+Tests live in `tiferet/events/tests/`.
 
 ## Conclusion
 
-Domain Events are the operational core of Tiferet applications, providing validated, injectable domain operations. Their structured design ensures consistency, testability, and extensibility.
-
-### Key Architectural Concepts
-- **Entities** (`tiferet/entities/`) — Read-only domain structure. Define the shape of domain objects (e.g., `Feature`, `FeatureEvent`).
-- **Aggregates** (`tiferet/mappers/`) — Extend entities with creation and mutation behavior (e.g., `FeatureAggregate` provides `new`, `add_event`, `rename`, `reorder_event`). Events use aggregates for all creation and mutation operations.
-- **Interfaces** (`tiferet/interfaces/`) — Service contracts consumed by events (e.g., `FeatureService`).
-
-Developers can create new events by following the artifact pattern, using `@DomainEvent.parameters_required` for input validation, and invoking via `DomainEvent.handle`. Explore `tiferet/events/` for the base class and domain event implementations, `tiferet/mappers/` for aggregates, and corresponding `tests/` directories for test examples.
+Domain events are the operational core of Tiferet applications, providing validated, injectable domain operations. Their structured design ensures consistency, testability, and extensibility. Developers can create new events by following the artifact pattern and using `DomainEvent.handle` for invocation. Explore `tiferet/events/` for source and `tiferet/events/tests/` for test examples.

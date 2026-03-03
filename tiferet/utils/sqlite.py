@@ -1,50 +1,26 @@
-"""Tiferet SQLite Utilities"""
+"""Tiferet Utils Sqlite"""
 
 # *** imports
+
+# ** core
+from pathlib import Path
+from typing import Any, Iterable, List, Optional
+
 import sqlite3
-from types import TracebackType
-from typing import (
-    Any, 
-    Callable, 
-    Dict, 
-    Optional, 
-    Tuple,
-    Union,
-    Sequence,
-    List
-)
 
 # ** app
 from .file import FileLoader
-from ..events import RaiseError
-from ..interfaces import SqliteService
-from .. import assets as a
+from ..interfaces.sqlite import SqliteService
+from ..events import RaiseError, a
 
 # *** utils
 
 # ** util: sqlite_client
 class SqliteClient(FileLoader, SqliteService):
     '''
-    SQLite client utility built on top of FileLoader.
-    Manages connections to SQLite database files (or :memory:), provides
-    safe query execution, transaction control, data fetching, and backup
-    capabilities using Python's built-in sqlite3 module.
+    SQLite database client with connection management and structured error handling.
+    Extends FileLoader for file-based lifecycle and implements SqliteService.
     '''
-
-    # * attribute: isolation_level
-    isolation_level: Optional[str]
-
-    # * attribute: row_factory_dict
-    row_factory_dict: bool
-
-    # * attribute: timeout
-    timeout: float
-
-    # * attribute: check_same_thread
-    check_same_thread: bool
-
-    # * attribute: custom_functions
-    custom_functions: Dict[str, Tuple[Callable, int, bool]]
 
     # * attribute: conn
     conn: Optional[sqlite3.Connection]
@@ -52,342 +28,322 @@ class SqliteClient(FileLoader, SqliteService):
     # * attribute: cursor
     cursor: Optional[sqlite3.Cursor]
 
+    # * attribute: isolation_level
+    isolation_level: Optional[str]
+
+    # * attribute: timeout
+    timeout: float
+
     # * init
-    def __init__(
-        self,
-        path: str = ':memory:',
-        mode: str = None,
-        timeout: float = 5.0,
-        isolation_level: Optional[str] = 'DEFERRED',
-        row_factory_dict: bool = True,
-        check_same_thread: bool = True,
-        custom_functions: Optional[Dict[str, Tuple[Callable, int, bool]]] = None,
-        **connect_kwargs: Any,
-    ):
+    def __init__(self,
+            path: str | Path = ':memory:',
+            mode: str = 'rw',
+            isolation_level: Optional[str] = None,
+            timeout: float = 5.0,
+            **kwargs,
+        ):
         '''
-        Initialise the SQLite middleware.
+        Initialize SqliteClient.
 
-        File existence validation is relaxed for SQLite (creates file if missing in rw mode).
-        Uses URI syntax internally for flexible mode control.
-
-        :param path: Database path or ':memory:'.
-        :type path: str
-        :param mode: 'ro' (read-only), 'rw' (read-write), 'rwc' (create if missing).
+        :param path: Database path or ':memory:' for in-memory database.
+        :type path: str | Path
+        :param mode: SQLite connection mode ('ro', 'rw', 'rwc').
         :type mode: str
+        :param isolation_level: Transaction isolation level (None for autocommit, 'DEFERRED', etc.).
+        :type isolation_level: Optional[str]
         :param timeout: Connection timeout in seconds.
         :type timeout: float
-        :param isolation_level: None (autocommit), 'DEFERRED', 'IMMEDIATE', 'EXCLUSIVE'.
-        :type isolation_level: Optional[str]
-        :param row_factory_dict: Use dict-like rows (sqlite3.Row) by default.
-        :type row_factory_dict: bool
-        :param check_same_thread: Allow multi-thread access (set False for threaded apps).
-        :type check_same_thread: bool
-        :param custom_functions: Dict of {name: (func, narg, deterministic)} to register.
-        :type custom_functions: Optional[Dict[str, Tuple[Callable, int, bool]]]
-        :param connect_kwargs: Additional kwargs passed to sqlite3.connect().
+        :param kwargs: Additional parameters (ignored).
+        :type kwargs: dict
         '''
 
-        # Let parent do basic path/mode checks (we override heavily anyway)
-        super().__init__(path=path, mode=mode, encoding='utf-8')  # encoding ignored for sqlite
+        # Initialize the parent FileLoader with path and mode.
+        super().__init__(path=path, mode=mode, **kwargs)
 
-        # SQLite-specific attributes
+        # Set the isolation level for transaction control.
         self.isolation_level = isolation_level
-        self.row_factory_dict = row_factory_dict
+
+        # Set the connection timeout.
         self.timeout = timeout
-        self.check_same_thread = check_same_thread
-        self.custom_functions = custom_functions or {}
+
+        # Initialize the connection and cursor to None.
         self.conn = None
         self.cursor = None
 
-        # Store extra connect kwargs
-        self.connect_kwargs = connect_kwargs
-
     # * method: verify_mode
-    def verify_mode(self, mode: str):
+    def verify_mode(self):
         '''
-        Verify SQLite URI mode parameter is valid.
+        Validate the SQLite connection mode string.
 
-        :param mode: The SQLite URI mode.
-        :type mode: str
+        :raises TiferetError: If the mode is not in the set of valid SQLite modes.
         '''
 
-        # Only verify if mode is provided.
+        # Define the set of valid SQLite modes.
         valid_modes = {'ro', 'rw', 'rwc'}
-        if mode and mode not in valid_modes:
+
+        # Raise an error if the mode is not valid.
+        if self.mode not in valid_modes:
             RaiseError.execute(
-                a.const.SQLITE_INVALID_MODE_ID,
-                mode=mode
+                error_code=a.const.SQLITE_INVALID_MODE_ID,
+                mode=self.mode,
             )
 
     # * method: open_file
     def open_file(self):
         '''
-        Open SQLite connection instead of text file.
-        Overrides parent method.
+        Open the SQLite database connection and create a cursor.
+
+        :raises TiferetError: If the connection is already open, the mode is invalid,
+            or the connection fails.
         '''
 
-        # Raise error if connection already open.
+        # Raise an error if the connection is already open.
         if self.conn is not None:
             RaiseError.execute(
-                a.const.SQLITE_CONN_ALREADY_OPEN_ID,
-                path=self.path
+                error_code=a.const.SQLITE_CONN_ALREADY_OPEN_ID,
+                path=str(self.path),
             )
-        
-        # Use URI syntax if mode specified.
-        if self.mode:
-            uri_mode = f'?mode={self.mode}' if self.mode in {'ro', 'rw', 'rwc'} else ''
-            path = f'file:///{self.path.lstrip("/")}{uri_mode}' if self.path != ':memory:' else ':memory:'
-            use_uri = True if self.path != ':memory:' else False
-        else:
-            path = self.path
-            use_uri = False
 
-        # Attempt to connect to the SQLite database.
+        # Validate the SQLite mode.
+        self.verify_mode()
+
+        # Build the URI for sqlite3.connect.
+        if str(self.path) == ':memory:':
+            uri = ':memory:'
+        else:
+            uri_mode = f'?mode={self.mode}'
+            uri = f'file:{self.path}{uri_mode}'
+
         try:
+
+            # Open the SQLite connection with URI support.
             self.conn = sqlite3.connect(
-                path,
+                uri,
                 timeout=self.timeout,
                 isolation_level=self.isolation_level,
-                check_same_thread=self.check_same_thread,
-                uri=use_uri,
-                **self.connect_kwargs
+                uri=str(self.path) != ':memory:',
             )
 
-            # Set row factory if requested
-            if self.row_factory_dict:
-                self.conn.row_factory = sqlite3.Row
-
-            # Register custom functions if provided
-            if self.custom_functions:
-                for name, (func, narg, deterministic) in self.custom_functions.items():
-                    self.conn.create_function(
-                        name, narg, func, deterministic=deterministic
-                    )
-
-            # Create default cursor
+            # Create a cursor for query execution.
             self.cursor = self.conn.cursor()
 
-        # Raise error if file path invalid or inaccessible.
         except sqlite3.OperationalError as e:
-            RaiseError.execute(
-                a.const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
-                original_error=str(e),
-                path=self.path,
-                mode=self.mode
-            )
 
-        # Raise error for other database errors.
-        except (sqlite3.DatabaseError, Exception) as e:
+            # Wrap connection failures as structured TiferetError.
             RaiseError.execute(
-                a.const.SQLITE_CONN_FAILED_ID,
+                error_code=a.const.SQLITE_CONN_FAILED_ID,
                 original_error=str(e),
-                path=self.path
-        )
+                path=str(self.path),
+            )
 
     # * method: close_file
     def close_file(self):
         '''
-        Close the SQLite connection and cursor.
-        Overrides parent method.
+        Close the SQLite connection and reset state.
         '''
-        if self.cursor is not None:
-            self.cursor.close()
-            self.cursor = None
 
+        # Close the connection if it is open and reset attributes.
         if self.conn is not None:
             self.conn.close()
             self.conn = None
-
-    # * method: __enter__
-    def __enter__(self):
-        '''
-        Enter context: open connection, set up cursor, return self.
-        The consumer uses self.conn and self.cursor.
-        '''
-        self.open_file()
-        return self
-
-    # * method: __exit__
-    def __exit__(self, 
-                 exc_type: Optional[BaseException],
-                 exc_value: Optional[BaseException], 
-                 traceback: Optional[TracebackType]):
-        '''
-        Exit context: commit on success, rollback on exception, then close.
-
-        :param exc_type: Exception type if raised, else None.
-        :type exc_type: Optional[Type[BaseException]]
-        :param exc_value: Exception instance if raised, else None.
-        :type exc_value: Optional[BaseException]
-        :param traceback: Traceback if exception raised, else None.
-        :type traceback: Optional[TracebackType]
-        '''
-
-        # Commit or rollback based on exception presence.
-        if self.conn is not None:
-            if exc_type is None:
-                self.conn.commit()
-            else:
-                self.conn.rollback()
-        self.close_file()
+            self.cursor = None
 
     # * method: execute
-    def execute(self, sql: str, parameters: Union[tuple, dict, None] = None) -> sqlite3.Cursor:
+    def execute(self, sql: str, parameters: Iterable[Any] = ()) -> sqlite3.Cursor:
         '''
-        Execute a single SQL statement with optional parameters.
+        Execute a single SQL statement.
 
-        :param sql: SQL query or statement.
+        :param sql: The SQL statement to execute.
         :type sql: str
-        :param parameters: Tuple or dict for binding.
-        :type parameters: Union[tuple, dict, None]
-        :return: The cursor for fetch operations.
+        :param parameters: Parameters for the SQL statement.
+        :type parameters: Iterable[Any]
+        :return: The cursor after execution.
         :rtype: sqlite3.Cursor
         '''
 
-        # Raise error if connection not initialized.
+        # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
-        # Execute the statement with parameters if provided.
-        return self.cursor.execute(sql, parameters or ())
+        # Execute the SQL statement and return the cursor.
+        return self.cursor.execute(sql, parameters)
 
     # * method: executemany
-    def executemany(self, sql: str, seq_of_parameters: Sequence[Union[tuple, dict]]) -> sqlite3.Cursor:
+    def executemany(self, sql: str, seq_of_parameters: Iterable[Iterable[Any]]) -> sqlite3.Cursor:
         '''
-        Execute the same SQL statement multiple times with different parameters.
+        Execute SQL repeatedly with parameter sequences.
 
-        :param sql: SQL query or statement.
-        :param seq_of_parameters: Sequence of tuples or dicts for binding.
-        :return: The cursor after executing all statements.
+        :param sql: The SQL statement to execute.
+        :type sql: str
+        :param seq_of_parameters: Sequence of parameter sets.
+        :type seq_of_parameters: Iterable[Iterable[Any]]
+        :return: The cursor after execution.
         :rtype: sqlite3.Cursor
         '''
 
-        # Raise error if connection not initialized.
+        # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
-        # Execute the statement with multiple parameter sets.
+        # Execute the SQL with multiple parameter sets and return the cursor.
         return self.cursor.executemany(sql, seq_of_parameters)
 
     # * method: executescript
-    def executescript(self, script: str) -> sqlite3.Cursor:
+    def executescript(self, sql_script: str) -> sqlite3.Cursor:
         '''
-        Execute multiple SQL statements from a script string.
+        Execute multiple SQL statements from a script.
 
-        :param script: SQL script containing multiple statements.
-        :param script: str
-        :return: The cursor after executing the script.
+        :param sql_script: The SQL script to execute.
+        :type sql_script: str
+        :return: The cursor after execution.
         :rtype: sqlite3.Cursor
         '''
 
-        # Raise error if connection not initialized.
+        # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
-        # Execute the script.
-        return self.cursor.executescript(script)
+        # Execute the SQL script and return the cursor.
+        return self.cursor.executescript(sql_script)
 
     # * method: fetch_one
-    def fetch_one(self, sql: str, parameters: Union[tuple, dict, None] = None) -> Optional[Any]:
+    def fetch_one(self) -> Optional[tuple]:
         '''
-        Execute query and return the next row (or None).
+        Fetch the next row from the last executed query.
 
-        :param sql: SQL query.
-        :type sql: str
-        :param parameters: Tuple or dict for binding.
-        :type parameters: Union[tuple, dict, None]
-        :return: The next result row or None.
-        :rtype: Optional[Any]
+        :return: The next row as a tuple, or None if no more rows.
+        :rtype: tuple | None
         '''
 
-        # Execute the query.
-        self.execute(sql, parameters)
+        # Guard against uninitialized connection.
+        if self.cursor is None:
+            RaiseError.execute(
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+            )
 
-        # Fetch and return one row.
+        # Fetch and return the next row.
         return self.cursor.fetchone()
 
     # * method: fetch_all
-    def fetch_all(self, sql: str, parameters: Union[tuple, dict, None] = None) -> List[Any]:
+    def fetch_all(self) -> List[tuple]:
         '''
-        Execute query and return all rows as list.
-        Row format follows current row_factory (tuple or dict-like).
+        Fetch all remaining rows from the last executed query.
 
-        :param sql: SQL query.
-        :type sql: str
-        :param parameters: Tuple or dict for binding.
-        :type parameters: Union[tuple, dict, None]
-        :return: List of all result rows.
-        :rtype: List[Any]
+        :return: All remaining rows as a list of tuples.
+        :rtype: list[tuple]
         '''
 
-        # Execute the query.
-        self.execute(sql, parameters)
+        # Guard against uninitialized connection.
+        if self.cursor is None:
+            RaiseError.execute(
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+            )
 
-        # Fetch and return all rows.
+        # Fetch and return all remaining rows.
         return self.cursor.fetchall()
 
     # * method: commit
-    def commit(self):
+    def commit(self) -> None:
         '''
-        Manually commit the current transaction.
-        '''
-
-        # Commit if connection is open.
-        if self.conn is not None:
-            self.conn.commit()
-
-    # * method: rollback
-    def rollback(self):
-        '''
-        Manually rollback the current transaction.
+        Commit the current transaction.
         '''
 
-        # Rollback if connection is open.
-        if self.conn is not None:
-            self.conn.rollback()
-
-    # * method: backup
-    def backup(self, target_path: str, pages: int = -1, progress: Optional[Callable] = None):
-        '''
-        Perform an online backup to another database file.
-
-        :param target_path: Destination database path.
-        :type target_path: str
-        :param pages: Pages per step (-1 = all at once).
-        :type pages: int
-        :param progress: Optional callback(status, remaining, total).
-        :type progress: Optional[Callable]
-        '''
-
-        # Raise error if connection not initialized.
+        # Guard against uninitialized connection.
         if self.conn is None:
             RaiseError.execute(
-                a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
-                message='Connection not initialized for backup.'
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
-        # Connect to target database and perform backup.
-        try:
-            target_conn = sqlite3.connect(target_path)
-            with target_conn:
-                self.conn.backup(
-                    target_conn,
-                    pages=pages,
-                    progress=progress,
-                    name='main',
-                    sleep=0.250
-                )
-        
-        # Handle backup errors.
-        except sqlite3.Error as e:
+        # Commit the transaction.
+        self.conn.commit()
+
+    # * method: rollback
+    def rollback(self) -> None:
+        '''
+        Roll back the current transaction.
+        '''
+
+        # Guard against uninitialized connection.
+        if self.conn is None:
             RaiseError.execute(
-                a.const.SQLITE_BACKUP_FAILED_ID,
-                original_error=str(e),
-                target_path=target_path
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
+
+        # Roll back the transaction.
+        self.conn.rollback()
+
+    # * method: backup
+    def backup(self, target: 'SqliteClient', pages: int = -1) -> None:
+        '''
+        Backup database to another SqliteClient connection.
+
+        :param target: The target SqliteClient to backup to.
+        :type target: SqliteClient
+        :param pages: Number of pages to copy at a time (-1 for all).
+        :type pages: int
+        '''
+
+        # Guard against uninitialized source or target connection.
+        if self.conn is None or target.conn is None:
+            RaiseError.execute(
+                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+            )
+
+        try:
+
+            # Perform the backup to the target connection.
+            self.conn.backup(target.conn, pages=pages)
+
+        except sqlite3.Error as e:
+
+            # Wrap backup failures as structured TiferetError.
+            RaiseError.execute(
+                error_code=a.const.SQLITE_BACKUP_FAILED_ID,
+                original_error=str(e),
+                target_path=str(target.path),
+            )
+
+    # * method: __enter__
+    def __enter__(self) -> 'SqliteClient':
+        '''
+        Enter the runtime context, opening the database connection.
+
+        :return: The SqliteClient instance with an active connection.
+        :rtype: SqliteClient
+        '''
+
+        # Open the database connection.
+        self.open_file()
+
+        # Return self for use within the with block.
+        return self
+
+    # * method: __exit__
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        '''
+        Exit the runtime context. Auto-commit on success, auto-rollback on exception.
+
+        :param exc_type: The exception type (if any).
+        :param exc_val: The exception value (if any).
+        :param exc_tb: The exception traceback (if any).
+        :return: False to propagate exceptions.
+        :rtype: bool
+        '''
+
+        # Auto-commit on success, auto-rollback on exception.
+        if exc_type is None:
+            self.commit()
+        else:
+            self.rollback()
+
+        # Close the connection.
+        self.close_file()
+
+        # Do not suppress exceptions.
+        return False

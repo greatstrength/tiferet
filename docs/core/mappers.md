@@ -5,51 +5,40 @@
 
 ## Overview
 
-Mappers are a core component of the Tiferet framework, encapsulating data mappings between Domain Objects and persisted or response data. The mappers layer splits the responsibilities of the legacy `DataObject` into two distinct classes:
+The mappers layer (`tiferet.mappers`) provides the bridge between persistent configuration and runtime domain objects. It introduces two base classes:
 
-1. **Aggregate** — a mutable data representation that extends domain objects with mutation logic (e.g., `set_attribute`, `rename`, `add_command`). Aggregates are used by repositories and commands to modify and persist domain state.
+1. **Aggregate**  
+   - Extends `schematics.Model`.
+   - Provides a static factory (`Aggregate.new`) and mutation-safe attribute updates (`set_attribute`) with validation via `RaiseError`.
+   - Concrete aggregates combine a domain object with `Aggregate` to add mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
 
-2. **TransferObject** — a serialization and mapping layer that transforms configuration data (e.g., YAML, JSON) into Aggregates or Domain Objects, and vice versa. TransferObjects handle role-based serialization (`to_data`, `to_model`), field whitelisting/blacklisting, and round-trip mapping.
+2. **TransferObject**  
+   - Extends `schematics.Model`.
+   - Manages role-based serialization, mapping, and transformation between configuration data and runtime models.
+   - Provides `map`, `from_model`, `from_data`, `allow`, and `deny` methods.
+   - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorYamlObject(Error, TransferObject)`).
 
-Both classes extend `schematics.Model` and are defined in `tiferet/mappers/settings.py`.
-
-### Role in Runtime
-
-- **Aggregates** are used by repositories and commands to perform mutations on domain data. They bridge the gap between read-only domain objects and the mutable operations needed for persistence.
-- **TransferObjects** are used by repositories to map configuration data (e.g., `error.yml`, `feature.yml`) into Aggregates or Domain Objects, and to serialize Aggregates back to configuration format.
-- Together, they enable reliable round-trip mapping between persistent configuration and runtime domain models.
+Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`) with a clearer separation of mutation (Aggregate) and serialization (TransferObject) concerns.
 
 ### Example: Error Domain
 
-- **Aggregate** (`ErrorAggregate`):
+- **Aggregate Use** (`ErrorAggregate`):
   ```python
   class ErrorAggregate(Error, Aggregate):
-      # Inherits fields/validation from Error domain object
+      # Inherits fields/validation from Error
       # Adds mutation methods (rename, set_message, remove_message)
   ```
 
-- **TransferObject** (`ErrorYamlObject`):
+- **TransferObject Use** (`ErrorYamlObject`):
   ```python
   class ErrorYamlObject(Error, TransferObject):
-      # Inherits fields/validation from Error domain object
+      # Inherits fields/validation from Error
       # Adds serialization roles and mapping logic
-
-      class Options:
-          serialize_when_none = False
-          roles = {
-              'to_data': TransferObject.deny('id', 'error_code'),
-              'to_model': TransferObject.allow()
-          }
   ```
-
-  Configuration (`error.yml`) maps through `ErrorYamlObject` to `ErrorAggregate`, which converts to/from the runtime `Error` domain object.
 
 ## The Aggregate Base Class
 
 `Aggregate` extends `schematics.Model` and provides:
-
-- **`Aggregate.new(aggregate_type, validate=True, strict=True, **kwargs)`** — static factory that instantiates, optionally validates, and returns an aggregate.
-- **`set_attribute(attribute, value)`** — safely updates an attribute, raising `INVALID_MODEL_ATTRIBUTE` via `RaiseError` if the attribute does not exist, and re-validates after mutation.
 
 ```python
 # tiferet/mappers/settings.py
@@ -61,14 +50,21 @@ class Aggregate(Model):
 
     # * method: new
     @staticmethod
-    def new(aggregate_type, validate=True, strict=True, **kwargs):
+    def new(
+        aggregate_type: type,
+        validate: bool = True,
+        strict: bool = True,
+        **kwargs
+    ) -> 'Aggregate':
+        '''Initializes a new aggregate object.'''
         aggregate_object = aggregate_type(dict(**kwargs), strict=strict)
         if validate:
             aggregate_object.validate()
         return aggregate_object
 
     # * method: set_attribute
-    def set_attribute(self, attribute, value):
+    def set_attribute(self, attribute: str, value: Any) -> None:
+        '''Update an attribute with validation.'''
         if not hasattr(self, attribute):
             RaiseError.execute(
                 error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
@@ -78,24 +74,45 @@ class Aggregate(Model):
         self.validate()
 ```
 
+Key characteristics:
+- **`Aggregate.new(Type, **kwargs)`** is the standard factory for all aggregates.
+- **`set_attribute`** validates the attribute exists before mutation and re-validates after update.
+- Invalid attribute mutations raise `TiferetError` via `RaiseError.execute` with `INVALID_MODEL_ATTRIBUTE_ID`.
+
 ## The TransferObject Base Class
 
-`TransferObject` extends `schematics.Model` and provides methods for data transformation:
+`TransferObject` extends `schematics.Model` and provides:
 
-- **`map(type, role='to_model', validate=True, **kwargs)`** — serializes the TransferObject via `to_primitive(role)`, merges with kwargs, and maps to an Aggregate or Domain Object. Tries a custom `new()` factory first, falling back to `Aggregate.new()`.
-- **`from_model(transfer_obj, aggregate, validate=True, **kwargs)`** — creates a TransferObject from an Aggregate's primitive data, with kwargs taking priority.
-- **`from_data(data, **kwargs)`** — creates a TransferObject directly from a dictionary.
-- **`allow(*args)`** — creates a whitelist (or wholelist if no args) transform for role-based serialization.
-- **`deny(*args)`** — creates a blacklist transform for role-based serialization.
+- **`map(type, role, validate, **kwargs)`** — Serializes via `to_primitive(role)`, merges kwargs, attempts `type.new(...)` then falls back to `Aggregate.new(...)`.
+- **`from_model(transfer_obj, aggregate, validate, **kwargs)`** — Creates a transfer object from an aggregate's primitive data.
+- **`from_data(data, **kwargs)`** — Creates a transfer object from a raw dictionary.
+- **`allow(*args)`** — Creates a whitelist transform (or wholelist if no args).
+- **`deny(*args)`** — Creates a blacklist transform.
+
+### Role-Based Serialization
+
+Transfer objects use Schematics `Options.roles` to control which fields are serialized for different contexts:
+
+```python
+class ErrorYamlObject(Error, TransferObject):
+    class Options:
+        serialize_when_none = False
+        roles = {
+            'to_data': TransferObject.allow('id', 'name', 'message'),
+            'to_model': TransferObject.allow('id', 'name', 'message'),
+        }
+```
 
 ## Structured Code Design
 
-Mappers follow the same artifact comment structure as other Tiferet components:
+Mapper classes follow the standard Tiferet artifact comment structure:
 
-- `# *** mappers` — top-level section.
+- `# *** mappers` — top-level section for mapper modules.
 - `# ** mapper: <name>` — individual mapper (snake_case).
 - `# * attribute: <name>` — instance attributes (Schematics types).
-- `# * method: <name>` — methods.
+- `# * method: <name>` — instance or static methods.
+
+Use `# *** classes` in `settings.py` for the base classes themselves.
 
 **Spacing rules:**
 - One empty line between `# *** mappers` and first `# ** mapper`.
@@ -105,103 +122,60 @@ Mappers follow the same artifact comment structure as other Tiferet components:
 ## Creating and Extending Mappers
 
 ### 1. Define an Aggregate
+- Combine domain object + `Aggregate`.
+- Add mutation methods under `# * method: <name>`.
 
-- Extend both the Domain Object and `Aggregate`.
-- Add mutation methods under `# * method`.
-- Use `set_attribute` for safe, validated updates.
-
-**Example** — `CalculatorResultAggregate`:
+**Example** – `FeatureAggregate`:
 ```python
-# *** imports
-
-# ** app
-from tiferet.domain.calculator import CalculatorResult
-from tiferet.mappers.settings import Aggregate
-
 # *** mappers
 
-# ** mapper: calculator_result_aggregate
-class CalculatorResultAggregate(CalculatorResult, Aggregate):
+# ** mapper: feature_aggregate
+class FeatureAggregate(Feature, Aggregate):
     '''
-    Mutable aggregate for calculator results.
+    Aggregate for the Feature domain object.
     '''
 
-    # * method: update_value
-    def update_value(self, new_value: float) -> None:
-        '''
-        Updates the result value.
-        '''
-        self.set_attribute('value', new_value)
+    # * method: rename
+    def rename(self, name: str) -> None:
+        '''Rename the feature.'''
+        self.set_attribute('name', name)
 ```
 
 ### 2. Define a TransferObject
+- Combine domain object + `TransferObject`.
+- Define `Options.roles` for serialization.
+- Use `serialized_name` and `deserialize_from` for attribute aliasing.
 
-- Extend both the Domain Object and `TransferObject`.
-- Define an `Options` inner class with `serialize_when_none` and `roles`.
-- Use `allow()` and `deny()` for role-based field control.
-- Override `map()` or `to_primitive()` for custom mapping logic.
-
-**Example** — `CalculatorResultYamlObject`:
+**Example** – `FeatureYamlObject`:
 ```python
-# *** imports
-
-# ** app
-from tiferet.domain.calculator import CalculatorResult
-from tiferet.mappers.settings import TransferObject
-
-# *** mappers
-
-# ** mapper: calculator_result_yaml_object
-class CalculatorResultYamlObject(CalculatorResult, TransferObject):
+# ** mapper: feature_yaml_object
+class FeatureYamlObject(Feature, TransferObject):
     '''
-    YAML serialization for calculator results.
+    YAML transfer object for the Feature domain object.
     '''
 
     class Options:
-        '''
-        Options for the transfer object.
-        '''
-
         serialize_when_none = False
         roles = {
-            'to_data': TransferObject.deny('id'),
-            'to_model': TransferObject.allow('value', 'operation')
+            'to_data': TransferObject.allow('id', 'name', 'description'),
+            'to_model': TransferObject.allow('id', 'name', 'description'),
         }
-
-    # * method: map
-    def map(self, **kwargs) -> CalculatorResult:
-        '''
-        Maps the YAML data to a calculator result.
-        '''
-        return super().map(type=CalculatorResultAggregate, role='to_model')
 ```
 
-### 3. Attribute Aliasing
-
-TransferObjects support `serialized_name` and `deserialize_from` for attribute aliasing, which is not permitted in Domain Objects. This enables flexible mapping between external data formats and internal field names:
-
-```python
-# * attribute: arguments
-arguments = ListType(
-    ModelType(CliArgument),
-    serialized_name='args',
-    deserialize_from=['args', 'arguments'],
-    default=[],
-)
-```
+### 3. Use in Repositories
+Repositories use transfer objects to load from configuration and map to aggregates/domain objects.
 
 ### Best Practices
-
-- Use artifact comments (`# * attribute`, `# * method`) consistently.
-- Define attributes with Schematics types and metadata.
-- Use `allow()` and `deny()` in `Options.roles` for field control.
-- Override `map()` or `to_primitive()` for custom transformations.
-- Keep mutation logic in Aggregates, serialization logic in TransferObjects.
-- Domain Objects remain read-only; all mutation goes through Aggregates.
+- Use artifact comments consistently (`# *** mappers`, `# ** mapper:`, `# *`).
+- Keep aggregates focused on mutation; keep transfer objects focused on serialization.
+- Use `Aggregate.new` for factory instantiation.
+- Use `set_attribute` for validated mutations.
+- Define `Options.roles` on all transfer objects.
+- Use `allow`/`deny` for role definitions.
 
 ## Testing Mappers
 
-Tests validate instantiation, mapping, mutation, and serialization using `pytest`.
+Tests validate factory creation, mutation, mapping, serialization, and error handling using `pytest`.
 
 **Structure:**
 - `# *** fixtures`
@@ -209,74 +183,38 @@ Tests validate instantiation, mapping, mutation, and serialization using `pytest
 - `# *** tests`
 - `# ** test: <name>`
 
-**Invocation**: Use `Aggregate.new()` and `TransferObject.from_data()` / `TransferObject.from_model()` in tests.
+**Example** – Aggregate tests cover `new` (with/without validation, strict/non-strict), `set_attribute` (success and invalid attribute error).
 
-**Example** — Aggregate tests:
-```python
-def test_aggregate_new(test_aggregate):
-    aggregate = Aggregate.new(
-        test_aggregate,
-        id='test_id',
-        name='Test Aggregate'
-    )
-    assert isinstance(aggregate, test_aggregate)
-    assert aggregate.id == 'test_id'
-
-def test_aggregate_set_attribute_invalid(test_aggregate):
-    aggregate = Aggregate.new(test_aggregate, id='test_id', name='Test')
-    with pytest.raises(TiferetError) as exc_info:
-        aggregate.set_attribute('invalid_attribute', 'value')
-    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
-```
-
-**Example** — TransferObject tests:
-```python
-def test_data_object_from_data(test_data_object):
-    data_object = TransferObject.from_data(
-        test_data_object,
-        id='test_id',
-        name='Test Data'
-    )
-    assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Test Data'}
-```
-
-### Best Practices
-
-- Mock Domain Objects when testing `from_model`.
-- Test `Aggregate.new` with validation on/off and strict/non-strict modes.
-- Test `set_attribute` for both valid and invalid attributes.
-- Verify role-based serialization with `allow` and `deny`.
-
-## Migration from DataObject
-
-In v2.0, the single `DataObject` class (`tiferet/data/settings.py`) was split into two classes:
-
-- **`Aggregate`** — carries the `new()` factory from `DataObject` plus the new `set_attribute()` mutation method. Domain-specific aggregates add further mutation methods (e.g., `rename`, `add_command`).
-- **`TransferObject`** — carries the `map()`, `from_model()`, `from_data()`, `allow()`, and `deny()` methods from `DataObject`.
-
-The `DataObject` class remains available in `tiferet/data/settings.py` for backward compatibility. New code should use `Aggregate` and `TransferObject` from `tiferet/mappers/settings.py`.
+**Example** – TransferObject tests cover `from_data`, `from_model` (with/without kwargs), `map` (custom new and fallback), `allow`/`deny` transforms.
 
 ## Package Layout
 
 Mappers are defined in `tiferet/mappers/`:
 
-- `settings.py` — `Aggregate` and `TransferObject` base classes.
-- `app.py` — `AppInterfaceAggregate`, `AppInterfaceYamlObject`.
-- `cli.py` — `CliCommandAggregate`, `CliCommandYamlObject`.
-- `container.py` — `ContainerAttributeAggregate`, `ContainerAttributeYamlObject`, etc.
-- `error.py` — `ErrorAggregate`, `ErrorYamlObject`, `ErrorMessageYamlObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureYamlObject`, etc.
-- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, etc.
-- `__init__.py` — Public exports for all mapper classes.
+- `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
+- `__init__.py` — Public exports.
 
 Tests live in `tiferet/mappers/tests/`.
 
+Concrete mappers (e.g., `error.py`, `feature.py`) will be added in future stories as they are migrated from `tiferet.data`.
+
+## Migration from DataObject
+
+The `Aggregate` and `TransferObject` classes together replace the legacy `DataObject` (`tiferet.data.settings`):
+
+- `DataObject.map` → `TransferObject.map` (now targets `Aggregate` instead of `ModelObject`)
+- `DataObject.from_model` → `TransferObject.from_model` (parameter names updated to `transfer_obj`/`aggregate`)
+- `DataObject.from_data` → `TransferObject.from_data`
+- `DataObject.allow` / `DataObject.deny` → `TransferObject.allow` / `TransferObject.deny`
+- Mutation logic (previously inline in domain objects) → `Aggregate.set_attribute`
+
+The `tiferet.data` package remains fully functional during the migration period. Concrete mappers will be migrated incrementally in subsequent stories.
+
 ## Conclusion
 
-Mappers provide the **data transformation layer** for the Tiferet framework, cleanly separating mutation (Aggregates) from serialization (TransferObjects). This split enables:
-- Safe, validated mutations on domain data.
-- Flexible, role-based serialization for persistence and response formatting.
-- Reliable round-trip mapping between configuration files and runtime domain objects.
-- A clear boundary between read-only domain objects and mutable data representations.
+The mappers layer provides the structural bridge between persistent configuration and runtime domain objects, with clear separation between mutation (`Aggregate`) and serialization (`TransferObject`). This design enables:
+- Validated, mutation-safe domain updates.
+- Role-based serialization for multiple output formats.
+- Incremental migration from the legacy `DataObject` pattern.
 
 Explore source in `tiferet/mappers/` and tests in `tiferet/mappers/tests/` for implementation details.

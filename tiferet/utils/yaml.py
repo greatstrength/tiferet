@@ -1,251 +1,178 @@
-"""Tiferet YAML Utility"""
+"""Tiferet Utils Yaml"""
 
 # *** imports
 
 # ** core
-import os
-from typing import (
-    Any,
-    Dict,
-    List,
-    Callable
-)
+from pathlib import Path
+from typing import Any, Callable, Optional
 
-# ** infra
 import yaml
 
 # ** app
 from .file import FileLoader
 from ..events import RaiseError, a
+from ..events.settings import TiferetError
 
 # *** utils
 
 # ** util: yaml_loader
 class YamlLoader(FileLoader):
     '''
-    Utility for loading YAML files into the application.
+    Utility for loading and saving YAML files with structured error handling.
+    Extends FileLoader for stream lifecycle management.
     '''
 
-    # * attribute: cache_data
-    cache_data: Dict[str, Any]
+    # * init
+    def __init__(self,
+            path: str | Path,
+            mode: str = 'r',
+            encoding: str = 'utf-8',
+            **kwargs,
+        ):
+        '''
+        Initialize YamlLoader.
+
+        :param path: Path to the YAML file.
+        :type path: str | Path
+        :param mode: File open mode (typically 'r' or 'w').
+        :type mode: str
+        :param encoding: Text encoding (defaults to utf-8).
+        :type encoding: str
+        :param kwargs: Additional parameters passed to parent.
+        :type kwargs: dict
+        '''
+
+        # Initialize the parent FileLoader.
+        super().__init__(path=path, mode=mode, encoding=encoding, **kwargs)
 
     # * method: verify_yaml_file (static)
     @staticmethod
-    def verify_yaml_file(yaml_file: str, default_path: str = None) -> str:
+    def verify_yaml_file(loader: 'YamlLoader', default_path: Optional[Path] = None):
         '''
-        Verify that the YAML file exists and is a valid YAML file.
+        Verify the file has a YAML extension and exists (with optional fallback).
 
-        :param yaml_file: The YAML file path to verify.
-        :type yaml_file: str
-        :param default_path: An optional default path location to search for the YAML file.
-        :type default_path: str
-        :return: The verified YAML file path.
-        :rtype: str
+        :param loader: YamlLoader instance to verify.
+        :type loader: YamlLoader
+        :param default_path: Optional fallback path if primary path is invalid.
+        :type default_path: Optional[Path]
         '''
 
-        # Generate possible paths for the YAML file.
-        yaml_files = [yaml_file]
-        if default_path:
-            yaml_files.append(os.path.join(default_path, yaml_file))
+        # Start with the loader's path.
+        path = loader.path
 
-        # Verify the YAML is valid and file exists in one of the possible paths.
-        last_exception = None
-        for file in yaml_files:
-            try:
-                # Check if file exists.
-                if not os.path.exists(file):
-                    RaiseError.execute(
-                        a.const.YAML_FILE_NOT_FOUND_ID,
-                        f'YAML file {file} does not exist.',
-                        path=file
-                    )
+        # Check if the path has a valid YAML extension; fall back or raise error.
+        if not path.suffix.lower() in {'.yaml', '.yml'}:
+            if default_path and default_path.suffix.lower() in {'.yaml', '.yml'}:
+                path = default_path
+            else:
+                RaiseError.execute(
+                    error_code=a.const.INVALID_FILE_ID,
+                    message="File must have .yaml or .yml extension",
+                    path=str(loader.path),
+                )
 
-                # Verify the file is a valid YAML file.
-                if not file.endswith('.yaml') and not file.endswith('.yml'):
-                    RaiseError.execute(
-                        a.const.INVALID_YAML_FILE_ID,
-                        f'File {file} is not a valid YAML file.',
-                        path=file
-                    )
-
-                # Return the verified file path.
-                return file
-
-            # Try the next possible path if file not found.
-            except Exception as e:
-                if hasattr(e, 'error_code') and e.error_code == a.const.YAML_FILE_NOT_FOUND_ID:
-                    last_exception = e
-                    continue
-                # Break on any other exception.
-                last_exception = e
-                break
-
-            # Break on any other exception.
-            except Exception as e:
-                last_exception = e
-                break
-
-        # Re-raise the last exception if it's not a YAML_FILE_NOT_FOUND error.
-        if last_exception and hasattr(last_exception, 'error_code'):
-            if last_exception.error_code != a.const.YAML_FILE_NOT_FOUND_ID:
-                raise last_exception
-
-        # Raise an error if no valid YAML file was found.
-        RaiseError.execute(
-            a.const.YAML_FILE_NOT_FOUND_ID,
-            f'Valid YAML file not found at path: {yaml_file}',
-            yaml_file=yaml_file,
-            exception=str(last_exception) if last_exception else None
-        )
-
-    # * method: __enter__
-    def __enter__(self):
-        '''
-        Enter the context manager and open the YAML file.
-
-        :return: The YamlLoader instance.
-        :rtype: YamlLoader
-        '''
-        
-        # If the mode is 'w' or 'wb', read the existing YAML content to cache it before writing.
-        if self.mode in ['w', 'wb']:
-            with open(self.path, 'r', encoding=self.encoding) as f:
-                self.cache_data = yaml.safe_load(f) or {}
-        else:
-            self.cache_data = None
-
-        # Open the file using the parent class's context manager.
-        return super().__enter__()
-    
-    # * method: __exit__
-    def __exit__(self, exc_type, exc_value, traceback):
-        '''
-        Exit the context manager and close the YAML file.
-
-        :param exc_type: The type of exception raised (if any).
-        :type exc_type: type
-        :param exc_value: The value of the exception raised (if any).
-        :type exc_value: Exception
-        :param traceback: The traceback of the exception raised (if any).
-        :type traceback: traceback
-        '''
-
-        # Clear the cache data when exiting the context.
-        self.cache_data = None
-
-        # Close the file using the parent class's context manager.
-        return super().__exit__(exc_type, exc_value, traceback)
-    
-    # * method: verify_file
-    def verify_file(self, path: str):
-        '''
-        Verify that the opened file is a valid YAML file.
-        '''
-
-        # Attempt to load the YAML content to verify its validity.
-        # Verify that the configuration file is a valid YAML file.
-        if not path or (not path.endswith('.yaml') and not path.endswith('.yml')):
+        # Verify the resolved path exists.
+        if not path.exists():
             RaiseError.execute(
-                a.const.INVALID_YAML_FILE_ID,
-                f'File {path} is not a valid YAML file.',
-                path=path
+                error_code=a.const.YAML_FILE_NOT_FOUND_ID,
+                path=str(path),
             )
-        
-        super().verify_file(path)
 
     # * method: load
-    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
+    def load(self,
+            start_node: Callable[[Any], Any] = lambda x: x,
+            data_factory: Callable[[Any], Any] = lambda x: x,
+            **kwargs,
+        ) -> Any:
         '''
-        Load the YAML file and return its contents as a dictionary.
+        Load YAML content, apply optional transformations, and return result.
 
-        :param start_node: A callable to specify the starting node for loading data from the YAML file. Defaults to a lambda that returns the data as is.
-        :type start_node: Callable
-        :param data_factory: A callable to specify how to create data objects from the loaded YAML data. Defaults to a lambda that returns the data as is.
-        :type data_factory: Callable
-        :return: The contents of the YAML file as a dictionary.
-        :rtype: List[Any] | Dict[str, Any]
+        :param start_node: First transformation applied to raw data.
+        :type start_node: Callable[[Any], Any]
+        :param data_factory: Final factory applied to transformed data.
+        :type data_factory: Callable[[Any], Any]
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: Parsed and transformed Python object.
+        :rtype: Any
         '''
 
-        # Load the YAML file with exception handling.
         try:
-            # Load the YAML content from the file.
-            yaml_content = yaml.safe_load(self.file)
-            
-            # Navigate to the start node of the loaded YAML content.
-            yaml_content = start_node(yaml_content)
 
-            # Return the YAML content processed by the data factory.
-            return data_factory(yaml_content)
+            # Open the file stream via context manager, parse YAML, and apply transformations.
+            with self:
+                data = yaml.safe_load(self.file)
 
-        # Handle any exceptions that occur during YAML loading and raise a custom error.
-        except Exception as e:
+                # Treat empty YAML as an empty dict.
+                if data is None:
+                    data = {}
+
+                # Apply the start_node transformation.
+                transformed = start_node(data)
+
+                # Apply the data_factory and return.
+                return data_factory(transformed)
+
+        except TiferetError:
+
+            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            raise
+
+        except yaml.YAMLError as e:
+
+            # Wrap YAML parsing errors as structured TiferetError.
             RaiseError.execute(
-                a.const.YAML_FILE_LOAD_ERROR_ID,
-                f'An error occurred while loading the YAML file {self.path}: {str(e)}',
-                path=self.path,
-                exception=str(e)
+                error_code=a.const.YAML_FILE_LOAD_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
+            )
+
+        except Exception as e:
+
+            # Wrap all other exceptions as structured TiferetError.
+            RaiseError.execute(
+                error_code=a.const.YAML_FILE_LOAD_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
             )
 
     # * method: save
-    def save(self, data: Dict[str, Any], data_path: str = None):
+    def save(self, data: Any, data_path: Optional[str] = None, **kwargs) -> None:
         '''
-        Save a dictionary as a YAML file.
+        Serialize data to YAML and write to file.
 
-        :param data: The dictionary to save as YAML.
-        :type data: Dict[str, Any]
-        :param data_path: The path to save the YAML file to. If None, saves to the current file.
-        :type data_path: str
+        :param data: Python object to serialize.
+        :type data: Any
+        :param data_path: Reserved for future partial updates (ignored for now).
+        :type data_path: Optional[str]
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
         '''
 
-        # Save the YAML data with exception handling.
         try:
-            # If a specific path is not provided, save to the current file using the context manager.
-            if not data_path:
-                yaml.safe_dump(data, self.file)
-                return
 
-            # Get the data save path list. Replace any '.' with '/' for path consistency.
-            data_path = data_path.replace('.', '/')
-            save_path_list = data_path.split('/')
+            # Serialize the data to a YAML string.
+            content = yaml.safe_dump(
+                data,
+                sort_keys=False,
+                allow_unicode=True,
+                width=4096,
+            )
 
-            # Update the yaml data.
-            new_yaml_data = None
-            for fragment in save_path_list[:-1]:
+            # Write the serialized YAML to the file stream.
+            with self:
+                self.file.write(content)
 
-                # If the new yaml data exists, update it.
-                try:
-                    new_yaml_data = new_yaml_data[fragment]
+        except TiferetError:
 
-                # If the new yaml data does not exist, create it from the yaml data.
-                except TypeError:
-                    try:
-                        new_yaml_data = self.cache_data[fragment]
-                        continue  
-                
-                    # If the fragment does not exist, create it.
-                    except KeyError:
-                        new_yaml_data = self.cache_data[fragment] = {}
+            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            raise
 
-                # If the fragment does not exist, create it.
-                except KeyError: 
-                    new_yaml_data[fragment] = {}
-                    new_yaml_data = new_yaml_data[fragment]
-
-            # Update the yaml data.
-            try:
-                new_yaml_data[save_path_list[-1]] = data
-            # if there is a type error because the new yaml data is None, update the yaml data directly.
-            except TypeError:
-                self.cache_data[save_path_list[-1]] = data
-
-            # Save the updated yaml data.
-            yaml.safe_dump(self.cache_data, self.file)
-
-        # Handle any exceptions that occur during YAML saving and raise a custom error.
         except Exception as e:
+
+            # Wrap write errors as structured TiferetError.
             RaiseError.execute(
-                a.const.YAML_FILE_SAVE_ERROR_ID,
-                f'An error occurred while saving to the YAML file {self.path}: {str(e)}',
-                path=self.path,
-                exception=str(e)
+                error_code=a.const.YAML_FILE_SAVE_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
             )

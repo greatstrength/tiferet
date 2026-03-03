@@ -1,4 +1,4 @@
-"""Tiferet Static Commands"""
+"""Tiferet Static Domain Events"""
 
 # *** imports
 
@@ -10,24 +10,24 @@ from importlib import import_module
 # ** app
 from .settings import DomainEvent, TiferetError
 
-# *** commands
+# *** events
 
-# ** command: parse_parameter
+# ** event: parse_parameter
 class ParseParameter(DomainEvent):
     '''
-    A command to parse a parameter from a string.
+    A static domain event to parse a parameter from a string.
     '''
 
-    # * method: execute
+    # * method: execute (static)
     @staticmethod
-    def execute(parameter: str) -> Dict[str, Any]:
+    def execute(parameter: str) -> Any:
         '''
-        Execute the command.
+        Execute the event.
 
         :param parameter: The parameter to parse.
         :type parameter: str
         :return: The parsed parameter.
-        :rtype: str
+        :rtype: Any
         '''
 
         # Parse the parameter.
@@ -55,18 +55,18 @@ class ParseParameter(DomainEvent):
                 parameter=parameter,
                 exception=str(e)
             )
-        
-# ** command: import_dependency
+
+# ** event: import_dependency
 class ImportDependency(DomainEvent):
     '''
-    A command to import a dependency from a module.
+    A static domain event to import a dependency from a module.
     '''
 
-    # * method: execute
+    # * method: execute (static)
     @staticmethod
     def execute(module_path: str, class_name: str, **kwargs) -> Any:
         '''
-        Execute the command.
+        Execute the event.
 
         :param module_path: The module path to import from.
         :type module_path: str
@@ -91,18 +91,18 @@ class ImportDependency(DomainEvent):
                 class_name=class_name,
                 exception=str(e),
             )
-        
-# ** command: raise_error
+
+# ** event: raise_error
 class RaiseError(DomainEvent):
     '''
-    A command to raise an error with a specific message.
+    A static domain event to raise an error with a specific message.
     '''
 
-    # * method: execute
+    # * method: execute (static)
     @staticmethod
     def execute(error_code: str, message: str = None, **kwargs):
         '''
-        Execute the command.
+        Execute the event.
 
         :param error_code: The error code to raise.
         :type error_code: str

@@ -15,7 +15,7 @@ from .settings import (
 )
 from .app import (
     AppInterface,
-    AppAttribute
+    AppAttribute,
 )
 from .cli import (
     CliArgument,
@@ -23,15 +23,15 @@ from .cli import (
 )
 from .container import (
     ContainerAttribute,
-    FlaggedDependency
+    FlaggedDependency,
 )
 from .error import (
     Error,
-    ErrorMessage
+    ErrorMessage,
 )
 from .feature import (
     Feature,
-    FeatureCommand
+    FeatureCommand,
 )
 from .logging import (
     Formatter,

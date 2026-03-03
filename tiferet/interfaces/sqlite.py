@@ -1,139 +1,112 @@
-"""Tiferet Sqlite Contracts"""
+"""Tiferet Interfaces SQLite"""
 
 # *** imports
 
 # ** core
 from abc import abstractmethod
-from typing import (
-    Any,
-    Optional,
-    List,
-    Callable,
-    Sequence
-)
+from typing import Any, Iterable
 
 # ** app
 from .settings import Service
 
-# *** contracts
+# *** interfaces
 
-# ** contract: sqlite_service
+# ** interface: sqlite_service
 class SqliteService(Service):
     '''
-    Contract for SQLite service operations.
+    Service contract for SQLite database operations.
     '''
 
-    # * method: __enter__
+    # * method: execute
     @abstractmethod
-    def __enter__(self):
+    def execute(self, sql: str, parameters: Iterable[Any] = ()) -> Any:
         '''
-        Enter the runtime context related to this object.
-        '''
-        raise NotImplementedError('The __enter__ method must be implemented by the SQLite service.')
+        Execute a single SQL statement.
 
-    # * method: __exit__
-    @abstractmethod
-    def __exit__(self, exc_type, exc_value, traceback):
-        '''
-        Exit the runtime context related to this object.
-        '''
-        raise NotImplementedError('The __exit__ method must be implemented by the SQLite service.')
-
-    # * execute
-    @abstractmethod
-    def execute(self, query: str, parameters: tuple = ()) -> Any:
-        '''
-        Execute a SQL query with optional parameters.
-
-        :param query: The SQL query to execute.
-        :type query: str
-        :param parameters: The parameters for the SQL query (default is empty tuple).
-        :type parameters: tuple
-        :return: The result of the query execution.
+        :param sql: The SQL statement to execute.
+        :type sql: str
+        :param parameters: Parameters for the SQL statement.
+        :type parameters: Iterable[Any]
+        :return: The cursor result.
         :rtype: Any
         '''
-        
-        raise NotImplementedError('The execute method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: executemany
     @abstractmethod
-    def executemany(self, query: str, parameters_list: list) -> Any:
+    def executemany(self, sql: str, seq_of_parameters: Iterable[Iterable[Any]]) -> Any:
         '''
-        Execute a SQL query with multiple sets of parameters.
+        Execute SQL repeatedly with parameter sequences.
 
-        :param query: The SQL query to execute.
-        :type query: str
-        :param parameters_list: A list of parameter tuples for the SQL query.
-        :type parameters_list: list
-        :return: The result of the query execution.
+        :param sql: The SQL statement to execute.
+        :type sql: str
+        :param seq_of_parameters: Sequence of parameter sets.
+        :type seq_of_parameters: Iterable[Iterable[Any]]
+        :return: The cursor result.
         :rtype: Any
         '''
-        
-        raise NotImplementedError('The executemany method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: executescript
     @abstractmethod
-    def executescript(self, script: str) -> Any:
+    def executescript(self, sql_script: str) -> Any:
         '''
-        Execute a SQL script.
+        Execute multiple SQL statements from a script.
 
-        :param script: The SQL script to execute.
-        :type script: str
-        :return: The result of the script execution.
+        :param sql_script: The SQL script to execute.
+        :type sql_script: str
+        :return: The cursor result.
         :rtype: Any
         '''
-        
-        raise NotImplementedError('The executescript method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: fetch_one
     @abstractmethod
-    def fetch_one(self, query: str, parameters: Sequence[Any] = ()) -> Optional[Any]:
+    def fetch_one(self) -> tuple | None:
         '''
-        Execute query and return the next row (or None).
+        Fetch the next row.
+
+        :return: The next row as a tuple, or None if no more rows.
+        :rtype: tuple | None
         '''
-        
-        raise NotImplementedError('The fetch_one method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: fetch_all
     @abstractmethod
-    def fetch_all(self, query: str, parameters: Sequence[Any] = ()) -> List[Any]:
+    def fetch_all(self) -> list[tuple]:
         '''
-        Execute query and return all rows as list.
-        Row format follows current row_factory (tuple or dict-like).
+        Fetch all remaining rows.
+
+        :return: All remaining rows as a list of tuples.
+        :rtype: list[tuple]
         '''
-        
-        raise NotImplementedError('The fetch_all method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: commit
     @abstractmethod
-    def commit(self):
+    def commit(self) -> None:
         '''
-        Commit the current transaction.
+        Commit current transaction.
         '''
-        
-        raise NotImplementedError('The commit method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: rollback
     @abstractmethod
-    def rollback(self):
+    def rollback(self) -> None:
         '''
-        Rollback the current transaction.
+        Roll back current transaction.
         '''
-        
-        raise NotImplementedError('The rollback method must be implemented by the SQLite service.')
-    
+        raise NotImplementedError()
+
     # * method: backup
     @abstractmethod
-    def backup(self, target_path: str, pages: int = -1, progress: Optional[Callable] = None):
+    def backup(self, target: 'SqliteService', pages: int = -1) -> None:
         '''
-        Backup the database to the specified target file.
+        Backup database to another connection.
 
-        :param target_path: The target file path for the backup.
-        :type target: str
-        :param pages: The number of pages to copy at a time (default is -1 for all pages).
+        :param target: The target SQLite service to backup to.
+        :type target: SqliteService
+        :param pages: Number of pages to copy at a time (-1 for all).
         :type pages: int
-        :param progress: An optional progress callback function.
-        :type progress: Optional[Callable]
         '''
-        
-        raise NotImplementedError('The backup method must be implemented by the SQLite service.')
+        raise NotImplementedError()

@@ -1,10 +1,11 @@
-"""Tiferet Contracts Exports"""
+"""Tiferet Interfaces Exports"""
 
 # *** exports
 
 # ** app
 from .settings import Service
 from .app import AppService
+from .cache import CacheService
 from .cli import CliService
 from .config import ConfigurationService
 from .container import ContainerService

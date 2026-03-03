@@ -1,209 +1,216 @@
-"""Tiferet JSON Utility"""
+"""Tiferet Utils Json"""
 
 # *** imports
 
 # ** core
-from typing import (
-    List,
-    Dict,
-    Any,
-    Callable
-)
+from pathlib import Path
+from typing import Any, Callable, Optional
+
 import json
 
 # ** app
 from .file import FileLoader
 from ..events import RaiseError, a
+from ..events.settings import TiferetError
 
 # *** utils
 
 # ** util: json_loader
 class JsonLoader(FileLoader):
     '''
-    Utility for loading JSON files into the application.
+    Utility for loading and saving JSON files with structured error handling.
+    Extends FileLoader for stream lifecycle management.
     '''
 
-    # * attribute: cache_data
-    cache_data: Dict[str, Any]
-
-    # * method: __enter__
-    def __enter__(self):
+    # * init
+    def __init__(self,
+            path: str | Path,
+            mode: str = 'r',
+            encoding: str = 'utf-8',
+            **kwargs,
+        ):
         '''
-        Enter the context manager and open the JSON file.
+        Initialize JsonLoader.
 
-        :return: The JsonLoader instance.
-        :rtype: JsonLoader
-        '''
-        
-        # If the mode is 'w' or 'wb', read the existing JSON content to cache it before writing.
-        if self.mode in ['w', 'wb']:
-            with open(self.path, 'r', encoding=self.encoding) as f:
-                self.cache_data = json.load(f) or {}
-        else:
-            self.cache_data = None
-
-        # Open the file using the parent class's context manager.
-        return super().__enter__()
-    
-    # * method: __exit__
-    def __exit__(self, exc_type, exc_value, traceback):
-        '''
-        Exit the context manager and close the JSON file.
-
-        :param exc_type: The type of exception raised (if any).
-        :type exc_type: type
-        :param exc_value: The value of the exception raised (if any).
-        :type exc_value: Exception
-        :param traceback: The traceback of the exception raised (if any).
-        :type traceback: traceback
-        '''
-
-        # Clear the cache data when exiting the context.
-        self.cache_data = None
-
-        # Call the parent class's __exit__ method to ensure proper cleanup.
-        return super().__exit__(exc_type, exc_value, traceback)
-    
-    # * method: verify_file
-    def verify_file(self, path: str):
-        '''
-        Verify that the file at the given path is a valid JSON file.
-
-        :param path: The path to the JSON file.
-        :type path: str
-        '''
-
-        # Verify that the configuration file is a valid JSON file.
-        if not path or not path.endswith('.json'):
-            RaiseError.execute(
-                a.const.INVALID_JSON_FILE_ID,
-                f'File is not a valid JSON file: {path}.',
-                path=path
-            )
-
-        # Call the parent class's verify_file method.
-        super().verify_file(path)
-
-        # Additional verification for JSON files can be added here if needed.
-        # For now, we assume that if the file can be opened, it is a valid JSON file.
-
-    # * method: load
-    def load(self, start_node: Callable = lambda data: data, data_factory: Callable = lambda data: data) -> List[Any] | Dict[str, Any]:
-        '''
-        Load data from the JSON configuration file.
-
-        :param start_node: A callable to specify the starting node for loading data from the JSON file. Defaults to a lambda that returns the data as is.
-        :type start_node: Callable
-        :param data_factory: A callable to specify how to create data objects from the loaded JSON data. Defaults to a lambda that returns the data as is.
-        :type data_factory: Callable
-        :return: The contents of the JSON file.
-        :rtype: List[Any] | Dict[str, Any]
-        '''
-
-        # Load the JSON file with exception handling.
-        try:
-            # Load the JSON content from the file.
-            json_content = json.load(self.file)
-
-            # Navigate to the start node of the loaded JSON content.
-            json_content = start_node(json_content)
-
-            # Return the JSON content processed by the data factory.
-            return data_factory(json_content)
-
-        # Handle any exceptions that occur during JSON loading and raise a custom error.
-        except Exception as e:
-            RaiseError.execute(
-                a.const.JSON_FILE_LOAD_ERROR_ID,
-                f'An error occurred while loading the JSON file {self.path}: {str(e)}',
-                path=self.path,
-                exception=str(e)
-            )
-
-    
-    # * method: parse_json_path
-    def parse_json_path(self, path: str) -> List[str | int]:
-        '''
-        Parse a JSON path into a list of keys and indices.
-
-        :param path: The JSON path to parse (e.g., "key1.key2[0].key3").
-        :type path: str
-        :return: A list of keys and indices representing the path.
-        :rtype: List[str | int]
-        '''
-
-        # Split the path into parts and handle array indices.
-        parts = []
-        for part in path.split('.'):
-            if part.endswith(']'):
-                # Handle array index
-                array_part, index_part = part[:-1].split('[')
-                parts.append(array_part)
-                parts.append(int(index_part))
-            else:
-                parts.append(part)
-        
-        return parts
-    
-    # * method: save
-    def save(self, data: Dict[str, Any], data_path: str = None, indent: int = 4, **kwargs):
-        '''
-        Save data to the JSON configuration file.
-
-        :param data: The data to save to the JSON file.
-        :type data: Dict[str, Any]
-        :param data_path: The path within the JSON file where the data should be saved. If None, saves to the root of the JSON file.
-        :type data_path: str
-        :param indent: The number of spaces to use for indentation in the JSON file. Defaults to 4.
-        :type indent: int
-        :param kwargs: Additional keyword arguments for saving.
+        :param path: Path to the JSON file.
+        :type path: str | Path
+        :param mode: File open mode (typically 'r' or 'w').
+        :type mode: str
+        :param encoding: Text encoding (defaults to utf-8).
+        :type encoding: str
+        :param kwargs: Additional parameters passed to parent.
         :type kwargs: dict
         '''
 
-        # Save the JSON data with exception handling.
-        try:
-            # Save the JSON data to the file with the specified indentation if no specific path is provided. 
-            if not data_path:
-                json.dump(data, self.file, indent=indent)
-                return
+        # Initialize the parent FileLoader.
+        super().__init__(path=path, mode=mode, encoding=encoding, **kwargs)
 
-            # Get the data save path list and navigate to the correct location in the JSON structure to save the data.
-            save_path_list = self.parse_json_path(data_path)
+    # * method: verify_json_file (static)
+    @staticmethod
+    def verify_json_file(loader: 'JsonLoader', default_path: Optional[Path] = None):
+        '''
+        Verify the file has a JSON extension and exists (with optional fallback).
 
-            # Update the JSON data at the specified path.
-            current_data = self.cache_data
-            for part in save_path_list[:-1]:
-                if isinstance(part, int):
-                    # Handle list index
-                    while len(current_data) <= part:
-                        current_data.append({})
-                    current_data = current_data[part]
-                else:
-                    # Handle dictionary key
-                    if part not in current_data:
-                        current_data[part] = {}
-                    current_data = current_data[part]
+        :param loader: JsonLoader instance to verify.
+        :type loader: JsonLoader
+        :param default_path: Optional fallback path if primary path is invalid.
+        :type default_path: Optional[Path]
+        '''
 
-            # Set the final value at the specified path.
-            final_part = save_path_list[-1]
-            if isinstance(final_part, int):
-                # Handle list index for the final part
-                while len(current_data) <= final_part:
-                    current_data.append({})
-                current_data[final_part] = data
+        # Start with the loader's path.
+        path = loader.path
+
+        # Check if the path has a valid JSON extension; fall back or raise error.
+        if not path.suffix.lower() == '.json':
+            if default_path and default_path.suffix.lower() == '.json':
+                path = default_path
             else:
-                # Handle dictionary key for the final part
-                current_data[final_part] = data
+                RaiseError.execute(
+                    error_code=a.const.INVALID_FILE_ID,
+                    message="File must have .json extension",
+                    path=str(loader.path),
+                )
 
-            # Save the updated JSON data to the file with the specified indentation.
-            json.dump(self.cache_data, self.file, indent=indent)
-
-        # Handle any exceptions that occur during JSON saving and raise a custom error.
-        except Exception as e:
+        # Verify the resolved path exists.
+        if not path.exists():
             RaiseError.execute(
-                a.const.JSON_FILE_SAVE_ERROR_ID,
-                f'An error occurred while saving to the JSON file {self.path}: {str(e)}',
-                path=self.path,
-                exception=str(e)
+                error_code=a.const.JSON_FILE_NOT_FOUND_ID,
+                path=str(path),
             )
 
+    # * method: load
+    def load(self,
+            start_node: Callable[[Any], Any] = lambda x: x,
+            data_factory: Callable[[Any], Any] = lambda x: x,
+            **kwargs,
+        ) -> Any:
+        '''
+        Load JSON content, apply optional transformations, and return result.
+
+        :param start_node: First transformation applied to raw data.
+        :type start_node: Callable[[Any], Any]
+        :param data_factory: Final factory applied to transformed data.
+        :type data_factory: Callable[[Any], Any]
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        :return: Parsed and transformed Python object.
+        :rtype: Any
+        '''
+
+        try:
+
+            # Open the file stream via context manager, parse JSON, and apply transformations.
+            with self:
+                data = json.load(self.file)
+
+                # Apply the start_node transformation.
+                transformed = start_node(data)
+
+                # Apply the data_factory and return.
+                return data_factory(transformed)
+
+        except TiferetError:
+
+            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            raise
+
+        except json.JSONDecodeError as e:
+
+            # Wrap JSON parsing errors as structured TiferetError.
+            RaiseError.execute(
+                error_code=a.const.JSON_FILE_LOAD_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
+            )
+
+        except Exception as e:
+
+            # Wrap all other exceptions as structured TiferetError.
+            RaiseError.execute(
+                error_code=a.const.JSON_FILE_LOAD_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
+            )
+
+    # * method: save
+    def save(self, data: Any, data_path: Optional[str] = None, **kwargs) -> None:
+        '''
+        Serialize data to JSON and write to file.
+
+        :param data: Python object to serialize.
+        :type data: Any
+        :param data_path: Reserved for future partial updates (ignored for now).
+        :type data_path: Optional[str]
+        :param kwargs: Additional keyword arguments (ignored).
+        :type kwargs: dict
+        '''
+
+        try:
+
+            # Serialize the data to a JSON string.
+            content = json.dumps(
+                data,
+                indent=2,
+                sort_keys=False,
+                ensure_ascii=False,
+            ) + '\n'
+
+            # Write the serialized JSON to the file stream.
+            with self:
+                self.file.write(content)
+
+        except TiferetError:
+
+            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            raise
+
+        except Exception as e:
+
+            # Wrap write errors as structured TiferetError.
+            RaiseError.execute(
+                error_code=a.const.JSON_FILE_SAVE_ERROR_ID,
+                error=str(e),
+                path=str(self.path),
+            )
+
+    # * method: parse_json_path (static)
+    @staticmethod
+    def parse_json_path(data: Any, path: str) -> Any:
+        '''
+        Navigate nested JSON structure using dot notation with array index support.
+
+        :param data: Parsed JSON object (dict or list).
+        :type data: Any
+        :param path: Dot-separated path (e.g., 'users.0.name').
+        :type path: str
+        :return: Value at the specified path.
+        :rtype: Any
+        '''
+
+        # Walk through each segment of the dot-separated path.
+        current = data
+        parts = path.split('.')
+        for part in parts:
+
+            # Navigate dict keys.
+            if isinstance(current, dict):
+                current = current.get(part)
+
+            # Navigate list indices.
+            elif isinstance(current, list) and part.isdigit():
+                current = current[int(part)]
+
+            # Raise on invalid navigation.
+            else:
+                RaiseError.execute(
+                    error_code=a.const.INVALID_JSON_PATH_ID,
+                    path=path,
+                    part=part,
+                )
+
+            # Short-circuit if a segment resolves to None.
+            if current is None:
+                break
+
+        # Return the resolved value.
+        return current

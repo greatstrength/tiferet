@@ -1,500 +1,455 @@
-"""Tests for SqliteClient"""
+"""Tiferet Utils Sqlite Tests"""
 
 # *** imports
 
 # ** core
 from pathlib import Path
+
 import sqlite3
-from typing import Generator, List, Dict, Any
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from ..sqlite import SqliteClient
-from ...events import TiferetError
-from ... import assets as a
+from ...events import a
+from ...events.settings import TiferetError
 
 # *** fixtures
 
-# ** fixture: sqlite_mw_in_memory
+# ** fixture: memory_client
 @pytest.fixture
-def sqlite_mw_in_memory() -> Generator[SqliteClient, None, None]:
+def memory_client() -> SqliteClient:
     '''
-    Provides a SqliteClient connected to an in-memory database.
-    The connection is automatically closed after the test.
+    Fixture providing an in-memory SqliteClient (not yet opened).
 
-    :yield: The SqliteClient instance.
-    :rtype: Generator[SqliteClient]
+    :return: An in-memory SqliteClient instance.
+    :rtype: SqliteClient
     '''
 
-    # Create the in-memory database middleware.
-    mw = SqliteClient(
-        path=':memory:',
-        row_factory_dict=True,
-        isolation_level=None,
-    )
+    # Return an in-memory SqliteClient.
+    return SqliteClient(path=':memory:', mode='rw')
 
-    # Initialize the database schema.
-    with mw:
-        mw.executescript("""
-            CREATE TABLE users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                age INTEGER
-            );
-        """)
-
-        yield mw
-
-# ** fixture: db_file
+# ** fixture: sample_table_sql
 @pytest.fixture
-def db_file(tmp_path: Path) -> str:
+def sample_table_sql() -> str:
     '''
-    Provides a SqliteClient connected to a temporary file database.
-    The connection is automatically closed after the test.
+    Fixture providing SQL to create a sample table.
 
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
-    :return: The path to the temporary database file.
+    :return: CREATE TABLE SQL statement.
     :rtype: str
     '''
 
-    # Create the temporary database file.
-    db_file = str(tmp_path / "test_db.sqlite")
-    mw = SqliteClient(
-        path=str(db_file),
-        row_factory_dict=True,
-        isolation_level=None,           # autocommit for simpler test assertions
-    )
+    # Return a CREATE TABLE statement.
+    return 'CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, value REAL)'
 
-    # Initialize the database schema.
-    with mw:
-        # Create a simple test table
-        mw.executescript("""
-            CREATE TABLE users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                age INTEGER
-            );
-        """)
-
-    # Return the database file path.s
-    return db_file
-
-# ** fixture: sample_users_data
+# ** fixture: sample_insert_sql
 @pytest.fixture
-def sample_users_data() -> List[Dict[str, Any]]:
-    '''Sample data for insertion tests.'''
+def sample_insert_sql() -> str:
+    '''
+    Fixture providing SQL to insert a sample row.
 
-    # Return sample user data.
-    return [
-        {'name': 'Alice', 'age': 30},
-        {'name': 'Bob',   'age': 25},
-        {'name': 'Carol', 'age': 28},
-    ]
+    :return: INSERT SQL statement with placeholders.
+    :rtype: str
+    '''
+
+    # Return an INSERT statement with placeholders.
+    return 'INSERT INTO items (name, value) VALUES (?, ?)'
 
 # *** tests
 
-# ** test: sqlite_middleware_context_manager_opens_and_closes_connection
-def test_sqlite_middleware_context_manager_opens_and_closes_connection():
+# ** test: sqlite_client_in_memory_open_close
+def test_sqlite_client_in_memory_open_close(memory_client: SqliteClient):
     '''
-    Verify that __enter__ opens the connection and __exit__ closes it.
-    '''
+    Test opening and closing an in-memory SQLite connection.
 
-    # Create the middleware instance.
-    mw = SqliteClient(path=':memory:')
-    assert mw.conn is None
-
-    # Use context manager to open connection.
-    with mw:
-        assert isinstance(mw.conn, sqlite3.Connection)
-        assert isinstance(mw.cursor, sqlite3.Cursor)
-
-    # After context, connection should be closed.
-    assert mw.conn is None
-    assert mw.cursor is None
-
-# ** test: sqlite_middleware_invalid_mode_raises_error
-def test_sqlite_middleware_invalid_mode_raises_error():
-    '''
-    Verify that providing an invalid mode raises an error.
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
     '''
 
-    # Attempt to create middleware with invalid mode.
+    # Open the connection.
+    memory_client.open_file()
+
+    # Verify the connection and cursor are initialized.
+    assert memory_client.conn is not None
+    assert memory_client.cursor is not None
+
+    # Close the connection.
+    memory_client.close_file()
+
+    # Verify state is reset.
+    assert memory_client.conn is None
+    assert memory_client.cursor is None
+
+# ** test: sqlite_client_file_based_open_close
+def test_sqlite_client_file_based_open_close(tmp_path: Path):
+    '''
+    Test opening and closing a file-based SQLite database.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create a client pointing to a file in the temp directory.
+    db_path = tmp_path / 'test.db'
+    client = SqliteClient(path=db_path, mode='rwc')
+
+    # Open, verify, and close.
+    with client as db:
+        assert db.conn is not None
+        assert db_path.exists()
+
+    # Verify state is reset after exit.
+    assert client.conn is None
+
+# ** test: sqlite_client_invalid_mode
+def test_sqlite_client_invalid_mode():
+    '''
+    Test that an invalid SQLite mode raises SQLITE_INVALID_MODE.
+    '''
+
+    # Create a client with an invalid mode.
+    client = SqliteClient(path=':memory:', mode='invalid')
+
+    # Attempt to open; expect SQLITE_INVALID_MODE error.
     with pytest.raises(TiferetError) as exc_info:
-        SqliteClient(path=':memory:', mode='invalid_mode')
-
-    # Verify the error code and message.
-    assert exc_info.value.error_code == a.const.SQLITE_INVALID_MODE_ID
-    assert exc_info.value.kwargs.get('mode') == 'invalid_mode'
-
-# ** test: sqlite_middleware_open_when_already_open_raises_error
-def test_sqlite_middleware_open_when_already_open_raises_error(sqlite_mw_in_memory: SqliteClient):
-    '''
-    Verify that attempting to open an already open connection raises an error.
-    '''
-
-    # Get the middleware instance.
-    mw = sqlite_mw_in_memory
-
-    # Attempt to open the connection again.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.open_file()
+        client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_ALREADY_OPEN_ID
-    assert exc_info.value.kwargs.get('path') == ':memory:'
+    assert exc_info.value.error_code == a.const.SQLITE_INVALID_MODE_ID
 
-# ** test: sqlite_middleware_open_when_file_path_invalid_raises_error
-def test_sqlite_middleware_open_when_file_path_invalid_raises_error(tmp_path: Path):
+# ** test: sqlite_client_already_open
+def test_sqlite_client_already_open(memory_client: SqliteClient):
     '''
-    Verify that attempting to open a connection with an invalid file path raises an error.
+    Test that opening an already-open connection raises SQLITE_CONN_ALREADY_OPEN.
 
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
     '''
 
-    # Create middleware with invalid file path.
-    invalid_path = str(tmp_path / "non_existent_dir" / "db.sqlite")
-    mw = SqliteClient(path=invalid_path, mode='rw')
+    # Open the connection.
+    memory_client.open_file()
 
+    try:
+
+        # Attempt to open again; expect SQLITE_CONN_ALREADY_OPEN error.
+        with pytest.raises(TiferetError) as exc_info:
+            memory_client.open_file()
+
+        # Verify the error code.
+        assert exc_info.value.error_code == a.const.SQLITE_CONN_ALREADY_OPEN_ID
+
+    finally:
+
+        # Clean up.
+        memory_client.close_file()
+
+# ** test: sqlite_client_execute_success
+def test_sqlite_client_execute_success(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test executing SQL statements (CREATE TABLE and INSERT).
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert a sample row.
+    :type sample_insert_sql: str
+    '''
+
+    with memory_client as db:
+
+        # Create the table.
+        db.execute(sample_table_sql)
+
+        # Insert a row.
+        cursor = db.execute(sample_insert_sql, ('widget', 9.99))
+
+        # Verify the cursor is returned.
+        assert isinstance(cursor, sqlite3.Cursor)
+
+        # Verify the row was inserted.
+        db.execute('SELECT COUNT(*) FROM items')
+        count = db.fetch_one()[0]
+        assert count == 1
+
+# ** test: sqlite_client_executemany_success
+def test_sqlite_client_executemany_success(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test executemany with multiple parameter sets.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert rows.
+    :type sample_insert_sql: str
+    '''
+
+    with memory_client as db:
+
+        # Create the table.
+        db.execute(sample_table_sql)
+
+        # Insert multiple rows.
+        rows = [('alpha', 1.0), ('beta', 2.0), ('gamma', 3.0)]
+        db.executemany(sample_insert_sql, rows)
+
+        # Verify all rows were inserted.
+        db.execute('SELECT COUNT(*) FROM items')
+        count = db.fetch_one()[0]
+        assert count == 3
+
+# ** test: sqlite_client_executescript_success
+def test_sqlite_client_executescript_success(memory_client: SqliteClient):
+    '''
+    Test executescript with a multi-statement SQL script.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Define a multi-statement script.
+    script = '''
+        CREATE TABLE colors (id INTEGER PRIMARY KEY, name TEXT);
+        INSERT INTO colors (name) VALUES ('red');
+        INSERT INTO colors (name) VALUES ('blue');
+    '''
+
+    with memory_client as db:
+
+        # Execute the script.
+        db.executescript(script)
+
+        # Verify the rows were created.
+        db.execute('SELECT COUNT(*) FROM colors')
+        count = db.fetch_one()[0]
+        assert count == 2
+
+# ** test: sqlite_client_fetch_one
+def test_sqlite_client_fetch_one(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test fetch_one returns a single row as a tuple.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert a row.
+    :type sample_insert_sql: str
+    '''
+
+    with memory_client as db:
+
+        # Set up table and insert a row.
+        db.execute(sample_table_sql)
+        db.execute(sample_insert_sql, ('widget', 9.99))
+
+        # Fetch one row.
+        db.execute('SELECT name, value FROM items WHERE name = ?', ('widget',))
+        row = db.fetch_one()
+
+        # Verify the row is a tuple with expected values.
+        assert row == ('widget', 9.99)
+
+    # Verify fetch_one returns None when no more rows.
+    with SqliteClient(path=':memory:') as db:
+        db.execute('CREATE TABLE empty (id INTEGER)')
+        db.execute('SELECT * FROM empty')
+        assert db.fetch_one() is None
+
+# ** test: sqlite_client_fetch_all
+def test_sqlite_client_fetch_all(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test fetch_all returns all rows as a list of tuples.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert rows.
+    :type sample_insert_sql: str
+    '''
+
+    with memory_client as db:
+
+        # Set up table and insert rows.
+        db.execute(sample_table_sql)
+        db.executemany(sample_insert_sql, [('a', 1.0), ('b', 2.0)])
+
+        # Fetch all rows.
+        db.execute('SELECT name, value FROM items ORDER BY name')
+        rows = db.fetch_all()
+
+        # Verify all rows returned.
+        assert rows == [('a', 1.0), ('b', 2.0)]
+
+# ** test: sqlite_client_context_manager_commit_on_success
+def test_sqlite_client_context_manager_commit_on_success(tmp_path: Path):
+    '''
+    Test that the context manager auto-commits on successful exit.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create and populate a file-based DB.
+    db_path = tmp_path / 'commit_test.db'
+    with SqliteClient(path=db_path, mode='rwc') as db:
+        db.execute('CREATE TABLE test (val TEXT)')
+        db.execute('INSERT INTO test (val) VALUES (?)', ('committed',))
+
+    # Reopen and verify the data persisted.
+    with SqliteClient(path=db_path, mode='ro') as db:
+        db.execute('SELECT val FROM test')
+        row = db.fetch_one()
+        assert row == ('committed',)
+
+# ** test: sqlite_client_context_manager_rollback_on_exception
+def test_sqlite_client_context_manager_rollback_on_exception(tmp_path: Path):
+    '''
+    Test that the context manager auto-rolls back on exception.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Create the DB and table first.
+    db_path = tmp_path / 'rollback_test.db'
+    with SqliteClient(path=db_path, mode='rwc', isolation_level='DEFERRED') as db:
+        db.execute('CREATE TABLE test (val TEXT)')
+
+    # Attempt to insert then raise — should rollback.
+    with pytest.raises(ValueError):
+        with SqliteClient(path=db_path, mode='rw', isolation_level='DEFERRED') as db:
+            db.execute('INSERT INTO test (val) VALUES (?)', ('rolled_back',))
+            raise ValueError('force rollback')
+
+    # Verify the insert was rolled back.
+    with SqliteClient(path=db_path, mode='ro') as db:
+        db.execute('SELECT COUNT(*) FROM test')
+        count = db.fetch_one()[0]
+        assert count == 0
+
+# ** test: sqlite_client_backup_success
+def test_sqlite_client_backup_success(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test successful database backup between two connections.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert a row.
+    :type sample_insert_sql: str
+    '''
+
+    # Set up source database.
+    memory_client.open_file()
+    memory_client.execute(sample_table_sql)
+    memory_client.execute(sample_insert_sql, ('backup_item', 42.0))
+    memory_client.commit()
+
+    # Create and open target database.
+    target = SqliteClient(path=':memory:')
+    target.open_file()
+
+    try:
+
+        # Perform backup.
+        memory_client.backup(target)
+
+        # Verify the target has the data.
+        target.execute('SELECT name, value FROM items')
+        row = target.fetch_one()
+        assert row == ('backup_item', 42.0)
+
+    finally:
+
+        # Clean up both connections.
+        target.close_file()
+        memory_client.close_file()
+
+# ** test: sqlite_client_backup_not_initialized
+def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient):
+    '''
+    Test that backup raises SQLITE_CONN_NOT_INITIALIZED when connections are not open.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Create a target that is not opened.
+    target = SqliteClient(path=':memory:')
+
+    # Attempt backup with both closed; expect error.
     with pytest.raises(TiferetError) as exc_info:
-        mw.open_file()
+        memory_client.backup(target)
 
-    assert exc_info.value.error_code == a.const.SQLITE_FILE_NOT_FOUND_OR_READONLY_ID
-    assert exc_info.value.kwargs.get('path') == invalid_path
+    # Verify the error code.
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
 
-# ** test: sqlite_middleware_open_invalid_connection_raises_error
-@mock.patch('sqlite3.connect', side_effect=sqlite3.DatabaseError("unable to open database file"))
-def test_sqlite_middleware_open_invalid_connection_raises_error(tmp_path: Path):
+# ** test: sqlite_client_execute_not_initialized
+def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
     '''
-    Verify that attempting to open a connection to a non-existent file in read-only mode raises an error.
+    Test that execute raises SQLITE_CONN_NOT_INITIALIZED without an open connection.
 
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
     '''
 
-    # Create corrupt database file.
-    non_existent_file = str(tmp_path / "non_existent_db.sqlite")
-    mw = SqliteClient(path=non_existent_file, mode='ro')
-
-    # Attempt to open the file.
+    # Attempt to execute without opening; expect error.
     with pytest.raises(TiferetError) as exc_info:
-        mw.open_file()
+        memory_client.execute('SELECT 1')
+
+    # Verify the error code.
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+
+# ** test: sqlite_client_commit_not_initialized
+def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
+    '''
+    Test that commit raises SQLITE_CONN_NOT_INITIALIZED without an open connection.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Attempt to commit without opening; expect error.
+    with pytest.raises(TiferetError) as exc_info:
+        memory_client.commit()
+
+    # Verify the error code.
+    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+
+# ** test: sqlite_client_conn_failed
+def test_sqlite_client_conn_failed(tmp_path: Path):
+    '''
+    Test that connecting to a non-existent file in rw mode raises SQLITE_CONN_FAILED.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    '''
+
+    # Point to a non-existent file with rw mode (not rwc, so it won't create).
+    client = SqliteClient(path=tmp_path / 'nonexistent.db', mode='rw')
+
+    # Attempt to open; expect SQLITE_CONN_FAILED error.
+    with pytest.raises(TiferetError) as exc_info:
+        client.open_file()
 
     # Verify the error code.
     assert exc_info.value.error_code == a.const.SQLITE_CONN_FAILED_ID
-    assert exc_info.value.kwargs.get('path') == non_existent_file
 
-# ** test: sqlite_middleware_insert_and_fetch_one
-def test_sqlite_middleware_insert_and_fetch_one(sqlite_mw_in_memory: SqliteClient):
+# ** test: sqlite_client_isolation_level_propagation
+def test_sqlite_client_isolation_level_propagation():
     '''
-    Insert a row and retrieve it with fetch_one().
-    '''
-
-    # Get the middleware instance.
-    mw = sqlite_mw_in_memory
-
-    # Insert a row.
-    mw.execute(
-        "INSERT INTO users (name, age) VALUES (?, ?)",
-        ("David", 42)
-    )
-
-    # Fetch the inserted row.
-    row = mw.fetch_one("SELECT * FROM users WHERE name = ?", ("David",))
-
-    # Verify the fetched data.
-    assert row is not None
-    assert row['name'] == 'David'
-    assert row['age'] == 42
-
-# ** test: sqlite_middleware_fetch_all_as_dicts
-def test_sqlite_middleware_fetch_all_as_dicts(sqlite_mw_in_memory: SqliteClient, sample_users_data: List[Dict[str, Any]]):
-    '''
-    Insert multiple rows and verify fetch_all returns list of dicts.
-
-    :param sqlite_mw_in_memory: Fixture providing SqliteClient with in-memory DB.
-    :type sqlite_mw_in_memory: SqliteClient
-    :param sample_users_data: Fixture providing sample user data.
-    :type sample_users_data: List[Dict[str, Any]]
+    Test that isolation_level is propagated to the sqlite3 connection.
     '''
 
-    # Get the middleware instance.
-    mw = sqlite_mw_in_memory
+    # Create a client with explicit isolation level.
+    client = SqliteClient(path=':memory:', isolation_level='DEFERRED')
 
-    # Bulk insert.
-    mw.executemany(
-        "INSERT INTO users (name, age) VALUES (:name, :age)",
-        sample_users_data
-    )
+    with client as db:
 
-    # Fetch all rows.
-    rows = mw.fetch_all("SELECT * FROM users ORDER BY name")
-
-    # Verify the fetched data.
-    assert len(rows) == 3
-    assert all(isinstance(row, sqlite3.Row) for row in rows)
-    assert rows[0]['name'] == 'Alice'
-    assert rows[1]['name'] == 'Bob'
-    assert rows[2]['name'] == 'Carol'
-
-# ** test: sqlite_middleware_fetch_all_as_tuples_when_row_factory_disabled
-def test_sqlite_middleware_fetch_all_as_tuples_when_row_factory_disabled():
-    '''
-    When row_factory_dict=False, fetch_all should return list of tuples.
-    '''
-
-    # Create middleware with row_factory_dict disabled.
-    mw = SqliteClient(path=':memory:', row_factory_dict=False)
-    with mw:
-
-        # Create a test table and insert data.
-        mw.executescript("""
-            CREATE TABLE test (id INT, value TEXT);
-            INSERT INTO test VALUES (1, 'hello'), (2, 'world');
-        """)
-
-        # Fetch all rows.
-        rows = mw.fetch_all("SELECT * FROM test ORDER BY id")
-
-        # Verify the fetched data.
-        assert len(rows) == 2
-        assert isinstance(rows[0], tuple)
-        assert rows[0] == (1, 'hello')
-        assert rows[1] == (2, 'world')
-
-# ** test: sqlite_middleware_execute_sqlite_connection_not_initialized_error
-def test_sqlite_middleware_execute_sqlite_connection_not_initialized_error():
-    '''
-    Verify that executing SQL without an open connection raises the appropriate error.
-    '''
-
-    # Get the middleware instance.
-    mw = SqliteClient(path=':memory:')
-
-    # Attempt to execute SQL without opening connection.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.execute("SELECT 1")
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
-
-# ** test: sqlite_middleware_fetch_one_sqlite_connection_not_initialized_error
-def test_sqlite_middleware_fetch_one_sqlite_connection_not_initialized_error():
-    '''
-    Verify that fetching one row without an open connection raises the appropriate error.
-    '''
-
-    # Get the middleware instance.
-    mw = SqliteClient(path=':memory:')
-
-    # Attempt to fetch one row without opening connection.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.fetch_one("SELECT 1")
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
-
-# ** test: sqlite_middleware_executemany_sqlite_connection_not_initialized_error
-def test_sqlite_middleware_executemany_sqlite_connection_not_initialized_error():
-    '''
-    Verify that executing many without an open connection raises the appropriate error.
-    '''
-
-    # Get the middleware instance.
-    mw = SqliteClient(path=':memory:')
-
-    # Attempt to execute many without opening connection.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.executemany("SELECT 1", [()])
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
-
-# ** test: sqlite_middleware_executescript_sqlite_connection_not_initialized_error
-def test_sqlite_middleware_executescript_sqlite_connection_not_initialized_error():
-    '''
-    Verify that executing a script without an open connection raises the appropriate error.
-    '''
-
-    # Get the middleware instance.
-    mw = SqliteClient(path=':memory:')
-
-    # Attempt to execute script without opening connection.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.executescript("SELECT 1;")
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
-
-# ** test: sqlite_middleware_transaction_commit_on_success
-def test_sqlite_middleware_transaction_commit_on_success(db_file: str):
-    '''
-    Data should persist after successful context exit.
-
-    :param db_file: Fixture providing path to temporary database file.
-    :type db_file: str
-    '''
-
-    # Get the middleware instance and close it to test re-opening
-    mw = SqliteClient(
-        path=db_file,
-        row_factory_dict=True,
-    )
-
-    # Insert a row within a context.
-    with mw:
-        mw.execute("INSERT INTO users (name, age) VALUES (?, ?)", ("Eve", 35))
-
-    # Re-open to verify persistence.
-    with mw:
-        row = mw.fetch_one("SELECT * FROM users WHERE name = ?", ("Eve",))
-        assert row is not None
-        assert row['age'] == 35
-
-
-# ** test: sqlite_middleware_transaction_rollback_on_exception
-def test_sqlite_middleware_transaction_rollback_on_exception(db_file: str):
-    '''
-    Changes should be rolled back if exception occurs inside context.
-
-    :param db_file: Fixture providing path to temporary database file.
-    :type db_file: str
-    '''
-
-    # Get the middleware instance.
-    mw = SqliteClient(
-        path=db_file,
-        row_factory_dict=True
-    )
-
-    # Record initial row count.
-    with mw:
-        initial_count = len(mw.fetch_all("SELECT * FROM users"))
-
-    # Attempt to insert a row and raise an exception to trigger rollback.
-    try:
-        with mw:
-            mw.execute("INSERT INTO users (name) VALUES (?)", ("Frank",))
-            raise RuntimeError("Simulated failure")
-    except RuntimeError:
-        pass
-
-    # Verify no new row was committed
-    with mw:
-        assert len(mw.fetch_all("SELECT * FROM users")) == initial_count
-
-
-# ** test: sqlite_middleware_custom_function_registration
-def test_sqlite_middleware_custom_function_registration():
-    '''
-    Verify that custom functions passed to __init__ are registered.
-    '''
-
-    # Define a simple custom function.
-    def square(x: int) -> int:
-        return x * x
-
-    # Create middleware with the custom function.
-    mw = SqliteClient(
-        path=':memory:',
-        custom_functions={'square': (square, 1, True)}
-    )
-
-    # Use the custom function in a query.
-    with mw:
-        mw.executescript("CREATE TABLE nums (val INT); INSERT INTO nums VALUES (7);")
-        result = mw.fetch_one("SELECT square(val) FROM nums")
-
-        # Verify the result.
-        assert result[0] == 49
-
-
-# ** test: sqlite_middleware_backup
-def test_sqlite_middleware_backup(tmp_path: Path):
-    '''
-    Integration test: perform a real backup to a temporary file.
-
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
-    '''
-
-    # Setup source and destination database paths.
-    src_db = tmp_path / "source.db"
-    dest_db = tmp_path / "backup.db"
-
-    # Create source DB with some data.
-    mw_src = SqliteClient(path=str(src_db))
-    with mw_src:
-        mw_src.executescript("""
-            CREATE TABLE test (id INT PRIMARY KEY, value TEXT);
-            INSERT INTO test VALUES (1, 'hello'), (2, 'world');
-        """)
-
-    # Perform backup.
-    with mw_src:
-        mw_src.backup(str(dest_db), pages=-1)
-
-    # Verify destination DB has the data.
-    mw_dest = SqliteClient(path=str(dest_db))
-    with mw_dest:
-        rows = mw_dest.fetch_all("SELECT * FROM test ORDER BY id")
-        assert len(rows) == 2
-        assert rows[0]['value'] == 'hello'
-        assert rows[1]['value'] == 'world'
-
-# ** test: sqlite_middleware_backup_without_open_connection_raises_error
-def test_sqlite_middleware_backup_without_open_connection_raises_error(tmp_path: Path):
-    '''
-    Verify that attempting to perform a backup without an open connection raises an error.
-
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
-    '''
-
-    # Setup source and destination database paths.
-    src_db = tmp_path / "source.db"
-    dest_db = tmp_path / "backup.db"
-
-    # Create source DB.
-    mw = SqliteClient(path=str(src_db))
-
-    # Attempt backup without opening connection.
-    with pytest.raises(TiferetError) as exc_info:
-        mw.backup(str(dest_db), pages=-1)
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
-
-# ** test: sqlite_middleware_backup_to_invalid_path_raises_error
-def test_sqlite_middleware_backup_to_invalid_path_raises_error(tmp_path: Path):
-    '''
-    Verify that attempting to perform a backup to an invalid path raises an error.
-
-    :param tmp_path: Pytest temporary path fixture.
-    :type tmp_path: Path
-    '''
-
-    # Setup source database path and invalid destination path.
-    src_db = tmp_path / "source.db"
-    invalid_dest_db = tmp_path / "non_existent_dir" / "backup.db"
-
-    # Create source DB.
-    mw = SqliteClient(path=str(src_db))
-    with mw:
-        mw.executescript("""
-            CREATE TABLE test (id INT PRIMARY KEY, value TEXT);
-            INSERT INTO test VALUES (1, 'hello'), (2, 'world');
-        """)
-
-    # Attempt backup to invalid path
-    with mw:
-        with pytest.raises(TiferetError) as exc_info:
-            mw.backup(str(invalid_dest_db), pages=-1)
-
-    # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
-    assert exc_info.value.kwargs.get('target_path') == str(invalid_dest_db)
+        # Verify the isolation level was propagated.
+        assert db.conn.isolation_level == 'DEFERRED'

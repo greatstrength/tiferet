@@ -1,4 +1,4 @@
-"""Tests for Tiferet Models Settings"""
+"""Tests for Tiferet Domain Settings"""
 
 # *** imports
 
@@ -13,9 +13,9 @@ from ..settings import (
 
 # *** fixtures
 
-# ** fixture: test_model_object
+# ** fixture: test_domain_object
 @pytest.fixture
-def test_model_object() -> DomainObject:
+def test_domain_object() -> DomainObject:
     '''
     Fixture for a basic DomainObject subclass.
 
@@ -37,18 +37,18 @@ def test_model_object() -> DomainObject:
 
 # *** tests
 
-# ** test: model_object_new
-def test_model_object_new(test_model_object: DomainObject):
+# ** test: domain_object_new
+def test_domain_object_new(test_domain_object: DomainObject):
     '''
     Test the DomainObject.new method.
 
-    :param test_model_object: The DomainObject subclass to test.
-    :type test_model_object: DomainObject
+    :param test_domain_object: The DomainObject subclass to test.
+    :type test_domain_object: DomainObject
     '''
 
-    # Create a new model object using the fixture.
-    model_object = DomainObject.new(test_model_object, attribute='test')
+    # Create a new domain object using the fixture.
+    domain_object = DomainObject.new(test_domain_object, attribute='test')
 
-    # Assert the model object is valid.
-    assert isinstance(model_object, test_model_object)
-    assert model_object.attribute == 'test'
+    # Assert the domain object is valid.
+    assert isinstance(domain_object, test_domain_object)
+    assert domain_object.attribute == 'test'

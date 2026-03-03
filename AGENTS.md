@@ -1,47 +1,63 @@
-# AGENTS.md — Tiferet Framework (v2.0-proto)
+# AGENTS.md — Tiferet Framework (v1.9.x)
 
 ## Project Overview
 
 **Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML-based configuration files and `schematics` for model validation.
 
 - **Repository:** https://github.com/greatstrength/tiferet
-- **Branch:** `v2.0-proto` (active development — migration from v1.x)
+- **Branch:** `v1.9.x-maintenance`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a0` (alpha, defined in `tiferet/__init__.py`)
+- **Version:** `1.9.x`
 
 ## Architecture
 
 ### Layer Overview
 
+The v1.9.x branch maintains a **dual-package structure**: legacy packages from v1.x coexist alongside forward-compatible packages that introduce the v2.0 naming and design. Both are fully supported; new code should prefer the forward-compatible packages.
+
 ```
 tiferet/
-├── assets/          # Constants, exceptions (TiferetError), shared config
-├── builders/        # (Reserved, currently empty)
-├── contexts/        # Runtime orchestration (AppManager, Feature, Error, CLI, etc.)
-├── domain/          # Domain objects (read-only models, schematics-based)
-├── events/          # Domain events (business logic units with DI and validation)
-├── interfaces/      # Abstract service contracts (ABC-based)
-├── mappers/         # Aggregates (mutation) and TransferObjects (serialization)
-├── repos/           # Concrete service implementations (YAML-backed repositories)
-├── utils/           # File I/O utilities (YAML, JSON, CSV, SQLite)
-└── tests_int/       # Integration tests
+├── assets/               # Constants, exceptions (TiferetError), shared config
+├── commands/             # Legacy: Command base class
+├── contexts/             # Runtime orchestration (AppManager, Feature, Error, CLI, etc.)
+├── contracts/            # Legacy: Service/Repository contracts
+├── data/                 # Legacy: DataObject
+├── domain/               # Forward: DomainObject
+├── events/               # Forward: DomainEvent
+├── handlers/             # Handler implementations
+├── interfaces/           # Forward: Service ABC
+├── mappers/              # Forward: Aggregate + TransferObject
+├── middleware/           # File I/O middleware (deprecated — use utils/)
+├── models/               # Legacy: ModelObject
+├── proxies/              # YAML/JSON/CSV proxies
+├── repos/                # Repository implementations
+├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
+└── tests_int/            # Integration tests
 ```
 
 ### Key Concepts
 
-- **DomainObject** (`domain/settings.py`): Base class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
-- **DomainEvent** (`events/settings.py`): Base class for business operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
-- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for service contracts. All vertical concerns (data access, config, middleware) are unified under Service.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
-- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Methods: `map()`, `from_model()`, `from_data()`.
-- **Context** (`contexts/`): Runtime orchestrators. `AppManagerContext` is the entry point (`App` alias). `AppInterfaceContext` handles request→feature→response lifecycle. Low-level contexts: `FeatureContext`, `ErrorContext`, `ContainerContext`, `CacheContext`, `LoggingContext`, `RequestContext`.
+**Legacy packages** (fully supported, carried from v1.x):
+
+- **ModelObject** (`models/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `ModelObject.new(Type, **kwargs)`.
+- **Command** (`commands/settings.py`): Base class for business operations with dependency injection and `execute(**kwargs)` entry point.
+- **DataObject** (`data/settings.py`): Combined data mapping/serialization class with `new()`, `map()`, `from_model()`, `from_data()`, `allow()`, `deny()`.
+- **Repository** / **Service** / **ModelContract** (`contracts/`): Abstract base classes for service and repository contracts.
+
+**Forward-compatible packages** (new in v1.9.x, aligned with v2.0 design):
+
+- **DomainObject** (`domain/settings.py`): Drop-in successor to `ModelObject`. Base class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
+- **DomainEvent** (`events/settings.py`): Successor to `Command`. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
+- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for service contracts. Successor to `contracts/` service interfaces. All vertical concerns (data access, config, middleware) are unified under Service.
+- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Successor to the mutation side of `DataObject`. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
+- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Successor to the serialization side of `DataObject`. Methods: `map()`, `from_model()`, `from_data()`.
 
 ### Runtime Flow
 
 1. `App()` (alias for `AppManagerContext`) loads settings.
 2. `app.run(interface_id, feature_id, data={})` loads the interface via `AppInterfaceContext`.
 3. `FeatureContext.execute_feature()` loads the feature config, resolves commands from the container, and executes them sequentially.
-4. Each command is a `DomainEvent` subclass that receives injected services and performs domain logic.
+4. Each command is a `DomainEvent` (or legacy `Command`) subclass that receives injected services and performs domain logic.
 5. Results flow back through `RequestContext` and `handle_response()`.
 
 ### Dependency Injection
@@ -202,32 +218,52 @@ Applications are configured via YAML files in `app/configs/`:
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
 - **Event testing:** Always invoke via `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`.
 
-### v2.0-proto Note
-
-All `Command` references in framework code have been migrated to `DomainEvent`. The `Command` alias is no longer exported from `tiferet/events/`. New code must use `DomainEvent` exclusively.
-
 ## Utilities
 
-`tiferet/utils/` provides file I/O wrappers:
+`tiferet/utils/` provides concrete infrastructure implementations satisfying Service interfaces (`FileService`, `SqliteService`, etc.). Utilities encapsulate repeatable processes — physical (file I/O, database) and computational (algorithms, inference, transformations) — behind injectable, testable contracts.
 
-- `FileLoader` / `File` — Base file operations (open, close, read, write) with context manager support.
-- `YamlLoader` / `Yaml` — YAML read/write via PyYAML.
-- `JsonLoader` / `Json` — JSON read/write.
-- `CsvLoader` / `Csv` — CSV read/write.
-- `CsvDictLoader` / `CsvDict` — CSV with dict reader/writer.
-- `SqliteClient` / `Sqlite` — SQLite connection management with context manager.
+See [docs/core/utils.md](docs/core/utils.md) for the full design document.
+
+Current utilities:
+- `File` / `FileLoader` — Base file I/O implementing `FileService`.
+- `Yaml` / `YamlLoader` — YAML read/write via PyYAML.
+- `Json` / `JsonLoader` — JSON read/write with path support.
+- `Csv` / `CsvLoader` — List-based CSV with helpers.
+- `CsvDict` / `CsvDictLoader` — Dict-based CSV.
+- `Sqlite` / `SqliteClient` — SQLite client implementing `SqliteService` and `FileService`.
 
 ## Package Exports
 
 The top-level `tiferet/__init__.py` exports:
 
+**Core:**
 - `App` (alias for `AppManagerContext`)
 - `TiferetError`, `TiferetAPIError`
-- `DomainObject` and Schematics type wrappers
-- `DomainEvent`, `ParseParameter`
-- `Service`
-- `DataObject` (backward compat alias for mappers)
-- File utilities: `File`, `Yaml`, `Json`, `Csv`, `CsvDict`
+
+**Legacy:**
+- `ModelObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
+- `Command`, `ParseParameter` (from `commands/`)
+- `ModelContract`, `Repository`, `Service` (from `contracts/`)
+- `DataObject` (from `data/`)
+
+**Proxies and Middleware:**
+- `YamlFileProxy`, `JsonFileProxy`, `CsvFileProxy` (from `proxies/`)
+- `File`, `FileLoaderMiddleware`, `Yaml`, `YamlLoaderMiddleware`, `Json`, `JsonLoaderMiddleware`, `Csv`, `CsvLoaderMiddleware`, `CsvDict`, `CsvDictLoaderMiddleware` (from `middleware/`)
+
+**Forward-compatible** (available via their respective packages):
+- `DomainObject` (from `tiferet.domain`)
+- `DomainEvent`, `ParseParameter`, `ImportDependency`, `RaiseError` (from `tiferet.events`)
+- `Service` (from `tiferet.interfaces`)
+- `Aggregate`, `TransferObject` (from `tiferet.mappers`)
+
+## Forward-Compatible Packages
+
+The following packages are available on v1.9.x-maintenance as forward-compatible successors to legacy packages. New code should prefer these packages. Legacy packages remain fully supported.
+
+- **`tiferet/domain/`** → `DomainObject` — drop-in successor to `ModelObject` (`models/`). Same API, new name.
+- **`tiferet/events/`** → `DomainEvent` — successor to `Command` (`commands/`). Adds `@parameters_required` decorator and `DomainEvent.handle()` for testing.
+- **`tiferet/interfaces/`** → `Service` (ABC) — successor to `contracts/` service interfaces. Cleaner abstract base with `@abstractmethod`.
+- **`tiferet/mappers/`** → `Aggregate` + `TransferObject` — successor to `DataObject` (`data/`). Splits mutation (Aggregate) from serialization (TransferObject) for cleaner separation of concerns.
 
 ## Key Files for Orientation
 
@@ -240,17 +276,6 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and default configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
-
-## v2.0 Migration Notes
-
-v2.0 renames and restructures several packages from v1.x:
-
-- `entities/` → `domain/` (`ModelObject` → `DomainObject`)
-- `commands/` → `events/` (`Command` → `DomainEvent`)
-- `contracts/` → `interfaces/` (artifact comments `# *** contracts` → `# *** interfaces`)
-- `data/` → `mappers/` (`DataObject` split into `Aggregate` + `TransferObject`)
-- The `Command` alias has been fully removed; all framework code now uses `DomainEvent`.
-- Other backward compatibility aliases may still exist but new code should use the v2.0 names.
 
 ## Contributing
 

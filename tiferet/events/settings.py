@@ -1,3 +1,5 @@
+"""Tiferet Events Settings"""
+
 # *** imports
 
 # ** core
@@ -19,7 +21,7 @@ class DomainEvent(object):
     def execute(self, **kwargs) -> Any:
         '''
         Execute the domain event.
-        
+
         :param kwargs: The event arguments.
         :type kwargs: dict
         :return: The event result.
@@ -28,12 +30,12 @@ class DomainEvent(object):
 
         # Not implemented.
         raise NotImplementedError()
-    
-    # * method: raise_error
+
+    # * method: raise_error (static)
     @staticmethod
     def raise_error(error_code: str, message: str = None, **kwargs):
         '''
-        Raise an error with the given error code and arguments.
+        Raise a structured TiferetError.
 
         :param error_code: The error code.
         :type error_code: str
@@ -48,7 +50,7 @@ class DomainEvent(object):
             error_code,
             message,
             **kwargs
-        )    
+        )
 
     # * method: verify
     def verify(self, expression: bool, error_code: str, message: str = None, **kwargs):
@@ -79,24 +81,15 @@ class DomainEvent(object):
     @staticmethod
     def parameters_required(param_names: list):
         '''
-        Decorator to require one or more named parameters in **kwargs.
+        Declarative parameter validator decorator.
 
-        Validates all named parameters and raises a single TiferetError
-        with COMMAND_PARAMETER_REQUIRED_ID listing all missing or invalid
-        parameters if any fail validation.
+        Inspects kwargs for required parameters and raises a single
+        aggregated TiferetError if any are missing, None, or empty strings.
 
-        A parameter is invalid if it is missing from kwargs, is None, or
-        is an empty string (after strip). Non-string falsy values (0, [],
-        {}, False) are considered valid.
-
-        :param param_names: The list of parameter names to require.
+        :param param_names: The list of required parameter names.
         :type param_names: list
-
-        Usage::
-
-            @DomainEvent.parameters_required(['id', 'name'])
-            def execute(self, id: str, name: str, **kwargs) -> Any:
-                ...
+        :return: The decorator function.
+        :rtype: callable
         '''
 
         def decorator(method):
@@ -105,37 +98,46 @@ class DomainEvent(object):
                 # Collect all missing or invalid parameters.
                 missing = []
                 for name in param_names:
-                    value = kwargs.get(name)
-                    is_valid = (
-                        value is not None
-                        and (not isinstance(value, str) or bool(value.strip()))
-                    )
-                    if not is_valid:
+                    if name not in kwargs:
                         missing.append(name)
+                        continue
 
-                # Raise a single error if any parameters are missing.
+                    value = kwargs[name]
+
+                    # None is invalid.
+                    if value is None:
+                        missing.append(name)
+                        continue
+
+                    # Empty or whitespace-only strings are invalid.
+                    if isinstance(value, str) and not value.strip():
+                        missing.append(name)
+                        continue
+
+                # Raise a single error with all violations if any found.
                 if missing:
-                    self.raise_error(
+                    DomainEvent.raise_error(
                         a.const.COMMAND_PARAMETER_REQUIRED_ID,
-                        f'Required parameter(s) {missing} missing for the "{self.__class__.__name__}" command.',
+                        message=f'Required parameters missing for {self.__class__.__name__}.',
                         parameters=missing,
                         command=self.__class__.__name__,
                     )
 
-                # Proceed with original method.
+                # Call the wrapped method.
                 return method(self, *args, **kwargs)
 
             return wrapper
+
         return decorator
 
-    # * method: handle
+    # * method: handle (static)
     @staticmethod
     def handle(
             command: type,
             dependencies: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
-        Handle a domain event instance.
+        Handle a domain event instance via the instantiate-execute pattern.
 
         :param command: The domain event class to handle.
         :type command: type
@@ -147,9 +149,9 @@ class DomainEvent(object):
         :rtype: Any
         '''
 
-        # Get the command handler.
+        # Get the event handler.
         command_handler = command(**dependencies)
 
-        # Execute the command handler.
+        # Execute the event handler.
         result = command_handler.execute(**kwargs)
         return result

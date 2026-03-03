@@ -1,13 +1,8 @@
 # Interfaces in Tiferet
 
-**Project:** Tiferet Framework  
-**Repository:** https://github.com/greatstrength/tiferet  
+Interfaces are a core component of the Tiferet framework, defining service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** — abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
 
-## Overview
-
-Interfaces are a core component of the Tiferet framework, defining abstract service contracts that specify the anticipated structure and behavior of services used by commands and domain events, aligning with Domain-Driven Design (DDD) principles. In the current evolution of Tiferet, **Services** serve as the **unified vertical contracts** — abstract base classes that act as the primary interface for all domain-specific orchestration, data access, configuration management, middleware, and utility behavior.
-
-This document focuses exclusively on **Services** as the vertical interface definitions.
+This document focuses exclusively on **Services** as the vertical contracts.
 
 ## What is a Service?
 
@@ -18,89 +13,56 @@ A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.s
 - Provide middleware and utility behavior (file handling, context management, validation, caching)
 - Coordinate domain logic while hiding infrastructure details
 
-**Commands and domain events** depend on injected Service instances to perform persistence, retrieval, or orchestration (e.g., `error_service.save(error)`, `configuration_service.load(...)`). Services encapsulate the infrastructure details, allowing commands to remain pure domain logic.
+**Commands** and **domain events** depend on injected Service instances to perform persistence, retrieval, or orchestration (e.g., `error_service.save(error)`, `configuration_service.load(...)`). Services encapsulate the infrastructure details, allowing commands and events to remain pure domain logic.
 
 ### Role in Runtime
-- **Commands and domain events** are the primary consumers of Services, receiving them via dependency injection (constructor).
-- They use Services to delegate vertical concerns (data access, configuration, file I/O, etc.).
+- **Commands** and **domain events** are the primary consumers of Services, receiving them via dependency injection (constructor).
+- Commands and events use Services to delegate vertical concerns (data access, configuration, file I/O, etc.).
 - Concrete implementations (YAML-backed repositories, middleware classes) satisfy the Service interfaces while hiding implementation details.
 - **Factories** (e.g., `ConfigurationFileRepository`) resolve the correct concrete Service at runtime based on context (file type, etc.).
 
-### Key Characteristics of Services as Vertical Interfaces
+### Key Characteristics of Services as Vertical Contracts
 - **Vertical abstraction**: They cross the domain ↔ infrastructure boundary, hiding how data is stored, files are managed, or middleware is applied.
 - **Unified interface**: All vertical concerns (previously handled by repositories, configuration loaders, middleware, utilities) converge under `Service`.
-- **Dependency injection**: Services are injected into commands via containers or initializers, making implementations swappable.
+- **Dependency injection**: Services are injected into commands and events via containers or initializers, making implementations swappable.
 - **Extensibility**: New concerns (e.g., authentication, logging, rate limiting) can be added as new Service interfaces or layered inside existing ones.
 
-In the error domain, `ErrorService` is the vertical interface that all error-related commands depend on. In configuration handling, `ConfigurationService` abstracts YAML/JSON loading and saving, with concrete middleware implementations satisfying the interface.
+In the error domain, `ErrorService` is the vertical contract that all error-related commands depend on. In configuration handling, `ConfigurationService` abstracts YAML/JSON loading and saving, with concrete middleware implementations satisfying the interface.
 
-## The Service Base Class
+## Structured Code Design of Services
 
-`Service` extends `abc.ABC` and serves as the minimal abstract base for all service interfaces:
-
-```python
-# tiferet/interfaces/settings.py
-
-from abc import ABC
-
-class Service(ABC):
-    '''
-    The service interface as an abstract base class.
-    '''
-
-    pass
-```
-
-All domain-specific service interfaces extend `Service`.
-
-## Structured Code Design of Interfaces
-
-Interfaces follow Tiferet's structured code style using artifact comments for organization and readability.
+Services follow Tiferet's structured code style using artifact comments for organization and readability.
 
 ### Artifact Comments
 
-Interfaces are organized under the `# *** interfaces` top-level comment, with individual interfaces under `# ** interface: <snake_case_name>`. Within each interface:
+Services are organized under the `# *** interfaces` top-level comment, with individual Services under `# ** interface: <snake_case_name>`. Within each Service:
 
 - `# * attribute: <name>` — Declares expected instance attributes (type hints only).
 - `# * method: <name>` — Defines abstract methods marked with `@abstractmethod`.
 
-No `# * method: new` is used, as interfaces are abstract definitions.
+No `# * method: new` is used, as Services are interfaces.
 
-**Spacing rules:**
-- One empty line between `# *** interfaces` and first `# ** interface`.
-- One empty line between each `# *` section.
-- One empty line after docstrings and between code snippets.
-
-**Example** — `ErrorService`:
+**Example** – `tiferet/interfaces/error.py`:
 ```python
-# *** imports
-
-# ** core
-from abc import abstractmethod
-from typing import List
-
-# ** app
-from .settings import Service
-
 # *** interfaces
 
 # ** interface: error_service
 class ErrorService(Service):
     '''
-    Service interface for managing error objects.
+    Vertical interface for managing error domain objects.
     '''
 
     # * method: exists
     @abstractmethod
-    def exists(self, id: str) -> bool:
+    def exists(self, id: str, **kwargs) -> bool:
         '''
-        Check if an error exists by ID.
+        Check if an error exists.
         '''
         raise NotImplementedError()
 
     # * method: get
     @abstractmethod
-    def get(self, id: str):
+    def get(self, id: str) -> Error:
         '''
         Retrieve an error by ID.
         '''
@@ -108,7 +70,7 @@ class ErrorService(Service):
 
     # * method: list
     @abstractmethod
-    def list(self) -> List:
+    def list(self) -> List[Error]:
         '''
         List all errors.
         '''
@@ -116,7 +78,7 @@ class ErrorService(Service):
 
     # * method: save
     @abstractmethod
-    def save(self, error) -> None:
+    def save(self, error: Error) -> None:
         '''
         Persist an error.
         '''
@@ -131,12 +93,12 @@ class ErrorService(Service):
         raise NotImplementedError()
 ```
 
-**Example** — `ConfigurationService`:
+**Example** – `tiferet/interfaces/config.py` (configuration):
 ```python
 # ** interface: configuration_service
 class ConfigurationService(Service):
     '''
-    Interface for loading and saving structured configuration data.
+    Vertical interface for loading and saving structured configuration data.
     '''
 
     # * method: load
@@ -156,92 +118,81 @@ class ConfigurationService(Service):
         raise NotImplementedError()
 ```
 
-## Creating New and Extending Interfaces
-
-### 1. Define a New Service Interface
-- Place under `# *** interfaces` and `# ** interface: <name>` in a domain-specific module (e.g., `tiferet/interfaces/calculator.py`).
-- Extend `Service` from `tiferet.interfaces.settings`.
-- Define abstract methods with domain-appropriate signatures.
-- Mark all methods with `@abstractmethod`.
-
-**Example** — `CalculatorService`:
+**Example** – `tiferet/interfaces/file.py` (low-level middleware/utility):
 ```python
-# *** imports
-
-# ** core
-from abc import abstractmethod
-from typing import List
-
-# ** app
-from tiferet.interfaces.settings import Service
-
-# *** interfaces
-
-# ** interface: calculator_service
-class CalculatorService(Service):
+# ** interface: file_service
+class FileService(Service):
     '''
-    Service interface for calculator operations.
+    Vertical interface for low-level file stream management.
     '''
 
-    # * method: compute
+    # * method: open_file
     @abstractmethod
-    def compute(self, operation: str, a: float, b: float) -> float:
+    def open_file(self):
         '''
-        Perform a computation.
+        Open the configured file stream.
         '''
         raise NotImplementedError()
 
-    # * method: history
+    # * method: close_file
     @abstractmethod
-    def history(self) -> List:
+    def close_file(self):
         '''
-        Retrieve computation history.
+        Close the file stream.
         '''
         raise NotImplementedError()
 ```
 
-### 2. Implement the Interface
-- Concrete classes implement the Service interface.
-- Middleware-style implementations often inherit from lower-level middleware while implementing the target Service.
-- Use factories to resolve concrete implementations dynamically.
+## Creating New and Extending Services
 
-### 3. Use in Commands / Domain Events
-- Inject the Service via constructor (e.g., `error_service: ErrorService`).
-- Depend only on the interface for all vertical operations.
+1. **Define a New Service Interface**
+   - Place under `# *** interfaces` in a domain-specific module.
+   - Extend `Service` from `tiferet.interfaces.settings`.
+   - Define abstract methods with domain-appropriate signatures.
 
-### Best Practices
-- Use artifact comments (`# * method`, `# * attribute`) consistently.
-- Define methods with clear RST docstrings, type hints, and domain intent.
-- Use `@abstractmethod` to enforce implementation.
-- Keep services focused but composable (layer via inheritance or decoration).
-- Inject Services into commands — never hard-code concrete classes.
-- Maintain one empty line between sections, comments, and code blocks.
+2. **Implement the Service**
+   - Concrete classes implement the Service interface.
+   - Middleware-style implementations often inherit from lower-level middleware while implementing the target Service.
+   - Use factories (e.g., `ConfigurationFileRepository.open_config()`) to resolve concrete implementations dynamically.
+
+3. **Use in Commands and Domain Events**
+   - Inject the Service via constructor (e.g., `error_service: ErrorService`).
+   - Depend only on the interface for all vertical operations.
 
 ## Migration from Contracts
 
-In v2.0, the `tiferet/contracts/` package was renamed to `tiferet/interfaces/`. The artifact comments were updated from `# *** contracts` / `# ** contract:` to `# *** interfaces` / `# ** interface:`. The `Service` base class and all service interface APIs remain identical — only the package name and artifact comment labels have changed.
+The `tiferet.interfaces` package is the successor to `tiferet.contracts` and represents the canonical location for service interfaces going forward.
 
-The `tiferet/contracts/` package remains available for backward compatibility. New code should define service interfaces in `tiferet/interfaces/`.
+### Package Rename Rationale
+The rename from `contracts` to `interfaces` better reflects the purpose of these components as abstract service interfaces, aligning with widely understood software engineering terminology and the v2.0 architectural direction.
 
-## Package Layout
+### Artifact Comment Changes
+When migrating service files from `tiferet.contracts` to `tiferet.interfaces`, update the artifact comments as follows:
 
-Interfaces are defined in `tiferet/interfaces/`:
+- `# *** contracts` → `# *** interfaces`
+- `# ** contract: <name>` → `# ** interface: <name>`
 
-- `settings.py` — `Service(ABC)` base class.
-- `app.py` — `AppService`.
-- `cache.py` — `CacheService`.
-- `cli.py` — `CliService`.
-- `config.py` — `ConfigurationService`.
-- `container.py` — `ContainerService`.
-- `error.py` — `ErrorService`.
-- `feature.py` — `FeatureService`.
-- `file.py` — `FileService`.
-- `logging.py` — `LoggingService`.
-- `sqlite.py` — `SqliteService`.
-- `__init__.py` — Public exports for all service interfaces.
+All other artifact comments (`# * method:`, `# * attribute:`, etc.) remain unchanged.
+
+### Incremental Migration Path
+Migration of concrete service interfaces (e.g., `ErrorService`, `FeatureService`, `ContainerService`) from `tiferet.contracts` to `tiferet.interfaces` will proceed incrementally:
+
+1. **Phase 1 (current)**: Only the base `Service` class is ported to `tiferet.interfaces.settings`. All domain-specific interfaces remain in `tiferet.contracts`.
+2. **Phase 2 (future)**: Individual service interfaces will be migrated as their dependent aggregates, mappers, and domain events become available in the v2.0 architecture.
+3. **Backward compatibility**: During migration, `tiferet.contracts` will continue to function. No existing imports will break until an explicit deprecation cycle is initiated.
+
+New service interfaces should be created in `tiferet.interfaces` from the start.
+
+## Best Practices
+- Use artifact comments consistently (`# * method`, `# * attribute`).
+- Define methods with clear RST docstrings, type hints, and domain intent.
+- Use `@abstractmethod` to enforce implementation.
+- Keep services focused but composable (layer via inheritance or decoration).
+- Inject Services into commands and events — never hard-code concrete classes.
+- Maintain one empty line between sections, comments, and code blocks.
 
 ## Conclusion
 
-Services are the unified vertical interfaces in Tiferet, serving as the primary abstract definitions for middleware, data access, configuration management, and utilities. Commands and domain events depend exclusively on these Service interfaces, achieving high decoupling, testability, and extensibility. Concrete implementations satisfy the Service interfaces while hiding infrastructure details.
+Services are the unified vertical interfaces in Tiferet, serving as the primary interface for middleware, data access, configuration management, and utilities. Commands and domain events depend exclusively on these Service interfaces, achieving high decoupling, testability, and extensibility. Concrete implementations satisfy the Service interfaces while hiding infrastructure details.
 
-Explore `tiferet/interfaces/` for current service definitions and `tiferet/repos/` for implementation patterns.
+Explore `tiferet/interfaces/` for base definitions, `tiferet/contracts/` for current domain-specific Service interfaces, and `tiferet/middleware/` and `tiferet/repos/` for implementation patterns.
