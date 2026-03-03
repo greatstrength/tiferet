@@ -25,7 +25,7 @@ The top-level workflow definition. A feature groups a sequence of steps under a 
 | `group_id` | `str` (required) | Group identifier for organizing related features |
 | `feature_key` | `str` (required) | Unique key within the group |
 | `flags` | `List[str]` (default: `[]`) | Feature-level flags for dependency resolution |
-| `steps` | `List[FeatureStep]` (default: `[]`) | Ordered workflow steps |
+| `steps` | `List[FeatureEvent]` (default: `[]`) | Ordered workflow steps |
 | `log_params` | `Dict[str, str]` (default: `{}`) | Parameters to include in log output |
 
 **Behavior method:**
