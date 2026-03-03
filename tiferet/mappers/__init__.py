@@ -21,6 +21,10 @@ from .container import (
     ContainerAttributeAggregate,
     ContainerAttributeYamlObject,
 )
+from .di import (
+    ServiceConfigurationAggregate,
+    ServiceConfigurationYamlObject,
+)
 from .error import (
     ErrorAggregate,
     ErrorYamlObject,
