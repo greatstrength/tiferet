@@ -4,15 +4,15 @@
 
 # ** core
 from abc import abstractmethod
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable, Optional
 
 # ** app
-from .settings import Service
+from .file import FileService
 
 # *** interfaces
 
 # ** interface: sqlite_service
-class SqliteService(Service):
+class SqliteService(FileService):
     '''
     Service contract for SQLite database operations.
     '''
@@ -62,22 +62,30 @@ class SqliteService(Service):
 
     # * method: fetch_one
     @abstractmethod
-    def fetch_one(self) -> tuple | None:
+    def fetch_one(self, query: str, parameters: Iterable[Any] = ()) -> tuple | None:
         '''
-        Fetch the next row.
+        Execute a query and fetch a single row.
 
-        :return: The next row as a tuple, or None if no more rows.
+        :param query: The SQL query to execute.
+        :type query: str
+        :param parameters: Parameters for the SQL query.
+        :type parameters: Iterable[Any]
+        :return: The first row as a tuple, or None if no rows.
         :rtype: tuple | None
         '''
         raise NotImplementedError()
 
     # * method: fetch_all
     @abstractmethod
-    def fetch_all(self) -> list[tuple]:
+    def fetch_all(self, query: str, parameters: Iterable[Any] = ()) -> list[tuple]:
         '''
-        Fetch all remaining rows.
+        Execute a query and fetch all rows.
 
-        :return: All remaining rows as a list of tuples.
+        :param query: The SQL query to execute.
+        :type query: str
+        :param parameters: Parameters for the SQL query.
+        :type parameters: Iterable[Any]
+        :return: All rows as a list of tuples.
         :rtype: list[tuple]
         '''
         raise NotImplementedError()
@@ -100,13 +108,19 @@ class SqliteService(Service):
 
     # * method: backup
     @abstractmethod
-    def backup(self, target: 'SqliteService', pages: int = -1) -> None:
+    def backup(self,
+            target_path: str,
+            pages: int = -1,
+            progress: Optional[Callable[[int, int, int], None]] = None,
+        ) -> None:
         '''
-        Backup database to another connection.
+        Backup database to a target file path.
 
-        :param target: The target SQLite service to backup to.
-        :type target: SqliteService
+        :param target_path: The file path for the backup database.
+        :type target_path: str
         :param pages: Number of pages to copy at a time (-1 for all).
         :type pages: int
+        :param progress: Optional progress callback(status, remaining, total).
+        :type progress: Optional[Callable[[int, int, int], None]]
         '''
         raise NotImplementedError()

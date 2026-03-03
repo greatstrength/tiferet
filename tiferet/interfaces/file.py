@@ -46,3 +46,29 @@ class FileService(Service):
         :type file: IO[Any]
         '''
         raise NotImplementedError()
+
+    # * method: __enter__
+    @abstractmethod
+    def __enter__(self) -> 'FileService':
+        '''
+        Enter the runtime context for this file service.
+
+        :return: The file service instance.
+        :rtype: FileService
+        '''
+        raise NotImplementedError()
+
+    # * method: __exit__
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        '''
+        Exit the runtime context, ensuring resources are released.
+
+        :param exc_type: The exception type, if any.
+        :type exc_type: type | None
+        :param exc_val: The exception value, if any.
+        :type exc_val: BaseException | None
+        :param exc_tb: The traceback, if any.
+        :type exc_tb: object | None
+        '''
+        raise NotImplementedError()

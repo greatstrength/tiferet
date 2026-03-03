@@ -4,7 +4,7 @@
 
 # ** core
 from pathlib import Path
-from typing import Any, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
 import sqlite3
 
@@ -213,39 +213,41 @@ class SqliteClient(FileLoader, SqliteService):
         return self.cursor.executescript(sql_script)
 
     # * method: fetch_one
-    def fetch_one(self) -> Optional[tuple]:
+    def fetch_one(self, query: str, parameters: Iterable[Any] = ()) -> Optional[tuple]:
         '''
-        Fetch the next row from the last executed query.
+        Execute a query and fetch a single row.
 
-        :return: The next row as a tuple, or None if no more rows.
+        :param query: The SQL query to execute.
+        :type query: str
+        :param parameters: Parameters for the SQL query.
+        :type parameters: Iterable[Any]
+        :return: The first row as a tuple, or None if no rows.
         :rtype: tuple | None
         '''
 
-        # Guard against uninitialized connection.
-        if self.cursor is None:
-            RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
-            )
+        # Execute the query.
+        self.execute(query, parameters)
 
-        # Fetch and return the next row.
+        # Fetch and return the first row.
         return self.cursor.fetchone()
 
     # * method: fetch_all
-    def fetch_all(self) -> List[tuple]:
+    def fetch_all(self, query: str, parameters: Iterable[Any] = ()) -> List[tuple]:
         '''
-        Fetch all remaining rows from the last executed query.
+        Execute a query and fetch all rows.
 
-        :return: All remaining rows as a list of tuples.
+        :param query: The SQL query to execute.
+        :type query: str
+        :param parameters: Parameters for the SQL query.
+        :type parameters: Iterable[Any]
+        :return: All rows as a list of tuples.
         :rtype: list[tuple]
         '''
 
-        # Guard against uninitialized connection.
-        if self.cursor is None:
-            RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
-            )
+        # Execute the query.
+        self.execute(query, parameters)
 
-        # Fetch and return all remaining rows.
+        # Fetch and return all rows.
         return self.cursor.fetchall()
 
     # * method: commit
@@ -279,26 +281,38 @@ class SqliteClient(FileLoader, SqliteService):
         self.conn.rollback()
 
     # * method: backup
-    def backup(self, target: 'SqliteClient', pages: int = -1) -> None:
+    def backup(self,
+            target_path: str,
+            pages: int = -1,
+            progress: Optional[Callable[[int, int, int], None]] = None,
+        ) -> None:
         '''
-        Backup database to another SqliteClient connection.
+        Backup database to a target file path.
 
-        :param target: The target SqliteClient to backup to.
-        :type target: SqliteClient
+        :param target_path: The file path for the backup database.
+        :type target_path: str
         :param pages: Number of pages to copy at a time (-1 for all).
         :type pages: int
+        :param progress: Optional progress callback(status, remaining, total).
+        :type progress: Optional[Callable[[int, int, int], None]]
         '''
 
-        # Guard against uninitialized source or target connection.
-        if self.conn is None or target.conn is None:
+        # Guard against uninitialized source connection.
+        if self.conn is None:
             RaiseError.execute(
                 error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         try:
 
+            # Open a connection to the target database.
+            target_conn = sqlite3.connect(target_path)
+
             # Perform the backup to the target connection.
-            self.conn.backup(target.conn, pages=pages)
+            self.conn.backup(target_conn, pages=pages, progress=progress)
+
+            # Close the target connection.
+            target_conn.close()
 
         except sqlite3.Error as e:
 
@@ -306,7 +320,7 @@ class SqliteClient(FileLoader, SqliteService):
             RaiseError.execute(
                 error_code=a.const.SQLITE_BACKUP_FAILED_ID,
                 original_error=str(e),
-                target_path=str(target.path),
+                target_path=target_path,
             )
 
     # * method: __enter__
