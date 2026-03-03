@@ -63,19 +63,17 @@ class CliYamlRepository(CliService):
         '''
 
         # Load the CLI commands from the yaml configuration file.
-        with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
-
-            # Load all command data from nested cli.cmds structure.
-            cmds_data = yaml_file.load(
-                start_node=lambda d: d.get('cli', {}).get('cmds', {}),
-                data_factory=lambda d: {
-                    f"{group}.{cmd}": TransferObject.from_data(
-                        CliCommandYamlObject,
-                        id=f"{group}.{cmd}",
-                        **cmd_data
-                    ) for group, group_data in d.items() for cmd, cmd_data in group_data.items()
-                }
-            )
+        # Load all command data from nested cli.cmds structure.
+        cmds_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+            start_node=lambda d: d.get('cli', {}).get('cmds', {}),
+            data_factory=lambda d: {
+                f"{group}.{cmd}": TransferObject.from_data(
+                    CliCommandYamlObject,
+                    id=f"{group}.{cmd}",
+                    **cmd_data
+                ) for group, group_data in d.items() for cmd, cmd_data in group_data.items()
+            }
+        )
 
         # Return the mapped command objects.
         return [cmd.map() for cmd in cmds_data.values()]
@@ -109,12 +107,10 @@ class CliYamlRepository(CliService):
         group_key, command_key = id.split('.', 1)
 
         # Load the command data from the yaml configuration file.
-        with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
-
-            # Load the specific command data.
-            cmd_data = yaml_file.load(
-                start_node=lambda d: d.get('cli', {}).get('cmds', {}).get(group_key, {}).get(command_key)
-            )
+        # Load the specific command data.
+        cmd_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+            start_node=lambda d: d.get('cli', {}).get('cmds', {}).get(group_key, {}).get(command_key)
+        )
 
         # If no data is found, return None.
         if not cmd_data:
@@ -137,16 +133,14 @@ class CliYamlRepository(CliService):
         '''
 
         # Load the parent arguments from the yaml configuration file.
-        with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
-
-            # Load and return the parent arguments data.
-            return yaml_file.load(
-                start_node=lambda d: d.get('cli', {}).get('parent_args', []),
-                data_factory=lambda d: [Aggregate.new(
-                    CliArgument,
-                    **arg
-                ) for arg in d]
-            )
+        # Load and return the parent arguments data.
+        return Yaml(self.yaml_file, encoding=self.encoding).load(
+            start_node=lambda d: d.get('cli', {}).get('parent_args', []),
+            data_factory=lambda d: [Aggregate.new(
+                CliArgument,
+                **arg
+            ) for arg in d]
+        )
 
     # * method: save
     def save(self, command: CliCommand):
@@ -167,13 +161,14 @@ class CliYamlRepository(CliService):
         group_key, command_key = command.id.split('.', 1)
 
         # Update the command data.
-        with Yaml(self.yaml_file, mode='w', encoding=self.encoding) as yaml_file:
+        # Load the full configuration file.
+        full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
 
-            # Save the updated command data back to the yaml file.
-            yaml_file.save(
-                cmd_data.to_primitive(self.default_role),
-                data_path=f'cli.cmds.{group_key}.{command_key}'
-            )
+        # Update the entry.
+        full_data.setdefault('cli', {}).setdefault('cmds', {}).setdefault(f'{group_key}', {})[f'{command_key}'] = cmd_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
 
     # * method: delete
     def delete(self, id: str):
@@ -188,24 +183,23 @@ class CliYamlRepository(CliService):
         group_key, command_key = id.split('.', 1)
 
         # Retrieve the group data from the yaml file.
-        with Yaml(self.yaml_file, mode='r', encoding=self.encoding) as yaml_file:
-
-            # Load the group data.
-            group_data = yaml_file.load(
-                start_node=lambda d: d.get('cli', {}).get('cmds', {}).get(group_key, {})
-            )
+        # Load the group data.
+        group_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+            start_node=lambda d: d.get('cli', {}).get('cmds', {}).get(group_key, {})
+        )
 
         # Pop the command data whether it exists or not.
         group_data.pop(command_key, None)
 
         # Save the updated group data back to the yaml file.
-        with Yaml(self.yaml_file, mode='w', encoding=self.encoding) as yaml_file:
+        # Load the full configuration file.
+        full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
 
-            # Save the updated group data.
-            yaml_file.save(
-                group_data,
-                data_path=f'cli.cmds.{group_key}'
-            )
+        # Update the entry.
+        full_data.setdefault('cli', {}).setdefault('cmds', {})[f'{group_key}'] = group_data
+
+        # Persist the updated configuration file.
+        Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
 
     # * method: save_parent_arguments
     def save_parent_arguments(self, parent_arguments: List[CliArgument]):
@@ -217,10 +211,11 @@ class CliYamlRepository(CliService):
         '''
 
         # Save the parent arguments data to the yaml file.
-        with Yaml(self.yaml_file, mode='w', encoding=self.encoding) as yaml_file:
+        # Load the full configuration file.
+        full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
 
-            # Save the parent arguments data.
-            yaml_file.save(
-                [arg.to_primitive() for arg in parent_arguments],
-                data_path='cli.parent_args'
-            )
+        # Update the cli.parent_args entry.
+        full_data.setdefault('cli', {})['parent_args'] = [arg.to_primitive() for arg in parent_arguments]
+
+        # Persist the updated configuration file.
+        Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)

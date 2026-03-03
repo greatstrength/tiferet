@@ -66,17 +66,13 @@ class FeatureYamlRepository(FeatureService):
         # Split the feature id into group and name.
         group_id, feature_name = id.split('.', 1)
 
-        # Load the features mapping from the configuration file.
-        with Yaml(
+        # Load the group-specific feature data from the configuration file.
+        group_data: Dict[str, Any] = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load the group-specific feature data from the configuration file.
-            group_data: Dict[str, Any] = yaml_file.load(
-                start_node=lambda data: data.get('features', {}).get(group_id, None)
-            )
+        ).load(
+            start_node=lambda data: data.get('features', {}).get(group_id, None)
+        )
 
         # If the group does not exist, return False.
         if not group_data:
@@ -100,16 +96,12 @@ class FeatureYamlRepository(FeatureService):
         group_id, feature_name = id.split('.', 1)
 
         # Load the group-specific feature data from the configuration file.
-        with Yaml(
+        group_data: Dict[str, Any] = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load the feature group mapping.
-            group_data: Dict[str, Any] = yaml_file.load(
-                start_node=lambda data: data.get('features', {}).get(group_id, None)
-            )
+        ).load(
+            start_node=lambda data: data.get('features', {}).get(group_id, None)
+        )
 
         # If the group does not exist, return None.
         if not group_data:
@@ -141,16 +133,12 @@ class FeatureYamlRepository(FeatureService):
         '''
 
         # Load all groups and feature definitions from the configuration file.
-        with Yaml(
+        groups_data: Dict[str, Dict[str, Any]] = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load the full features mapping.
-            groups_data: Dict[str, Dict[str, Any]] = yaml_file.load(
-                start_node=lambda data: data.get('features', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('features', {})
+        )
 
         # Initialize the list of FeatureYamlObject objects.
         features: List[FeatureYamlObject] = []
@@ -193,18 +181,24 @@ class FeatureYamlRepository(FeatureService):
             feature
         )
 
-        # Persist the feature under features.<feature.id>.
-        with Yaml(
+        # Split the feature id for nested update.
+        group_id, feature_key = feature.id.split('.', 1)
+
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load()
+
+        # Update the feature entry.
+        full_data.setdefault('features', {}).setdefault(group_id, {})[feature_key] = feature_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Save the updated feature data back to the configuration file.
-            yaml_file.save(
-                data=feature_data.to_primitive(self.default_role),
-                data_path=f'features.{feature.id}',
-            )
+        ).save(data=full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -215,17 +209,13 @@ class FeatureYamlRepository(FeatureService):
         :type id: str
         '''
 
-        # Load the full features mapping from the configuration file.
-        with Yaml(
+        # Load all features data from the configuration file.
+        features_data: Dict[str, Dict[str, Any]] = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load all features data.
-            features_data: Dict[str, Dict[str, Any]] = yaml_file.load(
-                start_node=lambda data: data.get('features', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('features', {})
+        )
 
         # Split the feature id into group and name.
         group_id, feature_name = id.split('.', 1)
@@ -242,16 +232,18 @@ class FeatureYamlRepository(FeatureService):
         else:
             features_data[group_id] = group_data
 
-        # Write the updated features mapping back to the configuration file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load()
+
+        # Update the features section.
+        full_data['features'] = features_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Save the updated features data under the features root.
-            yaml_file.save(
-                data=features_data,
-                data_path='features',
-            )
-
+        ).save(data=full_data)

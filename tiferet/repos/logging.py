@@ -64,18 +64,14 @@ class LoggingYamlRepository(LoggingService):
         :rtype: Tuple[List[FormatterAggregate], List[HandlerAggregate], List[LoggerAggregate]]
         '''
 
-        # Load the logging data from the yaml configuration file.
-        with Yaml(
+        # Load the logging settings data from the yaml configuration file.
+        data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Load the logging settings data.
-            data = yaml_file.load(
-                data_factory=lambda d: LoggingSettingsYamlObject.from_data(**d),
-                start_node=lambda d: d.get('logging', {})
-            )
+        ).load(
+            data_factory=lambda d: LoggingSettingsYamlObject.from_data(**d),
+            start_node=lambda d: d.get('logging', {})
+        )
 
         # Return the formatters, handlers, and loggers.
         return (
@@ -99,18 +95,21 @@ class LoggingYamlRepository(LoggingService):
             formatter
         )
 
-        # Save the formatter data to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the formatter entry.
+        full_data.setdefault('logging', {}).setdefault('formatters', {})[formatter.id] = formatter_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the formatter data.
-            yaml_file.save(
-                formatter_data.to_primitive(self.default_role),
-                data_path=f'logging.formatters.{formatter.id}'
-            )
+        ).save(data=full_data)
 
     # * method: save_handler
     def save_handler(self, handler: HandlerAggregate):
@@ -127,18 +126,21 @@ class LoggingYamlRepository(LoggingService):
             handler
         )
 
-        # Save the handler data to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the handler entry.
+        full_data.setdefault('logging', {}).setdefault('handlers', {})[handler.id] = handler_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the handler data.
-            yaml_file.save(
-                handler_data.to_primitive(self.default_role),
-                data_path=f'logging.handlers.{handler.id}'
-            )
+        ).save(data=full_data)
 
     # * method: save_logger
     def save_logger(self, logger: LoggerAggregate):
@@ -155,18 +157,21 @@ class LoggingYamlRepository(LoggingService):
             logger
         )
 
-        # Save the logger data to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the logger entry.
+        full_data.setdefault('logging', {}).setdefault('loggers', {})[logger.id] = logger_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the logger data.
-            yaml_file.save(
-                logger_data.to_primitive(self.default_role),
-                data_path=f'logging.loggers.{logger.id}'
-            )
+        ).save(data=full_data)
 
     # * method: delete_formatter
     def delete_formatter(self, formatter_id: str):
@@ -177,33 +182,32 @@ class LoggingYamlRepository(LoggingService):
         :type formatter_id: str
         '''
 
-        # Retrieve the formatters data from the yaml file.
-        with Yaml(
+        # Load all formatters data from the yaml file.
+        formatter_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Load all formatters data.
-            formatter_data = yaml_file.load(
-                start_node=lambda d: d.get('logging', {}).get('formatters', {})
-            )
+        ).load(
+            start_node=lambda d: d.get('logging', {}).get('formatters', {})
+        )
 
         # Pop the formatter data whether it exists or not.
         formatter_data.pop(formatter_id, None)
 
-        # Save the updated formatters data back to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the formatters section.
+        full_data.setdefault('logging', {})['formatters'] = formatter_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated formatters data.
-            yaml_file.save(
-                formatter_data,
-                data_path='logging.formatters'
-            )
+        ).save(data=full_data)
 
     # * method: delete_handler
     def delete_handler(self, handler_id: str):
@@ -214,33 +218,32 @@ class LoggingYamlRepository(LoggingService):
         :type handler_id: str
         '''
 
-        # Retrieve the handlers data from the yaml file.
-        with Yaml(
+        # Load all handlers data from the yaml file.
+        handler_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Load all handlers data.
-            handler_data = yaml_file.load(
-                start_node=lambda d: d.get('logging', {}).get('handlers', {})
-            )
+        ).load(
+            start_node=lambda d: d.get('logging', {}).get('handlers', {})
+        )
 
         # Pop the handler data whether it exists or not.
         handler_data.pop(handler_id, None)
 
-        # Save the updated handlers data back to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the handlers section.
+        full_data.setdefault('logging', {})['handlers'] = handler_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated handlers data.
-            yaml_file.save(
-                handler_data,
-                data_path='logging.handlers'
-            )
+        ).save(data=full_data)
 
     # * method: delete_logger
     def delete_logger(self, logger_id: str):
@@ -251,30 +254,29 @@ class LoggingYamlRepository(LoggingService):
         :type logger_id: str
         '''
 
-        # Retrieve the loggers data from the yaml file.
-        with Yaml(
+        # Load all loggers data from the yaml file.
+        logger_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Load all loggers data.
-            logger_data = yaml_file.load(
-                start_node=lambda d: d.get('logging', {}).get('loggers', {})
-            )
+        ).load(
+            start_node=lambda d: d.get('logging', {}).get('loggers', {})
+        )
 
         # Pop the logger data whether it exists or not.
         logger_data.pop(logger_id, None)
 
-        # Save the updated loggers data back to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the loggers section.
+        full_data.setdefault('logging', {})['loggers'] = logger_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated loggers data.
-            yaml_file.save(
-                logger_data,
-                data_path='logging.loggers'
-            )
+        ).save(data=full_data)

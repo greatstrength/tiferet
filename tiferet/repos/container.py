@@ -60,19 +60,15 @@ class ContainerYamlRepository(ContainerService):
         '''
 
         # Load the container attribute data from the yaml configuration file.
-        with Yaml(
+        attrs_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
+        ).load(
+            start_node=lambda data: data.get('attrs', {})
+        )
 
-            # Load the configuration data into a data object.
-            attrs_data = yaml_file.load(
-                start_node=lambda data: data.get('attrs', {})
-            )
-
-            # Check if the attribute id exists in the configuration data.
-            return id in attrs_data
+        # Check if the attribute id exists in the configuration data.
+        return id in attrs_data
 
     # * method: get_attribute
     def get_attribute(self, id: str) -> ContainerAttribute:
@@ -86,27 +82,23 @@ class ContainerYamlRepository(ContainerService):
         '''
 
         # Load the container attribute data from the yaml configuration file.
-        with Yaml(
+        attr_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
+        ).load(
+            start_node=lambda data: data.get('attrs', {}).get(id, None)
+        )
 
-            # Load the attribute data from the json configuration file.
-            attr_data = yaml_file.load(
-                start_node=lambda data: data.get('attrs', {}).get(id, None)
-            )
+        # Return None if the attribute data is not found.
+        if not attr_data:
+            return attr_data
 
-            # Return None if the attribute data is not found.
-            if not attr_data:
-                return attr_data
-
-            # Return the mapped container attribute.
-            return TransferObject.from_data(
-                ContainerAttributeYamlObject,
-                id=id, 
-                **attr_data
-            ).map()
+        # Return the mapped container attribute.
+        return TransferObject.from_data(
+            ContainerAttributeYamlObject,
+            id=id, 
+            **attr_data
+        ).map()
 
     # * method: list_all
     def list_all(self) -> Tuple[List[ContainerAttribute], Dict[str, str]]:
@@ -137,22 +129,18 @@ class ContainerYamlRepository(ContainerService):
             return attrs, consts
 
         # Load the container attribute data from the yaml configuration file.
-        with Yaml(
+        attrs_data, consts = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
+        ).load(
+            data_factory=data_factory
+        )
 
-            # Load the attribute data from the json configuration file.
-            attrs_data, consts = yaml_file.load(
-                data_factory=data_factory
-            )
-
-            # Return the list of container attributes.
-            return (
-                [data.map() for data in attrs_data],
-                consts
-            )
+        # Return the list of container attributes.
+        return (
+            [data.map() for data in attrs_data],
+            consts
+        )
         
     # * method: save_attribute
     def save_attribute(self, attribute: ContainerAttribute):
@@ -180,18 +168,21 @@ class ContainerYamlRepository(ContainerService):
             dependencies=dependencies_data
         )
 
-        # Save the container attribute data to the yaml configuration file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the attribute entry.
+        full_data.setdefault('attrs', {})[attribute.id] = container_data.to_primitive(self.default_role)
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated attribute data back to the yaml file.
-            yaml_file.save(
-                data=container_data.to_primitive(self.default_role),
-                data_path=f'attrs.{attribute.id}',
-            )
+        ).save(data=full_data)
 
     # * method: delete_attribute
     def delete_attribute(self, attribute_id: str):
@@ -202,33 +193,32 @@ class ContainerYamlRepository(ContainerService):
         :type attribute_id: str
         '''
 
-        # Load the existing container attribute data from the yaml configuration file.
-        with Yaml(
+        # Load all container attribute data from the yaml configuration file.
+        attrs_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Load all container attribute data.
-            attrs_data = yaml_file.load(
-                start_node=lambda data: data.get('attrs', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('attrs', {})
+        )
 
         # Pop the attribute data whether it exists or not.
         attrs_data.pop(attribute_id, None)
 
-        # Save the updated container attribute data back to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the attrs section.
+        full_data['attrs'] = attrs_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated attribute data.
-            yaml_file.save(
-                data=attrs_data,
-                data_path='attrs',
-            )
+        ).save(data=full_data)
 
     # * method: save_constants
     def save_constants(self, constants: Dict[str, str]):
@@ -240,16 +230,12 @@ class ContainerYamlRepository(ContainerService):
         '''
 
         # Load the existing constants data from the yaml configuration file.
-        with Yaml(
+        const_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated constants data.
-            const_data = yaml_file.load(
-                start_node=lambda data: data.get('const', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('const', {})
+        )
 
         # Update the constants data with the new constants.
         const_data.update(constants)
@@ -257,15 +243,18 @@ class ContainerYamlRepository(ContainerService):
         # Remove any constants with None values.
         const_data = {k: v for k, v in const_data.items() if v is not None}
 
-        # Save the updated constants data back to the yaml file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding
+        ).load()
+
+        # Update the const section.
+        full_data['const'] = const_data
+
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding
-        ) as yaml_file:
-
-            # Save the updated constants data.
-            yaml_file.save(
-                data=const_data,
-                data_path='const',
-            )
+        ).save(data=full_data)

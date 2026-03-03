@@ -59,16 +59,12 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the interfaces mapping from the configuration file.
-        with Yaml(
+        interfaces_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load all interfaces data.
-            interfaces_data = yaml_file.load(
-                start_node=lambda data: data.get('interfaces', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('interfaces', {})
+        )
 
         # Return whether the interface id exists in the mapping.
         return id in interfaces_data
@@ -85,16 +81,12 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the specific interface data from the configuration file.
-        with Yaml(
+        interface_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load the app interface node.
-            interface_data = yaml_file.load(
-                start_node=lambda data: data.get('interfaces', {}).get(id)
-            )
+        ).load(
+            start_node=lambda data: data.get('interfaces', {}).get(id)
+        )
 
         # If no data is found, return None.
         if not interface_data:
@@ -117,16 +109,12 @@ class AppYamlRepository(AppService):
         '''
 
         # Load all interfaces data from the configuration file.
-        with Yaml(
+        interfaces_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load the interfaces mapping.
-            interfaces_data = yaml_file.load(
-                start_node=lambda data: data.get('interfaces', {})
-            )
+        ).load(
+            start_node=lambda data: data.get('interfaces', {})
+        )
 
         # Map each interface entry to an AppInterface.
         return [
@@ -152,33 +140,21 @@ class AppYamlRepository(AppService):
         # Convert the app interface model to configuration data.
         interface_data = AppInterfaceYamlObject.from_model(interface)
 
-        # Load the existing interfaces mapping from the configuration file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load all interfaces data.
-            interfaces_data = yaml_file.load(
-                start_node=lambda data: data.get('interfaces', {})
-            ) or {}
+        ).load()
 
         # Update or insert the interface entry.
-        interfaces_data[interface.id] = interface_data.to_primitive(self.default_role)
+        full_data.setdefault('interfaces', {})[interface.id] = interface_data.to_primitive(self.default_role)
 
-        # Persist the updated interfaces mapping under the interfaces root.
-        with Yaml(
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Save the updated interfaces data back to the configuration file.
-            yaml_file.save(
-                data=interfaces_data,
-                data_path='interfaces',
-            )
+        ).save(data=full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -191,30 +167,18 @@ class AppYamlRepository(AppService):
         :rtype: None
         '''
 
-        # Load the interfaces mapping from the configuration file.
-        with Yaml(
+        # Load the full configuration file.
+        full_data = Yaml(
             self.yaml_file,
-            mode='r',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Load all interfaces data.
-            interfaces_data = yaml_file.load(
-                start_node=lambda data: data.get('interfaces', {})
-            )
+        ).load()
 
         # Remove the interface entry if it exists (idempotent).
-        interfaces_data.pop(id, None)
+        full_data.get('interfaces', {}).pop(id, None)
 
-        # Write the updated interfaces mapping back to the configuration file.
-        with Yaml(
+        # Persist the updated configuration file.
+        Yaml(
             self.yaml_file,
             mode='w',
             encoding=self.encoding,
-        ) as yaml_file:
-
-            # Save the updated interfaces data under the interfaces root.
-            yaml_file.save(
-                data=interfaces_data,
-                data_path='interfaces',
-            )
+        ).save(data=full_data)
