@@ -655,6 +655,7 @@ Architectural references for framework contributors and advanced users:
 Practical guides for working with Tiferet's domain layers:
 
 - [Mappers – Strategies and Patterns](docs/guides/mappers.md) — Aggregate and TransferObject design decisions, nested sub-objects, role strategies, and round-trip mapping
+- [Repos – Strategies and Patterns](docs/guides/repos.md) — Repository design decisions, YAML reading/writing patterns, grouped structures, and multi-section files
 
 ### Utility Guides
 
