@@ -22,6 +22,81 @@ from .settings import (
 
 # *** mappers
 
+# ** mapper: cli_argument_aggregate
+class CliArgumentAggregate(CliArgument, Aggregate):
+    '''
+    An aggregate representation of a CLI argument.
+    '''
+
+    # * method: new
+    @staticmethod
+    def new(
+        validate: bool = True,
+        strict: bool = True,
+        **kwargs
+    ) -> 'CliArgumentAggregate':
+        '''
+        Initializes a new CLI argument aggregate.
+
+        :param validate: True to validate the aggregate object.
+        :type validate: bool
+        :param strict: True to enforce strict mode for the aggregate object.
+        :type strict: bool
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        :return: A new CLI argument aggregate.
+        :rtype: CliArgumentAggregate
+        '''
+
+        # Create a new CLI argument aggregate from the provided data.
+        return Aggregate.new(
+            CliArgumentAggregate,
+            validate=validate,
+            strict=strict,
+            **kwargs
+        )
+
+    # * method: set_attribute
+    def set_attribute(self, attribute: str, value: Any) -> None:
+        '''
+        Update a supported attribute on the CLI argument aggregate.
+
+        Supported attributes: description, type, required, default, choices, nargs, action.
+
+        :param attribute: The attribute name to update.
+        :type attribute: str
+        :param value: The new value.
+        :type value: Any
+        :return: None
+        :rtype: None
+        '''
+
+        # Define the set of supported attributes.
+        supported = {
+            'description',
+            'type',
+            'required',
+            'default',
+            'choices',
+            'nargs',
+            'action',
+        }
+
+        # Validate the attribute name.
+        if attribute not in supported:
+            RaiseError.execute(
+                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+                attribute=attribute,
+                supported=', '.join(sorted(supported)),
+            )
+
+        # Apply the update to the attribute.
+        setattr(self, attribute, value)
+
+        # Perform final aggregate validation.
+        self.validate()
+
 # ** mapper: cli_command_aggregate
 class CliCommandAggregate(CliCommand, Aggregate):
     '''

@@ -12,6 +12,7 @@ from .app import (
     AppInterfaceYamlObject,
 )
 from .cli import (
+    CliArgumentAggregate,
     CliCommandAggregate,
     CliCommandYamlObject,
 )

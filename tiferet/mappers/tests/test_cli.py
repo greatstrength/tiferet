@@ -10,10 +10,12 @@ from ..settings import (
     TransferObject,
 )
 from ..cli import (
+    CliArgumentAggregate,
     CliCommandYamlObject,
     CliCommandAggregate,
 )
 from ...domain import CliCommand
+from ...assets.exceptions import TiferetError
 
 # *** fixtures
 
@@ -254,3 +256,69 @@ def test_cli_command_aggregate_set_attribute():
 
     # Assert the attribute was updated.
     assert aggregate.name == 'Updated Feature Name'
+
+# ** test: cli_argument_aggregate_new
+def test_cli_argument_aggregate_new():
+    '''
+    Test the creation of a CLI argument aggregate.
+    '''
+
+    # Create a CLI argument aggregate.
+    aggregate = CliArgumentAggregate.new(
+        name_or_flags=['--verbose', '-v'],
+        description='Enable verbose output',
+        type='str',
+        required=False,
+        default='false',
+        action='store_true',
+    )
+
+    # Assert the aggregate is valid.
+    assert isinstance(aggregate, CliArgumentAggregate)
+    assert aggregate.name_or_flags == ['--verbose', '-v']
+    assert aggregate.description == 'Enable verbose output'
+    assert aggregate.type == 'str'
+    assert aggregate.required is False
+    assert aggregate.default == 'false'
+    assert aggregate.action == 'store_true'
+
+# ** test: cli_argument_aggregate_set_attribute
+def test_cli_argument_aggregate_set_attribute():
+    '''
+    Test updating supported attributes on a CLI argument aggregate.
+    '''
+
+    # Create a CLI argument aggregate.
+    aggregate = CliArgumentAggregate.new(
+        name_or_flags=['--output', '-o'],
+        description='Output path',
+        type='str',
+    )
+
+    # Update the description attribute.
+    aggregate.set_attribute('description', 'Updated output path')
+
+    # Assert the attribute was updated.
+    assert aggregate.description == 'Updated output path'
+
+    # Update the required attribute.
+    aggregate.set_attribute('required', True)
+
+    # Assert the attribute was updated.
+    assert aggregate.required is True
+
+# ** test: cli_argument_aggregate_set_attribute_invalid
+def test_cli_argument_aggregate_set_attribute_invalid():
+    '''
+    Test that setting an unsupported attribute raises a TiferetError.
+    '''
+
+    # Create a CLI argument aggregate.
+    aggregate = CliArgumentAggregate.new(
+        name_or_flags=['--output', '-o'],
+        description='Output path',
+    )
+
+    # Attempt to set an unsupported attribute.
+    with pytest.raises(TiferetError):
+        aggregate.set_attribute('name_or_flags', ['--new'])
