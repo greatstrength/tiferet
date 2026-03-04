@@ -6,10 +6,10 @@
 from typing import List
 
 # ** app
-from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import (
     TransferObject,
+    AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )
 from ..utils import Yaml
@@ -70,14 +70,14 @@ class AppYamlRepository(AppService):
         return id in interfaces_data
 
     # * method: get
-    def get(self, id: str) -> AppInterface | None:
+    def get(self, id: str) -> AppInterfaceAggregate | None:
         '''
         Get the app interface by identifier.
 
         :param id: The app interface identifier.
         :type id: str
         :return: The app interface instance or None if not found.
-        :rtype: AppInterface | None
+        :rtype: AppInterfaceAggregate | None
         '''
 
         # Load the specific interface data from the configuration file.
@@ -100,12 +100,12 @@ class AppYamlRepository(AppService):
         ).map()
 
     # * method: list
-    def list(self) -> List[AppInterface]:
+    def list(self) -> List[AppInterfaceAggregate]:
         '''
         List all app interfaces.
 
         :return: A list of app interfaces.
-        :rtype: List[AppInterface]
+        :rtype: List[AppInterfaceAggregate]
         '''
 
         # Load all interfaces data from the configuration file.
@@ -127,12 +127,12 @@ class AppYamlRepository(AppService):
         ]
 
     # * method: save
-    def save(self, interface: AppInterface) -> None:
+    def save(self, interface: AppInterfaceAggregate) -> None:
         '''
         Save the app interface.
 
         :param interface: The app interface to save.
-        :type interface: AppInterface
+        :type interface: AppInterfaceAggregate
         :return: None
         :rtype: None
         '''

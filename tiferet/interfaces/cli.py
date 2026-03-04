@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import List
 
 # ** app
-from ..mappers import CliCommandAggregate
+from ..mappers import CliArgumentAggregate, CliCommandAggregate
 from .settings import Service
 
 # *** interfaces
@@ -88,12 +88,12 @@ class CliService(Service):
 
     # * method: get_parent_arguments
     @abstractmethod
-    def get_parent_arguments(self) -> List:
+    def get_parent_arguments(self) -> List[CliArgumentAggregate]:
         '''
         Get all parent-level CLI arguments.
 
-        :return: A list of parent CLI arguments.
-        :rtype: List
+        :return: A list of parent CLI argument aggregates.
+        :rtype: List[CliArgumentAggregate]
         '''
         # Not implemented.
         raise NotImplementedError('get_parent_arguments method is required for CliService.')

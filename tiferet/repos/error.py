@@ -10,9 +10,8 @@ from typing import (
 )
 
 # ** app
-from ..domain import Error
 from ..interfaces import ErrorService
-from ..mappers import TransferObject, ErrorYamlObject
+from ..mappers import TransferObject, ErrorAggregate, ErrorYamlObject
 from ..utils import Yaml
 
 # *** repos
@@ -68,14 +67,14 @@ class ErrorYamlRepository(ErrorService):
         return id in errors_data
 
     # * method: get
-    def get(self, id: str) -> Error:
+    def get(self, id: str) -> ErrorAggregate:
         '''
         Get the error.
 
         :param id: The error id.
         :type id: str
         :return: The error.
-        :rtype: Error
+        :rtype: ErrorAggregate
         '''
 
         # Load the specific error data.
@@ -95,12 +94,12 @@ class ErrorYamlRepository(ErrorService):
         ).map()
 
     # * method: list
-    def list(self) -> List[Error]:
+    def list(self) -> List[ErrorAggregate]:
         '''
         List all errors.
 
         :return: The list of errors.
-        :rtype: List[ErrorContract]
+        :rtype: List[ErrorAggregate]
         '''
 
         # Load all error data.
@@ -118,12 +117,12 @@ class ErrorYamlRepository(ErrorService):
         return [data.map() for data in errors.values()]
 
     # * method: save
-    def save(self, error: Error):
+    def save(self, error: ErrorAggregate):
         '''
         Save the error.
 
         :param error: The error.
-        :type error: ErrorContract
+        :type error: ErrorAggregate
         '''
 
         # Create updated error data.

@@ -10,12 +10,12 @@ from typing import (
 )
 
 # ** app
-from ..domain import CliCommand, CliArgument
 from ..interfaces import CliService
 from ..mappers import (
+    CliArgumentAggregate,
+    CliCommandAggregate,
     CliCommandYamlObject,
     TransferObject,
-    Aggregate,
 )
 from ..utils import Yaml
 from ..events import RaiseError
@@ -54,12 +54,12 @@ class CliYamlRepository(CliService):
         self.encoding = encoding
 
     # * method: list
-    def list(self) -> List[CliCommand]:
+    def list(self) -> List[CliCommandAggregate]:
         '''
         List all CLI command configurations.
 
         :return: List of CLI commands
-        :rtype: List[CliCommand]
+        :rtype: List[CliCommandAggregate]
         '''
 
         # Load the CLI commands from the yaml configuration file.
@@ -93,14 +93,14 @@ class CliYamlRepository(CliService):
         return self.get(id) is not None
 
     # * method: get
-    def get(self, id: str) -> CliCommand | None:
+    def get(self, id: str) -> CliCommandAggregate | None:
         '''
         Get a CLI command by its full ID (group.key).
 
         :param id: Command identifier (e.g., 'calc.add')
         :type id: str
         :return: CLI command or None if not found
-        :rtype: CliCommand | None
+        :rtype: CliCommandAggregate | None
         '''
 
         # Split the command ID into group and command keys.
@@ -124,31 +124,30 @@ class CliYamlRepository(CliService):
         ).map()
 
     # * method: get_parent_arguments
-    def get_parent_arguments(self) -> List[CliArgument]:
+    def get_parent_arguments(self) -> List[CliArgumentAggregate]:
         '''
         Get all parent-level CLI arguments.
 
         :return: List of parent arguments
-        :rtype: List[CliArgument]
+        :rtype: List[CliArgumentAggregate]
         '''
 
         # Load the parent arguments from the yaml configuration file.
         # Load and return the parent arguments data.
         return Yaml(self.yaml_file, encoding=self.encoding).load(
             start_node=lambda d: d.get('cli', {}).get('parent_args', []),
-            data_factory=lambda d: [Aggregate.new(
-                CliArgument,
+            data_factory=lambda d: [CliArgumentAggregate.new(
                 **arg
             ) for arg in d]
         )
 
     # * method: save
-    def save(self, command: CliCommand):
+    def save(self, command: CliCommandAggregate):
         '''
         Save/update a CLI command configuration.
 
         :param command: The CLI command to save.
-        :type command: CliCommand
+        :type command: CliCommandAggregate
         '''
 
         # Create updated command data.
@@ -202,12 +201,12 @@ class CliYamlRepository(CliService):
         Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
 
     # * method: save_parent_arguments
-    def save_parent_arguments(self, parent_arguments: List[CliArgument]):
+    def save_parent_arguments(self, parent_arguments: List[CliArgumentAggregate]):
         '''
         Save/update parent-level CLI arguments.
 
         :param parent_arguments: The list of parent arguments to save.
-        :type parent_arguments: List[CliArgument]
+        :type parent_arguments: List[CliArgumentAggregate]
         '''
 
         # Save the parent arguments data to the yaml file.

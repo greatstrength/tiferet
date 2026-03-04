@@ -10,10 +10,10 @@ from typing import (
 )
 
 # ** app
-from ..domain import Feature
 from ..interfaces import FeatureService
 from ..mappers import (
     TransferObject,
+    FeatureAggregate,
     FeatureYamlObject,
 )
 from ..utils import Yaml
@@ -82,14 +82,14 @@ class FeatureYamlRepository(FeatureService):
         return feature_name in group_data
 
     # * method: get
-    def get(self, id: str) -> Feature | None:
+    def get(self, id: str) -> FeatureAggregate | None:
         '''
         Get the feature by id.
 
         :param id: The feature id in the format "<group_id>.<feature_key>".
         :type id: str
         :return: The feature instance or None if not found.
-        :rtype: Feature | None
+        :rtype: FeatureAggregate | None
         '''
 
         # Split the feature id into group and name.
@@ -122,14 +122,14 @@ class FeatureYamlRepository(FeatureService):
         ).map()
 
     # * method: list
-    def list(self, group_id: str | None = None) -> List[Feature]:
+    def list(self, group_id: str | None = None) -> List[FeatureAggregate]:
         '''
         List the features.
 
         :param group_id: Optional group id to filter by.
         :type group_id: str | None
         :return: The list of features.
-        :rtype: List[Feature]
+        :rtype: List[FeatureAggregate]
         '''
 
         # Load all groups and feature definitions from the configuration file.
@@ -167,12 +167,12 @@ class FeatureYamlRepository(FeatureService):
         return [feature.map() for feature in features]
 
     # * method: save
-    def save(self, feature: Feature) -> None:
+    def save(self, feature: FeatureAggregate) -> None:
         '''
         Save the feature.
 
         :param feature: The feature instance to save.
-        :type feature: Feature
+        :type feature: FeatureAggregate
         '''
 
         # Convert the feature to FeatureYamlObject.

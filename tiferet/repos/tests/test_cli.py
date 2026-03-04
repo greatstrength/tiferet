@@ -9,8 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, CliCommandYamlObject, Aggregate, CliCommandAggregate
-from ...domain import CliArgument
+from ...mappers import TransferObject, CliCommandYamlObject, CliArgumentAggregate, CliCommandAggregate
 from ..cli import CliYamlRepository
 
 # *** constants
@@ -326,14 +325,12 @@ def test_cli_config_repo_save_parent_arguments(
 
     # Create new parent arguments.
     new_parent_args = [
-        Aggregate.new(
-            CliArgument,
+        CliArgumentAggregate.new(
             name_or_flags=['--debug', '-d'],
             description='Enable debug mode',
             action='store_true'
         ),
-        Aggregate.new(
-            CliArgument,
+        CliArgumentAggregate.new(
             name_or_flags=['--output', '-o'],
             description='Output file path',
             type='str',
