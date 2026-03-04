@@ -30,7 +30,7 @@ If a domain object is only ever used as a **nested sub-object** inside a parent 
 | `FeatureEvent` | Yes (`FeatureEventAggregate`) | Specialized setters for `pass_on_error` and parameter merging |
 | `Error` | Yes (`ErrorAggregate`) | Message list management (`set_message`, `remove_message`) |
 | `ErrorMessage` | No | 1:1 mapping; parent manages the list |
-| `CliArgument` | No | 1:1 mapping; parent adds/removes arguments |
+| `CliArgument` | Yes (`CliArgumentAggregate`) | Gated `set_attribute` for mutable fields; serves as return type for `CliService.get_parent_arguments()` |
 | `FlaggedDependency` | Yes (`FlaggedDependencyAggregate`) | Parameter merge-and-prune logic |
 | `Formatter`, `Handler`, `Logger` | Yes (thin aggregates) | Provide `new` factory for consistent instantiation |
 
