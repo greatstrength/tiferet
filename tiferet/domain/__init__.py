@@ -29,3 +29,8 @@ from .error import (
     Error,
     ErrorMessage,
 )
+from .feature import (
+    Feature,
+    FeatureStep,
+    FeatureEvent,
+)
