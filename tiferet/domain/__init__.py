@@ -34,3 +34,8 @@ from .feature import (
     FeatureStep,
     FeatureEvent,
 )
+from .logging import (
+    Formatter,
+    Handler,
+    Logger,
+)
