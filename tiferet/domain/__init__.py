@@ -25,3 +25,7 @@ from .cli import (
     CliArgument,
     CliCommand,
 )
+from .error import (
+    Error,
+    ErrorMessage,
+)
