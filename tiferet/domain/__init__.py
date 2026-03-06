@@ -17,3 +17,7 @@ from .app import (
     AppInterface,
     AppServiceDependency,
 )
+from .di import (
+    FlaggedDependency,
+    ServiceConfiguration,
+)
