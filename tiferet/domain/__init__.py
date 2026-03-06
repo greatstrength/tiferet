@@ -21,3 +21,7 @@ from .di import (
     FlaggedDependency,
     ServiceConfiguration,
 )
+from .cli import (
+    CliArgument,
+    CliCommand,
+)
