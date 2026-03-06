@@ -650,6 +650,17 @@ Architectural references for framework contributors and advanced users:
 - [Mappers](docs/core/mappers.md) — Aggregate and TransferObject patterns
 - [Utilities](docs/core/utils.md) — Infrastructure utilities design and best practices
 
+### Domain Guides
+
+Per-domain guides covering objects, runtime roles, configuration, and relationships:
+
+- [App (Bootstrap & Assembly)](docs/guides/domain/app.md) — Application interfaces, service dependency bindings, runtime wiring
+- [CLI (Command-Line Interface)](docs/guides/domain/cli.md) — CLI commands, arguments, CLI-to-feature bridge
+- [DI (Dependency Injection)](docs/guides/domain/di.md) — Service configurations, flagged dependencies, flag-based resolution
+- [Error (Structured Error Handling)](docs/guides/domain/error.md) — Error definitions, multilingual messages, formatting flow
+- [Feature (Workflow Orchestration)](docs/guides/domain/feature.md) — Features, steps, parameter resolution, execution flow
+- [Logging (Observability)](docs/guides/domain/logging.md) — Formatters, handlers, loggers, dictConfig assembly
+
 ### Utility Guides
 
 Practical guides for using Tiferet's built-in utilities:
