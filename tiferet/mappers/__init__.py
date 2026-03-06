@@ -25,3 +25,9 @@ from .error import (
     ErrorYamlObject,
     ErrorMessageYamlObject,
 )
+from .feature import (
+    FeatureAggregate,
+    FeatureYamlObject,
+    FeatureEventAggregate,
+    FeatureEventYamlObject,
+)
