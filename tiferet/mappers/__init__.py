@@ -20,3 +20,8 @@ from .cli import (
     CliCommandAggregate,
     CliCommandYamlObject,
 )
+from .error import (
+    ErrorAggregate,
+    ErrorYamlObject,
+    ErrorMessageYamlObject,
+)
