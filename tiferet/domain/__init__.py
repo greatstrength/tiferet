@@ -13,3 +13,7 @@ from .settings import (
     DictType,
     ModelType,
 )
+from .app import (
+    AppInterface,
+    AppServiceDependency,
+)
