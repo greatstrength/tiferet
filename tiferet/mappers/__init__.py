@@ -11,3 +11,7 @@ from .app import (
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )
+from .di import (
+    ServiceConfigurationAggregate,
+    ServiceConfigurationYamlObject,
+)
