@@ -31,3 +31,12 @@ from .feature import (
     FeatureEventAggregate,
     FeatureEventYamlObject,
 )
+from .logging import (
+    FormatterAggregate,
+    FormatterYamlObject,
+    HandlerAggregate,
+    HandlerYamlObject,
+    LoggerAggregate,
+    LoggerYamlObject,
+    LoggingSettingsYamlObject,
+)
