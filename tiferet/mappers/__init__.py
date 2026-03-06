@@ -15,3 +15,8 @@ from .di import (
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
 )
+from .cli import (
+    CliArgumentAggregate,
+    CliCommandAggregate,
+    CliCommandYamlObject,
+)
