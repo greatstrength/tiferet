@@ -15,6 +15,14 @@ DEFAULT_ATTRIBUTES = [
         },
     },
     {
+        'attribute_id': 'di_service',
+        'module_path': 'tiferet.repos.di',
+        'class_name': 'DIYamlRepository',
+        'parameters': {
+            'di_yaml_file': 'app/configs/di.yml',
+        },
+    },
+    {
         'attribute_id': 'error_service',
         'module_path': 'tiferet.repos.config.error',
         'class_name': 'ErrorConfigurationRepository',
