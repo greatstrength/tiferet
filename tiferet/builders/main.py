@@ -24,6 +24,11 @@ from ..events.dependencies import (
 )
 from ..events.app import GetAppInterface
 
+# *** constants
+
+# ** constant: app_service_key
+APP_SERVICE_KEY = 'app_service'
+
 # *** builders
 
 # ** builder: app_builder
@@ -33,55 +38,58 @@ class AppBuilder(object):
     It provides methods to load the application interface and run features.
     '''
 
-    # * attribute: settings
-    settings: Dict[str, Any]
+    # * attribute: cache
+    cache: Dict[str, Any]
 
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}):
+    def __init__(self):
         '''
-        Initialize the AppBuilder with application settings.
-
-        :param settings: The application settings used to configure the app repository.
-        :type settings: dict
+        Initialize the AppBuilder.
         '''
 
-        # Set the settings.
-        self.settings = settings
+        # Initialize the cache.
+        self.cache = {}
 
-    # * method: load_app_repo
-    def load_app_repo(self):
+    # * method: load_app_service
+    def load_app_service(self,
+            module_path: str = a.const.DEFAULT_APP_SERVICE_MODULE_PATH,
+            class_name: str = a.const.DEFAULT_APP_SERVICE_CLASS_NAME,
+            **parameters
+        ):
         '''
-        Load the application repository using the configured settings.
+        Load the application service using the provided module path, class name, and parameters.
 
-        :return: The application repository instance.
+        :param module_path: The module path of the app service implementation.
+        :type module_path: str
+        :param class_name: The class name of the app service implementation.
+        :type class_name: str
+        :param parameters: Additional parameters to pass to the app service constructor.
+        :type parameters: dict
+        :return: The application service instance.
         :rtype: Any
         '''
 
-        # Resolve repository module path, class name, and parameters from settings with defaults.
-        app_repo_module_path = self.settings.get('app_repo_module_path', a.const.DEFAULT_APP_SERVICE_MODULE_PATH)
-        app_repo_class_name = self.settings.get('app_repo_class_name', a.const.DEFAULT_APP_SERVICE_CLASS_NAME)
-        app_repo_params = self.settings.get('app_repo_params', dict(
-            app_yaml_file='app/configs/app.yml'
-        ))
-
-        # Import and construct the app repository.
+        # Import and construct the app service.
         try:
-            repository_cls = ImportDependency.execute(
-                app_repo_module_path,
-                app_repo_class_name,
+            service_cls = ImportDependency.execute(
+                module_path,
+                class_name,
             )
-            app_repo = repository_cls(**app_repo_params)
+            app_service = service_cls(**parameters)
 
         # Wrap import failures in a structured Tiferet error.
         except TiferetError as e:
             RaiseError.execute(
                 a.const.APP_REPOSITORY_IMPORT_FAILED_ID,
-                f'Failed to import app repository: {e}.',
+                f'Failed to import app service: {e}.',
                 exception=str(e),
             )
 
-        # Return the imported app repository.
-        return app_repo
+        # Add the app service to the cache.
+        self.cache[APP_SERVICE_KEY] = app_service
+
+        # Return the app service.
+        return app_service
 
     # * method: load_default_services
     def load_default_services(self) -> List[AppServiceDependency]:
@@ -170,14 +178,14 @@ class AppBuilder(object):
         :rtype: AppInterfaceContext
         '''
 
-        # Load the app repository or service implementation.
-        app_repo = self.load_app_repo()
+        # Retrieve the app service from the cache.
+        app_service = self.cache[APP_SERVICE_KEY]
 
         # Get the app interface settings via the AppService abstraction.
         app_interface = DomainEvent.handle(
             GetAppInterface,
             dependencies=dict(
-                app_service=app_repo,
+                app_service=app_service,
             ),
             interface_id=interface_id,
         )

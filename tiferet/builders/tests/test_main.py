@@ -13,7 +13,7 @@ from ...contexts.app import AppInterfaceContext
 from ...assets import TiferetError
 from ... import assets as a
 from ...repos.app import AppYamlRepository
-from ..main import AppBuilder
+from ..main import AppBuilder, APP_SERVICE_KEY
 
 # *** fixtures
 
@@ -59,39 +59,41 @@ def app_interface():
 @pytest.fixture
 def app_builder():
     """
-    Fixture to provide an AppBuilder instance.
+    Fixture to provide an AppBuilder instance with app service loaded.
 
     :return: An instance of AppBuilder.
     :rtype: AppBuilder
     """
 
-    # Return the AppBuilder instance using test settings with AppYamlRepository
-    # and a test-specific configuration file.
-    return AppBuilder(
-        dict(
-            app_repo_params=dict(
-                app_yaml_file='tiferet/assets/tests/test_calc.yml',
-            ),
-        ),
+    # Create the AppBuilder instance.
+    builder = AppBuilder()
+
+    # Load the app service with a test-specific configuration file.
+    builder.load_app_service(
+        app_yaml_file='tiferet/assets/tests/test_calc.yml',
     )
+
+    # Return the builder.
+    return builder
 
 # *** tests
 
-# ** test: app_builder_load_app_repo_defaults
-def test_app_builder_load_app_repo_defaults():
+# ** test: app_builder_load_app_service_defaults
+def test_app_builder_load_app_service_defaults():
     """Validate that AppBuilder defaults to AppYamlRepository.
 
-    This ensures that when no custom repository settings are provided, the
-    app repository is loaded using the YAML-backed implementation.
+    This ensures that when no custom service settings are provided, the
+    app service is loaded using the YAML-backed implementation.
     """
 
-    # Instantiate the AppBuilder with default settings.
+    # Instantiate the AppBuilder.
     builder = AppBuilder()
 
-    # Load the app repository and assert that the default repository type is used.
-    repo = builder.load_app_repo()
+    # Load the app service with defaults and assert the default type is used.
+    service = builder.load_app_service(app_yaml_file='app/configs/app.yml')
 
-    assert isinstance(repo, AppYamlRepository)
+    assert isinstance(service, AppYamlRepository)
+    assert builder.cache[APP_SERVICE_KEY] is service
 
 # ** test: app_builder_load_interface
 def test_app_builder_load_interface(app_builder):
@@ -131,8 +133,8 @@ def test_app_builder_load_interface_invalid(app_builder, app_interface):
     fake_service = mock.Mock(spec=AppService)
     fake_service.get.return_value = app_interface
 
-    # Mock the load_app_repo method to return the fake service.
-    app_builder.load_app_repo = mock.Mock(return_value=fake_service)
+    # Set the fake service directly in the cache.
+    app_builder.cache[APP_SERVICE_KEY] = fake_service
 
     # Mock the load_app_instance method to return an invalid app interface context.
     app_builder.load_app_instance = mock.Mock(return_value=InvalidContext())
