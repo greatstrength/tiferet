@@ -168,7 +168,7 @@ result = DomainEvent.handle(
 - Extend `Service` (ABC) from `tiferet/interfaces/settings.py`.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
-- Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`.
+- Services: `AppService`, `CliService`, `ConfigurationService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`.
 
 ## Mappers
 
@@ -186,7 +186,7 @@ Split into two classes:
 
 Concrete `Service` implementations in `tiferet/repos/`. Currently all YAML-backed:
 
-- `AppYamlRepository`, `CliYamlRepository`, `ContainerYamlRepository`
+- `AppYamlRepository`, `CliYamlRepository`, `DIYamlRepository`
 - `ErrorYamlRepository`, `FeatureYamlRepository`, `LoggingYamlRepository`
 
 ## Error Handling
@@ -202,7 +202,7 @@ Concrete `Service` implementations in `tiferet/repos/`. Currently all YAML-backe
 Applications are configured via YAML files in `app/configs/`:
 
 - `app.yml` — Interface definitions (name, module_path, class_name, attributes)
-- `container.yml` — Dependency injection container attributes (module_path, class_name, parameters)
+- `di.yml` — Dependency injection service configurations (module_path, class_name, parameters)
 - `feature.yml` — Feature workflows (commands with attribute_id, parameters, data_key)
 - `error.yml` — Error definitions with multilingual messages
 - `cli.yml` — CLI command definitions with arguments
