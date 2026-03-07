@@ -648,6 +648,7 @@ Architectural references for framework contributors and advanced users:
 - [Domain Events](docs/core/events.md) — Event patterns, validation, and testing
 - [Interfaces](docs/core/interfaces.md) — Service contract conventions
 - [Mappers](docs/core/mappers.md) — Aggregate and TransferObject patterns
+- [Repositories](docs/core/repos.md) — Repository base patterns and structured code design
 - [Utilities](docs/core/utils.md) — Infrastructure utilities design and best practices
 
 ### Domain Guides

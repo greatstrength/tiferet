@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a3`
+- **Version:** `2.0.0a4`
 
 ## Architecture
 
@@ -70,7 +70,7 @@ All code follows a strict artifact comment hierarchy. **This is mandatory.**
 
 ### Comment Levels
 
-- `# *** <section>` — Top-level: `imports`, `exports`, `models`, `events`, `contexts`, `interfaces`, `mappers`, `constants`, `classes`
+- `# *** <section>` — Top-level: `imports`, `exports`, `models`, `events`, `contexts`, `interfaces`, `mappers`, `repos`, `constants`, `classes`
 - `# ** <category>: <name>` — Mid-level: `core`, `infra`, `app` (for imports); `model: <name>`, `event: <name>`, `context: <name>`, etc.
 - `# * <component>` — Low-level: `attribute: <name>`, `init`, `method: <name>`, `method: <name> (static)`
 
@@ -184,10 +184,20 @@ Split into two classes:
 
 ## Repositories
 
-Concrete `Service` implementations in `tiferet/repos/`. Currently all YAML-backed:
+Concrete `Service` implementations in `tiferet/repos/`. Currently all YAML-backed. Repositories are **never exported** from `__init__.py` — they are resolved at runtime through DI configuration.
 
 - `AppYamlRepository`, `CliYamlRepository`, `ContainerYamlRepository`
-- `ErrorYamlRepository`, `FeatureYamlRepository`, `LoggingYamlRepository`
+- `DIYamlRepository`, `ErrorYamlRepository`, `FeatureYamlRepository`, `LoggingYamlRepository`
+
+Key patterns:
+- Artifact comments use `# *** repos` / `# ** repo: <name>`.
+- Three-attribute foundation: `yaml_file`, `encoding`, `default_role`.
+- Constructor param convention: `<domain>_yaml_file` (e.g., `error_yaml_file`).
+- Reads use `Yaml` utility with `start_node` lambdas; writes use `TransferObject.from_model` → `to_primitive(default_role)` → `Yaml.save`.
+- Delete operations are always idempotent.
+- Tests are integration tests using `tmp_path` fixtures with real temporary YAML files.
+
+See [docs/core/repos.md](docs/core/repos.md) for structured code design and [docs/guides/repos.md](docs/guides/repos.md) for cross-cutting strategies.
 
 ## Error Handling
 

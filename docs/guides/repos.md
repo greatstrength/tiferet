@@ -255,6 +255,7 @@ Tests operate against real temporary files, not mocks, because the repository's 
 
 ## Related Documentation
 
+- [docs/core/repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md) — Repository base patterns and structured code design
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
 - [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Aggregate and TransferObject patterns
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader utility guide
