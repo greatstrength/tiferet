@@ -100,13 +100,13 @@ project_root/
         ├── __init__.py
         ├── app.yml
         ├── cli.yml
-        ├── container.yml
+        ├── di.yml
         ├── error.yml
         ├── feature.yml
         └── logging.yml
 ```
 
-The `app/events/` directory holds domain event classes for arithmetic operations (`calc.py`) and input validation (`settings.py`). The `app/configs/` directory contains configuration files for application settings (`app.yml`), CLI commands (`cli.yml`), dependency injection (`container.yml`), error handling (`error.yml`), feature workflows (`feature.yml`), and logging (`logging.yml`). The `basic_calc.py` script at the root initializes and runs the application. We recommend keeping the `app` directory name for internal projects to ensure consistency, though it can be customized for package releases. The `calc_cli.py` script provides a flexible command-line interface, easily integrated with shell scripts or external systems.
+The `app/events/` directory holds domain event classes for arithmetic operations (`calc.py`) and input validation (`settings.py`). The `app/configs/` directory contains configuration files for application settings (`app.yml`), CLI commands (`cli.yml`), dependency injection (`di.yml`), error handling (`error.yml`), feature workflows (`feature.yml`), and logging (`logging.yml`). The `basic_calc.py` script at the root initializes and runs the application. We recommend keeping the `app` directory name for internal projects to ensure consistency, though it can be customized for package releases. The `calc_cli.py` script provides a flexible command-line interface, easily integrated with shell scripts or external systems.
 
 ## Crafting the Calculator Application
 With Tiferet installed and your project structured, it's time to build your calculator application. This section guides you through creating a base domain event for numeric validation, defining arithmetic domain events, and setting up the application's behavior with configurations. By weaving together domain events and configurations, you'll experience Tiferet's elegant design, harmonizing functionality with clarity and precision.
