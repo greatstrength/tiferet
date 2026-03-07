@@ -656,6 +656,13 @@ Practical guides for working with Tiferet's domain layers:
 
 - [Mappers – Strategies and Patterns](docs/guides/mappers.md) — Aggregate and TransferObject design decisions, nested sub-objects, role strategies, and round-trip mapping
 - [Repos – Strategies and Patterns](docs/guides/repos.md) — Repository design decisions, YAML reading/writing patterns, grouped structures, and multi-section files
+- [App (Bootstrap & Assembly)](docs/guides/domain/app.md) — Application interfaces, service dependency bindings, runtime wiring
+- [CLI (Command-Line Interface)](docs/guides/domain/cli.md) — CLI commands, arguments, CLI-to-feature bridge
+- [DI (Dependency Injection)](docs/guides/domain/di.md) — Service configurations, flagged dependencies, flag-based resolution
+- [Error (Structured Error Handling)](docs/guides/domain/error.md) — Error definitions, multilingual messages, formatting flow
+- [Feature (Workflow Orchestration)](docs/guides/domain/feature.md) — Features, steps, parameter resolution, execution flow
+- [Logging (Observability)](docs/guides/domain/logging.md) — Formatters, handlers, loggers, dictConfig assembly
+- [Mappers – Strategies and Patterns](docs/guides/mappers.md) — Aggregate and TransferObject design decisions, nested sub-objects, role strategies, and round-trip mapping
 
 ### Utility Guides
 

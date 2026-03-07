@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # ** app
 from .settings import (
@@ -26,7 +26,7 @@ class ErrorMessage(DomainObject):
         required=True,
         metadata=dict(
             description='The language of the error message text.'
-        )
+        ),
     )
 
     # * attribute: text
@@ -34,7 +34,7 @@ class ErrorMessage(DomainObject):
         required=True,
         metadata=dict(
             description='The error message text.'
-        )
+        ),
     )
 
     # * method: format
@@ -66,7 +66,7 @@ class Error(DomainObject):
         required=True,
         metadata=dict(
             description='The unique identifier of the error.'
-        )
+        ),
     )
 
     # * attribute: name
@@ -74,21 +74,21 @@ class Error(DomainObject):
         required=True,
         metadata=dict(
             description='The name of the error.'
-        )
+        ),
     )
 
     # * attribute: description
     description = StringType(
         metadata=dict(
             description='The description of the error.'
-        )
+        ),
     )
 
     # * attribute: error_code
     error_code = StringType(
         metadata=dict(
             description='The unique code of the error.'
-        )
+        ),
     )
 
     # * attribute: message
@@ -97,23 +97,25 @@ class Error(DomainObject):
         required=True,
         metadata=dict(
             description='The error message translations for the error.'
-        )
+        ),
     )
 
     # * method: new
     @staticmethod
     def new(name: str, id: str, message: List[Dict[str, str]] = [], **kwargs) -> 'Error':
-        '''Initializes a new Error object.
+        '''
+        Initializes a new Error object.
 
         :param name: The name of the error.
         :type name: str
         :param id: The unique identifier for the error.
         :type id: str
-        :param error_code: The error code for the error.
-        :type error_code: str
         :param message: The error message translations for the error.
         :type message: list
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: A new Error object.
+        :rtype: Error
         '''
 
         # Set the error code as the id upper cased.
@@ -126,8 +128,9 @@ class Error(DomainObject):
             name=name,
             error_code=error_code,
             message=message,
-            **kwargs
+            **kwargs,
         )
+
     # * method: format_message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         '''
@@ -176,5 +179,5 @@ class Error(DomainObject):
             error_code=self.id,
             name=self.name,
             message=error_message,
-            **kwargs
+            **kwargs,
         )

@@ -3,15 +3,15 @@
 # *** imports
 
 # ** core
-from typing import (
-    Any,
-    List,
-    Dict
-)
+from typing import List
 
 # ** app
 from ..interfaces import ErrorService
-from ..mappers import TransferObject, ErrorAggregate, ErrorYamlObject
+from ..mappers import (
+    TransferObject,
+    ErrorAggregate,
+    ErrorYamlObject,
+)
 from ..utils import Yaml
 
 # *** repos
@@ -19,7 +19,7 @@ from ..utils import Yaml
 # ** repo: error_yaml_repository
 class ErrorYamlRepository(ErrorService):
     '''
-    The error YAML repository
+    The error YAML repository.
     '''
 
     # * attribute: yaml_file
@@ -31,8 +31,8 @@ class ErrorYamlRepository(ErrorService):
     # * attribute: default_role
     default_role: str
 
-    # * method: init
-    def __init__(self, error_yaml_file: str, encoding: str = 'utf-8'):
+    # * init
+    def __init__(self, error_yaml_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the error YAML repository.
 
@@ -50,47 +50,53 @@ class ErrorYamlRepository(ErrorService):
     # * method: exists
     def exists(self, id: str) -> bool:
         '''
-        Check if the error exists.
-        
-        :param id: The error id.
+        Check if an error exists by ID.
+
+        :param id: The error identifier.
         :type id: str
-        :return: Whether the error exists.
+        :return: True if the error exists, otherwise False.
         :rtype: bool
         '''
 
-        # Load the error data from the configuration file.
-        errors_data = Yaml(self.yaml_file, encoding=self.encoding).load(
-            start_node=lambda data: data.get('errors')
+        # Load the errors mapping from the configuration file.
+        errors_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load(
+            start_node=lambda data: data.get('errors', {})
         )
 
-        # Return whether the error exists.
+        # Return whether the error id exists in the mapping.
         return id in errors_data
 
     # * method: get
-    def get(self, id: str) -> ErrorAggregate:
+    def get(self, id: str) -> ErrorAggregate | None:
         '''
-        Get the error.
+        Retrieve an error by ID.
 
-        :param id: The error id.
+        :param id: The error identifier.
         :type id: str
-        :return: The error.
-        :rtype: ErrorAggregate
+        :return: The error aggregate or None if not found.
+        :rtype: ErrorAggregate | None
         '''
 
-        # Load the specific error data.
-        error_data = Yaml(self.yaml_file, encoding=self.encoding).load(
-            start_node=lambda data: data.get('errors').get(id)
+        # Load the specific error data from the configuration file.
+        error_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load(
+            start_node=lambda data: data.get('errors', {}).get(id)
         )
 
         # If no data is found, return None.
         if not error_data:
             return None
-        
-        # Map the error data to the error object and return it.
+
+        # Map the data to an ErrorAggregate and return it.
         return TransferObject.from_data(
             ErrorYamlObject,
             id=id,
-            **error_data
+            **error_data,
         ).map()
 
     # * method: list
@@ -98,72 +104,81 @@ class ErrorYamlRepository(ErrorService):
         '''
         List all errors.
 
-        :return: The list of errors.
+        :return: A list of error aggregates.
         :rtype: List[ErrorAggregate]
         '''
 
-        # Load all error data.
-        errors: Dict[str, ErrorYamlObject] = Yaml(self.yaml_file, encoding=self.encoding).load(
-            data_factory=lambda data: {
-                id: TransferObject.from_data(
-                    ErrorYamlObject,
-                    id=id, 
-                    **error_data
-                ) for id, error_data in data.items()
-            },
-            start_node=lambda data: data.get('errors'))
-
-        # Return the error object.
-        return [data.map() for data in errors.values()]
-
-    # * method: save
-    def save(self, error: ErrorAggregate):
-        '''
-        Save the error.
-
-        :param error: The error.
-        :type error: ErrorAggregate
-        '''
-
-        # Create updated error data.
-        error_data = TransferObject.from_model(
-            ErrorYamlObject, 
-            error
-        )
-
-        # Load the full configuration file.
-        full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
-
-        # Update the error entry.
-        full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
-
-        # Persist the updated configuration file.
-        Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
-
-    # * method: delete
-    def delete(self, id: str):
-        '''
-        Delete the error.
-
-        :param id: The error id.
-        :type id: str
-        '''
-
-        # Retrieve the errors data from the yaml file.
-        # Load all errors data.
-        errors_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+        # Load all errors data from the configuration file.
+        errors_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load(
             start_node=lambda data: data.get('errors', {})
         )
 
-        # Pop the error data whether it exists or not.
-        errors_data.pop(id, None)
+        # Map each error entry to an ErrorAggregate.
+        return [
+            TransferObject.from_data(
+                ErrorYamlObject,
+                id=error_id,
+                **error_data,
+            ).map()
+            for error_id, error_data in errors_data.items()
+        ]
 
-        # Save the updated errors data back to the yaml file.
+    # * method: save
+    def save(self, error: ErrorAggregate) -> None:
+        '''
+        Save or update an error.
+
+        :param error: The error aggregate to save.
+        :type error: ErrorAggregate
+        :return: None
+        :rtype: None
+        '''
+
+        # Convert the error model to configuration data.
+        error_data = ErrorYamlObject.from_model(error)
+
         # Load the full configuration file.
-        full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load()
 
-        # Update the errors section.
-        full_data['errors'] = errors_data
+        # Update or insert the error entry.
+        full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
+        Yaml(
+            self.yaml_file,
+            mode='w',
+            encoding=self.encoding,
+        ).save(data=full_data)
+
+    # * method: delete
+    def delete(self, id: str) -> None:
+        '''
+        Delete an error by ID. This operation is idempotent.
+
+        :param id: The error identifier.
+        :type id: str
+        :return: None
+        :rtype: None
+        '''
+
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load()
+
+        # Remove the error entry if it exists (idempotent).
+        full_data.get('errors', {}).pop(id, None)
+
+        # Persist the updated configuration file.
+        Yaml(
+            self.yaml_file,
+            mode='w',
+            encoding=self.encoding,
+        ).save(data=full_data)

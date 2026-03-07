@@ -1,4 +1,4 @@
-"""Tiferet Feature Model Tests."""
+"""Tests for Tiferet Domain Feature"""
 
 # *** imports
 
@@ -6,25 +6,26 @@
 import pytest
 
 # ** app
+from ..settings import DomainObject
 from ..feature import (
     Feature,
+    FeatureStep,
     FeatureEvent,
-    DomainObject
 )
 
 # *** fixtures
-
 
 # ** fixture: feature
 @pytest.fixture
 def feature() -> Feature:
     '''
-    Fixture to create a Feature instance for testing.
+    Fixture for a basic Feature instance.
 
     :return: The Feature instance.
     :rtype: Feature
     '''
 
+    # Create and return a new Feature.
     return DomainObject.new(
         Feature,
         id='test_group.test_feature',
@@ -40,70 +41,80 @@ def feature() -> Feature:
 # ** test: feature_step_type_defaults_to_event
 def test_feature_step_type_defaults_to_event() -> None:
     '''
-    Test that ``FeatureEvent.type`` defaults to ``'event'`` and is preserved
-    through a round-trip.
+    Test that FeatureEvent defaults type to 'event' and preserves it through round-trip serialization.
     '''
 
-    step: FeatureEvent = DomainObject.new(
+    # Create a FeatureEvent with minimal required fields.
+    event = DomainObject.new(
         FeatureEvent,
-        name='Test Step',
-        attribute_id='attr',
+        name='Test Event',
+        attribute_id='test_event_attr',
     )
 
-    assert step.type == 'event'
+    # Assert type defaults to 'event'.
+    assert event.type == 'event'
 
-    primitive = step.to_primitive()
-    reloaded: FeatureEvent = DomainObject.new(FeatureEvent, **primitive)
+    # Serialize via to_primitive() and reload.
+    primitive = event.to_primitive()
+    reloaded = DomainObject.new(FeatureEvent, **primitive)
 
+    # Assert type is preserved through round-trip.
     assert reloaded.type == 'event'
 
 # ** test: feature_event_flags_creation_and_round_trip
 def test_feature_event_flags_creation_and_round_trip() -> None:
     '''
-    Test that ``FeatureEvent.flags`` can be set on creation and that the
-    values are preserved through a serialization round-trip.
+    Test that FeatureEvent flags are set correctly and preserved through round-trip serialization.
     '''
 
-    command: FeatureEvent = DomainObject.new(
+    # Create a FeatureEvent with flags.
+    event = DomainObject.new(
         FeatureEvent,
-        name='Test Command',
-        attribute_id='attr',
+        name='Flagged Event',
+        attribute_id='flagged_event_attr',
         flags=['flag1', 'flag2'],
     )
 
-    assert command.flags == ['flag1', 'flag2']
+    # Assert flags are set correctly.
+    assert event.flags == ['flag1', 'flag2']
 
-    primitive = command.to_primitive()
-    reloaded: FeatureEvent = DomainObject.new(FeatureEvent, **primitive)
+    # Serialize via to_primitive() and reload.
+    primitive = event.to_primitive()
+    reloaded = DomainObject.new(FeatureEvent, **primitive)
 
+    # Assert flags are preserved through round-trip.
     assert reloaded.flags == ['flag1', 'flag2']
 
 # ** test: feature_get_step_valid_and_invalid_indices
 def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     '''
-    Test that ``get_step`` returns commands for valid indices and ``None``
-    for invalid indices.
+    Test that Feature.get_step() returns the correct step for valid indices and None for invalid indices.
+
+    :param feature: The Feature fixture.
+    :type feature: Feature
     '''
 
-    # Add two commands to the feature.
-    first_command = DomainObject.new(
+    # Create two FeatureEvent steps.
+    step_0 = DomainObject.new(
         FeatureEvent,
-        name='First Command',
-        attribute_id='first_attr',
+        name='Step Zero',
+        attribute_id='step_zero_attr',
     )
-    second_command = DomainObject.new(
+    step_1 = DomainObject.new(
         FeatureEvent,
-        name='Second Command',
-        attribute_id='second_attr',
+        name='Step One',
+        attribute_id='step_one_attr',
     )
-    feature.steps = [first_command, second_command]
 
-    # Valid indices should return the corresponding commands.
-    assert feature.get_step(0) is first_command
-    assert feature.get_step(1) is second_command
+    # Add steps to the feature.
+    feature.steps = [step_0, step_1]
 
-    # Out-of-range indices should return None.
+    # Assert valid indices return correct steps.
+    assert feature.get_step(0).name == 'Step Zero'
+    assert feature.get_step(1).name == 'Step One'
+
+    # Assert out-of-range index returns None.
     assert feature.get_step(2) is None
 
-    # Non-integer index should also return None.
+    # Assert invalid type returns None.
     assert feature.get_step('invalid') is None

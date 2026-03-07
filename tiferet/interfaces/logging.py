@@ -1,16 +1,10 @@
-"""Tiferet Logging Contracts"""
+"""Tiferet Interfaces Logging"""
 
 # *** imports
 
 # ** core
 from abc import abstractmethod
-from typing import (
-    Any,
-    Dict,
-    List,
-    Tuple
-)
-import logging
+from typing import List, Tuple
 
 # ** app
 from ..mappers import (

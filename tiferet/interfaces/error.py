@@ -1,4 +1,4 @@
-"""Tiferet Error Contracts"""
+"""Tiferet Interfaces Error"""
 
 # *** imports
 
@@ -15,7 +15,7 @@ from .settings import Service
 # ** interface: error_service
 class ErrorService(Service):
     '''
-    Service interface for managing error objects using a repository-style API.
+    Service interface for managing error definitions.
     '''
 
     # * method: exists

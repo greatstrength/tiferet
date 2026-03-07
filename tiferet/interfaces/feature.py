@@ -1,4 +1,4 @@
-"""Tiferet Feature Contracts"""
+"""Tiferet Interfaces Feature"""
 
 # *** imports
 
@@ -15,7 +15,7 @@ from .settings import Service
 # ** interface: feature_service
 class FeatureService(Service):
     '''
-    Service interface for managing features using a repository-style API.
+    Service interface for managing feature workflow configurations.
     '''
 
     # * method: exists

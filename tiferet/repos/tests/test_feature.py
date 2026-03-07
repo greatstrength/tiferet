@@ -28,7 +28,7 @@ OTHER_GROUP_FEATURE_ID = 'other_group.other_feature'
 FEATURE_DATA: Dict[str, Dict] = {
     'features': {
         'test_group': {
-'test_feature': {
+            'test_feature': {
                 'name': 'Test Feature',
                 'description': 'A test feature with a command.',
                 'commands': [
@@ -104,7 +104,7 @@ def feature_config_repo(feature_yaml_file: str) -> FeatureYamlRepository:
 # ** test_int: feature_config_repo_exists
 def test_int_feature_config_repo_exists(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the exists method of the FeatureYamlRepository.
 
@@ -118,11 +118,10 @@ def test_int_feature_config_repo_exists(
     assert feature_config_repo.exists(OTHER_GROUP_FEATURE_ID)
     assert not feature_config_repo.exists('nonexistent.group.feature')
 
-
 # ** test_int: feature_config_repo_get
 def test_int_feature_config_repo_get(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the get method of the FeatureYamlRepository.
 
@@ -156,11 +155,10 @@ def test_int_feature_config_repo_get(
     assert other_group_feature.group_id == 'other_group'
     assert other_group_feature.feature_key == 'other_feature'
 
-
 # ** test_int: feature_config_repo_get_not_found
 def test_int_feature_config_repo_get_not_found(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the get method of the FeatureYamlRepository for a non-existent feature.
 
@@ -174,11 +172,10 @@ def test_int_feature_config_repo_get_not_found(
     # Check that the feature is None.
     assert not feature
 
-
 # ** test_int: feature_config_repo_list_all
 def test_int_feature_config_repo_list_all(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the list method of the FeatureYamlRepository for all features.
 
@@ -197,11 +194,10 @@ def test_int_feature_config_repo_list_all(
     assert ANOTHER_FEATURE_ID in feature_ids
     assert OTHER_GROUP_FEATURE_ID in feature_ids
 
-
 # ** test_int: feature_config_repo_list_by_group
 def test_int_feature_config_repo_list_by_group(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the list method of the FeatureYamlRepository filtered by group.
 
@@ -225,11 +221,10 @@ def test_int_feature_config_repo_list_by_group(
     # Check that no features are returned for the missing group.
     assert missing_group_features == []
 
-
 # ** test_int: feature_config_repo_save
 def test_int_feature_config_repo_save(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the save method of the FeatureYamlRepository.
 
@@ -263,11 +258,10 @@ def test_int_feature_config_repo_save(
     assert new_feature.group_id == 'new_group'
     assert new_feature.feature_key == 'new_feature'
 
-
 # ** test_int: feature_config_repo_delete
 def test_int_feature_config_repo_delete(
         feature_config_repo: FeatureYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the delete method of the FeatureYamlRepository.
 
@@ -288,5 +282,3 @@ def test_int_feature_config_repo_delete(
     feature_config_repo.delete(TEST_FEATURE_ID)
     remaining_features = feature_config_repo.list(group_id='test_group')
     assert remaining_features == []
-
-

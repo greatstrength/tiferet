@@ -7,8 +7,8 @@ from .settings import (
     DomainObject,
     StringType,
     BooleanType,
-    DictType,
     ListType,
+    DictType,
     ModelType,
 )
 
@@ -91,6 +91,7 @@ class FeatureEvent(FeatureStep):
             description='Whether to pass on the error if the feature event fails.'
         )
     )
+
 # ** model: feature
 class Feature(DomainObject):
     '''
@@ -162,10 +163,11 @@ class Feature(DomainObject):
             description='The parameters to log for the feature.'
         )
     )
+
     # * method: get_step
     def get_step(self, position: int) -> FeatureStep | None:
         '''
-        Get the feature step at the given position, or ``None`` if the
+        Get the feature step at the given position, or None if the
         index is out of range or invalid.
 
         :param position: The index of the step to retrieve.

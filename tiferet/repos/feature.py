@@ -3,11 +3,7 @@
 # *** imports
 
 # ** core
-from typing import (
-    Any,
-    Dict,
-    List
-)
+from typing import Any, Dict, List
 
 # ** app
 from ..interfaces import FeatureService
@@ -17,7 +13,6 @@ from ..mappers import (
     FeatureYamlObject,
 )
 from ..utils import Yaml
-
 
 # *** repos
 
@@ -30,18 +25,18 @@ class FeatureYamlRepository(FeatureService):
     # * attribute: yaml_file
     yaml_file: str
 
-    # * attribute: default_role
-    default_role: str
-
     # * attribute: encoding
     encoding: str
 
-    # * method: init
-    def __init__(self, feature_yaml_file: str, encoding: str = 'utf-8'):
+    # * attribute: default_role
+    default_role: str
+
+    # * init
+    def __init__(self, feature_yaml_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the feature YAML repository.
 
-        :param feature_yaml_file: The feature YAML configuration file.
+        :param feature_yaml_file: The YAML configuration file path.
         :type feature_yaml_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
@@ -49,22 +44,22 @@ class FeatureYamlRepository(FeatureService):
 
         # Set the repository attributes.
         self.yaml_file = feature_yaml_file
-        self.default_role = 'to_data.yaml'
         self.encoding = encoding
+        self.default_role = 'to_data.yaml'
 
     # * method: exists
     def exists(self, id: str) -> bool:
         '''
-        Check if the feature exists.
+        Check if a feature exists by ID.
 
-        :param id: The feature id in the format "<group_id>.<feature_key>".
+        :param id: The feature identifier in the format "<group_id>.<feature_key>".
         :type id: str
-        :return: Whether the feature exists.
+        :return: True if the feature exists, otherwise False.
         :rtype: bool
         '''
 
-        # Split the feature id into group and name.
-        group_id, feature_name = id.split('.', 1)
+        # Split the feature id into group and feature key.
+        group_id, feature_key = id.split('.', 1)
 
         # Load the group-specific feature data from the configuration file.
         group_data: Dict[str, Any] = Yaml(
@@ -78,22 +73,22 @@ class FeatureYamlRepository(FeatureService):
         if not group_data:
             return False
 
-        # Return whether the feature exists in the group.
-        return feature_name in group_data
+        # Return whether the feature key exists in the group.
+        return feature_key in group_data
 
     # * method: get
     def get(self, id: str) -> FeatureAggregate | None:
         '''
-        Get the feature by id.
+        Retrieve a feature by ID.
 
-        :param id: The feature id in the format "<group_id>.<feature_key>".
+        :param id: The feature identifier in the format "<group_id>.<feature_key>".
         :type id: str
-        :return: The feature instance or None if not found.
+        :return: The feature aggregate or None if not found.
         :rtype: FeatureAggregate | None
         '''
 
-        # Split the feature id into group and name.
-        group_id, feature_name = id.split('.', 1)
+        # Split the feature id into group and feature key.
+        group_id, feature_key = id.split('.', 1)
 
         # Load the group-specific feature data from the configuration file.
         group_data: Dict[str, Any] = Yaml(
@@ -108,27 +103,27 @@ class FeatureYamlRepository(FeatureService):
             return None
 
         # Retrieve the specific feature data.
-        feature_data = group_data.get(feature_name)
+        feature_data = group_data.get(feature_key)
 
         # If the feature does not exist, return None.
         if not feature_data:
             return None
 
-        # Map the feature data to a Feature model and return it.
+        # Map the feature data to a FeatureAggregate and return it.
         return TransferObject.from_data(
             FeatureYamlObject,
-            id=f'{group_id}.{feature_name}',
-            **feature_data
+            id=f'{group_id}.{feature_key}',
+            **feature_data,
         ).map()
 
     # * method: list
     def list(self, group_id: str | None = None) -> List[FeatureAggregate]:
         '''
-        List the features.
+        List all features, optionally filtered by group.
 
-        :param group_id: Optional group id to filter by.
+        :param group_id: Optional group identifier to filter features.
         :type group_id: str | None
-        :return: The list of features.
+        :return: A list of feature aggregates.
         :rtype: List[FeatureAggregate]
         '''
 
@@ -146,40 +141,39 @@ class FeatureYamlRepository(FeatureService):
         # If a specific group is requested, limit to that group.
         if group_id:
             group_features = groups_data.get(group_id, {})
-            for feature_id, feature_data in group_features.items():
+            for feature_key, feature_data in group_features.items():
                 features.append(TransferObject.from_data(
                     FeatureYamlObject,
-                    id=f'{group_id}.{feature_id}',
-                    **feature_data
+                    id=f'{group_id}.{feature_key}',
+                    **feature_data,
                 ))
 
         # Otherwise, flatten all groups.
         else:
             for group, group_features in groups_data.items():
-                for feature_id, feature_data in group_features.items():
+                for feature_key, feature_data in group_features.items():
                     features.append(TransferObject.from_data(
                         FeatureYamlObject,
-                        id=f'{group}.{feature_id}',
-                        **feature_data
+                        id=f'{group}.{feature_key}',
+                        **feature_data,
                     ))
 
-        # Map all FeatureYamlObject instances to Feature models and return them.
+        # Map all FeatureYamlObject instances to FeatureAggregates and return them.
         return [feature.map() for feature in features]
 
     # * method: save
     def save(self, feature: FeatureAggregate) -> None:
         '''
-        Save the feature.
+        Save or update a feature.
 
-        :param feature: The feature instance to save.
+        :param feature: The feature aggregate to save.
         :type feature: FeatureAggregate
+        :return: None
+        :rtype: None
         '''
 
-        # Convert the feature to FeatureYamlObject.
-        feature_data = TransferObject.from_model(
-            FeatureYamlObject,
-            feature
-        )
+        # Convert the feature model to a FeatureYamlObject.
+        feature_data = FeatureYamlObject.from_model(feature)
 
         # Split the feature id for nested update.
         group_id, feature_key = feature.id.split('.', 1)
@@ -190,7 +184,7 @@ class FeatureYamlRepository(FeatureService):
             encoding=self.encoding,
         ).load()
 
-        # Update the feature entry.
+        # Update or insert the feature entry using nested setdefault.
         full_data.setdefault('features', {}).setdefault(group_id, {})[feature_key] = feature_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
@@ -203,10 +197,12 @@ class FeatureYamlRepository(FeatureService):
     # * method: delete
     def delete(self, id: str) -> None:
         '''
-        Delete the feature.
+        Delete a feature by ID. This operation is idempotent.
 
-        :param id: The feature id in the format "<group_id>.<feature_key>".
+        :param id: The feature identifier in the format "<group_id>.<feature_key>".
         :type id: str
+        :return: None
+        :rtype: None
         '''
 
         # Load all features data from the configuration file.
@@ -217,14 +213,14 @@ class FeatureYamlRepository(FeatureService):
             start_node=lambda data: data.get('features', {})
         )
 
-        # Split the feature id into group and name.
-        group_id, feature_name = id.split('.', 1)
+        # Split the feature id into group and feature key.
+        group_id, feature_key = id.split('.', 1)
 
         # Retrieve the group data.
         group_data = features_data.get(group_id, {})
 
-        # Pop the feature entry if it exists.
-        group_data.pop(feature_name, None)
+        # Pop the feature entry if it exists (idempotent).
+        group_data.pop(feature_key, None)
 
         # If the group becomes empty, remove it from the features mapping.
         if not group_data and group_id in features_data:

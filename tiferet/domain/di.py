@@ -6,8 +6,8 @@
 from .settings import (
     DomainObject,
     StringType,
-    DictType,
     ListType,
+    DictType,
     ModelType,
 )
 
@@ -24,7 +24,7 @@ class FlaggedDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The module path.'
-        )
+        ),
     )
 
     # * attribute: class_name
@@ -32,7 +32,7 @@ class FlaggedDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The class name.'
-        )
+        ),
     )
 
     # * attribute: flag
@@ -40,7 +40,7 @@ class FlaggedDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The flag for the container dependency.'
-        )
+        ),
     )
 
     # * attribute: parameters
@@ -49,8 +49,9 @@ class FlaggedDependency(DomainObject):
         default={},
         metadata=dict(
             description='The container dependency parameters.'
-        )
+        ),
     )
+
 
 # ** model: service_configuration
 class ServiceConfiguration(DomainObject):
@@ -63,28 +64,28 @@ class ServiceConfiguration(DomainObject):
         required=True,
         metadata=dict(
             description='The unique identifier for the service configuration.'
-        )
+        ),
     )
 
     # * attribute: name
     name = StringType(
         metadata=dict(
             description='The name of the service configuration.'
-        )
+        ),
     )
 
     # * attribute: module_path
     module_path = StringType(
         metadata=dict(
             description='The default module path for the dependency class.'
-        )
+        ),
     )
 
     # * attribute: class_name
     class_name = StringType(
         metadata=dict(
             description='The default class name for the dependency class.'
-        )
+        ),
     )
 
     # * attribute: parameters
@@ -93,7 +94,7 @@ class ServiceConfiguration(DomainObject):
         default={},
         metadata=dict(
             description='The default configuration parameters.'
-        )
+        ),
     )
 
     # * attribute: dependencies
@@ -102,7 +103,7 @@ class ServiceConfiguration(DomainObject):
         default=[],
         metadata=dict(
             description='The flag-specific implementation overrides.'
-        )
+        ),
     )
 
     # * method: get_dependency
@@ -128,4 +129,3 @@ class ServiceConfiguration(DomainObject):
 
         # Return None if no dependency matches the flags.
         return None
-

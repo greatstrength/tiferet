@@ -182,7 +182,7 @@ def test_int_app_config_repo_save(
     # Create constant for new test app interface.
     new_app_id = 'new.app'
 
-    # Create new app interface config data and map to a model.
+    # Create new app interface config data and map to an aggregate.
     app = TransferObject.from_data(
         AppInterfaceYamlObject,
         id=new_app_id,

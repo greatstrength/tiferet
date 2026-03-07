@@ -243,7 +243,8 @@ class CliCommandYamlObject(CliCommand, TransferObject):
         serialized_name='args',
         metadata={
             'description': 'The list of arguments for the CLI command.'
-        })
+        },
+    )
 
     # * method: to_primitive
     def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
@@ -292,7 +293,7 @@ class CliCommandYamlObject(CliCommand, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(cli_command: CliCommandAggregate, **kwargs) -> 'CliCommandYamlObject':
+    def from_model(cli_command: CliCommand, **kwargs) -> 'CliCommandYamlObject':
         '''
         Creates a CliCommandYamlObject from a CliCommand model.
 
@@ -305,7 +306,7 @@ class CliCommandYamlObject(CliCommand, TransferObject):
         '''
 
         # Create a new CliCommandYamlObject from the model, converting
-        # the arguments list into CliArgumentYamlObject instances.
+        # the arguments list into primitive dictionaries.
         return TransferObject.from_model(
             CliCommandYamlObject,
             cli_command,

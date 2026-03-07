@@ -1,4 +1,4 @@
-"""Tiferet CLI Models Tests"""
+"""Tests for Tiferet Domain CLI"""
 
 # *** imports
 
@@ -6,8 +6,8 @@
 import pytest
 
 # ** app
+from ..settings import DomainObject
 from ..cli import (
-    DomainObject,
     CliArgument,
     CliCommand,
 )
@@ -18,130 +18,133 @@ from ..cli import (
 @pytest.fixture
 def cli_argument() -> CliArgument:
     '''
-    Fixture to provide a sample CLI argument for testing.
-    This argument is used to test the CLI argument model.
+    Fixture for a CliArgument instance.
 
-    :return: The CLI argument.
+    :return: The CliArgument instance.
     :rtype: CliArgument
     '''
 
-    # Create the CLI argument.
+    # Create and return a new CliArgument.
     return DomainObject.new(
         CliArgument,
         name_or_flags=['--test-arg', '-t'],
         description='A test argument for CLI commands.',
         required=True,
-        type='str'
+        type='str',
     )
 
 # ** fixture: cli_command
 @pytest.fixture
 def cli_command() -> CliCommand:
     '''
-    Fixture to provide a sample CLI command for testing.
-    This command is used to test the CLI command model.
+    Fixture for a CliCommand instance created via CliCommand.new().
 
-    :return: The CLI command.
+    :return: The CliCommand instance.
     :rtype: CliCommand
     '''
 
-    # Create the CLI command.
+    # Create an argument for the command.
+    arg = DomainObject.new(
+        CliArgument,
+        name_or_flags=['--arg1', '-a'],
+        description='First argument.',
+    )
+
+    # Create and return a new CliCommand via the custom factory.
     return CliCommand.new(
         group_key='test-group',
         key='test-feature',
         name='Test Feature Command',
         description='A command for testing CLI features.',
-        arguments=[
-            DomainObject.new(
-                CliArgument,
-                name_or_flags=['--arg1', '-a'],
-                description='An argument for the test command.',
-                required=True,
-                type='str'
-            )
-        ]
+        arguments=[arg],
     )
 
 # *** tests
 
 # ** test: cli_argument_get_type_str
-def test_cli_argument_get_type_str(cli_argument: CliArgument):
+def test_cli_argument_get_type_str(cli_argument: CliArgument) -> None:
     '''
-    Test the get_type method of a CLI argument with a string type.
+    Test that get_type returns str for the default type.
 
-    :param cli_argument: The CLI argument to test.
+    :param cli_argument: The CliArgument fixture.
     :type cli_argument: CliArgument
     '''
-    # Get the type of the CLI argument.
-    arg_type = cli_argument.get_type()
 
-    # Assert that the type is 'str'.
-    assert arg_type == str
+    # Assert the type resolves to str.
+    assert cli_argument.get_type() is str
 
 # ** test: cli_argument_get_type_int
-def test_cli_argument_get_type_int(cli_argument: CliArgument):
+def test_cli_argument_get_type_int(cli_argument: CliArgument) -> None:
     '''
-    Test the get_type method of a CLI argument with an integer type.
+    Test that get_type returns int when type is set to "int".
+
+    :param cli_argument: The CliArgument fixture.
+    :type cli_argument: CliArgument
     '''
-    # Change the type of the CLI argument to 'int'.
+
+    # Override the type to int.
     cli_argument.type = 'int'
 
-    # Get the type of the CLI argument.
-    arg_type = cli_argument.get_type()
-
-    # Assert that the type is 'int'.
-    assert arg_type == int
+    # Assert the type resolves to int.
+    assert cli_argument.get_type() is int
 
 # ** test: cli_argument_get_type_float
-def test_cli_argument_get_type_float(cli_argument: CliArgument):
+def test_cli_argument_get_type_float(cli_argument: CliArgument) -> None:
     '''
-    Test the get_type method of a CLI argument with a float type.
+    Test that get_type returns float when type is set to "float".
 
-    :param cli_argument: The CLI argument to test.
+    :param cli_argument: The CliArgument fixture.
     :type cli_argument: CliArgument
     '''
-    # Change the type of the CLI argument to 'float'.
+
+    # Override the type to float.
     cli_argument.type = 'float'
 
-    # Get the type of the CLI argument.
-    arg_type = cli_argument.get_type()
-
-    # Assert that the type is 'float'.
-    assert arg_type == float
+    # Assert the type resolves to float.
+    assert cli_argument.get_type() is float
 
 # ** test: cli_argument_get_type_none
-def test_cli_argument_get_type_none(cli_argument: CliArgument):
+def test_cli_argument_get_type_none(cli_argument: CliArgument) -> None:
     '''
-    Test the get_type method of a CLI argument with no type specified.
+    Test that get_type falls back to str when type is None.
 
-    :param cli_argument: The CLI argument to test.
+    :param cli_argument: The CliArgument fixture.
     :type cli_argument: CliArgument
     '''
-    # Change the type of the CLI argument to None.
+
+    # Set the type to None.
     cli_argument.type = None
 
-    # Get the type of the CLI argument.
-    arg_type = cli_argument.get_type()
-
-    # Assert that the type is 'str' by default.
-    assert arg_type == str
+    # Assert the type falls back to str.
+    assert cli_argument.get_type() is str
 
 # ** test: cli_command_new
-def test_cli_command_new(cli_command: CliCommand):
+def test_cli_command_new(cli_command: CliCommand) -> None:
     '''
-    Test the creation of a CLI command with the new method.
-    '''
-    assert cli_command.id == 'test_group.test_feature'
+    Test that CliCommand.new() derives the id from hyphenated group key and key.
 
-# ** test: cli_command_has_argument
-def test_cli_command_has_argument(cli_command: CliCommand):
-    '''
-    Test that a CLI command can check for an argument.
-
-    :param cli_command: The CLI command to test.
+    :param cli_command: The CliCommand fixture.
     :type cli_command: CliCommand
     '''
 
-    # Assert that the command has the argument.
-    assert cli_command.has_argument(['-a', '--arg1'])
-    assert not cli_command.has_argument(['-b', '--arg2'])
+    # Assert the id is derived correctly with hyphens replaced by underscores.
+    assert cli_command.id == 'test_group.test_feature'
+    assert cli_command.group_key == 'test-group'
+    assert cli_command.key == 'test-feature'
+    assert cli_command.name == 'Test Feature Command'
+    assert cli_command.description == 'A command for testing CLI features.'
+
+# ** test: cli_command_has_argument
+def test_cli_command_has_argument(cli_command: CliCommand) -> None:
+    '''
+    Test that has_argument returns True for matching flags and False otherwise.
+
+    :param cli_command: The CliCommand fixture.
+    :type cli_command: CliCommand
+    '''
+
+    # Assert existing argument flags return True.
+    assert cli_command.has_argument(['-a', '--arg1']) is True
+
+    # Assert non-existent argument flags return False.
+    assert cli_command.has_argument(['-b', '--arg2']) is False

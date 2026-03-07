@@ -1,20 +1,18 @@
-"""Tiferet DI Interfaces"""
+"""Tiferet Interfaces DI"""
 
 # *** imports
 
 # ** core
 from abc import abstractmethod
 from typing import (
-    List,
+    Any,
     Dict,
+    List,
     Tuple,
-    Any
 )
 
 # ** app
-from ..mappers.di import (
-    ServiceConfigurationAggregate,
-)
+from ..mappers.di import ServiceConfigurationAggregate
 from .settings import Service
 
 # *** interfaces

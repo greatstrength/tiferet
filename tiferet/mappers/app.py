@@ -19,7 +19,7 @@ from .settings import (
     Aggregate,
     TransferObject,
     DEFAULT_MODULE_PATH,
-    DEFAULT_CLASS_NAME
+    DEFAULT_CLASS_NAME,
 )
 
 # *** mappers
@@ -53,7 +53,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :rtype: AppInterfaceAggregate
         '''
 
-        # Create a new app interface aggregate from the provided app interface contract.
+        # Create a new app interface aggregate from the provided app interface data.
         return Aggregate.new(
             AppInterfaceAggregate,
             validate=validate,
@@ -373,15 +373,13 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         '''
         Maps the app interface data to an app interface aggregate.
 
-        :param role: The role for the mapping.
-        :type role: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new app interface aggregate.
         :rtype: AppInterfaceAggregate
         '''
 
-        # Map the app interface data.
+        # Map the app interface data to an app interface aggregate.
         return super().map(
             AppInterfaceAggregate,
             module_path=self.module_path,

@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `1.9.x`
+- **Version:** `2.0.0a3`
 
 ## Architecture
 

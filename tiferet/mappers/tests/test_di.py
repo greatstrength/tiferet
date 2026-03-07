@@ -10,15 +10,66 @@ from ..settings import (
     TransferObject,
 )
 from ..di import (
-    ServiceConfigurationYamlObject,
-    ServiceConfigurationAggregate,
+    FlaggedDependencyAggregate,
     FlaggedDependencyYamlObject,
+    ServiceConfigurationAggregate,
+    ServiceConfigurationYamlObject,
 )
 from ...domain import (
+    DomainObject,
     FlaggedDependency,
 )
 
 # *** fixtures
+
+# ** fixture: flagged_dependency_aggregate
+@pytest.fixture
+def flagged_dependency_aggregate() -> FlaggedDependencyAggregate:
+    '''
+    Provides a fixture for a FlaggedDependencyAggregate instance.
+
+    :return: The FlaggedDependencyAggregate instance.
+    :rtype: FlaggedDependencyAggregate
+    '''
+
+    # Create and return a FlaggedDependencyAggregate.
+    return FlaggedDependencyAggregate.new(
+        flagged_dependency_data=dict(
+            module_path='tests.repos.test',
+            class_name='TestRepoProxy',
+            flag='test',
+            parameters={'keep': 'original', 'override': 'old'},
+        )
+    )
+
+# ** fixture: service_configuration_aggregate
+@pytest.fixture
+def service_configuration_aggregate() -> ServiceConfigurationAggregate:
+    '''
+    Provides a fixture for a ServiceConfigurationAggregate instance.
+
+    :return: The ServiceConfigurationAggregate instance.
+    :rtype: ServiceConfigurationAggregate
+    '''
+
+    # Create and return a ServiceConfigurationAggregate with one seeded dependency.
+    return ServiceConfigurationAggregate.new(
+        service_configuration_data=dict(
+            id='test_repo',
+            module_path='tests.repos.test',
+            class_name='DefaultTestRepoProxy',
+            parameters={'default_param': 'default_value'},
+            dependencies=[
+                DomainObject.new(
+                    FlaggedDependency,
+                    module_path='tests.repos.test',
+                    class_name='TestRepoProxy',
+                    flag='existing',
+                    parameters={'param1': 'value1'},
+                )
+            ],
+        )
+    )
 
 # ** fixture: flagged_dependency_yaml_object
 @pytest.fixture
@@ -132,7 +183,6 @@ def test_service_configuration_yaml_object_to_primitive_to_data_yaml(service_con
         }
     }
 
-
 # ** test: flagged_dependency_yaml_data_from_data
 def test_flagged_dependency_yaml_data_from_data(flagged_dependency_yaml_object: FlaggedDependencyYamlObject):
     '''
@@ -178,7 +228,6 @@ def test_flagged_dependency_yaml_data_from_model(flagged_dependency_model: Flagg
 
     # Create a new data object from the model object.
     data_from_model = FlaggedDependencyYamlObject.from_model(flagged_dependency_model)
-    
     # Assert the data object is valid.
     assert isinstance(data_from_model, FlaggedDependencyYamlObject)
     assert data_from_model.module_path == flagged_dependency_model.module_path
@@ -199,7 +248,7 @@ def test_service_configuration_yaml_data_from_data(service_configuration_yaml_ob
     assert service_configuration_yaml_object.id == 'test_repo'
     assert len(service_configuration_yaml_object.dependencies) == 2
 
-    # Check if dependencies are correctly initialized
+    # Check if dependencies are correctly initialized.
     for flag, dep in service_configuration_yaml_object.dependencies.items():
         assert flag in ['test', 'test2']
         assert dep.module_path == 'tests.repos.test'
@@ -244,30 +293,29 @@ def test_service_configuration_yaml_data_from_model(service_configuration_yaml_o
 
     # Create a new model object from the fixture.
     model_object = service_configuration_yaml_object.map()
-    
+
     # Add another dependency to the model object.
     model_object.set_dependency(
-        flag = 'test3',
-        module_path = 'tests.repos.test',
-        class_name = 'TestRepoProxy3',
-        parameters = {'param3': 'value3'}
+        flag='test3',
+        module_path='tests.repos.test',
+        class_name='TestRepoProxy3',
+        parameters={'param3': 'value3'}
     )
-    
+
     # Create a new data object from the model object.
     data_object = ServiceConfigurationYamlObject.from_model(model_object)
-    
+
     # Assert the data object is valid.
     assert isinstance(data_object, ServiceConfigurationYamlObject)
     assert data_object.id == 'test_repo'
     assert len(data_object.dependencies) == 3
 
-    # Check if all dependencies are of type FlaggedDependencyYamlObject
+    # Check if all dependencies are of type FlaggedDependencyYamlObject.
     for dep in data_object.dependencies.values():
         assert isinstance(dep, FlaggedDependencyYamlObject)
         assert dep.module_path == 'tests.repos.test'
         assert dep.class_name in ['TestRepoProxy', 'TestRepoProxy2', 'TestRepoProxy3']
         assert dep.parameters in [{'test_param': 'test_value'}, {'param2': 'value2'}, {'param3': 'value3'}]
-
 
 # ** test: service_configuration_yaml_data_flags_alias_round_trip
 def test_service_configuration_yaml_data_flags_alias_round_trip() -> None:
@@ -276,6 +324,7 @@ def test_service_configuration_yaml_data_flags_alias_round_trip() -> None:
     that dependencies are still serialized under ``deps``.
     '''
 
+    # Create a ServiceConfigurationYamlObject using the legacy 'flags' alias.
     data_object = TransferObject.from_data(
         ServiceConfigurationYamlObject,
         id='test_repo_flags',
@@ -298,8 +347,214 @@ def test_service_configuration_yaml_data_flags_alias_round_trip() -> None:
     assert 'flag1' in data_object.dependencies
     assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyYamlObject)
 
-    # When serializing to data, dependencies should still be emitted as ``deps``.
+    # When serializing to data, dependencies should still be emitted as 'deps'.
     primitive = data_object.to_primitive(role='to_data.yaml')
     assert 'flags' not in primitive
     assert 'deps' in primitive
     assert 'flag1' in primitive['deps']
+
+# ** test: flagged_dependency_aggregate_new
+def test_flagged_dependency_aggregate_new(flagged_dependency_aggregate: FlaggedDependencyAggregate):
+    '''
+    Test that FlaggedDependencyAggregate.new() creates a valid aggregate.
+
+    :param flagged_dependency_aggregate: The FlaggedDependencyAggregate instance.
+    :type flagged_dependency_aggregate: FlaggedDependencyAggregate
+    '''
+
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(flagged_dependency_aggregate, FlaggedDependencyAggregate)
+    assert flagged_dependency_aggregate.module_path == 'tests.repos.test'
+    assert flagged_dependency_aggregate.class_name == 'TestRepoProxy'
+    assert flagged_dependency_aggregate.flag == 'test'
+    assert flagged_dependency_aggregate.parameters == {'keep': 'original', 'override': 'old'}
+
+# ** test: flagged_dependency_aggregate_set_parameters_clears_when_none
+def test_flagged_dependency_aggregate_set_parameters_clears_when_none(
+    flagged_dependency_aggregate: FlaggedDependencyAggregate,
+):
+    '''
+    Test that set_parameters clears all parameters when called with None.
+
+    :param flagged_dependency_aggregate: The FlaggedDependencyAggregate instance.
+    :type flagged_dependency_aggregate: FlaggedDependencyAggregate
+    '''
+
+    # Call set_parameters with None to clear all parameters.
+    flagged_dependency_aggregate.set_parameters(None)
+
+    # All parameters should be cleared.
+    assert flagged_dependency_aggregate.parameters == {}
+
+# ** test: flagged_dependency_aggregate_set_parameters_merges_and_prunes_none_values
+def test_flagged_dependency_aggregate_set_parameters_merges_and_prunes_none_values(
+    flagged_dependency_aggregate: FlaggedDependencyAggregate,
+):
+    '''
+    Test that set_parameters merges new values and removes keys whose value is None.
+
+    :param flagged_dependency_aggregate: The FlaggedDependencyAggregate instance.
+    :type flagged_dependency_aggregate: FlaggedDependencyAggregate
+    '''
+
+    # Merge: override existing, add new, remove by setting to None.
+    flagged_dependency_aggregate.set_parameters({
+        'override': 'new',
+        'remove': None,
+        'add': 'added',
+    })
+
+    # 'keep' preserved, 'override' updated, 'remove' pruned, 'add' added.
+    assert flagged_dependency_aggregate.parameters == {
+        'keep': 'original',
+        'override': 'new',
+        'add': 'added',
+    }
+
+# ** test: service_configuration_aggregate_new
+def test_service_configuration_aggregate_new(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that ServiceConfigurationAggregate.new() creates a valid aggregate.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Assert the aggregate is correctly instantiated.
+    assert isinstance(service_configuration_aggregate, ServiceConfigurationAggregate)
+    assert service_configuration_aggregate.id == 'test_repo'
+    assert service_configuration_aggregate.module_path == 'tests.repos.test'
+    assert service_configuration_aggregate.class_name == 'DefaultTestRepoProxy'
+    assert service_configuration_aggregate.parameters == {'default_param': 'default_value'}
+    assert len(service_configuration_aggregate.dependencies) == 1
+
+# ** test: service_configuration_aggregate_set_default_type_updates
+def test_service_configuration_aggregate_set_default_type_updates(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that set_default_type updates module_path, class_name, and parameters.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Update the default type with new values.
+    service_configuration_aggregate.set_default_type(
+        module_path='updated.module',
+        class_name='UpdatedClass',
+        parameters={'new_param': 'new_value'},
+    )
+
+    # Assert the fields were updated correctly.
+    assert service_configuration_aggregate.module_path == 'updated.module'
+    assert service_configuration_aggregate.class_name == 'UpdatedClass'
+    assert service_configuration_aggregate.parameters == {'new_param': 'new_value'}
+
+# ** test: service_configuration_aggregate_set_default_type_clears_when_both_none
+def test_service_configuration_aggregate_set_default_type_clears_when_both_none(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that set_default_type clears module_path, class_name, and parameters
+    when both type fields are None.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Call with both type fields as None to clear the default type.
+    service_configuration_aggregate.set_default_type(
+        module_path=None,
+        class_name=None,
+    )
+
+    # Both type fields and parameters should be cleared.
+    assert service_configuration_aggregate.module_path is None
+    assert service_configuration_aggregate.class_name is None
+    assert service_configuration_aggregate.parameters == {}
+
+# ** test: service_configuration_aggregate_set_dependency_creates_new
+def test_service_configuration_aggregate_set_dependency_creates_new(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that set_dependency appends a new FlaggedDependency when the flag is not found.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Confirm the flag does not already exist.
+    assert service_configuration_aggregate.get_dependency('new_flag') is None
+
+    # Add a new dependency via set_dependency.
+    service_configuration_aggregate.set_dependency(
+        flag='new_flag',
+        module_path='tests.repos.test',
+        class_name='NewTestRepoProxy',
+        parameters={'new_param': 'new_value'},
+    )
+
+    # Verify the dependency was created with the correct values.
+    dep = service_configuration_aggregate.get_dependency('new_flag')
+    assert dep is not None
+    assert isinstance(dep, FlaggedDependency)
+    assert dep.module_path == 'tests.repos.test'
+    assert dep.class_name == 'NewTestRepoProxy'
+    assert dep.parameters == {'new_param': 'new_value'}
+    assert len(service_configuration_aggregate.dependencies) == 2
+
+# ** test: service_configuration_aggregate_set_dependency_updates_existing
+def test_service_configuration_aggregate_set_dependency_updates_existing(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that set_dependency updates an existing dependency in place, merging
+    parameters and pruning None-valued keys.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Update the existing 'existing' dependency.
+    service_configuration_aggregate.set_dependency(
+        flag='existing',
+        module_path='tests.repos.updated',
+        class_name='UpdatedRepoProxy',
+        parameters={'param1': None, 'param2': 'value2'},
+    )
+
+    # Verify module_path and class_name were updated.
+    dep = service_configuration_aggregate.get_dependency('existing')
+    assert dep.module_path == 'tests.repos.updated'
+    assert dep.class_name == 'UpdatedRepoProxy'
+
+    # 'param1' had None value so it should be removed; 'param2' should be added.
+    assert dep.parameters == {'param2': 'value2'}
+
+    # The list should still have only one dependency.
+    assert len(service_configuration_aggregate.dependencies) == 1
+
+# ** test: service_configuration_aggregate_remove_dependency
+def test_service_configuration_aggregate_remove_dependency(
+    service_configuration_aggregate: ServiceConfigurationAggregate,
+):
+    '''
+    Test that remove_dependency filters out the dependency matching the given flag.
+
+    :param service_configuration_aggregate: The ServiceConfigurationAggregate instance.
+    :type service_configuration_aggregate: ServiceConfigurationAggregate
+    '''
+
+    # Confirm the dependency exists before removal.
+    assert service_configuration_aggregate.get_dependency('existing') is not None
+
+    # Remove the dependency.
+    service_configuration_aggregate.remove_dependency('existing')
+
+    # Verify it is gone and the list is empty.
+    assert service_configuration_aggregate.get_dependency('existing') is None
+    assert service_configuration_aggregate.dependencies == []

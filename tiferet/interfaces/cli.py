@@ -1,4 +1,4 @@
-"""Tiferet CLI Contracts"""
+"""Tiferet Interfaces CLI"""
 
 # *** imports
 
@@ -15,7 +15,7 @@ from .settings import Service
 # ** interface: cli_service
 class CliService(Service):
     '''
-    Service interface for managing CLI commands using a repository-style API.
+    Service interface for managing CLI command configurations.
     '''
 
     # * method: exists
@@ -97,3 +97,17 @@ class CliService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('get_parent_arguments method is required for CliService.')
+
+    # * method: save_parent_arguments
+    @abstractmethod
+    def save_parent_arguments(self, parent_arguments: List[CliArgumentAggregate]) -> None:
+        '''
+        Save or update parent-level CLI arguments.
+
+        :param parent_arguments: The list of parent CLI argument aggregates to save.
+        :type parent_arguments: List[CliArgumentAggregate]
+        :return: None
+        :rtype: None
+        '''
+        # Not implemented.
+        raise NotImplementedError('save_parent_arguments method is required for CliService.')

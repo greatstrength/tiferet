@@ -31,7 +31,7 @@ class AppYamlRepository(AppService):
     # * attribute: default_role
     default_role: str
 
-    # * method: init
+    # * init
     def __init__(self, app_yaml_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the app YAML repository.
@@ -50,7 +50,7 @@ class AppYamlRepository(AppService):
     # * method: exists
     def exists(self, id: str) -> bool:
         '''
-        Check if the app interface exists.
+        Check if an app interface exists by ID.
 
         :param id: The app interface identifier.
         :type id: str
@@ -72,11 +72,11 @@ class AppYamlRepository(AppService):
     # * method: get
     def get(self, id: str) -> AppInterfaceAggregate | None:
         '''
-        Get the app interface by identifier.
+        Retrieve an app interface by ID.
 
         :param id: The app interface identifier.
         :type id: str
-        :return: The app interface instance or None if not found.
+        :return: The app interface aggregate or None if not found.
         :rtype: AppInterfaceAggregate | None
         '''
 
@@ -92,7 +92,7 @@ class AppYamlRepository(AppService):
         if not interface_data:
             return None
 
-        # Map the data to an AppInterface and return it.
+        # Map the data to an AppInterfaceAggregate and return it.
         return TransferObject.from_data(
             AppInterfaceYamlObject,
             id=id,
@@ -104,7 +104,7 @@ class AppYamlRepository(AppService):
         '''
         List all app interfaces.
 
-        :return: A list of app interfaces.
+        :return: A list of app interface aggregates.
         :rtype: List[AppInterfaceAggregate]
         '''
 
@@ -116,7 +116,7 @@ class AppYamlRepository(AppService):
             start_node=lambda data: data.get('interfaces', {})
         )
 
-        # Map each interface entry to an AppInterface.
+        # Map each interface entry to an AppInterfaceAggregate.
         return [
             TransferObject.from_data(
                 AppInterfaceYamlObject,
@@ -129,9 +129,9 @@ class AppYamlRepository(AppService):
     # * method: save
     def save(self, interface: AppInterfaceAggregate) -> None:
         '''
-        Save the app interface.
+        Save or update an app interface.
 
-        :param interface: The app interface to save.
+        :param interface: The app interface aggregate to save.
         :type interface: AppInterfaceAggregate
         :return: None
         :rtype: None
@@ -159,7 +159,7 @@ class AppYamlRepository(AppService):
     # * method: delete
     def delete(self, id: str) -> None:
         '''
-        Delete the app interface.
+        Delete an app interface by ID. This operation is idempotent.
 
         :param id: The app interface identifier.
         :type id: str

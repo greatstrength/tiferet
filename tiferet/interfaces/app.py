@@ -1,4 +1,4 @@
-"""Tiferet App Contracts"""
+"""Tiferet Interfaces App"""
 
 # *** imports
 
@@ -15,7 +15,7 @@ from .settings import Service
 # ** interface: app_service
 class AppService(Service):
     '''
-    Service interface for managing app interfaces using a repository-style API.
+    Service interface for managing app interface configurations.
     '''
 
     # * method: exists
@@ -40,7 +40,7 @@ class AppService(Service):
 
         :param id: The app interface identifier.
         :type id: str
-        :return: The app interface.
+        :return: The app interface aggregate.
         :rtype: AppInterfaceAggregate
         '''
         # Not implemented.
@@ -52,7 +52,7 @@ class AppService(Service):
         '''
         List all app interfaces.
 
-        :return: A list of app interfaces.
+        :return: A list of app interface aggregates.
         :rtype: List[AppInterfaceAggregate]
         '''
         # Not implemented.
@@ -64,7 +64,7 @@ class AppService(Service):
         '''
         Save or update an app interface.
 
-        :param interface: The app interface to save.
+        :param interface: The app interface aggregate to save.
         :type interface: AppInterfaceAggregate
         :return: None
         :rtype: None

@@ -1,4 +1,4 @@
-"""Tiferet App Model Tests"""
+"""Tests for Tiferet Domain App"""
 
 # *** imports
 
@@ -6,10 +6,10 @@
 import pytest
 
 # ** app
+from ..settings import DomainObject
 from ..app import (
-    DomainObject,
-    AppServiceDependency,
     AppInterface,
+    AppServiceDependency,
 )
 
 # *** fixtures
@@ -18,37 +18,34 @@ from ..app import (
 @pytest.fixture
 def app_dependency() -> AppServiceDependency:
     '''
-    Fixture for the container service attribute.
+    Fixture for an AppServiceDependency instance.
 
-    :return: The container service attribute.
+    :return: The AppServiceDependency instance.
     :rtype: AppServiceDependency
     '''
 
-    # Create a container service attribute.
+    # Create and return a new AppServiceDependency.
     return DomainObject.new(
         AppServiceDependency,
         attribute_id='test_attribute',
         module_path='test_module_path',
         class_name='test_class_name',
-        parameters={
-            'param1': 'value1',
-            'param2': 'value2',
-        },
+        parameters={'param1': 'value1', 'param2': 'value2'},
     )
 
 # ** fixture: app_interface
 @pytest.fixture
 def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
     '''
-    Fixture for the app interface.
+    Fixture for an AppInterface instance.
 
-    :param app_dependency: The app attribute to include in the app interface.
+    :param app_dependency: The AppServiceDependency fixture.
     :type app_dependency: AppServiceDependency
-    :return: The app interface.
+    :return: The AppInterface instance.
     :rtype: AppInterface
     '''
 
-    # Create the app interface.
+    # Create and return a new AppInterface.
     return DomainObject.new(
         AppInterface,
         id='test',
@@ -57,42 +54,40 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
         class_name='AppContext',
         description='The test app.',
         flags=['test'],
-        services=[
-            app_dependency,
-        ],
+        services=[app_dependency],
     )
 
 # *** tests
 
 # ** test: app_interface_get_service
-def test_app_interface_get_service(app_interface: AppInterface):
+def test_app_interface_get_service(app_interface: AppInterface) -> None:
     '''
-    Test the get_service method of the app interface.
+    Test successful retrieval of a service dependency by attribute id.
 
-    :param app_interface: The app interface to test.
+    :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface
     '''
 
-    # Get the app dependency.
-    app_dependency = app_interface.get_service('test_attribute')
+    # Retrieve the service dependency by attribute id.
+    service = app_interface.get_service('test_attribute')
 
-    # Assert the app dependency is valid.
-    assert app_dependency.module_path == 'test_module_path'
-    assert app_dependency.class_name == 'test_class_name'
-    assert app_dependency.attribute_id == 'test_attribute'
-    assert app_dependency.parameters
-    assert app_dependency.parameters['param1'] == 'value1'
-    assert app_dependency.parameters['param2'] == 'value2'
+    # Assert the service dependency fields match.
+    assert service.module_path == 'test_module_path'
+    assert service.class_name == 'test_class_name'
+    assert service.attribute_id == 'test_attribute'
+    assert service.parameters == {'param1': 'value1', 'param2': 'value2'}
 
 # ** test: app_interface_get_service_invalid
-def test_app_interface_get_service_invalid(app_interface: AppInterface):
+def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
     '''
-    Test the get_service method of the app interface with an invalid attribute ID.
+    Test that get_service returns None for an invalid attribute id.
 
-    :param app_interface: The app interface to test.
+    :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface
     '''
 
-    # Assert the app dependency is invalid.
-    assert app_interface.get_service('invalid') is None
+    # Attempt to retrieve a non-existent service dependency.
+    service = app_interface.get_service('invalid')
 
+    # Assert None is returned.
+    assert service is None

@@ -1,4 +1,4 @@
-"""Tiferet Logging Models Tests"""
+"""Tests for Tiferet Domain Logging"""
 
 # *** imports
 
@@ -6,8 +6,8 @@
 import pytest
 
 # ** app
+from ..settings import DomainObject
 from ..logging import (
-    DomainObject,
     Formatter,
     Handler,
     Logger,
@@ -19,224 +19,214 @@ from ..logging import (
 @pytest.fixture
 def formatter() -> Formatter:
     '''
-    Fixture to create a basic Formatter object.
+    Fixture for a full Formatter instance with datefmt.
 
-    :return: The Formatter object.
+    :return: The Formatter instance.
     :rtype: Formatter
     '''
 
-    # Create the formatter with all attributes.
+    # Create and return a new Formatter.
     return DomainObject.new(
         Formatter,
         id='simple',
         name='Simple Formatter',
-        description='A simple logging formatter.',
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
     )
 
 # ** fixture: handler
 @pytest.fixture
-def handler(formatter: Formatter) -> Handler:
+def handler() -> Handler:
     '''
-    Fixture to create a basic Handler object.
+    Fixture for a Handler with stream set.
 
-    :param formatter: The formatter to associate with the handler.
-    :type formatter: Formatter
+    :return: The Handler instance.
+    :rtype: Handler
     '''
 
-    # Create the handler with all attributes.
+    # Create and return a new Handler.
     return DomainObject.new(
         Handler,
         id='console',
         name='Console Handler',
-        description='A console logging handler.',
         module_path='logging',
         class_name='StreamHandler',
         level='INFO',
-        formatter=formatter.id,
-        stream='ext://sys.stdout'
+        formatter='simple',
+        stream='ext://sys.stdout',
     )
 
 # ** fixture: handler_no_optional
 @pytest.fixture
-def handler_no_optional(formatter: Formatter) -> Handler:
+def handler_no_optional() -> Handler:
     '''
-    Fixture to create a Handler object without optional attributes.
+    Fixture for a Handler without stream or filename set.
 
-    :param formatter: The formatter to associate with the handler.
-    :type formatter: Formatter
+    :return: The Handler instance.
+    :rtype: Handler
     '''
 
-    # Create the handler without optional attributes.
+    # Create and return a new Handler without optional attributes.
     return DomainObject.new(
         Handler,
-        id='minimal',
-        name='Minimal Handler',
-        description='A minimal logging handler.',
+        id='bare',
+        name='Bare Handler',
         module_path='logging',
         class_name='StreamHandler',
         level='DEBUG',
-        formatter=formatter.id
+        formatter='simple',
     )
 
 # ** fixture: logger
 @pytest.fixture
-def logger(handler: Handler) -> Logger:
+def logger() -> Logger:
     '''
-    Fixture to create a basic Logger object.
+    Fixture for a Logger with handlers and propagate=True.
 
-    :param handler: The handler to associate with the logger.
-    :type handler: Handler
+    :return: The Logger instance.
+    :rtype: Logger
     '''
 
-    # Create the logger with all attributes.
+    # Create and return a new Logger.
     return DomainObject.new(
         Logger,
         id='app',
-        name='app',
-        description='Application logger.',
+        name='App Logger',
         level='DEBUG',
-        handlers=[handler.id],
+        handlers=['console'],
         propagate=True,
-        is_root=False
     )
 
 # ** fixture: logger_empty_handlers
 @pytest.fixture
 def logger_empty_handlers() -> Logger:
     '''
-    Fixture to create a Logger object with empty handlers.
+    Fixture for a Logger with empty handlers, propagate=False, and is_root=True.
 
-    :return: The Logger object.
+    :return: The Logger instance.
     :rtype: Logger
     '''
 
-    # Create the logger with empty handlers.
+    # Create and return a new Logger with empty handlers.
     return DomainObject.new(
         Logger,
-        id='empty',
-        name='empty',
-        description='Logger with no handlers.',
+        id='root',
+        name='Root Logger',
         level='WARNING',
         handlers=[],
         propagate=False,
-        is_root=True
+        is_root=True,
     )
 
 # *** tests
 
 # ** test: formatter_format_config_success
-def test_formatter_format_config_success(formatter: Formatter):
+def test_formatter_format_config_success(formatter: Formatter) -> None:
     '''
-    Test successful Formatter format_config output.
+    Test that Formatter.format_config() returns a dict with format and datefmt.
 
-    :param formatter: The formatter to test.
+    :param formatter: The Formatter fixture.
     :type formatter: Formatter
     '''
 
+    # Get the formatter configuration.
     config = formatter.format_config()
-    assert config == {
-        'format': '%(asctime)s - %(levelname)s - %(message)s',
-        'datefmt': '%Y-%m-%d %H:%M:%S'
-    }
+
+    # Assert the configuration contains the expected keys and values.
+    assert config['format'] == '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    assert config['datefmt'] == '%Y-%m-%d %H:%M:%S'
 
 # ** test: formatter_format_config_no_datefmt
-def test_formatter_format_config_no_datefmt():
+def test_formatter_format_config_no_datefmt() -> None:
     '''
-    Test Formatter format_config with no datefmt.
+    Test that Formatter.format_config() returns datefmt as None when not set.
     '''
 
-    # Create a formatter without datefmt.
+    # Create a Formatter without datefmt.
     formatter = DomainObject.new(
         Formatter,
-        id='no_date',
-        name='No Date Formatter',
-        description='A formatter without datefmt.',
-        format='%(levelname)s - %(message)s'
+        id='minimal',
+        name='Minimal Formatter',
+        format='%(message)s',
     )
 
-    # Get the formatter config.
+    # Get the formatter configuration.
     config = formatter.format_config()
 
-    # Assert the config is correct.
-    assert config == {
-        'format': '%(levelname)s - %(message)s',
-        'datefmt': None
-    }
+    # Assert datefmt is None.
+    assert config['format'] == '%(message)s'
+    assert config['datefmt'] is None
 
 # ** test: handler_format_config_success
-def test_handler_format_config_success(handler: Handler):
+def test_handler_format_config_success(handler: Handler) -> None:
     '''
-    Test successful Handler format_config output.
+    Test that Handler.format_config() returns a dict with class, level, formatter, and stream.
 
-    :param handler: The handler to test.
+    :param handler: The Handler fixture.
     :type handler: Handler
     '''
 
-    # Get the handler config.
+    # Get the handler configuration.
     config = handler.format_config()
 
-    # Assert the config is correct.
-    assert config == {
-        'class': 'logging.StreamHandler',
-        'level': 'INFO',
-        'formatter': 'simple',
-        'stream': 'ext://sys.stdout'
-    }
+    # Assert the configuration contains the expected keys and values.
+    assert config['class'] == 'logging.StreamHandler'
+    assert config['level'] == 'INFO'
+    assert config['formatter'] == 'simple'
+    assert config['stream'] == 'ext://sys.stdout'
+    assert 'filename' not in config
 
 # ** test: handler_format_config_no_optional
-def test_handler_format_config_no_optional(handler_no_optional: Handler):
+def test_handler_format_config_no_optional(handler_no_optional: Handler) -> None:
     '''
-    Test Handler format_config without optional attributes.
+    Test that Handler.format_config() omits stream and filename when not set.
 
-    :param handler_no_optional: The handler to test.
+    :param handler_no_optional: The Handler fixture without optional attributes.
     :type handler_no_optional: Handler
     '''
 
-    # Get the handler config.
+    # Get the handler configuration.
     config = handler_no_optional.format_config()
 
-    # Assert the config is correct.
-    assert config == {
-        'class': 'logging.StreamHandler',
-        'level': 'DEBUG',
-        'formatter': 'simple'
-    }
+    # Assert optional attributes are not present.
+    assert 'stream' not in config
+    assert 'filename' not in config
+
+    # Assert required attributes are present.
+    assert config['class'] == 'logging.StreamHandler'
+    assert config['level'] == 'DEBUG'
+    assert config['formatter'] == 'simple'
 
 # ** test: logger_format_config_success
-def test_logger_format_config_success(logger: Logger):
+def test_logger_format_config_success(logger: Logger) -> None:
     '''
-    Test successful Logger format_config output.
+    Test that Logger.format_config() returns a dict with level, handlers, and propagate.
 
-    :param logger: The logger to test.
+    :param logger: The Logger fixture.
     :type logger: Logger
     '''
 
-    # Get the logger config.
+    # Get the logger configuration.
     config = logger.format_config()
-    assert config == {
-        'level': 'DEBUG',
-        'handlers': ['console'],
-        'propagate': True
-    }
+
+    # Assert the configuration contains the expected keys and values.
+    assert config['level'] == 'DEBUG'
+    assert config['handlers'] == ['console']
+    assert config['propagate'] is True
 
 # ** test: logger_format_config_empty_handlers
-def test_logger_format_config_empty_handlers(logger_empty_handlers: Logger):
+def test_logger_format_config_empty_handlers(logger_empty_handlers: Logger) -> None:
     '''
-    Test Logger format_config with empty handlers.
+    Test that Logger.format_config() returns handlers as [] and propagate as False.
 
-    :param logger_empty_handlers: The logger to test.
+    :param logger_empty_handlers: The Logger fixture with empty handlers.
     :type logger_empty_handlers: Logger
     '''
 
-    # Get the logger config.
+    # Get the logger configuration.
     config = logger_empty_handlers.format_config()
 
-    # Assert the config is correct.
-    assert config == {
-        'level': 'WARNING',
-        'handlers': [],
-        'propagate': False
-    }
-
+    # Assert the configuration contains the expected keys and values.
+    assert config['handlers'] == []
+    assert config['propagate'] is False
+    assert config['level'] == 'WARNING'

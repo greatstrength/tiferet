@@ -24,7 +24,7 @@ class AppServiceDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The module path for the app dependency.'
-        )
+        ),
     )
 
     # * attribute: class_name
@@ -32,7 +32,7 @@ class AppServiceDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The class name for the app dependency.'
-        )
+        ),
     )
 
     # * attribute: attribute_id
@@ -146,5 +146,3 @@ class AppInterface(DomainObject):
 
         # Get the service dependency by attribute id.
         return next((dep for dep in self.services if dep.attribute_id == attribute_id), None)
-
-

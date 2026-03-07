@@ -3,15 +3,14 @@
 # *** imports
 
 # ** core
-from typing import Tuple, Any, List, Dict
+from typing import Any, Dict, List, Tuple
 
 # ** app
-from ..domain.di import ServiceConfiguration
-from ..interfaces.di import DIService
-from ..mappers import TransferObject
-from ..mappers.di import (
+from ..interfaces import DIService
+from ..mappers import (
+    TransferObject,
+    ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
-    FlaggedDependencyYamlObject,
 )
 from ..utils import Yaml
 
@@ -26,18 +25,18 @@ class DIYamlRepository(DIService):
     # * attribute: yaml_file
     yaml_file: str
 
-    # * attribute: default_role
-    default_role: str
-
     # * attribute: encoding
     encoding: str
 
+    # * attribute: default_role
+    default_role: str
+
     # * init
-    def __init__(self, di_yaml_file: str, encoding: str = 'utf-8'):
+    def __init__(self, di_yaml_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the DI YAML repository.
 
-        :param di_yaml_file: The DI YAML configuration file.
+        :param di_yaml_file: The YAML configuration file path.
         :type di_yaml_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
@@ -45,218 +44,192 @@ class DIYamlRepository(DIService):
 
         # Set the repository attributes.
         self.yaml_file = di_yaml_file
-        self.default_role = 'to_data.yaml'
         self.encoding = encoding
+        self.default_role = 'to_data.yaml'
 
     # * method: configuration_exists
     def configuration_exists(self, id: str) -> bool:
         '''
-        Check if the service configuration exists.
+        Check if a service configuration exists by ID.
 
-        :param id: The service configuration id.
+        :param id: The service configuration identifier.
         :type id: str
-        :return: Whether the service configuration exists.
+        :return: True if the service configuration exists, otherwise False.
         :rtype: bool
         '''
 
-        # Load the service configuration data from the yaml configuration file.
+        # Load the services mapping from the configuration file.
         services_data = Yaml(
             self.yaml_file,
-            encoding=self.encoding
+            encoding=self.encoding,
         ).load(
             start_node=lambda data: data.get('services', {})
         )
 
-        # Check if the configuration id exists in the configuration data.
+        # Return whether the configuration id exists in the mapping.
         return id in services_data
 
     # * method: get_configuration
-    def get_configuration(self, configuration_id: str, flag: str = None) -> ServiceConfiguration:
+    def get_configuration(self, configuration_id: str, flag: str = None) -> ServiceConfigurationAggregate | None:
         '''
-        Get the service configuration by its unique identifier.
+        Retrieve a service configuration by ID, optionally filtered by flag.
 
-        :param configuration_id: The unique identifier for the service configuration.
+        :param configuration_id: The service configuration identifier.
         :type configuration_id: str
         :param flag: Optional flag to filter the configuration.
         :type flag: str
-        :return: The service configuration.
-        :rtype: ServiceConfiguration
+        :return: The service configuration aggregate or None if not found.
+        :rtype: ServiceConfigurationAggregate | None
         '''
 
-        # Load the service configuration data from the yaml configuration file.
+        # Load the specific service configuration data from the configuration file.
         config_data = Yaml(
             self.yaml_file,
-            encoding=self.encoding
+            encoding=self.encoding,
         ).load(
-            start_node=lambda data: data.get('services', {}).get(configuration_id, None)
+            start_node=lambda data: data.get('services', {}).get(configuration_id)
         )
 
-        # Return None if the configuration data is not found.
+        # If no data is found, return None.
         if not config_data:
-            return config_data
+            return None
 
-        # Return the mapped service configuration.
-        return TransferObject.from_data(
+        # Map the data to a ServiceConfigurationAggregate.
+        configuration = TransferObject.from_data(
             ServiceConfigurationYamlObject,
             id=configuration_id,
-            **config_data
+            **config_data,
         ).map()
 
+        # If a flag is provided, filter the configuration by flag.
+        if flag:
+            dependency = configuration.get_dependency(flag)
+            if dependency:
+                configuration.module_path = dependency.module_path
+                configuration.class_name = dependency.class_name
+                if dependency.parameters:
+                    merged = dict(configuration.parameters or {})
+                    merged.update(dependency.parameters)
+                    configuration.parameters = merged
+
+        # Return the configuration.
+        return configuration
+
     # * method: list_all
-    def list_all(self) -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
+    def list_all(self) -> Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]:
         '''
         List all service configurations and constants.
 
-        :return: A tuple containing a list of service configurations and a dictionary of constants.
-        :rtype: Tuple[List[ServiceConfiguration], Dict[str, str]]
+        :return: A tuple containing a list of service configuration aggregates and a dictionary of constants.
+        :rtype: Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]
         '''
-
-        # Define create data function to parse the YAML file.
-        def data_factory(data):
-
-            # Create a list of ServiceConfigurationYamlObject objects from the YAML data.
-            services = [
-                TransferObject.from_data(
-                    ServiceConfigurationYamlObject,
-                    id=id,
-                    **config_data
-                ) for id, config_data
-                in data.get('services', {}).items()
-            ] if data.get('services') else []
-
-            # Get the constants from the YAML data.
-            consts = data.get('const', {}) if data.get('const') else {}
-
-            # Return the parsed configurations and constants.
-            return services, consts
-
-        # Load the service configuration data from the yaml configuration file.
-        services_data, consts = Yaml(
-            self.yaml_file,
-            encoding=self.encoding
-        ).load(
-            data_factory=data_factory
-        )
-
-        # Return the list of service configurations.
-        return (
-            [data.map() for data in services_data],
-            consts
-        )
-
-    # * method: save_configuration
-    def save_configuration(self, configuration: ServiceConfiguration):
-        '''
-        Save the service configuration to the configuration file.
-
-        :param configuration: The service configuration to save.
-        :type configuration: ServiceConfiguration
-        '''
-
-        # Create flagged dependency data from the service configuration.
-        dependencies_data = {
-            dep.flag: TransferObject.from_model(
-                FlaggedDependencyYamlObject,
-                dep,
-                id=dep.flag
-            ) for dep in configuration.dependencies
-        }
-
-        # Create updated service configuration data.
-        config_data = TransferObject.from_model(
-            ServiceConfigurationYamlObject,
-            configuration,
-            id=configuration.id,
-            dependencies=dependencies_data
-        )
 
         # Load the full configuration file.
         full_data = Yaml(
             self.yaml_file,
-            encoding=self.encoding
+            encoding=self.encoding,
         ).load()
 
-        # Update the service configuration entry.
+        # Map each service entry to a ServiceConfigurationAggregate.
+        configurations = [
+            TransferObject.from_data(
+                ServiceConfigurationYamlObject,
+                id=config_id,
+                **config_data,
+            ).map()
+            for config_id, config_data in full_data.get('services', {}).items()
+        ]
+
+        # Get the constants dictionary.
+        constants = full_data.get('const', {})
+
+        # Return the configurations and constants.
+        return configurations, constants
+
+    # * method: save_configuration
+    def save_configuration(self, configuration: ServiceConfigurationAggregate) -> None:
+        '''
+        Save or update a service configuration.
+
+        :param configuration: The service configuration aggregate to save.
+        :type configuration: ServiceConfigurationAggregate
+        :return: None
+        :rtype: None
+        '''
+
+        # Convert the service configuration model to configuration data.
+        config_data = ServiceConfigurationYamlObject.from_model(configuration)
+
+        # Load the full configuration file.
+        full_data = Yaml(
+            self.yaml_file,
+            encoding=self.encoding,
+        ).load()
+
+        # Update or insert the service configuration entry.
         full_data.setdefault('services', {})[configuration.id] = config_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
         Yaml(
             self.yaml_file,
             mode='w',
-            encoding=self.encoding
+            encoding=self.encoding,
         ).save(data=full_data)
 
     # * method: delete_configuration
-    def delete_configuration(self, configuration_id: str):
+    def delete_configuration(self, configuration_id: str) -> None:
         '''
-        Delete the service configuration by its unique identifier.
+        Delete a service configuration by ID. This operation is idempotent.
 
-        :param configuration_id: The unique identifier for the configuration to delete.
+        :param configuration_id: The service configuration identifier.
         :type configuration_id: str
+        :return: None
+        :rtype: None
         '''
-
-        # Load all service configuration data from the yaml configuration file.
-        services_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding
-        ).load(
-            start_node=lambda data: data.get('services', {})
-        )
-
-        # Pop the configuration data whether it exists or not.
-        services_data.pop(configuration_id, None)
 
         # Load the full configuration file.
         full_data = Yaml(
             self.yaml_file,
-            encoding=self.encoding
+            encoding=self.encoding,
         ).load()
 
-        # Update the services section.
-        full_data['services'] = services_data
+        # Remove the service configuration entry if it exists (idempotent).
+        full_data.get('services', {}).pop(configuration_id, None)
 
         # Persist the updated configuration file.
         Yaml(
             self.yaml_file,
             mode='w',
-            encoding=self.encoding
+            encoding=self.encoding,
         ).save(data=full_data)
 
     # * method: save_constants
-    def save_constants(self, constants: Dict[str, str]):
+    def save_constants(self, constants: Dict[str, Any] = {}) -> None:
         '''
-        Save the constants.
+        Save or update constants.
 
         :param constants: The constants to save.
-        :type constants: Dict[str, str]
+        :type constants: Dict[str, Any]
+        :return: None
+        :rtype: None
         '''
-
-        # Load the existing constants data from the yaml configuration file.
-        const_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding
-        ).load(
-            start_node=lambda data: data.get('const', {})
-        )
-
-        # Update the constants data with the new constants.
-        const_data.update(constants)
-
-        # Remove any constants with None values.
-        const_data = {k: v for k, v in const_data.items() if v is not None}
 
         # Load the full configuration file.
         full_data = Yaml(
             self.yaml_file,
-            encoding=self.encoding
+            encoding=self.encoding,
         ).load()
 
-        # Update the const section.
-        full_data['const'] = const_data
+        # Merge existing constants with new ones.
+        existing_constants = full_data.get('const', {})
+        existing_constants.update(constants)
+
+        # Remove any constants with None values.
+        full_data['const'] = {k: v for k, v in existing_constants.items() if v is not None}
 
         # Persist the updated configuration file.
         Yaml(
             self.yaml_file,
             mode='w',
-            encoding=self.encoding
+            encoding=self.encoding,
         ).save(data=full_data)

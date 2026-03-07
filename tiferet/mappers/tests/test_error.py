@@ -50,11 +50,11 @@ def test_error_data_from_data(error_yaml_object: ErrorYamlObject):
     '''
     Test the creation of error data from a dictionary.
 
-    :param error_data: The error data object.
-    :type error_data: ErrorData
+    :param error_yaml_object: The error YAML object.
+    :type error_yaml_object: ErrorYamlObject
     '''
 
-    # Assert the error data is an instance of ErrorData.
+    # Assert the error data is an instance of ErrorYamlObject.
     assert error_yaml_object.name == 'TEST_ERROR'
     assert error_yaml_object.error_code == 'TEST_ERROR'
     assert len(error_yaml_object.message) == 1
@@ -62,12 +62,12 @@ def test_error_data_from_data(error_yaml_object: ErrorYamlObject):
     assert error_yaml_object.message[0].text == 'Test error message.'
 
 # ** test: error_data_to_primitive_to_data_yaml
-def test_error_data_to_primitive_to_data_yaml(error_yaml_object : ErrorYamlObject):
+def test_error_data_to_primitive_to_data_yaml(error_yaml_object: ErrorYamlObject):
     '''
     Test the conversion of error data to a primitive dictionary.
 
-    :param error_data: The error data object.
-    :type error_data: ErrorData
+    :param error_yaml_object: The error YAML object.
+    :type error_yaml_object: ErrorYamlObject
     '''
 
     # Convert the error data to a primitive.
@@ -85,7 +85,7 @@ def test_error_data_to_primitive_to_data_yaml(error_yaml_object : ErrorYamlObjec
     assert primitive.get('message')[0].get('text') == 'Test error message.'
 
 # ** test: error_data_map
-def test_error_data_map(error_yaml_object : ErrorYamlObject):
+def test_error_data_map(error_yaml_object: ErrorYamlObject):
     '''
     Test the mapping of error YAML object to an error aggregate.
 
@@ -117,7 +117,6 @@ def test_error_yaml_object_from_model():
     '''
 
     # Create an error model.
-    from ...domain import DomainObject
     error = Error.new(
         id='test_error',
         name='Test Error',

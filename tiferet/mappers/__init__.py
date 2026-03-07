@@ -11,14 +11,14 @@ from .app import (
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )
+from .di import (
+    ServiceConfigurationAggregate,
+    ServiceConfigurationYamlObject,
+)
 from .cli import (
     CliArgumentAggregate,
     CliCommandAggregate,
     CliCommandYamlObject,
-)
-from .di import (
-    ServiceConfigurationAggregate,
-    ServiceConfigurationYamlObject,
 )
 from .error import (
     ErrorAggregate,

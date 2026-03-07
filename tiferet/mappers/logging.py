@@ -29,12 +29,14 @@ class FormatterAggregate(Formatter, Aggregate):
 
     # * method: new
     @staticmethod
-    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'FormatterAggregate':
+    def new(
+        validate: bool = True,
+        strict: bool = False,
+        **kwargs
+    ) -> 'FormatterAggregate':
         '''
-        Create a new FormatterAggregate from a data dictionary.
+        Create a new FormatterAggregate.
 
-        :param data_dict: The data dictionary.
-        :type data_dict: Dict[str, Any]
         :param validate: Whether to validate the data.
         :type validate: bool
         :param strict: Whether to use strict validation.
@@ -44,13 +46,15 @@ class FormatterAggregate(Formatter, Aggregate):
         :return: A new FormatterAggregate.
         :rtype: FormatterAggregate
         '''
+
+        # Create a new formatter aggregate from the provided data.
         return Aggregate.new(
             FormatterAggregate,
-            data_dict,
-            validate,
-            strict,
+            validate=validate,
+            strict=strict,
             **kwargs
         )
+
 
 # ** mapper: formatter_yaml_object
 class FormatterYamlObject(Formatter, TransferObject):
@@ -58,15 +62,16 @@ class FormatterYamlObject(Formatter, TransferObject):
     A YAML data representation of a logging formatter configuration.
     '''
 
-    class Options:
+    class Options():
         '''
         The default options for the formatter data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': TransferObject.allow(),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id')
+            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: id
@@ -86,6 +91,8 @@ class FormatterYamlObject(Formatter, TransferObject):
         :return: A new formatter aggregate.
         :rtype: FormatterAggregate
         '''
+
+        # Map to the formatter aggregate.
         return super().map(
             FormatterAggregate,
             **self.to_primitive('to_model'),
@@ -94,17 +101,19 @@ class FormatterYamlObject(Formatter, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(formatter: FormatterAggregate, **kwargs) -> 'FormatterYamlObject':
+    def from_model(formatter: Formatter, **kwargs) -> 'FormatterYamlObject':
         '''
-        Creates a FormatterYamlObject from a Formatter aggregate.
+        Creates a FormatterYamlObject from a Formatter model.
 
-        :param formatter: The formatter aggregate.
-        :type formatter: FormatterAggregate
+        :param formatter: The formatter model.
+        :type formatter: Formatter
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new FormatterYamlObject.
         :rtype: FormatterYamlObject
         '''
+
+        # Create a new FormatterYamlObject from the model.
         return TransferObject.from_model(
             FormatterYamlObject,
             formatter,
@@ -119,12 +128,14 @@ class HandlerAggregate(Handler, Aggregate):
 
     # * method: new
     @staticmethod
-    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'HandlerAggregate':
+    def new(
+        validate: bool = True,
+        strict: bool = False,
+        **kwargs
+    ) -> 'HandlerAggregate':
         '''
-        Create a new HandlerAggregate from a data dictionary.
+        Create a new HandlerAggregate.
 
-        :param data_dict: The data dictionary.
-        :type data_dict: Dict[str, Any]
         :param validate: Whether to validate the data.
         :type validate: bool
         :param strict: Whether to use strict validation.
@@ -134,13 +145,15 @@ class HandlerAggregate(Handler, Aggregate):
         :return: A new HandlerAggregate.
         :rtype: HandlerAggregate
         '''
+
+        # Create a new handler aggregate from the provided data.
         return Aggregate.new(
             HandlerAggregate,
-            data_dict,
-            validate,
-            strict,
+            validate=validate,
+            strict=strict,
             **kwargs
         )
+
 
 # ** mapper: handler_yaml_object
 class HandlerYamlObject(Handler, TransferObject):
@@ -148,15 +161,16 @@ class HandlerYamlObject(Handler, TransferObject):
     A YAML data representation of a logging handler configuration.
     '''
 
-    class Options:
+    class Options():
         '''
         The default options for the handler data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': TransferObject.allow(),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id')
+            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: id
@@ -176,6 +190,8 @@ class HandlerYamlObject(Handler, TransferObject):
         :return: A new handler aggregate.
         :rtype: HandlerAggregate
         '''
+
+        # Map to the handler aggregate.
         return super().map(
             HandlerAggregate,
             **self.to_primitive('to_model'),
@@ -184,17 +200,19 @@ class HandlerYamlObject(Handler, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(handler: HandlerAggregate, **kwargs) -> 'HandlerYamlObject':
+    def from_model(handler: Handler, **kwargs) -> 'HandlerYamlObject':
         '''
-        Creates a HandlerYamlObject from a Handler aggregate.
+        Creates a HandlerYamlObject from a Handler model.
 
-        :param handler: The handler aggregate.
-        :type handler: HandlerAggregate
+        :param handler: The handler model.
+        :type handler: Handler
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new HandlerYamlObject.
         :rtype: HandlerYamlObject
         '''
+
+        # Create a new HandlerYamlObject from the model.
         return TransferObject.from_model(
             HandlerYamlObject,
             handler,
@@ -209,12 +227,14 @@ class LoggerAggregate(Logger, Aggregate):
 
     # * method: new
     @staticmethod
-    def new(data_dict: Dict[str, Any] = {}, validate: bool = True, strict: bool = False, **kwargs) -> 'LoggerAggregate':
+    def new(
+        validate: bool = True,
+        strict: bool = False,
+        **kwargs
+    ) -> 'LoggerAggregate':
         '''
-        Create a new LoggerAggregate from a data dictionary.
+        Create a new LoggerAggregate.
 
-        :param data_dict: The data dictionary.
-        :type data_dict: Dict[str, Any]
         :param validate: Whether to validate the data.
         :type validate: bool
         :param strict: Whether to use strict validation.
@@ -224,13 +244,15 @@ class LoggerAggregate(Logger, Aggregate):
         :return: A new LoggerAggregate.
         :rtype: LoggerAggregate
         '''
+
+        # Create a new logger aggregate from the provided data.
         return Aggregate.new(
             LoggerAggregate,
-            data_dict,
-            validate,
-            strict,
+            validate=validate,
+            strict=strict,
             **kwargs
         )
+
 
 # ** mapper: logger_yaml_object
 class LoggerYamlObject(Logger, TransferObject):
@@ -238,15 +260,16 @@ class LoggerYamlObject(Logger, TransferObject):
     A YAML data representation of a logger configuration.
     '''
 
-    class Options:
+    class Options():
         '''
         The default options for the logger data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': TransferObject.allow(),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id')
+            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: id
@@ -266,6 +289,8 @@ class LoggerYamlObject(Logger, TransferObject):
         :return: A new logger aggregate.
         :rtype: LoggerAggregate
         '''
+
+        # Map to the logger aggregate.
         return super().map(
             LoggerAggregate,
             **self.to_primitive('to_model'),
@@ -274,17 +299,19 @@ class LoggerYamlObject(Logger, TransferObject):
 
     # * method: from_model
     @staticmethod
-    def from_model(logger: LoggerAggregate, **kwargs) -> 'LoggerYamlObject':
+    def from_model(logger: Logger, **kwargs) -> 'LoggerYamlObject':
         '''
-        Creates a LoggerYamlObject from a Logger aggregate.
+        Creates a LoggerYamlObject from a Logger model.
 
-        :param logger: The logger aggregate.
-        :type logger: LoggerAggregate
+        :param logger: The logger model.
+        :type logger: Logger
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new LoggerYamlObject.
         :rtype: LoggerYamlObject
         '''
+
+        # Create a new LoggerYamlObject from the model.
         return TransferObject.from_model(
             LoggerYamlObject,
             logger,
@@ -298,15 +325,16 @@ class LoggingSettingsYamlObject(TransferObject):
     A YAML data representation of the overall logging configuration.
     '''
 
-    class Options:
+    class Options():
         '''
         The default options for the logging settings data.
         '''
+
         serialize_when_none = False
         roles = {
             'to_model': TransferObject.allow(),
             'to_data.yaml': TransferObject.allow(),
-            'to_data.json': TransferObject.allow()
+            'to_data.json': TransferObject.allow(),
         }
 
     # * attribute: id
@@ -355,7 +383,8 @@ class LoggingSettingsYamlObject(TransferObject):
         :rtype: LoggingSettingsYamlObject
         '''
 
-        # Create a new LoggingSettingsYamlObject from the provided data.
+        # Create a new LoggingSettingsYamlObject from the provided data,
+        # injecting dictionary keys as id attributes.
         return TransferObject.from_data(
             LoggingSettingsYamlObject,
             formatters={id: TransferObject.from_data(

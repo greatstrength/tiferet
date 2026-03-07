@@ -116,30 +116,67 @@ cli:
         name: Square Root Command
 ```
 
-The two-level nesting (`calc.add`) mirrors the feature ID structure. The `args` list maps to `CliArgument` entries.
-
 ## Domain Events
 
-| Event | Purpose |
-|-------|---------|
-| `ListCliCommands` | Retrieve all CLI commands (used during argument parsing) |
-| `GetParentArguments` | Retrieve parent-level arguments added to all commands |
-| `AddCliCommand` | Register a new CLI command |
-| `AddCliArgument` | Add an argument to an existing command |
+The following domain events interact with `CliCommand` and `CliArgument`:
+
+| Event                | Description                                              |
+|----------------------|----------------------------------------------------------|
+| `ListCliCommands`    | Lists all `CliCommand` entries.                          |
+| `GetParentArguments` | Retrieves shared arguments for a command group.          |
+| `AddCliCommand`      | Creates and persists a new `CliCommand`.                  |
+| `AddCliArgument`     | Adds an argument to an existing `CliCommand` via aggregate.|
+
+These events depend on the `CliService` interface for persistence operations.
 
 ## Service Interface
 
-`CliService` (`tiferet/interfaces/cli.py`) — abstracts access to CLI command configurations.
+**`CliService`** (`tiferet/interfaces/cli.py`) defines the abstract contract for CLI configuration persistence:
 
-## Relationship to Other Domains
+- `exists(id: str) -> bool`
+- `get(id: str) -> CliCommand`
+- `list() -> List[CliCommand]`
+- `save(cli_command) -> None`
+- `delete(id: str) -> None`
 
-- **Feature domain** — CLI command IDs are feature IDs. The CLI domain is a thin translation layer that converts terminal input into feature execution requests.
-- **App domain** — `CliContext` extends `AppInterfaceContext`, so a CLI application is defined as an app interface in `app.yml` with `module_path: tiferet.contexts.cli` and `class_name: CliContext`.
-- **Error domain** — CLI errors are caught and formatted via `ErrorContext`, then printed to stderr with a non-zero exit code.
+Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
+- **App:** The `calc_cli` interface in `app.yml` specifies `CliContext` as its implementation, with `CliService` and `CliHandler` as service dependencies.
+- **Error:** CLI error responses are formatted via `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
+
+## Instantiation
+
+```python
+from tiferet.domain import DomainObject, CliArgument, CliCommand
+
+# Create an argument directly
+arg = DomainObject.new(
+    CliArgument,
+    name_or_flags=['--count', '-c'],
+    description='Number of iterations.',
+    type='int',
+    required=True,
+)
+
+# Create a command via the custom factory
+cmd = CliCommand.new(
+    group_key='calc',
+    key='add',
+    name='Add Number',
+    description='Adds two numbers.',
+    arguments=[arg],
+)
+# cmd.id == 'calc.add'
+```
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
-- [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (interface configuration)
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
+```

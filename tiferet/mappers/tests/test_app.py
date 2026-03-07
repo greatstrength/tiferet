@@ -64,7 +64,7 @@ def app_interface_aggr() -> AppInterfaceAggregate:
         'class_name': DEFAULT_CLASS_NAME,
         'flags': ['test_feature', 'test_data'],
         'services': [
-             {
+            {
                 'attribute_id': 'test_attribute',
                 'module_path': 'test_module_path',
                 'class_name': 'test_class_name',
@@ -162,7 +162,7 @@ def test_app_interface_aggregate_set_attribute_invalid_class_name(app_interface_
     :type app_interface_aggr: AppInterfaceAggregate
     '''
 
-    # Attempt to set an empty class_name and expect a TiferetError.
+    # Attempt to set a blank class_name and expect a TiferetError.
     with pytest.raises(TiferetError) as exc_info:
         app_interface_aggr.set_attribute('class_name', '   ')
 
@@ -280,92 +280,6 @@ def test_app_interface_aggregate_set_constants_mixed_operations(app_interface_ag
         'preserve': 'present',
         'add': 'added',
     }
-
-# ** test: app_attribute_yaml_object_map
-def test_app_attribute_yaml_object_map():
-    '''
-    Test mapping an AppServiceDependencyYamlObject to an AppServiceDependency entity.
-    '''
-
-    # Create an AppServiceDependencyYamlObject.
-    yaml_obj = TransferObject.from_data(
-        AppServiceDependencyYamlObject,
-        module_path='test.module',
-        class_name='TestClass',
-        parameters={'key': 'value'},
-    )
-
-    # Map to entity.
-    entity = yaml_obj.map(attribute_id='test_attr')
-
-    # Assert the mapping is correct.
-    assert isinstance(entity, AppServiceDependency)
-    assert entity.attribute_id == 'test_attr'
-    assert entity.module_path == 'test.module'
-    assert entity.class_name == 'TestClass'
-    assert entity.parameters == {'key': 'value'}
-
-# ** test: app_interface_yaml_object_from_model
-def test_app_interface_yaml_object_from_model(app_interface_aggr: AppInterfaceAggregate):
-    '''
-    Test creating an AppInterfaceYamlObject from an AppInterfaceAggregate.
-
-    :param app_interface_aggr: The app interface aggregate.
-    :type app_interface_aggr: AppInterfaceAggregate
-    '''
-
-    # Create YamlObject from aggregate using the custom from_model method.
-    yaml_obj = AppInterfaceYamlObject.from_model(app_interface_aggr)
-
-    # Assert the conversion is correct.
-    assert isinstance(yaml_obj, AppInterfaceYamlObject)
-    assert yaml_obj.id == app_interface_aggr.id
-    assert yaml_obj.name == app_interface_aggr.name
-    assert yaml_obj.module_path == app_interface_aggr.module_path
-    assert yaml_obj.class_name == app_interface_aggr.class_name
-    assert 'test_attribute' in yaml_obj.services
-    assert yaml_obj.constants == app_interface_aggr.constants
-
-# ** test: app_settings_yaml_data_map
-def test_app_settings_yaml_data_map(app_interface_yaml_obj: AppInterfaceYamlObject):
-    '''
-    Tests the mapping of an app interface yaml data object to an app interface object.
-
-    :param app_interface_yaml_obj: The app interface yaml data object.
-    :type app_interface_yaml_obj: AppInterfaceYamlObject
-    '''
-
-    # Map the app interface yaml data to an app interface object.
-    app_settings = app_interface_yaml_obj.map()
-
-    # Assert the mapped app interface is valid.
-    assert isinstance(app_settings, AppInterfaceAggregate)
-    assert app_settings.id == app_interface_yaml_obj.id
-    assert app_settings.name == app_interface_yaml_obj.name
-    assert app_settings.flags == app_interface_yaml_obj.flags
-
-    # Assert that the module path and class name are correctly set.
-    assert app_settings.module_path == DEFAULT_MODULE_PATH
-    assert app_settings.class_name == DEFAULT_CLASS_NAME
-
-    # Assert that the mapped service contains the correct data.
-    svc = next(
-        svc for svc in app_settings.services if svc.attribute_id == 'test_attribute')
-    assert svc is not None
-    assert isinstance(svc, AppServiceDependency)
-    assert svc.module_path == 'test_module_path'
-    assert svc.class_name == 'test_class_name'
-
-    # Assert that the parameters are correctly set.
-    param = next(
-        (p for p in svc.parameters if p == 'test_param'), None)
-    assert param is not None
-    assert param == 'test_param'
-    assert svc.parameters['test_param'] == 'test_value'
-
-    # Assert that the constants are correctly set.
-    assert app_settings.constants
-    assert app_settings.constants['test_const'] == 'test_const_value'
 
 # ** test: app_interface_aggregate_remove_service_removes_matching_from_middle_start_end
 def test_app_interface_aggregate_remove_service_removes_matching_from_middle_start_end() -> None:
@@ -585,22 +499,112 @@ def test_app_interface_aggregate_set_service_creates_new(
     assert new_svc.class_name == 'NewClass'
     assert new_svc.parameters == {'param': 'value'}
 
+# ** test: app_attribute_yaml_object_map
+def test_app_attribute_yaml_object_map():
+    '''
+    Test mapping an AppServiceDependencyYamlObject to an AppServiceDependency entity.
+    '''
+
+    # Create an AppServiceDependencyYamlObject.
+    yaml_obj = TransferObject.from_data(
+        AppServiceDependencyYamlObject,
+        module_path='test.module',
+        class_name='TestClass',
+        parameters={'key': 'value'},
+    )
+
+    # Map to entity.
+    entity = yaml_obj.map(attribute_id='test_attr')
+
+    # Assert the mapping is correct.
+    assert isinstance(entity, AppServiceDependency)
+    assert entity.attribute_id == 'test_attr'
+    assert entity.module_path == 'test.module'
+    assert entity.class_name == 'TestClass'
+    assert entity.parameters == {'key': 'value'}
+
+# ** test: app_interface_yaml_object_from_model
+def test_app_interface_yaml_object_from_model(app_interface_aggr: AppInterfaceAggregate):
+    '''
+    Test creating an AppInterfaceYamlObject from an AppInterfaceAggregate.
+
+    :param app_interface_aggr: The app interface aggregate.
+    :type app_interface_aggr: AppInterfaceAggregate
+    '''
+
+    # Create YamlObject from aggregate using the custom from_model method.
+    yaml_obj = AppInterfaceYamlObject.from_model(app_interface_aggr)
+
+    # Assert the conversion is correct.
+    assert isinstance(yaml_obj, AppInterfaceYamlObject)
+    assert yaml_obj.id == app_interface_aggr.id
+    assert yaml_obj.name == app_interface_aggr.name
+    assert yaml_obj.module_path == app_interface_aggr.module_path
+    assert yaml_obj.class_name == app_interface_aggr.class_name
+    assert 'test_attribute' in yaml_obj.services
+    assert yaml_obj.constants == app_interface_aggr.constants
+
+# ** test: app_settings_yaml_data_map
+def test_app_settings_yaml_data_map(app_interface_yaml_obj: AppInterfaceYamlObject):
+    '''
+    Tests the mapping of an app interface yaml data object to an app interface object.
+
+    :param app_interface_yaml_obj: The app interface yaml data object.
+    :type app_interface_yaml_obj: AppInterfaceYamlObject
+    '''
+
+    # Map the app interface yaml data to an app interface object.
+    app_settings = app_interface_yaml_obj.map()
+
+    # Assert the mapped app interface is valid.
+    assert isinstance(app_settings, AppInterfaceAggregate)
+    assert app_settings.id == app_interface_yaml_obj.id
+    assert app_settings.name == app_interface_yaml_obj.name
+    assert app_settings.flags == app_interface_yaml_obj.flags
+
+    # Assert that the module path and class name are correctly set.
+    assert app_settings.module_path == DEFAULT_MODULE_PATH
+    assert app_settings.class_name == DEFAULT_CLASS_NAME
+
+    # Assert that the mapped service contains the correct data.
+    svc = next(
+        svc for svc in app_settings.services if svc.attribute_id == 'test_attribute')
+    assert svc is not None
+    assert isinstance(svc, AppServiceDependency)
+    assert svc.module_path == 'test_module_path'
+    assert svc.class_name == 'test_class_name'
+
+    # Assert that the parameters are correctly set.
+    param = next(
+        (p for p in svc.parameters if p == 'test_param'), None)
+    assert param is not None
+    assert param == 'test_param'
+    assert svc.parameters['test_param'] == 'test_value'
+
+    # Assert that the constants are correctly set.
+    assert app_settings.constants
+    assert app_settings.constants['test_const'] == 'test_const_value'
+
 # ** test: app_interface_config_data_round_trip
 def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAggregate):
     '''
     Test round-trip mapping: app interface aggregate -> app interface yaml object -> app interface aggregate.
+
+    :param app_interface_aggr: The app interface aggregate fixture.
+    :type app_interface_aggr: AppInterfaceAggregate
     '''
 
+    # Convert aggregate to yaml object and back to aggregate.
     data_obj = AppInterfaceYamlObject.from_model(app_interface_aggr)
     round_tripped = data_obj.map()
 
-    # Core fields
+    # Assert core fields match.
     assert round_tripped.id == app_interface_aggr.id
     assert round_tripped.name == app_interface_aggr.name
     assert round_tripped.module_path == app_interface_aggr.module_path
     assert round_tripped.class_name == app_interface_aggr.class_name
 
-    # Services
+    # Assert services match field-by-field.
     assert len(round_tripped.services) == len(app_interface_aggr.services)
     for orig_svc, rt_svc in zip(app_interface_aggr.services, round_tripped.services):
         assert rt_svc.attribute_id == orig_svc.attribute_id
@@ -608,5 +612,5 @@ def test_app_interface_config_data_round_trip(app_interface_aggr: AppInterfaceAg
         assert rt_svc.class_name == orig_svc.class_name
         assert rt_svc.parameters == orig_svc.parameters
 
-    # Constants
+    # Assert constants match.
     assert round_tripped.constants == app_interface_aggr.constants

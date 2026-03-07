@@ -1,85 +1,86 @@
-"""Tiferet CLI Repository Tests"""
+"""Tiferet CLI Configuration Repository Tests"""
 
 # *** imports
 
 # ** core
-from typing import Dict
+from typing import Dict, List
 
 # ** infra
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, CliCommandYamlObject, CliArgumentAggregate, CliCommandAggregate
+from ...mappers import (
+    TransferObject,
+    CliArgumentAggregate,
+    CliCommandYamlObject,
+)
 from ..cli import CliYamlRepository
+
 
 # *** constants
 
-# ** constant: test_command_id_add
-TEST_COMMAND_ID_ADD = 'calc.add'
+# ** constant: test_cmd_add_id
+TEST_CMD_ADD_ID = 'calc.add'
 
-# ** constant: test_command_id_subtract
-TEST_COMMAND_ID_SUBTRACT = 'calc.subtract'
+# ** constant: test_cmd_subtract_id
+TEST_CMD_SUBTRACT_ID = 'calc.subtract'
 
 # ** constant: cli_data
-CLI_DATA = {
+CLI_DATA: Dict = {
     'cli': {
         'cmds': {
             'calc': {
                 'add': {
-                    'name': 'Add Command',
-                    'description': 'Add two numbers',
+                    'name': 'Add Number Command',
+                    'description': 'Adds two numbers.',
                     'key': 'add',
                     'group_key': 'calc',
                     'args': [
                         {
-                            'name_or_flags': ['--value1'],
-                            'description': 'First value',
-                            'type': 'float',
-                            'required': True
+                            'name_or_flags': ['--value1', '-v1'],
+                            'description': 'The first number to add.',
+                            'type': 'str',
                         },
                         {
-                            'name_or_flags': ['--value2'],
-                            'description': 'Second value',
-                            'type': 'float',
-                            'required': True
-                        }
-                    ]
+                            'name_or_flags': ['--value2', '-v2'],
+                            'description': 'The second number to add.',
+                            'type': 'str',
+                        },
+                    ],
                 },
                 'subtract': {
-                    'name': 'Subtract Command',
-                    'description': 'Subtract two numbers',
+                    'name': 'Subtract Number Command',
+                    'description': 'Subtracts one number from another.',
                     'key': 'subtract',
                     'group_key': 'calc',
                     'args': [
                         {
-                            'name_or_flags': ['--value1'],
-                            'description': 'First value',
-                            'type': 'float',
-                            'required': True
+                            'name_or_flags': ['--value1', '-v1'],
+                            'description': 'The number to subtract from.',
+                            'type': 'str',
                         },
                         {
-                            'name_or_flags': ['--value2'],
-                            'description': 'Second value',
-                            'type': 'float',
-                            'required': True
-                        }
-                    ]
-                }
-            }
+                            'name_or_flags': ['--value2', '-v2'],
+                            'description': 'The number to subtract.',
+                            'type': 'str',
+                        },
+                    ],
+                },
+            },
         },
         'parent_args': [
             {
                 'name_or_flags': ['--verbose', '-v'],
-                'description': 'Enable verbose output',
-                'action': 'store_true'
+                'description': 'Enable verbose output.',
+                'action': 'store_true',
             },
             {
                 'name_or_flags': ['--config', '-c'],
-                'description': 'Configuration file path',
-                'type': 'str'
-            }
-        ]
-    }
+                'description': 'Path to configuration file.',
+                'type': 'str',
+            },
+        ],
+    },
 }
 
 # *** fixtures
@@ -98,8 +99,8 @@ def cli_yaml_file(tmp_path) -> str:
     file_path = tmp_path / 'test_cli.yaml'
 
     # Write the sample CLI configuration to the YAML file.
-    with open(file_path, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(CLI_DATA, f)
+    with open(file_path, 'w', encoding='utf-8') as yaml_file:
+        yaml.safe_dump(CLI_DATA, yaml_file)
 
     # Return the file path as a string.
     return str(file_path)
@@ -117,15 +118,14 @@ def cli_config_repo(cli_yaml_file: str) -> CliYamlRepository:
     '''
 
     # Create and return the CliYamlRepository instance.
-    return CliYamlRepository(
-        cli_yaml_file=cli_yaml_file)
+    return CliYamlRepository(cli_yaml_file)
 
 # *** tests
 
-# ** test: cli_config_repo_list
-def test_cli_config_repo_list(
+# ** test_int: cli_config_repo_list
+def test_int_cli_config_repo_list(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the list method of the CliYamlRepository.
 
@@ -133,20 +133,20 @@ def test_cli_config_repo_list(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # List all commands.
+    # List all CLI commands.
     commands = cli_config_repo.list()
 
     # Check the commands.
     assert commands
     assert len(commands) == 2
     command_ids = [cmd.id for cmd in commands]
-    assert TEST_COMMAND_ID_ADD in command_ids
-    assert TEST_COMMAND_ID_SUBTRACT in command_ids
+    assert TEST_CMD_ADD_ID in command_ids
+    assert TEST_CMD_SUBTRACT_ID in command_ids
 
-# ** test: cli_config_repo_get
-def test_cli_config_repo_get(
+# ** test_int: cli_config_repo_get
+def test_int_cli_config_repo_get(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the get method of the CliYamlRepository.
 
@@ -154,34 +154,28 @@ def test_cli_config_repo_get(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Get the add command.
-    add_command = cli_config_repo.get(TEST_COMMAND_ID_ADD)
+    # Get a CLI command by id.
+    cmd = cli_config_repo.get(TEST_CMD_ADD_ID)
 
-    # Check the add command.
-    assert add_command
-    assert add_command.id == TEST_COMMAND_ID_ADD
-    assert add_command.name == 'Add Command'
-    assert add_command.description == 'Add two numbers'
-    assert add_command.key == 'add'
-    assert add_command.group_key == 'calc'
-    assert len(add_command.arguments) == 2
-    assert add_command.arguments[0].name_or_flags == ['--value1']
-    assert add_command.arguments[0].description == 'First value'
-    assert add_command.arguments[0].type == 'float'
-    assert add_command.arguments[0].required == True
+    # Check the command fields.
+    assert cmd
+    assert cmd.id == TEST_CMD_ADD_ID
+    assert cmd.name == 'Add Number Command'
+    assert cmd.description == 'Adds two numbers.'
+    assert cmd.key == 'add'
+    assert cmd.group_key == 'calc'
 
-    # Get the subtract command.
-    subtract_command = cli_config_repo.get(TEST_COMMAND_ID_SUBTRACT)
+    # Check the nested arguments.
+    assert len(cmd.arguments) == 2
+    assert cmd.arguments[0].name_or_flags == ['--value1', '-v1']
+    assert cmd.arguments[0].description == 'The first number to add.'
+    assert cmd.arguments[1].name_or_flags == ['--value2', '-v2']
+    assert cmd.arguments[1].description == 'The second number to add.'
 
-    # Check the subtract command.
-    assert subtract_command
-    assert subtract_command.id == TEST_COMMAND_ID_SUBTRACT
-    assert subtract_command.name == 'Subtract Command'
-
-# ** test: cli_config_repo_get_not_found
-def test_cli_config_repo_get_not_found(
+# ** test_int: cli_config_repo_get_not_found
+def test_int_cli_config_repo_get_not_found(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the get method of the CliYamlRepository for a non-existent command.
 
@@ -189,16 +183,16 @@ def test_cli_config_repo_get_not_found(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Get a non-existent command.
-    command = cli_config_repo.get('calc.nonexistent')
+    # Attempt to get a non-existent CLI command.
+    cmd = cli_config_repo.get('calc.missing')
 
-    # Check the command.
-    assert not command
+    # Check that the command is None.
+    assert not cmd
 
-# ** test: cli_config_repo_get_parent_arguments
-def test_cli_config_repo_get_parent_arguments(
+# ** test_int: cli_config_repo_get_parent_arguments
+def test_int_cli_config_repo_get_parent_arguments(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the get_parent_arguments method of the CliYamlRepository.
 
@@ -206,23 +200,22 @@ def test_cli_config_repo_get_parent_arguments(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Get the parent arguments.
+    # Get all parent-level CLI arguments.
     parent_args = cli_config_repo.get_parent_arguments()
 
     # Check the parent arguments.
     assert parent_args
     assert len(parent_args) == 2
     assert parent_args[0].name_or_flags == ['--verbose', '-v']
-    assert parent_args[0].description == 'Enable verbose output'
+    assert parent_args[0].description == 'Enable verbose output.'
     assert parent_args[0].action == 'store_true'
     assert parent_args[1].name_or_flags == ['--config', '-c']
-    assert parent_args[1].description == 'Configuration file path'
-    assert parent_args[1].type == 'str'
+    assert parent_args[1].description == 'Path to configuration file.'
 
-# ** test: cli_config_repo_save
-def test_cli_config_repo_save(
+# ** test_int: cli_config_repo_save
+def test_int_cli_config_repo_save(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the save method of the CliYamlRepository.
 
@@ -230,50 +223,48 @@ def test_cli_config_repo_save(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Create constant for new test command.
-    NEW_TEST_COMMAND_ID = 'calc.multiply'
+    # Create constant for new test CLI command.
+    new_cmd_id = 'calc.multiply'
 
-    # Create new command.
-    new_command = CliCommandAggregate.new(
-        id='calc.multiply',
-        group_key='calc',
+    # Create new CLI command config data and map to an aggregate.
+    cmd = TransferObject.from_data(
+        CliCommandYamlObject,
+        id=new_cmd_id,
+        name='Multiply Number Command',
+        description='Multiplies two numbers.',
         key='multiply',
-        name='Multiply Command',
-        description='Multiply two numbers',
-        arguments=[
-            dict(
-                name_or_flags=['--value1'],
-                description='First value',
-                type='float',
-                required=True
-            ),
-            dict(
-                name_or_flags=['--value2'],
-                description='Second value',
-                type='float',
-                required=True
-            )
-        ]
-    )
+        group_key='calc',
+        args=[
+            {
+                'name_or_flags': ['--value1', '-v1'],
+                'description': 'The first number to multiply.',
+                'type': 'str',
+            },
+            {
+                'name_or_flags': ['--value2', '-v2'],
+                'description': 'The second number to multiply.',
+                'type': 'str',
+            },
+        ],
+    ).map()
 
-    # Save the new command.
-    cli_config_repo.save(new_command)
+    # Save the new CLI command.
+    cli_config_repo.save(cmd)
 
-    # Reload the command to verify the changes.
-    saved_command = cli_config_repo.get(NEW_TEST_COMMAND_ID)
+    # Reload the CLI command to verify it was saved.
+    new_cmd = cli_config_repo.get(new_cmd_id)
 
-    # Check the new command.
-    assert saved_command
-    assert saved_command.id == NEW_TEST_COMMAND_ID
-    assert saved_command.name == 'Multiply Command'
-    assert saved_command.description == 'Multiply two numbers'
-    assert len(saved_command.arguments) == 2
-    assert saved_command.arguments[0].name_or_flags == ['--value1']
+    # Check the new CLI command.
+    assert new_cmd
+    assert new_cmd.id == new_cmd_id
+    assert new_cmd.name == 'Multiply Number Command'
+    assert new_cmd.description == 'Multiplies two numbers.'
+    assert len(new_cmd.arguments) == 2
 
-# ** test: cli_config_repo_delete
-def test_cli_config_repo_delete(
+# ** test_int: cli_config_repo_delete
+def test_int_cli_config_repo_delete(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the delete method of the CliYamlRepository.
 
@@ -281,41 +272,42 @@ def test_cli_config_repo_delete(
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Delete an existing command.
-    cli_config_repo.delete(TEST_COMMAND_ID_SUBTRACT)
+    # Delete an existing CLI command.
+    cli_config_repo.delete(TEST_CMD_SUBTRACT_ID)
 
-    # Attempt to get the deleted command.
-    deleted_command = cli_config_repo.get(TEST_COMMAND_ID_SUBTRACT)
+    # Attempt to get the deleted CLI command.
+    deleted_cmd = cli_config_repo.get(TEST_CMD_SUBTRACT_ID)
 
-    # Check that the command is None.
-    assert not deleted_command
+    # Check that the CLI command is None.
+    assert not deleted_cmd
 
     # Verify the remaining command still exists.
-    remaining_command = cli_config_repo.get(TEST_COMMAND_ID_ADD)
-    assert remaining_command
+    remaining_cmd = cli_config_repo.get(TEST_CMD_ADD_ID)
+    assert remaining_cmd
+    assert remaining_cmd.id == TEST_CMD_ADD_ID
 
-# ** test: cli_config_repo_delete_idempotent
-def test_cli_config_repo_delete_idempotent(
+# ** test_int: cli_config_repo_delete_idempotent
+def test_int_cli_config_repo_delete_idempotent(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
-    Test that delete is idempotent (can delete non-existent command).
+    Test the delete method of the CliYamlRepository for idempotent behavior.
 
     :param cli_config_repo: The CLI configuration repository.
     :type cli_config_repo: CliYamlRepository
     '''
 
-    # Delete a non-existent command (should not raise an error).
-    cli_config_repo.delete('calc.nonexistent')
+    # Delete a non-existent CLI command (should not raise).
+    cli_config_repo.delete('calc.missing')
 
-    # Verify existing commands are still intact.
+    # Verify existing commands are unaffected.
     commands = cli_config_repo.list()
     assert len(commands) == 2
 
-# ** test: cli_config_repo_save_parent_arguments
-def test_cli_config_repo_save_parent_arguments(
+# ** test_int: cli_config_repo_save_parent_arguments
+def test_int_cli_config_repo_save_parent_arguments(
         cli_config_repo: CliYamlRepository,
-    ):
+    ) -> None:
     '''
     Test the save_parent_arguments method of the CliYamlRepository.
 
@@ -327,28 +319,27 @@ def test_cli_config_repo_save_parent_arguments(
     new_parent_args = [
         CliArgumentAggregate.new(
             name_or_flags=['--debug', '-d'],
-            description='Enable debug mode',
-            action='store_true'
+            description='Enable debug mode.',
+            action='store_true',
         ),
         CliArgumentAggregate.new(
             name_or_flags=['--output', '-o'],
-            description='Output file path',
+            description='Output file path.',
             type='str',
-            required=True
-        )
+        ),
     ]
 
     # Save the new parent arguments.
     cli_config_repo.save_parent_arguments(new_parent_args)
 
-    # Reload the parent arguments to verify the changes.
-    saved_parent_args = cli_config_repo.get_parent_arguments()
+    # Reload parent arguments to verify they were saved.
+    reloaded_args = cli_config_repo.get_parent_arguments()
 
-    # Check the new parent arguments.
-    assert saved_parent_args
-    assert len(saved_parent_args) == 2
-    assert saved_parent_args[0].name_or_flags == ['--debug', '-d']
-    assert saved_parent_args[0].description == 'Enable debug mode'
-    assert saved_parent_args[1].name_or_flags == ['--output', '-o']
-    assert saved_parent_args[1].description == 'Output file path'
-    assert saved_parent_args[1].required == True
+    # Check the reloaded parent arguments.
+    assert reloaded_args
+    assert len(reloaded_args) == 2
+    assert reloaded_args[0].name_or_flags == ['--debug', '-d']
+    assert reloaded_args[0].description == 'Enable debug mode.'
+    assert reloaded_args[0].action == 'store_true'
+    assert reloaded_args[1].name_or_flags == ['--output', '-o']
+    assert reloaded_args[1].description == 'Output file path.'

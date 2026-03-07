@@ -68,7 +68,7 @@ class Formatter(DomainObject):
         :rtype: Dict[str, Any]
         '''
 
-        # Reurn the formatter configuration.
+        # Return the formatter configuration.
         return {
             'format': self.format,
             'datefmt': self.datefmt

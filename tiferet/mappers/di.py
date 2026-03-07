@@ -8,11 +8,12 @@ from typing import Dict, Any
 # ** app
 from ..domain import (
     FlaggedDependency,
+    ServiceConfiguration,
+    DomainObject,
     StringType,
     DictType,
     ModelType,
 )
-from ..domain.di import ServiceConfiguration
 from .settings import (
     Aggregate,
     TransferObject,
@@ -99,7 +100,7 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
         roles = {
             'to_model': TransferObject.deny(),
             'to_data.yaml': TransferObject.deny('flag'),
-            'to_data.json': TransferObject.deny('flag')
+            'to_data.json': TransferObject.deny('flag'),
         }
 
     # * attribute: parameters
@@ -214,7 +215,7 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
         :rtype: None
         '''
 
-        # If both type fields are None, clear default type.
+        # If both type fields are None, clear default type entirely.
         if module_path is None and class_name is None:
             self.module_path = None
             self.class_name = None
@@ -225,7 +226,7 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
             self.module_path = module_path
             self.class_name = class_name
 
-        # Update parameters: if parameters is None, clear all; otherwise replace.
+        # Update parameters: if parameters is None, clear all; otherwise replace with filtered dict.
         if parameters is None:
             self.parameters = {}
         else:
@@ -262,11 +263,14 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
             if dep.flag == flag:
                 dep.module_path = module_path
                 dep.class_name = class_name
-                dep.set_parameters(parameters)
+
+                # Inline set_parameters semantics — works on any FlaggedDependency instance.
+                merged = dict(dep.parameters or {})
+                merged.update(parameters)
+                dep.parameters = {k: v for k, v in merged.items() if v is not None}
                 return
 
         # Create a new dependency if none exists with this flag.
-        from ..domain import DomainObject
         dependency = DomainObject.new(
             FlaggedDependency,
             module_path=module_path,
@@ -311,7 +315,7 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
         roles = {
             'to_model': TransferObject.deny('dependencies', 'parameters'),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id')
+            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: dependencies
@@ -347,7 +351,7 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
         :rtype: ServiceConfigurationAggregate
         '''
 
-        # Map the service configuration data.
+        # Map the service configuration data to a service configuration aggregate.
         return super().map(
             ServiceConfigurationAggregate,
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],

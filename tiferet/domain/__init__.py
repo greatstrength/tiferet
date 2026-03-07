@@ -17,13 +17,13 @@ from .app import (
     AppInterface,
     AppServiceDependency,
 )
+from .di import (
+    FlaggedDependency,
+    ServiceConfiguration,
+)
 from .cli import (
     CliArgument,
     CliCommand,
-)
-from .di import (
-    ServiceConfiguration,
-    FlaggedDependency,
 )
 from .error import (
     Error,

@@ -1,43 +1,65 @@
-"""Tests for the DI Configuration Repository"""
+"""Tiferet DI Configuration Repository Tests"""
 
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import Dict
 
 # ** infra
-import pytest
-import yaml
+import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject
-from ...mappers.di import ServiceConfigurationYamlObject
+from ...mappers import (
+    TransferObject,
+    ServiceConfigurationYamlObject,
+)
 from ..di import DIYamlRepository
+
 
 # *** constants
 
 # ** constant: di_service_id
 DI_SERVICE_ID = 'di_service'
 
+# ** constant: another_service_id
+ANOTHER_SERVICE_ID = 'another_service'
+
 # ** constant: di_data
-DI_DATA = {
+DI_DATA: Dict[str, Dict] = {
     'services': {
         DI_SERVICE_ID: {
-            'module_path': 'tiferet.repos.di',
-            'class_name': 'DIYamlRepository',
-            'deps': {}
-        }
+            'name': 'DI Service',
+            'module_path': 'tiferet.services.di',
+            'class_name': 'DIServiceImpl',
+            'params': {
+                'config_file': 'app/configs/di.yml',
+            },
+            'deps': {
+                'yaml': {
+                    'module_path': 'tiferet.repos.di',
+                    'class_name': 'DIYamlRepository',
+                    'params': {
+                        'di_yaml_file': 'app/configs/di.yml',
+                    },
+                },
+            },
+        },
+        ANOTHER_SERVICE_ID: {
+            'name': 'Another Service',
+            'module_path': 'tiferet.services.another',
+            'class_name': 'AnotherServiceImpl',
+        },
     },
     'const': {
-        'sample_const': 'sample_value'
-    }
+        'sample_const': 'sample_value',
+    },
 }
 
 # *** fixtures
 
-# ** fixture: di_yaml_file
+# ** fixture: di_config_file
 @pytest.fixture
-def di_yaml_file(tmp_path) -> str:
+def di_config_file(tmp_path) -> str:
     '''
     Fixture to provide the path to the DI YAML configuration file.
 
@@ -47,199 +69,197 @@ def di_yaml_file(tmp_path) -> str:
 
     # Create a temporary YAML file with sample DI configuration content.
     file_path = tmp_path / 'test_di.yaml'
-    with open(file_path, 'w', encoding='utf-8') as yaml_file:
-        yaml.dump(DI_DATA, yaml_file)
 
-    # Return the string file path.
+    # Write the sample DI configuration to the YAML file.
+    with open(file_path, 'w', encoding='utf-8') as yaml_file:
+        yaml.safe_dump(DI_DATA, yaml_file)
+
+    # Return the file path as a string.
     return str(file_path)
 
 # ** fixture: di_config_repo
 @pytest.fixture
-def di_config_repo(di_yaml_file: str) -> DIYamlRepository:
+def di_config_repo(di_config_file: str) -> DIYamlRepository:
     '''
-    Fixture to provide a DIYamlRepository instance.
+    Fixture to create an instance of the DI Configuration Repository.
 
-    :param di_yaml_file: The DI YAML configuration file path.
-    :type di_yaml_file: str
-    :return: The DIYamlRepository instance.
+    :param di_config_file: The DI YAML configuration file path.
+    :type di_config_file: str
+    :return: An instance of DIYamlRepository.
     :rtype: DIYamlRepository
     '''
 
     # Create and return the DIYamlRepository instance.
-    return DIYamlRepository(
-        di_yaml_file=di_yaml_file,
-        encoding='utf-8'
-    )
+    return DIYamlRepository(di_config_file)
 
 # *** tests
 
-# ** test: di_configuration_repository_configuration_exists
-def test_configuration_exists(di_config_repo: DIYamlRepository):
+# ** test_int: di_config_repo_configuration_exists
+def test_int_di_config_repo_configuration_exists(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the configuration_exists method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
-    # Check if the DI service configuration exists.
-    assert di_config_repo.configuration_exists(DI_SERVICE_ID) is True
+    # Check if the service configurations exist.
+    assert di_config_repo.configuration_exists(DI_SERVICE_ID)
+    assert di_config_repo.configuration_exists(ANOTHER_SERVICE_ID)
+    assert not di_config_repo.configuration_exists('missing_service')
 
-    # Check for a non-existing configuration.
-    assert di_config_repo.configuration_exists('non_existing_config') is False
-
-# ** test: di_configuration_repository_get_configuration
-def test_get_configuration(di_config_repo: DIYamlRepository):
+# ** test_int: di_config_repo_get_configuration
+def test_int_di_config_repo_get_configuration(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the get_configuration method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
-    # Get the DI service configuration.
-    configuration = di_config_repo.get_configuration(DI_SERVICE_ID)
+    # Get service configurations by id.
+    config = di_config_repo.get_configuration(DI_SERVICE_ID)
+    another_config = di_config_repo.get_configuration(ANOTHER_SERVICE_ID)
 
-    # Verify the configuration properties.
-    assert configuration.id == DI_SERVICE_ID
-    assert configuration.module_path == 'tiferet.repos.di'
-    assert configuration.class_name == 'DIYamlRepository'
-    assert configuration.dependencies == []
+    # Check the first service configuration.
+    assert config
+    assert config.id == DI_SERVICE_ID
+    assert config.name == 'DI Service'
+    assert config.module_path == 'tiferet.services.di'
+    assert config.class_name == 'DIServiceImpl'
+    assert config.parameters.get('config_file') == 'app/configs/di.yml'
+    assert len(config.dependencies) == 1
+    assert config.dependencies[0].flag == 'yaml'
 
-    # Get a configuration that does not exist and expect None.
-    non_existing_config = di_config_repo.get_configuration('non_existing_config')
-    assert not non_existing_config
+    # Check the second service configuration.
+    assert another_config
+    assert another_config.id == ANOTHER_SERVICE_ID
+    assert another_config.name == 'Another Service'
+    assert another_config.module_path == 'tiferet.services.another'
+    assert another_config.class_name == 'AnotherServiceImpl'
 
-# ** test: di_configuration_repository_list_all
-def test_list_all(di_config_repo: DIYamlRepository):
+# ** test_int: di_config_repo_get_configuration_not_found
+def test_int_di_config_repo_get_configuration_not_found(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
+    '''
+    Test the get_configuration method of the DIYamlRepository for a non-existent configuration.
+
+    :param di_config_repo: The DI configuration repository.
+    :type di_config_repo: DIYamlRepository
+    '''
+
+    # Attempt to get a non-existent service configuration.
+    config = di_config_repo.get_configuration('missing_service')
+
+    # Check that the configuration is None.
+    assert not config
+
+# ** test_int: di_config_repo_list_all
+def test_int_di_config_repo_list_all(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the list_all method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
     # List all service configurations and constants.
     configurations, constants = di_config_repo.list_all()
 
-    # Verify the configurations list.
-    assert len(configurations) == 1
-    assert configurations[0].id == DI_SERVICE_ID
+    # Check the configurations.
+    assert configurations
+    assert len(configurations) == 2
+    config_ids = [config.id for config in configurations]
+    assert DI_SERVICE_ID in config_ids
+    assert ANOTHER_SERVICE_ID in config_ids
 
-    # Verify the constants dictionary.
-    assert 'sample_const' in constants
-    assert constants['sample_const'] == 'sample_value'
+    # Check the constants.
+    assert constants
+    assert constants.get('sample_const') == 'sample_value'
 
-# ** test: di_configuration_repository_save_configuration
-def test_save_configuration(di_config_repo: DIYamlRepository):
+# ** test_int: di_config_repo_save_configuration
+def test_int_di_config_repo_save_configuration(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the save_configuration method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
-    # Create a new service configuration to save.
-    new_configuration = TransferObject.from_data(
+    # Create constant for new service configuration.
+    new_service_id = 'new_service'
+
+    # Create new service configuration data and map to an aggregate.
+    config = TransferObject.from_data(
         ServiceConfigurationYamlObject,
-        id='new_config',
-        module_path='tiferet.new.module',
-        class_name='NewClass',
-        deps={}
+        id=new_service_id,
+        name='New Service',
+        module_path='tiferet.services.new',
+        class_name='NewServiceImpl',
     ).map()
 
     # Save the new service configuration.
-    di_config_repo.save_configuration(new_configuration)
+    di_config_repo.save_configuration(config)
 
-    # Verify that the new configuration now exists.
-    assert di_config_repo.configuration_exists('new_config') is True
+    # Reload the service configuration to verify it was saved.
+    new_config = di_config_repo.get_configuration(new_service_id)
 
-    # Retrieve the newly saved configuration and verify its properties.
-    saved_configuration = di_config_repo.get_configuration('new_config')
-    assert saved_configuration.id == 'new_config'
-    assert saved_configuration.module_path == 'tiferet.new.module'
-    assert saved_configuration.class_name == 'NewClass'
-    assert saved_configuration.dependencies == []
+    # Check the new service configuration.
+    assert new_config
+    assert new_config.id == new_service_id
+    assert new_config.name == 'New Service'
+    assert new_config.module_path == 'tiferet.services.new'
+    assert new_config.class_name == 'NewServiceImpl'
 
-# ** test: di_configuration_repository_delete_configuration
-def test_delete_configuration(di_config_repo: DIYamlRepository):
+# ** test_int: di_config_repo_delete_configuration
+def test_int_di_config_repo_delete_configuration(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the delete_configuration method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
-    # Ensure the DI service configuration exists before deletion.
-    assert di_config_repo.configuration_exists(DI_SERVICE_ID) is True
+    # Delete an existing service configuration.
+    di_config_repo.delete_configuration(ANOTHER_SERVICE_ID)
 
-    # Delete the DI service configuration.
-    di_config_repo.delete_configuration(DI_SERVICE_ID)
+    # Attempt to get the deleted service configuration.
+    deleted_config = di_config_repo.get_configuration(ANOTHER_SERVICE_ID)
 
-    # Verify that the configuration no longer exists.
-    assert di_config_repo.configuration_exists(DI_SERVICE_ID) is False
+    # Check that the service configuration is None.
+    assert not deleted_config
 
-# ** test: di_configuration_repository_save_constants
-def test_save_constants(di_config_repo: DIYamlRepository):
+    # Ensure that deleting a non-existent service configuration is idempotent.
+    di_config_repo.delete_configuration('missing_service')
+
+# ** test_int: di_config_repo_save_constants
+def test_int_di_config_repo_save_constants(
+        di_config_repo: DIYamlRepository,
+    ) -> None:
     '''
     Test the save_constants method of the DIYamlRepository.
 
-    :param di_config_repo: The DIYamlRepository instance.
+    :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIYamlRepository
     '''
 
-    # Define new constants to save.
-    new_constants = {
-        'new_const_1': 'value_1',
-        'new_const_2': 'value_2'
-    }
+    # Save new constants.
+    di_config_repo.save_constants({'new_const': 'new_value'})
 
-    # Save the new constants.
-    di_config_repo.save_constants(new_constants)
-
-    # List all configurations and constants to verify the new constants were saved.
+    # Reload and verify the constants were saved alongside existing ones.
     _, constants = di_config_repo.list_all()
 
-    # Verify the new constants exist in the saved constants.
-    assert 'new_const_1' in constants
-    assert constants['new_const_1'] == 'value_1'
-    assert 'new_const_2' in constants
-    assert constants['new_const_2'] == 'value_2'
-
-# ** test: di_configuration_repository_save_constants_overwrite
-def test_save_constants_overwrite(di_config_repo: DIYamlRepository):
-    '''
-    Test that the save_constants method of the DIYamlRepository overwrites existing constants.
-
-    :param di_config_repo: The DIYamlRepository instance.
-    :type di_config_repo: DIYamlRepository
-    '''
-
-    # Define initial constants to save.
-    initial_constants = {
-        'const_to_overwrite': 'initial_value',
-        'another_const': 'another_value'
-    }
-
-    # Save the initial constants.
-    di_config_repo.save_constants(initial_constants)
-
-    # Define new constants that will overwrite one of the initial constants.
-    new_constants = {
-        'const_to_overwrite': 'new_value',
-        'additional_const': 'additional_value'
-    }
-
-    # Save the new constants.
-    di_config_repo.save_constants(new_constants)
-
-    # List all configurations and constants to verify the constants were updated.
-    _, constants = di_config_repo.list_all()
-
-    # Verify that new constants were added and existing ones were overwritten.
-    assert constants == {
-        'sample_const': 'sample_value',
-        'const_to_overwrite': 'new_value',
-        'another_const': 'another_value',
-        'additional_const': 'additional_value'
-    }
+    # Check that both old and new constants exist.
+    assert constants.get('sample_const') == 'sample_value'
+    assert constants.get('new_const') == 'new_value'

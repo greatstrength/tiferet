@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/mappers/`  
-**Version:** 2.0.0a2
+**Version:** 2.0.0a3
 
 ## Overview
 

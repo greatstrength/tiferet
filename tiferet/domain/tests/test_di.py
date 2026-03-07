@@ -1,4 +1,4 @@
-"""Tiferet DI Models Tests"""
+"""Tests for Tiferet Domain DI"""
 
 # *** imports
 
@@ -6,8 +6,8 @@
 import pytest
 
 # ** app
+from ..settings import DomainObject
 from ..di import (
-    DomainObject,
     FlaggedDependency,
     ServiceConfiguration,
 )
@@ -17,7 +17,7 @@ from ..di import (
 # ** class: test_dependency
 class TestDependency:
     '''
-    A test class for container dependency testing.
+    A stub dependency class for testing.
     '''
 
     pass
@@ -25,7 +25,7 @@ class TestDependency:
 # ** class: test_dependency_alpha
 class TestDependencyAlpha(TestDependency):
     '''
-    An alpha test class for container dependency testing.
+    A stub alpha dependency class for testing.
     '''
 
     pass
@@ -33,7 +33,7 @@ class TestDependencyAlpha(TestDependency):
 # ** class: test_dependency_beta
 class TestDependencyBeta(TestDependency):
     '''
-    A beta test class for container dependency testing.
+    A stub beta dependency class for testing.
     '''
 
     pass
@@ -44,191 +44,158 @@ class TestDependencyBeta(TestDependency):
 @pytest.fixture
 def flagged_dependency() -> FlaggedDependency:
     '''
-    Fixture to create a FlaggedDependency instance for testing.
+    Fixture for a FlaggedDependency instance with flag test_alpha.
+
+    :return: The FlaggedDependency instance.
+    :rtype: FlaggedDependency
     '''
 
-    # Create a flagged dependency.
+    # Create and return a new FlaggedDependency.
     return DomainObject.new(
         FlaggedDependency,
+        flag='test_alpha',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependencyAlpha',
-        flag='test_alpha',
-        parameters=dict(
-            test_param='test_value',
-            param='value1',
-        )
+        parameters={'test_param': 'test_value', 'param': 'value1'},
     )
 
 # ** fixture: flagged_dependency_to_add
 @pytest.fixture
 def flagged_dependency_to_add() -> FlaggedDependency:
     '''
-    Fixture to create a FlaggedDependency instance for testing addition.
+    Fixture for a FlaggedDependency instance with flag test_beta.
+
+    :return: The FlaggedDependency instance.
+    :rtype: FlaggedDependency
     '''
 
-    # Create a new flagged dependency.
+    # Create and return a new FlaggedDependency.
     return DomainObject.new(
         FlaggedDependency,
+        flag='test_beta',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependencyBeta',
-        flag='test_beta',
-        parameters=dict(
-            test_param='test_value',
-            param='value2'
-        )
+        parameters={'test_param': 'test_value', 'param': 'value2'},
     )
 
 # ** fixture: service_configuration
 @pytest.fixture
 def service_configuration(flagged_dependency: FlaggedDependency) -> ServiceConfiguration:
     '''
-    Fixture to create a ServiceConfiguration instance for testing.
+    Fixture for a ServiceConfiguration with a default type and one flagged override.
 
-    :param flagged_dependency: The flagged dependency to add to the service configuration.
+    :param flagged_dependency: The FlaggedDependency fixture.
     :type flagged_dependency: FlaggedDependency
-    :return: The created service configuration.
+    :return: The ServiceConfiguration instance.
     :rtype: ServiceConfiguration
     '''
 
-    # Create a service configuration with a flagged dependency.
+    # Create and return a new ServiceConfiguration.
     return DomainObject.new(
         ServiceConfiguration,
-        id='test_dependency',
+        id='test_service',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependency',
-        dependencies=[
-            flagged_dependency
-        ],
-        parameters=dict(
-            test_param='test_value',
-            param='value0'
-        )
+        dependencies=[flagged_dependency],
     )
 
 # ** fixture: service_configuration_no_default_type
 @pytest.fixture
 def service_configuration_no_default_type(flagged_dependency: FlaggedDependency) -> ServiceConfiguration:
     '''
-    Fixture to create a ServiceConfiguration instance without a default type for testing.
+    Fixture for a ServiceConfiguration with no default type, only flagged overrides.
 
-    :param flagged_dependency: The flagged dependency to add to the service configuration.
+    :param flagged_dependency: The FlaggedDependency fixture.
     :type flagged_dependency: FlaggedDependency
-    :return: The created service configuration.
+    :return: The ServiceConfiguration instance.
     :rtype: ServiceConfiguration
     '''
 
-    # Create a service configuration with a flagged dependency but no default type.
+    # Create and return a new ServiceConfiguration without default type.
     return DomainObject.new(
         ServiceConfiguration,
-        id='test_dependency_no_default',
-        dependencies=[
-            flagged_dependency
-        ],
-        parameters=dict(
-            test_param='test_value',
-            param='value0'
-        )
+        id='test_service_no_default',
+        dependencies=[flagged_dependency],
     )
 
 # ** fixture: service_configuration_multiple_deps
 @pytest.fixture
 def service_configuration_multiple_deps(
-    flagged_dependency: FlaggedDependency,
-    flagged_dependency_to_add: FlaggedDependency
-) -> ServiceConfiguration:
+        flagged_dependency: FlaggedDependency,
+        flagged_dependency_to_add: FlaggedDependency,
+    ) -> ServiceConfiguration:
     '''
-    Fixture to create a ServiceConfiguration instance with multiple flagged dependencies for testing.
+    Fixture for a ServiceConfiguration with a default type and two flagged overrides.
 
-    :param flagged_dependency: The first flagged dependency (test_alpha).
+    :param flagged_dependency: The FlaggedDependency fixture (test_alpha).
     :type flagged_dependency: FlaggedDependency
-    :param flagged_dependency_to_add: The second flagged dependency (test_beta).
+    :param flagged_dependency_to_add: The FlaggedDependency fixture (test_beta).
     :type flagged_dependency_to_add: FlaggedDependency
-    :return: The created service configuration.
+    :return: The ServiceConfiguration instance.
     :rtype: ServiceConfiguration
     '''
 
-    # Create a service configuration with multiple flagged dependencies.
+    # Create and return a new ServiceConfiguration with multiple dependencies.
     return DomainObject.new(
         ServiceConfiguration,
-        id='test_dependency_multi',
+        id='test_service_multi',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependency',
-        dependencies=[
-            flagged_dependency,
-            flagged_dependency_to_add
-        ],
-        parameters=dict(
-            test_param='test_value',
-            param='value0'
-        )
+        dependencies=[flagged_dependency, flagged_dependency_to_add],
     )
 
 # *** tests
 
 # ** test: service_configuration_get_dependency
-def test_service_configuration_get_dependency(
-    service_configuration: ServiceConfiguration,
-    flagged_dependency: FlaggedDependency
-):
+def test_service_configuration_get_dependency(service_configuration: ServiceConfiguration) -> None:
     '''
-    Test that the service configuration can retrieve a flagged dependency.
+    Test successful retrieval of a flagged dependency by flag.
 
-    :param service_configuration: The service configuration to test.
+    :param service_configuration: The ServiceConfiguration fixture.
     :type service_configuration: ServiceConfiguration
-    :param flagged_dependency: The flagged dependency to test.
-    :type flagged_dependency: FlaggedDependency
     '''
 
-    # Get the flagged dependency.
-    dependency = service_configuration.get_dependency('test_alpha')
+    # Retrieve the flagged dependency by flag.
+    dep = service_configuration.get_dependency('test_alpha')
 
-    # Assert the dependency is valid.
-    assert dependency.module_path == flagged_dependency.module_path
-    assert dependency.class_name == flagged_dependency.class_name
-    assert dependency.flag == flagged_dependency.flag
-    assert dependency.parameters == flagged_dependency.parameters
+    # Assert the flagged dependency fields match.
+    assert dep.flag == 'test_alpha'
+    assert dep.module_path == 'tiferet.domain.tests.test_di'
+    assert dep.class_name == 'TestDependencyAlpha'
+    assert dep.parameters == {'test_param': 'test_value', 'param': 'value1'}
 
 # ** test: service_configuration_get_dependency_invalid
-def test_service_configuration_get_dependency_invalid(service_configuration: ServiceConfiguration):
+def test_service_configuration_get_dependency_invalid(service_configuration: ServiceConfiguration) -> None:
     '''
-    Test that the service configuration returns None for an invalid dependency.
+    Test that get_dependency returns None for an unknown flag.
 
-    :param service_configuration: The service configuration to test.
+    :param service_configuration: The ServiceConfiguration fixture.
     :type service_configuration: ServiceConfiguration
     '''
 
-    # Assert the dependency is invalid.
-    assert service_configuration.get_dependency('invalid') is None
+    # Attempt to retrieve a non-existent flagged dependency.
+    dep = service_configuration.get_dependency('invalid')
 
+    # Assert None is returned.
+    assert dep is None
 
 # ** test: service_configuration_get_dependency_multiple_flags
 def test_service_configuration_get_dependency_multiple_flags(
-    service_configuration_multiple_deps: ServiceConfiguration,
-    flagged_dependency: FlaggedDependency,
-    flagged_dependency_to_add: FlaggedDependency
-):
+        service_configuration_multiple_deps: ServiceConfiguration,
+    ) -> None:
     '''
-    Test that the service configuration can retrieve a flagged dependency with multiple flags.
+    Test priority order: first matching flag in the argument tuple wins.
 
-    :param service_configuration_multiple_deps: The service configuration with multiple dependencies.
+    :param service_configuration_multiple_deps: The ServiceConfiguration fixture with multiple dependencies.
     :type service_configuration_multiple_deps: ServiceConfiguration
-    :param flagged_dependency: The first flagged dependency (test_alpha).
-    :type flagged_dependency: FlaggedDependency
-    :param flagged_dependency_to_add: The second flagged dependency (test_beta).
-    :type flagged_dependency_to_add: FlaggedDependency
     '''
 
-    # Assert that the test_alpha dependency is returned when it comes first.
-    dependency = service_configuration_multiple_deps.get_dependency('test_alpha', 'test_beta')
-    assert dependency.module_path == flagged_dependency.module_path
-    assert dependency.class_name == flagged_dependency.class_name
-    assert dependency.flag == flagged_dependency.flag
-    assert dependency.parameters == flagged_dependency.parameters
+    # Retrieve with test_alpha first — should return alpha.
+    dep_alpha_first = service_configuration_multiple_deps.get_dependency('test_alpha', 'test_beta')
+    assert dep_alpha_first.flag == 'test_alpha'
+    assert dep_alpha_first.class_name == 'TestDependencyAlpha'
 
-    # Assert that the test_beta dependency is returned when flipping the order.
-    dependency = service_configuration_multiple_deps.get_dependency('test_beta', 'test_alpha')
-    assert dependency.module_path == flagged_dependency_to_add.module_path
-    assert dependency.class_name == flagged_dependency_to_add.class_name
-    assert dependency.flag == flagged_dependency_to_add.flag
-    assert dependency.parameters == flagged_dependency_to_add.parameters
-
+    # Retrieve with test_beta first — should return beta.
+    dep_beta_first = service_configuration_multiple_deps.get_dependency('test_beta', 'test_alpha')
+    assert dep_beta_first.flag == 'test_beta'
+    assert dep_beta_first.class_name == 'TestDependencyBeta'
