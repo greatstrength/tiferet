@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 # ** app
 from .settings import DomainEvent, a
-from ..domain import AppInterface
+from ..domain import AppInterface, AppServiceDependency
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
 
@@ -122,12 +122,15 @@ class GetAppInterface(DomainEvent):
 
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
-    def execute(self, interface_id: str, **kwargs) -> AppInterface:
+    def execute(self, interface_id: str, default_services: List[AppServiceDependency] = [], **kwargs) -> AppInterface:
         '''
         Execute the command to load the application interface.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
+        :param default_services: A list of AppServiceDependency objects to merge
+            into the interface for any attribute_id not already present.
+        :type default_services: List[AppServiceDependency]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The loaded application interface.
@@ -145,6 +148,22 @@ class GetAppInterface(DomainEvent):
                 f'App interface with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
+
+        # Merge default services into the interface for any attribute_id not already present.
+        if default_services:
+
+            # Build a set of existing service attribute_ids for lookup.
+            existing_ids = {dep.attribute_id for dep in interface.services}
+
+            # Add any default service whose attribute_id is not already present.
+            for dep in default_services:
+                if dep.attribute_id not in existing_ids:
+                    interface.add_service(
+                        attribute_id=dep.attribute_id,
+                        module_path=dep.module_path,
+                        class_name=dep.class_name,
+                        parameters=dep.parameters,
+                    )
 
         # Return the loaded application interface.
         return interface
