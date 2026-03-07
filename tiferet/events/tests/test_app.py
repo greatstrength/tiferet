@@ -22,6 +22,7 @@ from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 from ...domain import (
     AppInterface,
     AppServiceDependency,
+    DomainObject,
 )
 from ...interfaces import AppService
 from ...mappers import Aggregate, AppInterfaceAggregate
@@ -57,7 +58,7 @@ def app_interface():
         description='The test app.',
         flags=['test'],
         services=[
-            Aggregate.new(
+            DomainObject.new(
                 AppServiceDependency,
                 attribute_id='test_attribute',
                 module_path='test_module_path',

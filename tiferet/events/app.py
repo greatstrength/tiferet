@@ -9,12 +9,12 @@ from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
 
-# *** commands
+# *** events
 
-# ** command: add_app_interface
+# ** event: add_app_interface
 class AddAppInterface(DomainEvent):
     '''
-    Command to add a new application interface configuration via the AppService.
+    A domain event to add a new application interface configuration via the AppService.
     '''
 
     # * attribute: app_service
@@ -99,10 +99,10 @@ class AddAppInterface(DomainEvent):
         # Return the created AppInterface instance.
         return interface
 
-# ** command: get_app_interface
+# ** event: get_app_interface
 class GetAppInterface(DomainEvent):
     '''
-    Command to retrieve an app interface using the ``AppService`` abstraction.
+    A domain event to retrieve an app interface using the ``AppService`` abstraction.
     '''
 
     # * attribute: app_service
@@ -121,6 +121,7 @@ class GetAppInterface(DomainEvent):
         self.app_service = app_service
 
     # * method: execute
+    @DomainEvent.parameters_required(['interface_id'])
     def execute(self, interface_id: str, **kwargs) -> AppInterface:
         '''
         Execute the command to load the application interface.
@@ -148,10 +149,10 @@ class GetAppInterface(DomainEvent):
         # Return the loaded application interface.
         return interface
 
-# ** command: update_app_interface
+# ** event: update_app_interface
 class UpdateAppInterface(DomainEvent):
     '''
-    Command to update scalar attributes of an existing app interface.
+    A domain event to update scalar attributes of an existing app interface.
     '''
 
     # * attribute: app_service
@@ -207,10 +208,10 @@ class UpdateAppInterface(DomainEvent):
         # Return the interface ID.
         return id
 
-# ** command: set_app_constants
+# ** event: set_app_constants
 class SetAppConstants(DomainEvent):
     '''
-    Command to set or clear constants on an app interface.
+    A domain event to set or clear constants on an app interface.
     '''
 
     # * attribute: app_service
@@ -269,10 +270,10 @@ class SetAppConstants(DomainEvent):
         # Return the interface ID.
         return id
 
-# ** command: list_app_interfaces
+# ** event: list_app_interfaces
 class ListAppInterfaces(DomainEvent):
     '''
-    Command to list all configured app interfaces.
+    A domain event to list all configured app interfaces.
     '''
 
     # * attribute: app_service
@@ -305,10 +306,10 @@ class ListAppInterfaces(DomainEvent):
         return self.app_service.list()
 
 
-# ** command: set_service_dependency
+# ** event: set_service_dependency
 class SetServiceDependency(DomainEvent):
     '''
-    Command to set or update a dependency attribute on an app interface.
+    A domain event to set or update a service dependency on an app interface.
     '''
 
     # * attribute: app_service
@@ -338,21 +339,21 @@ class SetServiceDependency(DomainEvent):
             **kwargs,
         ) -> str:
         '''
-        Set or update a dependency attribute on an app interface.
+        Set or update a service dependency on an app interface.
 
         :param id: The unique identifier for the app interface.
         :type id: str
-        :param attribute_id: The dependency attribute identifier.
+        :param attribute_id: The service dependency identifier.
         :type attribute_id: str
-        :param module_path: The module path for the dependency implementation.
+        :param module_path: The module path for the service dependency implementation.
         :type module_path: str
-        :param class_name: The class name for the dependency implementation.
+        :param class_name: The class name for the service dependency implementation.
         :type class_name: str
-        :param parameters: Optional parameters for the dependency. ``None`` clears parameters.
+        :param parameters: Optional parameters for the service dependency. ``None`` clears parameters.
         :type parameters: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose dependency was set.
+        :return: The ID of the app interface whose service dependency was set.
         :rtype: str
         '''
 
@@ -367,7 +368,7 @@ class SetServiceDependency(DomainEvent):
             interface_id=id,
         )
 
-        # Set or update the service dependency via the model method.
+        # Set or update the service dependency on the interface.
         interface.set_service(
             attribute_id=attribute_id,
             module_path=module_path,
@@ -381,10 +382,10 @@ class SetServiceDependency(DomainEvent):
         # Return the interface ID.
         return id
 
-# ** command: remove_service_dependency
+# ** event: remove_service_dependency
 class RemoveServiceDependency(DomainEvent):
     '''
-    Command to remove a dependency attribute from an app interface (idempotent).
+    A domain event to remove a service dependency from an app interface (idempotent).
     '''
 
     # * attribute: app_service
@@ -406,15 +407,15 @@ class RemoveServiceDependency(DomainEvent):
     @DomainEvent.parameters_required(['id', 'attribute_id'])
     def execute(self, id: str, attribute_id: str, **kwargs) -> str:
         '''
-        Remove a dependency attribute by attribute_id.
+        Remove a service dependency by attribute_id.
 
         :param id: The unique identifier for the app interface.
         :type id: str
-        :param attribute_id: The dependency attribute identifier to remove.
+        :param attribute_id: The service dependency identifier to remove.
         :type attribute_id: str
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose dependency was removed.
+        :return: The ID of the app interface whose service dependency was removed.
         :rtype: str
         '''
 
@@ -429,7 +430,7 @@ class RemoveServiceDependency(DomainEvent):
             interface_id=id,
         )
 
-        # Remove the service dependency idempotently via the model method.
+        # Remove the service dependency idempotently from the interface.
         interface.remove_service(attribute_id)
 
         # Persist the updated interface.
@@ -438,10 +439,10 @@ class RemoveServiceDependency(DomainEvent):
         # Return the interface ID.
         return id
 
-# ** command: remove_app_interface
+# ** event: remove_app_interface
 class RemoveAppInterface(DomainEvent):
     '''
-    Command to remove an entire app interface configuration by ID (idempotent).
+    A domain event to remove an entire app interface configuration by ID (idempotent).
     '''
 
     # * attribute: app_service
