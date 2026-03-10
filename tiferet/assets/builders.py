@@ -7,7 +7,7 @@
 # ** constant: default_services
 DEFAULT_SERVICES = [
     {
-        'service_id': 'container_service',
+        'attribute_id': 'container_service',
         'module_path': 'tiferet.repos.container',
         'class_name': 'ContainerYamlRepository',
         'parameters': {
@@ -15,7 +15,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'di_service',
+        'attribute_id': 'di_service',
         'module_path': 'tiferet.repos.di',
         'class_name': 'DIYamlRepository',
         'parameters': {
@@ -23,7 +23,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'error_service',
+        'attribute_id': 'error_service',
         'module_path': 'tiferet.repos.error',
         'class_name': 'ErrorYamlRepository',
         'parameters': {
@@ -31,7 +31,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'logging_service',
+        'attribute_id': 'logging_service',
         'module_path': 'tiferet.repos.logging',
         'class_name': 'LoggingYamlRepository',
         'parameters': {
@@ -39,7 +39,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'feature_service',
+        'attribute_id': 'feature_service',
         'module_path': 'tiferet.repos.feature',
         'class_name': 'FeatureYamlRepository',
         'parameters': {
@@ -47,7 +47,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'get_error_cmd',
+        'attribute_id': 'get_error_cmd',
         'module_path': 'tiferet.events.error',
         'class_name': 'GetError',
         'parameters': {
@@ -55,7 +55,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'get_feature_cmd',
+        'attribute_id': 'get_feature_cmd',
         'module_path': 'tiferet.events.feature',
         'class_name': 'GetFeature',
         'parameters': {
@@ -63,7 +63,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'container_list_all_cmd',
+        'attribute_id': 'container_list_all_cmd',
         'module_path': 'tiferet.events.container',
         'class_name': 'ListAllSettings',
         'parameters': {
@@ -71,7 +71,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'list_all_cmd',
+        'attribute_id': 'list_all_cmd',
         'module_path': 'tiferet.events.logging',
         'class_name': 'ListAllLoggingConfigs',
         'parameters': {
@@ -79,7 +79,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'list_commands_cmd',
+        'attribute_id': 'list_commands_cmd',
         'module_path': 'tiferet.events.cli',
         'class_name': 'ListCliCommands',
         'parameters': {
@@ -87,7 +87,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'get_parent_args_cmd',
+        'attribute_id': 'get_parent_args_cmd',
         'module_path': 'tiferet.events.cli',
         'class_name': 'GetParentArguments',
         'parameters': {
@@ -95,7 +95,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'container',
+        'attribute_id': 'container',
         'module_path': 'tiferet.contexts.container',
         'class_name': 'ContainerContext',
         'parameters': {
@@ -103,7 +103,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'features',
+        'attribute_id': 'features',
         'module_path': 'tiferet.contexts.feature',
         'class_name': 'FeatureContext',
         'parameters': {
@@ -112,7 +112,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'errors',
+        'attribute_id': 'errors',
         'module_path': 'tiferet.contexts.error',
         'class_name': 'ErrorContext',
         'parameters': {
@@ -120,7 +120,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'logging',
+        'attribute_id': 'logging',
         'module_path': 'tiferet.contexts.logging',
         'class_name': 'LoggingContext',
         'parameters': {
