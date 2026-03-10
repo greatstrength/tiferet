@@ -11,8 +11,8 @@ from ..settings import Aggregate, TransferObject
 
 # *** classes
 
-# ** class: _MapperAssertions
-class _MapperAssertions:
+# ** class: MapperAssertions
+class MapperAssertions:
     '''
     Internal mixin providing shared assertion helpers for mapper tests.
     '''
@@ -116,7 +116,7 @@ class _MapperAssertions:
 
 
 # ** class: AggregateTestBase
-class AggregateTestBase(_MapperAssertions):
+class AggregateTestBase(MapperAssertions):
     '''
     Base class for testing Aggregate components.
 
@@ -197,7 +197,7 @@ class AggregateTestBase(_MapperAssertions):
 
 
 # ** class: TransferObjectTestBase
-class TransferObjectTestBase(_MapperAssertions):
+class TransferObjectTestBase(MapperAssertions):
     '''
     Base class for testing TransferObject components.
 
