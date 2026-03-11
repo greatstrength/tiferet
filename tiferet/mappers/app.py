@@ -63,7 +63,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         )
 
     # * method: add_service
-    def add_service(self, module_path: str, class_name: str, attribute_id: str, parameters: Dict[str, str] = {}) -> None:
+    def add_service(self, module_path: str, class_name: str, service_id: str, parameters: Dict[str, str] = {}) -> None:
         '''
         Add a service dependency to the app interface.
 
@@ -71,8 +71,8 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :type module_path: str
         :param class_name: The class name for the service dependency.
         :type class_name: str
-        :param attribute_id: The id for the service dependency.
-        :type attribute_id: str
+        :param service_id: The id for the service dependency.
+        :type service_id: str
         :param parameters: Additional parameters for the service dependency.
         :type parameters: dict
         :return: None
@@ -84,7 +84,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             AppServiceDependency,
             module_path=module_path,
             class_name=class_name,
-            attribute_id=attribute_id,
+            service_id=service_id,
             parameters=parameters,
         )
 
@@ -92,39 +92,49 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         self.services.append(dependency)
 
     # * method: remove_service
-    def remove_service(self, attribute_id: str) -> AppServiceDependency:
+    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
+    def remove_service(self, service_id: str = None, attribute_id: str = None) -> AppServiceDependency:
         '''
-        Remove and return a service dependency by its attribute_id (idempotent).
+        Remove and return a service dependency by its service_id (idempotent).
 
-        If a service dependency with the given attribute_id exists, it is removed.
+        If a service dependency with the given service_id exists, it is removed.
         If no matching service dependency exists, no action is taken (silent success).
 
-        :param attribute_id: The attribute_id of the service dependency to remove.
+        :param service_id: The service_id of the service dependency to remove.
+        :type service_id: str
+        :param attribute_id: Deprecated alias for service_id.
         :type attribute_id: str
         :return: The removed AppServiceDependency or None.
         :rtype: AppServiceDependency
         '''
 
-        # Iterate over services and remove the first match by attribute_id.
+        # Fall back to attribute_id if service_id is not provided.
+        if service_id is None and attribute_id is not None:
+            service_id = attribute_id
+
+        # Iterate over services and remove the first match by service_id.
+        # + todo: remove attribute_id fallback once attribute_id is removed from AppServiceDependency
         for index, dep in enumerate(self.services):
-            if dep.attribute_id == attribute_id:
+            if dep.service_id == service_id or dep.attribute_id == service_id:
                 return self.services.pop(index)
 
         # If no service dependency matches, return None without modifying the list.
         return None
 
     # * method: set_service
+    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def set_service(
         self,
-        attribute_id: str,
-        module_path: str,
-        class_name: str,
+        service_id: str = None,
+        module_path: str = None,
+        class_name: str = None,
         parameters: Dict[str, Any] = None,
+        attribute_id: str = None,
     ) -> None:
         '''
-        Set or update a service dependency by attribute_id (PUT semantics).
+        Set or update a service dependency by service_id (PUT semantics).
 
-        If a service dependency with the given attribute_id exists:
+        If a service dependency with the given service_id exists:
           - Update module_path and class_name.
           - Merge parameters (favor new values; remove keys with None value).
           - Clear parameters if parameters is None.
@@ -132,20 +142,26 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         If no service dependency exists:
           - Create new AppServiceDependency and append to services.
 
-        :param attribute_id: The service dependency identifier.
-        :type attribute_id: str
+        :param service_id: The service dependency identifier.
+        :type service_id: str
         :param module_path: The module path.
         :type module_path: str
         :param class_name: The class name.
         :type class_name: str
         :param parameters: New parameters (None to clear).
         :type parameters: Dict[str, Any]
+        :param attribute_id: Deprecated alias for service_id.
+        :type attribute_id: str
         :return: None
         :rtype: None
         '''
 
-        # Find the existing service dependency by attribute_id.
-        dep = self.get_service(attribute_id)
+        # Fall back to attribute_id if service_id is not provided.
+        if service_id is None and attribute_id is not None:
+            service_id = attribute_id
+
+        # Find the existing service dependency by service_id.
+        dep = self.get_service(service_id)
 
         # If the service dependency exists, update its type fields and merge parameters.
         if dep is not None:
@@ -169,7 +185,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         else:
             new_dep = DomainObject.new(
                 AppServiceDependency,
-                attribute_id=attribute_id,
+                service_id=service_id,
                 module_path=module_path,
                 class_name=class_name,
                 parameters=parameters or {},
@@ -257,10 +273,10 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
     A YAML data representation of an app service dependency object.
     '''
 
-    # * attribute: attribute_id
-    attribute_id = StringType(
+    # * attribute: service_id
+    service_id = StringType(
         metadata=dict(
-            description='The attribute id for the application dependency that is not required for assembly.'
+            description='The service id for the application dependency that is not required for assembly.'
         ),
     )
 
@@ -282,18 +298,17 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
 
         serialize_when_none = False
         roles = {
-            'to_model': TransferObject.deny('parameters', 'attribute_id'),
-            'to_data.yaml': TransferObject.deny('attribute_id'),
-            'to_data.json': TransferObject.deny('attribute_id'),
+            'to_model': TransferObject.deny('parameters', 'service_id'),
+            'to_data.yaml': TransferObject.deny('service_id'),
         }
 
     # * method: map
-    def map(self, attribute_id: str, **kwargs) -> AppServiceDependency:
+    def map(self, service_id: str, **kwargs) -> AppServiceDependency:
         '''
         Maps the app service dependency data to an app service dependency object.
 
-        :param attribute_id: The id for the app service dependency.
-        :type attribute_id: str
+        :param service_id: The id for the app service dependency.
+        :type service_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: A new app service dependency object.
@@ -303,7 +318,7 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
         # Map to the app service dependency object.
         return super().map(
             AppServiceDependency,
-            attribute_id=attribute_id,
+            service_id=service_id,
             parameters=self.parameters,
             **self.to_primitive('to_model'),
             **kwargs
@@ -325,7 +340,6 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         roles = {
             'to_model': TransferObject.deny('services', 'constants', 'module_path', 'class_name'),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: module_path
@@ -386,7 +400,7 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
             AppInterfaceAggregate,
             module_path=self.module_path,
             class_name=self.class_name,
-            services=[dep.map(attribute_id=dep_id) for dep_id, dep in self.services.items()],
+            services=[dep.map(service_id=dep_id) for dep_id, dep in self.services.items()],
             constants=self.constants,
             **self.to_primitive('to_model'),
             **kwargs
@@ -407,12 +421,12 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         '''
 
         # Create a new AppInterfaceYamlObject from the model, converting
-        # the services list into a dictionary keyed by attribute_id.
+        # the services list into a dictionary keyed by service_id.
         return TransferObject.from_model(
             AppInterfaceYamlObject,
             app_interface,
             services={
-                dep.attribute_id: TransferObject.from_model(AppServiceDependencyYamlObject, dep)
+                dep.service_id: TransferObject.from_model(AppServiceDependencyYamlObject, dep)
                 for dep in app_interface.services
             },
             **kwargs,
