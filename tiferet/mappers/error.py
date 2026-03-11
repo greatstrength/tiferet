@@ -128,7 +128,6 @@ class ErrorMessageYamlObject(ErrorMessage, TransferObject):
         roles = {
             'to_model': TransferObject.deny(),
             'to_data.yaml': TransferObject.deny(),
-            'to_data.json': TransferObject.deny(),
         }
 
     # * method: map
@@ -186,7 +185,6 @@ class ErrorYamlObject(Error, TransferObject):
         roles = {
             'to_model': TransferObject.deny('message'),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: message
