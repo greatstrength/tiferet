@@ -30,13 +30,13 @@ AGGREGATE_SAMPLE_DATA = {
     'logger_id': 'default',
     'services': [
         {
-            'attribute_id': 'test_attribute',
+            'service_id': 'test_attribute',
             'module_path': 'test.module.path',
             'class_name': 'TestClassName',
             'parameters': {'test_param': 'test_value', 'debug': '1'},
         },
         {
-            'attribute_id': 'logging',
+            'service_id': 'logging',
             'module_path': 'tiferet.utils.logging',
             'class_name': 'LoggingService',
             'parameters': {},
@@ -70,13 +70,13 @@ def SVC_TUPLE(s):
 
     if isinstance(s, dict):
         return (
-            s['attribute_id'],
+            s['service_id'],
             s['module_path'],
             s['class_name'],
             tuple(sorted(s.get('parameters', {}).items())),
         )
     return (
-        s.attribute_id,
+        s.service_id,
         s.module_path,
         s.class_name,
         tuple(sorted((s.parameters or {}).items())),
@@ -223,7 +223,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         services = [
             DomainObject.new(
                 AppServiceDependency,
-                attribute_id=aid,
+                service_id=aid,
                 module_path=f"mod.{aid}",
                 class_name=f"{aid.capitalize()}Class",
                 parameters={'p': aid},
@@ -238,12 +238,12 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         # Verify the removed service (or None).
         if expected_removed:
             assert removed is not None
-            assert removed.attribute_id == expected_removed
+            assert removed.service_id == expected_removed
         else:
             assert removed is None
 
         # Verify the remaining services.
-        assert [s.attribute_id for s in aggr.services] == expected_remaining
+        assert [s.service_id for s in aggr.services] == expected_remaining
 
     # ** test: set_service_update_existing_merge_params
     def test_set_service_update_existing_merge_params(self, aggregate):
@@ -253,7 +253,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
 
         # Update the existing test_attribute service with new type and merged parameters.
         aggregate.set_service(
-            attribute_id='test_attribute',
+            service_id='test_attribute',
             module_path='new.mod.path',
             class_name='NewImplementation',
             parameters={'old': None, 'keep': 'yes', 'extra': '123', 'debug': '0'},
@@ -283,7 +283,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
 
         # Create a new service via set_service.
         aggregate.set_service(
-            attribute_id='brand_new',
+            service_id='brand_new',
             module_path='pkg.sub.module',
             class_name='FreshService',
             parameters={'p1': 'v1', 'p2': '42'},
@@ -306,7 +306,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     transfer_cls = AppInterfaceYamlObject
     aggregate_cls = AppInterfaceAggregate
 
-    # YAML-format sample data (services as dict keyed by attribute_id).
+    # YAML-format sample data (services as dict keyed by service_id).
     sample_data = {
         'id': 'test.interface',
         'name': 'Test Interface',
@@ -372,11 +372,11 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
             AppServiceDependencyYamlObject,
             **self.dependency_sample_data,
         )
-        dep = yaml_obj.map(attribute_id='injected_svc')
+        dep = yaml_obj.map(service_id='injected_svc')
 
         # Verify the mapped entity.
         assert isinstance(dep, AppServiceDependency)
-        assert dep.attribute_id == 'injected_svc'
+        assert dep.service_id == 'injected_svc'
         assert dep.module_path == 'example.service.module'
         assert dep.class_name == 'ExampleServiceImpl'
         assert dep.parameters == {'timeout': '30', 'retries': '3', 'ssl': '1'}
@@ -394,7 +394,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
             class_name='AliasImpl',
             params={'alias_key': 'value'},
         )
-        dep = yaml_obj.map(attribute_id='aliased_dep')
+        dep = yaml_obj.map(service_id='aliased_dep')
 
         # Verify aliased parameters were deserialized correctly.
         assert dep.parameters == {'alias_key': 'value'}
@@ -402,7 +402,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_roles_to_model_excludes
     def test_app_service_dependency_yaml_roles_to_model_excludes(self):
         '''
-        Test that to_model role excludes parameters and attribute_id.
+        Test that to_model role excludes parameters and service_id.
         '''
 
         # Create YAML object with fields that should be excluded.
@@ -411,13 +411,13 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
             module_path='ex.test.mod',
             class_name='ExcludeTest',
             parameters={'secret': 'dontleak'},
-            attribute_id='should_ignore',
+            service_id='should_ignore',
         )
         primitive = yaml_obj.to_primitive('to_model')
 
         # Verify excluded fields are absent.
         assert 'parameters' not in primitive
-        assert 'attribute_id' not in primitive
+        assert 'service_id' not in primitive
         assert primitive['module_path'] == 'ex.test.mod'
         assert primitive['class_name'] == 'ExcludeTest'
 
@@ -435,6 +435,6 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         self.assert_nested_list_matches(
             round_tripped.services,
             aggregate.services,
-            key_field='attribute_id',
+            key_field='service_id',
             compare_fields=['module_path', 'class_name', 'parameters'],
         )
