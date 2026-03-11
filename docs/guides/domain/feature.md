@@ -3,8 +3,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** March 11, 2026  
+**Version:** 2.0.0a5
 
 ## Overview
 
@@ -35,7 +35,8 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
-| `attribute_id`   | `StringType`            | Yes      | —       | The container attribute ID for the domain event.                   |
+| `service_id`     | `StringType`            | No *(todo: required)* | — | The service configuration ID for the feature event.          |
+| `attribute_id`   | `StringType`            | No *(obsolete)*       | — | The container attribute ID for the domain event. Replaced by `service_id`. |
 | `flags`          | `ListType(StringType)`  | No       | `[]`    | Feature flags that activate this event.                            |
 | `parameters`     | `DictType(StringType)`  | No       | `{}`    | Custom parameters for the event.                                   |
 | `return_to_data` | `BooleanType`           | No       | `False` | Whether to return the result to the feature data context (obsolete). |
@@ -85,7 +86,7 @@ The Feature domain objects participate in runtime workflow execution through the
 
 1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
 2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
-3. `FeatureContext` iterates over `feature.steps`, resolving each `FeatureEvent.attribute_id` from the DI container.
+3. `FeatureContext` iterates over `feature.steps`, resolving each `FeatureEvent.service_id` (with `attribute_id` fallback during migration) from the DI container.
 4. Each resolved domain event is executed with the merged request data and step parameters.
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
 6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
@@ -101,13 +102,13 @@ features:
       name: 'Add Number'
       description: 'Adds one number to another'
       commands:
-        - attribute_id: add_number_event
+        - service_id: add_number_event
           name: Add `a` and `b`
     sqrt:
       name: 'Square Root'
       description: 'Calculates the square root of a number'
       commands:
-        - attribute_id: exponentiate_number_event
+        - service_id: exponentiate_number_event
           name: Calculate square root of `a`
           params:
             b: '0.5'
@@ -143,7 +144,7 @@ Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 ## Relationships to Other Domains
 
 - **App:** `FeatureContext` is loaded as part of the application interface bootstrap, receiving `FeatureService` and container resolution via dependency injection.
-- **DI:** `FeatureEvent.attribute_id` references a `ServiceConfiguration` entry in `container.yml`, which is resolved at runtime by the DI container.
+- **DI:** `FeatureEvent.service_id` references a `ServiceConfiguration` entry in `di.yml`, which is resolved at runtime by the DI container. During migration, `attribute_id` is supported as a fallback.
 - **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
 - **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
 
@@ -155,7 +156,7 @@ from tiferet.domain import DomainObject, Feature, FeatureEvent
 step = DomainObject.new(
     FeatureEvent,
     name='Add a and b',
-    attribute_id='add_number_event',
+    service_id='add_number_event',
     parameters={'b': '0.5'},
 )
 
@@ -169,7 +170,7 @@ feature = DomainObject.new(
     steps=[step],
 )
 
-# feature.get_step(0).attribute_id == 'add_number_event'
+# feature.get_step(0).service_id == 'add_number_event'
 ```
 
 ## Related Documentation
