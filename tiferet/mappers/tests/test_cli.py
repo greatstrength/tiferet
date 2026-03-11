@@ -2,301 +2,365 @@
 
 # *** imports
 
-# ** infra
-import pytest
-
 # ** app
 from ...domain import CliArgument, CliCommand, DomainObject
-from ...assets import TiferetError
+from ...events import a
 from ..settings import TransferObject
 from ..cli import CliArgumentAggregate, CliCommandAggregate, CliCommandYamlObject
+from .settings import AggregateTestBase, TransferObjectTestBase
 
-# *** fixtures
 
-# ** fixture: cli_command_yaml_object
-@pytest.fixture
-def cli_command_yaml_object() -> CliCommandYamlObject:
+# *** constants
+
+# ** constant: argument_aggregate_sample_data
+ARGUMENT_AGGREGATE_SAMPLE_DATA = {
+    'name_or_flags': ['-v', '--verbose'],
+    'description': 'Enable verbose output.',
+    'type': 'str',
+    'required': False,
+    'default': 'false',
+    'action': 'store_true',
+}
+
+# ** constant: command_aggregate_sample_data
+COMMAND_AGGREGATE_SAMPLE_DATA = {
+    'id': 'calc.add',
+    'name': 'Add Number Command',
+    'description': 'Adds two numbers.',
+    'key': 'add',
+    'group_key': 'calc',
+    'arguments': [
+        {
+            'name_or_flags': ['a'],
+            'description': 'The first number to add.',
+            'type': 'str',
+        },
+        {
+            'name_or_flags': ['b'],
+            'description': 'The second number to add.',
+            'type': 'str',
+        },
+    ],
+}
+
+# ** constant: argument_equality_fields
+ARGUMENT_EQUALITY_FIELDS = [
+    'name_or_flags',
+    'description',
+    'type',
+    'required',
+    'default',
+    'action',
+]
+
+# ** constant: command_equality_fields
+COMMAND_EQUALITY_FIELDS = [
+    'id',
+    'name',
+    'description',
+    'key',
+    'group_key',
+    'arguments',
+]
+
+# ** constant: arg_tuple
+def ARG_TUPLE(arg):
     '''
-    A fixture for a CLI command YAML data object with two arguments using the args alias.
-
-    :return: The CLI command YAML data object.
-    :rtype: CliCommandYamlObject
+    Normalize a single CLI argument (dict or domain object) into a comparable tuple.
     '''
 
-    # Create and return the CLI command YAML data object.
-    return TransferObject.from_data(
-        CliCommandYamlObject,
-        id='calc.add',
-        name='Add Number Command',
-        description='Adds two numbers.',
-        key='add',
-        group_key='calc',
-        args=[
-            dict(
-                name_or_flags=['a'],
-                description='The first number to add.',
-                type='str',
-            ),
-            dict(
-                name_or_flags=['b'],
-                description='The second number to add.',
-                type='str',
-            ),
+    if isinstance(arg, dict):
+        return (
+            tuple(arg.get('name_or_flags', [])),
+            arg.get('description'),
+            arg.get('type'),
+        )
+    return (
+        tuple(arg.name_or_flags or []),
+        arg.description,
+        arg.type,
+    )
+
+# ** constant: command_field_normalizers
+COMMAND_FIELD_NORMALIZERS = {
+    'arguments': lambda args: tuple(sorted(ARG_TUPLE(arg) for arg in (args or []))),
+}
+
+
+# *** classes
+
+# ** class: TestCliArgumentAggregate
+class TestCliArgumentAggregate(AggregateTestBase):
+    '''
+    Tests for CliArgumentAggregate construction and set_attribute.
+    '''
+
+    aggregate_cls = CliArgumentAggregate
+
+    sample_data = ARGUMENT_AGGREGATE_SAMPLE_DATA
+
+    equality_fields = ARGUMENT_EQUALITY_FIELDS
+
+    set_attribute_params = [
+        # valid
+        ('description', 'Updated description.', None),
+        ('type', 'int', None),
+        ('required', True, None),
+        ('default', 'new_default', None),
+        ('action', 'store_false', None),
+        # invalid
+        ('name_or_flags', ['b'], a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+    ]
+
+
+# ** class: TestCliCommandAggregate
+class TestCliCommandAggregate(AggregateTestBase):
+    '''
+    Tests for CliCommandAggregate construction, set_attribute, and add_argument mutations.
+    '''
+
+    aggregate_cls = CliCommandAggregate
+
+    sample_data = COMMAND_AGGREGATE_SAMPLE_DATA
+
+    equality_fields = COMMAND_EQUALITY_FIELDS
+
+    field_normalizers = COMMAND_FIELD_NORMALIZERS
+
+    set_attribute_params = [
+        # valid
+        ('name', 'Updated Command Name', None),
+        ('description', 'New description text.', None),
+        ('key', 'subtract', None),
+        ('group_key', 'math', None),
+        # invalid
+        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+    ]
+
+    # ** test: add_argument_appends
+    def test_add_argument_appends(self, aggregate):
+        '''
+        Test that add_argument correctly appends a CliArgument to the aggregate.
+        '''
+
+        # Add an argument to the command.
+        aggregate.add_argument(
+            name_or_flags=['c'],
+            description='The third operand.',
+            type='int',
+        )
+
+        # Assert the argument was appended.
+        assert len(aggregate.arguments) == 3
+        added = aggregate.arguments[-1]
+        assert isinstance(added, CliArgument)
+        assert added.name_or_flags == ['c']
+        assert added.description == 'The third operand.'
+        assert added.type == 'int'
+
+    # ** test: add_argument_multiple
+    def test_add_argument_multiple(self, aggregate):
+        '''
+        Test that multiple add_argument calls accumulate correctly.
+        '''
+
+        # Add two arguments sequentially.
+        aggregate.add_argument(
+            name_or_flags=['c'],
+            description='Third operand.',
+            type='float',
+        )
+        aggregate.add_argument(
+            name_or_flags=['-v', '--verbose'],
+            description='Enable verbose output.',
+            action='store_true',
+        )
+
+        # Assert both arguments were added.
+        assert len(aggregate.arguments) == 4
+        assert aggregate.arguments[-2].name_or_flags == ['c']
+        assert aggregate.arguments[-2].type == 'float'
+        assert aggregate.arguments[-1].name_or_flags == ['-v', '--verbose']
+        assert aggregate.arguments[-1].action == 'store_true'
+
+    # ** test: add_argument_to_empty
+    def test_add_argument_to_empty(self):
+        '''
+        Test that add_argument works on a command created with no initial arguments.
+        '''
+
+        # Create an aggregate with no arguments.
+        aggregate = CliCommandAggregate.new(
+            id='calc.divide',
+            name='Divide Number Command',
+            key='divide',
+            group_key='calc',
+        )
+
+        # Add an argument.
+        aggregate.add_argument(
+            name_or_flags=['a'],
+            description='The numerator.',
+            type='int',
+        )
+
+        # Assert the argument was added to the empty list.
+        assert len(aggregate.arguments) == 1
+        assert aggregate.arguments[0].name_or_flags == ['a']
+        assert aggregate.arguments[0].description == 'The numerator.'
+        assert aggregate.arguments[0].type == 'int'
+
+
+# ** class: TestCliCommandYamlObject
+class TestCliCommandYamlObject(TransferObjectTestBase):
+    '''
+    Tests for CliCommandYamlObject mapping, round-trip, and CLI-specific serialization.
+    '''
+
+    transfer_cls = CliCommandYamlObject
+
+    aggregate_cls = CliCommandAggregate
+
+    # YAML-format sample data (uses 'args' alias).
+    sample_data = {
+        'id': 'calc.add',
+        'name': 'Add Number Command',
+        'description': 'Adds two numbers.',
+        'key': 'add',
+        'group_key': 'calc',
+        'args': [
+            {
+                'name_or_flags': ['a'],
+                'description': 'The first number to add.',
+                'type': 'str',
+            },
+            {
+                'name_or_flags': ['b'],
+                'description': 'The second number to add.',
+                'type': 'str',
+            },
         ],
-    )
+    }
 
-# *** tests
+    aggregate_sample_data = COMMAND_AGGREGATE_SAMPLE_DATA
 
-# ** test: cli_command_yaml_object_from_data
-def test_cli_command_yaml_object_from_data(cli_command_yaml_object: CliCommandYamlObject):
-    '''
-    Test that the CliCommandYamlObject can be initialized from data with correct
-    attributes and two arguments using the args alias.
+    equality_fields = COMMAND_EQUALITY_FIELDS
 
-    :param cli_command_yaml_object: The CLI command YAML data object.
-    :type cli_command_yaml_object: CliCommandYamlObject
-    '''
+    field_normalizers = COMMAND_FIELD_NORMALIZERS
 
-    # Assert the data is correctly initialized.
-    assert isinstance(cli_command_yaml_object, CliCommandYamlObject)
-    assert cli_command_yaml_object.id == 'calc.add'
-    assert cli_command_yaml_object.name == 'Add Number Command'
-    assert cli_command_yaml_object.description == 'Adds two numbers.'
-    assert cli_command_yaml_object.key == 'add'
-    assert cli_command_yaml_object.group_key == 'calc'
+    # ** test: args_alias_deserialization
+    def test_args_alias_deserialization(self):
+        '''
+        Test that the 'args' serialized_name alias is correctly deserialized to arguments.
+        '''
 
-    # Assert the arguments are correctly initialized.
-    assert len(cli_command_yaml_object.arguments) == 2
-    assert cli_command_yaml_object.arguments[0].name_or_flags == ['a']
-    assert cli_command_yaml_object.arguments[0].description == 'The first number to add.'
-    assert cli_command_yaml_object.arguments[1].name_or_flags == ['b']
-    assert cli_command_yaml_object.arguments[1].description == 'The second number to add.'
+        # Create a YAML object using the 'args' alias.
+        yaml_obj = TransferObject.from_data(
+            CliCommandYamlObject,
+            **self.sample_data,
+        )
 
+        # Assert the arguments were correctly deserialized.
+        assert len(yaml_obj.arguments) == 2
+        assert yaml_obj.arguments[0].name_or_flags == ['a']
+        assert yaml_obj.arguments[0].description == 'The first number to add.'
+        assert yaml_obj.arguments[1].name_or_flags == ['b']
+        assert yaml_obj.arguments[1].description == 'The second number to add.'
 
-# ** test: cli_command_yaml_object_map
-def test_cli_command_yaml_object_map(cli_command_yaml_object: CliCommandYamlObject):
-    '''
-    Test that map() produces a CliCommandAggregate with correct arguments.
+    # ** test: to_primitive_excludes_id_and_inlines_args
+    def test_to_primitive_excludes_id_and_inlines_args(self):
+        '''
+        Test that to_primitive('to_data.yaml') excludes 'id' and includes 'args' with full argument dicts.
+        '''
 
-    :param cli_command_yaml_object: The CLI command YAML data object.
-    :type cli_command_yaml_object: CliCommandYamlObject
-    '''
+        # Create a YAML object and serialize to primitive.
+        yaml_obj = TransferObject.from_data(
+            CliCommandYamlObject,
+            **self.sample_data,
+        )
+        primitive = yaml_obj.to_primitive('to_data.yaml')
 
-    # Map the CLI command YAML data to a CLI command aggregate.
-    aggregate = cli_command_yaml_object.map()
+        # Assert 'id' is excluded and 'args' is present with full dicts.
+        assert isinstance(primitive, dict)
+        assert 'id' not in primitive
+        assert 'args' in primitive
+        assert len(primitive['args']) == 2
+        assert primitive['args'][0]['name_or_flags'] == ['a']
+        assert primitive['args'][1]['name_or_flags'] == ['b']
+        assert primitive['name'] == 'Add Number Command'
+        assert primitive['key'] == 'add'
+        assert primitive['group_key'] == 'calc'
 
-    # Assert the mapped aggregate is valid.
-    assert isinstance(aggregate, CliCommandAggregate)
-    assert aggregate.id == 'calc.add'
-    assert aggregate.name == 'Add Number Command'
-    assert aggregate.key == 'add'
-    assert aggregate.group_key == 'calc'
+    # ** test: to_model_role_excludes_arguments
+    def test_to_model_role_excludes_arguments(self):
+        '''
+        Test that to_primitive('to_model') excludes 'arguments' but retains 'id', 'name', etc.
+        '''
 
-    # Assert the arguments are correctly mapped.
-    assert len(aggregate.arguments) == 2
-    assert aggregate.arguments[0].name_or_flags == ['a']
-    assert aggregate.arguments[1].name_or_flags == ['b']
+        # Create a YAML object and serialize with to_model role.
+        yaml_obj = TransferObject.from_data(
+            CliCommandYamlObject,
+            **self.sample_data,
+        )
+        primitive = yaml_obj.to_primitive('to_model')
 
+        # Assert 'arguments' is excluded and other fields are retained.
+        assert 'arguments' not in primitive
+        assert primitive['id'] == 'calc.add'
+        assert primitive['name'] == 'Add Number Command'
+        assert primitive['key'] == 'add'
+        assert primitive['group_key'] == 'calc'
 
-# ** test: cli_command_yaml_object_to_primitive
-def test_cli_command_yaml_object_to_primitive(cli_command_yaml_object: CliCommandYamlObject):
-    '''
-    Test that custom to_primitive('to_data.yaml') serializes args correctly.
+    # ** test: from_model_via_domain_factory
+    def test_from_model_via_domain_factory(self):
+        '''
+        Test that from_model() from CliCommand.new() produces a valid YAML object with correct id derivation.
+        '''
 
-    :param cli_command_yaml_object: The CLI command YAML data object.
-    :type cli_command_yaml_object: CliCommandYamlObject
-    '''
+        # Create a CliCommand domain object using the factory method.
+        cli_command = CliCommand.new(
+            group_key='calc',
+            key='subtract',
+            name='Subtract Number Command',
+            description='Subtracts one number from another.',
+            arguments=[
+                DomainObject.new(
+                    CliArgument,
+                    name_or_flags=['a'],
+                    description='The number to subtract from.',
+                ),
+            ],
+        )
 
-    # Serialize the data to primitive format for YAML.
-    primitive = cli_command_yaml_object.to_primitive('to_data.yaml')
+        # Create a CliCommandYamlObject from the model.
+        yaml_obj = CliCommandYamlObject.from_model(cli_command)
 
-    # Assert the primitive data is a dict with the expected keys.
-    assert isinstance(primitive, dict)
-    assert 'id' not in primitive
-    assert 'args' in primitive
-    assert len(primitive['args']) == 2
-    assert primitive['args'][0]['name_or_flags'] == ['a']
-    assert primitive['args'][1]['name_or_flags'] == ['b']
-    assert primitive['name'] == 'Add Number Command'
-    assert primitive['key'] == 'add'
-    assert primitive['group_key'] == 'calc'
+        # Assert the YAML object is valid.
+        assert isinstance(yaml_obj, CliCommandYamlObject)
+        assert yaml_obj.id == 'calc.subtract'
+        assert yaml_obj.name == 'Subtract Number Command'
+        assert yaml_obj.key == 'subtract'
+        assert yaml_obj.group_key == 'calc'
+        assert len(yaml_obj.arguments) == 1
+        assert yaml_obj.arguments[0].name_or_flags == ['a']
 
+    # ** test: round_trip_preserves_arguments
+    def test_round_trip_preserves_arguments(self, aggregate):
+        '''
+        Test that arguments are preserved through from_model -> map() round-trip.
+        Uses direct ordered iteration because name_or_flags is a list (unhashable as dict key).
+        '''
 
-# ** test: cli_command_yaml_object_from_model
-def test_cli_command_yaml_object_from_model():
-    '''
-    Test that from_model() from CliCommand.new() produces a valid YAML object.
-    '''
+        # Convert aggregate to YAML object and back.
+        yaml_obj = CliCommandYamlObject.from_model(aggregate)
+        round_tripped = yaml_obj.map()
 
-    # Create a CliCommand domain object using the factory method.
-    cli_command = CliCommand.new(
-        group_key='calc',
-        key='subtract',
-        name='Subtract Number Command',
-        description='Subtracts one number from another.',
-        arguments=[
-            DomainObject.new(
-                CliArgument,
-                name_or_flags=['a'],
-                description='The number to subtract from.',
-            ),
-        ],
-    )
+        # Assert argument count matches.
+        assert len(round_tripped.arguments) == len(aggregate.arguments)
 
-    # Create a CliCommandYamlObject from the model.
-    yaml_obj = CliCommandYamlObject.from_model(cli_command)
-
-    # Assert the YAML object is valid.
-    assert isinstance(yaml_obj, CliCommandYamlObject)
-    assert yaml_obj.id == 'calc.subtract'
-    assert yaml_obj.name == 'Subtract Number Command'
-    assert yaml_obj.key == 'subtract'
-    assert yaml_obj.group_key == 'calc'
-    assert len(yaml_obj.arguments) == 1
-    assert yaml_obj.arguments[0].name_or_flags == ['a']
-
-
-# ** test: cli_command_aggregate_new
-def test_cli_command_aggregate_new():
-    '''
-    Test that CliCommandAggregate.new() creates an aggregate with correct fields.
-    '''
-
-    # Create a new CLI command aggregate.
-    aggregate = CliCommandAggregate.new(
-        id='calc.multiply',
-        name='Multiply Number Command',
-        description='Multiplies two numbers.',
-        key='multiply',
-        group_key='calc',
-        arguments=[],
-    )
-
-    # Assert the aggregate is correctly instantiated.
-    assert isinstance(aggregate, CliCommandAggregate)
-    assert aggregate.id == 'calc.multiply'
-    assert aggregate.name == 'Multiply Number Command'
-    assert aggregate.description == 'Multiplies two numbers.'
-    assert aggregate.key == 'multiply'
-    assert aggregate.group_key == 'calc'
-    assert aggregate.arguments == []
-
-
-# ** test: cli_command_aggregate_add_argument
-def test_cli_command_aggregate_add_argument():
-    '''
-    Test that add_argument() correctly adds a CliArgument to the aggregate.
-    '''
-
-    # Create a CLI command aggregate with no arguments.
-    aggregate = CliCommandAggregate.new(
-        id='calc.divide',
-        name='Divide Number Command',
-        key='divide',
-        group_key='calc',
-    )
-
-    # Add an argument to the command.
-    aggregate.add_argument(
-        name_or_flags=['a'],
-        description='The numerator.',
-        type='int',
-    )
-
-    # Assert the argument was added.
-    assert len(aggregate.arguments) == 1
-    assert isinstance(aggregate.arguments[0], CliArgument)
-    assert aggregate.arguments[0].name_or_flags == ['a']
-    assert aggregate.arguments[0].description == 'The numerator.'
-    assert aggregate.arguments[0].type == 'int'
-
-
-# ** test: cli_command_aggregate_set_attribute
-def test_cli_command_aggregate_set_attribute():
-    '''
-    Test that set_attribute() updates supported attributes on the CLI command aggregate.
-    '''
-
-    # Create a CLI command aggregate.
-    aggregate = CliCommandAggregate.new(
-        id='calc.exp',
-        name='Exponentiate Number Command',
-        key='exp',
-        group_key='calc',
-    )
-
-    # Update supported attributes.
-    aggregate.set_attribute('name', 'Updated Exp Command')
-    aggregate.set_attribute('description', 'Raises a number to a power.')
-
-    # Assert the attributes were updated.
-    assert aggregate.name == 'Updated Exp Command'
-    assert aggregate.description == 'Raises a number to a power.'
-
-
-# ** test: cli_argument_aggregate_new
-def test_cli_argument_aggregate_new():
-    '''
-    Test that CliArgumentAggregate.new() creates an aggregate with all supported fields.
-    '''
-
-    # Create a new CLI argument aggregate with all supported fields.
-    aggregate = CliArgumentAggregate.new(
-        name_or_flags=['-v', '--verbose'],
-        description='Enable verbose output.',
-        type='str',
-        required=False,
-        default='false',
-        action='store_true',
-    )
-
-    # Assert the aggregate is correctly instantiated.
-    assert isinstance(aggregate, CliArgumentAggregate)
-    assert aggregate.name_or_flags == ['-v', '--verbose']
-    assert aggregate.description == 'Enable verbose output.'
-    assert aggregate.type == 'str'
-    assert aggregate.required is False
-    assert aggregate.default == 'false'
-    assert aggregate.action == 'store_true'
-
-
-# ** test: cli_argument_aggregate_set_attribute
-def test_cli_argument_aggregate_set_attribute():
-    '''
-    Test that set_attribute() updates supported attributes on the CLI argument aggregate.
-    '''
-
-    # Create a CLI argument aggregate.
-    aggregate = CliArgumentAggregate.new(
-        name_or_flags=['a'],
-        description='Original description.',
-    )
-
-    # Update supported attributes.
-    aggregate.set_attribute('description', 'Updated description.')
-    aggregate.set_attribute('required', True)
-
-    # Assert the attributes were updated.
-    assert aggregate.description == 'Updated description.'
-    assert aggregate.required is True
-
-
-# ** test: cli_argument_aggregate_set_attribute_invalid
-def test_cli_argument_aggregate_set_attribute_invalid():
-    '''
-    Test that set_attribute() raises TiferetError for unsupported attributes (name_or_flags).
-    '''
-
-    # Create a CLI argument aggregate.
-    aggregate = CliArgumentAggregate.new(
-        name_or_flags=['a'],
-        description='Test argument.',
-    )
-
-    # Attempt to set an unsupported attribute and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        aggregate.set_attribute('name_or_flags', ['b'])
-
-    # Verify that the correct error code is raised.
-    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
-    assert exc_info.value.kwargs.get('attribute') == 'name_or_flags'
+        # Compare arguments in order.
+        for orig, rt in zip(aggregate.arguments, round_tripped.arguments):
+            assert rt.name_or_flags == orig.name_or_flags
+            assert rt.description == orig.description
+            assert rt.type == orig.type
