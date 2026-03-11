@@ -100,7 +100,6 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
         roles = {
             'to_model': TransferObject.deny(),
             'to_data.yaml': TransferObject.deny('flag'),
-            'to_data.json': TransferObject.deny('flag'),
         }
 
     # * attribute: parameters
@@ -315,7 +314,6 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
         roles = {
             'to_model': TransferObject.deny('dependencies', 'parameters'),
             'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
         }
 
     # * attribute: dependencies
