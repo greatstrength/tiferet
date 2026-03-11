@@ -660,7 +660,6 @@ Practical guides for working with Tiferet's domain layers:
 - [Error (Structured Error Handling)](docs/guides/domain/error.md) — Error definitions, multilingual messages, formatting flow
 - [Feature (Workflow Orchestration)](docs/guides/domain/feature.md) — Features, steps, parameter resolution, execution flow
 - [Logging (Observability)](docs/guides/domain/logging.md) — Formatters, handlers, loggers, dictConfig assembly
-- [Mappers – Strategies and Patterns](docs/guides/mappers.md) — Aggregate and TransferObject design decisions, nested sub-objects, role strategies, and round-trip mapping
 
 ### Utility Guides
 
