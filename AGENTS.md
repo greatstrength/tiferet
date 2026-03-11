@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a4`
+- **Version:** `2.0.0a5`
 
 ## Architecture
 
@@ -213,7 +213,7 @@ Applications are configured via YAML files in `app/configs/`:
 
 - `app.yml` — Interface definitions (name, module_path, class_name, attributes)
 - `container.yml` — Dependency injection container attributes (module_path, class_name, parameters)
-- `feature.yml` — Feature workflows (commands with attribute_id, parameters, data_key)
+- `feature.yml` — Feature workflows (steps with service_id, parameters, data_key; `attribute_id` supported as deprecated fallback)
 - `error.yml` — Error definitions with multilingual messages
 - `cli.yml` — CLI command definitions with arguments
 - `logging.yml` — Logging formatters, handlers, loggers

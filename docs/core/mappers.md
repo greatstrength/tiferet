@@ -365,10 +365,10 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageYamlObject`)
 ### Migration Status
 
 The following test modules have been migrated to the harness-based style:
-- `test_app.py`, `test_cli.py`, `test_di.py`, `test_error.py`
+- `test_app.py`, `test_cli.py`, `test_di.py`, `test_error.py`, `test_feature.py`, `test_logging.py`
 
 The following use the legacy standalone style and are candidates for migration:
-- `test_container.py`, `test_feature.py`, `test_logging.py`
+- `test_container.py`
 
 `test_settings.py` tests the base classes themselves and appropriately uses standalone functions.
 
