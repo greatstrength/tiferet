@@ -27,7 +27,7 @@ def app_dependency() -> AppServiceDependency:
     # Create and return a new AppServiceDependency.
     return DomainObject.new(
         AppServiceDependency,
-        attribute_id='test_attribute',
+        service_id='test_service',
         module_path='test_module_path',
         class_name='test_class_name',
         parameters={'param1': 'value1', 'param2': 'value2'},
@@ -62,19 +62,19 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
 # ** test: app_interface_get_service
 def test_app_interface_get_service(app_interface: AppInterface) -> None:
     '''
-    Test successful retrieval of a service dependency by attribute id.
+    Test successful retrieval of a service dependency by service id.
 
     :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface
     '''
 
-    # Retrieve the service dependency by attribute id.
-    service = app_interface.get_service('test_attribute')
+    # Retrieve the service dependency by service id.
+    service = app_interface.get_service('test_service')
 
     # Assert the service dependency fields match.
     assert service.module_path == 'test_module_path'
     assert service.class_name == 'test_class_name'
-    assert service.attribute_id == 'test_attribute'
+    assert service.service_id == 'test_service'
     assert service.parameters == {'param1': 'value1', 'param2': 'value2'}
 
 # ** test: app_interface_get_service_invalid
