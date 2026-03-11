@@ -43,9 +43,17 @@ class FeatureEvent(FeatureStep):
     A feature event step that executes a domain event from the container.
     '''
 
+    # * attribute: service_id
+    # + todo: set to required when attribute_id is removed
+    service_id = StringType(
+        metadata=dict(
+            description='The service configuration ID for the feature event.'
+        )
+    )
+
     # * attribute: attribute_id
+    # - obsolete: replaced by service_id
     attribute_id = StringType(
-        required=True,
         metadata=dict(
             description='The container attribute ID for the feature event.'
         )

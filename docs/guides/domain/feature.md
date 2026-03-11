@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/domain/feature.py`  
-**Version:** 2.0.0a2
+**Version:** 2.0.0a5
 
 ## Overview
 
@@ -52,12 +52,13 @@ A concrete step that executes a domain event. This is the primary step type and 
 > **Rename note (v2.0a2):** Previously named `FeatureCommand`. Renamed to `FeatureEvent` to align with the `Command` → `DomainEvent` transition and to clarify that this step type specifically executes a domain event.
 
 | Attribute | Type | Description |
-|-----------|------|-------------|
-| `attribute_id` | `str` (required) | References a `ServiceConfiguration` in the DI container |
-| `flags` | `List[str]` (default: `[]`) | Step-level flags for dependency resolution (combined with feature-level flags) |
-| `parameters` | `Dict[str, str]` (default: `{}`) | Static or dynamic parameters passed to the domain event |
-| `data_key` | `str` | If set, the step's result is stored in the request data under this key |
-| `pass_on_error` | `bool` (default: `False`) | If `True`, errors from this step are swallowed and the result is set to `None` |
+||-----------|------|-------------|
+|| `service_id` | `str` *(todo: required)* | The canonical identifier referencing a `ServiceConfiguration` in the DI container. Introduced in v2.0.0a5 as the successor to `attribute_id`. |
+|| `attribute_id` | `str` *(obsolete)* | Legacy container attribute ID. Retained for backward compatibility; will be removed once all downstream layers (mappers, events, contexts) are migrated to `service_id`. |
+|| `flags` | `List[str]` (default: `[]`) | Step-level flags for dependency resolution (combined with feature-level flags) |
+|| `parameters` | `Dict[str, str]` (default: `{}`) | Static or dynamic parameters passed to the domain event |
+|| `data_key` | `str` | If set, the step's result is stored in the request data under this key |
+|| `pass_on_error` | `bool` (default: `False`) | If `True`, errors from this step are swallowed and the result is set to `None` |
 
 *Inherited from FeatureStep:* `type` (always `'event'`), `name`.
 
@@ -76,7 +77,7 @@ This enables a single domain event to be reused across multiple features with di
 
 1. **`execute_feature(feature_id, request)`** loads the `Feature` by ID (with caching).
 2. For each step in `feature.steps`:
-   - **`load_feature_command(step, feature.flags)`** resolves the domain event from the DI container using `attribute_id` and combined flags.
+   - **`load_feature_command(step, feature.flags)`** resolves the domain event from the DI container using `service_id` (falling back to `attribute_id` during migration) and combined flags.
    - **`parse_request_parameter(value, request)`** resolves each parameter — static values pass through `ParseParameter`, `$r.`-prefixed values are looked up in the request data.
    - **`handle_command(command, request, data_key, pass_on_error)`** executes the domain event with the merged request data and parsed parameters.
 3. If `data_key` is set, the step's return value is stored back into `request.data`, making it available to subsequent steps.
@@ -87,10 +88,10 @@ This enables a single domain event to be reused across multiple features with di
 # feature.yml:
 #   calc.add_and_double:
 #     steps:
-#       - attribute_id: add_number_event
+#       - service_id: add_number_event
 #         name: Add a and b
 #         data_key: sum_result
-#       - attribute_id: multiply_number_event
+#       - service_id: multiply_number_event
 #         name: Double the sum
 #         params:
 #           a: $r.sum_result
@@ -108,19 +109,19 @@ features:
       name: 'Add Number'
       description: 'Adds one number to another'
       commands:
-        - attribute_id: add_number_event
+        - service_id: add_number_event
           name: Add `a` and `b`
     sqrt:
       name: 'Square Root'
       description: 'Calculates the square root of a number'
       commands:
-        - attribute_id: exponentiate_number_event
+        - service_id: exponentiate_number_event
           name: Calculate square root of `a`
           params:
             b: '0.5'
 ```
 
-The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `commands` list maps to `steps`. The `sqrt` feature demonstrates parameter reuse — `exponentiate_number_event` is shared with the `exp` feature but configured with a fixed `b: '0.5'`.
+The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `commands` list maps to `steps`. Each step's `service_id` references a `ServiceConfiguration` in the DI container. The `sqrt` feature demonstrates parameter reuse — `exponentiate_number_event` is shared with the `exp` feature but configured with a fixed `b: '0.5'`.
 
 ## Domain Events
 
@@ -142,7 +143,7 @@ The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `comm
 
 ## Relationship to Other Domains
 
-- **DI domain** — Each `FeatureEvent.attribute_id` references a `ServiceConfiguration` in the DI registry. The DI container resolves the domain event class at runtime based on the attribute ID and any active flags.
+- **DI domain** — Each `FeatureEvent.service_id` references a `ServiceConfiguration` in the DI registry. The DI container resolves the domain event class at runtime based on the service ID and any active flags. During migration, `attribute_id` is also supported as a fallback.
 - **App domain** — Features are executed within a loaded `AppInterface`. The interface's `flags` influence which flagged dependencies are used when resolving feature steps.
 - **Error domain** — When a step raises a `TiferetError`, the error flows up through `AppInterfaceContext.handle_error()` to `ErrorContext`, which formats the structured error response.
 - **CLI domain** — CLI commands map directly to feature IDs. When a user runs `calc add 1 2`, the CLI context constructs `feature_id = 'calc.add'` and delegates to `FeatureContext`.
