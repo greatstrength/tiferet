@@ -48,7 +48,7 @@ def test_feature_step_type_defaults_to_event() -> None:
     event = DomainObject.new(
         FeatureEvent,
         name='Test Event',
-        attribute_id='test_event_attr',
+        service_id='test_event_service',
     )
 
     # Assert type defaults to 'event'.
@@ -71,7 +71,7 @@ def test_feature_event_flags_creation_and_round_trip() -> None:
     event = DomainObject.new(
         FeatureEvent,
         name='Flagged Event',
-        attribute_id='flagged_event_attr',
+        service_id='flagged_event_service',
         flags=['flag1', 'flag2'],
     )
 
@@ -98,12 +98,12 @@ def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     step_0 = DomainObject.new(
         FeatureEvent,
         name='Step Zero',
-        attribute_id='step_zero_attr',
+        service_id='step_zero_service',
     )
     step_1 = DomainObject.new(
         FeatureEvent,
         name='Step One',
-        attribute_id='step_one_attr',
+        service_id='step_one_service',
     )
 
     # Add steps to the feature.
