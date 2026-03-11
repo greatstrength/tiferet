@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/domain/app.py`  
-**Version:** 2.0.0a2
+**Version:** 2.0.0a5
 
 ## Overview
 
@@ -31,7 +31,7 @@ The top-level configuration for a single application interface. Every runtime se
 
 **Behavior method:**
 
-- `get_service(attribute_id)` — retrieves an `AppServiceDependency` by its `attribute_id`. Used during bootstrapping to look up specific service dependency bindings.
+- `get_service(service_id)` — retrieves an `AppServiceDependency` by its `service_id`. Falls back to matching `attribute_id` for backward compatibility during the transitional migration period.
 
 ### AppServiceDependency
 
@@ -40,11 +40,12 @@ A single service dependency that tells the framework what to import and how to b
 > **Rename note (v2.0a2):** Previously named `AppAttribute`. Renamed to `AppServiceDependency` to reflect its true role as a service dependency binding, not a generic attribute.
 
 | Attribute | Type | Description |
-|-----------|------|-------------|
-| `module_path` | `str` (required) | Python module path for the dependency class |
-| `class_name` | `str` (required) | Class name to import |
-| `attribute_id` | `str` (required) | The dependency name in the injector (e.g., `cli_repo`, `cli_service`) |
-| `parameters` | `Dict[str, str]` (default: `{}`) | Configuration parameters passed to the dependency |
+||-----------|------|-------------|
+|| `service_id` | `str` *(todo: required)* | The dependency name in the injector (e.g., `cli_repo`, `cli_service`). Canonical identifier going forward. |
+|| `attribute_id` | `str` *(obsolete)* | Deprecated alias for `service_id`. Retained for backward compatibility; will be removed once all layers are migrated. |
+|| `module_path` | `str` (required) | Python module path for the dependency class |
+|| `class_name` | `str` (required) | Class name to import |
+|| `parameters` | `Dict[str, str]` (default: `{}`) | Configuration parameters passed to the dependency |
 
 ## Runtime Role
 
@@ -88,7 +89,7 @@ interfaces:
         class_name: CliHandler
 ```
 
-Each key under `interfaces` becomes the `AppInterface.id`. The `attrs` section maps to the `services` list, where each key becomes the `attribute_id`.
+Each key under `interfaces` becomes the `AppInterface.id`. The `attrs` section maps to the `services` list, where each key becomes the `service_id` of the corresponding `AppServiceDependency`.
 
 ## Domain Events
 
