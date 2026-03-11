@@ -6,8 +6,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** March 11, 2026  
+**Version:** 2.0.0a5
 
 ## Overview
 
@@ -23,12 +23,13 @@ These domain objects are **immutable value objects**: they carry no mutation met
 
 Represents a single injectable service dependency binding for an application interface.
 
-| Attribute      | Type                   | Required | Default | Description                                       |
-|----------------|------------------------|----------|---------|---------------------------------------------------|
-| `module_path`  | `StringType`           | Yes      | —       | The module path for the app dependency.            |
-| `class_name`   | `StringType`           | Yes      | —       | The class name for the app dependency.             |
-| `attribute_id` | `StringType`           | Yes      | —       | The attribute id for the application dependency.   |
-| `parameters`   | `DictType(StringType)` | No       | `{}`    | The parameters for the application dependency.     |
+| Attribute      | Type                   | Required | Default | Description                                                                      |
+|----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
+| `module_path`  | `StringType`           | Yes      | —       | The module path for the app dependency.                                           |
+| `class_name`   | `StringType`           | Yes      | —       | The class name for the app dependency.                                            |
+| `service_id`   | `StringType`           | No *(todo: required)* | — | The canonical service id for the application dependency.             |
+| `attribute_id` | `StringType`           | No *(obsolete)* | — | The attribute id for the application dependency. Superseded by `service_id`. |
+| `parameters`   | `DictType(StringType)` | No       | `{}`    | The parameters for the application dependency.                                    |
 
 No methods. Pure data structure.
 
@@ -54,9 +55,9 @@ Represents the complete configuration of an application entry point.
 
 #### Methods
 
-**`get_service(attribute_id: str) -> AppServiceDependency`**
+**`get_service(service_id: str) -> AppServiceDependency`**
 
-Returns the `AppServiceDependency` whose `attribute_id` matches the given value, or `None` if no match is found.
+Returns the `AppServiceDependency` whose `service_id` matches the given value, or `None` if no match is found. For backward compatibility, also falls back to matching on `attribute_id` (this fallback will be removed once `attribute_id` is fully migrated).
 
 ```python
 service = app_interface.get_service('cli_repo')
@@ -76,7 +77,7 @@ The App domain objects participate in the application bootstrapping flow:
 
 ## Configuration Mapping
 
-Application interfaces are defined in `app/configs/app.yml`. Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects:
+Application interfaces are defined in `app/configs/app.yml`. Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects. Each key under `attrs` becomes the `service_id` of the corresponding `AppServiceDependency`:
 
 ```yaml
 interfaces:
@@ -139,7 +140,7 @@ from tiferet.domain import DomainObject, AppServiceDependency, AppInterface
 
 dep = DomainObject.new(
     AppServiceDependency,
-    attribute_id='cli_repo',
+    service_id='cli_repo',
     module_path='tiferet.proxies.yaml.cli',
     class_name='CliYamlProxy',
     parameters={'cli_config_file': 'app/configs/cli.yml'},
