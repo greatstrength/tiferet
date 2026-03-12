@@ -136,7 +136,6 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
         roles = {
             'to_model': TransferObject.deny('type'),
             'to_data.yaml': TransferObject.deny('type'),
-            'to_data.json': TransferObject.deny('type')
         }
 
     # * attribute: parameters
@@ -264,19 +263,20 @@ class FeatureAggregate(Feature, Aggregate):
     def add_step(
         self,
         name: str,
-        attribute_id: str,
+        service_id: str = None,
         parameters: Dict[str, Any] | None = None,
         data_key: str | None = None,
         pass_on_error: bool = False,
         position: int | None = None,
+        attribute_id: str = None,
     ) -> FeatureEvent:
         '''
         Add a feature event step using raw attributes.
 
         :param name: Step name.
         :type name: str
-        :param attribute_id: Container attribute ID.
-        :type attribute_id: str
+        :param service_id: Service configuration ID (primary).
+        :type service_id: str
         :param parameters: Optional parameters dictionary.
         :type parameters: dict | None
         :param data_key: Optional result data key.
@@ -285,14 +285,20 @@ class FeatureAggregate(Feature, Aggregate):
         :type pass_on_error: bool
         :param position: Insertion position (None to append).
         :type position: int | None
+        :param attribute_id: Deprecated fallback for service_id.
+        :type attribute_id: str
         :return: Created FeatureEvent instance.
         :rtype: FeatureEvent
         '''
 
+        # Resolve service_id from the primary or deprecated fallback.
+        service_id = service_id or attribute_id
+
         # Create the feature event from raw attributes.
         step = FeatureEventAggregate.new(
             name=name,
-            attribute_id=attribute_id,
+            service_id=service_id,
+            attribute_id=service_id,
             parameters=parameters or {},
             data_key=data_key,
             pass_on_error=pass_on_error,
@@ -422,7 +428,6 @@ class FeatureYamlObject(Feature, TransferObject):
         roles = {
             'to_model': TransferObject.deny('steps'),
             'to_data.yaml': TransferObject.deny('feature_key', 'group_id', 'id'),
-            'to_data.json': TransferObject.deny('feature_key', 'group_id', 'id')
         }
 
     # * attribute: steps
