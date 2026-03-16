@@ -1,9 +1,9 @@
-"""Tests for Tiferet Feature Commands"""
+"""Tiferet Tests for Feature Events"""
 
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import List
 
 # ** infra
 import pytest
@@ -11,45 +11,36 @@ from unittest import mock
 
 # ** app
 from ..feature import (
-    GetFeature,
     AddFeature,
+    GetFeature,
     ListFeatures,
     RemoveFeature,
     UpdateFeature,
-    AddFeatureCommand,
-    UpdateFeatureCommand,
-    RemoveFeatureCommand,
-    ReorderFeatureCommand,
-    a,
+    AddFeatureStep,
+    UpdateFeatureStep,
+    RemoveFeatureStep,
+    ReorderFeatureStep,
 )
+from ..settings import DomainEvent, TiferetError, a
 from ...domain import Feature
 from ...interfaces import FeatureService
-from ...mappers import Aggregate, FeatureAggregate
-from ...assets import TiferetError
-from ...events import DomainEvent
-
+from ...mappers import FeatureAggregate
+from .settings import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
-
-# ** fixture: mock_feature_service
-@pytest.fixture
-def mock_feature_service() -> FeatureService:
-    '''
-    A fixture for a mock feature service.
-    '''
-
-    return mock.Mock(spec=FeatureService)
-
 
 # ** fixture: sample_feature
 @pytest.fixture
 def sample_feature() -> Feature:
     '''
     A sample Feature instance for testing.
+
+    :return: A FeatureAggregate instance.
+    :rtype: FeatureAggregate
     '''
 
-    return Aggregate.new(
-        FeatureAggregate,
+    # Create a sample feature aggregate.
+    return FeatureAggregate.new(
         id='group.sample_feature',
         name='Sample Feature',
         group_id='group',
@@ -57,1633 +48,950 @@ def sample_feature() -> Feature:
         description='A sample feature for testing.',
     )
 
+
 # *** tests
 
-# ** test: get_feature_success
-def test_get_feature_success(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
+# ** test: TestAddFeature
+class TestAddFeature(DomainEventTestBase):
     '''
-    Test successful retrieval of a feature via GetFeature.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
+    Tests for AddFeature using the domain event test harness.
     '''
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * attribute: event_cls
+    event_cls = AddFeature
 
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        GetFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id='group.sample_feature',
-    )
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    # Assert that the feature is returned and the service was called as expected.
-    assert result is sample_feature
-    mock_feature_service.get.assert_called_once_with('group.sample_feature')
-
-# ** test: get_feature_not_found
-def test_get_feature_not_found(mock_feature_service: FeatureService) -> None:
-    '''
-    Test that GetFeature raises FEATURE_NOT_FOUND when the feature does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            GetFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-
-# ** test: get_feature_missing_id
-def test_get_feature_missing_id(mock_feature_service: FeatureService) -> None:
-    '''
-    Test that GetFeature fails with COMMAND_PARAMETER_REQUIRED when id is missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command with an invalid id and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            GetFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id=' ',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-
-
-# ** test: remove_feature_success
-def test_remove_feature_success(mock_feature_service: FeatureService) -> None:
-    '''
-    Test successful deletion of a feature via RemoveFeature.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command via the static DomainEvent.handle interface.
-    feature_id = 'group.sample_feature'
-    result = DomainEvent.handle(
-        RemoveFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=feature_id,
-    )
-
-    # Assert that the feature ID is returned and the service was called.
-    assert result == feature_id
-    mock_feature_service.delete.assert_called_once_with(feature_id)
-
-
-# ** test: remove_feature_idempotent_multiple_calls
-def test_remove_feature_idempotent_multiple_calls(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that RemoveFeature can be called multiple times for the same ID
-    without raising, relying on the service's idempotent delete semantics.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    feature_id = 'group.sample_feature'
-
-    # Call the command twice for the same feature identifier.
-    result_first = DomainEvent.handle(
-        RemoveFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=feature_id,
-    )
-    result_second = DomainEvent.handle(
-        RemoveFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=feature_id,
-    )
-
-    # Both calls should succeed and return the same identifier.
-    assert result_first == feature_id
-    assert result_second == feature_id
-    assert mock_feature_service.delete.call_count == 2
-    mock_feature_service.delete.assert_called_with(feature_id)
-
-
-# ** test: remove_feature_missing_id
-def test_remove_feature_missing_id(mock_feature_service: FeatureService) -> None:
-    '''
-    Test that RemoveFeature fails with COMMAND_PARAMETER_REQUIRED when id is
-    missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command with an invalid id and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            RemoveFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id=' ',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-
-    # The feature service should not be called when validation fails.
-    mock_feature_service.delete.assert_not_called()
-
-
-# ** test: add_feature_minimal_success
-def test_add_feature_minimal_success(mock_feature_service: FeatureService) -> None:
-    '''
-    Test successful creation of a feature with minimal required parameters.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to indicate the feature does not already exist.
-    mock_feature_service.exists.return_value = False
-
-    # Execute the command via the static DomainEvent.handle interface with minimal parameters.
-    result: Feature = DomainEvent.handle(
-        AddFeature,
-        dependencies={'feature_service': mock_feature_service},
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
         name='New Feature',
         group_id='group',
     )
 
-    # Assert that the result is a Feature with derived key, id, and description.
-    assert isinstance(result, Feature)
-    assert result.name == 'New Feature'
-    assert result.group_id == 'group'
-    assert result.feature_key == 'new_feature'
-    assert result.id == 'group.new_feature'
-    assert result.description == 'New Feature'
+    # * attribute: required_params
+    required_params = ['name', 'group_id']
 
-    # Verify that existence was checked and the feature was saved.
-    mock_feature_service.exists.assert_called_once_with(result.id)
-    mock_feature_service.save.assert_called_once_with(result)
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self) -> dict:
+        '''
+        Override to pre-configure exists to return False.
+        '''
 
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.exists.return_value = False
+        return {'feature_service': service}
 
-# ** test: add_feature_full_parameters
-def test_add_feature_full_parameters(mock_feature_service: FeatureService) -> None:
-    '''
-    Test creation of a feature when all optional parameters are explicitly provided.
+    # * method: test_minimal_success
+    def test_minimal_success(self, mock_dependencies):
+        '''
+        Test successful creation of a feature with minimal required parameters.
+        '''
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-    # Arrange the feature service to indicate the feature does not already exist.
-    mock_feature_service.exists.return_value = False
+        # Assert the feature was created with derived values.
+        assert isinstance(result, Feature)
+        assert result.name == 'New Feature'
+        assert result.group_id == 'group'
+        assert result.feature_key == 'new_feature'
+        assert result.id == 'group.new_feature'
+        assert result.description == 'New Feature'
 
-    # Explicit parameters.
-    feature_name = 'Explicit Feature'
-    group_id = 'group'
-    feature_key = 'explicit_key'
-    feature_id = 'group.explicit_key'
-    description = 'Explicit description.'
-    commands = []
-    log_params = {'foo': 'bar'}
+        # Assert the service was called correctly.
+        mock_dependencies['feature_service'].exists.assert_called_once_with(result.id)
+        mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
-    # Execute the command with all parameters provided.
-    result: Feature = DomainEvent.handle(
-        AddFeature,
-        dependencies={'feature_service': mock_feature_service},
-        name=feature_name,
-        group_id=group_id,
-        feature_key=feature_key,
-        id=feature_id,
-        description=description,
-        commands=commands,
-        log_params=log_params,
-    )
+    # * method: test_full_parameters
+    def test_full_parameters(self, mock_dependencies):
+        '''
+        Test creation of a feature when all optional parameters are provided.
+        '''
 
-    # Assert that the result reflects the explicitly provided values.
-    assert result.name == feature_name
-    assert result.group_id == group_id
-    assert result.feature_key == feature_key
-    assert result.id == feature_id
-    assert result.description == description
-    assert result.steps == commands
-    assert result.log_params == log_params
-
-    # Verify that existence was checked and the feature was saved.
-    mock_feature_service.exists.assert_called_once_with(result.id)
-    mock_feature_service.save.assert_called_once_with(result)
-
-
-# ** test: add_feature_missing_required_parameters
-@pytest.mark.parametrize(
-    'name, group_id',
-    [
-        (' ', 'group'),
-        ('Feature Name', ' '),
-    ],
-)
-def test_add_feature_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        name: str,
-        group_id: str,
-    ) -> None:
-    '''
-    Test that AddFeature fails with COMMAND_PARAMETER_REQUIRED when required parameters are missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param name: The feature name to test.
-    :type name: str
-    :param group_id: The group identifier to test.
-    :type group_id: str
-    '''
-
-    # Execute the command with invalid parameters and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            AddFeature,
-            dependencies={'feature_service': mock_feature_service},
-            name=name,
-            group_id=group_id,
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-
-    # The feature service should not be called when validation fails.
-    mock_feature_service.exists.assert_not_called()
-    mock_feature_service.save.assert_not_called()
-
-
-# ** test: add_feature_duplicate_id
-def test_add_feature_duplicate_id(mock_feature_service: FeatureService) -> None:
-    '''
-    Test that AddFeature raises ERROR_ALREADY_EXISTS_ID when the feature id already exists.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to indicate the feature already exists.
-    mock_feature_service.exists.return_value = True
-
-    # Execute the command and expect a TiferetError with ERROR_ALREADY_EXISTS_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            AddFeature,
-            dependencies={'feature_service': mock_feature_service},
-            name='Duplicate Feature',
+        # Execute with all parameters.
+        result = self.handle(
+            mock_dependencies,
+            name='Explicit Feature',
             group_id='group',
+            feature_key='explicit_key',
+            id='group.explicit_key',
+            description='Explicit description.',
+            steps=[],
+            log_params={'foo': 'bar'},
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_ALREADY_EXISTS_ID
+        # Assert explicit values are used.
+        assert result.name == 'Explicit Feature'
+        assert result.group_id == 'group'
+        assert result.feature_key == 'explicit_key'
+        assert result.id == 'group.explicit_key'
+        assert result.description == 'Explicit description.'
+        assert result.steps == []
+        assert result.log_params == {'foo': 'bar'}
 
-    # Verify that existence was checked and the feature was not saved.
-    mock_feature_service.exists.assert_called_once()
-    mock_feature_service.save.assert_not_called()
+        # Assert the service was called correctly.
+        mock_dependencies['feature_service'].exists.assert_called_once_with(result.id)
+        mock_dependencies['feature_service'].save.assert_called_once_with(result)
 
-# ** test: list_features_all
-def test_list_features_all(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
-    '''ß
-    Test listing all features when no group_id filter is provided.
+    # * method: test_duplicate_id
+    def test_duplicate_id(self, mock_dependencies):
+        '''
+        Test that adding a feature with an existing ID raises FEATURE_ALREADY_EXISTS.
+        '''
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
+        # Configure the service to report the ID already exists.
+        mock_dependencies['feature_service'].exists.return_value = True
+
+        # Execute and expect a FEATURE_ALREADY_EXISTS error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies)
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.FEATURE_ALREADY_EXISTS_ID
+
+        # Verify the feature was not saved.
+        mock_dependencies['feature_service'].exists.assert_called_once()
+        mock_dependencies['feature_service'].save.assert_not_called()
+
+
+# ** test: TestGetFeature
+class TestGetFeature(ServiceEventTestBase):
+    '''
+    Tests for GetFeature using the service event test harness.
     '''
 
-    # Arrange the feature service to return all features.
-    mock_feature_service.list.return_value = [sample_feature]
+    # * attribute: event_cls
+    event_cls = GetFeature
 
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        ListFeatures,
-        dependencies={'feature_service': mock_feature_service},
-        group_id=None,
-    )
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    # Assert that all features are returned and the service was called as expected.
-    assert result == [sample_feature]
-    mock_feature_service.list.assert_called_once_with(group_id=None)
+    # * attribute: service_attr
+    service_attr = 'feature_service'
 
-# ** test: list_features_by_group_id
-def test_list_features_by_group_id(mock_feature_service: FeatureService, sample_feature: Feature) -> None:
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='group.sample_feature')
+
+    # * attribute: required_params
+    required_params = ['id']
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature.
+        '''
+
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, sample_feature):
+        '''
+        Test successful retrieval of a feature.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the feature is returned.
+        assert result is sample_feature
+        mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
+
+
+# ** test: TestListFeatures
+class TestListFeatures(DomainEventTestBase):
     '''
-    Test listing features filtered by group_id.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Arrange the feature service to return features for the specified group.
-    group_id = 'group'
-    mock_feature_service.list.return_value = [sample_feature]
-
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        ListFeatures,
-        dependencies={'feature_service': mock_feature_service},
-        group_id=group_id,
-    )
-
-    # Assert that the filtered features are returned and the service was called as expected.
-    assert result == [sample_feature]
-    mock_feature_service.list.assert_called_once_with(group_id=group_id)
-
-# ** test: list_features_empty_result
-def test_list_features_empty_result(mock_feature_service: FeatureService) -> None:
-    '''
-    Test listing features when the service returns an empty list.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return an empty list.
-    mock_feature_service.list.return_value = []
-
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        ListFeatures,
-        dependencies={'feature_service': mock_feature_service},
-        group_id=None,
-    )
-
-    # Assert that an empty list is returned and the service was called as expected.
-    assert result == []
-    mock_feature_service.list.assert_called_once_with(group_id=None)
-
-# ** test: update_feature_name_success
-def test_update_feature_name_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test successful update of a feature name via UpdateFeature.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
+    Tests for ListFeatures using the domain event test harness.
     '''
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * attribute: event_cls
+    event_cls = ListFeatures
 
-    # Execute the command via the static DomainEvent.handle interface.
-    result: Feature = DomainEvent.handle(
-        UpdateFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(group_id=None)
+
+    # * attribute: required_params
+    required_params = []
+
+    # * method: test_all
+    def test_all(self, mock_dependencies, sample_feature):
+        '''
+        Test listing all features.
+        '''
+
+        # Configure the service to return features.
+        mock_dependencies['feature_service'].list.return_value = [sample_feature]
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert.
+        assert result == [sample_feature]
+        mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
+
+    # * method: test_by_group_id
+    def test_by_group_id(self, mock_dependencies, sample_feature):
+        '''
+        Test listing features filtered by group_id.
+        '''
+
+        # Configure the service to return features.
+        mock_dependencies['feature_service'].list.return_value = [sample_feature]
+
+        # Execute with group_id override.
+        result = self.handle(mock_dependencies, group_id='group')
+
+        # Assert.
+        assert result == [sample_feature]
+        mock_dependencies['feature_service'].list.assert_called_once_with(group_id='group')
+
+    # * method: test_empty_result
+    def test_empty_result(self, mock_dependencies):
+        '''
+        Test listing features when the service returns an empty list.
+        '''
+
+        # Configure the service to return an empty list.
+        mock_dependencies['feature_service'].list.return_value = []
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert.
+        assert result == []
+        mock_dependencies['feature_service'].list.assert_called_once_with(group_id=None)
+
+
+# ** test: TestRemoveFeature
+class TestRemoveFeature(DomainEventTestBase):
+    '''
+    Tests for RemoveFeature using the domain event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = RemoveFeature
+
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='group.sample_feature')
+
+    # * attribute: required_params
+    required_params = ['id']
+
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test successful deletion of a feature.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the feature ID is returned.
+        assert result == 'group.sample_feature'
+        mock_dependencies['feature_service'].delete.assert_called_once_with('group.sample_feature')
+
+    # * method: test_idempotent_multiple_calls
+    def test_idempotent_multiple_calls(self, mock_dependencies):
+        '''
+        Test idempotent deletion with multiple calls.
+        '''
+
+        # Call twice.
+        result_first = self.handle(mock_dependencies)
+        result_second = self.handle(mock_dependencies)
+
+        # Both should succeed.
+        assert result_first == 'group.sample_feature'
+        assert result_second == 'group.sample_feature'
+        assert mock_dependencies['feature_service'].delete.call_count == 2
+
+
+# ** test: TestUpdateFeature
+class TestUpdateFeature(ServiceEventTestBase):
+    '''
+    Tests for UpdateFeature using the service event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = UpdateFeature
+
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
+
+    # * attribute: service_attr
+    service_attr = 'feature_service'
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='group.sample_feature',
         attribute='name',
         value='Updated Feature Name',
     )
 
-    # Assert that the feature name is updated and persisted.
-    assert result is sample_feature
-    assert result.name == 'Updated Feature Name'
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+    # * attribute: required_params
+    required_params = ['id', 'attribute']
 
-# ** test: update_feature_description_success
-def test_update_feature_description_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test successful update of a feature description via UpdateFeature.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Execute the command to update the description.
-    result: Feature = DomainEvent.handle(
-        UpdateFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        attribute='description',
-        value='Updated description.',
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.feature',
+        attribute='name',
+        value='Updated Feature Name',
     )
 
-    # Assert that the feature description is updated and persisted.
-    assert result is sample_feature
-    assert result.description == 'Updated description.'
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature.
+        '''
 
-# ** test: update_feature_clear_description
-def test_update_feature_clear_description(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test clearing a feature description via UpdateFeature.
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
+    # * method: test_name_success
+    def test_name_success(self, mock_dependencies, sample_feature):
+        '''
+        Test successfully updating a feature name.
+        '''
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-    # Execute the command to clear the description.
-    result: Feature = DomainEvent.handle(
-        UpdateFeature,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        attribute='description',
-        value=None,
-    )
+        # Assert the name was updated.
+        assert result is sample_feature
+        assert result.name == 'Updated Feature Name'
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # Assert that the feature description is cleared and persisted.
-    assert result is sample_feature
-    assert result.description is None
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+    # * method: test_description_success
+    def test_description_success(self, mock_dependencies, sample_feature):
+        '''
+        Test successfully updating a feature description.
+        '''
 
-# ** test: update_feature_missing_required_parameters
-@pytest.mark.parametrize(
-    'id, attribute',
-    [
-        (' ', 'name'),
-        ('group.sample_feature', ' '),
-    ],
-)
-def test_update_feature_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        id: str,
-        attribute: str,
-    ) -> None:
-    '''
-    Test that UpdateFeature fails with COMMAND_PARAMETER_REQUIRED when
-    required parameters are missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param id: The feature identifier to test.
-    :type id: str
-    :param attribute: The attribute name to test.
-    :type attribute: str
-    '''
-
-    # Execute the command with invalid parameters and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id=id,
-            attribute=attribute,
-            value='ignored',
+        # Execute with description override.
+        result = self.handle(
+            mock_dependencies,
+            attribute='description',
+            value='Updated description.',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Assert the description was updated.
+        assert result is sample_feature
+        assert result.description == 'Updated description.'
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+    # * method: test_clear_description
+    def test_clear_description(self, mock_dependencies, sample_feature):
+        '''
+        Test clearing a feature description.
+        '''
 
-# ** test: update_feature_invalid_attribute
-def test_update_feature_invalid_attribute(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that UpdateFeature fails when an unsupported attribute is provided.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command with an invalid attribute and expect an error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id='group.sample_feature',
-            attribute='invalid',
-            value='ignored',
+        # Execute with None value.
+        result = self.handle(
+            mock_dependencies,
+            attribute='description',
+            value=None,
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.INVALID_FEATURE_ATTRIBUTE_ID
+        # Assert the description was cleared.
+        assert result is sample_feature
+        assert result.description is None
 
-    # The feature service should not be called when attribute validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+    # * method: test_invalid_attribute
+    def test_invalid_attribute(self, mock_dependencies):
+        '''
+        Test that an unsupported attribute raises INVALID_FEATURE_ATTRIBUTE.
+        '''
 
-# ** test: update_feature_missing_name_value
-def test_update_feature_missing_name_value(
-        mock_feature_service: FeatureService,
-    ) -> None:
+        # Execute with invalid attribute.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, attribute='invalid', value='ignored')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.INVALID_FEATURE_ATTRIBUTE_ID
+        mock_dependencies['feature_service'].get.assert_not_called()
+
+    # * method: test_missing_name_value
+    def test_missing_name_value(self, mock_dependencies):
+        '''
+        Test that updating name with empty value raises FEATURE_NAME_REQUIRED.
+        '''
+
+        # Execute with empty name value.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, attribute='name', value=' ')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.FEATURE_NAME_REQUIRED_ID
+        mock_dependencies['feature_service'].get.assert_not_called()
+
+
+# ** test: TestAddFeatureStep
+class TestAddFeatureStep(ServiceEventTestBase):
     '''
-    Test that UpdateFeature fails with FEATURE_NAME_REQUIRED when updating
-    the name with an empty value.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command with an empty name value and expect an error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id='group.sample_feature',
-            attribute='name',
-            value=' ',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NAME_REQUIRED_ID
-
-    # The feature service should not be called when name validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
-
-# ** test: update_feature_not_found
-def test_update_feature_not_found(mock_feature_service: FeatureService) -> None:
-    '''
-    Test that UpdateFeature raises FEATURE_NOT_FOUND when the feature does
-    not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
+    Tests for AddFeatureStep using the service event test harness.
     '''
 
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
+    # * attribute: event_cls
+    event_cls = AddFeatureStep
 
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeature,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-            attribute='name',
-            value='Updated Feature Name',
-        )
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-    mock_feature_service.save.assert_not_called()
+    # * attribute: service_attr
+    service_attr = 'feature_service'
 
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
 
-# ** test: add_feature_command_append_success
-def test_add_feature_command_append_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test successfully appending a new command to a feature workflow.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        AddFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='group.sample_feature',
         name='do_something',
-        attribute_id='container.attribute',
+        service_id='container.attribute',
         parameters={'foo': 'bar'},
         data_key='result_key',
         pass_on_error=True,
     )
 
-    # Assert that the feature ID is returned.
-    assert result == sample_feature.id
+    # * attribute: required_params
+    required_params = ['id', 'name', 'service_id']
 
-    # Assert that a step was appended to the feature.
-    assert len(sample_feature.steps) == 1
-    step = sample_feature.steps[0]
-    assert step.name == 'do_something'
-    assert step.attribute_id == 'container.attribute'
-    assert step.parameters == {'foo': 'bar'}
-    assert step.data_key == 'result_key'
-    assert step.pass_on_error is True
-
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-
-# ** test: add_feature_command_insert_success
-def test_add_feature_command_insert_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test inserting a new command at a specific position in the feature workflow.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with two steps.
-    sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-        pass_on_error=False,
-    )
-    sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.feature',
+        name='do_something',
+        service_id='container.attribute',
     )
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature.
+        '''
 
-    # Execute the command inserting at position 1.
-    result = DomainEvent.handle(
-        AddFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        name='inserted',
-        attribute_id='container.inserted',
-        parameters={'index': 1},
-        data_key='inserted_key',
-        position=1,
-    )
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
 
-    # Assert that the feature ID is returned.
-    assert result == sample_feature.id
+    # * method: test_append_success
+    def test_append_success(self, mock_dependencies, sample_feature):
+        '''
+        Test successfully appending a new step to a feature.
+        '''
 
-    # Assert that the step list has three entries with correct ordering.
-    assert len(sample_feature.steps) == 3
-    assert sample_feature.steps[0].name == 'first'
-    assert sample_feature.steps[1].name == 'inserted'
-    assert sample_feature.steps[2].name == 'second'
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-    inserted_command = sample_feature.steps[1]
-    assert inserted_command.attribute_id == 'container.inserted'
-    assert inserted_command.parameters.get('index') == '1'
-    assert inserted_command.data_key == 'inserted_key'
+        # Assert the feature ID is returned.
+        assert result == sample_feature.id
 
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+        # Assert a step was appended.
+        assert len(sample_feature.steps) == 1
+        step = sample_feature.steps[0]
+        assert step.name == 'do_something'
+        assert step.service_id == 'container.attribute'
+        assert step.parameters == {'foo': 'bar'}
+        assert step.data_key == 'result_key'
+        assert step.pass_on_error is True
 
+        # Verify service calls.
+        mock_dependencies['feature_service'].get.assert_called_once_with(sample_feature.id)
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-# ** test: add_feature_command_missing_required_parameters
-@pytest.mark.parametrize(
-    'id, name, attribute_id',
-    [
-        (' ', 'do_something', 'container.attribute'),
-        ('group.sample_feature', ' ', 'container.attribute'),
-        ('group.sample_feature', 'do_something', ' '),
-    ],
-)
-def test_add_feature_command_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        id: str,
-        name: str,
-        attribute_id: str,
-    ) -> None:
-    '''
-    Test that AddFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
-    required parameters are missing or empty.
+    # * method: test_insert_success
+    def test_insert_success(self, mock_dependencies, sample_feature):
+        '''
+        Test inserting a step at a specific position.
+        '''
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param id: The feature identifier to test.
-    :type id: str
-    :param name: The command name to test.
-    :type name: str
-    :param attribute_id: The container attribute identifier to test.
-    :type attribute_id: str
-    '''
-
-    # Execute the command with invalid parameters and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            AddFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id=id,
-            name=name,
-            attribute_id=attribute_id,
+        # Pre-populate the feature with two steps.
+        sample_feature.add_step(
+            name='first',
+            service_id='container.first',
+            parameters={'index': 0},
+            data_key='first_key',
+            pass_on_error=False,
+        )
+        sample_feature.add_step(
+            name='second',
+            service_id='container.second',
+            parameters={'index': 1},
+            data_key='second_key',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
-
-
-# ** test: add_feature_command_feature_not_found
-def test_add_feature_command_feature_not_found(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that AddFeatureCommand raises FEATURE_NOT_FOUND when the feature
-    does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            AddFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-            name='do_something',
-            attribute_id='container.attribute',
+        # Execute inserting at position 1.
+        result = self.handle(
+            mock_dependencies,
+            name='inserted',
+            service_id='container.inserted',
+            parameters={'index': 1},
+            data_key='inserted_key',
+            position=1,
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-    mock_feature_service.save.assert_not_called()
+        # Assert correct ordering.
+        assert result == sample_feature.id
+        assert len(sample_feature.steps) == 3
+        assert sample_feature.steps[0].name == 'first'
+        assert sample_feature.steps[1].name == 'inserted'
+        assert sample_feature.steps[2].name == 'second'
 
-# ** test: update_feature_command_update_string_attributes_success
-@pytest.mark.parametrize(
-    'attribute, new_value, getter',
-    [
-        ('name', 'updated_name', lambda cmd: cmd.name),
-        ('attribute_id', 'container.updated', lambda cmd: cmd.attribute_id),
-        ('data_key', 'updated_key', lambda cmd: cmd.data_key),
-    ],
-)
-def test_update_feature_command_update_string_attributes_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-        attribute: str,
-        new_value: str,
-        getter,
-    ) -> None:
+        # Assert the inserted step has the correct service_id.
+        inserted = sample_feature.steps[1]
+        assert inserted.service_id == 'container.inserted'
+
+
+# ** test: TestUpdateFeatureStep
+class TestUpdateFeatureStep(ServiceEventTestBase):
     '''
-    Test successfully updating simple string attributes on a feature command.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    :param attribute: The attribute being updated.
-    :type attribute: str
-    :param new_value: The new value to assign.
-    :type new_value: str
-    :param getter: A callable to retrieve the updated attribute from the
-        command.
-    :type getter: Callable
+    Tests for UpdateFeatureStep using the service event test harness.
     '''
 
-    # Pre-populate the feature with a single step.
-    command = sample_feature.add_step(
-        name='original',
-        attribute_id='container.original',
-        parameters={'foo': 'bar'},
-        data_key='original_key',
-        pass_on_error=False,
-    )
+    # * attribute: event_cls
+    event_cls = UpdateFeatureStep
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        UpdateFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: service_attr
+    service_attr = 'feature_service'
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='group.sample_feature',
         position=0,
-        attribute=attribute,
-        value=new_value,
+        attribute='name',
+        value='updated_name',
     )
 
-    # Assert that the feature ID is returned and the command was updated.
-    assert result == sample_feature.id
-    assert getter(command) == new_value
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+    # * attribute: required_params
+    required_params = ['id', 'position', 'attribute']
 
-# ** test: update_feature_command_update_parameters_success
-def test_update_feature_command_update_parameters_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test updating the parameters attribute on a feature command.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with a step that has existing parameters.
-    command = sample_feature.add_step(
-        name='with_params',
-        attribute_id='container.with_params',
-        parameters={'foo': 'bar', 'remove_me': 'x'},
-        data_key='key',
-    )
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Update parameters, adding a new key and clearing an existing one.
-    result = DomainEvent.handle(
-        UpdateFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.feature',
         position=0,
-        attribute='parameters',
-        value={'baz': 'qux', 'remove_me': None},
+        attribute='name',
+        value='Updated Name',
     )
 
-    # Assert that the feature ID is returned and parameters were merged.
-    assert result == sample_feature.id
-    assert command.parameters == {'foo': 'bar', 'baz': 'qux'}
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature with a step.
+        '''
 
-# ** test: update_feature_command_update_pass_on_error_success
-def test_update_feature_command_update_pass_on_error_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test updating the pass_on_error attribute on a feature command.
+        # Pre-populate the feature with a single step.
+        sample_feature.add_step(
+            name='original',
+            service_id='container.original',
+            parameters={'foo': 'bar'},
+            data_key='original_key',
+            pass_on_error=False,
+        )
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
 
-    # Pre-populate the feature with a step where pass_on_error is False.
-    command = sample_feature.add_step(
-        name='handler',
-        attribute_id='container.handler',
-        parameters={},
-        data_key=None,
-        pass_on_error=False,
+    # * method: test_update_string_attributes_success
+    @pytest.mark.parametrize(
+        'attribute, new_value, getter',
+        [
+            ('name', 'updated_name', lambda cmd: cmd.name),
+            ('service_id', 'container.updated', lambda cmd: cmd.service_id),
+            ('data_key', 'updated_key', lambda cmd: cmd.data_key),
+        ],
     )
+    def test_update_string_attributes_success(
+            self,
+            mock_dependencies,
+            sample_feature,
+            attribute,
+            new_value,
+            getter,
+        ):
+        '''
+        Test successfully updating simple string attributes on a feature step.
+        '''
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Update the pass_on_error flag.
-    result = DomainEvent.handle(
-        UpdateFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        position=0,
-        attribute='pass_on_error',
-        value=True,
-    )
-
-    # Assert that the feature ID is returned and the flag was updated.
-    assert result == sample_feature.id
-    assert command.pass_on_error is True
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: update_feature_command_missing_required_parameters
-@pytest.mark.parametrize(
-    'id, position, attribute',
-    [
-        (' ', 0, 'name'),
-        ('group.sample_feature', None, 'name'),
-        ('group.sample_feature', 0, ' '),
-    ],
-)
-def test_update_feature_command_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        id: str,
-        position: int | None,
-        attribute: str,
-    ) -> None:
-    '''
-    Test that UpdateFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
-    required parameters are missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param id: The feature identifier to test.
-    :type id: str
-    :param position: The command position to test.
-    :type position: int | None
-    :param attribute: The attribute name to test.
-    :type attribute: str
-    '''
-
-    # Execute the command with invalid parameters and expect a validation error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id=id,
-            position=position,
+        # Execute via the harness.
+        step = sample_feature.steps[0]
+        result = self.handle(
+            mock_dependencies,
             attribute=attribute,
+            value=new_value,
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Assert the update was applied.
+        assert result == sample_feature.id
+        assert getter(step) == new_value
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+    # * method: test_update_parameters_success
+    def test_update_parameters_success(self, mock_dependencies, sample_feature):
+        '''
+        Test updating the parameters attribute on a feature step.
+        '''
 
-# ** test: update_feature_command_invalid_attribute
-def test_update_feature_command_invalid_attribute(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that UpdateFeatureCommand fails when an unsupported attribute is
-    provided.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Execute the command with an invalid attribute and expect an error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='group.sample_feature',
-            position=0,
-            attribute='invalid',
+        # Execute via the harness with parameters update.
+        step = sample_feature.steps[0]
+        result = self.handle(
+            mock_dependencies,
+            attribute='parameters',
+            value={'baz': 'qux', 'foo': None},
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
+        # Assert the parameters were merged.
+        assert result == sample_feature.id
+        assert step.parameters == {'baz': 'qux'}
 
-    # The feature service should not be called when attribute validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+    # * method: test_update_pass_on_error_success
+    def test_update_pass_on_error_success(self, mock_dependencies, sample_feature):
+        '''
+        Test updating the pass_on_error flag.
+        '''
 
-# ** test: update_feature_command_missing_name_or_attribute_id_value
-@pytest.mark.parametrize('attribute', ['name', 'attribute_id'])
-def test_update_feature_command_missing_name_or_attribute_id_value(
-        mock_feature_service: FeatureService,
-        attribute: str,
-    ) -> None:
-    '''
-    Test that UpdateFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
-    updating name or attribute_id with an empty value.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param attribute: The attribute being updated.
-    :type attribute: str
-    '''
-
-    # Execute the command with an empty value and expect an error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='group.sample_feature',
-            position=0,
-            attribute=attribute,
-            value=' ',
+        # Execute via the harness.
+        step = sample_feature.steps[0]
+        result = self.handle(
+            mock_dependencies,
+            attribute='pass_on_error',
+            value=True,
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Assert the flag was updated.
+        assert result == sample_feature.id
+        assert step.pass_on_error is True
 
-    # The feature service should not be called when name/attribute_id
-    # validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+    # * method: test_invalid_attribute
+    def test_invalid_attribute(self, mock_dependencies):
+        '''
+        Test that an unsupported attribute raises INVALID_FEATURE_COMMAND_ATTRIBUTE.
+        '''
 
-# ** test: update_feature_command_feature_not_found
-def test_update_feature_command_feature_not_found(
-        mock_feature_service: FeatureService,
-    ) -> None:
+        # Execute with invalid attribute.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, attribute='invalid')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
+        mock_dependencies['feature_service'].get.assert_not_called()
+
+    # * method: test_missing_name_or_service_id_value
+    @pytest.mark.parametrize('attribute', ['name', 'service_id'])
+    def test_missing_name_or_service_id_value(self, mock_dependencies, attribute):
+        '''
+        Test that updating name or service_id with empty value raises COMMAND_PARAMETER_REQUIRED.
+        '''
+
+        # Execute with empty value.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, attribute=attribute, value=' ')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        mock_dependencies['feature_service'].get.assert_not_called()
+
+    # * method: test_step_not_found
+    def test_step_not_found(self, mock_dependencies, sample_feature):
+        '''
+        Test that updating a step at an invalid position raises FEATURE_COMMAND_NOT_FOUND.
+        '''
+
+        # Execute with an out-of-range position.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, position=5)
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.FEATURE_COMMAND_NOT_FOUND_ID
+
+
+# ** test: TestRemoveFeatureStep
+class TestRemoveFeatureStep(ServiceEventTestBase):
     '''
-    Test that UpdateFeatureCommand raises FEATURE_NOT_FOUND when the feature
-    does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-            position=0,
-            attribute='name',
-            value='Updated Name',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-    mock_feature_service.save.assert_not_called()
-
-# ** test: update_feature_command_command_not_found
-def test_update_feature_command_command_not_found(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test that UpdateFeatureCommand raises FEATURE_COMMAND_NOT_FOUND when the
-    command at the specified position does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Ensure the feature has no steps so that get_step returns None.
-    assert sample_feature.steps == []
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Execute the command and expect a TiferetError with
-    # FEATURE_COMMAND_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            UpdateFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id=sample_feature.id,
-            position=0,
-            attribute='name',
-            value='Updated Name',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_COMMAND_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_not_called()
-
-# ** test: remove_feature_command_success
-def test_remove_feature_command_success(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test successfully removing a command at a valid position via
-    RemoveFeatureCommand.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
+    Tests for RemoveFeatureStep using the service event test harness.
     '''
 
-    # Pre-populate the feature with two steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
+    # * attribute: event_cls
+    event_cls = RemoveFeatureStep
 
-    assert sample_feature.steps == [first_command, second_command]
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * attribute: service_attr
+    service_attr = 'feature_service'
 
-    # Execute the command via the static DomainEvent.handle interface.
-    result = DomainEvent.handle(
-        RemoveFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='group.sample_feature',
         position=0,
     )
 
-    # Assert that the feature ID is returned and the first command was
-    # removed.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [second_command]
+    # * attribute: required_params
+    required_params = ['id', 'position']
 
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: remove_feature_command_invalid_position_idempotent
-def test_remove_feature_command_invalid_position_idempotent(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test that RemoveFeatureCommand behaves idempotently when an invalid
-    position is provided.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with a single step.
-    original_command = sample_feature.add_step(
-        name='only',
-        attribute_id='container.only',
-        parameters={'index': 0},
-        data_key='only_key',
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.feature',
+        position=0,
     )
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature.
+        '''
 
-    # Execute the command with an out-of-range position; this should be a
-    # silent, idempotent no-op.
-    result = DomainEvent.handle(
-        RemoveFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        position=5,
-    )
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
 
-    # Assert that the feature ID is returned and the commands list is
-    # unchanged.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [original_command]
+    # * method: test_success
+    def test_success(self, mock_dependencies, sample_feature):
+        '''
+        Test successfully removing a step at a valid position.
+        '''
 
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: remove_feature_command_feature_not_found
-def test_remove_feature_command_feature_not_found(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that RemoveFeatureCommand raises FEATURE_NOT_FOUND when the feature
-    does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            RemoveFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-            position=0,
+        # Pre-populate the feature with two steps.
+        first = sample_feature.add_step(
+            name='first',
+            service_id='container.first',
+            parameters={'index': 0},
+            data_key='first_key',
+        )
+        second = sample_feature.add_step(
+            name='second',
+            service_id='container.second',
+            parameters={'index': 1},
+            data_key='second_key',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-    mock_feature_service.save.assert_not_called()
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-# ** test: remove_feature_command_missing_required_parameters
-@pytest.mark.parametrize(
-    'id, position',
-    [
-        (' ', 0),
-        ('group.sample_feature', None),
-    ],
-)
-def test_remove_feature_command_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        id: str,
-        position: int | None,
-    ) -> None:
-    '''
-    Test that RemoveFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
-    required parameters are missing or empty.
+        # Assert the first step was removed.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [second]
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param id: The feature identifier to test.
-    :type id: str
-    :param position: The command position to test.
-    :type position: int | None
-    '''
+    # * method: test_invalid_position_idempotent
+    def test_invalid_position_idempotent(self, mock_dependencies, sample_feature):
+        '''
+        Test idempotent behavior when an invalid position is provided.
+        '''
 
-    # Execute the command with invalid parameters and expect a validation
-    # error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            RemoveFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id=id,
-            position=position,
+        # Pre-populate the feature with a single step.
+        original = sample_feature.add_step(
+            name='only',
+            service_id='container.only',
+            parameters={'index': 0},
+            data_key='only_key',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Execute with out-of-range position.
+        result = self.handle(mock_dependencies, position=5)
 
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+        # Assert the steps list is unchanged.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [original]
+        mock_dependencies['feature_service'].save.assert_called_once_with(sample_feature)
 
-# ** test: reorder_feature_command_success_forward
-def test_reorder_feature_command_success_forward(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
+
+# ** test: TestReorderFeatureStep
+class TestReorderFeatureStep(ServiceEventTestBase):
     '''
-    Test moving a feature command forward in the workflow.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
+    Tests for ReorderFeatureStep using the service event test harness.
     '''
 
-    # Pre-populate the feature with three steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
-    third_command = sample_feature.add_step(
-        name='third',
-        attribute_id='container.third',
-        parameters={'index': 2},
-        data_key='third_key',
-    )
+    # * attribute: event_cls
+    event_cls = ReorderFeatureStep
 
-    assert sample_feature.steps == [first_command, second_command, third_command]
+    # * attribute: dependencies
+    dependencies = {'feature_service': FeatureService}
 
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
+    # * attribute: service_attr
+    service_attr = 'feature_service'
 
-    # Move the first command to the end.
-    result = DomainEvent.handle(
-        ReorderFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='group.sample_feature',
         start_position=0,
         end_position=2,
     )
 
-    # Assert that the feature ID is returned and ordering is updated.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [second_command, third_command, first_command]
+    # * attribute: required_params
+    required_params = ['id', 'start_position', 'end_position']
 
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: reorder_feature_command_success_backward
-def test_reorder_feature_command_success_backward(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test moving a feature command backward in the workflow.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with three steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
-    third_command = sample_feature.add_step(
-        name='third',
-        attribute_id='container.third',
-        parameters={'index': 2},
-        data_key='third_key',
-    )
-
-    assert sample_feature.steps == [first_command, second_command, third_command]
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Move the last command to the front.
-    result = DomainEvent.handle(
-        ReorderFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        start_position=2,
-        end_position=0,
-    )
-
-    # Assert that the feature ID is returned and ordering is updated.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [third_command, first_command, second_command]
-
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: reorder_feature_command_clamp_low
-def test_reorder_feature_command_clamp_low(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test that end_position is clamped to the start of the list when below 0.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with three steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
-    third_command = sample_feature.add_step(
-        name='third',
-        attribute_id='container.third',
-        parameters={'index': 2},
-        data_key='third_key',
-    )
-
-    assert sample_feature.steps == [first_command, second_command, third_command]
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Move the last step to a negative index; it should be clamped to 0.
-    result = DomainEvent.handle(
-        ReorderFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        start_position=2,
-        end_position=-5,
-    )
-
-    # Assert that the feature ID is returned and ordering is updated.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [third_command, first_command, second_command]
-
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: reorder_feature_command_clamp_high
-def test_reorder_feature_command_clamp_high(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test that end_position is clamped to the end of the list when above the
-    maximum index.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with three steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
-    third_command = sample_feature.add_step(
-        name='third',
-        attribute_id='container.third',
-        parameters={'index': 2},
-        data_key='third_key',
-    )
-
-    assert sample_feature.steps == [first_command, second_command, third_command]
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Move the first step beyond the end; it should be clamped to the end.
-    result = DomainEvent.handle(
-        ReorderFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.feature',
         start_position=0,
-        end_position=10,
+        end_position=1,
     )
 
-    # Assert that the feature ID is returned and ordering is updated.
-    assert result == sample_feature.id
-    assert sample_feature.steps == [second_command, third_command, first_command]
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, sample_feature) -> dict:
+        '''
+        Override to pre-configure get to return the sample feature.
+        '''
 
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
+        # Create the mock feature service.
+        service = mock.Mock(spec=FeatureService)
+        service.get.return_value = sample_feature
+        return {'feature_service': service}
 
-# ** test: reorder_feature_command_invalid_start_position_idempotent
-def test_reorder_feature_command_invalid_start_position_idempotent(
-        mock_feature_service: FeatureService,
-        sample_feature: Feature,
-    ) -> None:
-    '''
-    Test that ReorderFeatureCommand behaves idempotently when an invalid
-    start_position is provided.
+    # * method: _populate_three_steps
+    def _populate_three_steps(self, sample_feature):
+        '''
+        Helper to pre-populate the feature with three steps.
+        '''
 
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param sample_feature: The sample feature instance.
-    :type sample_feature: Feature
-    '''
-
-    # Pre-populate the feature with two steps.
-    first_command = sample_feature.add_step(
-        name='first',
-        attribute_id='container.first',
-        parameters={'index': 0},
-        data_key='first_key',
-    )
-    second_command = sample_feature.add_step(
-        name='second',
-        attribute_id='container.second',
-        parameters={'index': 1},
-        data_key='second_key',
-    )
-
-    original_commands = list(sample_feature.steps)
-    assert original_commands == [first_command, second_command]
-
-    # Arrange the feature service to return the sample feature.
-    mock_feature_service.get.return_value = sample_feature
-
-    # Attempt to move a command from an out-of-range position; this should be
-    # a silent, idempotent no-op.
-    result = DomainEvent.handle(
-        ReorderFeatureCommand,
-        dependencies={'feature_service': mock_feature_service},
-        id=sample_feature.id,
-        start_position=5,
-        end_position=0,
-    )
-
-    # Assert that the feature ID is returned and the commands list is unchanged.
-    assert result == sample_feature.id
-    assert sample_feature.steps == original_commands
-
-    # Verify that the feature was retrieved and saved.
-    mock_feature_service.get.assert_called_once_with(sample_feature.id)
-    mock_feature_service.save.assert_called_once_with(sample_feature)
-
-# ** test: reorder_feature_command_feature_not_found
-def test_reorder_feature_command_feature_not_found(
-        mock_feature_service: FeatureService,
-    ) -> None:
-    '''
-    Test that ReorderFeatureCommand raises FEATURE_NOT_FOUND when the feature
-    does not exist.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    '''
-
-    # Arrange the feature service to return None for the requested feature.
-    mock_feature_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError with FEATURE_NOT_FOUND_ID.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            ReorderFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id='missing.feature',
-            start_position=0,
-            end_position=1,
+        first = sample_feature.add_step(
+            name='first',
+            service_id='container.first',
+            parameters={'index': 0},
+            data_key='first_key',
         )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.FEATURE_NOT_FOUND_ID
-    mock_feature_service.get.assert_called_once_with('missing.feature')
-    mock_feature_service.save.assert_not_called()
-
-# ** test: reorder_feature_command_missing_required_parameters
-@pytest.mark.parametrize(
-    'id, start_position, end_position',
-    [
-        (' ', 0, 1),
-        ('group.sample_feature', None, 1),
-        ('group.sample_feature', 0, None),
-    ],
-)
-def test_reorder_feature_command_missing_required_parameters(
-        mock_feature_service: FeatureService,
-        id: str,
-        start_position: int | None,
-        end_position: int | None,
-    ) -> None:
-    '''
-    Test that ReorderFeatureCommand fails with COMMAND_PARAMETER_REQUIRED when
-    required parameters are missing or empty.
-
-    :param mock_feature_service: The mock feature service.
-    :type mock_feature_service: FeatureService
-    :param id: The feature identifier to test.
-    :type id: str
-    :param start_position: The starting position to test.
-    :type start_position: int | None
-    :param end_position: The ending position to test.
-    :type end_position: int | None
-    '''
-
-    # Execute the command with invalid parameters and expect a validation
-    # error.
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            ReorderFeatureCommand,
-            dependencies={'feature_service': mock_feature_service},
-            id=id,
-            start_position=start_position,
-            end_position=end_position,
+        second = sample_feature.add_step(
+            name='second',
+            service_id='container.second',
+            parameters={'index': 1},
+            data_key='second_key',
         )
+        third = sample_feature.add_step(
+            name='third',
+            service_id='container.third',
+            parameters={'index': 2},
+            data_key='third_key',
+        )
+        return first, second, third
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+    # * method: test_forward
+    def test_forward(self, mock_dependencies, sample_feature):
+        '''
+        Test moving a feature step forward in the workflow.
+        '''
 
-    # The feature service should not be called when validation fails.
-    mock_feature_service.get.assert_not_called()
-    mock_feature_service.save.assert_not_called()
+        # Populate.
+        first, second, third = self._populate_three_steps(sample_feature)
+
+        # Execute: move first to end.
+        result = self.handle(mock_dependencies, start_position=0, end_position=2)
+
+        # Assert ordering.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [second, third, first]
+
+    # * method: test_backward
+    def test_backward(self, mock_dependencies, sample_feature):
+        '''
+        Test moving a feature step backward in the workflow.
+        '''
+
+        # Populate.
+        first, second, third = self._populate_three_steps(sample_feature)
+
+        # Execute: move last to front.
+        result = self.handle(mock_dependencies, start_position=2, end_position=0)
+
+        # Assert ordering.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [third, first, second]
+
+    # * method: test_clamp_low
+    def test_clamp_low(self, mock_dependencies, sample_feature):
+        '''
+        Test that end_position is clamped to the start of the list when below 0.
+        '''
+
+        # Populate.
+        first, second, third = self._populate_three_steps(sample_feature)
+
+        # Execute with negative end_position.
+        result = self.handle(mock_dependencies, start_position=2, end_position=-5)
+
+        # Assert clamped to front.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [third, first, second]
+
+    # * method: test_clamp_high
+    def test_clamp_high(self, mock_dependencies, sample_feature):
+        '''
+        Test that end_position is clamped to the end of the list when above max.
+        '''
+
+        # Populate.
+        first, second, third = self._populate_three_steps(sample_feature)
+
+        # Execute with large end_position.
+        result = self.handle(mock_dependencies, start_position=0, end_position=10)
+
+        # Assert clamped to end.
+        assert result == sample_feature.id
+        assert sample_feature.steps == [second, third, first]
+
+    # * method: test_invalid_start_position_idempotent
+    def test_invalid_start_position_idempotent(self, mock_dependencies, sample_feature):
+        '''
+        Test idempotent behavior when start_position is out of range.
+        '''
+
+        # Populate with two steps.
+        first = sample_feature.add_step(
+            name='first',
+            service_id='container.first',
+            parameters={'index': 0},
+            data_key='first_key',
+        )
+        second = sample_feature.add_step(
+            name='second',
+            service_id='container.second',
+            parameters={'index': 1},
+            data_key='second_key',
+        )
+        original_steps = list(sample_feature.steps)
+
+        # Execute with out-of-range start.
+        result = self.handle(mock_dependencies, start_position=5, end_position=0)
+
+        # Assert unchanged.
+        assert result == sample_feature.id
+        assert sample_feature.steps == original_steps

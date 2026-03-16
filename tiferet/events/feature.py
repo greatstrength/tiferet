@@ -1,4 +1,4 @@
-"""Tiferet Feature Commands"""
+"""Tiferet Feature Events"""
 
 # *** imports
 
@@ -8,16 +8,15 @@ from typing import List, Any
 # ** app
 from ..domain import Feature
 from ..interfaces import FeatureService
-from ..mappers import Aggregate, FeatureAggregate, FeatureEventAggregate
+from ..mappers import FeatureAggregate
 from .settings import DomainEvent, a
 
+# *** events
 
-# *** commands
-
-# ** command: add_feature
+# ** event: add_feature
 class AddFeature(DomainEvent):
     '''
-    Command to add a new feature configuration.
+    Event to add a new feature configuration.
     '''
 
     # * attribute: feature_service
@@ -26,7 +25,7 @@ class AddFeature(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the AddFeature command.
+        Initialize the AddFeature event.
 
         :param feature_service: The feature service to use for managing feature configurations.
         :type feature_service: FeatureService
@@ -44,7 +43,7 @@ class AddFeature(DomainEvent):
             feature_key: str | None = None,
             id: str | None = None,
             description: str | None = None,
-            commands: list | None = None,
+            steps: list | None = None,
             log_params: dict | None = None,
             **kwargs,
         ) -> Feature:
@@ -61,8 +60,8 @@ class AddFeature(DomainEvent):
         :type id: str | None
         :param description: Optional description (defaults to name).
         :type description: str | None
-        :param commands: Optional list of initial commands.
-        :type commands: list | None
+        :param steps: Optional list of initial feature steps.
+        :type steps: list | None
         :param log_params: Optional logging parameters.
         :type log_params: dict | None
         :param kwargs: Additional keyword arguments.
@@ -78,7 +77,7 @@ class AddFeature(DomainEvent):
             feature_key=feature_key,
             id=id,
             description=description,
-            steps=commands or [],
+            steps=steps or [],
             log_params=log_params or {},
             **kwargs,
         )
@@ -97,11 +96,10 @@ class AddFeature(DomainEvent):
         # Return the created feature.
         return feature
 
-
-# ** command: get_feature
+# ** event: get_feature
 class GetFeature(DomainEvent):
     '''
-    Command to retrieve a feature by its identifier.
+    Event to retrieve a feature by its identifier.
     '''
 
     # * attribute: feature_service
@@ -110,7 +108,7 @@ class GetFeature(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the GetFeature command.
+        Initialize the GetFeature event.
 
         :param feature_service: The feature service to use for retrieving features.
         :type feature_service: FeatureService
@@ -123,7 +121,7 @@ class GetFeature(DomainEvent):
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> Feature:
         '''
-        Execute the command to retrieve a feature.
+        Retrieve a feature by ID.
 
         :param id: The feature identifier.
         :type id: str
@@ -146,10 +144,10 @@ class GetFeature(DomainEvent):
         # Return the retrieved feature.
         return feature
 
-# ** command: list_features
+# ** event: list_features
 class ListFeatures(DomainEvent):
     '''
-    Command to list feature configurations.
+    Event to list feature configurations.
     '''
 
     # * attribute: feature_service
@@ -158,7 +156,7 @@ class ListFeatures(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the ListFeatures command.
+        Initialize the ListFeatures event.
 
         :param feature_service: The feature service to use for listing features.
         :type feature_service: FeatureService
@@ -183,13 +181,12 @@ class ListFeatures(DomainEvent):
         # Delegate to the feature service.
         return self.feature_service.list(group_id=group_id)
 
-
-# ** command: remove_feature
+# ** event: remove_feature
 class RemoveFeature(DomainEvent):
     '''
-    Command to remove an entire feature configuration by ID (idempotent).
+    Event to remove an entire feature configuration by ID (idempotent).
 
-    This command delegates deletion semantics to the underlying
+    This event delegates deletion semantics to the underlying
     ``FeatureService.delete`` implementation, which is expected to behave
     idempotently when the feature does not exist.
     '''
@@ -200,7 +197,7 @@ class RemoveFeature(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the RemoveFeature command.
+        Initialize the RemoveFeature event.
 
         :param feature_service: The feature service to use.
         :type feature_service: FeatureService
@@ -230,11 +227,10 @@ class RemoveFeature(DomainEvent):
         # Return the feature identifier.
         return id
 
-
-# ** command: update_feature
+# ** event: update_feature
 class UpdateFeature(DomainEvent):
     '''
-    Command to update basic metadata of an existing feature.
+    Event to update basic metadata of an existing feature.
 
     Supports updating the ``name`` or ``description`` attributes using the
     Feature model helpers.
@@ -246,7 +242,7 @@ class UpdateFeature(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the UpdateFeature command.
+        Initialize the UpdateFeature event.
 
         :param feature_service: The feature service used to retrieve and
             persist features.
@@ -319,11 +315,10 @@ class UpdateFeature(DomainEvent):
         # Return the updated feature.
         return feature
 
-
-# ** command: add_feature_command
-class AddFeatureCommand(DomainEvent):
+# ** event: add_feature_step
+class AddFeatureStep(DomainEvent):
     '''
-    Command to add a command to an existing feature.
+    Event to add a step to an existing feature.
     '''
 
     # * attribute: feature_service
@@ -332,7 +327,7 @@ class AddFeatureCommand(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the AddFeatureCommand command.
+        Initialize the AddFeatureStep event.
 
         :param feature_service: The feature service to use.
         :type feature_service: FeatureService
@@ -342,12 +337,12 @@ class AddFeatureCommand(DomainEvent):
         self.feature_service = feature_service
 
     # * method: execute
-    @DomainEvent.parameters_required(['id', 'name', 'attribute_id'])
+    @DomainEvent.parameters_required(['id', 'name', 'service_id'])
     def execute(
             self,
             id: str,
             name: str,
-            attribute_id: str,
+            service_id: str,
             parameters: dict | None = None,
             data_key: str | None = None,
             pass_on_error: bool = False,
@@ -355,19 +350,19 @@ class AddFeatureCommand(DomainEvent):
             **kwargs,
         ) -> str:
         '''
-        Add a command to an existing feature.
+        Add a step to an existing feature.
 
         :param id: The feature ID.
         :type id: str
-        :param name: The command name.
+        :param name: The step name.
         :type name: str
-        :param attribute_id: The container attribute ID.
-        :type attribute_id: str
-        :param parameters: Optional command parameters.
+        :param service_id: The service configuration ID for the step.
+        :type service_id: str
+        :param parameters: Optional step parameters.
         :type parameters: dict | None
         :param data_key: Optional result data key.
         :type data_key: str | None
-        :param pass_on_error: Whether to pass on errors from this command.
+        :param pass_on_error: Whether to pass on errors from this step.
         :type pass_on_error: bool
         :param position: Insertion position (None to append).
         :type position: int | None
@@ -389,7 +384,7 @@ class AddFeatureCommand(DomainEvent):
         # Add the step using the Feature model helper.
         feature.add_step(
             name=name,
-            attribute_id=attribute_id,
+            service_id=service_id,
             parameters=parameters or {},
             data_key=data_key,
             pass_on_error=pass_on_error,
@@ -402,14 +397,13 @@ class AddFeatureCommand(DomainEvent):
         # Return the feature identifier.
         return id
 
-# ** command: update_feature_command
-class UpdateFeatureCommand(DomainEvent):
+# ** event: update_feature_step
+class UpdateFeatureStep(DomainEvent):
     '''
-    Command to update an existing ``FeatureCommand`` within a feature's
-    command workflow.
+    Event to update an existing feature step within a feature workflow.
 
-    This command supports updating the following attributes on a
-    ``FeatureCommand`` instance: ``name``, ``attribute_id``, ``data_key``,
+    This event supports updating the following attributes on a
+    ``FeatureEvent`` instance: ``name``, ``service_id``, ``data_key``,
     ``pass_on_error``, and ``parameters``.
     '''
 
@@ -419,7 +413,7 @@ class UpdateFeatureCommand(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the UpdateFeatureCommand command.
+        Initialize the UpdateFeatureStep event.
 
         :param feature_service: The feature service used to retrieve and
             persist features.
@@ -440,20 +434,20 @@ class UpdateFeatureCommand(DomainEvent):
             **kwargs,
         ) -> str:
         '''
-        Update an attribute on a feature command at the given position.
+        Update an attribute on a feature step at the given position.
 
-        :param id: The identifier of the feature whose command will be
+        :param id: The identifier of the feature whose step will be
             updated.
         :type id: str
-        :param position: The zero-based index of the command within the
-            feature's command list.
+        :param position: The zero-based index of the step within the
+            feature's step list.
         :type position: int
         :param attribute: The attribute to update. Supported values are
-            ``"name"``, ``"attribute_id"``, ``"data_key"``,
+            ``"name"``, ``"service_id"``, ``"data_key"``,
             ``"pass_on_error"``, and ``"parameters"``.
         :type attribute: str
         :param value: The new value for the attribute. For ``name`` and
-            ``attribute_id`` this must be a non-empty value.
+            ``service_id`` this must be a non-empty value.
         :type value: Any | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
@@ -464,7 +458,7 @@ class UpdateFeatureCommand(DomainEvent):
         # Validate that the attribute name is supported.
         valid_attributes = {
             'name',
-            'attribute_id',
+            'service_id',
             'data_key',
             'pass_on_error',
             'parameters',
@@ -473,15 +467,15 @@ class UpdateFeatureCommand(DomainEvent):
             expression=attribute in valid_attributes,
             error_code=a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
             message=(
-                'Invalid feature command attribute: {attribute}. '
-                'Supported attributes are name, attribute_id, data_key, '
+                'Invalid feature step attribute: {attribute}. '
+                'Supported attributes are name, service_id, data_key, '
                 'pass_on_error, and parameters.'
             ),
             attribute=attribute,
         )
 
-        # For name and attribute_id, enforce a non-empty value.
-        if attribute in {'name', 'attribute_id'}:
+        # For name and service_id, enforce a non-empty value.
+        if attribute in {'name', 'service_id'}:
             self.verify(
                 expression=(
                     value is not None
@@ -531,13 +525,13 @@ class UpdateFeatureCommand(DomainEvent):
         # Return the feature identifier.
         return id
 
-# ** command: remove_feature_command
-class RemoveFeatureCommand(DomainEvent):
+# ** event: remove_feature_step
+class RemoveFeatureStep(DomainEvent):
     '''
-    Command to remove a command from an existing feature by position.
+    Event to remove a step from an existing feature by position.
 
-    This command is idempotent: invalid positions result in silent success
-    with no mutation to the feature's command list.
+    This event is idempotent: invalid positions result in silent success
+    with no mutation to the feature's step list.
     '''
 
     # * attribute: feature_service
@@ -546,7 +540,7 @@ class RemoveFeatureCommand(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the RemoveFeatureCommand command.
+        Initialize the RemoveFeatureStep event.
 
         :param feature_service: The feature service to use for retrieving and
             persisting features.
@@ -565,11 +559,11 @@ class RemoveFeatureCommand(DomainEvent):
             **kwargs,
         ) -> str:
         '''
-        Remove a command from the feature at the given position.
+        Remove a step from the feature at the given position.
 
         :param id: The feature identifier.
         :type id: str
-        :param position: The index of the command to remove.
+        :param position: The index of the step to remove.
         :type position: int
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
@@ -593,20 +587,18 @@ class RemoveFeatureCommand(DomainEvent):
         # return None without raising if the position is invalid.
         feature.remove_step(position)
 
-        # Persist the feature, even if no command was removed.
+        # Persist the feature, even if no step was removed.
         self.feature_service.save(feature)
 
         # Return the feature identifier.
         return id
 
-
-# ** command: reorder_feature_command
-class ReorderFeatureCommand(DomainEvent):
+# ** event: reorder_feature_step
+class ReorderFeatureStep(DomainEvent):
     '''
-    Command to reorder an existing feature command within a feature's
-    command workflow.
+    Event to reorder an existing feature step within a feature workflow.
 
-    This command delegates to the ``Feature.reorder_command`` model helper,
+    This event delegates to the ``Feature.reorder_step`` model helper,
     which clamps the target position and behaves idempotently for invalid
     start positions.
     '''
@@ -617,7 +609,7 @@ class ReorderFeatureCommand(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the ReorderFeatureCommand command.
+        Initialize the ReorderFeatureStep event.
 
         :param feature_service: The feature service used to retrieve and
             persist features.
@@ -637,15 +629,15 @@ class ReorderFeatureCommand(DomainEvent):
             **kwargs,
         ) -> str:
         '''
-        Reorder a feature command by moving it from ``start_position`` to
-        ``end_position`` within the feature's command list.
+        Reorder a feature step by moving it from ``start_position`` to
+        ``end_position`` within the feature's step list.
 
-        :param id: The identifier of the feature whose command will be
+        :param id: The identifier of the feature whose step will be
             reordered.
         :type id: str
-        :param start_position: The current index of the command to move.
+        :param start_position: The current index of the step to move.
         :type start_position: int
-        :param end_position: The desired new index for the command.
+        :param end_position: The desired new index for the step.
         :type end_position: int
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
