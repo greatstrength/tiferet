@@ -54,10 +54,10 @@ class DomainEvent(object):
 
     # * method: handle (static)
     @staticmethod
-    def handle(command: type, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
+    def handle(event_cls: type, dependencies: Dict[str, Any] = {}, **kwargs) -> Any:
         '''Instantiate → execute pattern.'''
-        command_handler = command(**dependencies)
-        result = command_handler.execute(**kwargs)
+        event_handler = event_cls(**dependencies)
+        result = event_handler.execute(**kwargs)
         return result
 ```
 

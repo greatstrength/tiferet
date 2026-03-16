@@ -664,6 +664,18 @@ Practical guides for working with Tiferet's domain layers:
 - [Feature (Workflow Orchestration)](docs/guides/domain/feature.md) — Features, steps, parameter resolution, execution flow
 - [Logging (Observability)](docs/guides/domain/logging.md) — Formatters, handlers, loggers, dictConfig assembly
 
+### Event Guides
+
+Practical guides for working with Tiferet's domain events:
+
+- [App Interface Events](docs/guides/events/app.md) — Add, get, update, and delete app interface configurations
+- [CLI Command Events](docs/guides/events/cli.md) — Add, get, update, and delete CLI command definitions
+- [DI Service Configuration Events](docs/guides/events/di.md) — Add, get, update, and manage DI service configurations
+- [Error Events](docs/guides/events/error.md) — Add, get, update, and delete error definitions
+- [Feature Events](docs/guides/events/feature.md) — Add, get, update, and delete feature workflows
+- [Logging Events](docs/guides/events/logging.md) — Add, get, update, and delete logging configurations
+- [SQLite Events](docs/guides/events/sqlite.md) — Query, mutate, backup, and manage SQLite databases
+
 ### Utility Guides
 
 Practical guides for using Tiferet's built-in utilities:
