@@ -1,3 +1,5 @@
+"""Tiferet SQLite Events"""
+
 # *** imports
 
 # ** core
@@ -8,9 +10,9 @@ import sqlite3
 from .settings import DomainEvent, a
 from ..interfaces.sqlite import SqliteService
 
-# *** commands
+# *** events
 
-# ** command: mutate_sql
+# ** event: mutate_sql
 class MutateSql(DomainEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement and return operation metadata.
@@ -69,7 +71,7 @@ class MutateSql(DomainEvent):
                 original_error=str(e)
             )
 
-# ** command: query_sql
+# ** event: query_sql
 class QuerySql(DomainEvent):
     '''
     Execute a read-only SQL query and return results as list of dictionaries.
@@ -127,7 +129,7 @@ class QuerySql(DomainEvent):
                 original_error=str(e)
             )
 
-# ** command: bulk_mutate_sql
+# ** event: bulk_mutate_sql
 class BulkMutateSql(DomainEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement across multiple parameter sets.
@@ -195,7 +197,7 @@ class BulkMutateSql(DomainEvent):
                 original_error=str(e)
             )
 
-# ** command: execute_script_sql
+# ** event: execute_script_sql
 class ExecuteScriptSql(DomainEvent):
     '''
     Execute a multi-statement SQL script (DDL + DML) in a single operation.
@@ -241,7 +243,7 @@ class ExecuteScriptSql(DomainEvent):
                 original_error=str(e)
             )
 
-# ** command: backup_sql
+# ** event: backup_sql
 class BackupSql(DomainEvent):
     '''
     Perform an online backup of the current SQLite database to a target file.
@@ -293,10 +295,10 @@ class BackupSql(DomainEvent):
                 original_error=str(e)
             )
 
-# ** command: create_table_sql
+# ** event: create_table_sql
 class CreateTableSql(DomainEvent):
     '''
-    Helper command to create a table with specified columns and constraints.
+    Event to create a table with specified columns and constraints.
 
     IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
     Example:
@@ -429,10 +431,10 @@ class CreateTableSql(DomainEvent):
             return False
         return all(c.isalnum() or c == '_' for c in name)
 
-# ** command: drop_table_sql
+# ** event: drop_table_sql
 class DropTableSql(DomainEvent):
     '''
-    Helper command to drop a table safely with optional IF EXISTS clause.
+    Event to drop a table safely with optional IF EXISTS clause.
 
     IMPORTANT: All interactions with sqlite_service MUST occur inside a 'with' block.
     Example:

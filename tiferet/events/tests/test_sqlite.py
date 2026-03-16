@@ -1,4 +1,4 @@
-"""Tiferet Tests for SQLite Commands"""
+"""Tiferet Tests for SQLite Events"""
 
 # *** imports
 
@@ -10,998 +10,835 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import QuerySql, MutateSql, BulkMutateSql, BackupSql, ExecuteScriptSql, CreateTableSql, DropTableSql
+from ..sqlite import (
+    QuerySql,
+    MutateSql,
+    BulkMutateSql,
+    ExecuteScriptSql,
+    BackupSql,
+    CreateTableSql,
+    DropTableSql,
+)
 from ..settings import DomainEvent, a, TiferetError
 from ...interfaces import SqliteService
+from .settings import DomainEventTestBase
 
-# *** fixtures
 
-# ** fixture: sqlite_service_mock
-@pytest.fixture
-def sqlite_service_mock() -> mock.Mock:
+# *** classes
+
+# ** class: SqliteEventTestBase
+class SqliteEventTestBase(DomainEventTestBase):
     '''
-    Fixture to create a mocked SqliteService.
+    Base class for SQLite event tests.
 
-    :return: A mocked SqliteService.
-    :rtype: mock.Mock
+    Overrides mock_dependencies to provide a MagicMock with
+    context manager support required by all SQLite events.
     '''
-    service = mock.MagicMock(spec=SqliteService)
-    # Setup context manager mock
-    service.__enter__.return_value = service
-    service.__exit__.return_value = None
-    return service
+
+    # * attribute: dependencies
+    dependencies = {'sqlite_service': SqliteService}
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self) -> dict:
+        '''
+        Fixture providing a MagicMock SqliteService with context manager support.
+
+        :return: A dict containing the mocked sqlite_service.
+        :rtype: dict
+        '''
+
+        # Create a MagicMock with context manager support.
+        service = mock.MagicMock(spec=SqliteService)
+        service.__enter__.return_value = service
+        service.__exit__.return_value = None
+        return {'sqlite_service': service}
+
 
 # *** tests
 
-# ** test: execute_success_fetch_all
-def test_execute_success_fetch_all(sqlite_service_mock: mock.Mock):
+# ** test: TestQuerySql
+class TestQuerySql(SqliteEventTestBase):
     '''
-    Test successful execution of a multi-row query.
+    Tests for QuerySql using the SQLite event test harness.
     '''
-    # Arrange
-    query = "SELECT * FROM users"
-    expected_result = [{'id': 1, 'name': 'Alice'}, {'id': 2, 'name': 'Bob'}]
-    sqlite_service_mock.fetch_all.return_value = expected_result
 
-    # Act
-    result = DomainEvent.handle(
-        QuerySql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        query=query
+    # * attribute: event_cls
+    event_cls = QuerySql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(query="SELECT * FROM users")
+
+    # * attribute: required_params
+    required_params = ['query']
+
+    # * method: test_fetch_all
+    def test_fetch_all(self, mock_dependencies):
+        '''
+        Test successful execution of a multi-row query.
+        '''
+
+        # Arrange the service to return multiple rows.
+        expected = [{'id': 1, 'name': 'Alice'}, {'id': 2, 'name': 'Bob'}]
+        mock_dependencies['sqlite_service'].fetch_all.return_value = expected
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the results and service calls.
+        assert result == expected
+        mock_dependencies['sqlite_service'].fetch_all.assert_called_once_with("SELECT * FROM users", ())
+        mock_dependencies['sqlite_service'].fetch_one.assert_not_called()
+
+    # * method: test_fetch_one
+    def test_fetch_one(self, mock_dependencies):
+        '''
+        Test successful execution of a single-row query.
+        '''
+
+        # Arrange the service to return a single row.
+        query = "SELECT * FROM users WHERE id = ?"
+        expected = {'id': 1, 'name': 'Alice'}
+        mock_dependencies['sqlite_service'].fetch_one.return_value = expected
+
+        # Execute with fetch_one=True.
+        result = self.handle(mock_dependencies, query=query, parameters=(1,), fetch_one=True)
+
+        # Assert the result and service calls.
+        assert result == expected
+        mock_dependencies['sqlite_service'].fetch_one.assert_called_once_with(query, (1,))
+        mock_dependencies['sqlite_service'].fetch_all.assert_not_called()
+
+    # * method: test_empty_result
+    def test_empty_result(self, mock_dependencies):
+        '''
+        Test execution returning empty result (no rows).
+        '''
+
+        # Arrange the service to return empty list.
+        mock_dependencies['sqlite_service'].fetch_all.return_value = []
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies, query="SELECT * FROM users WHERE id = 999")
+
+        # Assert empty list returned.
+        assert result == []
+
+    # * method: test_parameterized
+    def test_parameterized(self, mock_dependencies):
+        '''
+        Test execution with named parameters.
+        '''
+
+        # Arrange the service to return filtered results.
+        query = "SELECT * FROM users WHERE name = :name"
+        params = {'name': 'Alice'}
+        expected = [{'id': 1, 'name': 'Alice'}]
+        mock_dependencies['sqlite_service'].fetch_all.return_value = expected
+
+        # Execute with named parameters.
+        result = self.handle(mock_dependencies, query=query, parameters=params)
+
+        # Assert the result and parameter passing.
+        assert result == expected
+        mock_dependencies['sqlite_service'].fetch_all.assert_called_once_with(query, params)
+
+    # * method: test_invalid_query
+    def test_invalid_query(self, mock_dependencies):
+        '''
+        Test validation failure for non-SELECT query.
+        '''
+
+        # Execute with an INSERT statement, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, query="INSERT INTO users VALUES (1, 'Alice')")
+
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Query must start with SELECT or WITH" in str(exc_info.value)
+
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors.
+        '''
+
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].fetch_all.side_effect = sqlite3.Error("no such table: invalid_table")
+
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, query="SELECT * FROM invalid_table")
+
+        # Assert the error code and original error.
+        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.kwargs.get('original_error') == "no such table: invalid_table"
+
+
+# ** test: TestMutateSql
+class TestMutateSql(SqliteEventTestBase):
+    '''
+    Tests for MutateSql using the SQLite event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = MutateSql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(statement="INSERT INTO users (name) VALUES ('Alice')")
+
+    # * attribute: required_params
+    required_params = ['statement']
+
+    # * method: test_insert_success
+    def test_insert_success(self, mock_dependencies):
+        '''
+        Test successful INSERT execution.
+        '''
+
+        # Arrange the service to return a cursor mock.
+        cursor = mock.Mock(rowcount=1, lastrowid=100)
+        mock_dependencies['sqlite_service'].execute.return_value = cursor
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the result metadata.
+        assert result['rowcount'] == 1
+        assert result['lastrowid'] == 100
+        mock_dependencies['sqlite_service'].execute.assert_called_once_with(
+            "INSERT INTO users (name) VALUES ('Alice')", ()
+        )
+
+    # * method: test_update_success
+    def test_update_success(self, mock_dependencies):
+        '''
+        Test successful UPDATE execution.
+        '''
+
+        # Arrange the service to return a cursor mock.
+        cursor = mock.Mock(rowcount=5, lastrowid=None)
+        mock_dependencies['sqlite_service'].execute.return_value = cursor
+
+        # Execute with an UPDATE statement.
+        result = self.handle(mock_dependencies, statement="UPDATE users SET name = 'Bob' WHERE id = 1")
+
+        # Assert lastrowid is None for UPDATE.
+        assert result['rowcount'] == 5
+        assert result['lastrowid'] is None
+
+    # * method: test_delete_success
+    def test_delete_success(self, mock_dependencies):
+        '''
+        Test successful DELETE execution.
+        '''
+
+        # Arrange the service to return a cursor mock.
+        cursor = mock.Mock(rowcount=1)
+        mock_dependencies['sqlite_service'].execute.return_value = cursor
+
+        # Execute with a DELETE statement.
+        result = self.handle(mock_dependencies, statement="DELETE FROM users WHERE id = 1")
+
+        # Assert lastrowid is None for DELETE.
+        assert result['rowcount'] == 1
+        assert result['lastrowid'] is None
+
+    # * method: test_parameterized
+    def test_parameterized(self, mock_dependencies):
+        '''
+        Test execution with parameters.
+        '''
+
+        # Arrange the service to return a cursor mock.
+        statement = "INSERT INTO users (name) VALUES (?)"
+        params = ('Alice',)
+        cursor = mock.Mock(rowcount=1, lastrowid=101)
+        mock_dependencies['sqlite_service'].execute.return_value = cursor
+
+        # Execute with parameters.
+        result = self.handle(mock_dependencies, statement=statement, parameters=params)
+
+        # Assert the result and parameter passing.
+        assert result == {'rowcount': 1, 'lastrowid': 101}
+        mock_dependencies['sqlite_service'].execute.assert_called_once_with(statement, params)
+
+    # * method: test_invalid_statement
+    def test_invalid_statement(self, mock_dependencies):
+        '''
+        Test validation failure for non-mutation statement.
+        '''
+
+        # Execute with a SELECT statement, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, statement="SELECT * FROM users")
+
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
+
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors.
+        '''
+
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("constraint failed")
+
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, statement="INSERT INTO users VALUES (1)")
+
+        # Assert the error code.
+        assert exc_info.value.error_code == 'APP_ERROR'
+
+
+# ** test: TestBulkMutateSql
+class TestBulkMutateSql(SqliteEventTestBase):
+    '''
+    Tests for BulkMutateSql using the SQLite event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = BulkMutateSql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        statement="INSERT INTO users (name) VALUES (?)",
+        parameters_list=[('Alice',), ('Bob',)],
     )
 
-    # Assert
-    assert result == expected_result
-    sqlite_service_mock.fetch_all.assert_called_once_with(query, ())
-    sqlite_service_mock.fetch_one.assert_not_called()
-    sqlite_service_mock.__enter__.assert_called_once()
+    # * attribute: required_params
+    required_params = ['statement', 'parameters_list']
 
-# ** test: execute_success_fetch_one
-def test_execute_success_fetch_one(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful execution of a single-row query.
-    '''
-    # Arrange
-    query = "SELECT * FROM users WHERE id = ?"
-    params = (1,)
-    expected_result = {'id': 1, 'name': 'Alice'}
-    sqlite_service_mock.fetch_one.return_value = expected_result
+    # * method: test_insert_success
+    def test_insert_success(self, mock_dependencies):
+        '''
+        Test successful bulk INSERT execution.
+        '''
 
-    # Act
-    result = DomainEvent.handle(
-        QuerySql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        query=query,
-        parameters=params,
-        fetch_one=True
+        # Arrange the service to return a cursor mock.
+        cursor = mock.Mock(rowcount=2, lastrowid=102)
+        mock_dependencies['sqlite_service'].executemany.return_value = cursor
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the result metadata.
+        assert result['total_rowcount'] == 2
+        assert result['lastrowids'] == [102]
+        mock_dependencies['sqlite_service'].executemany.assert_called_once()
+
+    # * method: test_update_success
+    def test_update_success(self, mock_dependencies):
+        '''
+        Test successful bulk UPDATE execution.
+        '''
+
+        # Arrange the service to return a cursor mock.
+        cursor = mock.Mock(rowcount=2, lastrowid=None)
+        mock_dependencies['sqlite_service'].executemany.return_value = cursor
+
+        # Execute with an UPDATE statement.
+        result = self.handle(
+            mock_dependencies,
+            statement="UPDATE users SET active = 1 WHERE id = ?",
+            parameters_list=[(1,), (2,)],
+        )
+
+        # Assert lastrowids is None for UPDATE.
+        assert result['total_rowcount'] == 2
+        assert result['lastrowids'] is None
+
+    # * method: test_invalid_statement
+    def test_invalid_statement(self, mock_dependencies):
+        '''
+        Test validation failure for non-mutation statement.
+        '''
+
+        # Execute with a SELECT statement, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, statement="SELECT * FROM users", parameters_list=[(1,)])
+
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
+
+    # * method: test_empty_parameters_list
+    def test_empty_parameters_list(self, mock_dependencies):
+        '''
+        Test validation failure for empty parameters list.
+        '''
+
+        # Execute with empty parameters list, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, parameters_list=[])
+
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Parameters list must not be empty" in str(exc_info.value)
+
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors during bulk mutation.
+        '''
+
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].executemany.side_effect = sqlite3.Error("constraint failed")
+
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies)
+
+        # Assert the error code.
+        assert exc_info.value.error_code == 'APP_ERROR'
+
+
+# ** test: TestExecuteScriptSql
+class TestExecuteScriptSql(SqliteEventTestBase):
+    '''
+    Tests for ExecuteScriptSql using the SQLite event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = ExecuteScriptSql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(script="CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);")
+
+    # * attribute: required_params
+    required_params = ['script']
+
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test successful execution of a multi-statement script.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the success result.
+        assert result['success'] is True
+        mock_dependencies['sqlite_service'].executescript.assert_called_once_with(
+            "CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"
+        )
+
+    # * method: test_whitespace_only_script
+    def test_whitespace_only_script(self, mock_dependencies):
+        '''
+        Test validation failure for whitespace-only script.
+        '''
+
+        # Execute with whitespace-only script, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, script="   \n   ")
+
+        # Assert the error code.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert 'script' in exc_info.value.kwargs.get('parameters')
+
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors during script execution.
+        '''
+
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].executescript.side_effect = sqlite3.Error("syntax error")
+
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, script="INVALID SQL;")
+
+        # Assert the error code.
+        assert exc_info.value.error_code == 'APP_ERROR'
+
+
+# ** test: TestBackupSql
+class TestBackupSql(SqliteEventTestBase):
+    '''
+    Tests for BackupSql using the SQLite event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = BackupSql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(target_path='/tmp/backup.db')
+
+    # * attribute: required_params
+    required_params = ['target_path']
+
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test successful database backup.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the success result.
+        assert result['success'] is True
+        assert result['message'] is None
+        mock_dependencies['sqlite_service'].backup.assert_called_once_with(
+            '/tmp/backup.db', pages=-1, progress=None
+        )
+
+    # * method: test_with_options
+    def test_with_options(self, mock_dependencies):
+        '''
+        Test backup with custom pages and progress callback.
+        '''
+
+        # Arrange a progress callback.
+        progress_callback = mock.Mock()
+
+        # Execute with custom options.
+        result = self.handle(mock_dependencies, pages=5, progress=progress_callback)
+
+        # Assert the success result and option passing.
+        assert result['success'] is True
+        mock_dependencies['sqlite_service'].backup.assert_called_once_with(
+            '/tmp/backup.db', pages=5, progress=progress_callback
+        )
+
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors during backup.
+        '''
+
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].backup.side_effect = sqlite3.Error("permission denied")
+
+        # Execute and expect a SQLITE_BACKUP_FAILED error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, target_path='/invalid/path/backup.db')
+
+        # Assert the error code.
+        assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
+
+
+# ** test: TestCreateTableSql
+class TestCreateTableSql(SqliteEventTestBase):
+    '''
+    Tests for CreateTableSql using the SQLite event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = CreateTableSql
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        table_name='users',
+        columns={
+            'id': 'INTEGER PRIMARY KEY',
+            'name': 'TEXT NOT NULL',
+            'email': 'TEXT',
+        },
     )
 
-    # Assert
-    assert result == expected_result
-    sqlite_service_mock.fetch_one.assert_called_once_with(query, params)
-    sqlite_service_mock.fetch_all.assert_not_called()
+    # * attribute: required_params
+    required_params = ['table_name', 'columns']
 
-# ** test: execute_empty_result
-def test_execute_empty_result(sqlite_service_mock: mock.Mock):
-    '''
-    Test execution returning empty result (no rows).
-    '''
-    # Arrange
-    query = "SELECT * FROM users WHERE id = 999"
-    sqlite_service_mock.fetch_all.return_value = []
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test successful table creation with columns.
+        '''
 
-    # Act
-    result = DomainEvent.handle(
-        QuerySql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        query=query
-    )
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-    # Assert
-    assert result == []
+        # Assert the success result.
+        assert result['success'] is True
+        mock_dependencies['sqlite_service'].execute.assert_called_once()
 
-# ** test: execute_parameterized
-def test_execute_parameterized(sqlite_service_mock: mock.Mock):
-    '''
-    Test execution with named parameters.
-    '''
-    # Arrange
-    query = "SELECT * FROM users WHERE name = :name"
-    params = {'name': 'Alice'}
-    expected_result = [{'id': 1, 'name': 'Alice'}]
-    sqlite_service_mock.fetch_all.return_value = expected_result
+        # Verify the generated SQL contains expected elements.
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'CREATE TABLE IF NOT EXISTS "users"' in generated_sql
+        assert '"id" INTEGER PRIMARY KEY' in generated_sql
+        assert '"name" TEXT NOT NULL' in generated_sql
+        assert '"email" TEXT' in generated_sql
 
-    # Act
-    result = DomainEvent.handle(
-        QuerySql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        query=query,
-        parameters=params
-    )
+    # * method: test_with_constraints
+    def test_with_constraints(self, mock_dependencies):
+        '''
+        Test table creation with constraints.
+        '''
 
-    # Assert
-    assert result == expected_result
-    sqlite_service_mock.fetch_all.assert_called_once_with(query, params)
-
-# ** test: execute_validation_error
-def test_execute_validation_error():
-    '''
-    Test validation failure for invalid query.
-    '''
-    # Arrange
-    invalid_query = "INSERT INTO users VALUES (1, 'Alice')"
-
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            QuerySql,
-            dependencies={'sqlite_service': mock.Mock()},
-            query=invalid_query
+        # Execute with constraints.
+        result = self.handle(
+            mock_dependencies,
+            table_name='products',
+            columns={'id': 'INTEGER PRIMARY KEY', 'name': 'TEXT NOT NULL', 'price': 'REAL'},
+            constraints=['UNIQUE(name)', 'CHECK(price >= 0)'],
         )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Query must start with SELECT or WITH" in str(exc_info.value)
 
-    # Test empty query
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            QuerySql,
-            dependencies={'sqlite_service': mock.Mock()},
-            query=""
+        # Assert the success and constraint inclusion.
+        assert result['success'] is True
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'UNIQUE(name)' in generated_sql
+        assert 'CHECK(price >= 0)' in generated_sql
+
+    # * method: test_if_not_exists_false
+    def test_if_not_exists_false(self, mock_dependencies):
+        '''
+        Test table creation without IF NOT EXISTS clause.
+        '''
+
+        # Execute with if_not_exists=False.
+        result = self.handle(
+            mock_dependencies,
+            table_name='temp_table',
+            columns={'id': 'INTEGER'},
+            if_not_exists=False,
         )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
-# ** test: execute_malformed_sql
-def test_execute_malformed_sql(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors.
-    '''
-    # Arrange
-    query = "SELECT * FROM invalid_table"
-    sqlite_service_mock.fetch_all.side_effect = sqlite3.Error("no such table: invalid_table")
+        # Assert the SQL omits IF NOT EXISTS.
+        assert result['success'] is True
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'CREATE TABLE "temp_table"' in generated_sql
+        assert 'IF NOT EXISTS' not in generated_sql
 
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            QuerySql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            query=query
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
-    assert exc_info.value.kwargs.get('original_error') == "no such table: invalid_table"
+    # * method: test_idempotent
+    def test_idempotent(self, mock_dependencies):
+        '''
+        Test that creating an existing table with if_not_exists=True succeeds.
+        '''
 
-# ** test: mutate_insert_success
-def test_mutate_insert_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful INSERT execution.
-    '''
-    # Arrange
-    statement = "INSERT INTO users (name) VALUES ('Alice')"
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 1
-    expected_cursor.lastrowid = 100
-    sqlite_service_mock.execute.return_value = expected_cursor
+        # Execute twice, both should succeed.
+        result1 = self.handle(mock_dependencies, table_name='existing_table', columns={'id': 'INTEGER'})
+        result2 = self.handle(mock_dependencies, table_name='existing_table', columns={'id': 'INTEGER'})
 
-    # Act
-    result = DomainEvent.handle(
-        MutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement
-    )
+        # Assert both succeed.
+        assert result1['success'] is True
+        assert result2['success'] is True
+        assert mock_dependencies['sqlite_service'].execute.call_count == 2
 
-    # Assert
-    assert result['rowcount'] == 1
-    assert result['lastrowid'] == 100
-    sqlite_service_mock.execute.assert_called_once_with(statement, ())
-    sqlite_service_mock.__enter__.assert_called_once()
+    # * method: test_duplicate_without_if_not_exists
+    def test_duplicate_without_if_not_exists(self, mock_dependencies):
+        '''
+        Test that creating an existing table with if_not_exists=False raises error.
+        '''
 
-# ** test: mutate_update_success
-def test_mutate_update_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful UPDATE execution.
-    '''
-    # Arrange
-    statement = "UPDATE users SET name = 'Bob' WHERE id = 1"
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 5
-    expected_cursor.lastrowid = None # Should be ignored even if set
-    sqlite_service_mock.execute.return_value = expected_cursor
+        # Arrange the service to raise on duplicate table.
+        mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("table existing_table already exists")
 
-    # Act
-    result = DomainEvent.handle(
-        MutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement
-    )
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(
+                mock_dependencies,
+                table_name='existing_table',
+                columns={'id': 'INTEGER'},
+                if_not_exists=False,
+            )
 
-    # Assert
-    assert result['rowcount'] == 5
-    assert result['lastrowid'] is None
-    sqlite_service_mock.execute.assert_called_once_with(statement, ())
+        # Assert the error code.
+        assert exc_info.value.error_code == 'APP_ERROR'
 
-# ** test: mutate_delete_success
-def test_mutate_delete_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful DELETE execution.
-    '''
-    # Arrange
-    statement = "DELETE FROM users WHERE id = 1"
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 1
-    sqlite_service_mock.execute.return_value = expected_cursor
+    # * method: test_invalid_table_name
+    def test_invalid_table_name(self, mock_dependencies):
+        '''
+        Test validation failure for invalid table name (special characters).
+        '''
 
-    # Act
-    result = DomainEvent.handle(
-        MutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement
-    )
+        # Test with spaces.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='invalid table', columns={'id': 'INTEGER'})
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Invalid table name" in str(exc_info.value)
 
-    # Assert
-    assert result['rowcount'] == 1
-    assert result['lastrowid'] is None
+        # Test with hyphens.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='table-name', columns={'id': 'INTEGER'})
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
-# ** test: mutate_parameterized
-def test_mutate_parameterized(sqlite_service_mock: mock.Mock):
-    '''
-    Test execution with parameters.
-    '''
-    # Arrange
-    statement = "INSERT INTO users (name) VALUES (?)"
-    params = ('Alice',)
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 1
-    expected_cursor.lastrowid = 101
-    sqlite_service_mock.execute.return_value = expected_cursor
+    # * method: test_empty_columns
+    def test_empty_columns(self, mock_dependencies):
+        '''
+        Test validation failure for empty columns dictionary.
+        '''
 
-    # Act
-    result = DomainEvent.handle(
-        MutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement,
-        parameters=params
-    )
+        # Execute with empty columns, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, columns={})
 
-    # Assert
-    assert result == {'rowcount': 1, 'lastrowid': 101}
-    sqlite_service_mock.execute.assert_called_once_with(statement, params)
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Columns must be a non-empty dictionary" in str(exc_info.value)
 
-# ** test: mutate_validation_error
-def test_mutate_validation_error():
-    '''
-    Test validation failure for invalid statement type.
-    '''
-    # Arrange
-    invalid_statement = "SELECT * FROM users"
+    # * method: test_invalid_column_name
+    def test_invalid_column_name(self, mock_dependencies):
+        '''
+        Test validation failure for invalid column name.
+        '''
 
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            MutateSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            statement=invalid_statement
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
+        # Execute with empty column name, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, columns={'': 'INTEGER'})
 
-# ** test: mutate_execution_error
-def test_mutate_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors.
-    '''
-    # Arrange
-    statement = "INSERT INTO users VALUES (1)"
-    sqlite_service_mock.execute.side_effect = sqlite3.Error("constraint failed")
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Column name must be a non-empty string" in str(exc_info.value)
 
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            MutateSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            statement=statement
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
+    # * method: test_invalid_column_type
+    def test_invalid_column_type(self, mock_dependencies):
+        '''
+        Test validation failure for invalid column type.
+        '''
 
-# ** test: bulk_mutate_insert_success
-def test_bulk_mutate_insert_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful bulk INSERT execution.
-    '''
-    # Arrange
-    statement = "INSERT INTO users (name) VALUES (?)"
-    params_list = [('Alice',), ('Bob',)]
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 2
-    expected_cursor.lastrowid = 102
-    sqlite_service_mock.executemany.return_value = expected_cursor
+        # Execute with empty column type, expect validation error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, columns={'id': ''})
 
-    # Act
-    result = DomainEvent.handle(
-        BulkMutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement,
-        parameters_list=params_list
-    )
+        # Assert the error code and message.
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Column type" in str(exc_info.value)
+        assert "must be a non-empty string" in str(exc_info.value)
 
-    # Assert
-    assert result['total_rowcount'] == 2
-    assert result['lastrowids'] == [102]
-    sqlite_service_mock.executemany.assert_called_once_with(statement, params_list)
-    sqlite_service_mock.__enter__.assert_called_once()
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors during table creation.
+        '''
 
-# ** test: bulk_mutate_update_success
-def test_bulk_mutate_update_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful bulk UPDATE execution.
-    '''
-    # Arrange
-    statement = "UPDATE users SET active = 1 WHERE id = ?"
-    params_list = [(1,), (2,)]
-    expected_cursor = mock.Mock()
-    expected_cursor.rowcount = 2
-    expected_cursor.lastrowid = None
-    sqlite_service_mock.executemany.return_value = expected_cursor
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("syntax error")
 
-    # Act
-    result = DomainEvent.handle(
-        BulkMutateSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        statement=statement,
-        parameters_list=params_list
-    )
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, columns={'id': 'INVALID_TYPE'})
 
-    # Assert
-    assert result['total_rowcount'] == 2
-    assert result['lastrowids'] is None
-    sqlite_service_mock.executemany.assert_called_once_with(statement, params_list)
+        # Assert the error code.
+        assert exc_info.value.error_code == 'APP_ERROR'
 
-# ** test: bulk_mutate_validation_error
-def test_bulk_mutate_validation_error():
-    '''
-    Test validation failures for BulkMutateSql.
-    '''
-    # 1. Invalid statement
-    invalid_statement = "SELECT * FROM users"
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            BulkMutateSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            statement=invalid_statement,
-            parameters_list=[(1,)]
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
-    # 2. Empty parameters list
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            BulkMutateSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            statement="INSERT INTO users VALUES (?)",
-            parameters_list=[]
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Parameters list must not be empty" in str(exc_info.value)
+# ** test: TestDropTableSql
+class TestDropTableSql(SqliteEventTestBase):
+    '''
+    Tests for DropTableSql using the SQLite event test harness.
+    '''
 
-# ** test: bulk_mutate_execution_error
-def test_bulk_mutate_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors during bulk mutation.
-    '''
-    # Arrange
-    statement = "INSERT INTO users VALUES (?)"
-    params_list = [(1,), (1,)] # Duplicate ID
-    sqlite_service_mock.executemany.side_effect = sqlite3.Error("constraint failed")
+    # * attribute: event_cls
+    event_cls = DropTableSql
 
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            BulkMutateSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            statement=statement,
-            parameters_list=params_list
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(table_name='users')
 
-# ** test: backup_sql_success
-def test_backup_sql_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful database backup.
-    '''
-    # Arrange
-    target_path = '/tmp/backup.db'
-    
-    # Act
-    result = DomainEvent.handle(
-        BackupSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        target_path=target_path
-    )
-    
-    # Assert
-    assert result['success'] is True
-    assert result['message'] is None
-    sqlite_service_mock.backup.assert_called_once_with(target_path, pages=-1, progress=None)
-    sqlite_service_mock.__enter__.assert_called_once()
+    # * attribute: required_params
+    required_params = ['table_name']
 
-# ** test: backup_sql_with_options
-def test_backup_sql_with_options(sqlite_service_mock: mock.Mock):
-    '''
-    Test backup with custom pages and progress callback.
-    '''
-    # Arrange
-    target_path = '/tmp/backup.db'
-    pages = 5
-    progress_callback = mock.Mock()
-    
-    # Act
-    result = DomainEvent.handle(
-        BackupSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        target_path=target_path,
-        pages=pages,
-        progress=progress_callback
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.backup.assert_called_once_with(target_path, pages=pages, progress=progress_callback)
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test successful table drop.
+        '''
 
-# ** test: backup_sql_validation_error
-def test_backup_sql_validation_error():
-    '''
-    Test validation failure for empty target path.
-    '''
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            BackupSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            target_path=""
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "target_path" in str(exc_info.value)
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-# ** test: backup_sql_execution_error
-def test_backup_sql_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors during backup.
-    '''
-    # Arrange
-    target_path = '/invalid/path/backup.db'
-    sqlite_service_mock.backup.side_effect = sqlite3.Error("permission denied")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            BackupSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            target_path=target_path
-        )
-    
-    assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
-    assert "Backup to /invalid/path/backup.db failed" in str(exc_info.value)
+        # Assert the success result.
+        assert result['success'] is True
+        mock_dependencies['sqlite_service'].execute.assert_called_once()
 
-# ** test: execute_script_sql_success
-def test_execute_script_sql_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful execution of a multi-statement script.
-    '''
-    # Arrange
-    script = "CREATE TABLE test (id INTEGER); INSERT INTO test VALUES (1);"
-    
-    # Act
-    result = DomainEvent.handle(
-        ExecuteScriptSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        script=script
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.executescript.assert_called_once_with(script)
-    sqlite_service_mock.__enter__.assert_called_once()
+        # Verify the generated SQL contains expected elements.
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'DROP TABLE IF EXISTS "users"' in generated_sql
 
-# ** test: execute_script_sql_validation_error
-def test_execute_script_sql_validation_error():
-    '''
-    Test validation failures for empty script.
-    '''
-    # Act & Assert
-    # 1. Empty string
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            ExecuteScriptSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            script=""
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'script' in exc_info.value.kwargs.get('parameters')
+    # * method: test_without_if_exists
+    def test_without_if_exists(self, mock_dependencies):
+        '''
+        Test table drop without IF EXISTS clause.
+        '''
 
-    # 2. Whitespace only
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            ExecuteScriptSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            script="   \n   "
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'script' in exc_info.value.kwargs.get('parameters')
+        # Execute with if_exists=False.
+        result = self.handle(mock_dependencies, table_name='temp_table', if_exists=False)
 
-# ** test: execute_script_sql_execution_error
-def test_execute_script_sql_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors during script execution.
-    '''
-    # Arrange
-    script = "INVALID SQL;"
-    sqlite_service_mock.executescript.side_effect = sqlite3.Error("syntax error")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            ExecuteScriptSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            script=script
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
+        # Assert the SQL omits IF EXISTS.
+        assert result['success'] is True
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'DROP TABLE "temp_table"' in generated_sql
+        assert 'IF EXISTS' not in generated_sql
 
-# ** test: create_table_sql_success
-def test_create_table_sql_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful table creation with columns.
-    '''
-    # Arrange
-    table_name = 'users'
-    columns = {
-        'id': 'INTEGER PRIMARY KEY',
-        'name': 'TEXT NOT NULL',
-        'email': 'TEXT'
-    }
-    
-    # Act
-    result = DomainEvent.handle(
-        CreateTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        columns=columns
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.execute.assert_called_once()
-    
-    # Verify the generated SQL contains expected elements
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'CREATE TABLE IF NOT EXISTS "users"' in generated_sql
-    assert '"id" INTEGER PRIMARY KEY' in generated_sql
-    assert '"name" TEXT NOT NULL' in generated_sql
-    assert '"email" TEXT' in generated_sql
-    sqlite_service_mock.__enter__.assert_called_once()
+    # * method: test_idempotent
+    def test_idempotent(self, mock_dependencies):
+        '''
+        Test that dropping a non-existent table with if_exists=True succeeds.
+        '''
 
-# ** test: create_table_sql_with_constraints
-def test_create_table_sql_with_constraints(sqlite_service_mock: mock.Mock):
-    '''
-    Test table creation with constraints.
-    '''
-    # Arrange
-    table_name = 'products'
-    columns = {
-        'id': 'INTEGER PRIMARY KEY',
-        'name': 'TEXT NOT NULL',
-        'price': 'REAL'
-    }
-    constraints = ['UNIQUE(name)', 'CHECK(price >= 0)']
-    
-    # Act
-    result = DomainEvent.handle(
-        CreateTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        columns=columns,
-        constraints=constraints
-    )
-    
-    # Assert
-    assert result['success'] is True
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'UNIQUE(name)' in generated_sql
-    assert 'CHECK(price >= 0)' in generated_sql
+        # Execute via the harness.
+        result = self.handle(mock_dependencies, table_name='non_existent_table')
 
-# ** test: create_table_sql_if_not_exists_false
-def test_create_table_sql_if_not_exists_false(sqlite_service_mock: mock.Mock):
-    '''
-    Test table creation without IF NOT EXISTS clause.
-    '''
-    # Arrange
-    table_name = 'temp_table'
-    columns = {'id': 'INTEGER'}
-    
-    # Act
-    result = DomainEvent.handle(
-        CreateTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        columns=columns,
-        if_not_exists=False
-    )
-    
-    # Assert
-    assert result['success'] is True
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'CREATE TABLE "temp_table"' in generated_sql
-    assert 'IF NOT EXISTS' not in generated_sql
+        # Assert success.
+        assert result['success'] is True
+        generated_sql = mock_dependencies['sqlite_service'].execute.call_args[0][0]
+        assert 'DROP TABLE IF EXISTS "non_existent_table"' in generated_sql
 
-# ** test: create_table_sql_idempotent
-def test_create_table_sql_idempotent(sqlite_service_mock: mock.Mock):
-    '''
-    Test that creating an existing table with if_not_exists=True succeeds.
-    '''
-    # Arrange
-    table_name = 'existing_table'
-    columns = {'id': 'INTEGER'}
-    
-    # Act - create twice, both should succeed
-    result1 = DomainEvent.handle(
-        CreateTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        columns=columns,
-        if_not_exists=True
-    )
-    
-    result2 = DomainEvent.handle(
-        CreateTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        columns=columns,
-        if_not_exists=True
-    )
-    
-    # Assert
-    assert result1['success'] is True
-    assert result2['success'] is True
-    assert sqlite_service_mock.execute.call_count == 2
+    # * method: test_non_existent_without_if_exists
+    def test_non_existent_without_if_exists(self, mock_dependencies):
+        '''
+        Test that dropping a non-existent table with if_exists=False raises error.
+        '''
 
-# ** test: create_table_sql_duplicate_without_if_not_exists
-def test_create_table_sql_duplicate_without_if_not_exists(sqlite_service_mock: mock.Mock):
-    '''
-    Test that creating an existing table with if_not_exists=False raises error.
-    '''
-    # Arrange
-    table_name = 'existing_table'
-    columns = {'id': 'INTEGER'}
-    sqlite_service_mock.execute.side_effect = sqlite3.Error("table existing_table already exists")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            table_name=table_name,
-            columns=columns,
-            if_not_exists=False
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
+        # Arrange the service to raise on missing table.
+        mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("no such table: non_existent_table")
 
-# ** test: create_table_sql_validation_empty_table_name
-def test_create_table_sql_validation_empty_table_name():
-    '''
-    Test validation failure for empty table name.
-    '''
-    # Arrange
-    columns = {'id': 'INTEGER'}
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name='',
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='non_existent_table', if_exists=False)
 
-# ** test: create_table_sql_validation_invalid_table_name
-def test_create_table_sql_validation_invalid_table_name():
-    '''
-    Test validation failure for invalid table name (special characters).
-    '''
-    # Arrange
-    columns = {'id': 'INTEGER'}
-    
-    # Act & Assert - test with spaces
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name='invalid table',
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Invalid table name" in str(exc_info.value)
-    
-    # Act & Assert - test with special characters
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name='table-name',
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Invalid table name" in str(exc_info.value)
+        # Assert the error code and original error.
+        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.kwargs.get('original_error') == "no such table: non_existent_table"
 
-# ** test: create_table_sql_validation_empty_columns
-def test_create_table_sql_validation_empty_columns():
-    '''
-    Test validation failure for empty columns dictionary.
-    '''
-    # Arrange
-    table_name = 'test_table'
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name=table_name,
-            columns={}
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Columns must be a non-empty dictionary" in str(exc_info.value)
+    # * method: test_invalid_table_name
+    def test_invalid_table_name(self, mock_dependencies):
+        '''
+        Test validation failure for invalid table name (special characters).
+        '''
 
-# ** test: create_table_sql_validation_invalid_column_name
-def test_create_table_sql_validation_invalid_column_name():
-    '''
-    Test validation failure for invalid column name.
-    '''
-    # Arrange
-    table_name = 'test_table'
-    columns = {'': 'INTEGER'}  # Empty column name
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name=table_name,
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Column name must be a non-empty string" in str(exc_info.value)
+        # Test with spaces.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='invalid table')
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert "Invalid table name" in str(exc_info.value)
 
-# ** test: create_table_sql_validation_invalid_column_type
-def test_create_table_sql_validation_invalid_column_type():
-    '''
-    Test validation failure for invalid column type.
-    '''
-    # Arrange
-    table_name = 'test_table'
-    columns = {'id': ''}  # Empty column type
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name=table_name,
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Column type" in str(exc_info.value)
-    assert "must be a non-empty string" in str(exc_info.value)
+        # Test with hyphens.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='table-name')
+        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
-# ** test: create_table_sql_execution_error
-def test_create_table_sql_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors during table creation.
-    '''
-    # Arrange
-    table_name = 'test_table'
-    columns = {'id': 'INVALID_TYPE'}
-    sqlite_service_mock.execute.side_effect = sqlite3.Error("syntax error")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            CreateTableSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            table_name=table_name,
-            columns=columns
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
+    # * method: test_with_data
+    def test_with_data(self, mock_dependencies):
+        '''
+        Test dropping a table with existing data succeeds.
+        '''
 
-# ** test: drop_table_sql_success
-def test_drop_table_sql_success(sqlite_service_mock: mock.Mock):
-    '''
-    Test successful table drop.
-    '''
-    # Arrange
-    table_name = 'users'
-    
-    # Act
-    result = DomainEvent.handle(
-        DropTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.execute.assert_called_once()
-    
-    # Verify the generated SQL contains expected elements
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'DROP TABLE IF EXISTS "users"' in generated_sql
-    sqlite_service_mock.__enter__.assert_called_once()
+        # Execute via the harness.
+        result = self.handle(mock_dependencies, table_name='populated_table')
 
-# ** test: drop_table_sql_without_if_exists
-def test_drop_table_sql_without_if_exists(sqlite_service_mock: mock.Mock):
-    '''
-    Test table drop without IF EXISTS clause.
-    '''
-    # Arrange
-    table_name = 'temp_table'
-    
-    # Act
-    result = DomainEvent.handle(
-        DropTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        if_exists=False
-    )
-    
-    # Assert
-    assert result['success'] is True
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'DROP TABLE "temp_table"' in generated_sql
-    assert 'IF EXISTS' not in generated_sql
+        # Assert success.
+        assert result['success'] is True
+        mock_dependencies['sqlite_service'].execute.assert_called_once()
 
-# ** test: drop_table_sql_idempotent
-def test_drop_table_sql_idempotent(sqlite_service_mock: mock.Mock):
-    '''
-    Test that dropping a non-existent table with if_exists=True succeeds.
-    '''
-    # Arrange
-    table_name = 'non_existent_table'
-    
-    # Act
-    result = DomainEvent.handle(
-        DropTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        if_exists=True
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.execute.assert_called_once()
-    generated_sql = sqlite_service_mock.execute.call_args[0][0]
-    assert 'DROP TABLE IF EXISTS "non_existent_table"' in generated_sql
+    # * method: test_execution_error
+    def test_execution_error(self, mock_dependencies):
+        '''
+        Test handling of underlying SQLite errors during table drop.
+        '''
 
-# ** test: drop_table_sql_non_existent_without_if_exists
-def test_drop_table_sql_non_existent_without_if_exists(sqlite_service_mock: mock.Mock):
-    '''
-    Test that dropping a non-existent table with if_exists=False raises error.
-    '''
-    # Arrange
-    table_name = 'non_existent_table'
-    sqlite_service_mock.execute.side_effect = sqlite3.Error("no such table: non_existent_table")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            DropTableSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            table_name=table_name,
-            if_exists=False
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
-    assert exc_info.value.kwargs.get('original_error') == "no such table: non_existent_table"
+        # Arrange the service to raise a sqlite3.Error.
+        mock_dependencies['sqlite_service'].execute.side_effect = sqlite3.Error("database is locked")
 
-# ** test: drop_table_sql_validation_empty_table_name
-def test_drop_table_sql_validation_empty_table_name():
-    '''
-    Test validation failure for empty table name.
-    '''
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            DropTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name=''
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        # Execute and expect an APP_ERROR.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, table_name='test_table')
 
-# ** test: drop_table_sql_validation_invalid_table_name
-def test_drop_table_sql_validation_invalid_table_name():
-    '''
-    Test validation failure for invalid table name (special characters).
-    '''
-    # Act & Assert - test with spaces
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            DropTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name='invalid table'
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Invalid table name" in str(exc_info.value)
-    
-    # Act & Assert - test with special characters
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            DropTableSql,
-            dependencies={'sqlite_service': mock.Mock()},
-            table_name='table-name'
-        )
-    
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert "Invalid table name" in str(exc_info.value)
-
-# ** test: drop_table_sql_with_data
-def test_drop_table_sql_with_data(sqlite_service_mock: mock.Mock):
-    '''
-    Test dropping a table with existing data succeeds.
-    '''
-    # Arrange
-    table_name = 'populated_table'
-    
-    # Act
-    result = DomainEvent.handle(
-        DropTableSql,
-        dependencies={'sqlite_service': sqlite_service_mock},
-        table_name=table_name,
-        if_exists=True
-    )
-    
-    # Assert
-    assert result['success'] is True
-    sqlite_service_mock.execute.assert_called_once()
-
-# ** test: drop_table_sql_execution_error
-def test_drop_table_sql_execution_error(sqlite_service_mock: mock.Mock):
-    '''
-    Test handling of underlying SQLite errors during table drop.
-    '''
-    # Arrange
-    table_name = 'test_table'
-    sqlite_service_mock.execute.side_effect = sqlite3.Error("database is locked")
-    
-    # Act & Assert
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            DropTableSql,
-            dependencies={'sqlite_service': sqlite_service_mock},
-            table_name=table_name
-        )
-    
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert "SQLite execution failed" in str(exc_info.value)
-    assert exc_info.value.kwargs.get('original_error') == "database is locked"
+        # Assert the error code and original error.
+        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.kwargs.get('original_error') == "database is locked"
