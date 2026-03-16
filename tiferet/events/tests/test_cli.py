@@ -1,9 +1,6 @@
-"""Tests for Tiferet CLI Commands"""
+"""Tiferet CLI Domain Event Tests"""
 
 # *** imports
-
-# ** core
-from typing import List
 
 # ** infra
 import pytest
@@ -16,36 +13,26 @@ from ..cli import (
     ListCliCommands,
     GetParentArguments,
 )
+from ..settings import DomainEvent, a
 from ...domain import CliCommand, CliArgument, DomainObject
-from ...mappers import (
-    CliCommandAggregate,
-)
-from ...mappers.settings import Aggregate
 from ...interfaces import CliService
-from ...assets import TiferetError
-from ...events import DomainEvent
+from ...mappers import CliCommandAggregate
+from .settings import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 
-# ** fixture: mock_cli_service
+# ** fixture: cli_command
 @pytest.fixture
-def mock_cli_service() -> CliService:
+def cli_command():
     '''
-    A fixture for a mock CLI service.
+    Fixture to create a CliCommand aggregate for testing.
+
+    :return: A CliCommandAggregate instance.
+    :rtype: CliCommandAggregate
     '''
 
-    # Create the mock CLI service.
-    return mock.Mock(spec=CliService)
-
-# ** fixture: sample_cli_command
-@pytest.fixture
-def sample_cli_command() -> CliCommand:
-    '''
-    A sample CLI command for testing.
-    '''
-
-    return Aggregate.new(
-        CliCommandAggregate,
+    # Create a test CliCommand instance.
+    return CliCommandAggregate.new(
         id='test.command',
         name='Test Command',
         key='command',
@@ -56,525 +43,340 @@ def sample_cli_command() -> CliCommand:
 
 # *** tests
 
-# ** test: add_cli_command_success
-def test_add_cli_command_success(
-    mock_cli_service: CliService,
-):
+# ** test: TestAddCliCommand
+class TestAddCliCommand(DomainEventTestBase):
     '''
-    Test that AddCliCommand successfully creates a new CLI command.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
+    Tests for AddCliCommand using the domain event test harness.
     '''
 
-    # Arrange the CLI service mock.
-    mock_cli_service.exists.return_value = False
+    # * attribute: event_cls
+    event_cls = AddCliCommand
 
-    command = AddCliCommand(cli_service=mock_cli_service)
+    # * attribute: dependencies
+    dependencies = {'cli_service': CliService}
 
-    result = command.execute(
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
         id='test.new_command',
         name='New Command',
         key='new_command',
         group_key='test',
-        description='A new command',
-        arguments=[],
     )
 
-    # Assert the command is created correctly.
-    assert isinstance(result, CliCommand)
-    assert result.id == 'test.new_command'
-    assert result.name == 'New Command'
-    assert result.key == 'new_command'
-    assert result.group_key == 'test'
-    assert result.description == 'A new command'
-    assert isinstance(result.arguments, list)
-    assert result.arguments == []
+    # * attribute: required_params
+    required_params = ['id']
 
-    # Assert the service was called to check existence and to save.
-    mock_cli_service.exists.assert_called_once_with('test.new_command')
-    mock_cli_service.save.assert_called_once_with(result)
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self):
+        '''
+        Override to provide a CLI service mock pre-configured with exists=False.
+        '''
 
-# ** test: add_cli_command_with_arguments
-def test_add_cli_command_with_arguments(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that AddCliCommand can create a command with initial arguments.
+        # Create a mock CliService that returns False for exists.
+        service = mock.Mock(spec=CliService)
+        service.exists.return_value = False
+        return {'cli_service': service}
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test that AddCliCommand successfully creates a new CLI command.
+        '''
 
-    mock_cli_service.exists.return_value = False
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    command = AddCliCommand(cli_service=mock_cli_service)
+        # Assert the result is a CliCommand instance with expected fields.
+        assert isinstance(result, CliCommand)
+        assert result.id == 'test.new_command'
+        assert result.name == 'New Command'
+        assert result.key == 'new_command'
+        assert result.group_key == 'test'
+        assert result.arguments == []
 
-    arguments = [
-        {
-            'name_or_flags': ['-v', '--verbose'],
-            'description': 'Enable verbose output',
-            'type': 'str',
-        }
-    ]
+        # Assert the service was called to check existence and to save.
+        mock_dependencies['cli_service'].exists.assert_called_once_with('test.new_command')
+        mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
-    result = command.execute(
-        id='test.verbose_command',
-        name='Verbose Command',
-        key='verbose_command',
-        group_key='test',
-        description='A command with arguments',
-        arguments=arguments,
-    )
+    # * method: test_with_arguments
+    def test_with_arguments(self, mock_dependencies):
+        '''
+        Test that AddCliCommand can create a command with initial arguments.
+        '''
 
-    assert isinstance(result, CliCommand)
-    assert result.id == 'test.verbose_command'
-    assert len(result.arguments) == 1
-
-    mock_cli_service.exists.assert_called_once_with('test.verbose_command')
-    mock_cli_service.save.assert_called_once_with(result)
-
-# ** test: add_cli_command_missing_id
-def test_add_cli_command_missing_id(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that AddCliCommand fails when id is missing or empty.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
-
-    mock_cli_service.exists.return_value = False
-
-    command = AddCliCommand(cli_service=mock_cli_service)
-
-    with pytest.raises(TiferetError) as excinfo:
-        command.execute(
-            id='  ',  # empty after strip
-            name='Test Command',
-            key='command',
-            group_key='test',
+        # Execute via the harness handle helper with arguments.
+        result = self.handle(
+            mock_dependencies,
+            id='test.verbose_command',
+            name='Verbose Command',
+            key='verbose_command',
+            description='A command with arguments',
+            arguments=[
+                {
+                    'name_or_flags': ['-v', '--verbose'],
+                    'description': 'Enable verbose output',
+                    'type': 'str',
+                }
+            ],
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == 'COMMAND_PARAMETER_REQUIRED'
+        # Assert the result has arguments.
+        assert isinstance(result, CliCommand)
+        assert result.id == 'test.verbose_command'
+        assert len(result.arguments) == 1
 
-# ** test: add_cli_command_duplicate_id
-def test_add_cli_command_duplicate_id(
-    mock_cli_service: CliService,
-):
+        # Assert the service interactions.
+        mock_dependencies['cli_service'].exists.assert_called_once_with('test.verbose_command')
+        mock_dependencies['cli_service'].save.assert_called_once_with(result)
+
+    # * method: test_duplicate_id
+    def test_duplicate_id(self, mock_dependencies):
+        '''
+        Test that AddCliCommand fails when the command id already exists.
+        '''
+
+        # Configure the service to report the id exists.
+        mock_dependencies['cli_service'].exists.return_value = True
+
+        # Execute and expect a CLI_COMMAND_ALREADY_EXISTS error.
+        with pytest.raises(Exception) as exc_info:
+            self.handle(mock_dependencies)
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.CLI_COMMAND_ALREADY_EXISTS_ID
+
+
+# ** test: TestAddCliArgument
+class TestAddCliArgument(ServiceEventTestBase):
     '''
-    Test that AddCliCommand fails when the command id already exists.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
-
-    mock_cli_service.exists.return_value = True
-
-    command = AddCliCommand(cli_service=mock_cli_service)
-
-    with pytest.raises(TiferetError) as excinfo:
-        command.execute(
-            id='test.existing',
-            name='Existing Command',
-            key='existing',
-            group_key='test',
-        )
-
-    error: TiferetError = excinfo.value
-    assert error.error_code == 'CLI_COMMAND_ALREADY_EXISTS'
-
-# ** test: add_cli_command_via_command_handle
-def test_add_cli_command_via_command_handle(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that AddCliCommand works via DomainEvent.handle.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
+    Tests for AddCliArgument using the domain event test harness.
     '''
 
-    mock_cli_service.exists.return_value = False
+    # * attribute: event_cls
+    event_cls = AddCliArgument
 
-    result = DomainEvent.handle(
-        AddCliCommand,
-        dependencies={'cli_service': mock_cli_service},
-        id='test.handle_command',
-        name='Handle Command',
-        key='handle_command',
-        group_key='test',
-    )
+    # * attribute: dependencies
+    dependencies = {'cli_service': CliService}
 
-    assert result.id == 'test.handle_command'
-    mock_cli_service.exists.assert_called_once_with('test.handle_command')
-    mock_cli_service.save.assert_called_once()
+    # * attribute: service_attr
+    service_attr = 'cli_service'
 
-# ** test: add_cli_argument_success
-def test_add_cli_argument_success(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
-    '''
-    Test that AddCliArgument successfully adds an argument to a command.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
-    '''
-
-    mock_cli_service.get.return_value = sample_cli_command
-
-    command = AddCliArgument(cli_service=mock_cli_service)
-
-    result_id = command.execute(
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
         command_id='test.command',
         name_or_flags=['-v', '--verbose'],
         description='Enable verbose output',
     )
 
-    assert result_id == 'test.command'
-    assert len(sample_cli_command.arguments) == 1
+    # * attribute: required_params
+    required_params = ['command_id']
 
-    mock_cli_service.get.assert_called_once_with('test.command')
-    mock_cli_service.save.assert_called_once_with(sample_cli_command)
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.CLI_COMMAND_NOT_FOUND_ID
 
-# ** test: add_cli_argument_with_kwargs
-def test_add_cli_argument_with_kwargs(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
-    '''
-    Test that AddCliArgument handles additional kwargs for arguments.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
-    '''
-
-    mock_cli_service.get.return_value = sample_cli_command
-
-    command = AddCliArgument(cli_service=mock_cli_service)
-
-    result_id = command.execute(
-        command_id='test.command',
-        name_or_flags=['--count'],
-        description='Number of items',
-        type='int',
-        required=True,
-        default='5',
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        command_id='test.missing',
+        name_or_flags=['-v'],
+        description='Verbose',
     )
 
-    assert result_id == 'test.command'
-    assert len(sample_cli_command.arguments) == 1
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, cli_command):
+        '''
+        Override to provide a CLI service mock pre-configured with a cli_command.
+        '''
 
-    mock_cli_service.get.assert_called_once_with('test.command')
-    mock_cli_service.save.assert_called_once_with(sample_cli_command)
+        # Create a mock CliService that returns the cli_command on get.
+        service = mock.Mock(spec=CliService)
+        service.get.return_value = cli_command
+        return {'cli_service': service}
 
-# ** test: add_cli_argument_missing_command_id
-def test_add_cli_argument_missing_command_id(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that AddCliArgument fails when command_id is missing or empty.
+    # * method: test_success
+    def test_success(self, mock_dependencies, cli_command):
+        '''
+        Test that AddCliArgument successfully adds an argument to a command.
+        '''
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    command = AddCliArgument(cli_service=mock_cli_service)
+        # Assert the result is the command id and argument was added.
+        assert result == 'test.command'
+        assert len(cli_command.arguments) == 1
 
-    with pytest.raises(TiferetError) as excinfo:
-        command.execute(
-            command_id='  ',
-            name_or_flags=['-v'],
-            description='Verbose',
+        # Assert service interactions.
+        mock_dependencies['cli_service'].get.assert_called_once_with('test.command')
+        mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
+
+    # * method: test_with_kwargs
+    def test_with_kwargs(self, mock_dependencies, cli_command):
+        '''
+        Test that AddCliArgument handles additional kwargs for arguments.
+        '''
+
+        # Execute via the harness handle helper with additional kwargs.
+        result = self.handle(
+            mock_dependencies,
+            name_or_flags=['--count'],
+            description='Number of items',
+            type='int',
+            required=True,
+            default='5',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == 'COMMAND_PARAMETER_REQUIRED'
+        # Assert the result and argument was added.
+        assert result == 'test.command'
+        assert len(cli_command.arguments) == 1
 
-# ** test: add_cli_argument_command_not_found
-def test_add_cli_argument_command_not_found(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that AddCliArgument fails when the CLI command does not exist.
+        # Assert service interactions.
+        mock_dependencies['cli_service'].get.assert_called_once_with('test.command')
+        mock_dependencies['cli_service'].save.assert_called_once_with(cli_command)
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
+    # * method: test_multiple_arguments
+    def test_multiple_arguments(self, mock_dependencies, cli_command):
+        '''
+        Test adding multiple arguments to the same command sequentially.
+        '''
 
-    mock_cli_service.get.return_value = None
+        # Add first argument.
+        self.handle(mock_dependencies)
 
-    command = AddCliArgument(cli_service=mock_cli_service)
-
-    with pytest.raises(TiferetError) as excinfo:
-        command.execute(
-            command_id='test.missing',
-            name_or_flags=['-v'],
-            description='Verbose',
+        # Add second argument.
+        self.handle(
+            mock_dependencies,
+            name_or_flags=['-q', '--quiet'],
+            description='Quiet mode',
         )
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == 'CLI_COMMAND_NOT_FOUND'
+        # Assert both arguments were added.
+        assert len(cli_command.arguments) == 2
+        assert mock_dependencies['cli_service'].save.call_count == 2
 
-# ** test: add_cli_argument_via_command_handle
-def test_add_cli_argument_via_command_handle(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
+
+# ** test: TestListCliCommands
+class TestListCliCommands(DomainEventTestBase):
     '''
-    Test that AddCliArgument works via DomainEvent.handle.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
+    Tests for ListCliCommands using the domain event test harness.
     '''
 
-    mock_cli_service.get.return_value = sample_cli_command
+    # * attribute: event_cls
+    event_cls = ListCliCommands
 
-    result_id = DomainEvent.handle(
-        AddCliArgument,
-        dependencies={'cli_service': mock_cli_service},
-        command_id='test.command',
-        name_or_flags=['--debug'],
-        description='Enable debug mode',
-    )
+    # * attribute: dependencies
+    dependencies = {'cli_service': CliService}
 
-    assert result_id == 'test.command'
-    assert len(sample_cli_command.arguments) == 1
-    mock_cli_service.get.assert_called_once_with('test.command')
-    mock_cli_service.save.assert_called_once_with(sample_cli_command)
+    # * attribute: sample_kwargs
+    sample_kwargs = dict()
 
-# ** test: add_cli_argument_multiple_arguments
-def test_add_cli_argument_multiple_arguments(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
-    '''
-    Test adding multiple arguments to the same command sequentially.
+    # * method: test_empty
+    def test_empty(self, mock_dependencies):
+        '''
+        Test that ListCliCommands returns an empty list when no commands exist.
+        '''
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
-    '''
+        # Configure the service to return an empty list.
+        mock_dependencies['cli_service'].list.return_value = []
 
-    mock_cli_service.get.return_value = sample_cli_command
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    command = AddCliArgument(cli_service=mock_cli_service)
+        # Assert an empty list is returned.
+        assert result == []
+        mock_dependencies['cli_service'].list.assert_called_once()
 
-    # Add first argument.
-    command.execute(
-        command_id='test.command',
-        name_or_flags=['-v', '--verbose'],
-        description='Verbose output',
-    )
+    # * method: test_multiple
+    def test_multiple(self, mock_dependencies, cli_command):
+        '''
+        Test that ListCliCommands returns multiple commands.
+        '''
 
-    # Add second argument.
-    command.execute(
-        command_id='test.command',
-        name_or_flags=['-q', '--quiet'],
-        description='Quiet mode',
-    )
-
-    assert len(sample_cli_command.arguments) == 2
-    assert mock_cli_service.save.call_count == 2
-
-# ** test: list_cli_commands_success
-def test_list_cli_commands_success(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
-    '''
-    Test that ListCliCommands successfully lists all CLI commands.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
-    '''
-
-    # Arrange the mock service to return a list of commands.
-    command_list = [
-        sample_cli_command,
-        Aggregate.new(
-            CliCommandAggregate,
+        # Create another command for the list.
+        another = CliCommandAggregate.new(
             id='test.another',
             name='Another Command',
             key='another',
             group_key='test',
-            description='Another test command',
-            arguments=[],
         )
-    ]
-    mock_cli_service.list.return_value = command_list
 
-    command = ListCliCommands(cli_service=mock_cli_service)
+        # Configure the service to return multiple commands.
+        mock_dependencies['cli_service'].list.return_value = [cli_command, another]
 
-    result = command.execute()
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    # Assert the result is a list of CLI commands.
-    assert isinstance(result, list)
-    assert len(result) == 2
-    assert result[0].id == 'test.command'
-    assert result[1].id == 'test.another'
+        # Assert both commands are returned.
+        assert len(result) == 2
+        assert result[0].id == 'test.command'
+        assert result[1].id == 'test.another'
+        mock_dependencies['cli_service'].list.assert_called_once()
 
-    # Assert the service was called.
-    mock_cli_service.list.assert_called_once()
 
-# ** test: list_cli_commands_empty
-def test_list_cli_commands_empty(
-    mock_cli_service: CliService,
-):
+# ** test: TestGetParentArguments
+class TestGetParentArguments(DomainEventTestBase):
     '''
-    Test that ListCliCommands handles empty command lists.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
+    Tests for GetParentArguments using the domain event test harness.
     '''
 
-    # Arrange the mock service to return an empty list.
-    mock_cli_service.list.return_value = []
+    # * attribute: event_cls
+    event_cls = GetParentArguments
 
-    command = ListCliCommands(cli_service=mock_cli_service)
+    # * attribute: dependencies
+    dependencies = {'cli_service': CliService}
 
-    result = command.execute()
+    # * attribute: sample_kwargs
+    sample_kwargs = dict()
 
-    # Assert the result is an empty list.
-    assert isinstance(result, list)
-    assert len(result) == 0
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test that GetParentArguments returns parent arguments.
+        '''
 
-    # Assert the service was called.
-    mock_cli_service.list.assert_called_once()
+        # Create sample parent arguments.
+        parent_args = [
+            DomainObject.new(
+                CliArgument,
+                name_or_flags=['--verbose', '-v'],
+                description='Enable verbose output',
+                type='str',
+                required=False,
+            ),
+            DomainObject.new(
+                CliArgument,
+                name_or_flags=['--debug'],
+                description='Enable debug mode',
+                type='str',
+                required=False,
+            ),
+        ]
 
-# ** test: list_cli_commands_via_command_handle
-def test_list_cli_commands_via_command_handle(
-    mock_cli_service: CliService,
-    sample_cli_command: CliCommand,
-):
-    '''
-    Test that ListCliCommands works via DomainEvent.handle.
+        # Configure the service to return parent arguments.
+        mock_dependencies['cli_service'].get_parent_arguments.return_value = parent_args
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    :param sample_cli_command: Sample CLI command.
-    :type sample_cli_command: CliCommand
-    '''
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    mock_cli_service.list.return_value = [sample_cli_command]
+        # Assert the results.
+        assert len(result) == 2
+        assert '--verbose' in result[0].name_or_flags
+        assert '--debug' in result[1].name_or_flags
+        mock_dependencies['cli_service'].get_parent_arguments.assert_called_once()
 
-    result = DomainEvent.handle(
-        ListCliCommands,
-        dependencies={'cli_service': mock_cli_service},
-    )
+    # * method: test_empty
+    def test_empty(self, mock_dependencies):
+        '''
+        Test that GetParentArguments handles empty parent argument lists.
+        '''
 
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert result[0].id == 'test.command'
-    mock_cli_service.list.assert_called_once()
+        # Configure the service to return an empty list.
+        mock_dependencies['cli_service'].get_parent_arguments.return_value = []
 
-# ** test: get_parent_arguments_success
-def test_get_parent_arguments_success(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that GetParentArguments successfully retrieves parent arguments.
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
-
-    # Arrange the mock service to return parent arguments.
-    parent_args = [
-        DomainObject.new(
-            CliArgument,
-            name_or_flags=['--verbose', '-v'],
-            description='Enable verbose output',
-            type='str',
-            required=False,
-        ),
-        DomainObject.new(
-            CliArgument,
-            name_or_flags=['--debug'],
-            description='Enable debug mode',
-            type='str',
-            required=False,
-        )
-    ]
-    mock_cli_service.get_parent_arguments.return_value = parent_args
-
-    command = GetParentArguments(cli_service=mock_cli_service)
-
-    result = command.execute()
-
-    # Assert the result is a list of parent arguments.
-    assert isinstance(result, list)
-    assert len(result) == 2
-    assert '--verbose' in result[0].name_or_flags
-    assert '--debug' in result[1].name_or_flags
-
-    # Assert the service was called.
-    mock_cli_service.get_parent_arguments.assert_called_once()
-
-# ** test: get_parent_arguments_empty
-def test_get_parent_arguments_empty(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that GetParentArguments handles empty parent argument lists.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
-
-    # Arrange the mock service to return an empty list.
-    mock_cli_service.get_parent_arguments.return_value = []
-
-    command = GetParentArguments(cli_service=mock_cli_service)
-
-    result = command.execute()
-
-    # Assert the result is an empty list.
-    assert isinstance(result, list)
-    assert len(result) == 0
-
-    # Assert the service was called.
-    mock_cli_service.get_parent_arguments.assert_called_once()
-
-# ** test: get_parent_arguments_via_command_handle
-def test_get_parent_arguments_via_command_handle(
-    mock_cli_service: CliService,
-):
-    '''
-    Test that GetParentArguments works via DomainEvent.handle.
-
-    :param mock_cli_service: The mock CLI service.
-    :type mock_cli_service: CliService
-    '''
-
-    parent_args = [
-        DomainObject.new(
-            CliArgument,
-            name_or_flags=['--config'],
-            description='Config file path',
-            type='str',
-        )
-    ]
-    mock_cli_service.get_parent_arguments.return_value = parent_args
-
-    result = DomainEvent.handle(
-        GetParentArguments,
-        dependencies={'cli_service': mock_cli_service},
-    )
-
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert '--config' in result[0].name_or_flags
-    mock_cli_service.get_parent_arguments.assert_called_once()
+        # Assert an empty list is returned.
+        assert result == []
+        mock_dependencies['cli_service'].get_parent_arguments.assert_called_once()

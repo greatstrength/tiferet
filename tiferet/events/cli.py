@@ -1,4 +1,4 @@
-"""Tiferet CLI Commands"""
+"""Tiferet CLI Domain Events"""
 
 # *** imports
 
@@ -6,18 +6,17 @@
 from typing import Optional, List
 
 # ** app
+from .settings import DomainEvent, a
 from ..domain import CliCommand
-from ..events import DomainEvent
 from ..interfaces import CliService
 from ..mappers import CliCommandAggregate
-from ..mappers.settings import Aggregate
 
-# *** commands
+# *** events
 
-# ** command: list_cli_commands
+# ** event: list_cli_commands
 class ListCliCommands(DomainEvent):
     '''
-    Command to list all CLI commands.
+    A domain event to list all CLI commands.
     '''
 
     # * attribute: cli_service
@@ -26,13 +25,13 @@ class ListCliCommands(DomainEvent):
     # * init
     def __init__(self, cli_service: CliService):
         '''
-        Initialize the list CLI commands command.
+        Initialize the ListCliCommands event.
 
         :param cli_service: The CLI service.
         :type cli_service: CliService
         '''
 
-        # Set the command attributes.
+        # Set the CLI service dependency.
         self.cli_service = cli_service
 
     # * method: execute
@@ -50,10 +49,10 @@ class ListCliCommands(DomainEvent):
         return self.cli_service.list()
 
 
-# ** command: get_parent_arguments
+# ** event: get_parent_arguments
 class GetParentArguments(DomainEvent):
     '''
-    Command to retrieve parent-level CLI arguments.
+    A domain event to retrieve parent-level CLI arguments.
     '''
 
     # * attribute: cli_service
@@ -62,13 +61,13 @@ class GetParentArguments(DomainEvent):
     # * init
     def __init__(self, cli_service: CliService):
         '''
-        Initialize the get parent arguments command.
+        Initialize the GetParentArguments event.
 
         :param cli_service: The CLI service.
         :type cli_service: CliService
         '''
 
-        # Set the command attributes.
+        # Set the CLI service dependency.
         self.cli_service = cli_service
 
     # * method: execute
@@ -85,25 +84,25 @@ class GetParentArguments(DomainEvent):
         # Delegate to the CLI service.
         return self.cli_service.get_parent_arguments()
 
-# ** command: add_cli_command
+# ** event: add_cli_command
 class AddCliCommand(DomainEvent):
     '''
-    Command to add a new CLI command.
+    A domain event to add a new CLI command.
     '''
 
     # * attribute: cli_service
     cli_service: CliService
 
-    # * method: init
+    # * init
     def __init__(self, cli_service: CliService):
         '''
-        Initialize the add CLI command.
+        Initialize the AddCliCommand event.
 
         :param cli_service: The CLI service.
         :type cli_service: CliService
         '''
 
-        # Set the command attributes.
+        # Set the CLI service dependency.
         self.cli_service = cli_service
 
     # * method: execute
@@ -140,13 +139,12 @@ class AddCliCommand(DomainEvent):
         # Check for existing command id.
         self.verify(
             not self.cli_service.exists(id),
-            'CLI_COMMAND_ALREADY_EXISTS',
+            a.const.CLI_COMMAND_ALREADY_EXISTS_ID,
             id=id,
         )
 
         # Create CLI command aggregate.
-        command = Aggregate.new(
-            CliCommandAggregate,
+        command = CliCommandAggregate.new(
             id=id,
             name=name,
             key=key,
@@ -160,25 +158,25 @@ class AddCliCommand(DomainEvent):
         return command
 
 
-# ** command: add_cli_argument
+# ** event: add_cli_argument
 class AddCliArgument(DomainEvent):
     '''
-    Command to add an argument to an existing CLI command.
+    A domain event to add an argument to an existing CLI command.
     '''
 
     # * attribute: cli_service
     cli_service: CliService
 
-    # * method: init
+    # * init
     def __init__(self, cli_service: CliService):
         '''
-        Initialize the add CLI argument command.
+        Initialize the AddCliArgument event.
 
         :param cli_service: The CLI service.
         :type cli_service: CliService
         '''
 
-        # Set the command attributes.
+        # Set the CLI service dependency.
         self.cli_service = cli_service
 
     # * method: execute
@@ -209,7 +207,7 @@ class AddCliArgument(DomainEvent):
         # Verify that the command exists.
         self.verify(
             command is not None,
-            'CLI_COMMAND_NOT_FOUND',
+            a.const.CLI_COMMAND_NOT_FOUND_ID,
             command_id=command_id,
         )
 
