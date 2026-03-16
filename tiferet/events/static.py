@@ -3,12 +3,12 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import Any
 import os
 from importlib import import_module
 
 # ** app
-from .settings import DomainEvent, TiferetError
+from .settings import DomainEvent, TiferetError, a
 
 # *** events
 
@@ -22,7 +22,7 @@ class ParseParameter(DomainEvent):
     @staticmethod
     def execute(parameter: str) -> Any:
         '''
-        Execute the event.
+        Parse a parameter string, resolving environment variable references.
 
         :param parameter: The parameter to parse.
         :type parameter: str
@@ -50,10 +50,9 @@ class ParseParameter(DomainEvent):
         # Raise an error if the parameter parsing fails.
         except Exception as e:
             raise TiferetError(
-                'PARAMETER_PARSING_FAILED',
-                f'Failed to parse parameter: {parameter}. Error: {str(e)}',
+                a.const.PARAMETER_PARSING_FAILED_ID,
                 parameter=parameter,
-                exception=str(e)
+                exception=str(e),
             )
 
 # ** event: import_dependency
@@ -66,7 +65,7 @@ class ImportDependency(DomainEvent):
     @staticmethod
     def execute(module_path: str, class_name: str, **kwargs) -> Any:
         '''
-        Execute the event.
+        Import a class from a module path.
 
         :param module_path: The module path to import from.
         :type module_path: str
@@ -74,7 +73,7 @@ class ImportDependency(DomainEvent):
         :type class_name: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The imported class instance.
+        :return: The imported class.
         :rtype: Any
         '''
 
@@ -85,8 +84,7 @@ class ImportDependency(DomainEvent):
         # Raise an error if the dependency import fails.
         except Exception as e:
             raise TiferetError(
-                'IMPORT_DEPENDENCY_FAILED',
-                f'Failed to import dependency: {module_path} from module {class_name}. Error: {str(e)}',
+                a.const.IMPORT_DEPENDENCY_FAILED_ID,
                 module_path=module_path,
                 class_name=class_name,
                 exception=str(e),
@@ -102,7 +100,7 @@ class RaiseError(DomainEvent):
     @staticmethod
     def execute(error_code: str, message: str = None, **kwargs):
         '''
-        Execute the event.
+        Raise a TiferetError with the specified error code.
 
         :param error_code: The error code to raise.
         :type error_code: str

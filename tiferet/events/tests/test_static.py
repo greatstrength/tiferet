@@ -1,3 +1,5 @@
+"""Tiferet Tests for Static Domain Events"""
+
 # *** imports
 
 # ** infra
@@ -6,7 +8,7 @@ import os
 
 # ** app
 from ..static import ParseParameter, ImportDependency, RaiseError
-from ..settings import TiferetError
+from ..settings import TiferetError, a
 
 # *** tests
 
@@ -42,7 +44,7 @@ def test_parse_parameter_missing_env_variable():
         ParseParameter.execute('$env.TIFERET_NONEXISTENT_VAR')
 
     # Verify error code and kwargs.
-    assert exc_info.value.error_code == 'PARAMETER_PARSING_FAILED', 'Should raise PARAMETER_PARSING_FAILED'
+    assert exc_info.value.error_code == a.const.PARAMETER_PARSING_FAILED_ID, 'Should raise PARAMETER_PARSING_FAILED'
     assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR', 'Should include the parameter'
 
 # ** test: test_parse_parameter_non_env_string
@@ -80,7 +82,7 @@ def test_import_dependency_failure():
         ImportDependency.execute('nonexistent.module', 'FakeClass')
 
     # Verify error code and kwargs.
-    assert exc_info.value.error_code == 'IMPORT_DEPENDENCY_FAILED', 'Should raise IMPORT_DEPENDENCY_FAILED'
+    assert exc_info.value.error_code == a.const.IMPORT_DEPENDENCY_FAILED_ID, 'Should raise IMPORT_DEPENDENCY_FAILED'
     assert exc_info.value.kwargs.get('module_path') == 'nonexistent.module', 'Should include module_path'
     assert exc_info.value.kwargs.get('class_name') == 'FakeClass', 'Should include class_name'
 
