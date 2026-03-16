@@ -256,6 +256,12 @@ SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
 # ** constant: invalid_flagged_dependency_id
 INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
+# ** constant: configuration_already_exists_id
+CONFIGURATION_ALREADY_EXISTS_ID = 'CONFIGURATION_ALREADY_EXISTS'
+
+# ** constant: invalid_dependency_error_id
+INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
+
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 
@@ -773,9 +779,21 @@ DEFAULT_ERRORS = {
         ]
     },
     
+    # * error: CONFIGURATION_ALREADY_EXISTS
+    CONFIGURATION_ALREADY_EXISTS_ID: {
+        'id': CONFIGURATION_ALREADY_EXISTS_ID,
+        'name': 'Configuration Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A service configuration with ID {id} already exists.',
+            }
+        ],
+    },
+
     # * error: INVALID_DEPENDENCY_ERROR
-    'INVALID_DEPENDENCY_ERROR': {
-        'id': 'INVALID_DEPENDENCY_ERROR',
+    INVALID_DEPENDENCY_ERROR_ID: {
+        'id': INVALID_DEPENDENCY_ERROR_ID,
         'name': 'Invalid Dependency Error',
         'message': [
             {'lang': 'en_US', 'text': 'Dependency {dependency} could not be resolved: {reason}.'}
