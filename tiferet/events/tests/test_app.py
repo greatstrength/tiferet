@@ -18,7 +18,6 @@ from ..app import (
     RemoveAppInterface,
 )
 from ..settings import TiferetError, DomainEvent, a
-from ...assets.constants import COMMAND_PARAMETER_REQUIRED_ID
 from ...domain import (
     AppInterface,
     AppServiceDependency,
@@ -26,28 +25,20 @@ from ...domain import (
 )
 from ...interfaces import AppService
 from ...mappers import Aggregate, AppInterfaceAggregate
+from .settings import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 
-# ** fixture: mock_app_service
-@pytest.fixture
-def mock_app_service() -> AppService:
-    '''
-    Fixture to provide a mock AppService instance.
-    '''
-
-    service = mock.Mock(spec=AppService)
-    return service
-
-# ** app_interface
+# ** fixture: app_interface
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create a mock AppInterface instance.
-    
-    :return: A mock instance of AppInterface.
-    :rtype: AppInterface
+    Fixture to create an AppInterface aggregate for testing.
+
+    :return: An AppInterfaceAggregate instance.
+    :rtype: AppInterfaceAggregate
     '''
+
     # Create a test AppInterface instance.
     return Aggregate.new(
         AppInterfaceAggregate,
@@ -60,1075 +51,737 @@ def app_interface():
         services=[
             DomainObject.new(
                 AppServiceDependency,
-                attribute_id='test_attribute',
+                service_id='test_service',
                 module_path='test_module_path',
                 class_name='test_class_name',
             ),
         ],
     )
 
-# ** fixture: get_app_interface_cmd
-@pytest.fixture
-def get_app_interface_cmd(app_service):
-    '''
-    Fixture to create an instance of GetAppInterface command.
-    
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :return: An instance of GetAppInterface.
-    :rtype: GetAppInterface
-    '''
-    # Create an instance of GetAppInterface with the mock app service.
-    return GetAppInterface(app_service=app_service)
-
-# ** fixture: app_service
-@pytest.fixture
-def app_service(app_interface):
-    '''
-    Fixture to create a mock AppService instance.
-
-    :param app_interface: The mock AppInterface instance used as the default return value.
-    :type app_interface: AppInterface
-    :return: A mock instance of AppService.
-    :rtype: AppService
-    '''
-
-    # Create a mock AppService instance configured to return the app_interface.
-    service = mock.Mock(spec=AppService)
-    service.get.return_value = app_interface
-    return service
-
-# ** fixture: list_app_interfaces_cmd
-@pytest.fixture
-def list_app_interfaces_cmd(app_service):
-    '''
-    Fixture to create an instance of ListAppInterfaces command.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :return: An instance of ListAppInterfaces.
-    :rtype: ListAppInterfaces
-    '''
-
-    # Create an instance of ListAppInterfaces with the mock app service.
-    return ListAppInterfaces(app_service=app_service)
-
 # *** tests
 
-# ** test: add_app_interface_success
-def test_add_app_interface_success(mock_app_service: AppService):
+# ** test: TestAddAppInterface
+class TestAddAppInterface(DomainEventTestBase):
     '''
-    Ensure AddAppInterface creates and saves a new AppInterface.
+    Tests for AddAppInterface using the domain event test harness.
     '''
 
-    result: AppInterface = DomainEvent.handle(
-        AddAppInterface,
-        dependencies={'app_service': mock_app_service},
-        id='test.app',
-        name='Test App',
+    # * attribute: event_cls
+    event_cls = AddAppInterface
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test.interface',
+        name='Test Interface',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        description='A test app interface.',
-        logger_id='test_logger',
-        flags=['test_feature', 'test_data'],
-        services=[
-            {
-                'attribute_id': 'attr1',
-                'module_path': 'test.module',
-                'class_name': 'TestClass',
-                'parameters': {'foo': 'bar'},
-            }
-        ],
-        constants={'CONST_KEY': 'VALUE'},
+        class_name='AppContext',
     )
 
-    assert isinstance(result, AppInterface)
-    assert result.id == 'test.app'
-    assert result.name == 'Test App'
-    assert result.module_path == 'tiferet.contexts.app'
-    assert result.class_name == 'AppInterfaceContext'
-    assert result.description == 'A test app interface.'
-    assert result.logger_id == 'test_logger'
-    assert result.flags == ['test_feature', 'test_data']
-    assert len(result.services) == 1
-    attr = result.services[0]
-    assert attr.attribute_id == 'attr1'
-    assert attr.module_path == 'test.module'
-    assert attr.class_name == 'TestClass'
-    assert attr.parameters == {'foo': 'bar'}
-    assert result.constants == {'CONST_KEY': 'VALUE'}
+    # * attribute: required_params
+    required_params = ['id', 'name', 'module_path', 'class_name']
 
-    # Ensure the app service was called with the new interface.
-    mock_app_service.save.assert_called_once()
-    saved_interface = mock_app_service.save.call_args[0][0]
-    assert isinstance(saved_interface, AppInterface)
-    assert saved_interface.id == 'test.app'
+    # * method: test_minimal_success
+    def test_minimal_success(self, mock_dependencies):
+        '''
+        Test creating a minimal app interface with only required parameters.
+        '''
 
-# ** test: add_app_interface_defaults
-def test_add_app_interface_defaults(mock_app_service: AppService):
+        # Execute via the harness handle helper.
+        interface = self.handle(mock_dependencies)
+
+        # Assert the result is an AppInterface instance with expected defaults.
+        assert isinstance(interface, AppInterface)
+        assert interface.id == 'test.interface'
+        assert interface.name == 'Test Interface'
+        assert interface.module_path == 'tiferet.contexts.app'
+        assert interface.class_name == 'AppContext'
+        assert interface.description is None
+        assert interface.logger_id == 'default'
+        assert interface.flags == ['default']
+        assert interface.services == []
+        assert interface.constants == {}
+
+        # Assert the interface is saved via the app service.
+        mock_dependencies['app_service'].save.assert_called_once_with(interface)
+
+    # * method: test_full_parameters
+    def test_full_parameters(self, mock_dependencies):
+        '''
+        Test creating an app interface with all parameters populated.
+        '''
+
+        # Execute via the harness handle helper with full parameters.
+        interface = self.handle(
+            mock_dependencies,
+            description='A test app interface.',
+            logger_id='test_logger',
+            flags=['test_feature', 'test_data'],
+            services=[
+                {
+                    'service_id': 'svc1',
+                    'module_path': 'test.module',
+                    'class_name': 'TestClass',
+                    'parameters': {'foo': 'bar'},
+                }
+            ],
+            constants={'CONST_KEY': 'VALUE'},
+        )
+
+        # Assert core fields.
+        assert isinstance(interface, AppInterface)
+        assert interface.id == 'test.interface'
+        assert interface.description == 'A test app interface.'
+        assert interface.logger_id == 'test_logger'
+        assert interface.flags == ['test_feature', 'test_data']
+        assert interface.constants == {'CONST_KEY': 'VALUE'}
+
+        # Assert services are materialized as AppServiceDependency models.
+        assert len(interface.services) == 1
+        svc = interface.services[0]
+        assert isinstance(svc, AppServiceDependency)
+        assert svc.service_id == 'svc1'
+        assert svc.module_path == 'test.module'
+        assert svc.class_name == 'TestClass'
+        assert svc.parameters == {'foo': 'bar'}
+
+        # Assert the interface is saved.
+        mock_dependencies['app_service'].save.assert_called_once()
+
+    # * method: test_default_fallbacks
+    def test_default_fallbacks(self, mock_dependencies):
+        '''
+        Test that logger_id and flags fall back to defaults.
+        '''
+
+        # Execute via the harness handle helper with defaults.
+        interface = self.handle(mock_dependencies)
+
+        # All flags should be normalized to 'default'.
+        assert interface.logger_id == 'default'
+        assert interface.flags == ['default']
+
+        # Assert the interface is saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(interface)
+
+
+# ** test: TestGetAppInterface
+class TestGetAppInterface(ServiceEventTestBase):
     '''
-    Ensure AddAppInterface applies default flags and empty attributes/constants.
+    Tests for GetAppInterface using the domain event test harness.
     '''
 
-    result: AppInterface = DomainEvent.handle(
-        AddAppInterface,
-        dependencies={'app_service': mock_app_service},
-        id='test.app',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-    )
+    # * attribute: event_cls
+    event_cls = GetAppInterface
 
-    assert result.flags == ['default']
-    assert result.services == []
-    assert result.constants == {}
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
 
-    mock_app_service.save.assert_called_once()
+    # * attribute: service_attr
+    service_attr = 'app_service'
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(interface_id='test')
+
+    # * attribute: required_params
+    required_params = ['interface_id']
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(interface_id='non_existent_id')
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, app_interface):
+        '''
+        Test successful retrieval of an app interface.
+        '''
+
+        # Configure the service mock to return the app interface.
+        mock_dependencies['app_service'].get.return_value = app_interface
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
+
+        # Assert that the returned interface matches the expected app interface.
+        assert result == app_interface
 
 
-# ** test: add_app_interface_missing_required_field
-def test_add_app_interface_missing_required_field(mock_app_service: AppService):
+# ** test: TestListAppInterfaces
+class TestListAppInterfaces(DomainEventTestBase):
     '''
-    Ensure AddAppInterface validates required parameters.
+    Tests for ListAppInterfaces using the domain event test harness.
     '''
 
-    with pytest.raises(TiferetError) as excinfo:
-        DomainEvent.handle(
-            AddAppInterface,
-            dependencies={'app_service': mock_app_service},
-            id=' ',  # invalid
-            name='Test App',
+    # * attribute: event_cls
+    event_cls = ListAppInterfaces
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict()
+
+    # * method: test_empty
+    def test_empty(self, mock_dependencies):
+        '''
+        Test that ListAppInterfaces returns an empty list when no interfaces are configured.
+        '''
+
+        # Configure the service to return an empty list.
+        mock_dependencies['app_service'].list.return_value = []
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
+
+        # Assert that an empty list is returned and the service was called.
+        assert result == []
+        mock_dependencies['app_service'].list.assert_called_once_with()
+
+    # * method: test_multiple
+    def test_multiple(self, mock_dependencies, app_interface):
+        '''
+        Test that ListAppInterfaces returns multiple interfaces when configured.
+        '''
+
+        # Configure the service to return multiple interfaces.
+        another_interface = Aggregate.new(
+            AppInterfaceAggregate,
+            id='other',
+            name='Other App',
             module_path='tiferet.contexts.app',
-            class_name='AppInterfaceContext',
+            class_name='OtherAppContext',
         )
+        mock_dependencies['app_service'].list.return_value = [app_interface, another_interface]
 
-    error: TiferetError = excinfo.value
-    assert error.error_code == COMMAND_PARAMETER_REQUIRED_ID
-    mock_app_service.save.assert_not_called()
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
 
-# ** test: test_get_app_interface_not_found
-def test_get_app_interface_not_found(mock_app_service: AppService):
+        # Assert that the returned list matches the configured interfaces.
+        assert result == [app_interface, another_interface]
+        mock_dependencies['app_service'].list.assert_called_once_with()
+
+
+# ** test: TestSetServiceDependency
+class TestSetServiceDependency(ServiceEventTestBase):
     '''
-    Test the GetAppInterface command when the app interface is not found.
-    
-    :param mock_app_service: The mock AppService instance.
-    :type mock_app_service: AppService
-    '''
-
-    # Simulate that the interface is not found.
-    mock_app_service.get.return_value = None  
-
-    # Attempt to get an app interface that does not exist.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            GetAppInterface,
-            dependencies={'app_service': mock_app_service},
-            interface_id='non_existent_id',
-        )
-    
-    # Assert that the error message contains the expected text.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
-    assert 'App interface with ID non_existent_id not found.' in str(exc_info.value)
-
-# ** test: test_get_app_interface_success
-def test_get_app_interface_success(mock_app_service: AppService, app_interface: AppInterface):
-    '''
-    Test the GetAppInterface command when the app interface is found.
-    
-    :param mock_app_service: The mock AppService instance.
-    :type mock_app_service: AppService
-    :param app_interface: The mock AppInterface instance.
-    :type app_interface: AppInterface
+    Tests for SetServiceDependency using the domain event test harness.
     '''
 
-    mock_app_service.get.return_value = app_interface
+    # * attribute: event_cls
+    event_cls = SetServiceDependency
 
-    # Execute the command to get the app interface via DomainEvent.handle.
-    result = DomainEvent.handle(
-        GetAppInterface,
-        dependencies={'app_service': mock_app_service},
-        interface_id='test',
-    )
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
 
-    # Assert that the returned interface matches the expected app interface.
-    assert result == app_interface, 'Should return the correct AppInterface instance'
+    # * attribute: service_attr
+    service_attr = 'app_service'
 
-# ** test: list_app_interfaces_empty
-def test_list_app_interfaces_empty(app_service):
-    '''
-    Test that ListAppInterfaces returns an empty list when no interfaces are configured.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Configure the service to return an empty list.
-    app_service.list.return_value = []
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        ListAppInterfaces,
-        dependencies={'app_service': app_service},
-    )
-
-    # Assert that an empty list is returned and the service was called.
-    assert result == []
-    app_service.list.assert_called_once_with()
-
-
-# ** test: set_service_dependency_creates_new_attribute
-def test_set_service_dependency_creates_new_attribute(app_service, app_interface):
-    '''
-    Test that SetServiceDependency creates a new dependency attribute when it does not exist.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Ensure no attribute with the target id exists initially.
-    assert app_interface.get_service('new_dependency') is None
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        SetServiceDependency,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute_id='new_dependency',
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test',
+        service_id='new_dependency',
         module_path='new.module.path',
         class_name='NewClass',
-        parameters={'param1': 'value1'},
     )
 
-    # Command should return the interface id.
-    assert result == app_interface.id
+    # * attribute: required_params
+    required_params = ['id', 'service_id', 'module_path', 'class_name']
 
-    # A new attribute should be created with the provided values.
-    new_attr = app_interface.get_service('new_dependency')
-    assert new_attr is not None
-    assert new_attr.module_path == 'new.module.path'
-    assert new_attr.class_name == 'NewClass'
-    assert new_attr.parameters == {'param1': 'value1'}
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
 
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-
-# ** test: set_service_dependency_updates_existing_attribute_and_merges_parameters
-def test_set_service_dependency_updates_existing_attribute_and_merges_parameters(
-    app_service, app_interface
-):
-    '''
-    Test that SetServiceDependency updates an existing dependency and merges parameters.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Precondition: existing attribute from fixture.
-    existing_attr = app_interface.get_service('test_attribute')
-    existing_attr.parameters = {'keep': 'value', 'override': 'old', 'remove': 'to_be_removed'}
-
-    # Execute the command via DomainEvent.handle with updated fields and parameters.
-    result = DomainEvent.handle(
-        SetServiceDependency,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute_id='test_attribute',
-        module_path='updated.module.path',
-        class_name='UpdatedClass',
-        parameters={
-            'override': 'new',
-            'remove': None,
-            'new_param': 'new_value',
-        },
-    )
-
-    # Command should return the interface id.
-    assert result == app_interface.id
-
-    # Attribute should be updated.
-    updated_attr = app_interface.get_service('test_attribute')
-    assert updated_attr.module_path == 'updated.module.path'
-    assert updated_attr.class_name == 'UpdatedClass'
-    # Parameters merged: keep preserved, override updated, remove dropped, new_param added.
-    assert updated_attr.parameters == {
-        'keep': 'value',
-        'override': 'new',
-        'new_param': 'new_value',
-    }
-
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-
-# ** test: set_service_dependency_parameters_none_clears_existing
-def test_set_service_dependency_parameters_none_clears_existing(app_service, app_interface):
-    '''
-    Test that passing parameters=None clears existing parameters on the attribute.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Precondition: existing attribute has parameters.
-    existing_attr = app_interface.get_service('test_attribute')
-    existing_attr.parameters = {'key': 'value'}
-
-    # Execute the command with parameters set to None.
-    result = DomainEvent.handle(
-        SetServiceDependency,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute_id='test_attribute',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-        parameters=None,
-    )
-
-    # Command should return the interface id.
-    assert result == app_interface.id
-
-    # Parameters should be cleared.
-    cleared_attr = app_interface.get_service('test_attribute')
-    assert cleared_attr.parameters == {}
-
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-
-# ** test: set_service_dependency_missing_required_parameters
-@pytest.mark.parametrize('missing_param', ['id', 'attribute_id', 'module_path', 'class_name'])
-def test_set_service_dependency_missing_required_parameters(missing_param, app_service):
-    '''
-    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
-
-    :param missing_param: The parameter name to omit.
-    :type missing_param: str
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    kwargs = dict(
-        id='test.interface',
-        attribute_id='dep',
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.interface',
+        service_id='dep',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
     )
-    kwargs[missing_param] = None
 
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            SetServiceDependency,
-            dependencies={'app_service': app_service},
-            **kwargs,
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, app_interface):
+        '''
+        Override to provide a service mock pre-configured with an app_interface.
+        '''
+
+        # Create a mock AppService that returns the app_interface on get.
+        service = mock.Mock(spec=AppService)
+        service.get.return_value = app_interface
+        return {'app_service': service}
+
+    # * method: test_creates_new_service
+    def test_creates_new_service(self, mock_dependencies, app_interface):
+        '''
+        Test that SetServiceDependency creates a new dependency when it does not exist.
+        '''
+
+        # Ensure no service with the target id exists initially.
+        assert app_interface.get_service('new_dependency') is None
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies, parameters={'param1': 'value1'})
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # A new service dependency should be created with the provided values.
+        new_svc = app_interface.get_service('new_dependency')
+        assert new_svc is not None
+        assert new_svc.module_path == 'new.module.path'
+        assert new_svc.class_name == 'NewClass'
+        assert new_svc.parameters == {'param1': 'value1'}
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+    # * method: test_updates_existing_and_merges_parameters
+    def test_updates_existing_and_merges_parameters(self, mock_dependencies, app_interface):
+        '''
+        Test that SetServiceDependency updates an existing dependency and merges parameters.
+        '''
+
+        # Precondition: existing service from fixture.
+        existing_svc = app_interface.get_service('test_service')
+        existing_svc.parameters = {'keep': 'value', 'override': 'old', 'remove': 'to_be_removed'}
+
+        # Execute via the harness handle helper with updated fields.
+        result = self.handle(
+            mock_dependencies,
+            service_id='test_service',
+            module_path='updated.module.path',
+            class_name='UpdatedClass',
+            parameters={
+                'override': 'new',
+                'remove': None,
+                'new_param': 'new_value',
+            },
         )
 
-    # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert missing_param in str(exc_info.value)
+        # Command should return the interface id.
+        assert result == app_interface.id
 
+        # Service dependency should be updated.
+        updated_svc = app_interface.get_service('test_service')
+        assert updated_svc.module_path == 'updated.module.path'
+        assert updated_svc.class_name == 'UpdatedClass'
+        assert updated_svc.parameters == {
+            'keep': 'value',
+            'override': 'new',
+            'new_param': 'new_value',
+        }
 
-# ** test: set_service_dependency_interface_not_found
-def test_set_service_dependency_interface_not_found(app_service):
-    '''
-    Test that SetServiceDependency raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
+    # * method: test_parameters_none_clears_existing
+    def test_parameters_none_clears_existing(self, mock_dependencies, app_interface):
+        '''
+        Test that passing parameters=None clears existing parameters.
+        '''
 
-    # Simulate missing interface.
-    app_service.get.return_value = None
+        # Precondition: existing service has parameters.
+        existing_svc = app_interface.get_service('test_service')
+        existing_svc.parameters = {'key': 'value'}
 
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            SetServiceDependency,
-            dependencies={'app_service': app_service},
-            id='missing.interface',
-            attribute_id='dep',
+        # Execute via the harness handle helper with parameters=None.
+        result = self.handle(
+            mock_dependencies,
+            service_id='test_service',
             module_path='tiferet.contexts.app',
             class_name='AppContext',
+            parameters=None,
         )
 
-    # Verify error code and message.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
-    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
+        # Command should return the interface id.
+        assert result == app_interface.id
 
-# ** test: list_app_interfaces_multiple
-def test_list_app_interfaces_multiple(app_service, app_interface):
+        # Parameters should be cleared.
+        cleared_svc = app_interface.get_service('test_service')
+        assert cleared_svc.parameters == {}
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+# ** test: TestUpdateAppInterface
+class TestUpdateAppInterface(ServiceEventTestBase):
     '''
-    Test that ListAppInterfaces returns multiple interfaces when configured.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The mock AppInterface instance.
-    :type app_interface: AppInterface
-    '''
-
-    # Configure the service to return multiple interfaces.
-    another_interface = Aggregate.new(
-        AppInterfaceAggregate,
-        id='other',
-        name='Other App',
-        module_path='tiferet.contexts.app',
-        class_name='OtherAppContext',
-    )
-    app_service.list.return_value = [app_interface, another_interface]
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        ListAppInterfaces,
-        dependencies={'app_service': app_service},
-    )
-
-    # Assert that the returned list matches the configured interfaces.
-    assert result == [app_interface, another_interface]
-    app_service.list.assert_called_once_with()
-
-# ** test: add_app_interface_minimal_success
-def test_add_app_interface_minimal_success(app_service):
-    '''
-    Test creating a minimal app interface using the AddAppInterface command.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
+    Tests for UpdateAppInterface using the domain event test harness.
     '''
 
-    # Execute the command with only required parameters via DomainEvent.handle.
-    interface = DomainEvent.handle(
-        AddAppInterface,
-        dependencies={'app_service': app_service},
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-    )
+    # * attribute: event_cls
+    event_cls = UpdateAppInterface
 
-    # Assert the result is an AppInterface instance with expected defaults.
-    assert isinstance(interface, AppInterface)
-    assert interface.id == 'test.interface'
-    assert interface.name == 'Test Interface'
-    assert interface.module_path == 'tiferet.contexts.app'
-    assert interface.class_name == 'AppContext'
-    assert interface.description is None
-    assert interface.logger_id == 'default'
-    assert interface.flags == ['default']
-    assert interface.services == []
-    assert interface.constants == {}
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
 
-    # Assert the interface is saved via the app service.
-    app_service.save.assert_called_once_with(interface)
+    # * attribute: service_attr
+    service_attr = 'app_service'
 
-# ** test: add_app_interface_full_parameters
-def test_add_app_interface_full_parameters(app_service):
-    '''
-    Test creating an app interface with all parameters populated.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    attributes = [
-        {
-            'attribute_id': 'test_attribute',
-            'module_path': 'test_module_path',
-            'class_name': 'test_class_name',
-            'parameters': {'test_param': 'test_value'},
-        },
-    ]
-    constants = {
-        'TEST_CONST': 'test_const_value',
-    }
-
-    # Execute the command via DomainEvent.handle with full parameters.
-    interface = DomainEvent.handle(
-        AddAppInterface,
-        dependencies={'app_service': app_service},
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-        description='The test interface.',
-        logger_id='custom_logger',
-        flags=['flags_value'],
-        services=attributes,
-        constants=constants,
-    )
-
-    # Core fields.
-    assert interface.id == 'test.interface'
-    assert interface.name == 'Test Interface'
-    assert interface.module_path == 'tiferet.contexts.app'
-    assert interface.class_name == 'AppContext'
-    assert interface.description == 'The test interface.'
-
-    # Flags and logger.
-    assert interface.logger_id == 'custom_logger'
-    assert interface.flags == ['flags_value']
-
-    # Services should be materialized as AppServiceDependency models.
-    assert len(interface.services) == 1
-    attr = interface.services[0]
-    assert isinstance(attr, AppServiceDependency)
-    assert attr.attribute_id == 'test_attribute'
-    assert attr.module_path == 'test_module_path'
-    assert attr.class_name == 'test_class_name'
-    assert attr.parameters == {'test_param': 'test_value'}
-
-    # Constants should be preserved.
-    assert interface.constants == {'TEST_CONST': 'test_const_value'}
-
-    # Assert the interface is saved via the app service.
-    app_service.save.assert_called_once_with(interface)
-
-# ** test: add_app_interface_missing_required_fields
-@pytest.mark.parametrize('missing_param', ['id', 'name', 'module_path', 'class_name'])
-def test_add_app_interface_missing_required_fields(missing_param, app_service):
-    '''
-    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
-
-    :param missing_param: The parameter name to omit.
-    :type missing_param: str
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    kwargs = dict(
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
-    )
-    kwargs[missing_param] = None
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            AddAppInterface,
-            dependencies={'app_service': app_service},
-            **kwargs,
-        )
-
-    # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert missing_param in str(exc_info.value)
-
-# ** test: add_app_interface_default_fallbacks
-def test_add_app_interface_default_fallbacks(app_service):
-    '''
-    Test that falsy logger_id, flags, and flags values fall back to 'default'.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Execute the command with explicit falsy values for flags.
-    interface = DomainEvent.handle(
-        AddAppInterface,
-        dependencies={'app_service': app_service},
-        id='test.interface',
-        name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext'
-    )
-
-    # All flags should be normalized to 'default'.
-    assert interface.logger_id == 'default'
-    assert interface.flags == ['default']
-
-    # Assert the interface is saved via the app service.
-    app_service.save.assert_called_once_with(interface)
-
-# ** test: update_app_interface_success_supported_attributes
-@pytest.mark.parametrize(
-    'attribute,new_value',
-    [
-        ('name', 'Updated Name'),
-        ('description', 'Updated description'),
-        ('module_path', 'updated.module.path'),
-        ('class_name', 'UpdatedClass'),
-        ('logger_id', 'updated_logger'),
-        ('flags', ['updated_flags']),
-    ],
-)
-def test_update_app_interface_success_supported_attributes(
-    app_service, app_interface, attribute, new_value
-):
-    '''
-    Test updating each supported scalar attribute via UpdateAppInterface.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        UpdateAppInterface,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute=attribute,
-        value=new_value,
-    )
-
-    # Command should return the interface id.
-    assert result == app_interface.id
-
-    # The attribute on the interface should be updated.
-    assert getattr(app_interface, attribute) == new_value
-
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-# ** test: update_app_interface_missing_required_parameters
-@pytest.mark.parametrize('missing_param', ['id', 'attribute'])
-def test_update_app_interface_missing_required_parameters(missing_param, app_service):
-    '''
-    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
-
-    :param missing_param: The parameter name to omit.
-    :type missing_param: str
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    kwargs = dict(
-        id='test.interface',
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test',
         attribute='name',
         value='Updated Name',
     )
-    kwargs[missing_param] = None
 
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            UpdateAppInterface,
-            dependencies={'app_service': app_service},
-            **kwargs,
-        )
+    # * attribute: required_params
+    required_params = ['id', 'attribute']
 
-    # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert missing_param in str(exc_info.value)
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
 
-# ** test: update_app_interface_interface_not_found
-def test_update_app_interface_interface_not_found(app_service):
-    '''
-    Test that UpdateAppInterface raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Simulate missing interface.
-    app_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            UpdateAppInterface,
-            dependencies={'app_service': app_service},
-            id='missing.interface',
-            attribute='name',
-            value='Updated Name',
-        )
-
-    # Verify error code and message.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
-    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
-
-# ** test: update_app_interface_invalid_attribute_raises_model_error
-def test_update_app_interface_invalid_attribute_raises_model_error(
-    app_service, app_interface
-):
-    '''
-    Test that an invalid attribute name is validated by the AppInterface model.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Execute the command with an unsupported attribute name.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            UpdateAppInterface,
-            dependencies={'app_service': app_service},
-            id=app_interface.id,
-            attribute='invalid_attribute',
-            value='value',
-        )
-
-    # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
-    assert exc_info.value.error_code == a.const.INVALID_MODEL_ATTRIBUTE_ID
-    app_service.save.assert_not_called()
-
-# ** test: update_app_interface_invalid_type_attributes_empty_value
-@pytest.mark.parametrize('attribute', ['module_path', 'class_name'])
-def test_update_app_interface_invalid_type_attributes_empty_value(
-    attribute, app_service, app_interface
-):
-    '''
-    Test that empty values for module_path or class_name are rejected by the model.
-
-    :param attribute: The attribute name under test.
-    :type attribute: str
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Execute the command with an empty value for a type-constrained attribute.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            UpdateAppInterface,
-            dependencies={'app_service': app_service},
-            id=app_interface.id,
-            attribute=attribute,
-            value='',
-        )
-
-    # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
-    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
-    app_service.save.assert_not_called()
-
-# ** test: set_app_constants_full_clear
-def test_set_app_constants_full_clear(app_service, app_interface):
-    '''
-    Test that SetAppConstants clears all constants when constants=None.
-    '''
-
-    # Seed existing constants on the interface.
-    app_interface.constants = {
-        'EXISTING': 'value',
-        'OTHER': 'other_value',
-    }
-
-    # Execute the command via DomainEvent.handle with constants=None.
-    result = DomainEvent.handle(
-        SetAppConstants,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        constants=None,
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.interface',
+        attribute='name',
+        value='Updated Name',
     )
 
-    # Command should return the interface id.
-    assert result == app_interface.id
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, app_interface):
+        '''
+        Override to provide a service mock pre-configured with an app_interface.
+        '''
 
-    # All constants should be cleared.
-    assert app_interface.constants == {}
+        # Create a mock AppService that returns the app_interface on get.
+        service = mock.Mock(spec=AppService)
+        service.get.return_value = app_interface
+        return {'app_service': service}
 
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
+    # * method: test_success_supported_attributes
+    @pytest.mark.parametrize(
+        'attribute,new_value',
+        [
+            ('name', 'Updated Name'),
+            ('description', 'Updated description'),
+            ('module_path', 'updated.module.path'),
+            ('class_name', 'UpdatedClass'),
+            ('logger_id', 'updated_logger'),
+            ('flags', ['updated_flags']),
+        ],
+    )
+    def test_success_supported_attributes(
+        self, mock_dependencies, app_interface, attribute, new_value
+    ):
+        '''
+        Test updating each supported scalar attribute via UpdateAppInterface.
+        '''
 
-# ** test: set_app_constants_merge_override_and_remove
-def test_set_app_constants_merge_override_and_remove(app_service, app_interface):
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies, id=app_interface.id, attribute=attribute, value=new_value)
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # The attribute on the interface should be updated.
+        assert getattr(app_interface, attribute) == new_value
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+    # * method: test_invalid_attribute_raises_model_error
+    def test_invalid_attribute_raises_model_error(self, mock_dependencies, app_interface):
+        '''
+        Test that an invalid attribute name raises INVALID_MODEL_ATTRIBUTE.
+        '''
+
+        # Execute the command with an unsupported attribute name.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id=app_interface.id, attribute='invalid_attribute', value='value')
+
+        # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
+        assert exc_info.value.error_code == a.const.INVALID_MODEL_ATTRIBUTE_ID
+        mock_dependencies['app_service'].save.assert_not_called()
+
+    # * method: test_invalid_type_attributes_empty_value
+    @pytest.mark.parametrize('attribute', ['module_path', 'class_name'])
+    def test_invalid_type_attributes_empty_value(self, mock_dependencies, app_interface, attribute):
+        '''
+        Test that empty values for module_path or class_name are rejected by the model.
+        '''
+
+        # Execute the command with an empty value for a type-constrained attribute.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id=app_interface.id, attribute=attribute, value='')
+
+        # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
+        assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
+        mock_dependencies['app_service'].save.assert_not_called()
+
+# ** test: TestSetAppConstants
+class TestSetAppConstants(ServiceEventTestBase):
     '''
-    Test that SetAppConstants merges constants, overrides values, and removes None-valued keys.
+    Tests for SetAppConstants using the domain event test harness.
     '''
 
-    # Seed existing constants.
-    app_interface.constants = {
-        'KEEP': 'keep_value',
-        'OVERRIDE': 'old',
-        'REMOVE': 'to_be_removed',
-    }
+    # * attribute: event_cls
+    event_cls = SetAppConstants
 
-    # Execute the command with mixed updates.
-    result = DomainEvent.handle(
-        SetAppConstants,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        constants={
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: service_attr
+    service_attr = 'app_service'
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test',
+        constants={'KEY': 'VALUE'},
+    )
+
+    # * attribute: required_params
+    required_params = ['id']
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
+        id='missing.interface',
+        constants={'KEY': 'VALUE'},
+    )
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, app_interface):
+        '''
+        Override to provide a service mock pre-configured with an app_interface.
+        '''
+
+        # Create a mock AppService that returns the app_interface on get.
+        service = mock.Mock(spec=AppService)
+        service.get.return_value = app_interface
+        return {'app_service': service}
+
+    # * method: test_full_clear
+    def test_full_clear(self, mock_dependencies, app_interface):
+        '''
+        Test that SetAppConstants clears all constants when constants=None.
+        '''
+
+        # Seed existing constants on the interface.
+        app_interface.constants = {
+            'EXISTING': 'value',
+            'OTHER': 'other_value',
+        }
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies, constants=None)
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # All constants should be cleared.
+        assert app_interface.constants == {}
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+    # * method: test_merge_override_and_remove
+    def test_merge_override_and_remove(self, mock_dependencies, app_interface):
+        '''
+        Test that SetAppConstants merges, overrides, and removes None-valued keys.
+        '''
+
+        # Seed existing constants.
+        app_interface.constants = {
+            'KEEP': 'keep_value',
+            'OVERRIDE': 'old',
+            'REMOVE': 'to_be_removed',
+        }
+
+        # Execute via the harness handle helper with mixed updates.
+        result = self.handle(
+            mock_dependencies,
+            constants={
+                'OVERRIDE': 'new',
+                'REMOVE': None,
+                'ADD': 'added',
+            },
+        )
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # Constants should be merged/updated with None-valued keys removed.
+        assert app_interface.constants == {
+            'KEEP': 'keep_value',
             'OVERRIDE': 'new',
-            'REMOVE': None,
             'ADD': 'added',
-        },
-    )
+        }
 
-    # Command should return the interface id.
-    assert result == app_interface.id
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-    # Constants should be merged/updated with None-valued keys removed.
-    assert app_interface.constants == {
-        'KEEP': 'keep_value',
-        'OVERRIDE': 'new',
-        'ADD': 'added',
-    }
+    # * method: test_add_new_constants
+    def test_add_new_constants(self, mock_dependencies, app_interface):
+        '''
+        Test that SetAppConstants adds new constants when none exist.
+        '''
 
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
+        # Precondition: no constants defined.
+        assert app_interface.constants == {}
 
-# ** test: set_app_constants_add_new_constants
-def test_set_app_constants_add_new_constants(app_service, app_interface):
-    '''
-    Test that SetAppConstants adds new constants when none exist.
-    '''
+        # Execute via the harness handle helper with new constants.
+        result = self.handle(
+            mock_dependencies,
+            constants={
+                'NEW_ONE': 'one',
+                'NEW_TWO': 'two',
+            },
+        )
 
-    # Precondition: no constants defined.
-    assert app_interface.constants == {}
+        # Command should return the interface id.
+        assert result == app_interface.id
 
-    # Execute the command with new constants.
-    result = DomainEvent.handle(
-        SetAppConstants,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        constants={
+        # All new constants should be present.
+        assert app_interface.constants == {
             'NEW_ONE': 'one',
             'NEW_TWO': 'two',
-        },
+        }
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+
+# ** test: TestRemoveServiceDependency
+class TestRemoveServiceDependency(ServiceEventTestBase):
+    '''
+    Tests for RemoveServiceDependency using the domain event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = RemoveServiceDependency
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: service_attr
+    service_attr = 'app_service'
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test',
+        service_id='test_service',
     )
 
-    # Command should return the interface id.
-    assert result == app_interface.id
+    # * attribute: required_params
+    required_params = ['id', 'service_id']
 
-    # All new constants should be present.
-    assert app_interface.constants == {
-        'NEW_ONE': 'one',
-        'NEW_TWO': 'two',
-    }
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
 
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-# ** test: set_app_constants_missing_or_empty_id
-@pytest.mark.parametrize('invalid_id', [None, ''])
-def test_set_app_constants_missing_or_empty_id(invalid_id, app_service):
-    '''
-    Test that missing or empty id raises COMMAND_PARAMETER_REQUIRED.
-    '''
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            SetAppConstants,
-            dependencies={'app_service': app_service},
-            id=invalid_id,
-            constants={'KEY': 'VALUE'},
-        )
-
-    # Verify the error code and that the id parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'id' in str(exc_info.value)
-    app_service.save.assert_not_called()
-
-# ** test: set_app_constants_interface_not_found
-def test_set_app_constants_interface_not_found(app_service):
-    '''
-    Test that SetAppConstants raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
-    '''
-
-    # Simulate missing interface.
-    app_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            SetAppConstants,
-            dependencies={'app_service': app_service},
-            id='missing.interface',
-            constants={'KEY': 'VALUE'},
-        )
-
-    # Verify error code and message.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
-    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
-
-# ** test: remove_service_dependency_removes_existing_attribute
-def test_remove_service_dependency_removes_existing_attribute(app_service, app_interface):
-    '''
-    Test that RemoveServiceDependency removes an existing dependency attribute.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Precondition: the service dependency exists on the interface.
-    existing_attr = app_interface.get_service('test_attribute')
-    assert existing_attr is not None
-    initial_count = len(app_interface.services)
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        RemoveServiceDependency,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute_id='test_attribute',
-    )
-
-    # Command should return the interface id.
-    assert result == app_interface.id
-
-    # The service dependency should be removed and the list size decreased by one.
-    assert app_interface.get_service('test_attribute') is None
-    assert len(app_interface.services) == initial_count - 1
-
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-# ** test: remove_service_dependency_missing_attribute_is_idempotent
-def test_remove_service_dependency_missing_attribute_is_idempotent(app_service, app_interface):
-    '''
-    Test that removing a non-existent dependency attribute is idempotent and succeeds.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    :param app_interface: The AppInterface instance returned by the service.
-    :type app_interface: AppInterface
-    '''
-
-    # Precondition: no service dependency with the given id exists.
-    assert app_interface.get_service('missing_attribute') is None
-    initial_count = len(app_interface.services)
-
-    # Execute the command via DomainEvent.handle.
-    result = DomainEvent.handle(
-        RemoveServiceDependency,
-        dependencies={'app_service': app_service},
-        id=app_interface.id,
-        attribute_id='missing_attribute',
-    )
-
-    # Command should return the interface id.
-    assert result == app_interface.id
-
-    # Services list should remain unchanged and still not contain the dependency.
-    assert app_interface.get_service('missing_attribute') is None
-    assert len(app_interface.services) == initial_count
-
-    # The updated interface should be saved.
-    app_service.save.assert_called_once_with(app_interface)
-
-# ** test: remove_service_dependency_interface_not_found
-def test_remove_service_dependency_interface_not_found(app_service):
-    '''
-    Test that RemoveServiceDependency raises APP_INTERFACE_NOT_FOUND when the interface does not exist.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Simulate missing interface.
-    app_service.get.return_value = None
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            RemoveServiceDependency,
-            dependencies={'app_service': app_service},
-            id='missing.interface',
-            attribute_id='dep',
-        )
-
-    # Verify error code and message.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
-    assert 'App interface with ID missing.interface not found.' in str(exc_info.value)
-
-
-# ** test: remove_service_dependency_missing_required_parameters
-@pytest.mark.parametrize('missing_param', ['id', 'attribute_id'])
-def test_remove_service_dependency_missing_required_parameters(missing_param, app_service):
-    '''
-    Test that missing required parameters raise COMMAND_PARAMETER_REQUIRED.
-
-    :param missing_param: The parameter name to omit.
-    :type missing_param: str
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    kwargs = dict(
-        id='test.interface',
-        attribute_id='dep',
-    )
-    kwargs[missing_param] = None
-
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            RemoveServiceDependency,
-            dependencies={'app_service': app_service},
-            **kwargs,
-        )
-
-    # Verify the error code and that the missing parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert missing_param in str(exc_info.value)
-
-# ** test: remove_app_interface_success_existing
-def test_remove_app_interface_success_existing(app_service):
-    '''
-    Test that RemoveAppInterface deletes an existing app interface and returns the ID.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Execute the command via DomainEvent.handle for an existing interface.
-    result = DomainEvent.handle(
-        RemoveAppInterface,
-        dependencies={'app_service': app_service},
-        id='existing.interface',
-    )
-
-    # Command should return the interface id and delegate deletion to the service.
-    assert result == 'existing.interface'
-    app_service.delete.assert_called_once_with('existing.interface')
-
-# ** test: remove_app_interface_success_missing_is_idempotent
-def test_remove_app_interface_success_missing_is_idempotent(app_service):
-    '''
-    Test that removing a non-existent interface is idempotent and still succeeds.
-
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
-    '''
-
-    # Execute the command via DomainEvent.handle for a missing interface.
-    result = DomainEvent.handle(
-        RemoveAppInterface,
-        dependencies={'app_service': app_service},
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(
         id='missing.interface',
+        service_id='dep',
     )
 
-    # Command should return the interface id and still call delete exactly once.
-    assert result == 'missing.interface'
-    app_service.delete.assert_called_once_with('missing.interface')
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, app_interface):
+        '''
+        Override to provide a service mock pre-configured with an app_interface.
+        '''
 
-# ** test: remove_app_interface_missing_or_empty_id
-@pytest.mark.parametrize('invalid_id', [None, ''])
-def test_remove_app_interface_missing_or_empty_id(invalid_id, app_service):
+        # Create a mock AppService that returns the app_interface on get.
+        service = mock.Mock(spec=AppService)
+        service.get.return_value = app_interface
+        return {'app_service': service}
+
+    # * method: test_removes_existing
+    def test_removes_existing(self, mock_dependencies, app_interface):
+        '''
+        Test that RemoveServiceDependency removes an existing service dependency.
+        '''
+
+        # Precondition: the service dependency exists on the interface.
+        existing_svc = app_interface.get_service('test_service')
+        assert existing_svc is not None
+        initial_count = len(app_interface.services)
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # The service dependency should be removed.
+        assert app_interface.get_service('test_service') is None
+        assert len(app_interface.services) == initial_count - 1
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+    # * method: test_missing_service_is_idempotent
+    def test_missing_service_is_idempotent(self, mock_dependencies, app_interface):
+        '''
+        Test that removing a non-existent service dependency is idempotent.
+        '''
+
+        # Precondition: no service dependency with the given id exists.
+        assert app_interface.get_service('missing_service') is None
+        initial_count = len(app_interface.services)
+
+        # Execute via the harness handle helper with a non-existent service id.
+        result = self.handle(mock_dependencies, service_id='missing_service')
+
+        # Command should return the interface id.
+        assert result == app_interface.id
+
+        # Services list should remain unchanged.
+        assert app_interface.get_service('missing_service') is None
+        assert len(app_interface.services) == initial_count
+
+        # The updated interface should be saved.
+        mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
+
+# ** test: TestRemoveAppInterface
+class TestRemoveAppInterface(DomainEventTestBase):
     '''
-    Test that missing or empty id raises COMMAND_PARAMETER_REQUIRED.
-
-    :param invalid_id: The invalid id value to use.
-    :type invalid_id: str | None
-    :param app_service: The mock AppService instance.
-    :type app_service: AppService
+    Tests for RemoveAppInterface using the domain event test harness.
     '''
 
-    # Execute the command and expect a TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        DomainEvent.handle(
-            RemoveAppInterface,
-            dependencies={'app_service': app_service},
-            id=invalid_id,
-        )
+    # * attribute: event_cls
+    event_cls = RemoveAppInterface
 
-    # Verify the error code and that the id parameter is mentioned.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'id' in str(exc_info.value)
-    app_service.delete.assert_not_called()
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='existing.interface')
+
+    # * attribute: required_params
+    required_params = ['id']
+
+    # * method: test_success_existing
+    def test_success_existing(self, mock_dependencies):
+        '''
+        Test that RemoveAppInterface deletes an existing app interface and returns the ID.
+        '''
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
+
+        # Command should return the interface id and delegate deletion to the service.
+        assert result == 'existing.interface'
+        mock_dependencies['app_service'].delete.assert_called_once_with('existing.interface')
+
+    # * method: test_success_missing_is_idempotent
+    def test_success_missing_is_idempotent(self, mock_dependencies):
+        '''
+        Test that removing a non-existent interface is idempotent and still succeeds.
+        '''
+
+        # Execute via the harness handle helper with a different id.
+        result = self.handle(mock_dependencies, id='missing.interface')
+
+        # Command should return the interface id and still call delete exactly once.
+        assert result == 'missing.interface'
+        mock_dependencies['app_service'].delete.assert_called_once_with('missing.interface')
