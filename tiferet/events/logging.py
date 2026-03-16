@@ -1,4 +1,4 @@
-"""Tiferet Logging Commands"""
+"""Tiferet Logging Events"""
 
 # *** imports
 
@@ -8,16 +8,16 @@ from typing import List, Tuple
 # ** app
 from ..domain import Formatter, Handler, Logger
 from ..interfaces import LoggingService
-from ..mappers import Aggregate, FormatterAggregate, HandlerAggregate, LoggerAggregate
+from ..mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from .settings import DomainEvent, a
 
 
-# *** commands
+# *** events
 
-# ** command: list_all_logging_configs
+# ** event: list_all_logging_configs
 class ListAllLoggingConfigs(DomainEvent):
     '''
-    Command to list all logging configurations (formatters, handlers, loggers).
+    Event to list all logging configurations (formatters, handlers, loggers).
     '''
 
     # * attribute: logging_service
@@ -26,7 +26,7 @@ class ListAllLoggingConfigs(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the ListAllLoggingConfigs command.
+        Initialize the ListAllLoggingConfigs event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -50,10 +50,10 @@ class ListAllLoggingConfigs(DomainEvent):
         return self.logging_service.list_all()
 
 
-# ** command: add_formatter
+# ** event: add_formatter
 class AddFormatter(DomainEvent):
     '''
-    Command to add a new logging formatter configuration.
+    Event to add a new logging formatter configuration.
     '''
 
     # * attribute: logging_service
@@ -62,7 +62,7 @@ class AddFormatter(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the AddFormatter command.
+        Initialize the AddFormatter event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -102,8 +102,7 @@ class AddFormatter(DomainEvent):
         '''
 
         # Create the formatter aggregate.
-        formatter = Aggregate.new(
-            FormatterAggregate,
+        formatter = FormatterAggregate.new(
             id=id,
             name=name,
             format=format,
@@ -119,10 +118,10 @@ class AddFormatter(DomainEvent):
         return formatter
 
 
-# ** command: remove_formatter
+# ** event: remove_formatter
 class RemoveFormatter(DomainEvent):
     '''
-    Command to remove a formatter configuration by ID (idempotent).
+    Event to remove a formatter configuration by ID (idempotent).
     '''
 
     # * attribute: logging_service
@@ -131,7 +130,7 @@ class RemoveFormatter(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the RemoveFormatter command.
+        Initialize the RemoveFormatter event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -161,10 +160,10 @@ class RemoveFormatter(DomainEvent):
         return id
 
 
-# ** command: add_handler
+# ** event: add_handler
 class AddHandler(DomainEvent):
     '''
-    Command to add a new logging handler configuration.
+    Event to add a new logging handler configuration.
     '''
 
     # * attribute: logging_service
@@ -173,7 +172,7 @@ class AddHandler(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the AddHandler command.
+        Initialize the AddHandler event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -225,8 +224,7 @@ class AddHandler(DomainEvent):
         '''
 
         # Create the handler aggregate.
-        handler = Aggregate.new(
-            HandlerAggregate,
+        handler = HandlerAggregate.new(
             id=id,
             name=name,
             module_path=module_path,
@@ -246,10 +244,10 @@ class AddHandler(DomainEvent):
         return handler
 
 
-# ** command: remove_handler
+# ** event: remove_handler
 class RemoveHandler(DomainEvent):
     '''
-    Command to remove a handler configuration by ID (idempotent).
+    Event to remove a handler configuration by ID (idempotent).
     '''
 
     # * attribute: logging_service
@@ -258,7 +256,7 @@ class RemoveHandler(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the RemoveHandler command.
+        Initialize the RemoveHandler event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -288,10 +286,10 @@ class RemoveHandler(DomainEvent):
         return id
 
 
-# ** command: add_logger
+# ** event: add_logger
 class AddLogger(DomainEvent):
     '''
-    Command to add a new logger configuration.
+    Event to add a new logger configuration.
     '''
 
     # * attribute: logging_service
@@ -300,7 +298,7 @@ class AddLogger(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the AddLogger command.
+        Initialize the AddLogger event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
@@ -343,8 +341,7 @@ class AddLogger(DomainEvent):
         '''
 
         # Create the logger aggregate.
-        logger = Aggregate.new(
-            LoggerAggregate,
+        logger = LoggerAggregate.new(
             id=id,
             name=name,
             level=level,
@@ -361,10 +358,10 @@ class AddLogger(DomainEvent):
         return logger
 
 
-# ** command: remove_logger
+# ** event: remove_logger
 class RemoveLogger(DomainEvent):
     '''
-    Command to remove a logger configuration by ID (idempotent).
+    Event to remove a logger configuration by ID (idempotent).
     '''
 
     # * attribute: logging_service
@@ -373,7 +370,7 @@ class RemoveLogger(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the RemoveLogger command.
+        Initialize the RemoveLogger event.
 
         :param logging_service: The logging service to use.
         :type logging_service: LoggingService
