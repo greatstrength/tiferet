@@ -1,4 +1,4 @@
-"""Tiferet Error Commands"""
+"""Tiferet Error Events"""
 
 # *** imports
 
@@ -13,27 +13,29 @@ from typing import (
 from .settings import DomainEvent, a
 from ..domain import Error
 from ..interfaces import ErrorService
-from ..mappers import Aggregate, ErrorAggregate
+from ..mappers import ErrorAggregate
 
-# *** commands
+# *** events
 
-# ** command: add_error
+# ** event: add_error
 class AddError(DomainEvent):
-    """
-    Command to add a new Error domain object to the repository.
-    """
+    '''
+    Event to add a new Error domain object to the repository.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the AddError command.
+        '''
+        Initialize the AddError event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
@@ -41,11 +43,11 @@ class AddError(DomainEvent):
     def execute(self,
             id: str,
             name: str,
-            message: str, 
-            lang: str = 'en_US', 
+            message: str,
+            lang: str = 'en_US',
             additional_messages: List[Dict[str, Any]] = []
         ) -> None:
-        """
+        '''
         Add a new Error to the app.
 
         :param id: The unique identifier of the error.
@@ -58,7 +60,7 @@ class AddError(DomainEvent):
         :type lang: str
         :param additional_messages: Additional error messages in different languages.
         :type additional_messages: List[Dict[str, Any]]
-        """
+        '''
 
         # Check if an error with the same ID already exists.
         exists = self.error_service.exists(id)
@@ -71,8 +73,7 @@ class AddError(DomainEvent):
 
         # Create the Error aggregate.
         error_messages = [{'lang': lang, 'text': message}] + additional_messages
-        new_error = Aggregate.new(
-            ErrorAggregate,
+        new_error = ErrorAggregate.new(
             id=id,
             name=name,
             message=error_messages
@@ -84,28 +85,30 @@ class AddError(DomainEvent):
         # Return the new error.
         return new_error
 
-# ** command: get_error
+# ** event: get_error
 class GetError(DomainEvent):
-    """
-    Command to retrieve an Error domain object by its ID.
-    """
+    '''
+    Event to retrieve an Error domain object by its ID.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the GetError command.
+        '''
+        Initialize the GetError event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, include_defaults: bool = False, **kwargs) -> Error:
-        """
+        '''
         Retrieve an Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -116,7 +119,7 @@ class GetError(DomainEvent):
         :type kwargs: dict
         :return: The Error domain model instance.
         :rtype: Error
-        """
+        '''
 
         # Attempt to retrieve from configured repository.
         error = self.error_service.get(id)
@@ -129,82 +132,86 @@ class GetError(DomainEvent):
         if include_defaults:
             error_data = a.DEFAULT_ERRORS.get(id)
             if error_data:
-                return Aggregate.new(ErrorAggregate, **error_data)
+                return ErrorAggregate.new(**error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
-            error_code=a.ERROR_NOT_FOUND_ID,
+            error_code=a.const.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id,
         )
 
-# ** command: list_errors
+# ** event: list_errors
 class ListErrors(DomainEvent):
-    """
-    Command to list all Error domain objects.
-    """
+    '''
+    Event to list all Error domain objects.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the ListErrors command.
+        '''
+        Initialize the ListErrors event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     def execute(self, include_defaults: bool = False, **kwargs) -> List[Error]:
-        """
+        '''
         List all Errors.
 
-        :return: The list of Error domain model instances.
-        :rtype: List[Error]
         :param include_defaults: If True, include DEFAULT_ERRORS in the list.
         :type include_defaults: bool
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
-        """
+        :return: The list of Error domain model instances.
+        :rtype: List[Error]
+        '''
 
         # If defaults are not included, retrieve from repository only.
         if not include_defaults:
             return self.error_service.list()
-        
+
         # If defaults are included, merge repository and default errors.
-        errors = {id: Aggregate.new(ErrorAggregate, **data) for id, data in a.const.DEFAULT_ERRORS.items()}
+        errors = {id: ErrorAggregate.new(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 
         # Return the merged list of errors.
         return list(errors.values())
 
-# ** command: rename_error
+# ** event: rename_error
 class RenameError(DomainEvent):
-    """
-    Command to rename an existing Error domain object.
-    """
+    '''
+    Event to rename an existing Error domain object.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the RenameError command.
+        '''
+        Initialize the RenameError event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['new_name'])
     def execute(self, id: str, new_name: str, **kwargs) -> Error:
-        """
+        '''
         Rename an existing Error by its ID.
 
         :param id: The unique identifier of the error to rename.
@@ -215,7 +222,7 @@ class RenameError(DomainEvent):
         :type kwargs: dict
         :return: The updated Error domain model instance.
         :rtype: Error
-        """
+        '''
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -237,29 +244,31 @@ class RenameError(DomainEvent):
         # Return the updated error.
         return error
 
-# ** command: set_error_message
+# ** event: set_error_message
 class SetErrorMessage(DomainEvent):
-    """
-    Command to set the message of an existing Error domain object.
-    """
+    '''
+    Event to set the message of an existing Error domain object.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the SetErrorMessage command.
+        '''
+        Initialize the SetErrorMessage event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['message'])
     def execute(self, id: str, message: str, lang: str = 'en_US', **kwargs) -> str:
-        """
+        '''
         Set the message of an existing Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -272,7 +281,7 @@ class SetErrorMessage(DomainEvent):
         :type kwargs: dict
         :return: The unique identifier of the updated error.
         :rtype: str
-        """
+        '''
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -294,28 +303,30 @@ class SetErrorMessage(DomainEvent):
         # Return the updated error id.
         return id
 
-# ** command: remove_error_message
+# ** event: remove_error_message
 class RemoveErrorMessage(DomainEvent):
-    """
-    Command to remove a message from an existing Error domain object.
-    """
+    '''
+    Event to remove a message from an existing Error domain object.
+    '''
 
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the RemoveErrorMessage command.
+        '''
+        Initialize the RemoveErrorMessage event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, lang: str = 'en_US', **kwargs) -> str:
-        """
+        '''
         Remove a message from an existing Error by its ID.
 
         :param id: The unique identifier of the error.
@@ -326,7 +337,7 @@ class RemoveErrorMessage(DomainEvent):
         :type kwargs: dict
         :return: The unique identifier of the updated error.
         :rtype: str
-        """
+        '''
 
         # Retrieve the existing error.
         error = self.error_service.get(id)
@@ -354,36 +365,38 @@ class RemoveErrorMessage(DomainEvent):
         # Return the updated error id.
         return id
 
-# ** command: remove_error
+# ** event: remove_error
 class RemoveError(DomainEvent):
-    """
-    Command to remove an existing Error domain object by its ID.
-    """
-    
+    '''
+    Event to remove an existing Error domain object by its ID.
+    '''
+
     # * attribute: error_service
     error_service: ErrorService
 
     # * init
     def __init__(self, error_service: ErrorService):
-        """
-        Initialize the RemoveError command.
+        '''
+        Initialize the RemoveError event.
 
-        :param error_repo: The error service to use.
-        :type error_repo: ErrorService
-        """
+        :param error_service: The error service to use.
+        :type error_service: ErrorService
+        '''
+
+        # Set the error service dependency.
         self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> None:
-        """
+        '''
         Remove an existing Error by its ID.
 
         :param id: The unique identifier of the error to remove.
         :type id: str
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
-        """
+        '''
 
         # Remove the error.
         self.error_service.delete(id)

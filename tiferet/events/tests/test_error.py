@@ -1,4 +1,4 @@
-"""Tiferet Tests for Error Commands"""
+"""Tiferet Tests for Error Events"""
 
 # *** imports
 
@@ -11,36 +11,36 @@ from unittest import mock
 
 # ** app
 from ..error import (
-    Error,
-    ErrorService, 
     AddError,
     GetError,
     ListErrors,
     RenameError,
     SetErrorMessage,
     RemoveErrorMessage,
-    RemoveError
+    RemoveError,
 )
-from ..settings import a, TiferetError
+from ..settings import DomainEvent, TiferetError, a
+from ...domain import Error
+from ...interfaces import ErrorService
 from ...mappers import ErrorAggregate
-from ...mappers.settings import Aggregate
+from .settings import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
+
+# ** fixture: error
 @pytest.fixture
-def error() -> Error:
+def error() -> ErrorAggregate:
     '''
-    Fixture to create a sample Error instance.
+    A sample Error aggregate for event tests.
 
-    :return: A sample Error instance.
-    :rtype: Error
+    :return: An ErrorAggregate instance.
+    :rtype: ErrorAggregate
     '''
 
-    # Return a sample Error aggregate.
-    return Aggregate.new(
-        ErrorAggregate,
+    # Create a sample error aggregate.
+    return ErrorAggregate.new(
         id='TEST_ERROR',
         name='Test Error',
-        description='A detailed description of the test error.',
         message=[{
             'lang': 'en_US',
             'text': 'This is a test error message.'
@@ -51,7 +51,7 @@ def error() -> Error:
 @pytest.fixture
 def default_errors() -> List[Error]:
     '''
-    Fixture to create a list of default Error instances.
+    A list of default Error instances from constants.
 
     :return: A list of default Error instances.
     :rtype: List[Error]
@@ -59,764 +59,484 @@ def default_errors() -> List[Error]:
 
     # Return a list of default Error aggregates.
     return [
-        Aggregate.new(ErrorAggregate, **data) for data in a.DEFAULT_ERRORS.values()
+        ErrorAggregate.new(**data) for data in a.DEFAULT_ERRORS.values()
     ]
-
-# ** fixture: error_repo_mock
-@pytest.fixture
-def error_service_mock() -> mock.Mock:
-    '''
-    Fixture to create a mocked ErrorService.
-
-    :return: A mocked ErrorService.
-    :rtype: mock.Mock
-    '''
-
-    # Create and return the mock.
-    return mock.Mock(spec=ErrorService)
-
-# ** fixture: add_error_command
-@pytest.fixture
-def add_error_command(error_service_mock: mock.Mock) -> AddError:
-    '''
-    Fixture to create an AddError command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The AddError command instance.
-    :rtype: AddError
-    '''
-
-    # Return the AddError command with the mocked repository.
-    return AddError(error_service=error_service_mock)
-
-# ** fixture: get_error_command
-@pytest.fixture
-def get_error_command(error_service_mock: mock.Mock) -> GetError:
-    '''
-    Fixture to create a GetError command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The GetError command instance.
-    :rtype: GetError
-    '''
-
-    # Return the GetError command with the mocked repository.
-    return GetError(error_service=error_service_mock)
-
-# ** fixture: list_errors_command
-@pytest.fixture
-def list_errors_command(error_service_mock: mock.Mock) -> ListErrors:
-    '''
-    Fixture to create a ListErrors command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The ListErrors command instance.
-    :rtype: ListErrors
-    '''
-
-    # Return the ListErrors command with the mocked repository.
-    return ListErrors(error_service=error_service_mock)
-
-# ** fixture: rename_error_command
-@pytest.fixture
-def rename_error_command(error_service_mock: mock.Mock) -> RenameError:
-    '''
-    Fixture to create a RenameError command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The RenameError command instance.
-    :rtype: RenameError
-    '''
-
-    # Return the RenameError command with the mocked repository.
-    return RenameError(error_service=error_service_mock)
-
-# ** fixture: set_error_message_command
-@pytest.fixture
-def set_error_message_command(error_service_mock: mock.Mock) -> SetErrorMessage:
-    '''
-    Fixture to create a SetErrorMessage command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The SetErrorMessage command instance.
-    :rtype: SetErrorMessage
-    '''
-
-    # Return the SetErrorMessage command with the mocked repository.
-    return SetErrorMessage(error_service=error_service_mock)
-
-# ** fixture: remove_error_message_command
-@pytest.fixture
-def remove_error_message_command(error_service_mock: mock.Mock) -> RemoveErrorMessage:
-    '''
-    Fixture to create a RemoveErrorMessage command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The RemoveErrorMessage command instance.
-    :rtype: RemoveErrorMessage
-    '''
-
-    # Return the RemoveErrorMessage command with the mocked repository.
-    return RemoveErrorMessage(error_service=error_service_mock)
-
-# ** fixture: remove_error_command
-@pytest.fixture
-def remove_error_command(error_service_mock: mock.Mock) -> RemoveError:
-    '''
-    Fixture to create a RemoveError command instance with a mocked ErrorService.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :return: The RemoveError command instance.
-    :rtype: RemoveError
-    '''
-
-    # Return the RemoveError command with the mocked repository.
-    return RemoveError(error_service=error_service_mock)
 
 # *** tests
 
-# ** test: add_error_success
-def test_add_error_success(add_error_command: AddError, error_service_mock: mock.Mock):
+# ** test: TestAddError
+class TestAddError(DomainEventTestBase):
     '''
-    Test adding a new error successfully.
-
-    :param add_error_command: The AddError command instance.
-    :type add_error_command: AddError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
+    Tests for AddError using the domain event test harness.
     '''
 
-    # Arrange the parameters for adding an error.
-    error_id = 'NEW_ERROR'
-    error_name = 'New Error'
-    error_message = 'This is a new error message.'
-    lang = 'en_US'
-    additional_messages = [{'lang': 'es_ES', 'text': 'Este es un mensaje de error nuevo.'}]
+    # * attribute: event_cls
+    event_cls = AddError
 
-    # Configure the mock to indicate the error does not exist.
-    error_service_mock.exists.return_value = False
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Act to add the new error.
-    result = add_error_command.execute(
-        id=error_id,
-        name=error_name,
-        message=error_message,
-        lang=lang,
-        additional_messages=additional_messages
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='NEW_ERROR',
+        name='New Error',
+        message='This is a new error message.',
+        lang='en_US',
+        additional_messages=[],
     )
 
-    # Assert that the error was added correctly.
-    assert result.id == error_id, 'Error ID does not match.'
-    assert result.name == error_name, 'Error name does not match.'
-    assert any(msg.text == error_message and msg.lang == lang for msg in result.message), 'Primary error message does not match.'
-    assert any(msg.text == 'Este es un mensaje de error nuevo.' and msg.lang == 'es_ES' for msg in result.message), 'Additional error message does not match.'
-    error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
-    error_service_mock.save.assert_called_once_with(result), 'Save method was not called correctly.'
+    # * attribute: required_params
+    required_params = ['id', 'name', 'message']
 
-# * test: add_error_already_invalid_parameters
-def test_add_error_already_invalid_parameters(add_error_command: AddError):
-    '''
-    Test adding an error with invalid parameters.
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self) -> dict:
+        '''
+        Override to pre-configure exists to return False.
+        '''
 
-    :param add_error_command: The AddError command instance.
-    :type add_error_command: AddError
-    '''
+        # Create the mock error service.
+        service = mock.Mock(spec=ErrorService)
+        service.exists.return_value = False
+        return {'error_service': service}
 
-    # Test with empty ID.
-    with pytest.raises(TiferetError) as exc_info:
-        add_error_command.execute(
-            id='',
-            name='Some Name',
-            message='Some message.'
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test adding a new error successfully.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the error was created correctly.
+        assert isinstance(result, Error)
+        assert result.id == 'NEW_ERROR'
+        assert result.name == 'New Error'
+        assert any(msg.text == 'This is a new error message.' and msg.lang == 'en_US' for msg in result.message)
+
+        # Assert the service was called correctly.
+        mock_dependencies['error_service'].exists.assert_called_once_with('NEW_ERROR')
+        mock_dependencies['error_service'].save.assert_called_once_with(result)
+
+    # * method: test_with_additional_messages
+    def test_with_additional_messages(self, mock_dependencies):
+        '''
+        Test adding a new error with additional language messages.
+        '''
+
+        # Execute with additional messages.
+        result = self.handle(
+            mock_dependencies,
+            additional_messages=[{'lang': 'es_ES', 'text': 'Este es un nuevo error.'}],
         )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'id' in exc_info.value.kwargs.get('parameters')
-    assert exc_info.value.kwargs.get('command') == 'AddError'
 
-    # Test with empty name.
-    with pytest.raises(TiferetError) as exc_info:
-        add_error_command.execute(
-            id='VALID_ID',
-            name='',
-            message='Some message.'
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'name' in exc_info.value.kwargs.get('parameters')
-    assert exc_info.value.kwargs.get('command') == 'AddError'
+        # Assert both messages are present.
+        assert len(result.message) == 2
+        assert any(msg.text == 'This is a new error message.' and msg.lang == 'en_US' for msg in result.message)
+        assert any(msg.text == 'Este es un nuevo error.' and msg.lang == 'es_ES' for msg in result.message)
 
-    # Test with empty message.
-    with pytest.raises(TiferetError) as exc_info:
-        add_error_command.execute(
-            id='VALID_ID',
-            name='Some Name',
-            message=''
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'message' in exc_info.value.kwargs.get('parameters')
-    assert exc_info.value.kwargs.get('command') == 'AddError'
+    # * method: test_already_exists
+    def test_already_exists(self, mock_dependencies):
+        '''
+        Test that adding an error with an existing ID raises an error.
+        '''
 
-# ** test: add_error_already_exists
-def test_add_error_already_exists(add_error_command: AddError, error_service_mock: mock.Mock):
+        # Configure the service to report the ID already exists.
+        mock_dependencies['error_service'].exists.return_value = True
+
+        # Execute and expect an ERROR_ALREADY_EXISTS error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies)
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.ERROR_ALREADY_EXISTS_ID
+
+
+# ** test: TestGetError
+class TestGetError(ServiceEventTestBase):
     '''
-    Test adding an error that already exists.
-
-    :param add_error_command: The AddError command instance.
-    :type add_error_command: AddError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
+    Tests for GetError using the service event test harness.
     '''
 
-    # Arrange the parameters for adding an error.
-    error_id = 'EXISTING_ERROR'
-    error_name = 'Existing Error'
-    error_message = 'This error already exists.'
-    lang = 'en_US'
-    additional_messages = []
+    # * attribute: event_cls
+    event_cls = GetError
 
-    # Configure the mock to indicate the error already exists.
-    error_service_mock.exists.return_value = True
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Act & Assert that adding the error raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        add_error_command.execute(
+    # * attribute: service_attr
+    service_attr = 'error_service'
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='TEST_ERROR')
+
+    # * attribute: required_params
+    required_params = []
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, error) -> dict:
+        '''
+        Override to pre-configure get to return the error fixture.
+        '''
+
+        # Create the mock error service.
+        service = mock.Mock(spec=ErrorService)
+        service.get.return_value = error
+        return {'error_service': service}
+
+    # * method: test_found_in_repo
+    def test_found_in_repo(self, mock_dependencies, error):
+        '''
+        Test retrieving an error found in the repository.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the result matches the fixture.
+        assert result == error
+        mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
+
+    # * method: test_found_in_defaults
+    def test_found_in_defaults(self, mock_dependencies):
+        '''
+        Test retrieving an error from built-in defaults when not in repository.
+        '''
+
+        # Configure the service to return None (not in repo).
+        mock_dependencies['error_service'].get.return_value = None
+
+        # Execute with include_defaults and a known default error ID.
+        error_id = a.const.ERROR_NOT_FOUND_ID
+        result = self.handle(
+            mock_dependencies,
             id=error_id,
-            name=error_name,
-            message=error_message,
-            lang=lang,
-            additional_messages=additional_messages
+            include_defaults=True,
         )
 
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.ERROR_ALREADY_EXISTS_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
-    assert f'An error with ID {error_id} already exists.' in str(exc_info.value), 'Exception message does not match.'
-    error_service_mock.exists.assert_called_once_with(error_id), 'Exists method was not called correctly.'
+        # Assert the result matches the expected default error.
+        expected = ErrorAggregate.new(**a.DEFAULT_ERRORS.get(error_id))
+        assert result == expected
+        mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 
-# ** test: get_error_found_in_repo
-def test_get_error_found_in_repo(error: Error, error_service_mock: mock.Mock, get_error_command: GetError):
+
+# ** test: TestListErrors
+class TestListErrors(DomainEventTestBase):
     '''
-    Test retrieving an error that exists in the repository.
-
-    :param error: The sample Error instance.
-    :type error: Error
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param get_error_command: The GetError command instance.
-    :type get_error_command: GetError
+    Tests for ListErrors using the domain event test harness.
     '''
 
-    # Arrange the mock to return the error.
-    error_id = 'TEST_ERROR'
-    error_service_mock.get.return_value = error
+    # * attribute: event_cls
+    event_cls = ListErrors
 
-    # Act to retrieve the error.
-    result = get_error_command.execute(id=error_id)
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Assert the result matches the expected error.
-    assert result == error
-    error_service_mock.get.assert_called_once_with(error_id)
+    # * attribute: sample_kwargs
+    sample_kwargs = dict()
 
-# ** test: get_error_found_in_defaults
-def test_get_error_found_in_defaults(error_service_mock: mock.Mock, get_error_command: GetError):
+    # * attribute: required_params
+    required_params = []
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, error):
+        '''
+        Test listing errors from the repository.
+        '''
+
+        # Configure the mock to return a list with the error fixture.
+        mock_dependencies['error_service'].list.return_value = [error]
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the result matches.
+        assert result == [error]
+        mock_dependencies['error_service'].list.assert_called_once()
+
+    # * method: test_with_defaults
+    def test_with_defaults(self, mock_dependencies, default_errors):
+        '''
+        Test listing errors including default errors.
+        '''
+
+        # Configure the mock to return a list with an additional error.
+        existing_error = ErrorAggregate.new(
+            id='EXISTING_ERROR',
+            name='Existing Error',
+            message=[{
+                'lang': 'en_US',
+                'text': 'This is an existing error message.'
+            }]
+        )
+        mock_dependencies['error_service'].list.return_value = [existing_error]
+
+        # Execute with include_defaults.
+        result = self.handle(mock_dependencies, include_defaults=True)
+
+        # Assert the result includes both existing and default errors.
+        expected_errors = [existing_error] + default_errors
+        assert len(result) == len(expected_errors)
+        for err in expected_errors:
+            assert err in result
+
+    # * method: test_with_defaults_and_override
+    def test_with_defaults_and_override(self, mock_dependencies, default_errors):
+        '''
+        Test listing errors with a repository error that overrides a default.
+        '''
+
+        # Create a repo error that overrides the default ERROR_NOT_FOUND.
+        overriding_error = ErrorAggregate.new(
+            id=a.const.ERROR_NOT_FOUND_ID,
+            name='Overriding Not Found Error',
+            message=[{
+                'lang': 'en_US',
+                'text': 'This is an overridden not found error message.'
+            }]
+        )
+        mock_dependencies['error_service'].list.return_value = [overriding_error]
+
+        # Execute with include_defaults.
+        result = self.handle(mock_dependencies, include_defaults=True)
+
+        # Assert the override replaces the default.
+        expected_errors = [overriding_error] + [
+            err for err in default_errors if err.id != a.const.ERROR_NOT_FOUND_ID
+        ]
+        assert len(result) == len(expected_errors)
+        for err in expected_errors:
+            assert err in result
+
+    # * method: test_no_errors_with_defaults
+    def test_no_errors_with_defaults(self, mock_dependencies, default_errors):
+        '''
+        Test listing errors when repository is empty and only defaults exist.
+        '''
+
+        # Configure the mock to return an empty list.
+        mock_dependencies['error_service'].list.return_value = []
+
+        # Execute with include_defaults.
+        result = self.handle(mock_dependencies, include_defaults=True)
+
+        # Assert only default errors are returned.
+        assert len(result) == len(default_errors)
+        for err in default_errors:
+            assert err in result
+
+
+# ** test: TestRenameError
+class TestRenameError(ServiceEventTestBase):
     '''
-    Test retrieving an error that exists in the default errors.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param get_error_command: The GetError command instance.
-    :type get_error_command: GetError
-    '''
-
-    # Arrange the mock to return None.
-    error_id = a.ERROR_NOT_FOUND_ID
-    error_service_mock.get.return_value = None
-
-    # Act to retrieve the error.
-    result = get_error_command.execute(id=error_id, include_defaults=True)
-
-    # Assert the result matches the expected default error.
-    expected_error = Aggregate.new(ErrorAggregate, **a.DEFAULT_ERRORS.get(error_id))
-    assert result == expected_error
-    error_service_mock.get.assert_called_once_with(error_id)
-
-# ** test: get_error_not_found
-def test_get_error_not_found(error_service_mock: mock.Mock, get_error_command: GetError):
-    '''
-    Test retrieving an error that does not exist in the repository or defaults.
-
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param get_error_command: The GetError command instance.
-    :type get_error_command: GetError
-    '''
-
-    # Arrange the mock to return None.
-    error_id = 'NON_EXISTENT_ERROR'
-    error_service_mock.get.return_value = None
-
-    # Act & Assert that retrieving the error raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        get_error_command.execute(id=error_id, include_defaults=False)
-
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.ERROR_NOT_FOUND_ID
-    assert exc_info.value.kwargs.get('id') == error_id
-    assert f'Error not found: {error_id}.' in str(exc_info.value)
-    error_service_mock.get.assert_called_once_with(error_id)
-
-# ** test: list_errors_success
-def test_list_errors_success(list_errors_command: ListErrors, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test listing all errors successfully.
-
-    :param list_errors_command: The ListErrors command instance.
-    :type list_errors_command: ListErrors
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Arrange the mock to return a list of errors.
-    error_service_mock.list.return_value = [error]
-
-    # Act to list the errors.
-    result = list_errors_command.execute()
-
-    # Assert the result matches the expected list of errors.
-    assert result == [error], 'The list of errors does not match the expected result.'
-    error_service_mock.list.assert_called_once(), 'List method was not called correctly.'
-
-# ** test: list_errors_with_defaults
-def test_list_errors_with_defaults(list_errors_command: ListErrors, error_service_mock: mock.Mock, default_errors: List[Error]):
-    '''
-    Test listing all errors including default errors.
-
-    :param list_errors_command: The ListErrors command instance.
-    :type list_errors_command: ListErrors
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param default_errors: The list of default Error instances.
-    :type default_errors: List[Error]
-    '''
-
-    # Arrange the mock to return a list of errors.
-    existing_error = Aggregate.new(
-        ErrorAggregate,
-        id='EXISTING_ERROR',
-        name='Existing Error',
-        description='An existing error in the repository.',
-        message=[{
-            'lang': 'en_US',
-            'text': 'This is an existing error message.'
-        }]
-    )
-    error_service_mock.list.return_value = [existing_error]
-
-    # Act to list the errors including defaults.
-    result = list_errors_command.execute(include_defaults=True)
-
-    # Assert the result includes both existing and default errors.
-    expected_errors = [existing_error] + default_errors
-    assert len(result) == len(expected_errors), 'The number of errors does not match the expected result.'
-    for error in expected_errors:
-        assert error in result, f'Error {error.id} not found in the result.'
-    error_service_mock.list.assert_called_once(), 'List method was not called correctly.'
-
-# ** test: list_errors_with_defaults_and_override
-def test_list_errors_with_defaults_and_override(list_errors_command: ListErrors, error_service_mock: mock.Mock, default_errors: List[Error]):
-    '''
-    Test listing all errors including default errors with an override.
-
-    :param list_errors_command: The ListErrors command instance.
-    :type list_errors_command: ListErrors
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param default_errors: The list of default Error instances.
-    :type default_errors: List[Error]
+    Tests for RenameError using the service event test harness.
     '''
 
-    # Arrange the mock to return a list of errors that overrides a default error.
-    overriding_error = Aggregate.new(
-        ErrorAggregate,
-        id=a.const.ERROR_NOT_FOUND_ID,
-        name='Overriding Not Found Error',
-        description='An overriding error for not found.',
-        message=[{
-            'lang': 'en_US',
-            'text': 'This is an overridden not found error message.'
-        }]
-    )
-    error_service_mock.list.return_value = [overriding_error]
+    # * attribute: event_cls
+    event_cls = RenameError
 
-    # Act to list the errors including defaults.
-    result = list_errors_command.execute(include_defaults=True)
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Assert the result includes the overriding error instead of the default.
-    expected_errors = [overriding_error] + [
-    error for error in default_errors if error.id != a.const.ERROR_NOT_FOUND_ID
-    ]
-    assert len(result) == len(expected_errors), 'The number of errors does not match the expected result.'
-    for error in expected_errors:
-        assert error in result, f'Error {error.id} not found in the result.'
-    error_service_mock.list.assert_called_once(), 'List method was not called correctly.'   
+    # * attribute: service_attr
+    service_attr = 'error_service'
 
-# ** test: list_errors_no_errors_and_with_defaults
-def test_list_errors_no_errors_and_defaults(list_errors_command: ListErrors, error_service_mock: mock.Mock, default_errors: List[Error]):
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='TEST_ERROR', new_name='Renamed Error')
+
+    # * attribute: required_params
+    required_params = ['new_name']
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, error) -> dict:
+        '''
+        Override to pre-configure get to return the error fixture.
+        '''
+
+        # Create the mock error service.
+        service = mock.Mock(spec=ErrorService)
+        service.get.return_value = error
+        return {'error_service': service}
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, error):
+        '''
+        Test renaming an existing error successfully.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the error was renamed.
+        assert result == error
+        assert error.name == 'Renamed Error'
+        mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
+        mock_dependencies['error_service'].save.assert_called_once_with(error)
+
+
+# ** test: TestSetErrorMessage
+class TestSetErrorMessage(ServiceEventTestBase):
     '''
-    Test listing all errors when there are no errors in the repository and only defaults.
-
-    :param list_errors_command: The ListErrors command instance.
-    :type list_errors_command: ListErrors
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    '''
-
-    # Arrange the mock to return an empty list.
-    error_service_mock.list.return_value = []
-
-    # Act to list the errors including defaults.
-    result = list_errors_command.execute(include_defaults=True)
-
-    # Assert the result is an empty list containing only default errors.
-    expected_errors = default_errors
-    assert len(result) == len(expected_errors), 'The number of errors does not match the expected result.'
-    for error in expected_errors:
-        assert error in result, f'Error {error.id} not found in the result.'
-    error_service_mock.list.assert_called_once(), 'List method was not called correctly.'
-
-# ** test: rename_error_success
-def test_rename_error_success(rename_error_command: RenameError, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test renaming an existing error successfully.
-
-    :param rename_error_command: The RenameError command instance.
-    :type rename_error_command: RenameError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
+    Tests for SetErrorMessage using the service event test harness.
     '''
 
-    # Arrange the parameters for renaming an error.
-    error_id = error.id
-    new_name = 'Renamed Test Error'
+    # * attribute: event_cls
+    event_cls = SetErrorMessage
 
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Act to rename the error.
-    rename_error_command.execute(
-        id=error_id,
-        new_name=new_name
+    # * attribute: service_attr
+    service_attr = 'error_service'
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='TEST_ERROR',
+        message='Updated error message.',
+        lang='en_US',
     )
 
-    # Assert that the error was renamed correctly.
-    assert error.name == new_name, 'Error name was not updated correctly.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
-    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
+    # * attribute: required_params
+    required_params = ['message']
 
-# ** test: rename_error_empty_name
-def test_rename_error_empty_name(rename_error_command: RenameError, error_service_mock: mock.Mock, error: Error):
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, error) -> dict:
+        '''
+        Override to pre-configure get to return the error fixture.
+        '''
+
+        # Create the mock error service.
+        service = mock.Mock(spec=ErrorService)
+        service.get.return_value = error
+        return {'error_service': service}
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, error):
+        '''
+        Test setting a message for an existing error successfully.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the ID is returned and the message was updated.
+        assert result == 'TEST_ERROR'
+        assert any(msg.text == 'Updated error message.' and msg.lang == 'en_US' for msg in error.message)
+        mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
+        mock_dependencies['error_service'].save.assert_called_once_with(error)
+
+
+# ** test: TestRemoveErrorMessage
+class TestRemoveErrorMessage(ServiceEventTestBase):
     '''
-    Test renaming an error with an empty new name.
-
-    :param rename_error_command: The RenameError command instance.
-    :type rename_error_command: RenameError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Arrange the parameters for renaming an error.
-    error_id = error.id
-    new_name = ''
-
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
-
-    # Act & Assert that renaming the error raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        rename_error_command.execute(
-            id=error_id,
-            new_name=new_name
-        )
-
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
-    assert 'new_name' in exc_info.value.kwargs.get('parameters'), 'Parameter in exception does not match.'
-    assert exc_info.value.kwargs.get('command') == 'RenameError', 'Command in exception does not match.'
-
-# ** test: rename_error_not_found
-def test_rename_error_not_found(rename_error_command: RenameError, error_service_mock: mock.Mock):
-    '''
-    Test renaming an error that does not exist.
-
-    :param rename_error_command: The RenameError command instance.
-    :type rename_error_command: RenameError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
+    Tests for RemoveErrorMessage using the service event test harness.
     '''
 
-    # Arrange the parameters for renaming an error.
-    error_id = 'NON_EXISTENT_ERROR'
-    new_name = 'Renamed Error'
+    # * attribute: event_cls
+    event_cls = RemoveErrorMessage
 
-    # Configure the mock to return None (error not found).
-    error_service_mock.get.return_value = None
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Act & Assert that renaming the error raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        rename_error_command.execute(
-            id=error_id,
-            new_name=new_name
-        )
+    # * attribute: service_attr
+    service_attr = 'error_service'
 
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
 
-# ** test: set_error_message_success
-def test_set_error_message_success(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock, error: Error):
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='TEST_ERROR', lang='es_ES')
+
+    # * attribute: required_params
+    required_params = []
+
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, error) -> dict:
+        '''
+        Override to pre-configure get with an error that has two messages.
+        '''
+
+        # Add a second message so the remove succeeds.
+        error.set_message('es_ES', 'Este es un mensaje de error de prueba.')
+
+        # Create the mock error service.
+        service = mock.Mock(spec=ErrorService)
+        service.get.return_value = error
+        return {'error_service': service}
+
+    # * method: test_success
+    def test_success(self, mock_dependencies, error):
+        '''
+        Test removing a message from an existing error successfully.
+        '''
+
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
+
+        # Assert the ID is returned and the message was removed.
+        assert result == 'TEST_ERROR'
+        assert all(msg.lang != 'es_ES' for msg in error.message)
+        mock_dependencies['error_service'].get.assert_called_once_with('TEST_ERROR')
+        mock_dependencies['error_service'].save.assert_called_once_with(error)
+
+    # * method: test_no_messages_left
+    def test_no_messages_left(self, mock_dependencies, error):
+        '''
+        Test that removing the last message raises NO_ERROR_MESSAGES.
+        '''
+
+        # Remove the es_ES message added by mock_dependencies so only en_US remains.
+        error.remove_message('es_ES')
+
+        # Execute removing the only remaining message (en_US).
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, lang='en_US')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.NO_ERROR_MESSAGES_ID
+
+
+# ** test: TestRemoveError
+class TestRemoveError(DomainEventTestBase):
     '''
-    Test setting a new message for an existing error successfully.
-
-    :param set_error_message_command: The SetErrorMessage command instance.
-    :type set_error_message_command: SetErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Arrange the parameters for setting a new error message.
-    error_id = error.id
-    new_message = 'This is an updated test error message.'
-    lang = 'en_US'
-
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
-
-    # Act to set the new error message.
-    error_id = set_error_message_command.execute(
-        id=error_id,
-        message=new_message,
-        lang=lang
-    )
-
-    # Assert that the error message was updated correctly.
-    assert error_id == error.id, 'Returned error ID does not match.'
-    assert any(msg.text == new_message and msg.lang == lang for msg in error.message), 'Error message was not updated correctly.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
-    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
-
-# ** test: set_error_message_empty_message
-def test_set_error_message_empty_message(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test setting an empty message for an existing error.
-
-    :param set_error_message_command: The SetErrorMessage command instance.
-    :type set_error_message_command: SetErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Arrange the parameters for setting a new error message.
-    error_id = error.id
-    new_message = ''
-    lang = 'en_US'
-
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
-
-    # Act & Assert that setting the empty message raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        set_error_message_command.execute(
-            id=error_id,
-            message=new_message,
-            lang=lang
-        )
-
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID, 'Error code does not match.'
-    assert 'message' in exc_info.value.kwargs.get('parameters'), 'Parameter in exception does not match.'
-    assert exc_info.value.kwargs.get('command') == 'SetErrorMessage', 'Command in exception does not match.'
-
-# ** test: set_error_message_not_found
-def test_set_error_message_not_found(set_error_message_command: SetErrorMessage, error_service_mock: mock.Mock):
-    '''
-    Test setting a message for an error that does not exist.
-
-    :param set_error_message_command: The SetErrorMessage command instance.
-    :type set_error_message_command: SetErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
+    Tests for RemoveError using the domain event test harness.
     '''
 
-    # Arrange the parameters for setting a new error message.
-    error_id = 'NON_EXISTENT_ERROR'
-    new_message = 'This is a new message.'
-    lang = 'en_US'
+    # * attribute: event_cls
+    event_cls = RemoveError
 
-    # Configure the mock to return None (error not found).
-    error_service_mock.get.return_value = None
+    # * attribute: dependencies
+    dependencies = {'error_service': ErrorService}
 
-    # Act & Assert that setting the message raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        set_error_message_command.execute(
-            id=error_id,
-            message=new_message,
-            lang=lang
-        )
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='TEST_ERROR')
 
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
+    # * attribute: required_params
+    required_params = ['id']
 
-# ** test: remove_error_message_success
-def test_remove_error_message_success(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test removing a message for an existing error successfully.
+    # * method: test_success
+    def test_success(self, mock_dependencies):
+        '''
+        Test removing an existing error successfully.
+        '''
 
-    :param remove_error_message_command: The RemoveErrorMessage command instance.
-    :type remove_error_message_command: RemoveErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
+        # Execute via the harness.
+        result = self.handle(mock_dependencies)
 
-    # Add a new message to ensure there is something to remove.
-    lang_to_remove = 'es_ES'
-    error.set_message(lang_to_remove, 'Este es un mensaje de error de prueba.')
-
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
-
-    # Act to remove the error message.
-    error_id = remove_error_message_command.execute(
-        id=error.id,
-        lang=lang_to_remove
-    )
-
-    # Assert that the error message was removed correctly.
-    assert error_id == error.id, 'Returned error ID does not match.'
-    assert all(msg.lang != lang_to_remove for msg in error.message), 'Error message was not removed correctly.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
-    error_service_mock.save.assert_called_once_with(error), 'Save method was not called correctly.'
-
-# ** test: remove_error_message_not_found
-def test_remove_error_message_not_found(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock):
-    '''
-    Test removing a message for an error that does not exist.
-
-    :param remove_error_message_command: The RemoveErrorMessage command instance.
-    :type remove_error_message_command: RemoveErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    '''
-
-    # Arrange the parameters for removing an error message.
-    error_id = 'NON_EXISTENT_ERROR'
-    lang_to_remove = 'en_US'
-
-    # Configure the mock to return None (error not found).
-    error_service_mock.get.return_value = None
-
-    # Act & Assert that removing the message raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        remove_error_message_command.execute(
-            id=error_id,
-            lang=lang_to_remove
-        )
-
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.ERROR_NOT_FOUND_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('id') == error_id, 'Error ID in exception does not match.'
-    error_service_mock.get.assert_called_once_with(error_id), 'Get method was not called correctly.'
-
-# ** test: remove_error_message_no_error_messages
-def test_remove_error_message_no_error_messages(remove_error_message_command: RemoveErrorMessage, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test removing a message when no messages exist for the error.
-
-    :param remove_error_message_command: The RemoveErrorMessage command instance.
-    :type remove_error_message_command: RemoveErrorMessage
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Prepare the input parameters to remove the only existing message.
-    lang_to_remove = 'en_US'
-
-    # Configure the mock to return the existing error.
-    error_service_mock.get.return_value = error
-
-    # Act & Assert that removing the message raises the expected exception.
-    with pytest.raises(TiferetError) as exc_info:
-        remove_error_message_command.execute(
-            id=error.id,
-            lang=lang_to_remove
-        )
-
-    # Verify the exception message.
-    assert exc_info.value.error_code == a.const.NO_ERROR_MESSAGES_ID, 'Error code does not match.'
-    assert exc_info.value.kwargs.get('id') == error.id, 'Error ID in exception does not match.'
-    error_service_mock.get.assert_called_once_with(error.id), 'Get method was not called correctly.'
-
-# ** test: remove_error_success
-def test_remove_error_success(remove_error_command: RemoveError, error_service_mock: mock.Mock, error: Error):
-    '''
-    Test removing an existing error successfully.
-
-    :param remove_error_command: The RemoveError command instance.
-    :type remove_error_command: RemoveError
-    :param error_service_mock: The mocked ErrorService.
-    :type error_service_mock: mock.Mock
-    :param error: The sample Error instance.
-    :type error: Error
-    '''
-
-    # Arrange the parameters for removing an error.
-    error_id = error.id
-
-    # Act to remove the error.
-    removed_error_id = remove_error_command.execute(
-        id=error_id
-    )
-
-    # Assert that the error was removed correctly.
-    assert removed_error_id == error_id, 'Returned error ID does not match.'
-    error_service_mock.delete.assert_called_once_with(error_id), 'Delete method was not called correctly.'
-
-# ** test: remove_error_invalid_parameters
-def test_remove_error_invalid_parameters(remove_error_command: RemoveError):
-    '''
-    Test removing an error with invalid parameters.
-
-    :param remove_error_command: The RemoveError command instance.
-    :type remove_error_command: RemoveError
-    '''
-
-    # Test with empty ID.
-    with pytest.raises(TiferetError) as exc_info:
-        remove_error_command.execute(
-            id=''
-        )
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
-    assert 'id' in exc_info.value.kwargs.get('parameters')
-    assert exc_info.value.kwargs.get('command') == 'RemoveError'
+        # Assert the ID is returned and delete was called.
+        assert result == 'TEST_ERROR'
+        mock_dependencies['error_service'].delete.assert_called_once_with('TEST_ERROR')
