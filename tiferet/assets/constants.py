@@ -213,6 +213,9 @@ SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
 # ** constant: invalid_flagged_dependency_id
 INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
+# ** constant: configuration_already_exists_id
+CONFIGURATION_ALREADY_EXISTS_ID = 'CONFIGURATION_ALREADY_EXISTS'
+
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 
@@ -603,6 +606,18 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'A flagged dependency must define both module_path and class_name.',
+            }
+        ],
+    },
+
+    # * error: CONFIGURATION_ALREADY_EXISTS
+    CONFIGURATION_ALREADY_EXISTS_ID: {
+        'id': CONFIGURATION_ALREADY_EXISTS_ID,
+        'name': 'Configuration Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A service configuration with ID {id} already exists.',
             }
         ],
     },
