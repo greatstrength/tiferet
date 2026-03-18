@@ -195,6 +195,12 @@ UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 
+# ** constant: cli_command_not_found_id
+CLI_COMMAND_NOT_FOUND_ID = 'CLI_COMMAND_NOT_FOUND'
+
+# ** constant: cli_command_already_exists_id
+CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
+
 # ** constant: invalid_service_configuration_id
 INVALID_SERVICE_CONFIGURATION_ID = 'INVALID_SERVICE_CONFIGURATION'
 
@@ -752,11 +758,20 @@ DEFAULT_ERRORS = {
     },
 
     # * error: CLI_COMMAND_NOT_FOUND
-    'CLI_COMMAND_NOT_FOUND': {
-        'id': 'CLI_COMMAND_NOT_FOUND',
+    CLI_COMMAND_NOT_FOUND_ID: {
+        'id': CLI_COMMAND_NOT_FOUND_ID,
         'name': 'CLI Command Not Found',
         'message': [
-            {'lang': 'en_US', 'text': 'Command {command} not found.'}
+            {'lang': 'en_US', 'text': 'CLI command {command_id} not found.'}
+        ]
+    },
+
+    # * error: CLI_COMMAND_ALREADY_EXISTS
+    CLI_COMMAND_ALREADY_EXISTS_ID: {
+        'id': CLI_COMMAND_ALREADY_EXISTS_ID,
+        'name': 'CLI Command Already Exists',
+        'message': [
+            {'lang': 'en_US', 'text': 'CLI command with ID {id} already exists.'}
         ]
     },
 
