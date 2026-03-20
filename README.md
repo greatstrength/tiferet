@@ -68,7 +68,7 @@ attrs:
     class_name: AddNumber
 ```
 
-**app/events/calc.py**  
+**src/events/calc.py**  
 (the domain event itself – very minimal)
 
 ```python
