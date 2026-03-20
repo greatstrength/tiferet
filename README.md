@@ -16,7 +16,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
 
-Current status: **2.0.0a4** (pre-release – actively evolving toward stable v2)
+Current status: **2.0.0a6** (pre-release – actively evolving toward stable v2)
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -64,7 +64,7 @@ features:
 ```yaml
 attrs:
   add_number_event:
-    module_path: app.events.calc
+    module_path: src.events.calc
     class_name: AddNumber
 ```
 
@@ -110,34 +110,39 @@ You should see:
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
+- [Contexts](docs/core/contexts.md)  
+- [Repositories](docs/core/repos.md)  
 - [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
 
-**Practical guides**  
-- Domain Guides
-- - [Application Management](docs/guides/domain/app.md)
-- - [Dependency Injection](docs/guides/domain/di.md) 
-- - [Feature Workflows](docs/guides/domain/feature.md) 
-- - [Error Handling](docs/guides/domain/error.md)   
-- - [CLI Integration](docs/guides/domain/cli.md)   
-- - [Logging](docs/guides/domain/logging.md)
-- Event Guides
-- - [Application Events](docs/guides/events/app.md)
-- - [Dependency Injection Events](docs/guides/events/di.md)
-- - [Feature Events](docs/guides/events/feature.md)
-- - [Error Events](docs/guides/events/error.md)
-- - [CLI Integration Events](docs/guides/events/cli.md)
-- - [Logging Events](docs/guides/events/logging.md)
-- - [SQLite Events](docs/guides/events/sqlite.md)
-- Utility Guides
-- - [File Loader](docs/guides/utils/file.md)
-- - [YAML Loader](docs/guides/utils/yaml.md)
-- - [JSON Loader](docs/guides/utils/json.md)
-- - [CSV Loader](docs/guides/utils/csv.md)
-- - [Sqlite Connector](docs/guides/utils/sqlite.md)
-- Other Component Guides
-- - [Interfaces](docs/guides/interfaces.md)
-- - [Mappers (Aggregates & Transfer Objects)](docs/guides/mappers.md)
-- - [Repositories](docs/guides/repos.md)
+### Practical Guides 
+**Domain Guides**  
+- [Application Management](docs/guides/domain/app.md)  
+- [Dependency Injection](docs/guides/domain/di.md)  
+- [Feature Workflows](docs/guides/domain/feature.md)  
+- [Error Handling](docs/guides/domain/error.md)  
+- [CLI Integration](docs/guides/domain/cli.md)  
+- [Logging](docs/guides/domain/logging.md)
+
+**Event Guides**  
+- [Application Events](docs/guides/events/app.md)  
+- [Dependency Injection Events](docs/guides/events/di.md)  
+- [Feature Events](docs/guides/events/feature.md)  
+- [Error Events](docs/guides/events/error.md)  
+- [CLI Integration Events](docs/guides/events/cli.md)  
+- [Logging Events](docs/guides/events/logging.md)  
+- [SQLite Events](docs/guides/events/sqlite.md)
+
+**Utility Guides**  
+- [File Loader](docs/guides/utils/file.md)  
+- [YAML Loader](docs/guides/utils/yaml.md)  
+- [JSON Loader](docs/guides/utils/json.md)  
+- [CSV Loader](docs/guides/utils/csv.md)  
+- [Sqlite Connector](docs/guides/utils/sqlite.md)
+
+**Other Component Guides**  
+- [Interfaces](docs/guides/interfaces.md)  
+- [Mappers (Aggregates & Transfer Objects)](docs/guides/mappers.md)  
+- [Repositories](docs/guides/repos.md)
 
 **Tutorial**  
 → [Build a complete Calculator (events + CLI + configs)](docs/tutorial/calculator.md)
