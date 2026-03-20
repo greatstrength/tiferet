@@ -129,6 +129,6 @@ We welcome bug reports, documentation improvements, feature ideas, and early ado
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (issues → TRD → feature branch → PR).
 
 Questions, feedback, or just want to say hi?  
-Open an issue or reach out on X: [@daiseishi237](https://x.com/daiseishi237)
+Open an issue or reach out via email: [Andrew Shatz](andrew@greatstrength.me)
 
 Let's build software that feels as good as it works.
