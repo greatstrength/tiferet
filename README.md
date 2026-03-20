@@ -112,12 +112,32 @@ You should see:
 - [Service Interfaces](docs/core/interfaces.md)  
 - [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
 
-**Practical domain guides**  
-- [Error Handling](docs/guides/domain/error.md)  
-- [Feature Workflows](docs/guides/domain/feature.md)  
-- [CLI Integration](docs/guides/domain/cli.md)  
-- [Dependency Injection](docs/guides/domain/di.md)  
-- [Logging](docs/guides/domain/logging.md)
+**Practical guides**  
+- Domain Guides
+- - [Application Management](docs/guides/domain/app.md)
+- - [Dependency Injection](docs/guides/domain/di.md) 
+- - [Feature Workflows](docs/guides/domain/feature.md) 
+- - [Error Handling](docs/guides/domain/error.md)   
+- - [CLI Integration](docs/guides/domain/cli.md)   
+- - [Logging](docs/guides/domain/logging.md)
+- Event Guides
+- - [Application Events](docs/guides/events/app.md)
+- - [Dependency Injection Events](docs/guides/events/di.md)
+- - [Feature Events](docs/guides/events/feature.md)
+- - [Error Events](docs/guides/events/error.md)
+- - [CLI Integration Events](docs/guides/events/cli.md)
+- - [Logging Events](docs/guides/events/logging.md)
+- - [SQLite Events](docs/guides/events/sqlite.md)
+- Utility Guides
+- - [File Loader](docs/guides/utils/file.md)
+- - [YAML Loader](docs/guides/utils/yaml.md)
+- - [JSON Loader](docs/guides/utils/json.md)
+- - [CSV Loader](docs/guides/utils/csv.md)
+- - [Sqlite Connector](docs/guides/utils/sqlite.md)
+- Other Component Guides
+- - [Interfaces](docs/guides/interfaces.md)
+- - [Mappers (Aggregates & Transfer Objects)](docs/guides/mappers.md)
+- - [Repositories](docs/guides/repos.md)
 
 **Tutorial**  
 → [Build a complete Calculator (events + CLI + configs)](docs/tutorial/calculator.md)
