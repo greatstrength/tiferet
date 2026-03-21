@@ -7,7 +7,7 @@ from .exceptions import TiferetError, TiferetAPIError
 from .constants import (
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS,
-    DEFAULT_ATTRIBUTES,
+    DEFAULT_SERVICES,
 )
 from . import constants as const
 from . import builders

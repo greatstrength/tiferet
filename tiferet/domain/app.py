@@ -20,18 +20,10 @@ class AppServiceDependency(DomainObject):
     '''
 
     # * attribute: service_id
-    # + todo: set to required when attribute_id is removed
     service_id = StringType(
+        required=True,
         metadata=dict(
             description='The service id for the application dependency.'
-        ),
-    )
-
-    # * attribute: attribute_id
-    # - obsolete: replaced by service_id
-    attribute_id = StringType(
-        metadata=dict(
-            description='The attribute id for the application dependency.'
         ),
     )
 
@@ -153,5 +145,4 @@ class AppInterface(DomainObject):
         '''
 
         # Get the service dependency by service id.
-        # + todo: remove attribute_id support when attribute_id is removed from AppServiceDependency
-        return next((dep for dep in self.services if dep.service_id == service_id or dep.attribute_id == service_id), None)
+        return next((dep for dep in self.services if dep.service_id == service_id), None)

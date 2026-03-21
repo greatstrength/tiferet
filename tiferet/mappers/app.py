@@ -92,8 +92,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         self.services.append(dependency)
 
     # * method: remove_service
-    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
-    def remove_service(self, service_id: str = None, attribute_id: str = None) -> AppServiceDependency:
+    def remove_service(self, service_id: str) -> AppServiceDependency:
         '''
         Remove and return a service dependency by its service_id (idempotent).
 
@@ -102,34 +101,25 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
 
         :param service_id: The service_id of the service dependency to remove.
         :type service_id: str
-        :param attribute_id: Deprecated alias for service_id.
-        :type attribute_id: str
         :return: The removed AppServiceDependency or None.
         :rtype: AppServiceDependency
         '''
 
-        # Fall back to attribute_id if service_id is not provided.
-        if service_id is None and attribute_id is not None:
-            service_id = attribute_id
-
         # Iterate over services and remove the first match by service_id.
-        # + todo: remove attribute_id fallback once attribute_id is removed from AppServiceDependency
         for index, dep in enumerate(self.services):
-            if dep.service_id == service_id or dep.attribute_id == service_id:
+            if dep.service_id == service_id:
                 return self.services.pop(index)
 
         # If no service dependency matches, return None without modifying the list.
         return None
 
     # * method: set_service
-    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def set_service(
         self,
-        service_id: str = None,
+        service_id: str,
         module_path: str = None,
         class_name: str = None,
         parameters: Dict[str, Any] = None,
-        attribute_id: str = None,
     ) -> None:
         '''
         Set or update a service dependency by service_id (PUT semantics).
@@ -150,15 +140,9 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :type class_name: str
         :param parameters: New parameters (None to clear).
         :type parameters: Dict[str, Any]
-        :param attribute_id: Deprecated alias for service_id.
-        :type attribute_id: str
         :return: None
         :rtype: None
         '''
-
-        # Fall back to attribute_id if service_id is not provided.
-        if service_id is None and attribute_id is not None:
-            service_id = attribute_id
 
         # Find the existing service dependency by service_id.
         dep = self.get_service(service_id)

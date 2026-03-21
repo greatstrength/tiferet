@@ -103,7 +103,7 @@ class AppManagerContext(object):
                 **attr_data,
                 validate=False,
             )
-            for attr_data in a.const.DEFAULT_ATTRIBUTES
+            for attr_data in a.const.DEFAULT_SERVICES
         ]
 
     # * method: load_app_instance

@@ -62,13 +62,13 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
 # ** test: app_interface_get_service
 def test_app_interface_get_service(app_interface: AppInterface) -> None:
     '''
-    Test successful retrieval of a service dependency by attribute id.
+    Test successful retrieval of a service dependency by service id.
 
     :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface
     '''
 
-    # Retrieve the service dependency by attribute id.
+    # Retrieve the service dependency by service id.
     service = app_interface.get_service('test_service')
 
     # Assert the service dependency fields match.
@@ -80,7 +80,7 @@ def test_app_interface_get_service(app_interface: AppInterface) -> None:
 # ** test: app_interface_get_service_invalid
 def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
     '''
-    Test that get_service returns None for an invalid attribute id.
+    Test that get_service returns None for an invalid service id.
 
     :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface

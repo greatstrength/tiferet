@@ -4,8 +4,8 @@
 
 # *** constants (app)
 
-# ** constant: default_attributes
-DEFAULT_ATTRIBUTES = [
+# ** constant: default_services
+DEFAULT_SERVICES = [
     {
         'service_id': 'cli_service',
         'module_path': 'tiferet.repos.cli',

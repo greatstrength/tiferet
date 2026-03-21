@@ -14,6 +14,7 @@ from ...assets.tests import TEST_FEATURE, TEST_ERROR, TEST_SERVICE_COMMAND_ATTRI
 from ...domain import DomainObject, AppInterface, Feature, Error
 from ...domain.container import ContainerAttribute
 from ...interfaces import AppService
+from ...mappers import AppInterfaceAggregate
 from ..app import (
     FeatureContext,
     ErrorContext,
@@ -48,21 +49,23 @@ def settings():
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create a mock AppInterface instance.
+    Fixture to create an AppInterfaceAggregate instance.
 
-    :return: A mock instance of AppInterface.
-    :rtype: AppInterface
+    :return: An AppInterfaceAggregate instance.
+    :rtype: AppInterfaceAggregate
     '''
-    # Create a test AppInterface instance.
-    return DomainObject.new(
-        AppInterface,
-        id='test',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        description='The test app.',
-        flags=['test'],
-        services=[],
+
+    # Create a test AppInterfaceAggregate instance.
+    return AppInterfaceAggregate.new(
+        app_interface_data=dict(
+            id='test',
+            name='Test App',
+            module_path='tiferet.contexts.app',
+            class_name='AppInterfaceContext',
+            description='The test app.',
+            flags=['test'],
+            services=[],
+        ),
     )
 
 # ** fixture: feature_context

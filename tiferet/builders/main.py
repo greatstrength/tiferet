@@ -107,7 +107,7 @@ class AppBuilder(object):
                 **attr_data,
                 validate=False,
             )
-            for attr_data in a.const.DEFAULT_ATTRIBUTES
+            for attr_data in a.const.DEFAULT_SERVICES
         ]
 
     # * method: load_app_instance
@@ -134,7 +134,7 @@ class AppBuilder(object):
 
         # Add the remaining app context service dependencies and parameters.
         for dep in app_interface.services:
-            dependencies[dep.attribute_id] = ImportDependency.execute(
+            dependencies[dep.service_id] = ImportDependency.execute(
                 dep.module_path,
                 dep.class_name,
             )
@@ -143,8 +143,8 @@ class AppBuilder(object):
 
         # Add the default service dependencies and parameters if they do not already exist.
         for dep in default_services:
-            if dep.attribute_id not in dependencies:
-                dependencies[dep.attribute_id] = ImportDependency.execute(
+            if dep.service_id not in dependencies:
+                dependencies[dep.service_id] = ImportDependency.execute(
                     dep.module_path,
                     dep.class_name,
                 )
