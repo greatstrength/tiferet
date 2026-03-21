@@ -15,7 +15,6 @@ from ..assets import TiferetError, TiferetAPIError
 from .. import assets as a
 from ..domain import (
     DomainObject,
-    AppInterface,
     AppServiceDependency,
 )
 from ..events import (
@@ -108,14 +107,12 @@ class AppManagerContext(object):
         ]
 
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: Any, default_services: List[AppServiceDependency]) -> Any:
+    def load_app_instance(self, app_interface: Any) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface definition.
         :type app_interface: Any
-        :param default_services: The default configured service dependencies for the app.
-        :type default_services: List[AppServiceDependency]
         :return: The app interface context instance.
         :rtype: Any
         '''
@@ -131,22 +128,12 @@ class AppManagerContext(object):
 
         # Add the remaining app context service dependencies and parameters.
         for dep in app_interface.services:
-            dependencies[dep.attribute_id] = ImportDependency.execute(
+            dependencies[dep.service_id] = ImportDependency.execute(
                 dep.module_path,
                 dep.class_name,
             )
             for param, value in dep.parameters.items():
                 dependencies[param] = value
-
-        # Add the default service dependencies and parameters if they do not already exist.
-        for dep in default_services:
-            if dep.attribute_id not in dependencies:
-                dependencies[dep.attribute_id] = ImportDependency.execute(
-                    dep.module_path,
-                    dep.class_name,
-                )
-                for param, value in dep.parameters.items():
-                    dependencies[param] = value
 
         # Add the constants from the app interface to the dependencies.
         dependencies.update(app_interface.constants)
@@ -185,13 +172,11 @@ class AppManagerContext(object):
                 app_service=app_repo,
             ),
             interface_id=interface_id,
+            default_services=self.load_default_services()
         )
 
-        # Retrieve the default service dependencies from the configuration.
-        default_services = self.load_default_services()
-
         # Create the app interface context.
-        app_interface_context = self.load_app_instance(app_interface, default_services=default_services)
+        app_interface_context = self.load_app_instance(app_interface)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
