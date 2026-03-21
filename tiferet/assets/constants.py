@@ -52,7 +52,7 @@ DEFAULT_ATTRIBUTES = [
         'class_name': 'GetError',
     },
     {
-        'service_id': 'get_feature_cmd',
+        'service_id': 'get_feature_evt',
         'module_path': 'tiferet.events.feature',
         'class_name': 'GetFeature',
     },

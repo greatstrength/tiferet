@@ -17,7 +17,6 @@ from ..events import (
     RaiseError,
     ParseParameter
 )
-from ..events.feature import GetFeature
 from ..domain import Feature, FeatureEvent
 
 # *** contexts
@@ -36,7 +35,7 @@ class FeatureContext(object):
 
     # * method: init
     def __init__(self,
-            get_feature_cmd: GetFeature,
+            get_feature_evt: DomainEvent,
             container: ContainerContext,
             cache: CacheContext = None):
         '''
@@ -53,7 +52,7 @@ class FeatureContext(object):
         # Assign the attributes.
         self.container = container
         self.cache = cache if cache else CacheContext()
-        self.get_feature_handler = get_feature_cmd.execute
+        self.get_feature_handler = get_feature_evt.execute
 
     # * method: parse_request_parameter
     def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
@@ -131,7 +130,7 @@ class FeatureContext(object):
         '''
 
         # Resolve the attribute identifier for the event.
-        attribute_id = feature_event.attribute_id
+        service_id = feature_event.service_id
 
         # Combine flags: feature-level (higher priority) first, then step-level.
         combined_flags = (feature_flags or []) + (feature_event.flags or [])
@@ -140,7 +139,7 @@ class FeatureContext(object):
         # combined flags, if any.
         try:
             return self.container.get_dependency(
-                attribute_id,
+                service_id,
                 *combined_flags,
             )
         
@@ -148,8 +147,8 @@ class FeatureContext(object):
         except Exception as e:
             RaiseError.execute(
                 FEATURE_COMMAND_LOADING_FAILED_ID,
-                f'Failed to load feature step attribute: {attribute_id}. Ensure the container is configured with the appropriate default settings/flags.',
-                attribute_id=attribute_id,
+                f'Failed to load feature step attribute: {service_id}. Ensure the container is configured with the appropriate default settings/flags.',
+                service_id=service_id,
                 exception=str(e)
             )
 
@@ -174,6 +173,7 @@ class FeatureContext(object):
 
         # Return the loaded feature.
         return feature
+    
     # * method: handle_command
     def handle_command(self,
         command: DomainEvent, 
