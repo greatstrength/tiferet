@@ -32,7 +32,7 @@ Create these files in your project folder:
 ```python
 from tiferet import App
 
-app = App()                     # loads configs from ./configs/ by default
+app = App()                     # loads configs from app/configs/ by default
 
 result = app.run(
     interface_id="basic_calc",
@@ -43,14 +43,14 @@ result = app.run(
 print(f"19 + 23 = {result}")    # → 42
 ```
 
-**configs/app.yml**
+**app/configs/app.yml**
 ```yaml
 interfaces:
   basic_calc:
     name: Basic Calculator
 ```
 
-**configs/feature.yml**
+**app/configs/feature.yml**
 ```yaml
 features:
   calc:
@@ -60,15 +60,15 @@ features:
         - attribute_id: add_number_event
 ```
 
-**configs/container.yml**
+**app/configs/container.yml**
 ```yaml
 attrs:
   add_number_event:
-    module_path: src.events.calc
+    module_path: app.events.calc
     class_name: AddNumber
 ```
 
-**src/events/calc.py**  
+**app/events/calc.py**  
 (the domain event itself – very minimal)
 
 ```python
@@ -92,7 +92,7 @@ You should see:
 ```
 
 → Want a full calculator (add, subtract, multiply, divide, sqrt, …) with CLI, validation and proper error handling?  
-→ Continue with the **[step-by-step Calculator Tutorial →](docs/tutorial/calculator.md)**
+→ Continue with the **[step-by-step Calculator Tutorial →](docs/tutorial/basic_calculator/index.md)**
 
 ## Why Tiferet?
 
@@ -145,7 +145,7 @@ You should see:
 - [Repositories](docs/guides/repos.md)
 
 **Tutorial**  
-→ [Build a complete Calculator (events + CLI + configs)](docs/tutorial/calculator.md)
+→ [Build a complete Calculator (events + CLI + configs)](docs/tutorial/basic_calculator/index.md)
 
 ## Contributing
 
