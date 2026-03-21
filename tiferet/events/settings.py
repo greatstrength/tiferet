@@ -133,14 +133,14 @@ class DomainEvent(object):
     # * method: handle (static)
     @staticmethod
     def handle(
-            command: type,
+            event_cls: type,
             dependencies: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
         Handle a domain event instance via the instantiate-execute pattern.
 
-        :param command: The domain event class to handle.
-        :type command: type
+        :param event_cls: The domain event class to handle.
+        :type event_cls: type
         :param dependencies: The event dependencies.
         :type dependencies: Dict[str, Any]
         :param kwargs: Additional keyword arguments.
@@ -149,9 +149,9 @@ class DomainEvent(object):
         :rtype: Any
         '''
 
-        # Get the event handler.
-        command_handler = command(**dependencies)
+        # Instantiate the event with its dependencies.
+        event_handler = event_cls(**dependencies)
 
         # Execute the event handler.
-        result = command_handler.execute(**kwargs)
+        result = event_handler.execute(**kwargs)
         return result
