@@ -24,7 +24,7 @@ All contributions should be tied to a GitHub issue. If one doesn't exist for the
 For non-trivial changes (new features, refactors, architectural updates), a **Technical Requirements Document** is required before implementation begins. TRDs ensure clarity, alignment, and traceability across the project.
 
 See the full TRD authoring guide:
-**[docs/guides/tech_requirements.md](docs/guides/tech_requirements.md)**
+**[docs/guides/tech_requirements.md](docs/contrib/tech_requirements.md)**
 
 Key points:
 - Follow the standard structure (Overview, Scope, Components Affected, Detailed Requirements, Acceptance Criteria).
@@ -40,7 +40,9 @@ Key points:
   - [mappers.md](docs/core/mappers.md) — Aggregates and transfer objects
   - [interfaces.md](docs/core/interfaces.md) — Service interfaces
   - [contexts.md](docs/core/contexts.md) — Application contexts
-- Write tests using `pytest`. Follow existing test structure (`# *** fixtures`, `# *** tests`).
+  - [repos.md](docs/core/repos.md) — Repositories
+  - [utils.md](docs/core/utils.md) — Utilities
+- Write tests using `pytest`.
 
 ### 4. Commit Hygiene
 
@@ -60,7 +62,7 @@ Key points:
 Upon completion of a story or issue, a **Collaboration Report** is published as a comment on the originating GitHub issue. This report documents the implementation, deviations from the TRD, git state, and a log of key decisions made during development.
 
 See the full report format guide:
-**[docs/guides/collab_report.md](docs/guides/collab_report.md)**
+**[docs/guides/collab_report.md](docs/contrib/collab_report.md)**
 
 ## Code Style
 
