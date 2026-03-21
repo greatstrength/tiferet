@@ -220,6 +220,99 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     mock_feature_service.get.assert_called_once_with('test.feature')
 ```
 
+## Domain Event Test Harness Style
+
+Domain event tests use a class-based harness that provides auto-mocking, auto-parametrized validation tests, and a consistent invocation helper. All harness-based test classes follow these conventions.
+
+### Artifact Comments
+
+Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-level comment. Within each class:
+
+- `# * attribute: <name>` — class-level configuration attributes.
+- `# * fixture: <name>` — fixture overrides.
+- `# * method: <name>` — custom test methods.
+
+```python
+# *** tests
+
+# ** test: TestAddAppInterface
+class TestAddAppInterface(DomainEventTestBase):
+    '''
+    Tests for AddAppInterface using the domain event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = AddAppInterface
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test.interface',
+        name='Test Interface',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+    )
+
+    # * attribute: required_params
+    required_params = ['id', 'name', 'module_path', 'class_name']
+
+    # * method: test_minimal_success
+    def test_minimal_success(self, mock_dependencies):
+        '''
+        Test creating a minimal app interface with only required parameters.
+        '''
+
+        # Execute via the harness handle helper.
+        interface = self.handle(mock_dependencies)
+
+        # Assert the result is an AppInterface instance.
+        assert isinstance(interface, AppInterface)
+
+        # Assert the interface is saved via the app service.
+        mock_dependencies['app_service'].save.assert_called_once_with(interface)
+```
+
+### Required Class Attributes
+
+Every harness test class must declare these attributes with `# * attribute:` comments:
+
+| Attribute | Base | Description |
+|---|---|---|
+| `event_cls` | `DomainEventTestBase` | The `DomainEvent` subclass under test |
+| `dependencies` | `DomainEventTestBase` | Dict of dependency name → type (auto-mocked) |
+| `sample_kwargs` | `DomainEventTestBase` | Default kwargs for a successful `execute()` |
+| `required_params` | `DomainEventTestBase` | List of param names for auto validation tests |
+| `service_attr` | `ServiceEventTestBase` | Dependency name for the primary service |
+| `not_found_error_code` | `ServiceEventTestBase` | Error code for the not-found auto-test |
+| `not_found_kwargs` | `ServiceEventTestBase` | Kwargs that trigger the not-found path |
+
+### Fixture Overrides
+
+When a test class needs a pre-configured service mock (e.g., `get()` returns a real aggregate), override `mock_dependencies` as a fixture within the class:
+
+```python
+    # * fixture: mock_dependencies
+    @pytest.fixture
+    def mock_dependencies(self, app_interface):
+        '''
+        Override to provide a service mock pre-configured with an app_interface.
+        '''
+
+        # Create a mock AppService that returns the app_interface on get.
+        service = mock.Mock(spec=AppService)
+        service.get.return_value = app_interface
+        return {'app_service': service}
+```
+
+### Spacing Rules
+
+Harness test classes follow the same spacing conventions as production code:
+- One empty line between each `# *` section.
+- One empty line after docstrings and between code snippets within methods.
+- One empty line between test classes.
+
 ## Best Practices Summary
 
 - Use artifact comments consistently.
@@ -228,14 +321,19 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
 - Write clear RST docstrings.
 - Break methods into commented snippets.
 - Maintain consistent spacing.
+- Prefer the domain event test harness (`DomainEventTestBase` / `ServiceEventTestBase`) for all new event tests.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
 
 ## Additional Linked Code Style Documents
 
-The Tiferet framework maintains a suite of focused documentation in `tiferet/assets/docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
+The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
-- **[models.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/models.md)** – Model-specific conventions (dual role, mutation helpers, factory methods).
-- **[commands.md](https://github.com/greatstrength/tiferet/blob/v1.x-proto/tiferet/assets/docs/core/commands.md)** – Command-specific conventions (dependency injection, validation, return patterns, static commands).
+- **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
+- **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
+- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
+- **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
+- **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
+- **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.
 
-Additional component-style documents (e.g., contexts, repositories, data objects) will be added as the framework evolves. Refer to this list for the current set of authoritative style guides.
+Additional component-style documents (e.g., contexts) will be added as the framework evolves. Refer to this list for the current set of authoritative style guides.

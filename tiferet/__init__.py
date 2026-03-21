@@ -8,8 +8,8 @@
 try:
     from .assets import TiferetError, TiferetAPIError
     from .contexts import AppManagerContext as App
-    from .models import (
-        ModelObject,
+    from .domain import (
+        DomainObject,
         StringType,
         IntegerType,
         BooleanType,
@@ -18,33 +18,14 @@ try:
         DictType,
         ModelType,
     )
-    from .commands import *
-    from .commands import (
-        Command,
-        ParseParameter
+    from .events import (
+        DomainEvent,
+        ParseParameter,
     )
-    from .contracts import (
-        ModelContract,
-        Repository,
-        Service,
-    )
-    from .data import DataObject
-    from .proxies import (
-        YamlFileProxy,
-        JsonFileProxy,
-        CsvFileProxy
-    )
-    from .middleware import (
-        File,
-        FileLoaderMiddleware,
-        Yaml,
-        YamlLoaderMiddleware,
-        Json,
-        JsonLoaderMiddleware,
-        Csv,
-        CsvLoaderMiddleware,
-        CsvDict,
-        CsvDictLoaderMiddleware
+    from .interfaces import Service
+    from .mappers import (
+        Aggregate,
+        TransferObject,
     )
     from .utils import (
         FileLoader,
@@ -69,4 +50,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.0a5'
+__version__ = '2.0.0a6'
