@@ -409,21 +409,3 @@ class AppInterfaceContext(object):
 
         # Handle response.
         return self.handle_response(request)
-
-# ** context: app_context (obsolete)
-class AppContext(AppManagerContext):
-    '''
-    The AppContext is an obsolete class that extends the AppManagerContext.
-    It is kept for backward compatibility but should not be used in new code.
-    '''
-
-    # * init
-    def __init__(self, settings: Dict[str, Any] = {}):
-        '''
-        Initialize the obsolete AppContext.
-
-        :param settings: The application settings.
-        :type settings: dict
-        '''
-
-        super().__init__(settings)
