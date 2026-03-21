@@ -8,7 +8,6 @@ from typing import Dict, Any, Callable
 # ** app
 from .app import *
 from ..domain import CliCommand
-from ..events.cli import ListCliCommands, GetParentArguments
 
 # *** contexts
 
@@ -31,8 +30,8 @@ class CliContext(AppInterfaceContext):
                  features: FeatureContext,
                  errors: ErrorContext,
                  logging: LoggingContext,
-                 list_commands_cmd: ListCliCommands,
-                 get_parent_args_cmd: GetParentArguments):
+                 list_commands_evt: DomainEvent,
+                 get_parent_args_evt: DomainEvent):
         '''
         Initialize the CLI context with command handlers.
 
@@ -44,15 +43,15 @@ class CliContext(AppInterfaceContext):
         :type errors: ErrorContext
         :param logging: The logging context.
         :type logging: LoggingContext
-        :param list_commands_cmd: Command to list all CLI commands.
-        :type list_commands_cmd: ListCliCommands
-        :param get_parent_args_cmd: Command to get parent arguments.
-        :type get_parent_args_cmd: GetParentArguments
+        :param list_commands_evt: Command to list all CLI commands.
+        :type list_commands_evt: ListCliCommands
+        :param get_parent_args_evt: Command to get parent arguments.
+        :type get_parent_args_evt: GetParentArguments
         '''
 
         # Set the command handlers.
-        self.list_commands_handler = list_commands_cmd.execute
-        self.get_parent_args_handler = get_parent_args_cmd.execute
+        self.list_commands_handler = list_commands_evt.execute
+        self.get_parent_args_handler = get_parent_args_evt.execute
 
         # Initialize the base class with the interface ID, features, and errors.
         super().__init__(

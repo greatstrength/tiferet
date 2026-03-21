@@ -104,12 +104,6 @@ interfaces:
     description: Command-line interface for calculator operations
     module_path: tiferet.contexts.cli
     class_name: CliContext
-    attrs:
-      cli_service:
-        module_path: tiferet.repos.cli
-        class_name: CliYamlRepository
-        params:
-          cli_yaml_file: app/configs/cli.yml
 ```
 
 - `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling

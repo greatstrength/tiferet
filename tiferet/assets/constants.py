@@ -7,6 +7,14 @@
 # ** constant: default_attributes
 DEFAULT_ATTRIBUTES = [
     {
+        'service_id': 'cli_service',
+        'module_path': 'tiferet.repos.cli',
+        'class_name': 'CliYamlRepository',
+        'parameters': {
+            'cli_yaml_file': 'app/configs/cli.yml',
+        },
+    },
+    {
         'service_id': 'container_service',
         'module_path': 'tiferet.repos.container',
         'class_name': 'ContainerYamlRepository',
@@ -67,12 +75,12 @@ DEFAULT_ATTRIBUTES = [
         'class_name': 'ListAllLoggingConfigs',
     },
     {
-        'service_id': 'list_commands_cmd',
+        'service_id': 'list_commands_evt',
         'module_path': 'tiferet.events.cli',
         'class_name': 'ListCliCommands',
     },
     {
-        'service_id': 'get_parent_args_cmd',
+        'service_id': 'get_parent_args_evt',
         'module_path': 'tiferet.events.cli',
         'class_name': 'GetParentArguments',
     },
