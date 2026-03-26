@@ -47,7 +47,7 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'get_error_cmd',
+        'service_id': 'get_error_evt',
         'module_path': 'tiferet.events.error',
         'class_name': 'GetError',
     },

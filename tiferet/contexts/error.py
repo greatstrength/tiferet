@@ -11,7 +11,7 @@ from ..assets import (
     DEFAULT_ERRORS
 )
 from ..domain import Error
-from ..events.error import GetError
+from ..events import DomainEvent
 
 # *** contexts
 
@@ -21,22 +21,20 @@ class ErrorContext(object):
     The error context object.
     '''
 
-    # * attribute: error_service
+    # * attribute: get_error_handler
     get_error_handler: Callable
 
-    # * method: init
-    def __init__(self, get_error_cmd: GetError):
+    # * init
+    def __init__(self, get_error_evt: DomainEvent):
         '''
         Initialize the error context.
 
-        :param get_error_cmd: The command to get an error by id.
-        :type get_error_cmd: GetError
-        :param cache: The cache context to use for caching error data.
-        :type cache: CacheContext
+        :param get_error_evt: The event to get an error by id.
+        :type get_error_evt: DomainEvent
         '''
 
         # Assign the attributes.
-        self.get_error_handler = get_error_cmd.execute
+        self.get_error_handler = get_error_evt.execute
     
     # * method: get_error_by_code
     def get_error_by_code(self, error_code: str) -> Error:
