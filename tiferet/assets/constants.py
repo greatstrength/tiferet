@@ -72,6 +72,16 @@ DEFAULT_SERVICES = [
         'class_name': 'ContainerContext',
     },
     {
+        'service_id': 'di_list_all_configs_evt',
+        'module_path': 'tiferet.events.di',
+        'class_name': 'ListAllSettings',
+    },
+    {
+        'service_id': 'services',
+        'module_path': 'tiferet.contexts.di',
+        'class_name': 'DIContext',
+    },
+    {
         'service_id': 'features',
         'module_path': 'tiferet.contexts.feature',
         'class_name': 'FeatureContext',
