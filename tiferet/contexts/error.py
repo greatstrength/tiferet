@@ -4,16 +4,14 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from .cache import CacheContext
 from ..assets import (
-    TiferetError, 
+    TiferetError,
     TiferetAPIError,
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS
 )
-from ..models import Error
-from ..commands.error import GetError
-from ..configs import TiferetError as LegacyTiferetError
+from ..domain import Error
+from ..events import DomainEvent
 
 # *** contexts
 
@@ -23,22 +21,20 @@ class ErrorContext(object):
     The error context object.
     '''
 
-    # * attribute: error_service
+    # * attribute: get_error_handler
     get_error_handler: Callable
 
-    # * method: init
-    def __init__(self, get_error_cmd: GetError):
+    # * init
+    def __init__(self, get_error_evt: DomainEvent):
         '''
         Initialize the error context.
 
-        :param get_error_cmd: The command to get an error by id.
-        :type get_error_cmd: GetError
-        :param cache: The cache context to use for caching error data.
-        :type cache: CacheContext
+        :param get_error_evt: The event to get an error by id.
+        :type get_error_evt: DomainEvent
         '''
 
         # Assign the attributes.
-        self.get_error_handler = get_error_cmd.execute
+        self.get_error_handler = get_error_evt.execute
     
     # * method: get_error_by_code
     def get_error_by_code(self, error_code: str) -> Error:
@@ -69,37 +65,25 @@ class ErrorContext(object):
         return error
 
     # * method: handle_error
-    def handle_error(self, exception: TiferetError | LegacyTiferetError, lang: str = 'en_US') -> Dict[str, Any]:
+    def handle_error(self, exception: TiferetError, lang: str = 'en_US') -> Dict[str, Any]:
         '''
         Format and return the structured error response dictionary.
         Does not raise — raising is now handled by the calling context.
 
         :param exception: The exception to handle.
-        :type exception: TiferetError | LegacyTiferetError
+        :type exception: TiferetError
         :param lang: The language to use for the error message.
         :type lang: str
         :return: The formatted error response dictionary.
         :rtype: Dict[str, Any]
         '''
 
-        # Raise the exception if it is not a Tiferet error.
-        if not isinstance(exception, (TiferetError, LegacyTiferetError)):
+        # Raise the exception if it is not a TiferetError.
+        if not isinstance(exception, TiferetError):
             raise exception
 
         # Get the error by its code from the error service.
         error = self.get_error_by_code(exception.error_code)
-        
-        # Format the error response.
-        if isinstance(exception, LegacyTiferetError):
-            error_message = error.format_message(
-                lang,
-                *exception.args
-            )
-        else:
-            error_message = error.format_message(
-                lang,
-                **exception.kwargs
-            )
 
         # Return the formatted response dictionary (no raise).
         return error.format_response(lang=lang, **exception.kwargs)
