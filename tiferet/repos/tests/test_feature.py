@@ -34,7 +34,7 @@ FEATURE_DATA: Dict[str, Dict] = {
                 'commands': [
                     {
                         'name': 'Test Command',
-                        'attribute_id': 'test.attribute',
+                        'service_id': 'test.attribute',
                         'params': {
                             'key': 'value'
                         }
