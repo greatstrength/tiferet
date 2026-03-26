@@ -2,6 +2,10 @@
 
 # *** imports
 
+# ** core
+from importlib import import_module
+from typing import Dict
+
 # ** app
 from .settings import (
     DomainObject,
@@ -128,4 +132,31 @@ class ServiceConfiguration(DomainObject):
                 return match
 
         # Return None if no dependency matches the flags.
+        return None
+
+    # * method: get_service_type
+    def get_service_type(self, *flags) -> type:
+        '''
+        Gets the service type based on the provided flags.
+
+        Checks flagged dependencies first (in flag priority order), then
+        falls back to the configuration\'s default module_path/class_name.
+
+        :param flags: The flags for the flagged dependency.
+        :type flags: Tuple[str, ...]
+        :return: The type of the service configuration.
+        :rtype: type
+        '''
+
+        # Check the flagged dependencies for the type first.
+        for flag in flags:
+            dependency = self.get_dependency(flag)
+            if dependency:
+                return getattr(import_module(dependency.module_path), dependency.class_name)
+
+        # Otherwise defer to an available default type.
+        if self.module_path and self.class_name:
+            return getattr(import_module(self.module_path), self.class_name)
+
+        # Return None if no type is found.
         return None
