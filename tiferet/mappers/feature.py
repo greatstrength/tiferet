@@ -263,19 +263,18 @@ class FeatureAggregate(Feature, Aggregate):
     def add_step(
         self,
         name: str,
-        service_id: str = None,
+        service_id: str,
         parameters: Dict[str, Any] | None = None,
         data_key: str | None = None,
         pass_on_error: bool = False,
         position: int | None = None,
-        attribute_id: str = None,
     ) -> FeatureEvent:
         '''
         Add a feature event step using raw attributes.
 
         :param name: Step name.
         :type name: str
-        :param service_id: Service configuration ID (primary).
+        :param service_id: Service configuration ID.
         :type service_id: str
         :param parameters: Optional parameters dictionary.
         :type parameters: dict | None
@@ -285,20 +284,14 @@ class FeatureAggregate(Feature, Aggregate):
         :type pass_on_error: bool
         :param position: Insertion position (None to append).
         :type position: int | None
-        :param attribute_id: Deprecated fallback for service_id.
-        :type attribute_id: str
         :return: Created FeatureEvent instance.
         :rtype: FeatureEvent
         '''
-
-        # Resolve service_id from the primary or deprecated fallback.
-        service_id = service_id or attribute_id
 
         # Create the feature event from raw attributes.
         step = FeatureEventAggregate.new(
             name=name,
             service_id=service_id,
-            attribute_id=service_id,
             parameters=parameters or {},
             data_key=data_key,
             pass_on_error=pass_on_error,

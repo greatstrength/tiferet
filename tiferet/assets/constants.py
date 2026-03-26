@@ -15,14 +15,6 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'container_service',
-        'module_path': 'tiferet.repos.config.container',
-        'class_name': 'ContainerConfigurationRepository',
-        'parameters': {
-            'container_config_file': 'app/configs/container.yml',
-        },
-    },
-    {
         'service_id': 'error_service',
         'module_path': 'tiferet.repos.error',
         'class_name': 'ErrorYamlRepository',
@@ -52,24 +44,14 @@ DEFAULT_SERVICES = [
         'class_name': 'GetError',
     },
     {
-        'service_id': 'get_feature_cmd',
-        'module_path': 'tiferet.commands.feature',
+        'service_id': 'get_feature_evt',
+        'module_path': 'tiferet.events.feature',
         'class_name': 'GetFeature',
-    },
-    {
-        'service_id': 'container_list_all_cmd',
-        'module_path': 'tiferet.commands.container',
-        'class_name': 'ListAllSettings',
     },
     {
         'service_id': 'logging_service',
         'module_path': 'tiferet.handlers.logging',
         'class_name': 'LoggingHandler',
-    },
-    {
-        'service_id': 'container',
-        'module_path': 'tiferet.contexts.container',
-        'class_name': 'ContainerContext',
     },
     {
         'service_id': 'di_list_all_configs_evt',
