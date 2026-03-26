@@ -38,6 +38,7 @@ include = [
     "tiferet.commands",
     "tiferet.configs",
     "tiferet.contexts",
+    "tiferet.di",
     "tiferet.contracts",
     "tiferet.data",
     "tiferet.handlers",
