@@ -54,6 +54,24 @@ DEFAULT_SERVICES = [
         'class_name': 'LoggingHandler',
     },
     {
+        'service_id': 'cli_service',
+        'module_path': 'tiferet.repos.cli',
+        'class_name': 'CliYamlRepository',
+        'parameters': {
+            'cli_yaml_file': 'app/configs/cli.yml',
+        },
+    },
+    {
+        'service_id': 'list_commands_evt',
+        'module_path': 'tiferet.events.cli',
+        'class_name': 'ListCliCommands',
+    },
+    {
+        'service_id': 'get_parent_args_evt',
+        'module_path': 'tiferet.events.cli',
+        'class_name': 'GetParentArguments',
+    },
+    {
         'service_id': 'di_list_all_configs_evt',
         'module_path': 'tiferet.events.di',
         'class_name': 'ListAllSettings',
