@@ -8,6 +8,7 @@ from typing import Tuple, List, Dict
 # ** app
 from ..di import *
 from ...domain.di import *
+from ...events.di import ListAllSettings
 
 
 # *** classes
