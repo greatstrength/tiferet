@@ -33,6 +33,26 @@ def app_dependency() -> AppServiceDependency:
         parameters={'param1': 'value1', 'param2': 'value2'},
     )
 
+# ** fixture: resolvable_app_dependency
+@pytest.fixture
+def resolvable_app_dependency() -> AppServiceDependency:
+    '''
+    Fixture for an AppServiceDependency with a real module path,
+    used for testing get_service_type_mapping().
+
+    :return: The AppServiceDependency instance.
+    :rtype: AppServiceDependency
+    '''
+
+    # Use a real module path so import_module resolves correctly.
+    return DomainObject.new(
+        AppServiceDependency,
+        service_id='resolvable_service',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        parameters={'param1': 'value1'},
+    )
+
 # ** fixture: app_interface
 @pytest.fixture
 def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
@@ -51,7 +71,7 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppContext',
+        class_name='AppInterfaceContext',
         description='The test app.',
         flags=['test'],
         services=[app_dependency],
@@ -80,7 +100,7 @@ def test_app_interface_get_service(app_interface: AppInterface) -> None:
 # ** test: app_interface_get_service_invalid
 def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
     '''
-    Test that get_service returns None for an invalid attribute id.
+    Test that get_service returns None for an invalid service id.
 
     :param app_interface: The AppInterface fixture.
     :type app_interface: AppInterface
@@ -91,3 +111,67 @@ def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
 
     # Assert None is returned.
     assert service is None
+
+
+# ** test: app_interface_get_service_type_mapping
+def test_app_interface_get_service_type_mapping(resolvable_app_dependency: AppServiceDependency) -> None:
+    '''
+    Test that get_service_type_mapping returns the correct service ID-to-type dict.
+
+    :param resolvable_app_dependency: An AppServiceDependency with a real module path.
+    :type resolvable_app_dependency: AppServiceDependency
+    '''
+
+    # Create an AppInterface with a resolvable service dependency.
+    interface = DomainObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        services=[resolvable_app_dependency],
+    )
+
+    # Get the service type mapping.
+    mapping = interface.get_service_type_mapping()
+
+    # Assert the mapping contains the expected keys.
+    assert 'app_context' in mapping
+    assert 'interface_id' in mapping
+    assert 'logger_id' in mapping
+    assert 'resolvable_service' in mapping
+
+    # Assert the app_context and service types resolve correctly.
+    from tiferet.contexts.app import AppInterfaceContext
+    assert mapping['app_context'] is AppInterfaceContext
+    assert mapping['resolvable_service'] is AppInterfaceContext
+    assert mapping['interface_id'] == 'test'
+
+    # Assert service parameters are included as injection constants.
+    assert mapping.get('param1') == 'value1'
+
+
+# ** test: app_interface_get_service_type_mapping_no_services
+def test_app_interface_get_service_type_mapping_no_services() -> None:
+    '''
+    Test that get_service_type_mapping works correctly with no service dependencies.
+    '''
+
+    # Create an AppInterface with no services.
+    interface = DomainObject.new(
+        AppInterface,
+        id='empty',
+        name='Empty App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        services=[],
+    )
+
+    # Get the service type mapping.
+    mapping = interface.get_service_type_mapping()
+
+    # Assert only the base keys are present (app_context, interface_id, logger_id).
+    assert 'app_context' in mapping
+    assert 'interface_id' in mapping
+    assert 'logger_id' in mapping
+    assert len(mapping) == 3

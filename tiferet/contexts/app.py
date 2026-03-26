@@ -7,34 +7,24 @@ import time
 from typing import Dict, Any, List
 
 # ** app
+from ..assets import TiferetError, TiferetAPIError
+from ..di import ServiceProvider, DependenciesServiceProvider
+from ..domain import (
+    DomainObject,
+    AppInterface,
+    AppServiceDependency,
+)
+from ..events import (
+    a,
+    DomainEvent,
+    ImportDependency,
+    RaiseError,
+)
+from ..events.app import GetAppInterface
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
-from ..assets import TiferetError, TiferetAPIError
-from ..assets.constants import (
-    DEFAULT_ATTRIBUTES,
-    APP_REPOSITORY_IMPORT_FAILED_ID,
-    DEFAULT_APP_SERVICE_MODULE_PATH,
-    DEFAULT_APP_SERVICE_CLASS_NAME,
-)
-from ..models import (
-    ModelObject,
-    AppAttribute,
-)
-from ..contracts.app import AppRepository
-from ..commands import (
-    Command,
-    ImportDependency,
-    TiferetError as CommandTiferetError,
-    RaiseError,
-)
-from ..commands.dependencies import (
-    create_injector,
-    get_dependency,
-)
-from ..commands.app import GetAppInterface
-from ..configs import TiferetError as LegacyTiferetError
 
 # *** contexts
 
@@ -48,32 +38,40 @@ class AppManagerContext(object):
     # * attribute: settings
     settings: Dict[str, Any]
 
+    # * attribute: service_provider
+    service_provider: ServiceProvider
+
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}):
+    def __init__(self, settings: Dict[str, Any] = {}, service_provider: ServiceProvider = None):
         '''
         Initialize the AppManagerContext with application settings.
 
         :param settings: The application settings used to configure the app repository.
         :type settings: dict
+        :param service_provider: An optional service provider for dependency injection.
+        :type service_provider: ServiceProvider
         '''
 
         # Set the settings.
         self.settings = settings
 
+        # Initialize the service provider with the provided one or a default dependencies provider.
+        self.service_provider = service_provider if service_provider else DependenciesServiceProvider()
+
     # * method: load_app_repo
-    def load_app_repo(self) -> AppRepository:
+    def load_app_repo(self):
         '''
         Load the application repository using the configured settings.
 
         :return: The application repository instance.
-        :rtype: AppRepository
+        :rtype: Any
         '''
 
         # Resolve repository module path, class name, and parameters from settings with defaults.
-        app_repo_module_path = self.settings.get('app_repo_module_path', DEFAULT_APP_SERVICE_MODULE_PATH)
-        app_repo_class_name = self.settings.get('app_repo_class_name', DEFAULT_APP_SERVICE_CLASS_NAME)
+        app_repo_module_path = self.settings.get('app_repo_module_path', a.const.DEFAULT_APP_SERVICE_MODULE_PATH)
+        app_repo_class_name = self.settings.get('app_repo_class_name', a.const.DEFAULT_APP_SERVICE_CLASS_NAME)
         app_repo_params = self.settings.get('app_repo_params', dict(
-            app_config_file='app/configs/app.yml'
+            app_yaml_file='app/configs/app.yml'
         ))
 
         # Import and construct the app repository.
@@ -82,12 +80,12 @@ class AppManagerContext(object):
                 app_repo_module_path,
                 app_repo_class_name,
             )
-            app_repo: AppRepository = repository_cls(**app_repo_params)
+            app_repo = repository_cls(**app_repo_params)
 
         # Wrap import failures in a structured Tiferet error.
-        except CommandTiferetError as e:
+        except TiferetError as e:
             RaiseError.execute(
-                APP_REPOSITORY_IMPORT_FAILED_ID,
+                a.const.APP_REPOSITORY_IMPORT_FAILED_ID,
                 f'Failed to import app repository: {e}.',
                 exception=str(e),
             )
@@ -95,81 +93,52 @@ class AppManagerContext(object):
         # Return the imported app repository.
         return app_repo
 
-    # * method: load_default_attributes
-    def load_default_attributes(self) -> List[AppAttribute]:
+    # * method: load_default_services
+    def load_default_services(self) -> List[AppServiceDependency]:
         '''
-        Load the default app attributes from the configuration constants.
+        Load the default app service dependencies from the configuration constants.
 
-        :return: A list of default app attributes.
-        :rtype: List[AppAttribute]
+        :return: A list of default app service dependencies.
+        :rtype: List[AppServiceDependency]
         '''
 
-        # Retrieve the default attributes from the configuration constants.
+        # Retrieve the default service dependencies from the configuration constants.
         return [
-            ModelObject.new(
-                AppAttribute,
-                **attr_data,
+            DomainObject.new(
+                AppServiceDependency,
+                **service_data,
                 validate=False,
             )
-            for attr_data in DEFAULT_ATTRIBUTES
+            for service_data in a.const.DEFAULT_SERVICES
         ]
 
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: Any, default_attrs: List[AppAttribute]) -> Any:
+    def load_app_instance(self, app_interface: AppInterface) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface definition.
-        :type app_interface: Any
-        :param default_attrs: The default configured attributes for the app.
-        :type default_attrs: List[AppAttribute]
+        :type app_interface: AppInterface
         :return: The app interface context instance.
         :rtype: Any
         '''
 
-        # Retrieve the app context dependency and logger id.
-        dependencies = dict(
-            app_context=ImportDependency.execute(
-                app_interface.module_path,
-                app_interface.class_name,
-            ),
-            logger_id=getattr(app_interface, 'logger_id', None),
-        )
+        # Build the full service type mapping from the app interface.
+        try:
+            dependencies = app_interface.get_service_type_mapping()
 
-        # Add the remaining app context attributes and parameters to the dependencies.
-        for attr in app_interface.attributes:
-            dependencies[attr.attribute_id] = ImportDependency.execute(
-                attr.module_path,
-                attr.class_name,
+        # Raise a structured error if the dependency import fails.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.APP_SERVICE_IMPORT_FAILED_ID,
+                exception=str(e),
             )
-            for param, value in attr.parameters.items():
-                dependencies[param] = value
 
-        # Add the default attributes and parameters to the dependencies if they do not already exist.
-        for attr in default_attrs:
-            if attr.attribute_id not in dependencies:
-                dependencies[attr.attribute_id] = ImportDependency.execute(
-                    attr.module_path,
-                    attr.class_name,
-                )
-                for param, value in attr.parameters.items():
-                    dependencies[param] = value
+        # Register all dependencies in the service provider.
+        self.service_provider.add_services(dependencies)
 
-        # Add the constants from the app interface to the dependencies.
-        dependencies.update(app_interface.constants)
-
-        # Create the injector.
-        injector = create_injector.execute(
-            app_interface.id,
-            dependencies,
-            interface_id=app_interface.id,
-        )
-
-        # Return the app interface context.
-        return get_dependency.execute(
-            injector,
-            dependency_name='app_context',
-        )
+        # Resolve and return the app interface context from the service provider.
+        return self.service_provider.get_service('app_context')
 
     # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
@@ -183,27 +152,28 @@ class AppManagerContext(object):
         '''
 
         # Load the app repository or service implementation.
-        app_repo: AppRepository = self.load_app_repo()
+        app_repo = self.load_app_repo()
+
+        # Load the default app service dependencies.
+        default_services = self.load_default_services()
 
         # Get the app interface settings via the AppService abstraction.
-        app_interface = Command.handle(
+        app_interface = DomainEvent.handle(
             GetAppInterface,
             dependencies=dict(
                 app_service=app_repo,
             ),
             interface_id=interface_id,
+            default_services=default_services,
         )
 
-        # Retrieve the default attributes from the configuration.
-        default_attrs = self.load_default_attributes()
-
         # Create the app interface context.
-        app_interface_context = self.load_app_instance(app_interface, default_attrs=default_attrs)
+        app_interface_context = self.load_app_instance(app_interface)
 
         # Verify that the app interface context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
-            raise TiferetError(
-                'APP_INTERFACE_INVALID',
+            RaiseError.execute(
+                a.const.INVALID_APP_INTERFACE_TYPE_ID,
                 f'App context for interface is not valid: {interface_id}.',
                 interface_id=interface_id,
             )
@@ -411,7 +381,7 @@ class AppInterfaceContext(object):
                 **kwargs)
 
         # Handle error and return response if triggered.
-        except (TiferetError, LegacyTiferetError) as e:
+        except TiferetError as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
             return self.handle_error(e)
 
@@ -426,20 +396,3 @@ class AppInterfaceContext(object):
         # Handle response.
         return self.handle_response(request)
 
-# ** context: app_context (obsolete)
-class AppContext(AppManagerContext):
-    '''
-    The AppContext is an obsolete class that extends the AppManagerContext.
-    It is kept for backward compatibility but should not be used in new code.
-    '''
-
-    # * init
-    def __init__(self, settings: Dict[str, Any] = {}):
-        '''
-        Initialize the obsolete AppContext.
-
-        :param settings: The application settings.
-        :type settings: dict
-        '''
-
-        super().__init__(settings)

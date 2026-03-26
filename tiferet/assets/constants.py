@@ -4,18 +4,10 @@
 
 # *** constants (app)
 
-# ** constant: default_attributes
-DEFAULT_ATTRIBUTES = [
+# ** constant: default_services
+DEFAULT_SERVICES = [
     {
-        'attribute_id': 'container_service',
-        'module_path': 'tiferet.repos.config.container',
-        'class_name': 'ContainerConfigurationRepository',
-        'parameters': {
-            'container_config_file': 'app/configs/container.yml',
-        },
-    },
-    {
-        'attribute_id': 'di_service',
+        'service_id': 'di_service',
         'module_path': 'tiferet.repos.di',
         'class_name': 'DIYamlRepository',
         'parameters': {
@@ -23,15 +15,23 @@ DEFAULT_ATTRIBUTES = [
         },
     },
     {
-        'attribute_id': 'error_service',
-        'module_path': 'tiferet.repos.config.error',
-        'class_name': 'ErrorConfigurationRepository',
+        'service_id': 'container_service',
+        'module_path': 'tiferet.repos.config.container',
+        'class_name': 'ContainerConfigurationRepository',
         'parameters': {
-            'error_config_file': 'app/configs/error.yml',
+            'container_config_file': 'app/configs/container.yml',
         },
     },
     {
-        'attribute_id': 'logging_repo',
+        'service_id': 'error_service',
+        'module_path': 'tiferet.repos.error',
+        'class_name': 'ErrorYamlRepository',
+        'parameters': {
+            'error_yaml_file': 'app/configs/error.yml',
+        },
+    },
+    {
+        'service_id': 'logging_repo',
         'module_path': 'tiferet.proxies.yaml.logging',
         'class_name': 'LoggingYamlProxy',
         'parameters': {
@@ -39,60 +39,60 @@ DEFAULT_ATTRIBUTES = [
         },
     },
     {
-        'attribute_id': 'feature_service',
-        'module_path': 'tiferet.repos.config.feature',
-        'class_name': 'FeatureConfigurationRepository',
+        'service_id': 'feature_service',
+        'module_path': 'tiferet.repos.feature',
+        'class_name': 'FeatureYamlRepository',
         'parameters': {
-            'feature_config_file': 'app/configs/feature.yml',
+            'feature_yaml_file': 'app/configs/feature.yml',
         },
     },
     {
-        'attribute_id': 'get_error_cmd',
+        'service_id': 'get_error_cmd',
         'module_path': 'tiferet.commands.error',
         'class_name': 'GetError',
     },
     {
-        'attribute_id': 'get_feature_cmd',
+        'service_id': 'get_feature_cmd',
         'module_path': 'tiferet.commands.feature',
         'class_name': 'GetFeature',
     },
     {
-        'attribute_id': 'container_list_all_cmd',
+        'service_id': 'container_list_all_cmd',
         'module_path': 'tiferet.commands.container',
         'class_name': 'ListAllSettings',
     },
     {
-        'attribute_id': 'logging_service',
+        'service_id': 'logging_service',
         'module_path': 'tiferet.handlers.logging',
         'class_name': 'LoggingHandler',
     },
     {
-        'attribute_id': 'container',
+        'service_id': 'container',
         'module_path': 'tiferet.contexts.container',
         'class_name': 'ContainerContext',
     },
     {
-        'attribute_id': 'features',
+        'service_id': 'features',
         'module_path': 'tiferet.contexts.feature',
         'class_name': 'FeatureContext',
     },
     {
-        'attribute_id': 'errors',
+        'service_id': 'errors',
         'module_path': 'tiferet.contexts.error',
         'class_name': 'ErrorContext',
     },
     {
-        'attribute_id': 'logging',
+        'service_id': 'logging',
         'module_path': 'tiferet.contexts.logging',
         'class_name': 'LoggingContext',
     },
 ]
 
 # ** constant: default_app_service_module_path
-DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.config.app'
+DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.app'
 
 # ** constant: default_app_service_class_name
-DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigurationRepository'
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppYamlRepository'
 
 # *** constants (errors)
 
@@ -128,6 +128,9 @@ FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
+
+# ** constant: app_service_import_failed_id
+APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
@@ -360,6 +363,15 @@ DEFAULT_ERRORS = {
         'name': 'App Repository Import Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import app repository: {exception}.'}
+        ]
+    },
+
+    # * error: APP_SERVICE_IMPORT_FAILED
+    APP_SERVICE_IMPORT_FAILED_ID: {
+        'id': APP_SERVICE_IMPORT_FAILED_ID,
+        'name': 'App Service Import Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
         ]
     },
 
