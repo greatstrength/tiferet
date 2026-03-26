@@ -2,7 +2,7 @@
 
 # ** constant: test_service_command
 TEST_SERVICE_COMMAND = dict(
-    attribute_id='test_service_command',
+    service_id='test_service_command',
     name='Test Service Command',
     params={'param1': 'value1'},
 )

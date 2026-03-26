@@ -9,14 +9,12 @@ from unittest import mock
 
 # ** app
 from ..feature import (
-    ContainerContext,
+    DIContext,
     FeatureContext,
     RequestContext,
 )
-from ...events.feature import GetFeature
 from ...assets import TiferetError
 from ...events import DomainEvent
-from ...events.feature import GetFeature
 from ...domain import (
     DomainObject,
     Feature,
@@ -25,40 +23,40 @@ from ...domain import (
 
 # *** fixtures
 
-# ** fixture: get_feature_cmd
+# ** fixture: get_feature_evt
 @pytest.fixture
-def get_feature_cmd() -> GetFeature:
-    """Fixture to provide a mock GetFeature command instance."""
+def get_feature_evt() -> DomainEvent:
+    """Fixture to provide a mock GetFeature event instance."""
 
-    # Create a mock GetFeature command.
-    cmd = mock.Mock(spec=GetFeature)
+    # Create a mock GetFeature event.
+    evt = mock.Mock(spec=DomainEvent)
 
-    # Return the mock command instance.
-    return cmd
+    # Return the mock event instance.
+    return evt
 
-# ** fixture: container_context
+# ** fixture: services_context
 @pytest.fixture
-def container_context(test_command):
-    """Fixture to provide a mock container context."""
+def services_context(test_command):
+    """Fixture to provide a mock DI context."""
     
-    # Create a mock container context.
-    container_context = mock.Mock(spec=ContainerContext)
+    # Create a mock DI context.
+    services_context = mock.Mock(spec=DIContext)
 
-    # Set the container service to return the test command when requested.
-    container_context.get_dependency.return_value = test_command
+    # Set the DI service to return the test command when requested.
+    services_context.get_dependency.return_value = test_command
     
-    # Return the mock container context.
-    return container_context
+    # Return the mock DI context.
+    return services_context
 
 # ** fixture: feature_context
 @pytest.fixture
-def feature_context(get_feature_cmd, container_context):
+def feature_context(get_feature_evt, services_context):
     """Fixture to provide an instance of FeatureContext."""
 
-    # Create an instance of FeatureContext with the mock GetFeature command and container context.
+    # Create an instance of FeatureContext with the mock GetFeature event and DI context.
     return FeatureContext(
-        get_feature_cmd=get_feature_cmd,
-        container=container_context
+        get_feature_evt=get_feature_evt,
+        services=services_context
     )
 
 # ** fixture: test_command
@@ -162,7 +160,7 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
     assert called['parameter'] == '$env.MY_VAR'
 
 # ** test: feature_context_load_feature_step_with_combined_flags
-def test_feature_context_load_feature_step_with_combined_flags(feature_context, container_context, test_command):
+def test_feature_context_load_feature_step_with_combined_flags(feature_context, services_context, test_command):
     """Test loading a feature command combining feature and command flags with correct priority."""
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
@@ -170,7 +168,7 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
     )
 
@@ -181,7 +179,7 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
     # flags were forwarded to the container dependency resolution in the correct order:
     # Feature flags first, then command flags.
     assert command == test_command
-    container_context.get_dependency.assert_called_once_with(
+    services_context.get_dependency.assert_called_once_with(
         'test_command', 
         'feature_flag_1', 
         'feature_flag_2', 
@@ -191,7 +189,7 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
 
 
 # ** test: feature_context_load_feature_step_only_feature_flags
-def test_feature_context_load_feature_step_only_feature_flags(feature_context, container_context, test_command):
+def test_feature_context_load_feature_step_only_feature_flags(feature_context, services_context, test_command):
     """Test loading a feature command with only feature flags."""
 
     feature_flags = ['feature_flag']
@@ -199,39 +197,39 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, c
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         flags=[],
     )
 
     command = feature_context.load_feature_step(feature_command, feature_flags=feature_flags)
 
     assert command == test_command
-    container_context.get_dependency.assert_called_once_with('test_command', 'feature_flag')
+    services_context.get_dependency.assert_called_once_with('test_command', 'feature_flag')
 
 # ** test: feature_context_load_feature_step_only_command_flags
-def test_feature_context_load_feature_step_only_command_flags(feature_context, container_context, test_command):
+def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
     """Test loading a feature command with only command flags."""
 
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         flags=['command_flag'],
     )
 
     command = feature_context.load_feature_step(feature_command)
 
     assert command == test_command
-    container_context.get_dependency.assert_called_once_with('test_command', 'command_flag')
+    services_context.get_dependency.assert_called_once_with('test_command', 'command_flag')
 
 # ** test: feature_context_load_feature_step_with_flags
-def test_feature_context_load_feature_step_with_flags(feature_context, container_context, test_command):
+def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
     """Test loading a feature command that includes flags for dependency resolution."""
 
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         flags=['flag1', 'flag2'],
     )
 
@@ -241,39 +239,39 @@ def test_feature_context_load_feature_step_with_flags(feature_context, container
     # Assert that the loaded command is the same as the test command and that
     # flags were forwarded to the container dependency resolution.
     assert command == test_command
-    container_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
+    services_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
 
 
 # ** test: feature_context_load_feature_step_without_flags
-def test_feature_context_load_feature_step_without_flags(feature_context, container_context, test_command):
+def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
     """Test loading a feature command when no flags are configured."""
 
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
     )
 
     command = feature_context.load_feature_step(feature_command)
 
     assert command == test_command
-    container_context.get_dependency.assert_called_once_with('test_command')
+    services_context.get_dependency.assert_called_once_with('test_command')
 
 
 # ** test: feature_context_load_feature_step_failed
-def test_feature_context_load_feature_step_failed(feature_context, container_context):
+def test_feature_context_load_feature_step_failed(feature_context, services_context):
     """Test loading a feature command that does not exist in the FeatureContext."""
     
-    # Add a side effect to the container context to raise an exception when trying to get a non-existent command.
-    container_context.get_dependency.side_effect = TiferetError(
+    # Add a side effect to the DI context to raise an exception when trying to get a non-existent command.
+    services_context.get_dependency.side_effect = TiferetError(
         'TEST_ERROR',
-        'Feature command not found in container: non_existent_command',
+        'Feature command not found in services: non_existent_command',
     )
 
     feature_command: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Missing Command',
-        attribute_id='non_existent_command',
+        service_id='non_existent_command',
         flags=['flagX'],
     )
 
@@ -283,7 +281,7 @@ def test_feature_context_load_feature_step_failed(feature_context, container_con
     
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
-    assert exc_info.value.kwargs.get('attribute_id') == 'non_existent_command'
+    assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
 
 # ** test: feature_context_handle_command
@@ -342,17 +340,17 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature
-def test_feature_context_execute_feature(feature_context, get_feature_cmd, feature):
+def test_feature_context_execute_feature(feature_context, get_feature_evt, feature):
 
     # Add a standard feature command with no data key or pass on error.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
     ))
 
-    # Set the feature as the GetFeature command's return value.
-    get_feature_cmd.execute.return_value = feature
+    # Set the feature as the GetFeature event's return value.
+    get_feature_evt.execute.return_value = feature
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
@@ -360,35 +358,29 @@ def test_feature_context_execute_feature(feature_context, get_feature_cmd, featu
     # Execute the feature using the feature context.
     feature_context.execute_feature(feature.id, request)
 
-    # Assert that the load_feature_step was called with the feature flags.
-    # Note: feature fixture has empty flags by default, so we expect None or [] depending on impl,
-    # but more importantly, we want to ensure execute_feature passes feature.flags.
-    # We can inspect the call to load_feature_step if we mock it, or rely on the fact that
-    # integration logic is covered by the unit tests above.
-    
     # Assert that the request handled the response correctly.
     assert request.handle_response() == {"status": "success", "data": {"key": "value"}}
 
-    # Assert that the GetFeature command was invoked once for this feature id.
-    get_feature_cmd.execute.assert_called_once_with(id=feature.id)
+    # Assert that the GetFeature event was invoked once for this feature id.
+    get_feature_evt.execute.assert_called_once_with(id=feature.id)
 
 # ** test: feature_context_execute_feature_with_request_parameter
-def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_cmd, feature):
+def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_evt, feature):
     """Test executing a feature with a request parameter in the FeatureContext."""
     
     # Add a standard feature command with a data key.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         parameters=dict(
             param='$r.key',
         ),
         data_key='response_data',
     ))
 
-    # Set the feature as the GetFeature command's return value.
-    get_feature_cmd.execute.return_value = feature
+    # Set the feature as the GetFeature event's return value.
+    get_feature_evt.execute.return_value = feature
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
@@ -400,23 +392,23 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Assert that the response is stored in the request data under the specified key.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value", "param": "value"}}
 
-    # Assert that the GetFeature command was invoked once for this feature id.
-    get_feature_cmd.execute.assert_called_once_with(id=feature.id)
+    # Assert that the GetFeature event was invoked once for this feature id.
+    get_feature_evt.execute.assert_called_once_with(id=feature.id)
 
 # ** test: feature_context_execute_feature_with_pass_on_error
-def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_cmd, feature):
+def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_evt, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
     
     # Add a standard feature command and enable pass_on_error.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
-        attribute_id='test_command',
+        service_id='test_command',
         pass_on_error=True,
     ))
 
-    # Set the feature as the GetFeature command's return value.
-    get_feature_cmd.execute.return_value = feature
+    # Set the feature as the GetFeature event's return value.
+    get_feature_evt.execute.return_value = feature
 
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})
@@ -428,5 +420,5 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
 
-    # Assert that the GetFeature command was invoked once for this feature id.
-    get_feature_cmd.execute.assert_called_once_with(id=feature.id)
+    # Assert that the GetFeature event was invoked once for this feature id.
+    get_feature_evt.execute.assert_called_once_with(id=feature.id)

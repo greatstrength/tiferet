@@ -4,7 +4,7 @@
 from typing import Callable
 
 # ** app
-from .container import ContainerContext
+from .di import DIContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets.constants import (
@@ -24,8 +24,8 @@ from ..domain import Feature, FeatureEvent
 # ** context: feature_context
 class FeatureContext(object):
 
-    # * attribute: container
-    container: ContainerContext
+    # * attribute: services
+    services: DIContext
 
     # * attribute: cache
     cache: CacheContext
@@ -33,24 +33,24 @@ class FeatureContext(object):
     # * attribute: get_feature_handler
     get_feature_handler: Callable
 
-    # * method: init
+    # * init
     def __init__(self,
             get_feature_evt: DomainEvent,
-            container: ContainerContext,
+            services: DIContext,
             cache: CacheContext = None):
         '''
         Initialize the feature context.
 
-        :param get_feature_cmd: The command used to retrieve features.
-        :type get_feature_cmd: GetFeature
-        :param container: The container context for dependency injection.
-        :type container: ContainerContext
+        :param get_feature_evt: The event used to retrieve features.
+        :type get_feature_evt: DomainEvent
+        :param services: The DI context for dependency injection.
+        :type services: DIContext
         :param cache: The cache context to use for caching feature data.
         :type cache: CacheContext
         '''
 
         # Assign the attributes.
-        self.container = container
+        self.services = services
         self.cache = cache if cache else CacheContext()
         self.get_feature_handler = get_feature_evt.execute
 
@@ -93,27 +93,6 @@ class FeatureContext(object):
         # Return the parsed parameter.
         return result
 
-    # * method: load_feature
-    def load_feature(self, feature_id: str) -> Feature:
-        '''
-        Retrieve a FlaskFeature by its feature ID.
-
-        :param feature_id: The feature ID to look up.
-        :type feature_id: str
-        :return: The corresponding Feature instance.
-        :rtype: Feature
-        '''
-        
-        # Try to get the feature by its id from the cache.
-        # If it does not exist, retrieve it from the feature handler and cache it.
-        feature = self.cache.get(feature_id)
-        if not feature:
-            feature = self.feature_handler.get_feature(feature_id)
-            self.cache.set(feature_id, feature)
-
-        # Return the feature.
-        return feature
-
     # * method: load_feature_step
     def load_feature_step(self, feature_event: FeatureEvent, feature_flags: list[str] = None) -> DomainEvent:
         '''
@@ -138,7 +117,7 @@ class FeatureContext(object):
         # Attempt to retrieve the command from the container using the
         # combined flags, if any.
         try:
-            return self.container.get_dependency(
+            return self.services.get_dependency(
                 service_id,
                 *combined_flags,
             )
@@ -243,68 +222,9 @@ class FeatureContext(object):
             request,
             data_key=feature_event.data_key,
             pass_on_error=feature_event.pass_on_error,
-            **{id: self.parse_parameter(param, request) for id, param in feature_event.parameters.items()},
+        **{id: self.parse_request_parameter(param, request) for id, param in feature_event.parameters.items()},
             **kwargs
         )
-
-    # * method: load_feature
-    def load_feature(self, feature_id: str):
-        '''
-        Load a feature by its ID, using the cache when possible.
-
-        :param feature_id: The feature identifier.
-        :type feature_id: str
-        :return: The loaded feature.
-        :rtype: Any
-        '''
-
-        # Try to get the feature from the cache first.
-        feature = self.cache.get(feature_id)
-        if not feature:
-            # Retrieve via the configured GetFeature command handler and cache the result.
-            feature = self.get_feature_handler(id=feature_id)
-            self.cache.set(feature_id, feature)
-
-        return feature
-
-    # * method: parse_request_parameter
-    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
-        '''
-        Parse a request-aware parameter.
-
-        :param parameter: The parameter to parse.
-        :type parameter: str
-        :param request: The request context object containing data for parameter parsing.
-        :type request: RequestContext
-        :return: The parsed parameter value.
-        :rtype: str
-        '''
-
-        # Parse the parameter if it is not a request-backed parameter.
-        if not parameter.startswith('$r.'):
-            return ParseParameter.execute(parameter)
-
-        # Raise an error if the request is not provided for a request-backed parameter.
-        if not request:
-            RaiseError.execute(
-                REQUEST_NOT_FOUND_ID,
-                'Request data is not available for parameter parsing.',
-                parameter=parameter
-            )
-
-        # Parse the parameter from the request if provided.
-        result = request.data.get(parameter[3:], None)
-
-        # Raise an error if the parameter is not found in the request data.
-        if result is None:
-            RaiseError.execute(
-                PARAMETER_NOT_FOUND_ID,
-                f'Parameter {parameter} not found in request data.',
-                parameter=parameter
-            )
-
-        # Return the parsed parameter.
-        return result
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
@@ -340,7 +260,7 @@ class FeatureContext(object):
                 data_key=feature_event.data_key,
                 pass_on_error=feature_event.pass_on_error,
                 **params,
-                container=self.container,
+                services=self.services,
                 cache=self.cache,
                 **kwargs
             )

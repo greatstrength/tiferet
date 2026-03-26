@@ -15,14 +15,6 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'container_service',
-        'module_path': 'tiferet.repos.container',
-        'class_name': 'ContainerYamlRepository',
-        'parameters': {
-            'container_yaml_file': 'app/configs/container.yml',
-        },
-    },
-    {
         'service_id': 'di_service',
         'module_path': 'tiferet.repos.di',
         'class_name': 'DIYamlRepository',
@@ -65,11 +57,6 @@ DEFAULT_SERVICES = [
         'class_name': 'GetFeature',
     },
     {
-        'service_id': 'container_list_all_cmd',
-        'module_path': 'tiferet.events.container',
-        'class_name': 'ListAllSettings',
-    },
-    {
         'service_id': 'list_all_cmd',
         'module_path': 'tiferet.events.logging',
         'class_name': 'ListAllLoggingConfigs',
@@ -83,11 +70,6 @@ DEFAULT_SERVICES = [
         'service_id': 'get_parent_args_evt',
         'module_path': 'tiferet.events.cli',
         'class_name': 'GetParentArguments',
-    },
-    {
-        'service_id': 'container',
-        'module_path': 'tiferet.contexts.container',
-        'class_name': 'ContainerContext',
     },
     {
         'service_id': 'di_list_all_configs_evt',
