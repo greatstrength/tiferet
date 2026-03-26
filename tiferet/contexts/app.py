@@ -7,26 +7,24 @@ import time
 from typing import Dict, Any, List
 
 # ** app
-from .feature import FeatureContext
-from .error import ErrorContext
-from .logging import LoggingContext
-from .request import RequestContext
 from ..assets import TiferetError, TiferetAPIError
-from .. import assets as a
+from ..di import ServiceProvider, DependenciesServiceProvider
 from ..domain import (
     DomainObject,
+    AppInterface,
     AppServiceDependency,
 )
 from ..events import (
+    a,
     DomainEvent,
     ImportDependency,
     RaiseError,
 )
-from ..events.dependencies import (
-    create_injector,
-    get_dependency,
-)
 from ..events.app import GetAppInterface
+from .feature import FeatureContext
+from .error import ErrorContext
+from .logging import LoggingContext
+from .request import RequestContext
 
 # *** contexts
 
@@ -41,7 +39,7 @@ class AppManagerContext(object):
     settings: Dict[str, Any]
 
     # * init
-    def __init__(self, settings: Dict[str, Any] = {}):
+    def __init__(self, settings: Dict[str, Any] = {}, service_provider: ServiceProvider = None):
         '''
         Initialize the AppManagerContext with application settings.
 
@@ -51,6 +49,10 @@ class AppManagerContext(object):
 
         # Set the settings.
         self.settings = settings
+
+        # Initialize the service provider with the provided one or a default dependencies provider.
+        self.service_provider = service_provider if service_provider else DependenciesServiceProvider()
+
 
     # * method: load_app_repo
     def load_app_repo(self):
@@ -107,49 +109,31 @@ class AppManagerContext(object):
         ]
 
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: Any) -> Any:
+    def load_app_instance(self, app_interface: AppInterface) -> Any:
         '''
         Load the app instance based on the provided app interface settings.
 
         :param app_interface: The app interface definition.
-        :type app_interface: Any
+        :type app_interface: AppInterface
         :return: The app interface context instance.
         :rtype: Any
         '''
 
         # Retrieve the app context dependency and logger id.
-        dependencies = dict(
-            app_context=ImportDependency.execute(
-                app_interface.module_path,
-                app_interface.class_name,
-            ),
-            logger_id=getattr(app_interface, 'logger_id', None),
-        )
-
-        # Add the remaining app context service dependencies and parameters.
-        for dep in app_interface.services:
-            dependencies[dep.service_id] = ImportDependency.execute(
-                dep.module_path,
-                dep.class_name,
+        try:
+            dependencies = app_interface.get_service_type_mapping()
+        # Raise an error if the dependency import fails.
+        except Exception as e:
+            RaiseError.execute(
+                a.const.APP_SERVICE_IMPORT_FAILED_ID,
+                exception=str(e),
             )
-            for param, value in dep.parameters.items():
-                dependencies[param] = value
 
-        # Add the constants from the app interface to the dependencies.
-        dependencies.update(app_interface.constants)
+        # Add the dependencies to the service provider cache for retrieval by the app interface context.
+        self.service_provider.add_services(dependencies)
 
-        # Create the injector.
-        injector = create_injector.execute(
-            app_interface.id,
-            dependencies,
-            interface_id=app_interface.id,
-        )
-
-        # Return the app interface context.
-        return get_dependency.execute(
-            injector,
-            dependency_name='app_context',
-        )
+        # Resolve and return the app interface context from the service provider.
+        return self.service_provider.get_service('app_context')
 
     # * method: load_interface
     def load_interface(self, interface_id: str) -> 'AppInterfaceContext':
@@ -165,6 +149,9 @@ class AppManagerContext(object):
         # Load the app repository or service implementation.
         app_repo = self.load_app_repo()
 
+        # Load the default app service dependencies.
+        default_services = self.load_default_services()
+
         # Get the app interface settings via the AppService abstraction.
         app_interface = DomainEvent.handle(
             GetAppInterface,
@@ -172,7 +159,7 @@ class AppManagerContext(object):
                 app_service=app_repo,
             ),
             interface_id=interface_id,
-            default_services=self.load_default_services()
+            default_services=default_services,
         )
 
         # Create the app interface context.

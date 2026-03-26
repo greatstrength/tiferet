@@ -2,6 +2,10 @@
 
 # *** imports
 
+# ** core
+from importlib import import_module
+from typing import Dict
+
 # ** app
 from .settings import (
     DomainObject,
@@ -146,3 +150,34 @@ class AppInterface(DomainObject):
 
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
+    
+    # * method: get_service_type_mapping
+    def get_service_type_mapping(self) -> Dict[str, type]:
+        '''
+        Get a mapping of service IDs to their corresponding types.
+
+        :return: A dictionary mapping service IDs to their types.
+        :rtype: Dict[str, type]
+        '''
+
+        # Retrieve the app context dependency, interface id, and logger id.
+        dependencies = dict(
+            app_context=getattr(import_module(self.module_path),
+                self.class_name,
+            ),
+            interface_id=self.id,
+            logger_id=getattr(self, 'logger_id', None),
+        )
+        
+        # Add the constants from the app interface to the dependencies.
+        dependencies.update(self.constants)
+
+        # Add the remaining app context service dependencies and parameters.
+        # Service-specific parameters may override constants if needed.
+        for dep in self.services:
+            dependencies[dep.service_id] = getattr(import_module(dep.module_path), dep.class_name)
+            for param, value in dep.parameters.items():
+                dependencies[param] = value
+
+        # Return the assembled dependencies mapping.
+        return dependencies

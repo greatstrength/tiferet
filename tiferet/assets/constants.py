@@ -151,6 +151,9 @@ PARAMETER_PARSING_FAILED_ID = 'PARAMETER_PARSING_FAILED'
 # ** constant: import_dependency_failed_id
 IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 
+# ** constant: app_service_import_failed_id
+APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
+
 # ** constant: feature_command_loading_failed_id
 FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 
@@ -406,6 +409,15 @@ DEFAULT_ERRORS = {
         'name': 'Import Dependency Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import {class_name} from {module_path}. Error: {exception}.'}
+        ]
+    },
+
+    # * error: APP_SERVICE_IMPORT_FAILED
+    APP_SERVICE_IMPORT_FAILED_ID: {
+        'id': APP_SERVICE_IMPORT_FAILED_ID,
+        'name': 'App Service Import Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
         ]
     },
 

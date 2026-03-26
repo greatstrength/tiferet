@@ -226,6 +226,37 @@ def test_app_manager_context_load_app_repo_defaults():
 
     assert isinstance(repo, AppYamlRepository)
 
+# ** test: app_manager_context_default_service_provider
+def test_app_manager_context_default_service_provider():
+    """
+    Test that AppManagerContext creates a DependenciesServiceProvider by default.
+    """
+    from ...di import DependenciesServiceProvider
+
+    # Instantiate with no args — should default to DependenciesServiceProvider.
+    context = AppManagerContext()
+
+    # Assert the service provider is a DependenciesServiceProvider.
+    assert isinstance(context.service_provider, DependenciesServiceProvider)
+
+
+# ** test: app_manager_context_injected_service_provider
+def test_app_manager_context_injected_service_provider():
+    """
+    Test that AppManagerContext accepts an injected ServiceProvider.
+    """
+    from ...di import ServiceProvider, DependenciesServiceProvider
+
+    # Create a custom provider.
+    custom_provider = DependenciesServiceProvider(name='CustomProvider')
+
+    # Inject it into the context.
+    context = AppManagerContext(service_provider=custom_provider)
+
+    # Assert the injected provider is used.
+    assert context.service_provider is custom_provider
+
+
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context):
     """
