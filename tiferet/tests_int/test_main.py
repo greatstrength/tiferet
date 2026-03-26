@@ -6,10 +6,6 @@ import pytest
 # ** app
 from .. import App, TiferetAPIError
 
-pytestmark = pytest.mark.skip(reason='Integration tests require full forward-compatible stack (#682+)')
-
-# *** fixtures
-
 # ** fixture: app_context
 @pytest.fixture
 def app_context():

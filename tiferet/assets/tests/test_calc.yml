@@ -1,4 +1,4 @@
-attrs:
+services:
   add_number_cmd:
     class_name: TestAddNumber
     module_path: tiferet.tests_int
@@ -23,31 +23,31 @@ features:
   test_calc:
     add_number:
       commands:
-      - attribute_id: add_number_cmd
+      - service_id: add_number_cmd
         name: Add Number Command
       description: Adds two numbers.
       name: Add Number Feature
     subtract_number:
       commands:
-      - attribute_id: subtract_number_cmd
+      - service_id: subtract_number_cmd
         name: Subtract Number Command
       description: Subtracts two numbers.
       name: Subtract Number Feature
     multiply_number:
       commands:
-      - attribute_id: multiply_number_cmd
+      - service_id: multiply_number_cmd
         name: Multiply Number Command
       description: Multiplies two numbers.
       name: Multiply Number Feature
     divide_number:
       commands:
-      - attribute_id: divide_number_cmd
+      - service_id: divide_number_cmd
         name: Divide Number Command
       description: Divides two numbers.
       name: Divide Number Feature
     square_number:
       commands:
-      - attribute_id: multiply_number_cmd
+      - service_id: multiply_number_cmd
         name: Square Number Command
         params:
           b: $r.a
@@ -68,14 +68,14 @@ interfaces:
         class_name: ErrorYamlRepository
         params:
           error_yaml_file: tiferet/assets/tests/test_calc.yml
-      container_service:
-        module_path: tiferet.repos.config.container
-        class_name: ContainerConfigurationRepository
+      di_service:
+        module_path: tiferet.repos.di
+        class_name: DIYamlRepository
         params:
-          container_config_file: tiferet/assets/tests/test_calc.yml
-      logging_repo:
-        module_path: tiferet.proxies.yaml.logging
-        class_name: LoggingYamlProxy
+          di_yaml_file: tiferet/assets/tests/test_calc.yml
+      logging_service:
+        module_path: tiferet.repos.logging
+        class_name: LoggingYamlRepository
         params:
-          logging_config_file: tiferet/assets/tests/test_calc.yml
+          logging_yaml_file: tiferet/assets/tests/test_calc.yml
 logging: {}

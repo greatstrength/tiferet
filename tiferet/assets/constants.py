@@ -23,11 +23,11 @@ DEFAULT_SERVICES = [
         },
     },
     {
-        'service_id': 'logging_repo',
-        'module_path': 'tiferet.proxies.yaml.logging',
-        'class_name': 'LoggingYamlProxy',
+        'service_id': 'logging_service',
+        'module_path': 'tiferet.repos.logging',
+        'class_name': 'LoggingYamlRepository',
         'parameters': {
-            'logging_config_file': 'app/configs/logging.yml',
+            'logging_yaml_file': 'app/configs/logging.yml',
         },
     },
     {
