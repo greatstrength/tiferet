@@ -49,9 +49,9 @@ DEFAULT_SERVICES = [
         'class_name': 'GetFeature',
     },
     {
-        'service_id': 'logging_service',
-        'module_path': 'tiferet.handlers.logging',
-        'class_name': 'LoggingHandler',
+        'service_id': 'logging_list_all_evt',
+        'module_path': 'tiferet.events.logging',
+        'class_name': 'ListAllLoggingConfigs',
     },
     {
         'service_id': 'cli_service',
