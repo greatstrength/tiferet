@@ -18,8 +18,7 @@ from ..domain import (
     Handler,
     Logger
 )
-from ..events import RaiseError, a
-from ..events.logging import ListAllLoggingConfigs
+from ..events import DomainEvent, RaiseError, a
 
 # *** contexts
 
@@ -34,17 +33,17 @@ class LoggingContext(object):
 
     # * init
     def __init__(self,
-                 list_all_cmd: ListAllLoggingConfigs,
+                 logging_list_all_evt: DomainEvent,
                  logger_id: str):
         '''
         Initialize the logging context.
 
-        :param list_all_cmd: Command to list all logging configurations.
-        :type list_all_cmd: ListAllLoggingConfigs
+        :param logging_list_all_evt: The event to list all logging configurations.
+        :type logging_list_all_evt: DomainEvent
         :param logger_id: The ID of the logger configuration to create.
         :type logger_id: str
         '''
-        self.list_all_handler = list_all_cmd.execute
+        self.list_all_handler = logging_list_all_evt.execute
         self.logger_id = logger_id
 
     # * method: format_config

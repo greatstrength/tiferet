@@ -69,24 +69,24 @@ def logger_root(handler):
     )
 
 
-# ** fixture: list_all_cmd
+# ** fixture: logging_list_all_evt
 @pytest.fixture
-def list_all_cmd(formatter, handler, logger_root):
+def logging_list_all_evt(formatter, handler, logger_root):
     '''
-    Fixture to create a mocked ListAllLoggingConfigs command instance.
+    Fixture to create a mocked ListAllLoggingConfigs event instance.
     '''
-    cmd = mock.Mock()
-    cmd.execute.return_value = ([formatter], [handler], [logger_root])
-    return cmd
+    evt = mock.Mock()
+    evt.execute.return_value = ([formatter], [handler], [logger_root])
+    return evt
 
 
 # ** fixture: logging_context
 @pytest.fixture
-def logging_context(list_all_cmd):
+def logging_context(logging_list_all_evt):
     '''
     Fixture to create a LoggingContext instance.
     '''
-    return LoggingContext(list_all_cmd=list_all_cmd, logger_id='root')
+    return LoggingContext(logging_list_all_evt=logging_list_all_evt, logger_id='root')
 
 
 # ** fixture: default_configs
@@ -128,7 +128,7 @@ def default_configs():
 
 
 # ** test: logging_context_build_logger_success
-def test_logging_context_build_logger_success(logging_context, list_all_cmd, formatter, handler, logger_root):
+def test_logging_context_build_logger_success(logging_context, logging_list_all_evt, formatter, handler, logger_root):
     '''
     Test successful logger creation by LoggingContext with provided configurations.
     '''
@@ -138,17 +138,17 @@ def test_logging_context_build_logger_success(logging_context, list_all_cmd, for
 
     # Assert that the logger is created and methods are called.
     assert isinstance(logger, logging.Logger)
-    list_all_cmd.execute.assert_called_once()
+    logging_list_all_evt.execute.assert_called_once()
     assert logger.name == 'root'
 
 
 # ** test: logging_context_build_logger_default_configs
-def test_logging_context_build_logger_default_configs(logging_context, list_all_cmd, default_configs):
+def test_logging_context_build_logger_default_configs(logging_context, logging_list_all_evt, default_configs):
     '''
     Test LoggingContext build_logger using default configurations.
     '''
-    # Mock empty configurations from list_all_cmd.
-    list_all_cmd.execute.return_value = ([], [], [])
+    # Mock empty configurations from logging_list_all_evt.
+    logging_list_all_evt.execute.return_value = ([], [], [])
 
 
     # Mock default configurations.
@@ -160,7 +160,7 @@ def test_logging_context_build_logger_default_configs(logging_context, list_all_
 
     # Assert that default configurations are used.
     assert isinstance(logger, logging.Logger)
-    list_all_cmd.execute.assert_called_once()
+    logging_list_all_evt.execute.assert_called_once()
     assert logger.name == 'root'
 
 
@@ -280,7 +280,7 @@ def test_logging_context_create_logger_invalid_config(logging_context):
 
 
 # ** test: logging_context_build_logger_error
-def test_logging_context_build_logger_error(logging_context, list_all_cmd):
+def test_logging_context_build_logger_error(logging_context, logging_list_all_evt):
     '''
     Test LoggingContext build_logger with invalid configuration.
     '''
@@ -293,7 +293,7 @@ def test_logging_context_build_logger_error(logging_context, list_all_cmd):
         format='%(invalid)s',  # Invalid format
         datefmt=None
     )
-    list_all_cmd.execute.return_value = ([invalid_formatter], [], [])
+    logging_list_all_evt.execute.return_value = ([invalid_formatter], [], [])
 
 
     # Call build_logger with invalid configurations.
