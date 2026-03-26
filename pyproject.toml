@@ -36,6 +36,7 @@ include = [
     "tiferet.assets",
     "tiferet.builders",
     "tiferet.contexts",
+    "tiferet.di",
     "tiferet.domain",
     "tiferet.events",
     "tiferet.interfaces",

@@ -16,7 +16,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
 
-Current status: **2.0.0a6** (pre-release – actively evolving toward stable v2)
+Current status: **2.0.0a7** (pre-release – actively evolving toward stable v2)
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -57,12 +57,12 @@ features:
     add:
       name: Add Numbers
       commands:
-        - attribute_id: add_number_event
+        - service_id: add_number_event
 ```
 
-**app/configs/container.yml**
+**app/configs/di.yml**
 ```yaml
-attrs:
+services:
   add_number_event:
     module_path: app.events.calc
     class_name: AddNumber
@@ -110,6 +110,7 @@ You should see:
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
+- [Dependency Injection (ServiceProvider)](docs/core/di.md)  
 - [Contexts](docs/core/contexts.md)  
 - [Repositories](docs/core/repos.md)  
 - [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
