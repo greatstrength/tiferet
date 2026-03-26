@@ -10,6 +10,10 @@ import pytest
 from unittest import mock
 
 # ** app
+from ...assets import TiferetError, TiferetAPIError
+from ...domain import DomainObject, AppInterface
+from ...interfaces import AppService
+from ...mappers import AppInterfaceAggregate
 from ..app import (
     FeatureContext,
     ErrorContext,
@@ -18,49 +22,32 @@ from ..app import (
     AppInterfaceContext,
     AppManagerContext,
 )
-from ...assets import TiferetError, TiferetAPIError
-from ...assets.constants import (
-    DEFAULT_ATTRIBUTES,
-    DEFAULT_APP_SERVICE_MODULE_PATH,
-    DEFAULT_APP_SERVICE_CLASS_NAME,
-)
-from ...models import (
-    ModelObject,
-    AppInterface,
-    AppAttribute,
-)
-from ...contracts import AppService
-from ...repos.config.app import AppConfigurationRepository
+from ... import assets as a
+from ...repos.app import AppYamlRepository
 
 # *** fixtures
 
-# ** app_interface
+# ** fixture: app_interface
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create a mock AppInterface instance.
+    Fixture to create an AppInterfaceAggregate instance.
 
-    :return: A mock instance of AppInterface.
-    :rtype: AppInterface
+    :return: An AppInterfaceAggregate instance.
+    :rtype: AppInterfaceAggregate
     '''
-    # Create a test AppInterface instance.
-    return ModelObject.new(
-        AppInterface,
-        id='test',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        description='The test app.',
-        feature_flag='test',
-        data_flag='test',
-        attributes=[
-            ModelObject.new(
-                AppAttribute,
-                attribute_id='test_attribute',
-                module_path='test_module_path',
-                class_name='test_class_name',
-            ),
-        ],
+
+    # Create a test AppInterfaceAggregate instance.
+    return AppInterfaceAggregate.new(
+        app_interface_data=dict(
+            id='test',
+            name='Test App',
+            module_path='tiferet.contexts.app',
+            class_name='AppInterfaceContext',
+            description='The test app.',
+            flags=['test'],
+            services=[],
+        ),
     )
 
 # ** fixture: feature_context
@@ -151,12 +138,12 @@ def app_manager_context():
     :rtype: AppManagerContext
     """
 
-    # Return the AppManagerContext instance using test settings with AppConfigurationRepository
+    # Return the AppManagerContext instance using test settings with AppYamlRepository
     # and a test-specific configuration file.
     return AppManagerContext(
         dict(
             app_repo_params=dict(
-                app_config_file='tiferet/configs/tests/test_calc.yml',
+                app_yaml_file='tiferet/assets/tests/test_calc.yml',
             ),
         ),
     )
@@ -165,10 +152,10 @@ def app_manager_context():
 
 # ** test: app_manager_context_load_app_repo_defaults
 def test_app_manager_context_load_app_repo_defaults():
-    """Validate that AppManagerContext defaults to AppConfigurationRepository.
+    """Validate that AppManagerContext defaults to AppYamlRepository.
 
     This ensures that when no custom repository settings are provided, the
-    app repository is loaded using the configuration-backed implementation.
+    app repository is loaded using the YAML-backed implementation.
     """
 
     # Instantiate the AppManagerContext with default settings.
@@ -177,7 +164,36 @@ def test_app_manager_context_load_app_repo_defaults():
     # Load the app repository and assert that the default repository type is used.
     repo = context.load_app_repo()
 
-    assert isinstance(repo, AppConfigurationRepository)
+    assert isinstance(repo, AppYamlRepository)
+
+# ** test: app_manager_context_default_service_provider
+def test_app_manager_context_default_service_provider():
+    """
+    Test that AppManagerContext creates a DependenciesServiceProvider by default.
+    """
+    from ...di import DependenciesServiceProvider
+
+    # Instantiate with no args — should default to DependenciesServiceProvider.
+    context = AppManagerContext()
+
+    # Assert the service provider is a DependenciesServiceProvider.
+    assert isinstance(context.service_provider, DependenciesServiceProvider)
+
+# ** test: app_manager_context_injected_service_provider
+def test_app_manager_context_injected_service_provider():
+    """
+    Test that AppManagerContext accepts an injected ServiceProvider.
+    """
+    from ...di import ServiceProvider, DependenciesServiceProvider
+
+    # Create a custom provider.
+    custom_provider = DependenciesServiceProvider(name='CustomProvider')
+
+    # Inject it into the context.
+    context = AppManagerContext(service_provider=custom_provider)
+
+    # Assert the injected provider is used.
+    assert context.service_provider is custom_provider
 
 # ** test: app_manager_context_load_interface
 def test_app_manager_context_load_interface(app_manager_context):
@@ -228,7 +244,7 @@ def test_app_manager_context_load_interface_invalid(app_manager_context, app_int
         app_manager_context.load_interface('invalid_interface_id')
 
     # Assert that the error message is as expected.
-    assert exc_info.value.error_code == 'APP_INTERFACE_INVALID'
+    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
     assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
     assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
 

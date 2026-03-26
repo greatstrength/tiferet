@@ -1,6 +1,10 @@
-"""Tiferet Domain App"""
+"""Tiferet App Domain Models"""
 
 # *** imports
+
+# ** core
+from importlib import import_module
+from typing import Dict
 
 # ** app
 from .settings import (
@@ -19,6 +23,14 @@ class AppServiceDependency(DomainObject):
     An app service dependency that defines the service configuration for an app interface.
     '''
 
+    # * attribute: service_id
+    service_id = StringType(
+        required=True,
+        metadata=dict(
+            description='The service id for the application dependency.'
+        ),
+    )
+
     # * attribute: module_path
     module_path = StringType(
         required=True,
@@ -32,22 +44,6 @@ class AppServiceDependency(DomainObject):
         required=True,
         metadata=dict(
             description='The class name for the app dependency.'
-        ),
-    )
-
-    # * attribute: service_id
-    # + todo: set to required when attribute_id is removed
-    service_id = StringType(
-        metadata=dict(
-            description='The service id for the application dependency.'
-        ),
-    )
-
-    # * attribute: attribute_id
-    # - obsolete: replaced by service_id
-    attribute_id = StringType(
-        metadata=dict(
-            description='The attribute id for the application dependency.'
         ),
     )
 
@@ -154,5 +150,38 @@ class AppInterface(DomainObject):
         '''
 
         # Get the service dependency by service id.
-        # + todo: remove attribute_id support when attribute_id is removed from AppServiceDependency
-        return next((dep for dep in self.services if dep.service_id == service_id or dep.attribute_id == service_id), None)
+        return next((dep for dep in self.services if dep.service_id == service_id), None)
+
+    # * method: get_service_type_mapping
+    def get_service_type_mapping(self) -> Dict[str, type]:
+        '''
+        Get a mapping of service IDs to their corresponding types.
+
+        :return: A dictionary mapping service IDs to their types.
+        :rtype: Dict[str, type]
+        '''
+
+        # Retrieve the app context dependency, interface id, and logger id.
+        dependencies = dict(
+            app_context=getattr(
+                import_module(self.module_path),
+                self.class_name,
+            ),
+            interface_id=self.id,
+            logger_id=getattr(self, 'logger_id', None),
+        )
+
+        # Add the constants from the app interface to the dependencies.
+        dependencies.update(self.constants)
+
+        # Add the remaining app context service dependencies and parameters.
+        for dep in self.services:
+            dependencies[dep.service_id] = getattr(
+                import_module(dep.module_path),
+                dep.class_name,
+            )
+            for param, value in dep.parameters.items():
+                dependencies[param] = value
+
+        # Return the assembled dependencies mapping.
+        return dependencies

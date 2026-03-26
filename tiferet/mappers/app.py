@@ -113,9 +113,8 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             service_id = attribute_id
 
         # Iterate over services and remove the first match by service_id.
-        # + todo: remove attribute_id fallback once attribute_id is removed from AppServiceDependency
         for index, dep in enumerate(self.services):
-            if dep.service_id == service_id or dep.attribute_id == service_id:
+            if dep.service_id == service_id:
                 return self.services.pop(index)
 
         # If no service dependency matches, return None without modifying the list.
