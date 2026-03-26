@@ -6,55 +6,56 @@ from unittest import mock
 
 # ** app
 from ...assets import (
-    TiferetError, 
+    TiferetError,
     TiferetAPIError,
     DEFAULT_ERRORS,
     ERROR_NOT_FOUND_ID
 )
 from ..error import ErrorContext
-from ...models import Error
-from ...commands.error import GetError
+from ...domain import Error
+from ...events import DomainEvent
+from ...events.error import GetError
 
 # *** fixtures
 
-# ** fixture: get_error_cmd_mock
+# ** fixture: get_error_evt_mock
 @pytest.fixture
-def get_error_cmd_mock() -> GetError:
+def get_error_evt_mock() -> DomainEvent:
     '''
-    Fixture to create a mock GetError command.
+    Fixture to create a mock GetError event.
 
-    :return: A mock GetError command.
-    :rtype: mock.Mock
+    :return: A mock GetError event.
+    :rtype: DomainEvent
     '''
 
-    # Return the mocked GetError command.
+    # Return the mocked GetError event (spec kept as GetError for method signature).
     return mock.Mock(spec=GetError)
 
 # ** fixture: error_context
 @pytest.fixture
-def error_context(get_error_cmd_mock: GetError):
+def error_context(get_error_evt_mock: DomainEvent):
     '''
     Fixture to create a new ErrorContext object.
     '''
-    
-    # Create an instance of ErrorContext with the mock error service.
-    return ErrorContext(get_error_cmd=get_error_cmd_mock)
+
+    # Create an instance of ErrorContext with the mock event.
+    return ErrorContext(get_error_evt=get_error_evt_mock)
 
 # *** tests
 
 # ** test: error_context_get_error_by_code
-def test_error_context_get_error_by_code(get_error_cmd_mock: GetError, error_context: ErrorContext):
+def test_error_context_get_error_by_code(get_error_evt_mock: DomainEvent, error_context: ErrorContext):
     '''
     Test retrieving an error by its code from the ErrorContext.
 
-    :param get_error_cmd_mock: The mocked GetError command.
-    :type get_error_cmd_mock: GetError
+    :param get_error_evt_mock: The mocked GetError event.
+    :type get_error_evt_mock: DomainEvent
     :param error_context: The error context to test.
     :type error_context: ErrorContext
     '''
 
     # Mock the get_error_handler to return a sample Error.
-    get_error_cmd_mock.execute.return_value = Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+    get_error_evt_mock.execute.return_value = Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
     
     error = error_context.get_error_by_code(ERROR_NOT_FOUND_ID)
     
