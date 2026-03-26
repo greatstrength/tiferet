@@ -40,25 +40,25 @@ def cli_command_list():
         )
     ]
 
-# ** fixture: list_commands_cmd
+# ** fixture: list_commands_evt
 @pytest.fixture
-def list_commands_cmd(cli_command_list):
+def list_commands_evt(cli_command_list):
     """
-    Fixture to create a mock ListCliCommands command.
+    Fixture to create a mock ListCliCommands event.
     """
-    cmd = mock.Mock(spec=ListCliCommands)
-    cmd.execute.return_value = cli_command_list
-    return cmd
+    evt = mock.Mock(spec=ListCliCommands)
+    evt.execute.return_value = cli_command_list
+    return evt
 
-# ** fixture: get_parent_args_cmd
+# ** fixture: get_parent_args_evt
 @pytest.fixture
-def get_parent_args_cmd():
+def get_parent_args_evt():
     """
-    Fixture to create a mock GetParentArguments command.
+    Fixture to create a mock GetParentArguments event.
     """
-    cmd = mock.Mock(spec=GetParentArguments)
-    cmd.execute.return_value = []
-    return cmd
+    evt = mock.Mock(spec=GetParentArguments)
+    evt.execute.return_value = []
+    return evt
 
 # ** fixture: feature_context
 @pytest.fixture
@@ -93,7 +93,7 @@ def logging_context():
 
 # ** fixture: cli_context
 @pytest.fixture
-def cli_context(list_commands_cmd, get_parent_args_cmd, feature_context, error_context, logging_context):
+def cli_context(list_commands_evt, get_parent_args_evt, feature_context, error_context, logging_context):
     """
     Fixture to create a CLI context with command handlers, feature context, error context, and logging context.
     """
@@ -102,14 +102,14 @@ def cli_context(list_commands_cmd, get_parent_args_cmd, feature_context, error_c
         features=feature_context,
         errors=error_context,
         logging=logging_context,
-        list_commands_cmd=list_commands_cmd,
-        get_parent_args_cmd=get_parent_args_cmd
+        list_commands_evt=list_commands_evt,
+        get_parent_args_evt=get_parent_args_evt
     )
 
 # *** tests
 
 # ** test: cli_context_get_commands
-def test_cli_context_get_commands(cli_context, list_commands_cmd, cli_command_list):
+def test_cli_context_get_commands(cli_context, list_commands_evt, cli_command_list):
     """
     Test the get_commands method of the CLI context.
     """
@@ -117,7 +117,7 @@ def test_cli_context_get_commands(cli_context, list_commands_cmd, cli_command_li
     command_map = cli_context.get_commands()
 
     # Check that list_commands_handler was called.
-    list_commands_cmd.execute.assert_called_once()
+    list_commands_evt.execute.assert_called_once()
 
     # Check the command map structure.
     assert 'test-group' in command_map
@@ -203,21 +203,21 @@ def test_cli_context_run(cli_context, logging_context, monkeypatch):
     logger.error.assert_not_called()
 
 # ** test: cli_context_run_with_parse_request_error
-def test_cli_context_run_with_parse_request_error(cli_context, get_parent_args_cmd, logging_context, monkeypatch):
+def test_cli_context_run_with_parse_request_error(cli_context, get_parent_args_evt, logging_context, monkeypatch):
     """
     Test the run method of the CLI context when there is an error in parsing the request.
 
     :param cli_context: The CliContext instance.
     :type cli_context: CliContext
-    :param get_parent_args_cmd: The mock GetParentArguments command.
-    :type get_parent_args_cmd: GetParentArguments
+    :param get_parent_args_evt: The mock GetParentArguments event.
+    :type get_parent_args_evt: GetParentArguments
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     :param monkeypatch: Pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     """
     # Mock the get_parent_args_handler to raise an exception.
-    get_parent_args_cmd.execute.side_effect = Exception("Parsing error")
+    get_parent_args_evt.execute.side_effect = Exception("Parsing error")
 
     # Mock sys.argv to simulate command line arguments.
     monkeypatch.setattr('sys.argv', ['prog', 'test-group', 'test-feature', '--arg1', 'default_value'])
