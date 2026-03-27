@@ -21,13 +21,11 @@ tiferet/
 ├── commands/             # Legacy: Command base class
 ├── contexts/             # Runtime orchestration (AppManager, DIContext, Feature, Error, CLI, Logging)
 ├── contracts/            # Legacy: Service/Repository contracts
-├── data/                 # Legacy: DataObject
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # Forward: DomainObject
 ├── events/               # Forward: DomainEvent
 ├── interfaces/           # Forward: Service ABC
 ├── mappers/              # Forward: Aggregate + TransferObject
-├── middleware/           # File I/O middleware (deprecated — use utils/)
 ├── models/               # Legacy: ModelObject
 ├── repos/                # Repository implementations
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
@@ -40,7 +38,6 @@ tiferet/
 
 - **ModelObject** (`models/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `ModelObject.new(Type, **kwargs)`.
 - **Command** (`commands/settings.py`): Base class for business operations with dependency injection and `execute(**kwargs)` entry point.
-- **DataObject** (`data/settings.py`): Combined data mapping/serialization class with `new()`, `map()`, `from_model()`, `from_data()`, `allow()`, `deny()`.
 - **Repository** / **Service** / **ModelContract** (`contracts/`): Abstract base classes for service and repository contracts.
 
 **Forward-compatible packages** (new in v1.9.x, aligned with v2.0 design):
