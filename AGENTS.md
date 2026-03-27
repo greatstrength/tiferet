@@ -18,15 +18,12 @@ The codebase maintains a **dual-package structure**: legacy packages from v1.x c
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── commands/             # Legacy: Command base class
 ├── contexts/             # Runtime orchestration (AppManager, DIContext, Feature, Error, CLI, Logging)
-├── contracts/            # Legacy: Service/Repository contracts
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # Forward: DomainObject
 ├── events/               # Forward: DomainEvent
 ├── interfaces/           # Forward: Service ABC
 ├── mappers/              # Forward: Aggregate + TransferObject
-├── models/               # Legacy: ModelObject
 ├── repos/                # Repository implementations
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
@@ -34,13 +31,7 @@ tiferet/
 
 ### Key Concepts
 
-**Legacy packages** (fully supported, carried from v1.x):
-
-- **ModelObject** (`models/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `ModelObject.new(Type, **kwargs)`.
-- **Command** (`commands/settings.py`): Base class for business operations with dependency injection and `execute(**kwargs)` entry point.
-- **Repository** / **Service** / **ModelContract** (`contracts/`): Abstract base classes for service and repository contracts.
-
-**Forward-compatible packages** (new in v1.9.x, aligned with v2.0 design):
+**Key Concepts**:
 
 - **DomainObject** (`domain/settings.py`): Drop-in successor to `ModelObject`. Base class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
 - **DomainEvent** (`events/settings.py`): Successor to `Command`. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
