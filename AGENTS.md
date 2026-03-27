@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0a7)
+# AGENTS.md — Tiferet Framework (v2.0.0a8)
 
 ## Project Overview
 
@@ -7,24 +7,24 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a7`
+- **Version:** `2.0.0a8`
 
 ## Architecture
 
 ### Layer Overview
 
-The codebase maintains a **dual-package structure**: legacy packages from v1.x coexist alongside forward-compatible packages that introduce the v2.0 naming and design. Both are fully supported; new code should prefer the forward-compatible packages.
+The v2.0 codebase is a clean, single-layer architecture. All legacy packages have been removed.
 
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── contexts/             # Runtime orchestration (AppManager, DIContext, Feature, Error, CLI, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
-├── domain/               # Forward: DomainObject
-├── events/               # Forward: DomainEvent
-├── interfaces/           # Forward: Service ABC
-├── mappers/              # Forward: Aggregate + TransferObject
-├── repos/                # Repository implementations
+├── domain/               # DomainObject base class and domain modules
+├── events/               # DomainEvent base class and domain event modules
+├── interfaces/           # Service ABC and domain service interfaces
+├── mappers/              # Aggregate + TransferObject base classes and domain mappers
+├── repos/                # YAML-backed Service implementations
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
 ```
@@ -33,11 +33,11 @@ tiferet/
 
 **Key Concepts**:
 
-- **DomainObject** (`domain/settings.py`): Drop-in successor to `ModelObject`. Base class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
-- **DomainEvent** (`events/settings.py`): Successor to `Command`. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
-- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for service contracts. Successor to `contracts/` service interfaces. All vertical concerns (data access, config, middleware) are unified under Service.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Successor to the mutation side of `DataObject`. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
-- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Successor to the serialization side of `DataObject`. Methods: `map()`, `from_model()`, `from_data()`.
+- **DomainObject** (`domain/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
+- **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
+- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
+- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Methods: `map()`, `from_model()`, `from_data()`.
 
 ### Runtime Flow
 
@@ -240,30 +240,20 @@ The top-level `tiferet/__init__.py` exports:
 - `App` (alias for `AppManagerContext`)
 - `TiferetError`, `TiferetAPIError`
 
-**Legacy:**
-- `ModelObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
-- `Command`, `ParseParameter` (from `commands/`)
-- `ModelContract`, `Repository`, `Service` (from `contracts/`)
-- `DataObject` (from `data/`)
+**Domain:**
+- `DomainObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
 
-**Proxies and Middleware:**
-- `YamlFileProxy`, `JsonFileProxy`, `CsvFileProxy` (from `proxies/`)
-- `File`, `FileLoaderMiddleware`, `Yaml`, `YamlLoaderMiddleware`, `Json`, `JsonLoaderMiddleware`, `Csv`, `CsvLoaderMiddleware`, `CsvDict`, `CsvDictLoaderMiddleware` (from `middleware/`)
+**Events:**
+- `DomainEvent`, `ParseParameter` (from `tiferet.events`)
 
-**Forward-compatible** (available via their respective packages):
-- `DomainObject` (from `tiferet.domain`)
-- `DomainEvent`, `ParseParameter`, `ImportDependency`, `RaiseError` (from `tiferet.events`)
+**Interfaces:**
 - `Service` (from `tiferet.interfaces`)
+
+**Mappers:**
 - `Aggregate`, `TransferObject` (from `tiferet.mappers`)
 
-## Forward-Compatible Packages
-
-The following forward-compatible packages are successors to legacy packages. New code should prefer these packages. Legacy packages remain fully supported.
-
-- **`tiferet/domain/`** → `DomainObject` — drop-in successor to `ModelObject` (`models/`). Same API, new name.
-- **`tiferet/events/`** → `DomainEvent` — successor to `Command` (`commands/`). Adds `@parameters_required` decorator and `DomainEvent.handle()` for testing.
-- **`tiferet/interfaces/`** → `Service` (ABC) — successor to `contracts/` service interfaces. Cleaner abstract base with `@abstractmethod`.
-- **`tiferet/mappers/`** → `Aggregate` + `TransferObject` — successor to `DataObject` (`data/`). Splits mutation (Aggregate) from serialization (TransferObject) for cleaner separation of concerns.
+**Utils:**
+- `File`/`FileLoader`, `Yaml`/`YamlLoader`, `Json`/`JsonLoader`, `Csv`/`CsvLoader`, `CsvDict`/`CsvDictLoader`, `Sqlite`/`SqliteClient`
 
 ## Key Files for Orientation
 
