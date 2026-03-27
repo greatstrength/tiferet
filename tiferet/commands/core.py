@@ -2,12 +2,30 @@
 
 # ** core
 from typing import Dict, Any
+import json
 import os
 from importlib import import_module
 
 # ** app
 from .settings import Command
-from ..configs import TiferetError as LegacyTiferetError
+
+
+# *** classes
+
+# ** class: legacy_tiferet_error
+class LegacyTiferetError(Exception):
+    '''
+    A base exception for legacy Tiferet commands.
+    '''
+
+    def __init__(self, error_code: str, message: str = None, *args):
+        self.error_code = error_code
+        super().__init__(
+            json.dumps(dict(
+                error_code=error_code,
+                message=message,
+            )), *args
+        )
 
 
 # *** commands

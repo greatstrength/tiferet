@@ -36,7 +36,6 @@ include = [
     "tiferet.assets",
     "tiferet.clients",
     "tiferet.commands",
-    "tiferet.configs",
     "tiferet.contexts",
     "tiferet.di",
     "tiferet.contracts",
