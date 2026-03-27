@@ -29,7 +29,6 @@ tiferet/
 ├── mappers/              # Forward: Aggregate + TransferObject
 ├── middleware/           # File I/O middleware (deprecated — use utils/)
 ├── models/               # Legacy: ModelObject
-├── proxies/              # YAML/JSON/CSV proxies
 ├── repos/                # Repository implementations
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests

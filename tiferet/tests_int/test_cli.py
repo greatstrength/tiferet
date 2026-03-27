@@ -27,10 +27,10 @@ from tiferet import App
 
 # Create an instance of the App class with the specified settings.
 app = App(settings=dict(
-    app_repo_module_path='tiferet.proxies.yaml.app',
-    app_repo_class_name='AppYamlProxy',
+    app_repo_module_path='tiferet.repos.app',
+    app_repo_class_name='AppYamlRepository',
     app_repo_params=dict(
-        app_config_file='tiferet/configs/tests/test_calc.yml'
+        app_yaml_file='tiferet/assets/tests/test_calc.yml'
     )
 ))
 
