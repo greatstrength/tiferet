@@ -25,7 +25,6 @@ tiferet/
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # Forward: DomainObject
 ├── events/               # Forward: DomainEvent
-├── handlers/             # Handler implementations
 ├── interfaces/           # Forward: Service ABC
 ├── mappers/              # Forward: Aggregate + TransferObject
 ├── middleware/           # File I/O middleware (deprecated — use utils/)
