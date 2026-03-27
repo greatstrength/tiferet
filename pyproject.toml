@@ -34,7 +34,6 @@ where = ["."]
 include = [
     "tiferet",
     "tiferet.assets",
-    "tiferet.clients",
     "tiferet.commands",
     "tiferet.contexts",
     "tiferet.di",
@@ -46,7 +45,6 @@ include = [
     "tiferet.domain",
     "tiferet.events",
     "tiferet.repos",
-    "tiferet.repos.config",
     "tiferet.mappers",
     "tiferet.utils",
 ]
