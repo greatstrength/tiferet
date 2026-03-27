@@ -4,7 +4,7 @@
 import pytest
 
 # ** app
-from ...models import ModelObject, StringType
+from ...domain import DomainObject, StringType
 from ..request import *
 
 # *** fixtures
@@ -95,7 +95,7 @@ def test_request_context_handle_response_model_object(request_context):
     """
 
     # Create a ModelObject to simulate a response.
-    class Data(ModelObject):
+    class Data(DomainObject):
 
         key = StringType(
             default='default_value',
@@ -103,13 +103,13 @@ def test_request_context_handle_response_model_object(request_context):
         )
 
     # Set the request context result to a ModelObject.
-    request_context.result = ModelObject.new(Data, key='value')
+    request_context.result = DomainObject.new(Data, key='value')
 
     # Handle the response with a ModelObject.
     response = request_context.handle_response()
 
     # Check that the response is a ModelObject and has the expected data.
-    assert isinstance(response, ModelObject)
+    assert isinstance(response, DomainObject)
     assert response.key == 'value'
 
 # ** test: request_context_handle_response_list
@@ -141,7 +141,7 @@ def test_request_context_handle_response_model_list(request_context):
     """
 
     # Create a ModelObject to simulate a response.
-    class Item(ModelObject):
+    class Item(DomainObject):
 
         name = StringType(
             default='default_name',
@@ -150,8 +150,8 @@ def test_request_context_handle_response_model_list(request_context):
 
     # Set the request context result to a list of ModelObjects.
     request_context.result = [
-        ModelObject.new(Item, name='item1'),
-        ModelObject.new(Item, name='item2')
+        DomainObject.new(Item, name='item1'),
+        DomainObject.new(Item, name='item2')
     ]
 
     # Handle the response with a list of ModelObjects.

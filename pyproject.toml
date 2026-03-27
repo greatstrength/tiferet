@@ -34,12 +34,9 @@ where = ["."]
 include = [
     "tiferet",
     "tiferet.assets",
-    "tiferet.commands",
     "tiferet.contexts",
     "tiferet.di",
-    "tiferet.contracts",
     "tiferet.interfaces",
-    "tiferet.models",
     "tiferet.domain",
     "tiferet.events",
     "tiferet.repos",
