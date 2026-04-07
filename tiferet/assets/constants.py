@@ -3,6 +3,14 @@
 # *** imports
 
 # *** constants (app)
+# ** constant: default_constants
+DEFAULT_CONSTANTS = {
+    'cli_yaml_file': 'config.yml',
+    'di_yaml_file': 'config.yml',
+    'error_yaml_file': 'config.yml',
+    'logging_yaml_file': 'config.yml',
+    'feature_yaml_file': 'config.yml',
+}
 
 # ** constant: default_services
 DEFAULT_SERVICES = [
@@ -10,33 +18,21 @@ DEFAULT_SERVICES = [
         'service_id': 'di_service',
         'module_path': 'tiferet.repos.di',
         'class_name': 'DIYamlRepository',
-        'parameters': {
-            'di_yaml_file': 'app/configs/di.yml',
-        },
     },
     {
         'service_id': 'error_service',
         'module_path': 'tiferet.repos.error',
         'class_name': 'ErrorYamlRepository',
-        'parameters': {
-            'error_yaml_file': 'app/configs/error.yml',
-        },
     },
     {
         'service_id': 'logging_service',
         'module_path': 'tiferet.repos.logging',
         'class_name': 'LoggingYamlRepository',
-        'parameters': {
-            'logging_yaml_file': 'app/configs/logging.yml',
-        },
     },
     {
         'service_id': 'feature_service',
         'module_path': 'tiferet.repos.feature',
         'class_name': 'FeatureYamlRepository',
-        'parameters': {
-            'feature_yaml_file': 'app/configs/feature.yml',
-        },
     },
     {
         'service_id': 'get_error_evt',
@@ -57,9 +53,6 @@ DEFAULT_SERVICES = [
         'service_id': 'cli_service',
         'module_path': 'tiferet.repos.cli',
         'class_name': 'CliYamlRepository',
-        'parameters': {
-            'cli_yaml_file': 'app/configs/cli.yml',
-        },
     },
     {
         'service_id': 'list_commands_evt',
