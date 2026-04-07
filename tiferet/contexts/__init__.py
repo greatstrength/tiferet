@@ -10,7 +10,6 @@ from .error import ErrorContext
 from .di import DIContext
 from .feature import FeatureContext
 from .app import (
-    AppManagerContext,
     AppInterfaceContext
 )
 from .cli import CliContext

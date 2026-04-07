@@ -6,8 +6,10 @@ import argparse
 from typing import Dict, Any, Callable
 
 # ** app
-from .app import *
+from ..assets import TiferetAPIError
 from ..domain import CliCommand
+from ..events import DomainEvent
+from .app import *
 
 # *** contexts
 
