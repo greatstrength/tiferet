@@ -3,11 +3,11 @@
 We've got a working calculator through the script runner — now let's make it feel like a real tool people can use from the terminal.  
 Enter the command-line interface (CLI): fast, scriptable, and perfect for quick calculations.
 
-### 6.1 Add the CLI config file
+### 6.1 Add the CLI config section
 
-Create this file to tell Tiferet how to parse commands like `calc add 19 23`.
+In Tiferet v2.0, CLI definitions live in root `config.yml`. Add this section to tell Tiferet how to parse commands like `calc add 19 23`.
 
-**app/configs/cli.yml**
+**config.yml** (add this section)
 
 ```yaml
 cli:
@@ -87,11 +87,11 @@ cli:
 Each command needs `group_key`, `key`, and `name` — Tiferet uses these to build the argument parser and map commands to features.  
 The `args` list defines the positional arguments that get passed as `data` to your events.
 
-### 6.2 Update app.yml to add the CLI interface
+### 6.2 Update config.yml to add the CLI interface
 
-Now we need to tell Tiferet about the CLI interface. Update `app/configs/app.yml` to add the `calc_cli` entry:
+Now we need to tell Tiferet about the CLI interface. In the same root `config.yml`, update the `interfaces` block to add `calc_cli`:
 
-**app/configs/app.yml** (updated)
+**config.yml** (interfaces section)
 
 ```yaml
 interfaces:
@@ -104,16 +104,10 @@ interfaces:
     description: Command-line interface for calculator operations
     module_path: tiferet.contexts.cli
     class_name: CliContext
-    attrs:
-      cli_service:
-        module_path: tiferet.repos.cli
-        class_name: CliYamlRepository
-        params:
-          cli_yaml_file: app/configs/cli.yml
 ```
 
-- `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling
-- `cli_service` points to `CliYamlRepository`, which reads command definitions from `cli.yml`
+- `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling.
+- CLI command definitions are read from the `cli` section in the same root `config.yml`.
 
 ### 6.3 The CLI entry point script
 
@@ -122,9 +116,9 @@ interfaces:
 ```python
 from tiferet import App
 
-app = App()  # loads all configs as usual
+app = App().load_app_service(app_yaml_file="config.yml")
 
-# Load the CLI interface we defined in app.yml
+# Load the CLI interface we defined in config.yml
 cli = app.load_interface("calc_cli")
 
 if __name__ == "__main__":
@@ -132,7 +126,7 @@ if __name__ == "__main__":
 ```
 
 That's it — super short!  
-`app.load_interface("calc_cli")` pulls in `CliContext` from `app.yml`, which reads `cli.yml` for command definitions.
+`app.load_interface("calc_cli")` pulls in `CliContext` from root `config.yml`, which also contains the CLI command definitions.
 
 ### 6.4 Run and play with it
 
@@ -184,7 +178,7 @@ Want to run it as just `calc add 19 23` instead of `python calc_cli.py ...`?
 - No extra code for argument parsing — YAML does it
 - Same events power both script and CLI
 - Errors are consistent and friendly across interfaces
-- Easy to extend: add more commands by editing `cli.yml` and `feature.yml`
+- Easy to extend: add more commands by editing `config.yml`
 
 You've now got a complete, dual-mode calculator: script for automation/testing, CLI for everyday use.
 

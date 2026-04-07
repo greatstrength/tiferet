@@ -1,32 +1,20 @@
 # Step 4: Configurations
 
 We've got the math events and a nice validation utility — now it's time to make everything come alive through configuration.  
-In Tiferet, YAML files are the "wiring diagram": they tell the framework what events exist, how features map to them, and what errors look like.
+In Tiferet v2.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
 
-We'll go through each file one by one, explaining what it does and why each piece matters.
+### 4.1 config.yml – The complete wiring diagram
 
-### 4.1 app/configs/app.yml – Application interfaces
+Create `config.yml` in your project root (next to `basic_calc.py` and `calc_cli.py`).
 
-This file defines the "entry points" or interfaces your app exposes. For now we'll just set up the basic script interface — we'll add the CLI interface in Step 6.
-
-**app/configs/app.yml**
+**config.yml**
 
 ```yaml
 interfaces:
   basic_calc:
     name: Basic Calculator
     description: Simple arithmetic operations via script or direct call
-```
 
-- `basic_calc`: our simple script interface (uses default Tiferet behavior — no custom context needed)
-
-### 4.2 app/configs/container.yml – Dependency injection
-
-This maps event names to actual Python classes so Tiferet can instantiate them when needed.
-
-**app/configs/container.yml**
-
-```yaml
 attrs:
   add_event:
     module_path: app.events.calc
@@ -43,17 +31,7 @@ attrs:
   exp_event:
     module_path: app.events.calc
     class_name: Exponentiate
-```
 
-These are the "service names" our features will reference later.
-
-### 4.3 app/configs/feature.yml – Workflow orchestration
-
-This defines the actual calculator features and which event(s) they run.
-
-**app/configs/feature.yml**
-
-```yaml
 features:
   calc:
     add:
@@ -93,19 +71,7 @@ features:
         - attribute_id: exp_event
           params:
             b: 0.5    # fixed exponent for square root (a^(1/2))
-```
 
-- Each sub-key under `calc` is a feature ID (e.g., `calc.add`)
-- `commands` lists the events to run (we only need one per feature here)
-- `attribute_id` matches the names we defined in `container.yml`
-
-### 4.4 app/configs/error.yml – Structured error messages
-
-This defines user-friendly, multilingual error messages.
-
-**app/configs/error.yml**
-
-```yaml
 errors:
   INVALID_INPUT:
     name: Invalid Input
@@ -120,21 +86,25 @@ errors:
         text: "Cannot divide by zero"
 ```
 
-- Keys match the `error_code` strings we use in `RaiseError.execute(...)` and `CalcUtil`
-- Supports multiple languages (we'll stick to `en_US` for now)
-- `{value}` is a placeholder filled from the keyword arguments passed to `RaiseError`
+### 4.2 How to read this file
 
-### 4.5 Quick recap
+- `interfaces` defines the app entry points (`basic_calc` now, `calc_cli` in Step 6)
+- `attrs` maps friendly names to domain event classes
+- `features` defines workflows (for example, `calc.add` → `add_event`)
+- `errors` defines structured response messages
 
-- `app.yml`: defines interfaces (script for now, CLI in Step 6)
-- `container.yml`: maps Python classes to injectable names
-- `feature.yml`: defines workflows (feature → event)
-- `error.yml`: provides nice error messages
+This gives Tiferet everything it needs to execute features and format errors from one configuration source.
 
-All these files work together so Tiferet knows:  
-"When someone runs `calc.add`, instantiate `AddNumber` from `app.events.calc`, run it, and format any errors nicely."
+### 4.3 Quick recap
 
-No code changes needed here — just YAML.
+All configuration now lives in root `config.yml`:
+
+- Interface definition
+- Domain event dependency mapping
+- Feature workflow wiring
+- Error message definitions
+
+No code changes needed here — just YAML in one place.
 
 → Ready to see it all run?  
 Head to **[Step 5: Running the Script Runner](05-running-the-script.md)**

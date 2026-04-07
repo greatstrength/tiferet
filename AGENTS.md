@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0a8)
+# AGENTS.md — Tiferet Framework (v2.0.0a9)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a8`
+- **Version:** `2.0.0a9`
 
 ## Architecture
 
@@ -18,7 +18,8 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── contexts/             # Runtime orchestration (AppManager, DIContext, Feature, Error, CLI, Logging)
+├── builders/             # AppBuilder and top-level runtime orchestration
+├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, CLI, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -41,17 +42,28 @@ tiferet/
 
 ### Runtime Flow
 
-1. `App()` (alias for `AppManagerContext`) loads settings.
-2. `app.run(interface_id, feature_id, data={})` loads the interface via `AppInterfaceContext`.
-3. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
-4. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
-5. Results flow back through `RequestContext` and `handle_response()`.
+1. `App()` (alias for `AppBuilder`) is initialized.
+2. `app.load_app_service(...)` loads the app repository service (typically `AppYamlRepository`).
+3. `app.run(interface_id, feature_id, data={})` resolves the interface via `GetAppInterface` and builds an `AppInterfaceContext`.
+4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
+5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
+6. Results flow back through `RequestContext` and `handle_response()`.
+
+### Builders
+
+- `AppBuilder` is defined in `tiferet/builders/main.py`.
+- It is the primary public orchestration entry point and is exported as `App` from `tiferet/__init__.py`.
+- Core responsibilities:
+  - Loading the app service (`load_app_service`)
+  - Injecting default services and constants (`load_default_services`, `DEFAULT_CONSTANTS`)
+  - Resolving interface contexts (`load_interface`)
+  - Delegating feature execution (`run`)
 
 ### Dependency Injection
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `AppManagerContext.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
 - **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DependenciesServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 ## Structured Code Style
@@ -199,14 +211,14 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 
 ## Configuration
 
-Applications are configured via YAML files in `app/configs/`:
+Applications are configured in a consolidated root `config.yml` file:
 
-- `app.yml` — Interface definitions (name, module_path, class_name, service dependencies)
-- `di.yml` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
-- `feature.yml` — Feature workflows (steps with service_id, parameters, data_key)
-- `error.yml` — Error definitions with multilingual messages
-- `cli.yml` — CLI command definitions with arguments
-- `logging.yml` — Logging formatters, handlers, loggers
+- `interfaces` — Interface definitions (name, module_path, class_name, service dependencies)
+- `services` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
+- `features` — Feature workflows (commands with service_id, parameters, and data mapping)
+- `errors` — Error definitions with multilingual messages
+- `cli` — CLI command definitions with arguments
+- `logging` — Logging formatters, handlers, loggers
 
 ## Testing
 
@@ -237,7 +249,7 @@ Current utilities:
 The top-level `tiferet/__init__.py` exports:
 
 **Core:**
-- `App` (alias for `AppManagerContext`)
+- `App` (alias for `AppBuilder`)
 - `TiferetError`, `TiferetAPIError`
 
 **Domain:**
@@ -264,7 +276,8 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
 - `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
-- `tiferet/contexts/app.py` — `AppManagerContext` and `AppInterfaceContext`
+- `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
+- `tiferet/contexts/app.py` — `AppInterfaceContext`
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and default configuration
