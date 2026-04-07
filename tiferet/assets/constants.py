@@ -135,6 +135,9 @@ APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 # ** constant: app_service_import_failed_id
 APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 
+# ** constant: app_service_not_loaded_id
+APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
+
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
 
@@ -375,6 +378,15 @@ DEFAULT_ERRORS = {
         'name': 'App Service Import Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
+        ]
+    },
+
+    # * error: APP_SERVICE_NOT_LOADED
+    APP_SERVICE_NOT_LOADED_ID: {
+        'id': APP_SERVICE_NOT_LOADED_ID,
+        'name': 'App Service Not Loaded',
+        'message': [
+            {'lang': 'en_US', 'text': 'App service must be loaded before loading interface {interface_id}.'}
         ]
     },
 

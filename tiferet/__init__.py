@@ -7,7 +7,7 @@
 # Use a try-except block to avoid import errors on build systems.
 try:
     from .assets import TiferetError, TiferetAPIError
-    from .contexts import AppManagerContext as App
+    from .builders import AppBuilder as App
     from .domain import (
         DomainObject,
         StringType,
