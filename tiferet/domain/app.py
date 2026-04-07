@@ -14,6 +14,7 @@ from .settings import (
     DictType,
     ModelType,
 )
+from ..di import ServiceProvider
 
 # *** models
 
@@ -55,6 +56,18 @@ class AppServiceDependency(DomainObject):
             description='The parameters for the application dependency.'
         ),
     )
+
+    # * method: get_service_type
+    def get_service_type(self) -> type:
+        '''
+        Get the service type for this app service dependency.
+
+        :return: The service type.
+        :rtype: type
+        '''
+
+        # Import and return the service class type.
+        return getattr(import_module(self.module_path), self.class_name)
 
 
 # ** model: app_interface
@@ -138,6 +151,22 @@ class AppInterface(DomainObject):
         ),
     )
 
+    # * attribute: service_provider_path
+    service_provider_path = StringType(
+        default='tiferet.di.dependencies',
+        metadata=dict(
+            description='The module path for the service provider to use for this dependency.'
+        ),
+    )
+
+    # * attribute: service_provider_class_name
+    service_provider_class_name = StringType(
+        default='DependenciesServiceProvider',
+        metadata=dict(
+            description='The class name for the service provider to use for this dependency.'
+        ),
+    )
+
     # * method: get_service
     def get_service(self, service_id: str) -> AppServiceDependency:
         '''
@@ -176,12 +205,30 @@ class AppInterface(DomainObject):
 
         # Add the remaining app context service dependencies and parameters.
         for dep in self.services:
-            dependencies[dep.service_id] = getattr(
-                import_module(dep.module_path),
-                dep.class_name,
-            )
+            dependencies[dep.service_id] = dep.get_service_type()
             for param, value in dep.parameters.items():
                 dependencies[param] = value
 
         # Return the assembled dependencies mapping.
         return dependencies
+
+    # * method: create_service_provider
+    def create_service_provider(self) -> ServiceProvider:
+        '''
+        Create a service provider for this app interface.
+
+        :return: A configured service provider instance.
+        :rtype: ServiceProvider
+        '''
+
+        # Build the service type mapping for this interface.
+        type_map = self.get_service_type_mapping()
+
+        # Resolve the configured service provider class.
+        provider_class = getattr(
+            import_module(self.service_provider_path),
+            self.service_provider_class_name,
+        )
+
+        # Create and return the configured service provider instance.
+        return provider_class(services=type_map)
