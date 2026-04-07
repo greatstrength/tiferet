@@ -209,6 +209,125 @@ class TestGetAppInterface(ServiceEventTestBase):
         # Assert that the returned interface matches the expected app interface.
         assert result == app_interface
 
+    # * method: test_merges_missing_default_services_only
+    def test_merges_missing_default_services_only(self, mock_dependencies, app_interface):
+        '''
+        Test that default services are merged only when service_id is missing.
+        '''
+
+        # Configure the service mock to return the app interface.
+        mock_dependencies['app_service'].get.return_value = app_interface
+
+        # Create default services with one duplicate and one missing service_id.
+        default_services = [
+            DomainObject.new(
+                AppServiceDependency,
+                service_id='test_service',
+                module_path='ignored.module',
+                class_name='IgnoredClass',
+                parameters={'ignored': 'value'},
+            ),
+            DomainObject.new(
+                AppServiceDependency,
+                service_id='new_service',
+                module_path='new.module',
+                class_name='NewClass',
+                parameters={'new': 'value'},
+            ),
+        ]
+
+        # Execute the event with default services.
+        result = self.handle(
+            mock_dependencies,
+            default_services=default_services,
+        )
+
+        # Assert the existing dependency remains and only the missing dependency is added.
+        assert result.get_service('test_service').module_path == 'test_module_path'
+        assert result.get_service('new_service').module_path == 'new.module'
+        assert len(result.services) == 2
+
+    # * method: test_merges_missing_default_constants_only
+    def test_merges_missing_default_constants_only(self, mock_dependencies, app_interface):
+        '''
+        Test that default constants are merged without overwriting existing values.
+        '''
+
+        # Configure the service mock to return the app interface.
+        mock_dependencies['app_service'].get.return_value = app_interface
+
+        # Seed interface constants with an existing key that should be preserved.
+        app_interface.constants = {
+            'di_yaml_file': 'custom.yml',
+            'custom_key': 'custom_value',
+        }
+
+        # Execute the event with default constants.
+        result = self.handle(
+            mock_dependencies,
+            default_constants={
+                'di_yaml_file': 'config.yml',
+                'feature_yaml_file': 'config.yml',
+            },
+        )
+
+        # Assert existing keys are preserved and missing keys are added.
+        assert result.constants['di_yaml_file'] == 'custom.yml'
+        assert result.constants['feature_yaml_file'] == 'config.yml'
+        assert result.constants['custom_key'] == 'custom_value'
+
+    # * method: test_converts_to_aggregate_and_merges_services_and_constants
+    def test_converts_to_aggregate_and_merges_services_and_constants(self, mock_dependencies):
+        '''
+        Test aggregate conversion before applying default services and constants.
+        '''
+
+        # Configure the service mock to return a plain AppInterface domain object.
+        domain_interface = DomainObject.new(
+            AppInterface,
+            id='test.interface',
+            name='Test Interface',
+            module_path='tiferet.contexts.app',
+            class_name='AppContext',
+            services=[
+                DomainObject.new(
+                    AppServiceDependency,
+                    service_id='existing_service',
+                    module_path='existing.module',
+                    class_name='ExistingClass',
+                    parameters={},
+                ),
+            ],
+            constants={'di_yaml_file': 'custom.yml'},
+        )
+        mock_dependencies['app_service'].get.return_value = domain_interface
+
+        # Execute the event with both defaults provided.
+        result = self.handle(
+            mock_dependencies,
+            interface_id='test.interface',
+            default_services=[
+                DomainObject.new(
+                    AppServiceDependency,
+                    service_id='new_service',
+                    module_path='new.module',
+                    class_name='NewClass',
+                    parameters={'key': 'value'},
+                ),
+            ],
+            default_constants={
+                'di_yaml_file': 'config.yml',
+                'feature_yaml_file': 'config.yml',
+            },
+        )
+
+        # Assert conversion to aggregate and correct merge behavior.
+        assert isinstance(result, AppInterfaceAggregate)
+        assert result.get_service('existing_service') is not None
+        assert result.get_service('new_service') is not None
+        assert result.constants['di_yaml_file'] == 'custom.yml'
+        assert result.constants['feature_yaml_file'] == 'config.yml'
+
 
 # ** test: TestListAppInterfaces
 class TestListAppInterfaces(DomainEventTestBase):
