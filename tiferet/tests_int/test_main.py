@@ -6,15 +6,14 @@ import pytest
 # ** app
 from .. import App, TiferetAPIError
 
+# *** fixtures
+
 # ** fixture: app_context
 @pytest.fixture
 def app_context():
-
-    return App(settings=dict(
-        app_repo_params=dict(
-            app_yaml_file='tiferet/assets/tests/test_calc.yml'
-        )
-    ))
+    return App().load_app_service(
+        app_yaml_file='tiferet/assets/tests/test_calc.yml',
+    )
 
 # ** fixture: basic_calc
 @pytest.fixture

@@ -28,8 +28,8 @@ Create an empty folder called `basic-calculator` (or whatever name you like) and
 basic-calculator/
 ├── basic_calc.py               # ← our simple test runner
 ├── calc_cli.py                 # ← the cool CLI version
+├── config.yml                  # ← all app configuration lives here
 └── app/
-    ├── configs/                # ← all YAML files live here later
     ├── events/                 # ← domain events go here
     │   ├── __init__.py
     │   └── calc.py
@@ -37,8 +37,9 @@ basic-calculator/
         ├── __init__.py
         └── calc.py
 ```
+In Tiferet v2.0, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
 
-Don't worry about filling them yet — we'll get there step by step.
+Don't worry about filling everything yet — we'll get there step by step.
 
 ### 1.3 The two main entry points (what you'll run)
 
@@ -49,7 +50,7 @@ These are the files people will actually use. Let's look at them now so you know
 ```python
 from tiferet import App, TiferetError
 
-app = App()  # loads everything from app/configs/
+app = App().load_app_service(app_yaml_file="config.yml")
 
 # Some fun test cases
 tests = [
@@ -96,8 +97,8 @@ Error: Invalid number: 'hello'
 ```python
 from tiferet import App
 
-app = App()
-cli = app.load_interface("calc_cli")   # connects to cli.yml config
+app = App().load_app_service(app_yaml_file="config.yml")
+cli = app.load_interface("calc_cli")   # reads the CLI settings from root config.yml
 
 if __name__ == "__main__":
     cli.run()
@@ -116,7 +117,7 @@ python calc_cli.py calc divide 10 0
 # → Error: Cannot divide by zero
 ```
 
-Pretty neat, right? These two files are the "front door" — everything else we build (events, utils, configs) is just to make these work beautifully.
+Pretty neat, right? These two files are the "front door" — everything else we build (events, utils, and config.yml) is just to make these work beautifully.
 
 No pressure — we're just looking ahead.  
 In the next step we'll start writing the actual math operations.
