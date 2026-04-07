@@ -7,10 +7,15 @@ from typing import Tuple, List, Dict
 
 # ** app
 from ..di import DIContext
+from ..cache import CacheContext
 from ...assets.exceptions import TiferetError
 from ...assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ...di import ServiceProvider, DependenciesServiceProvider
-from ...domain.di import ServiceConfiguration, FlaggedDependency
+from ...domain import (
+    ServiceProvider,
+    DependenciesServiceProvider,
+    ServiceConfiguration,
+    FlaggedDependency,
+)
 from ...domain.settings import DomainObject
 from ...events.di import ListAllSettings
 
@@ -116,7 +121,10 @@ def di_context(di_list_all_configs_evt_mock) -> DIContext:
     '''
 
     # Return a DIContext instance.
-    return DIContext(di_list_all_configs_evt=di_list_all_configs_evt_mock)
+    return DIContext(
+        di_list_all_configs_evt=di_list_all_configs_evt_mock,
+        cache=CacheContext(cache={}),
+    )
 
 
 # ** fixture: provider
@@ -132,7 +140,7 @@ def provider(di_context: DIContext) -> ServiceProvider:
     '''
 
     # Build the provider with no flags.
-    return di_context.build_provider()
+    return di_context.build_service_provider()
 
 
 # *** tests
@@ -152,9 +160,55 @@ def test_di_context_get_cache_key(di_context: DIContext):
     # Test with flags.
     assert di_context.create_cache_key(flags=['test', 'test2']) == 'feature_services_test_test2'
 
+# ** test: di_context_default_service_provider_factory
+def test_di_context_default_service_provider_factory():
+    '''
+    Test the default DIContext service provider factory.
+    '''
 
-# ** test: di_context_build_provider
-def test_di_context_build_provider(di_context: DIContext):
+    # Build a provider with a type map and injected constants.
+    provider = DIContext._default_service_provider(
+        type_map={'test_service': TestService},
+        test_config='factory_value',
+    )
+
+    # Assert the provider type and service resolution behavior.
+    assert isinstance(provider, ServiceProvider)
+    resolved_service = provider.get_service('test_service')
+    assert resolved_service.test_config == 'factory_value'
+
+
+# ** test: di_context_custom_service_provider_factory
+def test_di_context_custom_service_provider_factory(di_list_all_configs_evt_mock):
+    '''
+    Test that DIContext uses a custom service provider factory when injected.
+    '''
+
+    # Create a custom factory mock and provider return value.
+    provider = DependenciesServiceProvider()
+    create_factory = mock.Mock(return_value=provider)
+
+    # Create context with custom provider factory and build provider.
+    context = DIContext(
+        di_list_all_configs_evt=di_list_all_configs_evt_mock,
+        cache=CacheContext(cache={}),
+        create_service_provider=create_factory,
+    )
+    result = context.build_service_provider()
+
+    # Assert custom factory was called with expected type map/constants.
+    create_factory.assert_called_once()
+    kwargs = create_factory.call_args.kwargs
+    assert kwargs['type_map']['test_service'] is TestService
+    assert kwargs['test_config'] == 'test_value'
+    assert kwargs['param_config'] == 'param_value'
+
+    # Assert the factory output provider is used and returned.
+    assert result is provider
+
+
+# ** test: di_context_build_service_provider
+def test_di_context_build_service_provider(di_context: DIContext):
     '''
     Test the building of a service provider in the DIContext.
 
@@ -163,7 +217,7 @@ def test_di_context_build_provider(di_context: DIContext):
     '''
 
     # Build the provider with no flags.
-    provider = di_context.build_provider()
+    provider = di_context.build_service_provider()
 
     # Assert that the provider is not None and is a ServiceProvider.
     assert provider
@@ -181,7 +235,7 @@ def test_di_context_build_provider(di_context: DIContext):
     assert di_context.cache.get('feature_services') is provider
 
     # Build the provider with flags.
-    flagged_provider = di_context.build_provider(flags=['test'])
+    flagged_provider = di_context.build_service_provider(flags=['test'])
 
     # Assert the flagged provider is not None.
     assert flagged_provider
@@ -198,8 +252,8 @@ def test_di_context_build_provider(di_context: DIContext):
     assert di_context.cache.get('feature_services_test') is flagged_provider
 
 
-# ** test: di_context_build_provider_with_missing_dependency_type
-def test_di_context_build_provider_with_missing_dependency_type(
+# ** test: di_context_build_service_provider_with_missing_dependency_type
+def test_di_context_build_service_provider_with_missing_dependency_type(
         di_context: DIContext,
         di_list_all_configs_evt_mock,
         di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
@@ -223,7 +277,7 @@ def test_di_context_build_provider_with_missing_dependency_type(
 
     # Attempt to build the provider and expect an error.
     with pytest.raises(TiferetError) as exc_info:
-        di_context.build_provider(flags=['missing_flag'])
+        di_context.build_service_provider(flags=['missing_flag'])
 
     # Assert the correct error code and kwargs.
     assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
@@ -231,10 +285,10 @@ def test_di_context_build_provider_with_missing_dependency_type(
     assert exc_info.value.kwargs.get('flags') == ['missing_flag']
 
 
-# ** test: di_context_build_provider_with_cached_provider
-def test_di_context_build_provider_with_cached_provider(di_context: DIContext, provider: ServiceProvider):
+# ** test: di_context_build_service_provider_with_cached_provider
+def test_di_context_build_service_provider_with_cached_provider(di_context: DIContext, provider: ServiceProvider):
     '''
-    Test that build_provider returns the cached provider on subsequent calls.
+    Test that build_service_provider returns the cached provider on subsequent calls.
 
     :param di_context: The DI context to test.
     :type di_context: DIContext
@@ -245,8 +299,8 @@ def test_di_context_build_provider_with_cached_provider(di_context: DIContext, p
     # Assert that a provider is cached.
     assert di_context.cache.get('feature_services')
 
-    # Call build_provider again with no flags.
-    cached_provider = di_context.build_provider()
+    # Call build_service_provider again with no flags.
+    cached_provider = di_context.build_service_provider()
 
     # Assert the same provider instance is returned.
     assert cached_provider is provider
