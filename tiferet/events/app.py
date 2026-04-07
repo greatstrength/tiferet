@@ -111,7 +111,7 @@ class GetAppInterface(DomainEvent):
     # * init
     def __init__(self, app_service: AppService) -> None:
         '''
-        Initialize the GetAppInterface command.
+        Initialize the GetAppInterface event.
 
         :param app_service: The app service used to retrieve interfaces.
         :type app_service: AppService
@@ -122,18 +122,27 @@ class GetAppInterface(DomainEvent):
 
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
-    def execute(self, interface_id: str, default_services: List[AppServiceDependency] = [], **kwargs) -> AppInterface:
+    def execute(
+        self,
+        interface_id: str,
+        default_services: List[AppServiceDependency] = None,
+        default_constants: Dict[str, str] = None,
+        **kwargs
+    ) -> AppInterface:
         '''
-        Execute the command to load the application interface.
+        Retrieve and prepare an application interface.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
-        :param default_services: A list of AppServiceDependency objects to merge
-            into the interface for any service_id not already present.
+        :param default_services: Optional list of default AppServiceDependency objects
+            to merge into the interface for any service_id not already present.
         :type default_services: List[AppServiceDependency]
+        :param default_constants: Optional dictionary of default constants (string to string)
+            that will be merged into the interface's constants.
+        :type default_constants: Dict[str, str]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The loaded application interface.
+        :return: The loaded and prepared application interface.
         :rtype: AppInterface
         :raises TiferetError: If the interface cannot be found.
         '''
@@ -149,9 +158,14 @@ class GetAppInterface(DomainEvent):
                 interface_id=interface_id,
             )
 
+        # Ensure we are working with the mutable aggregate version.
+        if not isinstance(interface, AppInterfaceAggregate):
+            interface = AppInterfaceAggregate.new(
+                app_interface_data=interface.to_primitive(),
+            )
+
         # Merge default services into the interface for any service_id not already present.
         if default_services:
-
             # Build a set of existing service_ids for lookup.
             existing_ids = {dep.service_id for dep in interface.services}
 
@@ -162,12 +176,18 @@ class GetAppInterface(DomainEvent):
                         service_id=dep.service_id,
                         module_path=dep.module_path,
                         class_name=dep.class_name,
-                        parameters=dep.parameters,
+                        parameters=dep.parameters or {},
                     )
 
-        # Return the loaded application interface.
-        return interface
+        # Merge default constants into the interface (only fill in missing keys).
+        if default_constants:
+            missing = {k: v for k, v in default_constants.items() if k not in interface.constants}
+            if missing:
+                interface.set_constants(missing)
 
+        # Return the loaded and prepared application interface.
+        return interface
+    
 # ** event: update_app_interface
 class UpdateAppInterface(DomainEvent):
     '''

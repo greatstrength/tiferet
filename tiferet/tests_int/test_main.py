@@ -8,29 +8,36 @@ from .. import App, TiferetAPIError
 
 # *** fixtures
 
-# ** fixture: app_context
+# ** fixture: app_builder
 @pytest.fixture
-def app_context():
+def app_builder() -> App:
+    """
+    Fixture to create the application context builder for testing.
 
-    return App(
-        {
-            'app_repo_module_path': 'tiferet.repos.app',
-            'app_repo_class_name': 'AppYamlRepository',
-            'app_repo_params': {
-                'app_yaml_file': 'tiferet/assets/tests/test_calc.yml',
-            },
-        }
-    )
+    :return: An instance of the application context builder.
+    :rtype: App
+    """
+
+    # Create and return the application context using the App builder.
+    app = App().load_app_service(
+        app_yaml_file='tiferet/assets/tests/test_calc.yml',
+    );
+    return app
 
 # ** fixture: basic_calc
 @pytest.fixture
-def basic_calc(app_context):
+def basic_calc(app_builder):
     """
     Fixture to load the basic calculator interface from the app context.
+
+    :param app_builder: The application context builder fixture.
+    :type app_builder: App
+    :return: The basic calculator interface instance.
+    :rtype: Any
     """
 
     # Load the basic_calc interface using the app context.
-    return app_context.load_interface('test_calc')
+    return app_builder.load_interface('test_calc')
 
 # *** tests
 

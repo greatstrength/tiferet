@@ -8,19 +8,17 @@ from typing import Dict, Any, List
 # ** app
 from ..contexts.app import AppInterfaceContext
 from ..assets import TiferetError
+from ..di import ServiceProvider, DependenciesServiceProvider
 from .. import assets as a
 from ..domain import (
     DomainObject,
+    AppInterface,
     AppServiceDependency,
 )
 from ..events import (
     DomainEvent,
     ImportDependency,
     RaiseError,
-)
-from ..events.dependencies import (
-    create_injector,
-    get_dependency,
 )
 from ..events.app import GetAppInterface
 
@@ -34,30 +32,67 @@ APP_SERVICE_KEY = 'app_service'
 # ** builder: app_builder
 class AppBuilder(object):
     '''
-    The AppBuilder is responsible for managing the application context.
-    It provides methods to load the application interface and run features.
+    The main application builder for Tiferet v2.0+.
+    
+    Responsible for loading the app service, preparing default services/constants,
+    resolving interfaces, and running features.
     '''
 
     # * attribute: cache
     cache: Dict[str, Any]
 
+    # * attribute: service_provider
+    service_provider: ServiceProvider
+
     # * init
     def __init__(self):
         '''
-        Initialize the AppBuilder.
+        Initialize the AppBuilder with empty cache and default service provider.
         '''
 
         # Initialize the cache.
         self.cache = {}
 
-    # * method: load_app_service
-    def load_app_service(self,
-            module_path: str = a.const.DEFAULT_APP_SERVICE_MODULE_PATH,
-            class_name: str = a.const.DEFAULT_APP_SERVICE_CLASS_NAME,
-            **parameters
-        ):
+        # Initialize the service provider.
+        self.service_provider = self.create_service_provider()
+
+    # * method: create_service_provider (static)
+    @staticmethod
+    def create_service_provider(
+        provider_type: type = DependenciesServiceProvider,
+        type_map: Dict[str, type] = None,
+        **constants
+    ) -> ServiceProvider:
         '''
-        Load the application service using the provided module path, class name, and parameters.
+        Create a service provider from a type map and constants.
+
+        :param provider_type: The concrete provider class to instantiate.
+        :type provider_type: type
+        :param type_map: A dictionary mapping service IDs to their types.
+        :type type_map: Dict[str, type]
+        :param constants: Constant parameters to register in the provider.
+        :type constants: dict
+        :return: The configured service provider instance.
+        :rtype: ServiceProvider
+        '''
+
+        provider = provider_type()
+        if type_map:
+            provider.add_services(type_map)
+        if constants:
+            provider.add_constants(constants)
+
+        return provider
+
+    # * method: load_app_service
+    def load_app_service(
+        self,
+        module_path: str = a.const.DEFAULT_APP_SERVICE_MODULE_PATH,
+        class_name: str = a.const.DEFAULT_APP_SERVICE_CLASS_NAME,
+        **parameters
+    ) -> 'AppBuilder':
+        '''
+        Load the application service and store it in the cache.
 
         :param module_path: The module path of the app service implementation.
         :type module_path: str
@@ -65,42 +100,29 @@ class AppBuilder(object):
         :type class_name: str
         :param parameters: Additional parameters to pass to the app service constructor.
         :type parameters: dict
-        :return: The application service instance.
-        :rtype: Any
+        :return: The application builder instance (for chaining).
+        :rtype: AppBuilder
         '''
 
         # Import and construct the app service.
-        try:
-            service_cls = ImportDependency.execute(
-                module_path,
-                class_name,
-            )
-            app_service = service_cls(**parameters)
-
-        # Wrap import failures in a structured Tiferet error.
-        except TiferetError as e:
-            RaiseError.execute(
-                a.const.APP_REPOSITORY_IMPORT_FAILED_ID,
-                f'Failed to import app service: {e}.',
-                exception=str(e),
-            )
+        service_cls = ImportDependency.execute(module_path, class_name)
+        app_service = service_cls(**parameters)
 
         # Add the app service to the cache.
         self.cache[APP_SERVICE_KEY] = app_service
 
-        # Return the app service.
-        return app_service
+        # Return self for method chaining.
+        return self
 
     # * method: load_default_services
     def load_default_services(self) -> List[AppServiceDependency]:
         '''
-        Load the default app service dependencies from the configuration constants.
+        Load the default app service dependencies from configuration constants.
 
         :return: A list of default app service dependencies.
         :rtype: List[AppServiceDependency]
         '''
 
-        # Retrieve the default service dependencies from the configuration constants.
         return [
             DomainObject.new(
                 AppServiceDependency,
@@ -111,92 +133,69 @@ class AppBuilder(object):
         ]
 
     # * method: load_app_instance
-    def load_app_instance(self, app_interface: Any, default_services: List[AppServiceDependency]) -> Any:
+    def load_app_instance(self, app_interface: AppInterface) -> Any:
         '''
-        Load the app instance based on the provided app interface settings.
+        Load the concrete app interface context instance.
 
-        :param app_interface: The app interface definition.
-        :type app_interface: Any
-        :param default_services: The default configured service dependencies for the app.
-        :type default_services: List[AppServiceDependency]
-        :return: The app interface context instance.
+        :param app_interface: The prepared app interface definition.
+        :type app_interface: AppInterface
+        :return: The resolved app interface context.
         :rtype: Any
         '''
 
-        # Retrieve the app context dependency and logger id.
-        dependencies = dict(
-            app_context=ImportDependency.execute(
-                app_interface.module_path,
-                app_interface.class_name,
-            ),
-            logger_id=getattr(app_interface, 'logger_id', None),
-        )
-
-        # Add the remaining app context service dependencies and parameters.
-        for dep in app_interface.services:
-            dependencies[dep.service_id] = ImportDependency.execute(
-                dep.module_path,
-                dep.class_name,
+        try:
+            dependencies = app_interface.get_service_type_mapping()
+        except Exception as e:
+            RaiseError.execute(
+                a.const.APP_INTERFACE_LOAD_FAILED_ID,  # Use a proper constant
+                f'Failed to extract service type mapping from app interface.',
+                exception=str(e),
             )
-            for param, value in dep.parameters.items():
-                dependencies[param] = value
 
-        # Add the default service dependencies and parameters if they do not already exist.
-        for dep in default_services:
-            if dep.service_id not in dependencies:
-                dependencies[dep.service_id] = ImportDependency.execute(
-                    dep.module_path,
-                    dep.class_name,
-                )
-                for param, value in dep.parameters.items():
-                    dependencies[param] = value
+        # Register the create_service_provider callable for downstream contexts.
+        dependencies['create_service_provider'] = self.create_service_provider
 
-        # Add the constants from the app interface to the dependencies.
-        dependencies.update(app_interface.constants)
+        # Add the dependencies to the service provider.
+        self.service_provider.add_services(dependencies)
 
-        # Create the injector.
-        injector = create_injector.execute(
-            app_interface.id,
-            dependencies,
-            interface_id=app_interface.id,
-        )
-
-        # Return the app interface context.
-        return get_dependency.execute(
-            injector,
-            dependency_name='app_context',
-        )
+        # Resolve and return the app interface context.
+        return self.service_provider.get_service('app_context')
 
     # * method: load_interface
     def load_interface(self, interface_id: str) -> AppInterfaceContext:
         '''
-        Load the application interface.
+        Load and prepare the application interface context.
 
         :param interface_id: The interface ID.
         :type interface_id: str
-        :return: The application interface context.
+        :return: The fully prepared application interface context.
         :rtype: AppInterfaceContext
         '''
 
         # Retrieve the app service from the cache.
-        app_service = self.cache[APP_SERVICE_KEY]
+        app_service = self.cache.get(APP_SERVICE_KEY)
+        if not app_service:
+            RaiseError.execute(
+                a.const.APP_SERVICE_NOT_LOADED_ID,
+                'App service must be loaded before loading an interface.',
+            )
 
-        # Get the app interface settings via the AppService abstraction.
-        app_interface = DomainEvent.handle(
-            GetAppInterface,
-            dependencies=dict(
-                app_service=app_service,
-            ),
-            interface_id=interface_id,
-        )
-
-        # Retrieve the default service dependencies from the configuration.
+        # Load the default app service dependencies.
         default_services = self.load_default_services()
 
-        # Create the app interface context.
-        app_interface_context = self.load_app_instance(app_interface, default_services=default_services)
+        # Get the app interface via the event (now supports default_constants).
+        app_interface = DomainEvent.handle(
+            GetAppInterface,
+            dependencies=dict(app_service=app_service),
+            interface_id=interface_id,
+            default_services=default_services,
+            default_constants=a.const.DEFAULT_CONSTANTS,
+        )
 
-        # Verify that the app interface context is valid.
+        # Create the concrete app interface context.
+        app_interface_context = self.load_app_instance(app_interface)
+
+        # Verify that the resolved context is valid.
         if not isinstance(app_interface_context, AppInterfaceContext):
             RaiseError.execute(
                 a.const.INVALID_APP_INTERFACE_TYPE_ID,
@@ -208,41 +207,45 @@ class AppBuilder(object):
         return app_interface_context
 
     # * method: run
-    def run(self,
-            interface_id: str,
-            feature_id: str,
-            headers: Dict[str, str] = {},
-            data: Dict[str, Any] = {},
-            debug: bool = False,
-            **kwargs
-        ) -> Any:
+    def run(
+        self,
+        interface_id: str,
+        feature_id: str,
+        headers: Dict[str, str] = None,
+        data: Dict[str, Any] = None,
+        debug: bool = False,
+        **kwargs
+    ) -> Any:
         '''
-        Run the application interface.
+        Run a feature on the specified interface.
 
         :param interface_id: The interface ID.
         :type interface_id: str
         :param feature_id: The feature ID.
         :type feature_id: str
         :param headers: The request headers.
-        :type headers: dict
+        :type headers: Dict[str, str]
         :param data: The request data.
-        :type data: dict
+        :type data: Dict[str, Any]
         :param debug: Whether to run in debug mode.
         :type debug: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The response.
+        :return: The response from the feature.
         :rtype: Any
         '''
 
+        headers = headers or {}
+        data = data or {}
+
         # Load the interface.
-        app_interface = self.load_interface(interface_id)
+        app_interface_context = self.load_interface(interface_id)
 
         # Run the interface.
-        return app_interface.run(
-            feature_id, 
-            headers, 
-            data, 
+        return app_interface_context.run(
+            feature_id=feature_id,
+            headers=headers,
+            data=data,
             debug=debug,
             **kwargs
         )

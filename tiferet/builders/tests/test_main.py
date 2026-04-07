@@ -7,143 +7,179 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...domain import DomainObject, AppInterface
-from ...interfaces import AppService
-from ...contexts.app import AppInterfaceContext
-from ...assets import TiferetError
 from ... import assets as a
+from ...assets import TiferetError
+from ...di import DependenciesServiceProvider
+from ...contexts.app import AppInterfaceContext
+from ...mappers import AppInterfaceAggregate
 from ...repos.app import AppYamlRepository
 from ..main import AppBuilder, APP_SERVICE_KEY
 
+
 # *** fixtures
 
-# ** fixture: settings
-@pytest.fixture
-def settings():
-    """Fixture to provide application settings for a custom app service.
-
-    Uses the AppYamlRepository as the backing AppService.
-    """
-
-    return {
-        'app_repo_module_path': 'tiferet.repos.app',
-        'app_repo_class_name': 'AppYamlRepository',
-        'app_repo_params': {
-            'yaml_file': 'tiferet/tests_int/fixtures/test.yml',
-        },
-    }
-
-# ** fixture: app_interface
-@pytest.fixture
-def app_interface():
-    '''
-    Fixture to create a mock AppInterface instance.
-
-    :return: A mock instance of AppInterface.
-    :rtype: AppInterface
-    '''
-
-    # Create a test AppInterface instance.
-    return DomainObject.new(
-        AppInterface,
-        id='test',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        description='The test app.',
-        flags=['test'],
-        services=[],
-    )
 
 # ** fixture: app_builder
 @pytest.fixture
 def app_builder():
     """
-    Fixture to provide an AppBuilder instance with app service loaded.
-
-    :return: An instance of AppBuilder.
-    :rtype: AppBuilder
+    Fixture to provide a clean AppBuilder instance with app service loaded.
     """
-
-    # Create the AppBuilder instance.
     builder = AppBuilder()
-
-    # Load the app service with a test-specific configuration file.
     builder.load_app_service(
+        module_path='tiferet.repos.app',
+        class_name='AppYamlRepository',
         app_yaml_file='tiferet/assets/tests/test_calc.yml',
     )
-
-    # Return the builder.
     return builder
+
+# ** fixture: app_interface_aggregate
+@pytest.fixture
+def app_interface_aggregate(app_builder: AppBuilder) -> AppInterfaceAggregate:
+    '''
+    Fixture to create a realistic AppInterfaceAggregate.
+    '''
+    return AppInterfaceAggregate.new(
+        app_interface_data={
+            'id': 'test_calc',
+            'name': 'Test Calculator',
+            'module_path': 'tiferet.contexts.app',
+            'class_name': 'AppInterfaceContext',
+            'description': 'Test calculator interface',
+            'flags': ['test'],
+            'services': app_builder.load_default_services(),
+            'constants': a.const.DEFAULT_CONSTANTS,
+        }
+    )
+
 
 # *** tests
 
-# ** test: app_builder_load_app_service_defaults
-def test_app_builder_load_app_service_defaults():
-    """Validate that AppBuilder defaults to AppYamlRepository.
-
-    This ensures that when no custom service settings are provided, the
-    app service is loaded using the YAML-backed implementation.
-    """
-
-    # Instantiate the AppBuilder.
+# ** test: app_builder_initialization
+def test_app_builder_initialization():
+    """Test that AppBuilder initializes with empty cache and default service provider."""
     builder = AppBuilder()
 
-    # Load the app service with defaults and assert the default type is used.
-    service = builder.load_app_service(app_yaml_file='app/configs/app.yml')
+    assert isinstance(builder.cache, dict)
+    assert len(builder.cache) == 0
+    assert isinstance(builder.service_provider, DependenciesServiceProvider)
 
+
+# ** test: app_builder_load_app_service_defaults
+def test_app_builder_load_app_service_defaults():
+    """Validate that AppBuilder defaults to AppYamlRepository when no custom settings provided."""
+    builder = AppBuilder()
+    builder = builder.load_app_service(app_yaml_file='app/configs/app.yml')
+
+    service = builder.cache.get(APP_SERVICE_KEY)
     assert isinstance(service, AppYamlRepository)
-    assert builder.cache[APP_SERVICE_KEY] is service
 
-# ** test: app_builder_load_interface
-def test_app_builder_load_interface(app_builder):
+
+# ** test: app_builder_load_interface_success
+def test_app_builder_load_interface_success(app_builder, app_interface_aggregate):
     """
-    Test the load_interface method of AppBuilder.
-
-    :param app_builder: The AppBuilder instance.
-    :type app_builder: AppBuilder
+    Test successful loading of an interface via AppBuilder.
     """
+    # Mock the GetAppInterface event to return our test aggregate
+    with mock.patch('tiferet.events.DomainEvent.handle') as mock_handle:
+        mock_handle.return_value = app_interface_aggregate
 
-    # Load the app interface using the app builder.
-    result = app_builder.load_interface('test_calc')
+        result = app_builder.load_interface('test_calc')
 
-    # Assert that the result is an instance of AppInterfaceContext.
-    assert result
-    assert isinstance(result, AppInterfaceContext)
+        assert isinstance(result, AppInterfaceContext)
+        mock_handle.assert_called_once()
 
-# ** test: app_builder_load_interface_invalid
-def test_app_builder_load_interface_invalid(app_builder, app_interface):
+
+# ** test: app_builder_load_interface_with_default_constants
+def test_app_builder_load_interface_with_default_constants(app_builder, app_interface_aggregate):
     """
-    Test loading an invalid app interface.
-
-    :param app_builder: The AppBuilder instance.
-    :type app_builder: AppBuilder
-    :param app_interface: The AppInterface instance.
-    :type app_interface: AppInterface
+    Test that default_constants from assets are passed to GetAppInterface.
     """
+    with mock.patch('tiferet.events.DomainEvent.handle') as mock_handle:
+        mock_handle.return_value = app_interface_aggregate
 
-    # Create invalid app interface context.
-    class InvalidContext(object):
-        def __init__(self, *args, **kwargs):
-            pass
+        app_builder.load_interface('test_calc')
 
-    # Create a fake app service that always returns the provided app_interface,
-    # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
-    # so we can exercise the "invalid app interface context" error instead.
-    fake_service = mock.Mock(spec=AppService)
-    fake_service.get.return_value = app_interface
+        # Verify default_constants were passed
+        call_kwargs = mock_handle.call_args.kwargs
+        assert 'default_constants' in call_kwargs
+        assert call_kwargs['default_constants'] == a.const.DEFAULT_CONSTANTS
 
-    # Set the fake service directly in the cache.
-    app_builder.cache[APP_SERVICE_KEY] = fake_service
 
-    # Mock the load_app_instance method to return an invalid app interface context.
-    app_builder.load_app_instance = mock.Mock(return_value=InvalidContext())
+# ** test: app_builder_load_interface_invalid_context
+def test_app_builder_load_interface_invalid_context(app_builder, app_interface_aggregate):
+    """
+    Test that loading an interface that resolves to an invalid context type raises error.
+    """
+    class InvalidContext:
+        pass
 
-    # Attempt to load an invalid interface and assert that it raises an error.
-    with pytest.raises(TiferetError) as exc_info:
-        app_builder.load_interface('invalid_interface_id')
+    with mock.patch('tiferet.events.DomainEvent.handle') as mock_handle:
+        mock_handle.return_value = app_interface_aggregate
+        app_builder.load_app_instance = mock.Mock(return_value=InvalidContext())
 
-    # Assert that the error message is as expected.
-    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
-    assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
-    assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
+        with pytest.raises(TiferetError) as exc_info:
+            app_builder.load_interface('invalid_interface')
+
+        assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
+        assert 'invalid_interface' in str(exc_info.value)
+
+
+# ** test: app_builder_run
+def test_app_builder_run(app_builder):
+    """
+    Test the high-level run method.
+    """
+    mock_context = mock.Mock(spec=AppInterfaceContext)
+    mock_context.run.return_value = {'result': 'success'}
+
+    with mock.patch.object(app_builder, 'load_interface', return_value=mock_context):
+        result = app_builder.run(
+            interface_id='test_calc',
+            feature_id='calc.add',
+            data={'a': 5, 'b': 3}
+        )
+
+        assert result == {'result': 'success'}
+        mock_context.run.assert_called_once_with(
+            feature_id='calc.add',
+            headers={},
+            data={'a': 5, 'b': 3},
+            debug=False
+        )
+
+
+# ** test: app_builder_run_with_headers_and_data
+def test_app_builder_run_with_headers_and_data(app_builder):
+    """
+    Test run with explicit headers and data.
+    """
+    mock_context = mock.Mock(spec=AppInterfaceContext)
+    mock_context.run.return_value = {'status': 'ok'}
+
+    with mock.patch.object(app_builder, 'load_interface', return_value=mock_context):
+        result = app_builder.run(
+            interface_id='test',
+            feature_id='test.feature',
+            headers={'Content-Type': 'application/json'},
+            data={'value': 42},
+            debug=True
+        )
+
+        mock_context.run.assert_called_once_with(
+            feature_id='test.feature',
+            headers={'Content-Type': 'application/json'},
+            data={'value': 42},
+            debug=True
+        )
+
+
+# ** test: app_builder_load_app_service_chaining
+def test_app_builder_load_app_service_chaining():
+    """
+    Test that load_app_service returns self for method chaining.
+    """
+    builder = AppBuilder()
+    result = builder.load_app_service(app_yaml_file='app/configs/app.yml')
+
+    assert result is builder

@@ -1,3 +1,8 @@
+Here's the **corrected and updated documentation** with `config.yml` now placed at the **root** of the project (next to `basic_calc.py` and `calc_cli.py`), as you requested.
+
+### Updated Step 1: Setup & Entry Points
+
+```markdown
 # Step 1: Setup & Entry Points
 
 Hey! 👋  
@@ -28,8 +33,8 @@ Create an empty folder called `basic-calculator` (or whatever name you like) and
 basic-calculator/
 ├── basic_calc.py               # ← our simple test runner
 ├── calc_cli.py                 # ← the cool CLI version
+├── config.yml                  # ← ← ALL configuration lives here
 └── app/
-    ├── configs/                # ← all YAML files live here later
     ├── events/                 # ← domain events go here
     │   ├── __init__.py
     │   └── calc.py
@@ -38,7 +43,8 @@ basic-calculator/
         └── calc.py
 ```
 
-Don't worry about filling them yet — we'll get there step by step.
+**Important change in Tiferet v2.0:**  
+All configuration (app interfaces, features, errors, CLI commands, logging, DI, etc.) has been consolidated into a **single file** called `config.yml` located at the **project root**. No more separate files inside `app/configs/`.
 
 ### 1.3 The two main entry points (what you'll run)
 
@@ -49,7 +55,7 @@ These are the files people will actually use. Let's look at them now so you know
 ```python
 from tiferet import App, TiferetError
 
-app = App()  # loads everything from app/configs/
+app = App()  # loads everything from the root config.yml
 
 # Some fun test cases
 tests = [
@@ -97,7 +103,7 @@ Error: Invalid number: 'hello'
 from tiferet import App
 
 app = App()
-cli = app.load_interface("calc_cli")   # connects to cli.yml config
+cli = app.load_interface("calc_cli")   # connects to root config.yml
 
 if __name__ == "__main__":
     cli.run()
@@ -116,7 +122,7 @@ python calc_cli.py calc divide 10 0
 # → Error: Cannot divide by zero
 ```
 
-Pretty neat, right? These two files are the "front door" — everything else we build (events, utils, configs) is just to make these work beautifully.
+Pretty neat, right? These two files are the "front door" — everything else we build (events, utils, and the single root `config.yml`) is just to make these work beautifully.
 
 No pressure — we're just looking ahead.  
 In the next step we'll start writing the actual math operations.

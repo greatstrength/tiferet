@@ -21,11 +21,11 @@ from ..app import (
     LoggingContext,
     RequestContext,
     AppInterfaceContext,
-    AppManagerContext,
 )
 from ...assets import TiferetError, TiferetAPIError
 from ... import assets as a
 from ...repos.app import AppYamlRepository
+
 
 # *** fixtures
 
@@ -45,7 +45,8 @@ def settings():
         },
     }
 
-# ** app_interface
+
+# ** fixture: app_interface
 @pytest.fixture
 def app_interface():
     '''
@@ -68,6 +69,7 @@ def app_interface():
         ),
     )
 
+
 # ** fixture: feature_context
 @pytest.fixture
 def feature_context():
@@ -86,6 +88,7 @@ def feature_context():
 
     # Return the mock FeatureContext instance.
     return feature_context
+
 
 # ** fixture: error_context
 @pytest.fixture
@@ -109,6 +112,7 @@ def error_context():
     # Return the mock ErrorContext instance.
     return error_context
 
+
 # ** fixture: logging_context
 @pytest.fixture
 def logging_context():
@@ -128,6 +132,7 @@ def logging_context():
     # Return the mock LoggingContext instance.
     return logging_context
 
+
 # ** fixture: app_interface_context
 @pytest.fixture
 def app_interface_context(app_interface, feature_context, error_context, logging_context):
@@ -146,25 +151,6 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         logging=logging_context,
     )
 
-# ** fixture: app_manager_context
-@pytest.fixture
-def app_manager_context():
-    """
-    Fixture to provide an AppManagerContext instance.
-
-    :return: An instance of AppManagerContext.
-    :rtype: AppManagerContext
-    """
-
-    # Return the AppManagerContext instance using test settings with AppYamlRepository
-    # and a test-specific configuration file.
-    return AppManagerContext(
-        dict(
-            app_repo_params=dict(
-                app_yaml_file='tiferet/assets/tests/test_calc.yml',
-            ),
-        ),
-    )
 
 # ** fixture: features
 @pytest.fixture
@@ -176,6 +162,7 @@ def features():
         )
     ]
 
+
 # ** fixture: container_attributes
 @pytest.fixture
 def container_attributes():
@@ -185,6 +172,7 @@ def container_attributes():
             **TEST_SERVICE_COMMAND_ATTRIBUTE
         )
     ]
+
 
 # ** fixture: errors
 @pytest.fixture
@@ -197,118 +185,7 @@ def errors():
     ]
 
 
-# ** fixture: app_context_interface
-@pytest.fixture
-def app_context_interface(app_context, app_interface, features, container_attributes, errors):
-    return app_context.load_interface(app_interface.id,
-        dependencies={
-            'features': features,
-            'attributes': container_attributes,
-            'errors': errors,
-        })
-
-
 # *** tests
-
-# ** test: app_manager_context_load_app_repo_defaults
-def test_app_manager_context_load_app_repo_defaults():
-    """Validate that AppManagerContext defaults to AppYamlRepository.
-
-    This ensures that when no custom repository settings are provided, the
-    app repository is loaded using the YAML-backed implementation.
-    """
-
-    # Instantiate the AppManagerContext with default settings.
-    context = AppManagerContext()
-
-    # Load the app repository and assert that the default repository type is used.
-    repo = context.load_app_repo()
-
-    assert isinstance(repo, AppYamlRepository)
-
-# ** test: app_manager_context_default_service_provider
-def test_app_manager_context_default_service_provider():
-    """
-    Test that AppManagerContext creates a DependenciesServiceProvider by default.
-    """
-    from ...di import DependenciesServiceProvider
-
-    # Instantiate with no args — should default to DependenciesServiceProvider.
-    context = AppManagerContext()
-
-    # Assert the service provider is a DependenciesServiceProvider.
-    assert isinstance(context.service_provider, DependenciesServiceProvider)
-
-
-# ** test: app_manager_context_injected_service_provider
-def test_app_manager_context_injected_service_provider():
-    """
-    Test that AppManagerContext accepts an injected ServiceProvider.
-    """
-    from ...di import ServiceProvider, DependenciesServiceProvider
-
-    # Create a custom provider.
-    custom_provider = DependenciesServiceProvider(name='CustomProvider')
-
-    # Inject it into the context.
-    context = AppManagerContext(service_provider=custom_provider)
-
-    # Assert the injected provider is used.
-    assert context.service_provider is custom_provider
-
-
-# ** test: app_manager_context_load_interface
-def test_app_manager_context_load_interface(app_manager_context):
-    """
-    Test the load_interface method of AppManagerContext.
-
-    :param app_manager_context: The AppManagerContext instance.
-    :type app_manager_context: AppManagerContext
-    :param app_interface: The AppInterface instance.
-    :type app_interface: AppInterface
-    """
-
-    # Load the app interface using the app context.
-    result = app_manager_context.load_interface('test_calc')
-
-    # Assert that the result is an instance of AppInterfaceContext.
-    assert result
-    assert isinstance(result, AppInterfaceContext)
-
-# ** test: app_manager_context_load_interface_invalid
-def test_app_manager_context_load_interface_invalid(app_manager_context, app_interface):
-    """
-    Test loading an invalid app interface.
-
-    :param app_manager_context: The AppManagerContext instance.
-    :type app_manager_context: AppManagerContext
-    """
-
-    # Create invalid app interface context.
-    class InvalidContext(object):
-        def __init__(self, *args, **kwargs):
-            pass
-
-    # Create a fake app service that always returns the provided app_interface,
-    # regardless of interface_id. This bypasses the APP_INTERFACE_NOT_FOUND path
-    # so we can exercise the "invalid app interface context" error instead.
-    fake_service = mock.Mock(spec=AppService)
-    fake_service.get.return_value = app_interface
-
-    # Mock the load_app_repo method to return the fake service.
-    app_manager_context.load_app_repo = mock.Mock(return_value=fake_service)
-
-    # Mock the load_app_instance method to return an invalid app interface context.
-    app_manager_context.load_app_instance = mock.Mock(return_value=InvalidContext())
-
-    # Attempt to load an invalid interface and assert that it raises an error.
-    with pytest.raises(TiferetError) as exc_info:
-        app_manager_context.load_interface('invalid_interface_id')
-
-    # Assert that the error message is as expected.
-    assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
-    assert 'App context for interface is not valid: invalid_interface_id' in str(exc_info.value)
-    assert exc_info.value.kwargs.get('interface_id') == 'invalid_interface_id'
 
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):
@@ -320,14 +197,16 @@ def test_app_interface_context_parse_request(app_interface_context):
     """
 
     # Parse the request using the app interface context.
-    request = app_interface_context.parse_request(headers={
-        'Content-Type': 'application/json',
-    },
-    data={
-        'key': 'value',
-        'param': 'test_param'
-    },
-    feature_id='test_group.test_feature')
+    request = app_interface_context.parse_request(
+        headers={
+            'Content-Type': 'application/json',
+        },
+        data={
+            'key': 'value',
+            'param': 'test_param'
+        },
+        feature_id='test_group.test_feature'
+    )
 
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None
@@ -335,7 +214,8 @@ def test_app_interface_context_parse_request(app_interface_context):
     assert request.headers.get('interface_id') == app_interface_context.interface_id
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
-    request.feature_id == 'test_group.test_feature'
+    assert request.feature_id == 'test_group.test_feature'
+
 
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
@@ -362,6 +242,7 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
 
     # Assert that the feature id is set correctly to the request headers.
     assert request.headers.get('feature_id') == 'test_group.test_feature'
+
 
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
@@ -396,6 +277,7 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     assert exc_info.value.name == 'Test Error'
     assert exc_info.value.message == 'This is a test error message.'
 
+
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
     """
@@ -422,6 +304,7 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     # Assert that the raised exception contains a generic error code and message.
     assert exc_info.value.error_code == 'APP_ERROR'
     assert 'An error occurred in the app' in exc_info.value.message
+
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
@@ -453,6 +336,7 @@ def test_app_interface_context_handle_response(app_interface_context):
     assert response.get('status') == 'success'
     assert response.get('data') == {"key": "value"}
 
+
 # ** test: app_interface_context_run
 def test_app_interface_context_run(app_interface_context, logging_context: LoggingContext):
     """
@@ -465,7 +349,8 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
     """
 
     # Run the app interface context.
-    app_interface_context.run('test_group.test_feature', 
+    app_interface_context.run(
+        'test_group.test_feature', 
         headers={
             'Content-Type': 'application/json',
             'interface_id': app_interface_context.interface_id
@@ -490,6 +375,7 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
     assert final_log.startswith('Executed Feature - test_group.test_feature')
     assert '(ms)' in final_log or 'ms)' in final_log
 
+
 # ** test: app_interface_context_run_invalid
 def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
     """
@@ -499,6 +385,8 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     :type app_interface_context: AppInterfaceContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -542,6 +430,7 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
         'Error executing feature invalid_group.invalid_feature: {"error_code": "FEATURE_NOT_FOUND", "message": "Feature not found: invalid_group.invalid_feature."}'
     )
 
+
 # ** test: app_interface_context_run_timing_success
 def test_app_interface_context_run_timing_success(app_interface_context, logging_context):
     """
@@ -581,6 +470,7 @@ def test_app_interface_context_run_timing_success(app_interface_context, logging
     duration_ms = int(match.group(1))
     assert duration_ms >= 0
 
+
 # ** test: app_interface_context_run_timing_no_pre_execution_log
 def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_context, logging_context):
     """
@@ -608,6 +498,7 @@ def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_con
     # Assert that no pre-execution "Executing feature..." INFO log appears.
     pre_execution_logs = [log for log in info_calls if log.startswith('Executing feature:')]
     assert len(pre_execution_logs) == 0
+
 
 # ** test: app_interface_context_run_timing_error_path
 def test_app_interface_context_run_timing_error_path(app_interface_context, feature_context, error_context, logging_context):
@@ -663,6 +554,7 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
     # Assert error was logged.
     logger.error.assert_called_once()
 
+
 # ** test: app_interface_context_run_timing_zero_duration
 def test_app_interface_context_run_timing_zero_duration(app_interface_context, logging_context):
     """
@@ -692,6 +584,7 @@ def test_app_interface_context_run_timing_zero_duration(app_interface_context, l
         # Assert the final log contains (0ms).
         assert len(info_calls) == 1
         assert '(0ms)' in info_calls[0]
+
 
 # ** test: app_interface_context_run_timing_long_execution
 def test_app_interface_context_run_timing_long_execution(app_interface_context, logging_context):
