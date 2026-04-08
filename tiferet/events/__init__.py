@@ -4,8 +4,4 @@
 
 # ** app
 from .settings import DomainEvent, TiferetError, a
-from .static import (
-    ParseParameter,
-    ImportDependency,
-    RaiseError,
-)
+from .static import ParseParameter, ImportDependency, RaiseError

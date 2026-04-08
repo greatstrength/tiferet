@@ -142,7 +142,7 @@ class GetAppInterface(DomainEvent):
         :type default_constants: Dict[str, str] | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The loaded and prepared application interface.
+        :return: The loaded application interface.
         :rtype: AppInterface
         :raises TiferetError: If the interface cannot be found.
         '''
@@ -166,6 +166,7 @@ class GetAppInterface(DomainEvent):
 
         # Merge default services into the interface for any service_id not already present.
         if default_services:
+
             # Build a set of existing service_ids for lookup.
             existing_ids = {dep.service_id for dep in interface.services}
 

@@ -33,7 +33,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('list_all method is required for LoggingService.')
-    
+
     # * method: save_formatter
     @abstractmethod
     def save_formatter(self, formatter: FormatterAggregate) -> None:
@@ -47,7 +47,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('save_formatter method is required for LoggingService.')
-    
+
     # * method: save_handler
     @abstractmethod
     def save_handler(self, handler: HandlerAggregate) -> None:
@@ -61,7 +61,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('save_handler method is required for LoggingService.')
-    
+
     # * method: save_logger
     @abstractmethod
     def save_logger(self, logger: LoggerAggregate) -> None:
@@ -75,7 +75,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('save_logger method is required for LoggingService.')
-    
+
     # * method: delete_formatter
     @abstractmethod
     def delete_formatter(self, formatter_id: str) -> None:
@@ -89,7 +89,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('delete_formatter method is required for LoggingService.')
-    
+
     # * method: delete_handler
     @abstractmethod
     def delete_handler(self, handler_id: str) -> None:
@@ -103,7 +103,7 @@ class LoggingService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('delete_handler method is required for LoggingService.')
-    
+
     # * method: delete_logger
     @abstractmethod
     def delete_logger(self, logger_id: str) -> None:

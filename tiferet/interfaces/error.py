@@ -71,7 +71,7 @@ class ErrorService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('save method is required for ErrorService.')
-    
+
     # * method: delete
     @abstractmethod
     def delete(self, id: str) -> None:
