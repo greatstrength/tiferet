@@ -1,130 +1,43 @@
-"""Tiferet Constants (Builders)"""
+"""Tiferet Assets Builders
+
+Provides default constants and default service wiring definitions used during
+application bootstrapping and container initialization.
+"""
 
 # *** imports
 
-# *** constants (app)
+# ** core
+from typing import Any, Dict, List, Tuple
+
+# *** constants
+
+# ** constant: default_constants
+DEFAULT_CONSTANTS: Dict[str, str] = {
+    'cli_yaml_file': 'config.yml',
+    'di_yaml_file': 'config.yml',
+    'error_yaml_file': 'config.yml',
+    'logging_yaml_file': 'config.yml',
+    'feature_yaml_file': 'config.yml',
+}
 
 # ** constant: default_services
-DEFAULT_SERVICES = [
-    {
-        'attribute_id': 'container_service',
-        'module_path': 'tiferet.repos.container',
-        'class_name': 'ContainerYamlRepository',
-        'parameters': {
-            'container_yaml_file': 'config.yml',
-        },
-    },
-    {
-        'attribute_id': 'di_service',
-        'module_path': 'tiferet.repos.di',
-        'class_name': 'DIYamlRepository',
-        'parameters': {
-            'di_yaml_file': 'config.yml',
-        },
-    },
-    {
-        'attribute_id': 'error_service',
-        'module_path': 'tiferet.repos.error',
-        'class_name': 'ErrorYamlRepository',
-        'parameters': {
-            'error_yaml_file': 'config.yml',
-        },
-    },
-    {
-        'attribute_id': 'logging_service',
-        'module_path': 'tiferet.repos.logging',
-        'class_name': 'LoggingYamlRepository',
-        'parameters': {
-            'logging_yaml_file': 'config.yml',
-        },
-    },
-    {
-        'attribute_id': 'feature_service',
-        'module_path': 'tiferet.repos.feature',
-        'class_name': 'FeatureYamlRepository',
-        'parameters': {
-            'feature_yaml_file': 'config.yml',
-        },
-    },
-    {
-        'attribute_id': 'get_error_cmd',
-        'module_path': 'tiferet.events.error',
-        'class_name': 'GetError',
-        'parameters': {
-            'error_service': '$s.error_service',
-        },
-    },
-    {
-        'attribute_id': 'get_feature_cmd',
-        'module_path': 'tiferet.events.feature',
-        'class_name': 'GetFeature',
-        'parameters': {
-            'feature_service': '$s.feature_service',
-        },
-    },
-    {
-        'attribute_id': 'container_list_all_cmd',
-        'module_path': 'tiferet.events.container',
-        'class_name': 'ListAllSettings',
-        'parameters': {
-            'container_service': '$s.container_service',
-        },
-    },
-    {
-        'attribute_id': 'list_all_cmd',
-        'module_path': 'tiferet.events.logging',
-        'class_name': 'ListAllLoggingConfigs',
-        'parameters': {
-            'logging_service': '$s.logging_service',
-        },
-    },
-    {
-        'attribute_id': 'list_commands_cmd',
-        'module_path': 'tiferet.events.cli',
-        'class_name': 'ListCliCommands',
-        'parameters': {
-            'cli_service': '$s.cli_service',
-        },
-    },
-    {
-        'attribute_id': 'get_parent_args_cmd',
-        'module_path': 'tiferet.events.cli',
-        'class_name': 'GetParentArguments',
-        'parameters': {
-            'cli_service': '$s.cli_service',
-        },
-    },
-    {
-        'attribute_id': 'container',
-        'module_path': 'tiferet.contexts.container',
-        'class_name': 'ContainerContext',
-        'parameters': {
-            'container_list_all_cmd': '$s.container_list_all_cmd',
-        },
-    },
-    {
-        'attribute_id': 'features',
-        'module_path': 'tiferet.contexts.feature',
-        'class_name': 'FeatureContext',
-        'parameters': {
-            'get_feature_cmd': '$s.get_feature_cmd',
-            'container': '$s.container',
-        },
-    },
-    {
-        'attribute_id': 'errors',
-        'module_path': 'tiferet.contexts.error',
-        'class_name': 'ErrorContext',
-        'parameters': {
-            'get_error_cmd': '$s.get_error_cmd',
-        },
-    },
-    {
-        'attribute_id': 'logging',
-        'module_path': 'tiferet.contexts.logging',
-        'class_name': 'LoggingContext',
-        'parameters': {
-            'list_all_cmd': '$s.list_all_cmd',
-        },
-    },
+# Each tuple contains exactly 4 elements in this order:
+# (service_id, module_path, class_name, parameters)
+# Use None for parameters when no additional DI parameters are required.
+DEFAULT_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] = [
+    ('di_service', 'tiferet.repos.di', 'DIYamlRepository', None),
+    ('error_service', 'tiferet.repos.error', 'ErrorYamlRepository', None),
+    ('logging_service', 'tiferet.repos.logging', 'LoggingYamlRepository', None),
+    ('feature_service', 'tiferet.repos.feature', 'FeatureYamlRepository', None),
+    ('get_error_evt', 'tiferet.events.error', 'GetError', None),
+    ('get_feature_evt', 'tiferet.events.feature', 'GetFeature', None),
+    ('logging_list_all_evt', 'tiferet.events.logging', 'ListAllLoggingConfigs', None),
+    ('cli_service', 'tiferet.repos.cli', 'CliYamlRepository', None),
+    ('list_commands_evt', 'tiferet.events.cli', 'ListCliCommands', None),
+    ('get_parent_args_evt', 'tiferet.events.cli', 'GetParentArguments', None),
+    ('di_list_all_configs_evt', 'tiferet.events.di', 'ListAllSettings', None),
+    ('services', 'tiferet.contexts.di', 'DIContext', None),
+    ('features', 'tiferet.contexts.feature', 'FeatureContext', None),
+    ('errors', 'tiferet.contexts.error', 'ErrorContext', None),
+    ('logging', 'tiferet.contexts.logging', 'LoggingContext', None),
 ]
