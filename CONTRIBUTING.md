@@ -42,7 +42,7 @@ Key points:
   - [contexts.md](docs/core/contexts.md) — Application contexts
   - [repos.md](docs/core/repos.md) — Repositories
   - [utils.md](docs/core/utils.md) — Utilities
-- Write tests using `pytest`. Follow existing test structure (`# *** fixtures`, `# *** tests`).
+- Write tests using `pytest`.
 
 ### 4. Commit Hygiene
 
