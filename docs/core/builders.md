@@ -47,6 +47,7 @@ Builders are organized under the `# *** builders` top-level comment, with indivi
 - `# * method: <name>` — methods (including static factory methods)
 
 **Spacing rules:**
+
 - One empty line between `# *** builders` and first `# ** builder`
 - One empty line between each `# *` section
 - One empty line after docstrings and between code snippets
