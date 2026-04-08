@@ -125,7 +125,7 @@ class FeatureContext(object):
         Handle the execution of a command with the provided request and command-handling options.
         
         :param command: The command to execute.
-        :type command: Command
+        :type command: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
         :param debug: Debug flag.
@@ -136,21 +136,21 @@ class FeatureContext(object):
         :type pass_on_error: bool
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The result of the feature execution.
-        :rtype: Any
         '''
 
         # Execute the command with the request data and parameters, and optional contexts.
-        # If an error occurs during command execution, handle it based on the pass_on_error flag.
-        # Set the result to None if passing on the error.
         try:
             result = command.execute(
                 **request.data,
                 **kwargs
             )
+
+        # If an error occurs during command execution, handle it based on the pass_on_error flag.
         except Exception as e:
             if not pass_on_error:
                 raise e
+            
+            # Set the result to None if passing on the error.
             result = None
 
         # Store the result via the request context.
@@ -159,27 +159,41 @@ class FeatureContext(object):
     # * method: parse_request_parameter
     def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
         '''
-        Handle the execution of a feature event step with the provided request and command-handling options.
-        :param command: The command to execute.
-        :type command: DomainEvent
-        :param request: The request context object.
+        Parse a request-aware parameter.
+
+        :param parameter: The parameter to parse.
+        :type parameter: str
+        :param request: The request context object containing data for parameter parsing.
         :type request: RequestContext
-        :param feature_event: The feature event metadata.
-        :type feature_event: FeatureEvent
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :return: The parsed parameter value.
+        :rtype: str
         '''
 
-        # Handle the command with the request and feature event options.
-        # NOTE: The method executed is to be obsoleted, and this to be consolidated with handle_command for v2.
-        self.handle_command(
-            command,
-            request,
-            data_key=feature_event.data_key,
-            pass_on_error=feature_event.pass_on_error,
-        **{id: self.parse_request_parameter(param, request) for id, param in feature_event.parameters.items()},
-            **kwargs
-        )
+        # Parse the parameter if it is not a request-backed parameter.
+        if not parameter.startswith('$r.'):
+            return ParseParameter.execute(parameter)
+
+        # Raise an error if the request is not provided for a request-backed parameter.
+        if not request:
+            RaiseError.execute(
+                REQUEST_NOT_FOUND_ID,
+                'Request data is not available for parameter parsing.',
+                parameter=parameter
+            )
+
+        # Parse the parameter from the request if provided.
+        result = request.data.get(parameter[3:], None)
+
+        # Raise an error if the parameter is not found in the request data.
+        if result is None:
+            RaiseError.execute(
+                PARAMETER_NOT_FOUND_ID,
+                f'Parameter {parameter} not found in request data.',
+                parameter=parameter
+            )
+
+        # Return the parsed parameter.
+        return result
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):

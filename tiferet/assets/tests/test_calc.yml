@@ -22,31 +22,31 @@ errors:
 features:
   test_calc:
     add_number:
-      commands:
+      steps:
       - service_id: add_number_cmd
         name: Add Number Command
       description: Adds two numbers.
       name: Add Number Feature
     subtract_number:
-      commands:
+      steps:
       - service_id: subtract_number_cmd
         name: Subtract Number Command
       description: Subtracts two numbers.
       name: Subtract Number Feature
     multiply_number:
-      commands:
+      steps:
       - service_id: multiply_number_cmd
         name: Multiply Number Command
       description: Multiplies two numbers.
       name: Multiply Number Feature
     divide_number:
-      commands:
+      steps:
       - service_id: divide_number_cmd
         name: Divide Number Command
       description: Divides two numbers.
       name: Divide Number Feature
     square_number:
-      commands:
+      steps:
       - service_id: multiply_number_cmd
         name: Square Number Command
         params:

@@ -10,7 +10,7 @@ from .. import App, TiferetAPIError
 
 # ** fixture: app_builder
 @pytest.fixture
-def app_context():
+def app_builder():
     return App().load_app_service(
         app_yaml_file='tiferet/assets/tests/test_calc.yml',
     )
