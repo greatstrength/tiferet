@@ -75,4 +75,3 @@ DEFAULT_LOGGERS = [
         is_root=False
     )
 ]
-

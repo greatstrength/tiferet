@@ -6,8 +6,6 @@
 from importlib import import_module
 from typing import Dict
 
-from tiferet.events.static import ImportDependency
-
 # ** app
 from ..di import ServiceProvider
 from .settings import (
@@ -17,6 +15,7 @@ from .settings import (
     DictType,
     ModelType,
 )
+from ..di import ServiceProvider
 
 # *** models
 
@@ -168,6 +167,22 @@ class AppInterface(DomainObject):
         ),
     )
 
+    # * attribute: service_provider_path
+    service_provider_path = StringType(
+        default='tiferet.di.dependencies',
+        metadata=dict(
+            description='The module path for the service provider to use for this dependency.'
+        ),
+    )
+
+    # * attribute: service_provider_class_name
+    service_provider_class_name = StringType(
+        default='DependenciesServiceProvider',
+        metadata=dict(
+            description='The class name for the service provider to use for this dependency.'
+        ),
+    )
+
     # * method: get_service
     def get_service(self, service_id: str) -> AppServiceDependency:
         '''
@@ -181,7 +196,6 @@ class AppInterface(DomainObject):
 
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
-    
     # * method: get_service_type_mapping
     def get_service_type_mapping(self) -> Dict[str, type]:
         '''
@@ -193,18 +207,17 @@ class AppInterface(DomainObject):
 
         # Retrieve the app context dependency, interface id, and logger id.
         dependencies = dict(
-            app_context=getattr(import_module(self.module_path),
+            app_context=getattr(
+                import_module(self.module_path),
                 self.class_name,
             ),
             interface_id=self.id,
             logger_id=getattr(self, 'logger_id', None),
         )
-        
         # Add the constants from the app interface to the dependencies.
         dependencies.update(self.constants)
 
         # Add the remaining app context service dependencies and parameters.
-        # Service-specific parameters may override constants if needed.
         for dep in self.services:
             dependencies[dep.service_id] = dep.get_service_type()
             for param, value in dep.parameters.items():
@@ -212,21 +225,24 @@ class AppInterface(DomainObject):
 
         # Return the assembled dependencies mapping.
         return dependencies
-    
+
     # * method: create_service_provider
     def create_service_provider(self) -> ServiceProvider:
         '''
-        Create a service provider instance for this app interface.
+        Create a service provider for this app interface.
 
-        :return: A configured service provider instance for this app interface.
+        :return: A configured service provider instance.
         :rtype: ServiceProvider
         '''
 
-        # Get the service type mapping from the app interface.
+        # Build the service type mapping for this interface.
         type_map = self.get_service_type_mapping()
 
-        # Create and return the service provider instance using the specified provider class.
-        provider_class = getattr(import_module(self.service_provider_path),
+        # Resolve the configured service provider class.
+        provider_class = getattr(
+            import_module(self.service_provider_path),
             self.service_provider_class_name,
         )
+
+        # Create and return the configured service provider instance.
         return provider_class(services=type_map)

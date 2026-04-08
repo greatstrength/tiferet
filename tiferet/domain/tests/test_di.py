@@ -273,3 +273,77 @@ def test_service_configuration_get_dependency_multiple_flags(
     dep_beta_first = service_configuration_multiple_deps.get_dependency('test_beta', 'test_alpha')
     assert dep_beta_first.flag == 'test_beta'
     assert dep_beta_first.class_name == 'TestDependencyBeta'
+
+
+# ** test: service_configuration_get_service_type_default
+def test_service_configuration_get_service_type_default(
+        service_configuration: ServiceConfiguration,
+    ) -> None:
+    '''
+    Test that get_service_type returns the default type when no flags match.
+
+    :param service_configuration: The ServiceConfiguration fixture.
+    :type service_configuration: ServiceConfiguration
+    '''
+
+    # Resolve with no flags — should return the default TestDependency.
+    resolved = service_configuration.get_service_type()
+
+    # Assert the default type is returned.
+    assert resolved is TestDependency
+
+
+# ** test: service_configuration_get_service_type_flagged
+def test_service_configuration_get_service_type_flagged(
+        service_configuration: ServiceConfiguration,
+    ) -> None:
+    '''
+    Test that get_service_type resolves the flagged dependency type when a matching flag is provided.
+
+    :param service_configuration: The ServiceConfiguration fixture.
+    :type service_configuration: ServiceConfiguration
+    '''
+
+    # Resolve with the test_alpha flag — should return TestDependencyAlpha.
+    resolved = service_configuration.get_service_type('test_alpha')
+
+    # Assert the flagged type takes priority over the default.
+    assert resolved is TestDependencyAlpha
+
+
+# ** test: service_configuration_get_service_type_no_match
+def test_service_configuration_get_service_type_no_match(
+        service_configuration_no_default_type: ServiceConfiguration,
+    ) -> None:
+    '''
+    Test that get_service_type returns None when no flag matches and there is no default.
+
+    :param service_configuration_no_default_type: ServiceConfiguration with no default type.
+    :type service_configuration_no_default_type: ServiceConfiguration
+    '''
+
+    # Resolve with an unknown flag and no default — should return None.
+    resolved = service_configuration_no_default_type.get_service_type('unknown_flag')
+
+    # Assert None is returned.
+    assert resolved is None
+
+
+# ** test: service_configuration_get_service_type_flag_priority
+def test_service_configuration_get_service_type_flag_priority(
+        service_configuration_multiple_deps: ServiceConfiguration,
+    ) -> None:
+    '''
+    Test that get_service_type respects flag priority order — first matching flag wins.
+
+    :param service_configuration_multiple_deps: ServiceConfiguration with two flagged overrides.
+    :type service_configuration_multiple_deps: ServiceConfiguration
+    '''
+
+    # test_alpha first — should resolve alpha.
+    resolved = service_configuration_multiple_deps.get_service_type('test_alpha', 'test_beta')
+    assert resolved is TestDependencyAlpha
+
+    # test_beta first — should resolve beta.
+    resolved = service_configuration_multiple_deps.get_service_type('test_beta', 'test_alpha')
+    assert resolved is TestDependencyBeta

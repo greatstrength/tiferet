@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v1.9.x)
+# AGENTS.md — Tiferet Framework (v2.0.0a9)
 
 ## Project Overview
 
@@ -7,67 +7,64 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a7`
+- **Version:** `2.0.0a9`
 
 ## Architecture
 
 ### Layer Overview
 
-The codebase maintains a **dual-package structure**: legacy packages from v1.x coexist alongside forward-compatible packages that introduce the v2.0 naming and design. Both are fully supported; new code should prefer the forward-compatible packages.
+The v2.0 codebase is a clean, single-layer architecture. All legacy packages have been removed.
 
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── builders/             # AppBuilder and related utilities
-├── commands/             # Legacy: Command base class
-├── contexts/             # Runtime orchestration (AppManager, Feature, Error, CLI, Logging, DIContext)
-├── contracts/            # Legacy: Service/Repository contracts
-├── data/                 # Legacy: DataObject
-├── di/                   # ServiceProvider ABC and DependenciesServiceProvider implementation
-├── domain/               # Forward: DomainObject
-├── events/               # Forward: DomainEvent
-├── handlers/             # Legacy handler implementations
-├── interfaces/           # Forward: Service ABC
-├── mappers/              # Forward: Aggregate + TransferObject
-├── middleware/           # File I/O middleware (deprecated — use utils/)
-├── models/               # Legacy: ModelObject
-├── proxies/              # YAML/JSON/CSV proxies
-├── repos/                # Repository implementations
+├── builders/             # AppBuilder and top-level runtime orchestration
+├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, CLI, Logging)
+├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
+├── domain/               # DomainObject base class and domain modules
+├── events/               # DomainEvent base class and domain event modules
+├── interfaces/           # Service ABC and domain service interfaces
+├── mappers/              # Aggregate + TransferObject base classes and domain mappers
+├── repos/                # YAML-backed Service implementations
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
 ```
 
 ### Key Concepts
 
-**Legacy packages** (fully supported, carried from v1.x):
+**Key Concepts**:
 
-- **ModelObject** (`models/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `ModelObject.new(Type, **kwargs)`.
-- **Command** (`commands/settings.py`): Base class for business operations with dependency injection and `execute(**kwargs)` entry point.
-- **DataObject** (`data/settings.py`): Combined data mapping/serialization class with `new()`, `map()`, `from_model()`, `from_data()`, `allow()`, `deny()`.
-- **Repository** / **Service** / **ModelContract** (`contracts/`): Abstract base classes for service and repository contracts.
-
-**Forward-compatible packages** (new in v1.9.x, aligned with v2.0 design):
-
-- **DomainObject** (`domain/settings.py`): Drop-in successor to `ModelObject`. Base class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
-- **DomainEvent** (`events/settings.py`): Successor to `Command`. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
-- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for service contracts. Successor to `contracts/` service interfaces. All vertical concerns (data access, config, middleware) are unified under Service.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Successor to the mutation side of `DataObject`. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
-- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Successor to the serialization side of `DataObject`. Methods: `map()`, `from_model()`, `from_data()`.
+- **DomainObject** (`domain/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
+- **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
+- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
+- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Methods: `map()`, `from_model()`, `from_data()`.
 
 ### Runtime Flow
 
-1. `App()` (alias for `AppManagerContext`) loads settings.
-2. `app.run(interface_id, feature_id, data={})` loads the interface via `AppInterfaceContext`.
-3. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
-4. Each step is a `DomainEvent` (or legacy `Command`) subclass that receives injected services and performs domain logic.
-5. Results flow back through `RequestContext` and `handle_response()`.
+1. `App()` (alias for `AppBuilder`) is initialized.
+2. `app.load_app_service(...)` loads the app repository service (typically `AppYamlRepository`).
+3. `app.run(interface_id, feature_id, data={})` resolves the interface via `GetAppInterface` and builds an `AppInterfaceContext`.
+4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
+5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
+6. Results flow back through `RequestContext` and `handle_response()`.
+
+### Builders
+
+- `AppBuilder` is defined in `tiferet/builders/main.py`.
+- It is the primary public orchestration entry point and is exported as `App` from `tiferet/__init__.py`.
+- Core responsibilities:
+  - Loading the app service (`load_app_service`)
+  - Injecting default services and constants (`load_default_services`, `DEFAULT_CONSTANTS`)
+  - Resolving interface contexts (`load_interface`)
+  - Delegating feature execution (`run`)
 
 ### Dependency Injection
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level (`tiferet/di/`)**: `ServiceProvider` (ABC) and `DependenciesServiceProvider` (backed by the `dependencies` library) manage contexts and repositories for each interface load. `AppManagerContext` holds a `ServiceProvider` instance and calls `app_interface.get_service_type_mapping()` → `service_provider.add_services()` → `service_provider.get_service('app_context')`.
-- **Feature-level (`contexts/di.py`)**: `DIContext` resolves `ServiceConfiguration` objects from `app/configs/di.yml` into per-flag injectors for feature step execution. `FeatureContext` holds a `DIContext` instance as `services`.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DependenciesServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 ## Structured Code Style
 
@@ -214,14 +211,14 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 
 ## Configuration
 
-Applications are configured via YAML files in `app/configs/`:
+Applications are configured in a consolidated root `config.yml` file:
 
-- `app.yml` — Interface definitions (name, module_path, class_name, services)
-- `di.yml` — Service configurations for feature-level DI (module_path, class_name, parameters, flagged dependencies)
-- `feature.yml` — Feature workflows (steps with service_id, parameters, data_key)
-- `error.yml` — Error definitions with multilingual messages
-- `cli.yml` — CLI command definitions with arguments
-- `logging.yml` — Logging formatters, handlers, loggers
+- `interfaces` — Interface definitions (name, module_path, class_name, service dependencies)
+- `services` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
+- `features` — Feature workflows (commands with service_id, parameters, and data mapping)
+- `errors` — Error definitions with multilingual messages
+- `cli` — CLI command definitions with arguments
+- `logging` — Logging formatters, handlers, loggers
 
 ## Testing
 
@@ -252,33 +249,23 @@ Current utilities:
 The top-level `tiferet/__init__.py` exports:
 
 **Core:**
-- `App` (alias for `AppManagerContext`)
+- `App` (alias for `AppBuilder`)
 - `TiferetError`, `TiferetAPIError`
 
-**Legacy:**
-- `ModelObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
-- `Command`, `ParseParameter` (from `commands/`)
-- `ModelContract`, `Repository`, `Service` (from `contracts/`)
-- `DataObject` (from `data/`)
+**Domain:**
+- `DomainObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
 
-**Proxies and Middleware:**
-- `YamlFileProxy`, `JsonFileProxy`, `CsvFileProxy` (from `proxies/`)
-- `File`, `FileLoaderMiddleware`, `Yaml`, `YamlLoaderMiddleware`, `Json`, `JsonLoaderMiddleware`, `Csv`, `CsvLoaderMiddleware`, `CsvDict`, `CsvDictLoaderMiddleware` (from `middleware/`)
+**Events:**
+- `DomainEvent`, `ParseParameter` (from `tiferet.events`)
 
-**Forward-compatible** (available via their respective packages):
-- `DomainObject` (from `tiferet.domain`)
-- `DomainEvent`, `ParseParameter`, `ImportDependency`, `RaiseError` (from `tiferet.events`)
+**Interfaces:**
 - `Service` (from `tiferet.interfaces`)
+
+**Mappers:**
 - `Aggregate`, `TransferObject` (from `tiferet.mappers`)
 
-## Forward-Compatible Packages
-
-The following forward-compatible packages are successors to legacy packages. New code should prefer these packages. Legacy packages remain fully supported.
-
-- **`tiferet/domain/`** → `DomainObject` — drop-in successor to `ModelObject` (`models/`). Same API, new name.
-- **`tiferet/events/`** → `DomainEvent` — successor to `Command` (`commands/`). Adds `@parameters_required` decorator and `DomainEvent.handle()` for testing.
-- **`tiferet/interfaces/`** → `Service` (ABC) — successor to `contracts/` service interfaces. Cleaner abstract base with `@abstractmethod`.
-- **`tiferet/mappers/`** → `Aggregate` + `TransferObject` — successor to `DataObject` (`data/`). Splits mutation (Aggregate) from serialization (TransferObject) for cleaner separation of concerns.
+**Utils:**
+- `File`/`FileLoader`, `Yaml`/`YamlLoader`, `Json`/`JsonLoader`, `Csv`/`CsvLoader`, `CsvDict`/`CsvDictLoader`, `Sqlite`/`SqliteClient`
 
 ## Key Files for Orientation
 
@@ -289,8 +276,11 @@ The following forward-compatible packages are successors to legacy packages. New
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
-- `tiferet/contexts/app.py` — `AppManagerContext` and `AppInterfaceContext`
-- `tiferet/contexts/di.py` — `DIContext` (feature-level DI, successor to `ContainerContext`)
+- `tiferet/di/settings.py` — `ServiceProvider` ABC
+- `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
+- `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
+- `tiferet/contexts/app.py` — `AppInterfaceContext`
+- `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`

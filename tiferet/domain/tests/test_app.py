@@ -11,6 +11,10 @@ from ..app import (
     AppInterface,
     AppServiceDependency,
 )
+from ...di import (
+    ServiceProvider,
+    DependenciesServiceProvider,
+)
 
 # *** fixtures
 
@@ -52,7 +56,6 @@ def resolvable_app_dependency() -> AppServiceDependency:
         class_name='AppInterfaceContext',
         parameters={'param1': 'value1'},
     )
-
 
 # ** fixture: app_interface
 @pytest.fixture
@@ -176,3 +179,70 @@ def test_app_interface_get_service_type_mapping_no_services() -> None:
     assert 'interface_id' in mapping
     assert 'logger_id' in mapping
     assert len(mapping) == 3
+
+
+# ** test: app_service_dependency_get_service_type
+def test_app_service_dependency_get_service_type(resolvable_app_dependency: AppServiceDependency) -> None:
+    '''
+    Test that AppServiceDependency.get_service_type resolves the configured class type.
+
+    :param resolvable_app_dependency: An AppServiceDependency with a real module path.
+    :type resolvable_app_dependency: AppServiceDependency
+    '''
+
+    # Resolve the service type from the dependency.
+    service_type = resolvable_app_dependency.get_service_type()
+
+    # Assert the resolved type matches the expected class.
+    from tiferet.contexts.app import AppInterfaceContext
+    assert service_type is AppInterfaceContext
+
+
+# ** test: app_interface_service_provider_defaults
+def test_app_interface_service_provider_defaults() -> None:
+    '''
+    Test default service provider metadata values on AppInterface.
+    '''
+
+    # Create an AppInterface with minimal required data.
+    interface = DomainObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        services=[],
+    )
+
+    # Assert default provider module path and class name values.
+    assert interface.service_provider_path == 'tiferet.di.dependencies'
+    assert interface.service_provider_class_name == 'DependenciesServiceProvider'
+
+
+# ** test: app_interface_create_service_provider
+def test_app_interface_create_service_provider(resolvable_app_dependency: AppServiceDependency) -> None:
+    '''
+    Test that AppInterface.create_service_provider returns a configured provider instance.
+
+    :param resolvable_app_dependency: An AppServiceDependency with a real module path.
+    :type resolvable_app_dependency: AppServiceDependency
+    '''
+
+    # Create an AppInterface with a resolvable service dependency.
+    interface = DomainObject.new(
+        AppInterface,
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        services=[resolvable_app_dependency],
+    )
+
+    # Create the provider from the interface.
+    provider = interface.create_service_provider()
+
+    # Assert the provider is correctly created and populated.
+    assert isinstance(provider, ServiceProvider)
+    assert isinstance(provider, DependenciesServiceProvider)
+    assert 'app_context' in provider.services
+    assert 'resolvable_service' in provider.services

@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..events import *
+from ..events import DomainEvent
 
 # *** classes
 

@@ -78,30 +78,4 @@ interfaces:
         class_name: LoggingYamlRepository
         params:
           logging_yaml_file: tiferet/assets/tests/test_calc.yml
-  test_calc_cli:
-    name: Integration Test - Basic Int Calculator CLI
-    description: The CLI interface instance for testing the calculator features.
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
-    attrs:
-      feature_service:
-        module_path: tiferet.repos.feature
-        class_name: FeatureYamlRepository
-        params:
-          feature_yaml_file: tiferet/assets/tests/test_calc.yml
-      error_service:
-        module_path: tiferet.repos.error
-        class_name: ErrorYamlRepository
-        params:
-          error_yaml_file: tiferet/assets/tests/test_calc.yml
-      di_service:
-        module_path: tiferet.repos.di
-        class_name: DIYamlRepository
-        params:
-          di_yaml_file: tiferet/assets/tests/test_calc.yml
-      cli_service:
-        module_path: tiferet.repos.cli
-        class_name: CliYamlRepository
-        params:
-          cli_yaml_file: tiferet/assets/tests/test_calc_cli.yml
 logging: {}

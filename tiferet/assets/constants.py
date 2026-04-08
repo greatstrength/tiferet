@@ -2,8 +2,7 @@
 
 # *** imports
 
-# *** constants
-
+# *** constants (app)
 # ** constant: default_constants
 DEFAULT_CONSTANTS = {
     'cli_yaml_file': 'config.yml',
@@ -15,11 +14,6 @@ DEFAULT_CONSTANTS = {
 
 # ** constant: default_services
 DEFAULT_SERVICES = [
-    {
-        'service_id': 'cli_service',
-        'module_path': 'tiferet.repos.cli',
-        'class_name': 'CliYamlRepository',
-    },
     {
         'service_id': 'di_service',
         'module_path': 'tiferet.repos.di',
@@ -54,6 +48,11 @@ DEFAULT_SERVICES = [
         'service_id': 'logging_list_all_evt',
         'module_path': 'tiferet.events.logging',
         'class_name': 'ListAllLoggingConfigs',
+    },
+    {
+        'service_id': 'cli_service',
+        'module_path': 'tiferet.repos.cli',
+        'class_name': 'CliYamlRepository',
     },
     {
         'service_id': 'list_commands_evt',
@@ -98,6 +97,8 @@ DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.app'
 # ** constant: default_app_service_class_name
 DEFAULT_APP_SERVICE_CLASS_NAME = 'AppYamlRepository'
 
+# *** constants (errors)
+
 # ** constant: command_parameter_required_id
 COMMAND_PARAMETER_REQUIRED_ID = 'COMMAND_PARAMETER_REQUIRED'
 
@@ -133,6 +134,12 @@ FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
+
+# ** constant: app_service_import_failed_id
+APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
+
+# ** constant: app_service_not_loaded_id
+APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
 
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
@@ -253,9 +260,6 @@ INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
 # ** constant: configuration_already_exists_id
 CONFIGURATION_ALREADY_EXISTS_ID = 'CONFIGURATION_ALREADY_EXISTS'
-
-# ** constant: invalid_dependency_error_id
-INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
@@ -410,6 +414,24 @@ DEFAULT_ERRORS = {
         'name': 'App Repository Import Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to import app repository: {exception}.'}
+        ]
+    },
+
+    # * error: APP_SERVICE_IMPORT_FAILED
+    APP_SERVICE_IMPORT_FAILED_ID: {
+        'id': APP_SERVICE_IMPORT_FAILED_ID,
+        'name': 'App Service Import Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
+        ]
+    },
+
+    # * error: APP_SERVICE_NOT_LOADED
+    APP_SERVICE_NOT_LOADED_ID: {
+        'id': APP_SERVICE_NOT_LOADED_ID,
+        'name': 'App Service Not Loaded',
+        'message': [
+            {'lang': 'en_US', 'text': 'App service must be loaded before loading interface {interface_id}.'}
         ]
     },
 
@@ -701,6 +723,18 @@ DEFAULT_ERRORS = {
             {
                 'lang': 'en_US',
                 'text': 'A flagged dependency must define both module_path and class_name.',
+            }
+        ],
+    },
+
+    # * error: CONFIGURATION_ALREADY_EXISTS
+    CONFIGURATION_ALREADY_EXISTS_ID: {
+        'id': CONFIGURATION_ALREADY_EXISTS_ID,
+        'name': 'Configuration Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A service configuration with ID {id} already exists.',
             }
         ],
     },

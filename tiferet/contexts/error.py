@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict
 
 # ** app
 from ..assets import (
-    TiferetError, 
+    TiferetError,
     TiferetAPIError,
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS
@@ -78,20 +78,12 @@ class ErrorContext(object):
         :rtype: Dict[str, Any]
         '''
 
-        # Raise the exception if it is not a Tiferet error.
+        # Raise the exception if it is not a TiferetError.
         if not isinstance(exception, TiferetError):
             raise exception
 
-        # Retrieve the error details.
-        error: Error = self.get_error_by_code(
-            exception.error_code
-        )
-
-        # Format the error response with exception kwargs.
-        error_message = error.format_message(
-            lang,
-            **exception.kwargs
-        )
+        # Get the error by its code from the error service.
+        error = self.get_error_by_code(exception.error_code)
 
         # Return the formatted response dictionary (no raise).
         return error.format_response(lang=lang, **exception.kwargs)

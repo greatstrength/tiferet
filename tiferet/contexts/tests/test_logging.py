@@ -9,8 +9,9 @@ from unittest import mock
 # ** app
 from ..logging import *
 from ...assets import TiferetError
-from ...assets.logging import *
-from ...domain.logging import *
+from ...assets.logging import DEFAULT_FORMATTERS, DEFAULT_HANDLERS, DEFAULT_LOGGERS
+from ...domain.logging import Formatter, Handler, Logger
+from ...domain.settings import DomainObject
 
 
 # *** fixtures
@@ -132,9 +133,9 @@ def test_logging_context_build_logger_success(logging_context, logging_list_all_
     '''
     Test successful logger creation by LoggingContext with provided configurations.
     '''
+
     # Call build_logger to create a logger.
     logger = logging_context.build_logger()
-
 
     # Assert that the logger is created and methods are called.
     assert isinstance(logger, logging.Logger)
@@ -147,16 +148,15 @@ def test_logging_context_build_logger_default_configs(logging_context, logging_l
     '''
     Test LoggingContext build_logger using default configurations.
     '''
+
     # Mock empty configurations from logging_list_all_evt.
     logging_list_all_evt.execute.return_value = ([], [], [])
-
 
     # Mock default configurations.
     with mock.patch('tiferet.contexts.logging.DEFAULT_FORMATTERS', default_configs['DEFAULT_FORMATTERS']):
         with mock.patch('tiferet.contexts.logging.DEFAULT_HANDLERS', default_configs['DEFAULT_HANDLERS']):
             with mock.patch('tiferet.contexts.logging.DEFAULT_LOGGERS', default_configs['DEFAULT_LOGGERS']):
                 logger = logging_context.build_logger()
-
 
     # Assert that default configurations are used.
     assert isinstance(logger, logging.Logger)
@@ -169,12 +169,111 @@ def test_logging_context_format_config_success(logging_context, formatter, handl
     '''
     Test LoggingContext format_config successfully formats logging configurations.
     '''
+
     # Call format_config to format the configurations.
     config = logging_context.format_config(
         formatters=[formatter],
         handlers=[handler],
         loggers=[logger_root]
     )
+
+    # Assert the configuration structure.
+    assert config['version'] == 1
+    assert config['disable_existing_loggers'] is False
+    assert 'formatters' in config
+    assert 'handlers' in config
+    assert 'root' in config
+    assert formatter.id in config['formatters']
+    assert handler.id in config['handlers']
+    assert config['root'] == logger_root.format_config()
+
+
+# ** test: logging_context_format_config_non_root_logger
+def test_logging_context_format_config_non_root_logger(logging_context, formatter, handler):
+    '''
+    Test LoggingContext format_config with non-root logger.
+    '''
+
+    # Create a non-root logger.
+    non_root_logger = DomainObject.new(
+        Logger,
+        id='app',
+        name='app',
+        description='Application logger.',
+        level='INFO',
+        handlers=[handler.id],
+        propagate=True,
+        is_root=False
+    )
+
+    # Call format_config.
+    config = logging_context.format_config(
+        formatters=[formatter],
+        handlers=[handler],
+        loggers=[non_root_logger]
+    )
+
+    # Assert non-root logger is in loggers section.
+    assert 'loggers' in config
+    assert non_root_logger.id in config['loggers']
+    assert config['root'] is None
+
+
+# ** test: logging_context_create_logger_success
+def test_logging_context_create_logger_success(logging_context, formatter, handler, logger_root):
+    '''
+    Test LoggingContext create_logger successfully creates a logger.
+    '''
+
+    # Format the configurations.
+    config = logging_context.format_config(
+        formatters=[formatter],
+        handlers=[handler],
+        loggers=[logger_root]
+    )
+
+    # Create the logger.
+    logger = logging_context.create_logger(
+        logger_id='root',
+        logging_config=config
+    )
+
+    # Assert logger is created.
+    assert isinstance(logger, logging.Logger)
+    assert logger.name == 'root'
+
+
+# ** test: logging_context_create_logger_invalid_config
+def test_logging_context_create_logger_invalid_config(logging_context):
+    '''
+    Test LoggingContext create_logger with invalid configuration.
+    '''
+
+    # Create an invalid configuration.
+    invalid_config = {
+        'version': 1,
+        'formatters': {},
+        'handlers': {
+            'invalid': {
+                'class': 'InvalidHandlerClass',
+                'level': 'INFO'
+            }
+        },
+        'root': {
+            'level': 'DEBUG',
+            'handlers': ['invalid']
+        }
+    }
+
+    # Call create_logger with invalid config.
+    with pytest.raises(TiferetError) as exc_info:
+        logging_context.create_logger(
+            logger_id='root',
+            logging_config=invalid_config
+        )
+
+    # Assert that the correct error is raised.
+    assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'
 
 
     # Assert the configuration structure.
@@ -282,24 +381,23 @@ def test_logging_context_create_logger_invalid_config(logging_context):
 # ** test: logging_context_build_logger_error
 def test_logging_context_build_logger_error(logging_context, logging_list_all_evt):
     '''
-    Test LoggingContext build_logger with invalid configuration.
+    Test LoggingContext build_logger with configurations that fail dictConfig.
     '''
+
     # Mock list_all to return invalid configurations that will fail.
     invalid_formatter = DomainObject.new(
         Formatter,
         id='invalid',
         name='Invalid Formatter',
         description='An invalid formatter.',
-        format='%(invalid)s',  # Invalid format
+        format='%(invalid)s',
         datefmt=None
     )
     logging_list_all_evt.execute.return_value = ([invalid_formatter], [], [])
 
-
     # Call build_logger with invalid configurations.
     with pytest.raises(TiferetError) as exc_info:
         logging_context.build_logger()
-
 
     # Assert that the correct error is raised.
     assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'

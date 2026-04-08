@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
-from ..assets import TiferetError
 from ..di import ServiceProvider, DependenciesServiceProvider
 from .. import assets as a
 from ..domain import (
@@ -33,7 +32,6 @@ APP_SERVICE_KEY = 'app_service'
 class AppBuilder(object):
     '''
     The main application builder for Tiferet v2.0+.
-    
     Responsible for loading the app service, preparing default services/constants,
     resolving interfaces, and running features.
     '''
@@ -76,12 +74,14 @@ class AppBuilder(object):
         :rtype: ServiceProvider
         '''
 
+        # Create the provider and register service types/constants.
         provider = provider_type()
         if type_map:
             provider.add_services(type_map)
         if constants:
             provider.add_constants(constants)
 
+        # Return the configured service provider.
         return provider
 
     # * method: load_app_service
@@ -123,6 +123,7 @@ class AppBuilder(object):
         :rtype: List[AppServiceDependency]
         '''
 
+        # Build domain dependency models from the default service configuration.
         return [
             DomainObject.new(
                 AppServiceDependency,
@@ -143,19 +144,21 @@ class AppBuilder(object):
         :rtype: Any
         '''
 
+        # Build the app interface dependencies map.
         try:
             dependencies = app_interface.get_service_type_mapping()
+
+        # Raise a structured error if dependency mapping fails.
         except Exception as e:
             RaiseError.execute(
-                a.const.APP_INTERFACE_LOAD_FAILED_ID,  # Use a proper constant
-                f'Failed to extract service type mapping from app interface.',
+                a.const.APP_SERVICE_IMPORT_FAILED_ID,
                 exception=str(e),
             )
 
         # Register the create_service_provider callable for downstream contexts.
         dependencies['create_service_provider'] = self.create_service_provider
 
-        # Add the dependencies to the service provider.
+        # Add dependencies to the service provider.
         self.service_provider.add_services(dependencies)
 
         # Resolve and return the app interface context.
@@ -177,13 +180,13 @@ class AppBuilder(object):
         if not app_service:
             RaiseError.execute(
                 a.const.APP_SERVICE_NOT_LOADED_ID,
-                'App service must be loaded before loading an interface.',
+                interface_id=interface_id,
             )
 
         # Load the default app service dependencies.
         default_services = self.load_default_services()
 
-        # Get the app interface via the event (now supports default_constants).
+        # Get the app interface via the event.
         app_interface = DomainEvent.handle(
             GetAppInterface,
             dependencies=dict(app_service=app_service),
@@ -235,6 +238,7 @@ class AppBuilder(object):
         :rtype: Any
         '''
 
+        # Normalize request structures.
         headers = headers or {}
         data = data or {}
 

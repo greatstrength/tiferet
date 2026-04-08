@@ -9,5 +9,7 @@ from .cache import CacheContext
 from .error import ErrorContext
 from .di import DIContext
 from .feature import FeatureContext
-from .app import AppInterfaceContext
+from .app import (
+    AppInterfaceContext
+)
 from .cli import CliContext

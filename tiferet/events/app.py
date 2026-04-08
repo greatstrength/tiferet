@@ -23,7 +23,7 @@ class AddAppInterface(DomainEvent):
     # * init
     def __init__(self, app_service: AppService):
         '''
-        Initialize the AddAppInterface command.
+        Initialize the AddAppInterface event.
 
         :param app_service: The application service used to persist app interfaces.
         :type app_service: AppService
@@ -123,23 +123,23 @@ class GetAppInterface(DomainEvent):
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
     def execute(
-        self,
-        interface_id: str,
-        default_services: List[AppServiceDependency] = None,
-        default_constants: Dict[str, str] = None,
-        **kwargs
-    ) -> AppInterface:
+            self,
+            interface_id: str,
+            default_services: List[AppServiceDependency] | None = None,
+            default_constants: Dict[str, str] | None = None,
+            **kwargs,
+        ) -> AppInterface:
         '''
-        Retrieve and prepare an application interface.
+        Execute the event to load the application interface.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
-        :param default_services: Optional list of default AppServiceDependency objects
-            to merge into the interface for any service_id not already present.
-        :type default_services: List[AppServiceDependency]
-        :param default_constants: Optional dictionary of default constants (string to string)
-            that will be merged into the interface's constants.
-        :type default_constants: Dict[str, str]
+        :param default_services: A list of AppServiceDependency objects to merge
+            into the interface for any service_id not already present.
+        :type default_services: List[AppServiceDependency] | None
+        :param default_constants: A mapping of default constants to merge into the
+            interface for any key not already present.
+        :type default_constants: Dict[str, str] | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The loaded and prepared application interface.
@@ -158,7 +158,7 @@ class GetAppInterface(DomainEvent):
                 interface_id=interface_id,
             )
 
-        # Ensure we are working with the mutable aggregate version.
+        # Ensure the interface is mutable before applying service/constant merges.
         if not isinstance(interface, AppInterfaceAggregate):
             interface = AppInterfaceAggregate.new(
                 app_interface_data=interface.to_primitive(),
@@ -176,18 +176,27 @@ class GetAppInterface(DomainEvent):
                         service_id=dep.service_id,
                         module_path=dep.module_path,
                         class_name=dep.class_name,
-                        parameters=dep.parameters or {},
+                        parameters=dep.parameters,
                     )
+                    existing_ids.add(dep.service_id)
 
-        # Merge default constants into the interface (only fill in missing keys).
+        # Merge default constants only for keys that do not already exist.
         if default_constants:
-            missing = {k: v for k, v in default_constants.items() if k not in interface.constants}
-            if missing:
-                interface.set_constants(missing)
 
-        # Return the loaded and prepared application interface.
+            # Create a set of missing constants that are not already defined.
+            missing_constants = {
+                key: value
+                for key, value in default_constants.items()
+                if key not in interface.constants
+            }
+
+            # Apply only missing constants, preserving user-defined constants.
+            if missing_constants:
+                interface.set_constants(missing_constants)
+
+        # Return the loaded application interface.
         return interface
-    
+
 # ** event: update_app_interface
 class UpdateAppInterface(DomainEvent):
     '''

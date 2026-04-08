@@ -1,12 +1,11 @@
 # Step 4: Configurations
 
 We've got the math events and a nice validation utility — now it's time to make everything come alive through configuration.  
+In Tiferet v2.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
 
-In Tiferet v2.0, all configuration has been consolidated into **a single file** called `config.yml` at the project root. This file contains interfaces, dependency injection mappings, feature workflows, error messages, and more — all in one place.
+### 4.1 config.yml – The complete wiring diagram
 
-### 4.1 config.yml – The single configuration file
-
-Create the file `config.yml` directly in the root of your project (next to `basic_calc.py` and `calc_cli.py`).
+Create `config.yml` in your project root (next to `basic_calc.py` and `calc_cli.py`).
 
 **config.yml**
 

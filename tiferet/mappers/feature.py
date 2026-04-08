@@ -274,7 +274,7 @@ class FeatureAggregate(Feature, Aggregate):
 
         :param name: Step name.
         :type name: str
-        :param service_id: Service configuration ID for the feature event.
+        :param service_id: Service configuration ID.
         :type service_id: str
         :param parameters: Optional parameters dictionary.
         :type parameters: dict | None

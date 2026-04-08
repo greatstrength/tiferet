@@ -54,75 +54,35 @@ class FeatureContext(object):
         self.cache = cache if cache else CacheContext()
         self.get_feature_handler = get_feature_evt.execute
 
-    # * method: parse_request_parameter
-    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
-        '''
-        Parse a parameter value with access to the request context.
-
-        :param parameter: The parameter to parse.
-        :type parameter: str
-        :param request: The request object containing data for parameter parsing.
-        :type request: RequestContext
-        :return: The parsed parameter.
-        :rtype: str
-        '''
-
-        # Parse the parameter if it is not a request parameter.
-        if not parameter.startswith('$r.'):
-            return ParseParameter.execute(parameter)
-
-        # Raise an error if the request is missing and the parameter comes from the request.
-        if not request:
-            RaiseError.execute(
-                REQUEST_NOT_FOUND_ID,
-                'Request data is not available for parameter parsing.',
-                parameter=parameter,
-            )
-
-        # Parse the parameter from the request if provided.
-        result = request.data.get(parameter[3:], None)
-
-        # Raise an error if the parameter is not found in the request data.
-        if result is None:
-            RaiseError.execute(
-                PARAMETER_NOT_FOUND_ID,
-                f'Parameter {parameter} not found in request data.',
-                parameter=parameter,
-            )
-
-        # Return the parsed parameter.
-        return result
-
     # * method: load_feature_step
     def load_feature_step(self, feature_event: FeatureEvent, feature_flags: list[str] = None) -> DomainEvent:
         '''
-        Load a feature event step from the container using its attribute ID and
+        Load a feature event step from the DI context using its service ID and
         any configured flags.
 
         :param feature_event: The feature event metadata describing the
-            container attribute and flags.
+            service configuration and flags.
         :type feature_event: FeatureEvent
         :param feature_flags: Optional list of flags from the parent feature.
         :type feature_flags: list[str]
-        :return: The command object.
+        :return: The resolved domain event.
         :rtype: DomainEvent
         '''
 
-        # Resolve the attribute identifier for the event.
+        # Resolve the service identifier for the event.
         service_id = feature_event.service_id
 
         # Combine flags: feature-level (higher priority) first, then step-level.
         combined_flags = (feature_flags or []) + (feature_event.flags or [])
 
-        # Attempt to retrieve the command from the container using the
-        # combined flags, if any.
+        # Attempt to retrieve the event from the DI context using the combined flags.
         try:
             return self.services.get_dependency(
                 service_id,
                 *combined_flags,
             )
-        
-        # If the command is not found, raise an error.
+
+        # If the event is not found, raise an error.
         except Exception as e:
             RaiseError.execute(
                 FEATURE_COMMAND_LOADING_FAILED_ID,
@@ -155,7 +115,7 @@ class FeatureContext(object):
     
     # * method: handle_command
     def handle_command(self,
-        command: DomainEvent, 
+        command: DomainEvent,
         request: RequestContext,
         data_key: str = None,
         pass_on_error: bool = False,
@@ -193,16 +153,11 @@ class FeatureContext(object):
                 raise e
             result = None
 
-        # If a data key is provided, store the result in the request data.
+        # Store the result via the request context.
         request.set_result(result, data_key)
 
-    # * method: handle_feature_command
-    def handle_feature_command(self,
-        command: DomainEvent,
-        request: RequestContext,
-        feature_event: FeatureEvent,
-        **kwargs
-    ):
+    # * method: parse_request_parameter
+    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
         '''
         Handle the execution of a feature event step with the provided request and command-handling options.
         :param command: The command to execute.
@@ -243,17 +198,16 @@ class FeatureContext(object):
         # Execute the feature by iterating over its configured steps.
         for feature_event in feature.steps:
 
-            # Load the command dependency for this feature event step, honoring
-            # any configured flags.
+            # Load the event dependency for this step, honoring any configured flags.
             cmd = self.load_feature_step(feature_event, feature_flags=feature.flags)
 
-            # Parse the event parameters.
+            # Parse the step parameters.
             params = {
                 param: self.parse_request_parameter(value, request)
                 for param, value in feature_event.parameters.items()
             }
 
-            # Execute the command with the request data and parameters.
+            # Execute the step with the request data and parameters.
             self.handle_command(
                 cmd,
                 request,

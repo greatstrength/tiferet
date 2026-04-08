@@ -3,11 +3,9 @@
 We've got a working calculator through the script runner — now let's make it feel like a real tool people can use from the terminal.  
 Enter the command-line interface (CLI): fast, scriptable, and perfect for quick calculations.
 
-### 6.1 Update the consolidated config.yml
+### 6.1 Add the CLI config section
 
-Since we're using a single `config.yml` at the project root, we'll add the CLI command definitions to it.
-
-Open (or create) **`config.yml`** in the root of your project and add the `cli` section at the bottom:
+In Tiferet v2.0, CLI definitions live in root `config.yml`. Add this section to tell Tiferet how to parse commands like `calc add 19 23`.
 
 **config.yml** (add this section)
 
@@ -30,7 +28,6 @@ cli:
           - name_or_flags:
               - b
             description: Second number
-
       subtract:
         group_key: calc
         key: subtract
@@ -43,7 +40,6 @@ cli:
           - name_or_flags:
               - b
             description: Second number
-
       multiply:
         group_key: calc
         key: multiply
@@ -56,7 +52,6 @@ cli:
           - name_or_flags:
               - b
             description: Second number
-
       divide:
         group_key: calc
         key: divide
@@ -69,7 +64,6 @@ cli:
           - name_or_flags:
               - b
             description: Denominator
-
       exp:
         group_key: calc
         key: exp
@@ -82,7 +76,6 @@ cli:
           - name_or_flags:
               - b
             description: Exponent
-
       sqrt:
         group_key: calc
         key: sqrt
@@ -94,11 +87,14 @@ cli:
             description: The number to take the square root of
 ```
 
-Each command needs `group_key`, `key`, and `name`. Tiferet uses these to automatically build the argument parser and map commands to the features you defined earlier.
+Each command needs `group_key`, `key`, and `name` — Tiferet uses these to build the argument parser and map commands to features.  
+The `args` list defines the positional arguments that get passed as `data` to your events.
 
-### 6.2 Update the interfaces section in config.yml
+### 6.2 Update config.yml to add the CLI interface
 
-Make sure your `interfaces` section includes the CLI interface. Your full `interfaces` block should now look like this:
+Now we need to tell Tiferet about the CLI interface. In the same root `config.yml`, update the `interfaces` block to add `calc_cli`:
+
+**config.yml** (interfaces section)
 
 ```yaml
 interfaces:
@@ -113,28 +109,31 @@ interfaces:
     class_name: CliContext
 ```
 
+- `calc_cli` tells Tiferet to use the built-in `CliContext` for command-line handling.
+- CLI command definitions are read from the `cli` section in the same root `config.yml`.
+
 ### 6.3 The CLI entry point script
 
-**calc_cli.py** (this stays very short)
+**calc_cli.py**
 
 ```python
 from tiferet import App
 
-app = App()  # loads everything from the root config.yml
+app = App().load_app_service(app_yaml_file="config.yml")
 
-# Load the CLI interface
+# Load the CLI interface we defined in config.yml
 cli = app.load_interface("calc_cli")
 
 if __name__ == "__main__":
     cli.run()
 ```
 
-That's it!  
-`app.load_interface("calc_cli")` tells Tiferet to use the built-in `CliContext`, which reads the CLI commands from the same `config.yml`.
+That's it — super short!  
+`app.load_interface("calc_cli")` pulls in `CliContext` from root `config.yml`, which also contains the CLI command definitions.
 
 ### 6.4 Run and play with it
 
-With your virtual environment activated, try these commands:
+With the venv activated:
 
 ```bash
 # Basic usage
@@ -156,16 +155,16 @@ python calc_cli.py calc add hello 5
 # → Error: Invalid number: 'hello'
 ```
 
-### 6.5 Bonus: Make it feel like a native command
+### 6.5 Bonus: Make it feel even more like a native command
 
-Want to run it as simply `calc add 19 23` instead of typing `python calc_cli.py` every time?
+Want to run it as just `calc add 19 23` instead of `python calc_cli.py ...`?
 
-1. Make the script executable (macOS/Linux):
+1. Make the script executable (on macOS/Linux):
    ```bash
    chmod +x calc_cli.py
    ```
 
-2. Add a shebang at the very top of `calc_cli.py`:
+2. Add a shebang at the very top of `calc_cli.py` (first line):
    ```python
    #!/usr/bin/env python3
    ```
@@ -175,20 +174,18 @@ Want to run it as simply `calc add 19 23` instead of typing `python calc_cli.py`
    ./calc_cli.py calc add 19 23
    ```
 
-You can also create a shell alias or symlink for even smoother use.
+(You can also symlink or alias it in your shell for even smoother use.)
 
 ### 6.6 Why this feels so good
 
-- No extra code for argument parsing — everything is defined in `config.yml`
-- The same domain events power both the script runner and the CLI
-- Error messages are consistent across interfaces
-- Adding new commands is as simple as editing the `cli` section in `config.yml`
+- No extra code for argument parsing — YAML does it
+- Same events power both script and CLI
+- Errors are consistent and friendly across interfaces
+- Easy to extend: add more commands by editing `config.yml`
 
-You've now built a complete, dual-mode calculator:  
-- `basic_calc.py` → great for testing and automation  
-- `calc_cli.py` → perfect for everyday terminal use
+You've now got a complete, dual-mode calculator: script for automation/testing, CLI for everyday use.
 
 → And that's a wrap on the basic calculator!  
-Feel free to experiment — add more operations, improve error messages, or even build a web/TUI version next.
+Feel free to experiment — add more operations, tweak errors, or build a web version next.
 
 Thanks for building this with me — hope it was as fun to make as it was to guide! 🚀

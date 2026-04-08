@@ -2,7 +2,7 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/feature.py`  
+**Date:** March 11, 2026  
 **Version:** 2.0.0a5
 
 ## Overview
@@ -12,6 +12,40 @@ The Feature domain defines **what the application does**. While the App domain a
 A `Feature` is a named workflow composed of ordered steps. Each step references a domain event registered in the DI container and carries orchestration metadata — parameters, result routing, error handling behavior, and flag-based resolution. When a user calls `app.run('basic_calc', 'calc.add', data={'a': 1, 'b': 2})`, the framework loads the `calc.add` feature and executes its steps in sequence.
 
 ## Domain Objects
+
+### FeatureStep
+
+Base class for steps in a feature workflow. Provides a `type` discriminator for future polymorphism (e.g., `FeatureCondition`, `FeatureLoop`).
+
+| Attribute | Type         | Required | Default   | Description                        |
+|-----------|--------------|----------|-----------|------------------------------------|
+| `type`    | `StringType` | No       | `'event'` | The type of the feature step.      |
+| `name`    | `StringType` | Yes      | —         | The name of the feature step.      |
+
+Currently the only supported `type` value is `'event'`, constrained via `choices=['event']`.
+
+### FeatureEvent
+
+Concrete step type that extends `FeatureStep`. Represents the execution of a domain event resolved from the DI container.
+
+| Attribute        | Type                    | Required | Default | Description                                                        |
+|------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
+| `service_id`     | `StringType`            | No *(todo: required)* | — | The service configuration ID for the feature event.          |
+| `attribute_id`   | `StringType`            | No *(obsolete)*       | — | The container attribute ID for the domain event. Replaced by `service_id`. |
+| `flags`          | `ListType(StringType)`  | No       | `[]`    | Feature flags that activate this event.                            |
+| `parameters`     | `DictType(StringType)`  | No       | `{}`    | Custom parameters for the event.                                   |
+| `return_to_data` | `BooleanType`           | No       | `False` | Whether to return the result to the feature data context (obsolete). |
+| `data_key`       | `StringType`            | No       | —       | Data key to store the result in if `return_to_data` is True.       |
+| `pass_on_error`  | `BooleanType`           | No       | `False` | Whether to continue the workflow if the event fails.               |
+
+Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
+
+#### Parameter Resolution
+
+Parameters support two value modes:
+
+- **Static values** — literal strings provided directly in configuration (e.g., `b: '0.5'`).
+- **Request-backed values** — prefixed with `$r.` to indicate the value is resolved from the incoming request data at runtime (e.g., `$r.user_id`).
 
 ### Feature
 
@@ -75,13 +109,12 @@ This enables a single domain event to be reused across multiple features with di
 
 `FeatureContext` is the sole consumer of the Feature domain at runtime. The execution flow is:
 
-1. **`execute_feature(feature_id, request)`** loads the `Feature` by ID (with caching).
-2. For each step in `feature.steps`:
-   - **`load_feature_command(step, feature.flags)`** resolves the domain event from the DI container using `service_id` (falling back to `attribute_id` during migration) and combined flags.
-   - **`parse_request_parameter(value, request)`** resolves each parameter — static values pass through `ParseParameter`, `$r.`-prefixed values are looked up in the request data.
-   - **`handle_command(command, request, data_key, pass_on_error)`** executes the domain event with the merged request data and parsed parameters.
-3. If `data_key` is set, the step's return value is stored back into `request.data`, making it available to subsequent steps.
-4. If `pass_on_error` is `True`, any exception from the step is caught and the result is set to `None`.
+1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
+2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
+3. `FeatureContext` iterates over `feature.steps`, resolving each `FeatureEvent.service_id` (with `attribute_id` fallback during migration) from the DI container.
+4. Each resolved domain event is executed with the merged request data and step parameters.
+5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
+6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
 
 ```python
 # A feature with two steps — the second step uses the result of the first
@@ -143,10 +176,39 @@ The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `comm
 
 ## Relationship to Other Domains
 
-- **DI domain** — Each `FeatureEvent.service_id` references a `ServiceConfiguration` in the DI registry. The DI container resolves the domain event class at runtime based on the service ID and any active flags. During migration, `attribute_id` is also supported as a fallback.
-- **App domain** — Features are executed within a loaded `AppInterface`. The interface's `flags` influence which flagged dependencies are used when resolving feature steps.
-- **Error domain** — When a step raises a `TiferetError`, the error flows up through `AppInterfaceContext.handle_error()` to `ErrorContext`, which formats the structured error response.
-- **CLI domain** — CLI commands map directly to feature IDs. When a user runs `calc add 1 2`, the CLI context constructs `feature_id = 'calc.add'` and delegates to `FeatureContext`.
+Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **App:** `FeatureContext` is loaded as part of the application interface bootstrap, receiving `FeatureService` and container resolution via dependency injection.
+- **DI:** `FeatureEvent.service_id` references a `ServiceConfiguration` entry in `di.yml`, which is resolved at runtime by the DI container. During migration, `attribute_id` is supported as a fallback.
+- **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
+- **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
+
+## Instantiation
+
+```python
+from tiferet.domain import DomainObject, Feature, FeatureEvent
+
+step = DomainObject.new(
+    FeatureEvent,
+    name='Add a and b',
+    service_id='add_number_event',
+    parameters={'b': '0.5'},
+)
+
+feature = DomainObject.new(
+    Feature,
+    id='calc.add',
+    name='Add Number',
+    group_id='calc',
+    feature_key='add',
+    description='Adds one number to another',
+    steps=[step],
+)
+
+# feature.get_step(0).service_id == 'add_number_event'
+```
 
 ## Related Documentation
 

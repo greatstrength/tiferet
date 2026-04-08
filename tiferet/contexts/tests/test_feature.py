@@ -38,13 +38,13 @@ def get_feature_evt() -> DomainEvent:
 @pytest.fixture
 def services_context(test_command):
     """Fixture to provide a mock DI context."""
-    
+
     # Create a mock DI context.
     services_context = mock.Mock(spec=DIContext)
 
     # Set the DI service to return the test command when requested.
     services_context.get_dependency.return_value = test_command
-    
+
     # Return the mock DI context.
     return services_context
 
@@ -53,7 +53,7 @@ def services_context(test_command):
 def feature_context(get_feature_evt, services_context):
     """Fixture to provide an instance of FeatureContext."""
 
-    # Create an instance of FeatureContext with the mock GetFeature event and DI context.
+    # Create an instance of FeatureContext with the mock event and DI context.
     return FeatureContext(
         get_feature_evt=get_feature_evt,
         services=services_context
@@ -65,18 +65,16 @@ def test_command():
 
     class TestEvent(DomainEvent):
         """A mock domain event for testing purposes."""
-        
         def execute(self, key: str, param: str = None, **kwargs) -> Any:
             """Mock execute method that returns a test response."""
-            
+
             # Verify that the request exists.
             self.verify(key, 'KEY_NOT_FOUND', 'No key provided for command execution.')
-            
+
             # Mock response data.
             if not param:
                 return {"status": "success", "data": {"key": key}}
             return {"status": "success", "data": {"key": key, "param": param}}
-        
     # Return an instance of the mock event.
     return TestEvent()
 
@@ -143,7 +141,7 @@ def test_feature_context_parse_request_parameter_not_found(feature_context):
 def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
     """Test that non-request parameters delegate to ParseParameter.execute."""
 
-    from ...events import static as static_commands
+    from ...events import static as static_events
 
     called = {}
 
@@ -151,7 +149,7 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
         called['parameter'] = parameter
         return 'parsed-value'
 
-    monkeypatch.setattr(static_commands.ParseParameter, 'execute', staticmethod(fake_execute))
+    monkeypatch.setattr(static_events.ParseParameter, 'execute', staticmethod(fake_execute))
 
     # Non-request parameter should be delegated to ParseParameter.execute.
     result = feature_context.parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
@@ -161,98 +159,91 @@ def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(fe
 
 # ** test: feature_context_load_feature_step_with_combined_flags
 def test_feature_context_load_feature_step_with_combined_flags(feature_context, services_context, test_command):
-    """Test loading a feature command combining feature and command flags with correct priority."""
+    """Test loading a feature step combining feature and step flags with correct priority."""
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
-    
-    feature_command: FeatureEvent = DomainObject.new(
+
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
         service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
     )
 
-    # Load the feature command using the feature context, passing the feature flags.
-    command = feature_context.load_feature_step(feature_command, feature_flags=feature_flags)
+    command = feature_context.load_feature_step(feature_event, feature_flags=feature_flags)
 
-    # Assert that the loaded command is the same as the test command and that
-    # flags were forwarded to the container dependency resolution in the correct order:
-    # Feature flags first, then command flags.
     assert command == test_command
     services_context.get_dependency.assert_called_once_with(
-        'test_command', 
-        'feature_flag_1', 
-        'feature_flag_2', 
-        'command_flag_1', 
+        'test_command',
+        'feature_flag_1',
+        'feature_flag_2',
+        'command_flag_1',
         'command_flag_2'
     )
 
 
 # ** test: feature_context_load_feature_step_only_feature_flags
 def test_feature_context_load_feature_step_only_feature_flags(feature_context, services_context, test_command):
-    """Test loading a feature command with only feature flags."""
+    """Test loading a feature step with only feature flags."""
 
     feature_flags = ['feature_flag']
-    
-    feature_command: FeatureEvent = DomainObject.new(
+
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
         service_id='test_command',
         flags=[],
     )
 
-    command = feature_context.load_feature_step(feature_command, feature_flags=feature_flags)
+    command = feature_context.load_feature_step(feature_event, feature_flags=feature_flags)
 
     assert command == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'feature_flag')
 
 # ** test: feature_context_load_feature_step_only_command_flags
 def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
-    """Test loading a feature command with only command flags."""
+    """Test loading a feature step with only step flags."""
 
-    feature_command: FeatureEvent = DomainObject.new(
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
         service_id='test_command',
         flags=['command_flag'],
     )
 
-    command = feature_context.load_feature_step(feature_command)
+    command = feature_context.load_feature_step(feature_event)
 
     assert command == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'command_flag')
 
 # ** test: feature_context_load_feature_step_with_flags
 def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
-    """Test loading a feature command that includes flags for dependency resolution."""
+    """Test loading a feature step that includes flags for dependency resolution."""
 
-    feature_command: FeatureEvent = DomainObject.new(
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
         service_id='test_command',
         flags=['flag1', 'flag2'],
     )
 
-    # Load the feature command using the feature context.
-    command = feature_context.load_feature_step(feature_command)
+    command = feature_context.load_feature_step(feature_event)
 
-    # Assert that the loaded command is the same as the test command and that
-    # flags were forwarded to the container dependency resolution.
     assert command == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
 
 
 # ** test: feature_context_load_feature_step_without_flags
 def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
-    """Test loading a feature command when no flags are configured."""
+    """Test loading a feature step when no flags are configured."""
 
-    feature_command: FeatureEvent = DomainObject.new(
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Test Command',
         service_id='test_command',
     )
 
-    command = feature_context.load_feature_step(feature_command)
+    command = feature_context.load_feature_step(feature_event)
 
     assert command == test_command
     services_context.get_dependency.assert_called_once_with('test_command')
@@ -260,26 +251,24 @@ def test_feature_context_load_feature_step_without_flags(feature_context, servic
 
 # ** test: feature_context_load_feature_step_failed
 def test_feature_context_load_feature_step_failed(feature_context, services_context):
-    """Test loading a feature command that does not exist in the FeatureContext."""
-    
-    # Add a side effect to the DI context to raise an exception when trying to get a non-existent command.
+    """Test loading a feature step that does not exist in the DIContext."""
+
+    # Add a side effect to raise an exception when the service is not found.
     services_context.get_dependency.side_effect = TiferetError(
         'TEST_ERROR',
         'Feature command not found in services: non_existent_command',
     )
 
-    feature_command: FeatureEvent = DomainObject.new(
+    feature_event: FeatureEvent = DomainObject.new(
         FeatureEvent,
         name='Missing Command',
         service_id='non_existent_command',
         flags=['flagX'],
     )
 
-    # Attempt to load a non-existent feature command.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.load_feature_step(feature_command)
-    
-    # Assert that the exception message is as expected.
+        feature_context.load_feature_step(feature_event)
+
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
@@ -342,7 +331,7 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
 # ** test: feature_context_execute_feature
 def test_feature_context_execute_feature(feature_context, get_feature_evt, feature):
 
-    # Add a standard feature command with no data key or pass on error.
+    # Add a standard feature step with no data key or pass on error.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
@@ -367,8 +356,8 @@ def test_feature_context_execute_feature(feature_context, get_feature_evt, featu
 # ** test: feature_context_execute_feature_with_request_parameter
 def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_evt, feature):
     """Test executing a feature with a request parameter in the FeatureContext."""
-    
-    # Add a standard feature command with a data key.
+
+    # Add a feature step with a data key and request parameter.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
@@ -386,7 +375,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     request = RequestContext(data={"key": "value"})
 
     # Execute the feature using the feature context with a data key.
-    feature_context.cache.clear()  # Clear the cache to ensure fresh execution.
+    feature_context.cache.clear()
     feature_context.execute_feature(feature.id, request)
 
     # Assert that the response is stored in the request data under the specified key.
@@ -398,8 +387,8 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
 # ** test: feature_context_execute_feature_with_pass_on_error
 def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_evt, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
-    
-    # Add a standard feature command and enable pass_on_error.
+
+    # Add a feature step with pass_on_error enabled.
     feature.steps.append(DomainObject.new(
         FeatureEvent,
         name='Test Command',
@@ -414,7 +403,7 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
     request = RequestContext(data={'key': None})
 
     # Execute the feature using the feature context.
-    feature_context.cache.clear()  # Clear the cache to ensure fresh execution.
+    feature_context.cache.clear()
     feature_context.execute_feature(feature.id, request)
 
     # Assert that the request handled the error without raising an exception.

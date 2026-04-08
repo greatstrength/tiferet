@@ -10,10 +10,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from ...assets.tests import TEST_FEATURE, TEST_ERROR, TEST_SERVICE_COMMAND_ATTRIBUTE
-from ...domain import DomainObject, AppInterface, Feature, Error
-from ...domain.container import ContainerAttribute
-from ...interfaces import AppService
+from ...assets import TiferetError, TiferetAPIError
 from ...mappers import AppInterfaceAggregate
 from ..app import (
     FeatureContext,
@@ -22,29 +19,8 @@ from ..app import (
     RequestContext,
     AppInterfaceContext,
 )
-from ...assets import TiferetError, TiferetAPIError
-from ... import assets as a
-from ...repos.app import AppYamlRepository
-
 
 # *** fixtures
-
-# ** fixture: settings
-@pytest.fixture
-def settings():
-    """Fixture to provide application settings for a custom app service.
-
-    Uses the AppYamlRepository as the backing AppService.
-    """
-
-    return {
-        'app_repo_module_path': 'tiferet.repos.app',
-        'app_repo_class_name': 'AppYamlRepository',
-        'app_repo_params': {
-            'yaml_file': 'tiferet/tests_int/fixtures/test.yml',
-        },
-    }
-
 
 # ** fixture: app_interface
 @pytest.fixture
@@ -150,39 +126,6 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         errors=error_context,
         logging=logging_context,
     )
-
-
-# ** fixture: features
-@pytest.fixture
-def features():
-    return [
-        DomainObject.new(
-            Feature,
-            **TEST_FEATURE,
-        )
-    ]
-
-
-# ** fixture: container_attributes
-@pytest.fixture
-def container_attributes():
-    return [
-        DomainObject.new(
-            ContainerAttribute,
-            **TEST_SERVICE_COMMAND_ATTRIBUTE
-        )
-    ]
-
-
-# ** fixture: errors
-@pytest.fixture
-def errors():
-    return [
-        DomainObject.new(
-            Error,
-            **TEST_ERROR
-        )
-    ]
 
 
 # *** tests

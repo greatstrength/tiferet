@@ -6,9 +6,12 @@ from typing import Callable, Any, List, Dict
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..domain import ServiceProvider, DependenciesServiceProvider
-from ..domain.di import ServiceConfiguration
-from ..events import DomainEvent, RaiseError, ImportDependency, ParseParameter
+from ..domain import (
+    ServiceProvider,
+    DependenciesServiceProvider,
+    ServiceConfiguration,
+)
+from ..events import DomainEvent, RaiseError, ParseParameter
 
 
 # *** contexts
@@ -16,7 +19,7 @@ from ..events import DomainEvent, RaiseError, ImportDependency, ParseParameter
 # ** context: di_context
 class DIContext(object):
     '''
-    A context for managing dependency injection configuration and injector lifecycle.
+    A context for managing dependency injection configuration and service provider lifecycle.
     '''
 
     # * attribute: cache
@@ -29,38 +32,48 @@ class DIContext(object):
     create_service_provider: Callable
 
     # * init
-    def __init__(
-        self,
-        di_list_all_configs_evt: DomainEvent,
-        create_service_provider: Callable = None,
-        cache: CacheContext = None,
-    ):
+    def __init__(self,
+            di_list_all_configs_evt: DomainEvent,
+            cache: CacheContext = None,
+            create_service_provider: Callable = None,
+        ):
         '''
         Initialize the DI context.
 
         :param di_list_all_configs_evt: The event to list all service configurations and constants.
         :type di_list_all_configs_evt: DomainEvent
-        :param create_service_provider: A callable factory that creates a service provider (defaults to a simple provider for tests).
-        :type create_service_provider: Callable
         :param cache: The cache context to use for caching service providers.
         :type cache: CacheContext
+        :param create_service_provider: Optional factory for creating service providers.
+        :type create_service_provider: Callable | None
         '''
 
         # Assign the attributes.
         self.list_all_configs_handler = di_list_all_configs_evt.execute
-        self.create_service_provider = create_service_provider or self._default_service_provider
-        self.cache = cache if cache is not None else CacheContext()
+        self.cache = cache if cache else CacheContext()
+        self.create_service_provider = create_service_provider if create_service_provider else self._default_service_provider
 
     # * method: _default_service_provider (static)
     @staticmethod
     def _default_service_provider(type_map: Dict[str, type] = None, **constants) -> ServiceProvider:
         '''
-        Default service provider factory used in tests when none is supplied.
+        Create the default service provider for DI context resolution.
+
+        :param type_map: Mapping of service IDs to dependency types.
+        :type type_map: Dict[str, type]
+        :param constants: Constant values to register in the provider.
+        :type constants: dict
+        :return: A configured service provider.
+        :rtype: ServiceProvider
         '''
 
-        # Create and return a simple dependencies service provider with the provided type map and constants.
+        # Create a provider seeded with service dependency types.
         provider = DependenciesServiceProvider(services=type_map or {})
+
+        # Add constants to the provider for constructor injection.
         provider.add_constants(constants)
+
+        # Return the configured provider.
         return provider
 
     # * method: create_cache_key
@@ -69,46 +82,49 @@ class DIContext(object):
         Create a cache key for the service provider.
 
         :param flags: The feature or data flags to use.
-        :type flags: List[str]
+        :type flags: List[str] | None
         :return: The cache key.
         :rtype: str
         '''
 
         # Create the cache key from the flags.
-        if not flags:
-            return "feature_services"
-        return f"feature_services_{'_'.join(flags)}"
+        return f"feature_services{'_' + '_'.join(flags) if flags else ''}"
 
     # * method: build_service_provider
-    def build_service_provider(self, flags: List[str] = None) -> Any:
+    def build_service_provider(self, flags: List[str] = None) -> ServiceProvider:
         '''
-        Build the service provider for dependency injection.
+        Build and cache a service provider for the given flags.
 
         :param flags: The feature or data flags to use.
-        :type flags: List[str]
+        :type flags: List[str] | None
         :return: The service provider instance.
-        :rtype: Any
+        :rtype: ServiceProvider
         '''
+        # Normalize optional flags.
+        flags = flags if flags else []
 
-        flags = flags or []
-
-        # Create the cache key for the service provider from the flags.
+        # Create the cache key from the flags.
         cache_key = self.create_cache_key(flags)
 
-        # Check if the service provider is already cached.
+        # Return the cached provider if available.
         cached_provider = self.cache.get(cache_key)
-        if cached_provider is not None:
+        if cached_provider:
             return cached_provider
 
         # Get all service configurations and constants from the DI service.
         configurations, constants = self.list_all_configs_handler()
 
-        # Load constants from the service configurations (flags take precedence).
-        constants = self.load_constants(configurations, constants, flags)
+        # Load and parse constants from configurations and the top-level constants dict.
+        constants = self.load_constants(
+            configurations=configurations,
+            constants=constants,
+            flags=flags,
+        )
 
-        # Create the type map for the service provider.
+        # Resolve service types from configurations.
         type_map = {}
         for config in configurations:
+
             # Get the dependency type based on the flags.
             dep_type = self.get_configuration_type(config, *flags)
 
@@ -121,120 +137,95 @@ class DIContext(object):
                     flags=flags,
                 )
 
-            # Otherwise, add the dependency to the type map.
+            # Add the resolved type to the service type mapping.
             type_map[config.id] = dep_type
 
-        # Create the service provider with the type map and constants.
+        # Build the service provider using the configured factory.
         provider = self.create_service_provider(
             type_map=type_map,
             **constants,
         )
 
-        # Cache the service provider.
+        # Cache and return the provider.
         self.cache.set(cache_key, provider)
-
-        # Return the service provider.
         return provider
 
     # * method: get_dependency
     def get_dependency(self, configuration_id: str, flags: List[str] = None) -> Any:
         '''
-        Get an injector dependency by its service configuration ID.
+        Get a resolved service by its configuration ID.
 
         :param configuration_id: The service configuration identifier.
         :type configuration_id: str
         :param flags: The feature or data flags to use.
-        :type flags: List[str]
-        :return: The resolved dependency.
+        :type flags: List[str] | None
+        :return: The resolved service instance.
         :rtype: Any
         '''
 
-        flags = flags or []
-
-        # Get the cached service provider.
+        # Build (or retrieve) the service provider for these flags.
         provider = self.build_service_provider(flags)
 
-        # Get the dependency from the service provider.
-        dependency = provider.get_service(configuration_id)
-
-        # Return the dependency.
-        return dependency
+        # Return the resolved service from the provider.
+        return provider.get_service(configuration_id)
 
     # * method: get_configuration_type
-    def get_configuration_type(self, configuration: ServiceConfiguration, *flags) -> type | None:
+    # - obsolete: this method is redundant and can be removed in favor of direct calls to ServiceConfiguration.get_service_type() within build_service_provider.
+    def get_configuration_type(self, configuration: ServiceConfiguration, *flags) -> type:
         '''
-        Gets the type of a service configuration based on the provided flags.
+        Resolve the implementation type for a service configuration.
 
-        Checks flagged dependencies first (in flag priority order), then
-        falls back to the configuration's default module_path/class_name.
+        Delegates to ServiceConfiguration.get_service_type() which checks
+        flagged dependencies first, then falls back to the default type.
 
         :param configuration: The service configuration to resolve.
         :type configuration: ServiceConfiguration
         :param flags: The flags for the flagged dependency.
         :type flags: Tuple[str, ...]
-        :return: The type of the service configuration or None.
-        :rtype: type | None
+        :return: The resolved type, or None.
+        :rtype: type
         '''
 
-        # Check the flagged dependencies for the type first.
-        for flag in flags:
-            dependency = configuration.get_dependency(flag)
-            if dependency:
-                return ImportDependency.execute(
-                    dependency.module_path,
-                    dependency.class_name,
-                )
-
-        # Otherwise defer to an available default type.
-        if configuration.module_path and configuration.class_name:
-            return ImportDependency.execute(
-                configuration.module_path,
-                configuration.class_name,
-            )
-
-        # Return None if no type is found.
-        return None
+        # Delegate to the domain method for type resolution.
+        return configuration.get_service_type(*flags)
 
     # * method: load_constants
-    def load_constants(
-        self,
-        configurations: List[ServiceConfiguration] = None,
-        constants: Dict[str, Any] = None,
-        flags: List[str] = None,
-    ) -> Dict[str, Any]:
+    def load_constants(self,
+            configurations: List[ServiceConfiguration] = None,
+            constants: Dict[str, Any] = None,
+            flags: List[str] = None,
+        ) -> Dict[str, Any]:
         '''
-        Load constants from the service configurations.
-
-        Flagged dependencies take precedence over base configuration parameters.
+        Build the constants dict by parsing top-level constants and per-configuration parameters.
 
         :param configurations: The list of service configurations.
-        :type configurations: List[ServiceConfiguration]
-        :param constants: The dictionary of constants.
-        :type constants: Dict[str, Any]
+        :type configurations: List[ServiceConfiguration] | None
+        :param constants: The top-level constants dictionary.
+        :type constants: Dict[str, Any] | None
         :param flags: The feature or data flags to use.
-        :type flags: List[str]
-        :return: A dictionary of constants.
+        :type flags: List[str] | None
+        :return: A dictionary of parsed constants.
         :rtype: Dict[str, Any]
         '''
 
-        configurations = configurations or []
-        constants = dict(constants) if constants else {}  # copy
-        flags = flags or []
-
-        # Parse top-level constants.
+        # Normalize optional inputs.
+        configurations = configurations if configurations else []
+        constants = constants if constants else {}
+        flags = flags if flags else []
+        # Parse the top-level constants.
         constants = {k: ParseParameter.execute(v) for k, v in constants.items()}
 
-        # Iterate through each service configuration.
+        # Merge in per-configuration parameters (flagged or default).
         for config in configurations:
-            # Flags take precedence.
-            dependency = config.get_dependency(*flags) if flags else None
 
-            if dependency and dependency.parameters:
-                parsed = {k: ParseParameter.execute(v) for k, v in dependency.parameters.items()}
-                constants.update(parsed)
-            elif config.parameters:
-                parsed = {k: ParseParameter.execute(v) for k, v in config.parameters.items()}
-                constants.update(parsed)
+            # Check for a flagged dependency matching any of the provided flags.
+            dependency = config.get_dependency(*flags)
 
-        # Return the updated constants dictionary.
+            # Use flagged parameters if available; otherwise use the default parameters.
+            if dependency:
+                constants.update({k: ParseParameter.execute(v) for k, v in dependency.parameters.items()})
+            else:
+                constants.update({k: ParseParameter.execute(v) for k, v in config.parameters.items()})
+
+        # Return the merged constants dictionary.
         return constants

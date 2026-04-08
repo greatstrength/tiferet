@@ -6,7 +6,7 @@ from unittest import mock
 
 # ** app
 from ...assets import (
-    TiferetError, 
+    TiferetError,
     TiferetAPIError,
     DEFAULT_ERRORS,
     ERROR_NOT_FOUND_ID
@@ -28,7 +28,7 @@ def get_error_evt_mock() -> DomainEvent:
     :rtype: DomainEvent
     '''
 
-    # Return the mocked GetError event.
+    # Return the mocked GetError event (spec kept as GetError for method signature).
     return mock.Mock(spec=GetError)
 
 
@@ -38,7 +38,7 @@ def error_context(get_error_evt_mock: DomainEvent):
     Fixture to create a new ErrorContext object.
     '''
 
-    # Create an instance of ErrorContext with the mock error service.
+    # Create an instance of ErrorContext with the mock event.
     return ErrorContext(get_error_evt=get_error_evt_mock)
 
 # *** tests

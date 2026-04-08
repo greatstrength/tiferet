@@ -3,12 +3,7 @@
 # ** core
 import logging
 import logging.config
-from typing import (
-    Dict,
-    Any,
-    List,
-    Callable
-)
+from typing import Dict, Any, List, Callable
 
 # ** app
 from ..assets.logging import *
@@ -16,7 +11,7 @@ from ..domain import (
     DomainObject,
     Formatter,
     Handler,
-    Logger
+    Logger,
 )
 from ..events import DomainEvent, RaiseError, a
 
@@ -32,9 +27,7 @@ class LoggingContext(object):
     logger_id: str
 
     # * init
-    def __init__(self,
-                 logging_list_all_evt: DomainEvent,
-                 logger_id: str):
+    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str):
         '''
         Initialize the logging context.
 
@@ -43,6 +36,8 @@ class LoggingContext(object):
         :param logger_id: The ID of the logger configuration to create.
         :type logger_id: str
         '''
+
+        # Bind the list all handler and store the logger ID.
         self.list_all_handler = logging_list_all_evt.execute
         self.logger_id = logger_id
 
@@ -99,7 +94,7 @@ class LoggingContext(object):
         except Exception as e:
             RaiseError.execute(
                 a.const.LOGGING_CONFIG_FAILED_ID,
-                'Failed to configure logging: {e}.',
+                f'Failed to configure logging: {e}.',
                 exception=str(e)
             )
 
@@ -114,6 +109,7 @@ class LoggingContext(object):
                 exception=str(e)
             )
 
+        # Return the logger.
         return logger
 
     # * method: build_logger

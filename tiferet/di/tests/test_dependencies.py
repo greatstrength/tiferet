@@ -93,7 +93,7 @@ def populated_provider() -> DependenciesServiceProvider:
 # ** test: init_empty
 def test_init_empty(empty_provider: DependenciesServiceProvider):
     '''
-    Test that an empty provider initializes with no services and a built injector.
+    Test that an empty provider initializes with no services and a None injector.
 
     :param empty_provider: The empty provider fixture.
     :type empty_provider: DependenciesServiceProvider

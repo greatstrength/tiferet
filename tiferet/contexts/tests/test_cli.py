@@ -10,7 +10,8 @@ from unittest import mock
 # ** app
 from ..cli import CliContext
 from ..app import FeatureContext, ErrorContext, LoggingContext, TiferetError, RequestContext
-from ...domain.cli import *
+from ...domain.cli import CliCommand, CliArgument
+from ...domain.settings import DomainObject
 from ...events.cli import ListCliCommands, GetParentArguments
 
 # *** fixtures
@@ -116,7 +117,7 @@ def test_cli_context_get_commands(cli_context, list_commands_evt, cli_command_li
     # Get the commands.
     command_map = cli_context.get_commands()
 
-    # Check that list_commands_handler was called.
+    # Check that the list_cli_commands_handler was called.
     list_commands_evt.execute.assert_called_once()
 
     # Check the command map structure.

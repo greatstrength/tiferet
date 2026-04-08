@@ -51,7 +51,7 @@ class FileService(Service):
     @abstractmethod
     def __enter__(self) -> 'FileService':
         '''
-        Enter the runtime context for this file service.
+        Enter the context manager.
 
         :return: The file service instance.
         :rtype: FileService
@@ -62,13 +62,10 @@ class FileService(Service):
     @abstractmethod
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         '''
-        Exit the runtime context, ensuring resources are released.
+        Exit the context manager.
 
         :param exc_type: The exception type, if any.
-        :type exc_type: type | None
         :param exc_val: The exception value, if any.
-        :type exc_val: BaseException | None
-        :param exc_tb: The traceback, if any.
-        :type exc_tb: object | None
+        :param exc_tb: The exception traceback, if any.
         '''
         raise NotImplementedError()

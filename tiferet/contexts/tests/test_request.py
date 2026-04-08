@@ -94,7 +94,7 @@ def test_request_context_handle_response_model_object(request_context):
     :type request_context: RequestContext
     """
 
-    # Create a DomainObject to simulate a response.
+    # Create a ModelObject to simulate a response.
     class Data(DomainObject):
 
         key = StringType(
@@ -102,13 +102,13 @@ def test_request_context_handle_response_model_object(request_context):
             required=True
         )
 
-    # Set the request context result to a DomainObject.
+    # Set the request context result to a ModelObject.
     request_context.result = DomainObject.new(Data, key='value')
 
     # Handle the response with a DomainObject.
     response = request_context.handle_response()
 
-    # Check that the response is a DomainObject and has the expected data.
+    # Check that the response is a ModelObject and has the expected data.
     assert isinstance(response, DomainObject)
     assert response.key == 'value'
 
@@ -140,7 +140,7 @@ def test_request_context_handle_response_model_list(request_context):
     :type request_context: RequestContext
     """
 
-    # Create a DomainObject to simulate a response.
+    # Create a ModelObject to simulate a response.
     class Item(DomainObject):
 
         name = StringType(

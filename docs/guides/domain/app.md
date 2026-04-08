@@ -2,7 +2,7 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/app.py`  
+**Date:** March 11, 2026  
 **Version:** 2.0.0a5
 
 ## Overview
@@ -12,6 +12,24 @@ The App domain defines **how the application is assembled**. It is the entry poi
 Think of `AppInterface` as the blueprint for a running application instance. It declares which context class to instantiate, what service dependencies to inject, and which flags to use for dependency resolution. `AppServiceDependency` is a single entry in that blueprint — one service binding that tells the framework where to find a class and how to configure it.
 
 ## Domain Objects
+
+### AppServiceDependency
+
+Represents a single injectable service dependency binding for an application interface.
+
+| Attribute      | Type                   | Required | Default | Description                                                                      |
+|----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
+| `module_path`  | `StringType`           | Yes      | —       | The module path for the app dependency.                                           |
+| `class_name`   | `StringType`           | Yes      | —       | The class name for the app dependency.                                            |
+| `service_id`   | `StringType`           | No *(todo: required)* | — | The canonical service id for the application dependency.             |
+| `attribute_id` | `StringType`           | No *(obsolete)* | — | The attribute id for the application dependency. Superseded by `service_id`. |
+| `parameters`   | `DictType(StringType)` | No       | `{}`    | The parameters for the application dependency.                                    |
+
+No methods. Pure data structure.
+
+#### Rename Note: AppAttribute → AppServiceDependency
+
+In v1.x, service dependency bindings were called `AppAttribute`. In v2.0, the class is renamed to `AppServiceDependency` to better reflect its role as a service dependency binding rather than a generic attribute. The field set and semantics are unchanged.
 
 ### AppInterface
 
@@ -31,9 +49,9 @@ The top-level configuration for a single application interface. Every runtime se
 
 **Behavior method:**
 
-- `get_service(service_id)` — retrieves an `AppServiceDependency` by its `service_id`. Falls back to matching `attribute_id` for backward compatibility during the transitional migration period.
+**`get_service(service_id: str) -> AppServiceDependency`**
 
-### AppServiceDependency
+Returns the `AppServiceDependency` whose `service_id` matches the given value, or `None` if no match is found. For backward compatibility, also falls back to matching on `attribute_id` (this fallback will be removed once `attribute_id` is fully migrated).
 
 A single service dependency that tells the framework what to import and how to bind it in the dependency injector.
 
@@ -64,9 +82,7 @@ interface = app.load_interface('calc_cli')       # loads AppInterface, wires dep
 result = interface.run()                         # executes features via the wired context
 ```
 
-## Configuration
-
-App interfaces are defined in `app/configs/app.yml`:
+Application interfaces are defined in `app/configs/app.yml`. Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects. Each key under `attrs` becomes the `service_id` of the corresponding `AppServiceDependency`:
 
 ```yaml
 interfaces:
@@ -110,9 +126,38 @@ Each key under `interfaces` becomes the `AppInterface.id`. The `attrs` section m
 
 ## Relationship to Other Domains
 
-- **DI domain** — `AppServiceDependency` entries reference classes that are often the same implementations registered in the DI service configurations. The `flags` on `AppInterface` are passed to `ContainerContext` to control flag-based dependency resolution.
-- **Feature domain** — Features are executed *within* a loaded app interface. The interface provides the runtime context (features, errors, logging) that features operate in.
-- **Logging domain** — Each `AppInterface` specifies a `logger_id` that determines which logging configuration is used at runtime.
+Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **Dependency Injection (Container):** `AppServiceDependency` entries reference container attributes that are resolved at runtime via `ContainerContext`.
+- **Feature:** Once an interface is loaded and its context instantiated, features defined in `feature.yml` are executed through the `FeatureContext`.
+- **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain (`logging.yml`).
+
+## Instantiation
+
+Both domain objects are instantiated via the standard `DomainObject.new()` factory:
+
+```python
+from tiferet.domain import DomainObject, AppServiceDependency, AppInterface
+
+dep = DomainObject.new(
+    AppServiceDependency,
+    service_id='cli_repo',
+    module_path='tiferet.proxies.yaml.cli',
+    class_name='CliYamlProxy',
+    parameters={'cli_config_file': 'app/configs/cli.yml'},
+)
+
+interface = DomainObject.new(
+    AppInterface,
+    id='calc_cli',
+    name='Calculator CLI',
+    module_path='tiferet.contexts.cli',
+    class_name='CliContext',
+    services=[dep],
+)
+```
 
 ## Related Documentation
 

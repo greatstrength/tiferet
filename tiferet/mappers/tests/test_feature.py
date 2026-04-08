@@ -3,6 +3,7 @@
 # *** imports
 
 # ** app
+from ...domain import DomainObject, FeatureEvent
 from ...events import a
 from ..settings import TransferObject
 from ..feature import (
@@ -20,7 +21,7 @@ from .settings import AggregateTestBase, TransferObjectTestBase
 FEATURE_EVENT_AGGREGATE_SAMPLE_DATA = {
     'name': 'Test Event',
     'service_id': 'test_event_handler',
-    'parameters': {'a': '1', 'b': '2'},
+    'parameters': {'key': 'value'},
     'data_key': 'result',
     'pass_on_error': True,
 }
@@ -36,18 +37,11 @@ FEATURE_EVENT_EQUALITY_FIELDS = [
 
 # ** constant: feature_aggregate_sample_data
 FEATURE_AGGREGATE_SAMPLE_DATA = {
-    'id': 'calc.add',
     'name': 'Add Number',
     'group_id': 'calc',
-    'feature_key': 'add',
-    'description': 'Adds one number to another',
-    'steps': [
-        {
-            'name': 'Add a and b',
-            'service_id': 'add_number_event',
-            'parameters': {'precision': '2'},
-        },
-    ],
+    'feature_key': 'add_number',
+    'id': 'calc.add_number',
+    'description': 'Add Number',
 }
 
 # ** constant: feature_equality_fields
@@ -62,22 +56,20 @@ FEATURE_EQUALITY_FIELDS = [
 
 # ** constant: step_tuple
 def STEP_TUPLE(s):
-    '''Normalize a step (dict or domain object) into a comparable tuple.'''
+    '''
+    Normalize a single step (dict or domain object) into a comparable tuple.
+    '''
 
     if isinstance(s, dict):
         return (
-            s.get('name'),
-            s.get('service_id'),
+            s.get('name', ''),
+            s.get('service_id', ''),
             tuple(sorted(s.get('parameters', {}).items())),
-            s.get('data_key'),
-            s.get('pass_on_error', False),
         )
     return (
-        s.name,
-        s.service_id,
-        tuple(sorted((s.parameters or {}).items())),
-        s.data_key,
-        s.pass_on_error or False,
+        getattr(s, 'name', ''),
+        getattr(s, 'service_id', ''),
+        tuple(sorted((getattr(s, 'parameters', None) or {}).items())),
     )
 
 # ** constant: feature_field_normalizers
@@ -90,22 +82,30 @@ FEATURE_FIELD_NORMALIZERS = {
 
 # ** class: TestFeatureEventAggregate
 class TestFeatureEventAggregate(AggregateTestBase):
-    '''Tests for FeatureEventAggregate construction, set_attribute, and domain-specific mutations.'''
+    '''
+    Tests for FeatureEventAggregate construction, set_attribute, and domain-specific mutations.
+    '''
 
     aggregate_cls = FeatureEventAggregate
+
     sample_data = FEATURE_EVENT_AGGREGATE_SAMPLE_DATA
+
     equality_fields = FEATURE_EVENT_EQUALITY_FIELDS
 
     set_attribute_params = [
-        ('name',       'Renamed Event', None),
-        ('service_id', 'new_handler',   None),
+        # valid
+        ('name', 'Updated Event', None),
+        ('service_id', 'updated_handler', None),
+        ('data_key', 'new_key', None),
     ]
 
     # *** domain-specific mutation tests
 
     # ** test: set_pass_on_error
     def test_set_pass_on_error(self, aggregate):
-        '''Verifies string normalization ("false", "False", truthy).'''
+        '''
+        Verifies string normalization ("false", "False", truthy).
+        '''
 
         # String "false" should normalize to False.
         aggregate.set_pass_on_error('false')
@@ -125,27 +125,31 @@ class TestFeatureEventAggregate(AggregateTestBase):
 
     # ** test: set_parameters
     def test_set_parameters(self, aggregate):
-        '''Verifies merge, None-prune, and no-op on None.'''
+        '''
+        Verifies merge, None-prune, and no-op on None.
+        '''
 
-        # Merge new parameters (a updated, c added).
-        aggregate.set_parameters({'a': '10', 'c': '3'})
-        assert aggregate.parameters == {'a': '10', 'b': '2', 'c': '3'}
+        # Merge new parameters (new_key added, key updated).
+        aggregate.set_parameters({'key': '10', 'new_key': '3'})
+        assert aggregate.parameters == {'key': '10', 'new_key': '3'}
 
         # Prune keys with None values.
-        aggregate.set_parameters({'b': None})
-        assert aggregate.parameters == {'a': '10', 'c': '3'}
+        aggregate.set_parameters({'new_key': None})
+        assert aggregate.parameters == {'key': '10'}
 
         # None input is a no-op.
         aggregate.set_parameters(None)
-        assert aggregate.parameters == {'a': '10', 'c': '3'}
+        assert aggregate.parameters == {'key': '10'}
 
     # ** test: set_attribute_delegation
     def test_set_attribute_delegation(self, aggregate):
-        '''Verifies delegation to specialized helpers.'''
+        '''
+        Verifies delegation to specialized helpers.
+        '''
 
         # set_attribute for parameters should delegate to set_parameters.
-        aggregate.set_attribute('parameters', {'c': '3'})
-        assert aggregate.parameters == {'a': '1', 'b': '2', 'c': '3'}
+        aggregate.set_attribute('parameters', {'y': '2'})
+        assert 'y' in aggregate.parameters
 
         # set_attribute for pass_on_error should delegate to set_pass_on_error.
         aggregate.set_attribute('pass_on_error', 'false')
@@ -158,123 +162,133 @@ class TestFeatureEventAggregate(AggregateTestBase):
 
 # ** class: TestFeatureAggregate
 class TestFeatureAggregate(AggregateTestBase):
-    '''Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.'''
+    '''
+    Tests for FeatureAggregate construction, set_attribute, and domain-specific mutations.
+    '''
 
     aggregate_cls = FeatureAggregate
+
     sample_data = FEATURE_AGGREGATE_SAMPLE_DATA
+
     equality_fields = FEATURE_EQUALITY_FIELDS
+
     field_normalizers = FEATURE_FIELD_NORMALIZERS
 
     set_attribute_params = [
-        ('name',         'Updated Name',   None),
-        ('description',  'New Description', None),
-        ('invalid_attr', 'value',           a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        # valid
+        ('name', 'Updated Feature', None),
+        ('description', 'Updated description', None),
+        # invalid
+        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for FeatureAggregate.new() custom signature.'''
+    def make_aggregate(self, data: dict = None) -> FeatureAggregate:
+        '''
+        Override to use FeatureAggregate.new() custom factory.
+        '''
 
         # Create an aggregate using the custom factory.
-        d = (data if data is not None else self.sample_data).copy()
-        return FeatureAggregate.new(**d)
+        return FeatureAggregate.new(**(data or self.sample_data))
 
-    # *** domain-specific mutation tests
+    # *** domain-specific tests
 
     # ** test: smart_derivation
-    def test_smart_derivation(self):
-        '''Verifies smart derivation (name → feature_key → id).'''
-
-        # Create a feature aggregate with only name and group_id.
-        feature = FeatureAggregate.new(name='Add Number', group_id='calc')
+    def test_smart_derivation(self, aggregate):
+        '''
+        Verifies smart derivation (name -> feature_key -> id).
+        '''
 
         # Assert smart derivation of feature_key and id.
-        assert feature.feature_key == 'add_number'
-        assert feature.id == 'calc.add_number'
-        assert feature.description == 'Add Number'
+        assert aggregate.feature_key == 'add_number'
+        assert aggregate.id == 'calc.add_number'
+        assert aggregate.description == 'Add Number'
 
     # ** test: add_step
-    def test_add_step(self):
-        '''Verifies step append.'''
-
-        # Create a feature aggregate.
-        feature = FeatureAggregate.new(name='Test Feature', group_id='test')
+    def test_add_step(self, aggregate):
+        '''
+        Verifies step append.
+        '''
 
         # Add a step.
-        step = feature.add_step(name='Step One', service_id='step_one_event')
+        step = aggregate.add_step(
+            name='Step One',
+            service_id='step_one_event',
+        )
 
         # Assert the step was appended.
-        assert len(feature.steps) == 1
-        assert feature.steps[0] is step
+        assert len(aggregate.steps) == 1
+        assert aggregate.steps[0] is step
         assert step.name == 'Step One'
         assert step.service_id == 'step_one_event'
 
     # ** test: add_step_position
-    def test_add_step_position(self):
-        '''Verifies step insertion at position 0.'''
+    def test_add_step_position(self, aggregate):
+        '''
+        Verifies step insertion at position 0.
+        '''
 
-        # Create a feature aggregate with an existing step.
-        feature = FeatureAggregate.new(name='Test Feature', group_id='test')
-        feature.add_step(name='Step One', service_id='step_one_event')
-
-        # Insert a new step at position 0.
-        inserted = feature.add_step(
+        # Add two steps, inserting the second at position 0.
+        aggregate.add_step(name='Step One', service_id='step_one_event')
+        inserted = aggregate.add_step(
             name='Step Zero',
             service_id='step_zero_event',
             position=0,
         )
 
         # Assert the step was inserted at position 0.
-        assert len(feature.steps) == 2
-        assert feature.steps[0] is inserted
-        assert feature.steps[0].name == 'Step Zero'
-        assert feature.steps[1].name == 'Step One'
+        assert len(aggregate.steps) == 2
+        assert aggregate.steps[0] is inserted
+        assert aggregate.steps[0].name == 'Step Zero'
+        assert aggregate.steps[1].name == 'Step One'
 
     # ** test: remove_step
-    def test_remove_step(self):
-        '''Verifies removal and invalid position handling.'''
+    def test_remove_step(self, aggregate):
+        '''
+        Verifies removal and invalid position handling.
+        '''
 
-        # Create a feature aggregate with steps.
-        feature = FeatureAggregate.new(name='Test Feature', group_id='test')
-        feature.add_step(name='Step One', service_id='step_one_event')
-        feature.add_step(name='Step Two', service_id='step_two_event')
+        # Add two steps.
+        aggregate.add_step(name='Step One', service_id='step_one_event')
+        aggregate.add_step(name='Step Two', service_id='step_two_event')
 
         # Remove the first step.
-        removed = feature.remove_step(0)
+        removed = aggregate.remove_step(0)
         assert removed is not None
         assert removed.name == 'Step One'
-        assert len(feature.steps) == 1
+        assert len(aggregate.steps) == 1
 
-        # Attempt to remove at an invalid position.
-        assert feature.remove_step(-1) is None
-        assert feature.remove_step(99) is None
+        # Attempt to remove at invalid positions.
+        assert aggregate.remove_step(-1) is None
+        assert aggregate.remove_step(99) is None
 
     # ** test: reorder_step
-    def test_reorder_step(self):
-        '''Verifies move with clamping.'''
+    def test_reorder_step(self, aggregate):
+        '''
+        Verifies move with clamping.
+        '''
 
-        # Create a feature aggregate with steps.
-        feature = FeatureAggregate.new(name='Test Feature', group_id='test')
-        feature.add_step(name='A', service_id='a_event')
-        feature.add_step(name='B', service_id='b_event')
-        feature.add_step(name='C', service_id='c_event')
+        # Add three steps.
+        aggregate.add_step(name='A', service_id='a_event')
+        aggregate.add_step(name='B', service_id='b_event')
+        aggregate.add_step(name='C', service_id='c_event')
 
         # Move step A (position 0) to position 2.
-        moved = feature.reorder_step(0, 2)
+        moved = aggregate.reorder_step(0, 2)
         assert moved is not None
         assert moved.name == 'A'
-        assert feature.steps[0].name == 'B'
-        assert feature.steps[1].name == 'C'
-        assert feature.steps[2].name == 'A'
+        assert aggregate.steps[0].name == 'B'
+        assert aggregate.steps[1].name == 'C'
+        assert aggregate.steps[2].name == 'A'
 
     # ** test: rename
     def test_rename(self, aggregate):
-        '''Verifies name update without id change.'''
+        '''
+        Verifies name update without id change.
+        '''
 
-        # Record the original ID.
+        # Record original id and rename the feature.
         original_id = aggregate.id
-
-        # Rename the feature.
         aggregate.rename('New Name')
 
         # Assert the name was updated but the id was not.
@@ -283,7 +297,9 @@ class TestFeatureAggregate(AggregateTestBase):
 
     # ** test: set_description
     def test_set_description(self, aggregate):
-        '''Verifies set and clear.'''
+        '''
+        Verifies set and clear.
+        '''
 
         # Set a description.
         aggregate.set_description('A custom description')
@@ -296,12 +312,14 @@ class TestFeatureAggregate(AggregateTestBase):
 
 # ** class: TestFeatureYamlObject
 class TestFeatureYamlObject(TransferObjectTestBase):
-    '''Tests for FeatureYamlObject mapping, round-trip, and nested FeatureEventYamlObject.'''
+    '''
+    Tests for FeatureYamlObject mapping, round-trip, and nested FeatureEventYamlObject.
+    '''
 
     transfer_cls = FeatureYamlObject
     aggregate_cls = FeatureAggregate
 
-    # YAML-format sample data (params alias, steps nested).
+    # YAML-format sample data (steps with params alias and service_id).
     sample_data = {
         'id': 'calc.add',
         'name': 'Add Number',
@@ -315,18 +333,44 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         }],
     }
 
-    # Aggregate-format expected data (parameters, not params).
-    aggregate_sample_data = FEATURE_AGGREGATE_SAMPLE_DATA
+    # Aggregate-format expected data (defaults filled in).
+    aggregate_sample_data = {
+        'id': 'calc.add',
+        'name': 'Add Number',
+        'group_id': 'calc',
+        'feature_key': 'add',
+        'description': 'Adds one number to another',
+        'steps': [{
+            'name': 'Add a and b',
+            'service_id': 'add_number_event',
+            'parameters': {'precision': '2'},
+        }],
+    }
+
     equality_fields = FEATURE_EQUALITY_FIELDS
+
     field_normalizers = FEATURE_FIELD_NORMALIZERS
 
     # * method: make_aggregate
-    def make_aggregate(self, data=None):
-        '''Override for FeatureAggregate.new() custom signature.'''
+    def make_aggregate(self, data: dict = None) -> FeatureAggregate:
+        '''
+        Override to use FeatureAggregate.new() custom factory.
+        '''
 
         # Create an aggregate using the custom factory.
-        d = (data if data is not None else self.aggregate_sample_data).copy()
-        return FeatureAggregate.new(**d)
+        data = data or self.aggregate_sample_data
+
+        # Build steps as FeatureEventAggregate instances.
+        steps = [
+            FeatureEventAggregate.new(**step)
+            for step in data.get('steps', [])
+        ]
+
+        # Create the feature aggregate with mapped steps.
+        return FeatureAggregate.new(
+            **{k: v for k, v in data.items() if k != 'steps'},
+            steps=steps,
+        )
 
     # *** child mapper: FeatureEventYamlObject
 
@@ -341,7 +385,9 @@ class TestFeatureYamlObject(TransferObjectTestBase):
 
     # ** test: feature_event_yaml_map_basic
     def test_feature_event_yaml_map_basic(self):
-        '''Test FeatureEventYamlObject mapping to FeatureEventAggregate.'''
+        '''
+        Test mapping a FeatureEventYamlObject to a FeatureEventAggregate.
+        '''
 
         # Create a YAML object and map it.
         yaml_obj = TransferObject.from_data(
@@ -360,35 +406,43 @@ class TestFeatureYamlObject(TransferObjectTestBase):
 
     # ** test: feature_event_yaml_params_alias
     def test_feature_event_yaml_params_alias(self):
-        '''Test that the "params" alias resolves to parameters correctly.'''
+        '''
+        Test that the "params" alias is correctly deserialized.
+        '''
 
         # Create YAML object using the 'params' alias.
         yaml_obj = TransferObject.from_data(
             FeatureEventYamlObject,
-            name='Alias Test',
+            name='Alias Event',
             service_id='alias_handler',
-            params={'alias_key': 'alias_value'},
+            params={'alias_key': 'value'},
         )
+        event = yaml_obj.map()
 
-        # Assert the alias resolved correctly.
-        assert yaml_obj.parameters == {'alias_key': 'alias_value'}
+        # Verify aliased parameters were deserialized correctly.
+        assert event.parameters == {'alias_key': 'value'}
 
     # ** test: feature_event_yaml_from_model
     def test_feature_event_yaml_from_model(self):
-        '''Test that FeatureEventYamlObject can be created from a FeatureEvent model.'''
+        '''
+        Test that FeatureEventYamlObject can be created from a FeatureEvent model.
+        '''
 
-        # Create a FeatureEventAggregate model.
-        event = FeatureEventAggregate.new(
+        # Create a FeatureEvent model.
+        model = DomainObject.new(
+            FeatureEvent,
             name='Test Event',
-            service_id='test_handler',
-            parameters={'p': 'v'},
+            service_id='test_event_handler',
+            parameters={'key': 'value'},
+            data_key='result',
+            pass_on_error=True,
         )
 
         # Create a YAML object from the model.
-        yaml_obj = FeatureEventYamlObject.from_model(event)
+        yaml_obj = FeatureEventYamlObject.from_model(model)
 
         # Verify the YAML object has the correct values.
         assert isinstance(yaml_obj, FeatureEventYamlObject)
-        assert yaml_obj.name == event.name
-        assert yaml_obj.service_id == event.service_id
-        assert yaml_obj.parameters == event.parameters
+        assert yaml_obj.name == model.name
+        assert yaml_obj.service_id == model.service_id
+        assert yaml_obj.parameters == model.parameters

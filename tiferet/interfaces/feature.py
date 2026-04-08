@@ -73,7 +73,7 @@ class FeatureService(Service):
         '''
         # Not implemented.
         raise NotImplementedError('save method is required for FeatureService.')
-    
+
     # * method: delete
     @abstractmethod
     def delete(self, id: str) -> None:
