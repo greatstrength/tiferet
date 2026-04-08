@@ -32,7 +32,7 @@ APP_SERVICE_KEY = 'app_service'
 class AppBuilder(object):
     '''
     The main application builder for Tiferet v2.0+.
-    
+
     Responsible for loading the app service, preparing default services/constants,
     resolving interfaces, and running features.
     '''

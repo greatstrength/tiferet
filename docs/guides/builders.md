@@ -32,6 +32,7 @@ result = builder.run("basic_calc", "calc.add", data={"a": 5, "b": 3})
 ```
 
 Key responsibilities:
+
 - **Initialization** — cache and service provider setup
 - **Service loading** — dynamic import of the app service (usually a repository)
 - **Default configuration** — injecting `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS`
