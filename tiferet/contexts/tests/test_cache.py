@@ -6,7 +6,6 @@ import pytest
 # ** app
 from ..cache import *
 
-
 # *** fixtures
 
 # ** fixture: initial_cache

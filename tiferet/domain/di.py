@@ -1,7 +1,6 @@
 """Tiferet DI Domain Models"""
 
 # *** imports
-from importlib import import_module
 
 # ** core
 from importlib import import_module
@@ -134,6 +133,7 @@ class ServiceConfiguration(DomainObject):
 
         # Return None if no dependency matches the flags.
         return None
+
     # * method: get_service_type
     def get_service_type(self, *flags) -> type:
         '''

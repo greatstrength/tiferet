@@ -196,6 +196,7 @@ class AppInterface(DomainObject):
 
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
+
     # * method: get_service_type_mapping
     def get_service_type_mapping(self) -> Dict[str, type]:
         '''

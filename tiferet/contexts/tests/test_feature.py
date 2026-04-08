@@ -65,6 +65,7 @@ def test_command():
 
     class TestEvent(DomainEvent):
         """A mock domain event for testing purposes."""
+
         def execute(self, key: str, param: str = None, **kwargs) -> Any:
             """Mock execute method that returns a test response."""
 
@@ -75,6 +76,7 @@ def test_command():
             if not param:
                 return {"status": "success", "data": {"key": key}}
             return {"status": "success", "data": {"key": key, "param": param}}
+        
     # Return an instance of the mock event.
     return TestEvent()
 

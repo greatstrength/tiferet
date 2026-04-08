@@ -31,7 +31,7 @@ def get_error_evt_mock() -> DomainEvent:
     # Return the mocked GetError event (spec kept as GetError for method signature).
     return mock.Mock(spec=GetError)
 
-
+# ** fixture: error_context
 @pytest.fixture
 def error_context(get_error_evt_mock: DomainEvent):
     '''

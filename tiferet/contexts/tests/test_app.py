@@ -45,7 +45,6 @@ def app_interface():
         ),
     )
 
-
 # ** fixture: feature_context
 @pytest.fixture
 def feature_context():
@@ -64,7 +63,6 @@ def feature_context():
 
     # Return the mock FeatureContext instance.
     return feature_context
-
 
 # ** fixture: error_context
 @pytest.fixture
@@ -88,7 +86,6 @@ def error_context():
     # Return the mock ErrorContext instance.
     return error_context
 
-
 # ** fixture: logging_context
 @pytest.fixture
 def logging_context():
@@ -107,7 +104,6 @@ def logging_context():
 
     # Return the mock LoggingContext instance.
     return logging_context
-
 
 # ** fixture: app_interface_context
 @pytest.fixture
@@ -159,7 +155,6 @@ def test_app_interface_context_parse_request(app_interface_context):
     assert request.data.get('param') == 'test_param'
     assert request.feature_id == 'test_group.test_feature'
 
-
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
     """
@@ -185,7 +180,6 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
 
     # Assert that the feature id is set correctly to the request headers.
     assert request.headers.get('feature_id') == 'test_group.test_feature'
-
 
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
@@ -220,7 +214,6 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     assert exc_info.value.name == 'Test Error'
     assert exc_info.value.message == 'This is a test error message.'
 
-
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
     """
@@ -247,7 +240,6 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     # Assert that the raised exception contains a generic error code and message.
     assert exc_info.value.error_code == 'APP_ERROR'
     assert 'An error occurred in the app' in exc_info.value.message
-
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
@@ -278,7 +270,6 @@ def test_app_interface_context_handle_response(app_interface_context):
     assert isinstance(response, dict)
     assert response.get('status') == 'success'
     assert response.get('data') == {"key": "value"}
-
 
 # ** test: app_interface_context_run
 def test_app_interface_context_run(app_interface_context, logging_context: LoggingContext):
@@ -317,7 +308,6 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
     final_log = info_calls[0][0][0]
     assert final_log.startswith('Executed Feature - test_group.test_feature')
     assert '(ms)' in final_log or 'ms)' in final_log
-
 
 # ** test: app_interface_context_run_invalid
 def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
