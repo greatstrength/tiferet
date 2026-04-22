@@ -88,8 +88,8 @@ class AppBuilder(object):
     # * method: load_app_service
     def load_app_service(
         self,
-        module_path: str = a.const.DEFAULT_APP_SERVICE_MODULE_PATH,
-        class_name: str = a.const.DEFAULT_APP_SERVICE_CLASS_NAME,
+        module_path: str = a.bildr.DEFAULT_APP_SERVICE_MODULE_PATH,
+        class_name: str = a.bildr.DEFAULT_APP_SERVICE_CLASS_NAME,
         **parameters
     ) -> 'AppBuilder':
         '''
@@ -128,10 +128,13 @@ class AppBuilder(object):
         return [
             DomainObject.new(
                 AppServiceDependency,
-                **attr_data,
+                service_id=service_id,
+                module_path=module_path,
+                class_name=class_name,
+                parameters=parameters or {},
                 validate=False,
             )
-            for attr_data in a.const.DEFAULT_SERVICES
+            for service_id, module_path, class_name, parameters in a.bildr.DEFAULT_SERVICES
         ]
 
     # * method: load_app_instance
@@ -193,7 +196,7 @@ class AppBuilder(object):
             dependencies=dict(app_service=app_service),
             interface_id=interface_id,
             default_services=default_services,
-            default_constants=a.const.DEFAULT_CONSTANTS,
+            default_constants=a.bildr.DEFAULT_CONSTANTS,
         )
 
         # Create the concrete app interface context.

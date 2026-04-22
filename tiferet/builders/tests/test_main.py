@@ -58,7 +58,7 @@ def app_interface_aggregate(app_builder: AppBuilder) -> AppInterfaceAggregate:
             'description': 'Test calculator interface',
             'flags': ['test'],
             'services': app_builder.load_default_services(),
-            'constants': a.const.DEFAULT_CONSTANTS,
+            'constants': a.bildr.DEFAULT_CONSTANTS,
         }
     )
 
@@ -159,7 +159,7 @@ def test_app_builder_load_interface_with_default_constants(app_builder, app_inte
 
         # Assert default constants were forwarded.
         call_kwargs = mock_handle.call_args.kwargs
-        assert call_kwargs['default_constants'] == a.const.DEFAULT_CONSTANTS
+        assert call_kwargs['default_constants'] == a.bildr.DEFAULT_CONSTANTS
 
 
 # ** test: app_builder_load_interface_requires_loaded_app_service
