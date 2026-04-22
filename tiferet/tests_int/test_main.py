@@ -1,29 +1,182 @@
 # *** imports
 
+# ** core
+import copy
+
 # ** infra
 import pytest
+import yaml
 
 # ** app
 from .. import App, TiferetAPIError
 
+# *** constants
+
+# ** constant: test_calc_config
+TEST_CALC_CONFIG = {
+    'services': {
+        'add_number_cmd': {
+            'class_name': 'TestAddNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'subtract_number_cmd': {
+            'class_name': 'TestSubtractNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'multiply_number_cmd': {
+            'class_name': 'TestMultiplyNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'divide_number_cmd': {
+            'class_name': 'TestDivideNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+    },
+    'errors': {
+        'DIVISION_BY_ZERO': {
+            'name': 'Division by Zero',
+            'description': 'This error occurs when an attempt is made to divide by zero.',
+            'error_code': 'DIVISION_BY_ZERO',
+            'message': [
+                {
+                    'lang': 'en_US',
+                    'text': 'Division by zero is not allowed.',
+                },
+            ],
+        },
+    },
+    'features': {
+        'test_calc': {
+            'add_number': {
+                'commands': [
+                    {
+                        'service_id': 'add_number_cmd',
+                        'name': 'Add Number Command',
+                    },
+                ],
+                'description': 'Adds two numbers.',
+                'name': 'Add Number Feature',
+            },
+            'subtract_number': {
+                'commands': [
+                    {
+                        'service_id': 'subtract_number_cmd',
+                        'name': 'Subtract Number Command',
+                    },
+                ],
+                'description': 'Subtracts two numbers.',
+                'name': 'Subtract Number Feature',
+            },
+            'multiply_number': {
+                'commands': [
+                    {
+                        'service_id': 'multiply_number_cmd',
+                        'name': 'Multiply Number Command',
+                    },
+                ],
+                'description': 'Multiplies two numbers.',
+                'name': 'Multiply Number Feature',
+            },
+            'divide_number': {
+                'commands': [
+                    {
+                        'service_id': 'divide_number_cmd',
+                        'name': 'Divide Number Command',
+                    },
+                ],
+                'description': 'Divides two numbers.',
+                'name': 'Divide Number Feature',
+            },
+            'square_number': {
+                'commands': [
+                    {
+                        'service_id': 'multiply_number_cmd',
+                        'name': 'Square Number Command',
+                        'params': {
+                            'b': '$r.a',
+                        },
+                    },
+                ],
+                'description': 'Squares a number.',
+                'name': 'Square Number Feature',
+            },
+        },
+    },
+    'interfaces': {
+        'test_calc': {
+            'name': 'Integration Test - Basic Int Calculator',
+            'description': 'The interface instance for testing the calculator features.',
+            'constants': {
+                'feature_yaml_file': None,
+                'error_yaml_file': None,
+                'di_yaml_file': None,
+                'logging_yaml_file': None,
+            },
+        },
+    },
+    'logging': {},
+}
+
 # *** fixtures
 
-# ** fixture: app_context
+# ** fixture: test_calc_yaml_file
 @pytest.fixture
-def app_context():
+def test_calc_yaml_file(tmp_path):
+    '''
+    Write TEST_CALC_CONFIG to a temporary YAML file using tmp_path.
+
+    :param tmp_path: The pytest temporary directory path.
+    :type tmp_path: pathlib.Path
+    :return: The path to the temporary YAML file.
+    :rtype: str
+    '''
+
+    # Define the temporary file path.
+    file_path = tmp_path / 'test_calc.yml'
+
+    # Deep copy the config and set all yaml file paths to the temp file.
+    config = copy.deepcopy(TEST_CALC_CONFIG)
+    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+        config['interfaces']['test_calc']['constants'][key] = str(file_path)
+
+    # Write the configuration to the temporary YAML file.
+    with open(str(file_path), 'w', encoding='utf-8') as f:
+        yaml.safe_dump(config, f)
+
+    # Return the file path as a string.
+    return str(file_path)
+
+# ** fixture: app_builder
+@pytest.fixture
+def app_builder(test_calc_yaml_file):
+    '''
+    Initialize the AppBuilder with the temporary test calculator YAML file.
+
+    :param test_calc_yaml_file: The path to the temporary test calculator YAML file.
+    :type test_calc_yaml_file: str
+    :return: The initialized AppBuilder.
+    :rtype: AppBuilder
+    '''
+
+    # Load the app service from the temporary YAML file.
     return App().load_app_service(
-        app_yaml_file='tiferet/assets/tests/test_calc.yml',
+        app_yaml_file=test_calc_yaml_file
     )
 
 # ** fixture: basic_calc
 @pytest.fixture
-def basic_calc(app_context):
-    """
-    Fixture to load the basic calculator interface from the app context.
-    """
+def basic_calc(app_builder):
+    '''
+    Fixture to load the basic calculator interface from the app builder.
 
-    # Load the basic_calc interface using the app context.
-    return app_context.load_interface('test_calc')
+    :param app_builder: The initialized AppBuilder.
+    :type app_builder: AppBuilder
+    :return: The loaded basic calculator interface context.
+    :rtype: AppInterfaceContext
+    '''
+
+    # Load the test_calc interface using the app builder.
+    return app_builder.load_interface('test_calc')
 
 # *** tests
 
