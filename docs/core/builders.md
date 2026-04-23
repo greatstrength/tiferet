@@ -26,8 +26,8 @@ This design keeps application code simple while maintaining full extensibility a
 
 Tiferet currently defines two builders:
 
-- **High-level builder**: `AppBuilder` — used for general script, web, and custom interfaces.
-- **CLI builder**: `CliBuilder` — extends `AppBuilder` to absorb argparse-based CLI parsing into the build procedure. Exposed globally as `CLI`.
+- **High-level builder**: `AppBuilder` — used for general script and custom interfaces. Exposed globally as `App`.
+- **CLI builder**: `CliBuilder` — a specialized `AppBuilder` subclass that adds argparse-based CLI build-time translation of `sys.argv` into a feature invocation. Exposed globally as `CLI`.
 
 Future specialized builders may include:
 
@@ -36,14 +36,14 @@ Future specialized builders may include:
 
 ### CliBuilder Build Procedure
 
-`CliBuilder` inherits everything from `AppBuilder` and overrides `run(interface_id, argv=None)` to:
+`CliBuilder` keeps all build-time CLI parsing in the builder and delegates runtime execution to the inherited `AppInterfaceContext`. Its `run(interface_id, argv=None)` method follows a four-step flow:
 
-1. `load_interface(interface_id)` — inherited from `AppBuilder`.
-2. `get_commands()` / `get_parent_arguments()` — resolve CLI metadata via `list_commands_evt` / `get_parent_args_evt` from the builder's populated `service_provider`.
-3. `build_parser(cli_commands, parent_arguments)` — compose an `argparse.ArgumentParser` tree.
-4. Parse argv, derive `(feature_id, headers, data)`, and delegate to `interface_context.run(feature_id, headers, data)` like the base builder. Parse errors exit with code 2; `TiferetAPIError` from the interface exits with code 1.
+1. **Load the interface context** via the inherited `load_interface(interface_id)`.
+2. **Build the argparse parser** by composing `get_commands()` (resolves `list_commands_evt` and groups returned commands by `group_key`), `get_parent_arguments()` (resolves `get_parent_args_evt`), and `build_parser(cli_commands, parent_arguments)`.
+3. **Parse arguments** with `vars(parser.parse_args(argv))`; on failure, print to stderr and `sys.exit(2)`.
+4. **Dispatch the feature** by deriving `feature_id = f"{group.replace('-', '_')}.{command.replace('-', '_')}"` and `headers = {'command_group': ..., 'command_key': ...}`, then calling `interface_context.run(feature_id=feature_id, headers=headers, data=parsed)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
 
-No argparse logic lives in runtime contexts — the default `AppInterfaceContext` is sufficient to run CLI interfaces.
+Because the default `AppInterfaceContext` is sufficient for CLI interfaces, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
 
 ## Structured Code Design of Builders
 

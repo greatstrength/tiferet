@@ -118,7 +118,9 @@ def run(self, interface_id: str, feature_id: str, headers=None, data=None, **kwa
 
 ## The CliBuilder Pattern
 
-`CliBuilder` (alias `CLI`) extends `AppBuilder` with a minimal argparse build procedure. Application code interacts with it identically to `AppBuilder`, except `run` derives `feature_id`, `headers`, and `data` from argv instead of taking them as arguments:
+`CliBuilder` extends `AppBuilder` and encapsulates CLI build-time translation of `sys.argv` into a feature invocation. All argparse wiring lives in the builder; runtime execution is delegated to the inherited `AppInterfaceContext.run`.
+
+### Usage
 
 ```python
 from tiferet import CLI
@@ -128,7 +130,16 @@ if __name__ == '__main__':
     cli.run('basic_calc_cli')
 ```
 
-The build procedure is exposed as three overridable helpers — `get_commands`, `get_parent_arguments`, and `build_parser` — called by `run` before delegating to `interface_context.run(feature_id, headers, data)`. CLI interfaces no longer require a custom `module_path`/`class_name` override in YAML; the default `AppInterfaceContext` is sufficient.
+### Build Procedure
+
+`CliBuilder.run(interface_id, argv=None)` follows four steps:
+
+1. Load the interface context via the inherited `load_interface(interface_id)`.
+2. Build the argparse parser by composing `get_commands()`, `get_parent_arguments()`, and `build_parser(cli_commands, parent_arguments)`.
+3. Parse arguments with `vars(parser.parse_args(argv))`; on failure, print to stderr and `sys.exit(2)`.
+4. Derive `feature_id` and `headers` from the parsed namespace and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+
+Because `CliBuilder` uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
 
 ## When to Create a New Builder
 

@@ -3,15 +3,17 @@
 # *** imports
 
 # ** infra
+import argparse
 import pytest
 from unittest import mock
 
 # ** app
 from ...assets import TiferetAPIError
 from ...contexts.app import AppInterfaceContext
-from ...domain import CliCommand
-from ...domain.cli import CliArgument
+from ...domain import CliCommand, CliArgument
 from ...domain.settings import DomainObject
+from ...events.cli import ListCliCommands, GetParentArguments
+from ..main import AppBuilder
 from ..cli import CliBuilder
 
 # *** fixtures
@@ -20,13 +22,10 @@ from ..cli import CliBuilder
 @pytest.fixture
 def cli_command_list():
     '''
-    Provide a list of mock CLI commands for the builder tests.
-
-    :return: A list of CliCommand instances.
-    :rtype: list
+    Fixture to create a list of mock CLI commands.
     '''
 
-    # Build a single command with a required argument.
+    # Return a list of test CLI commands.
     return [
         CliCommand.new(
             group_key='test-group',
@@ -46,67 +45,64 @@ def cli_command_list():
         )
     ]
 
-# ** fixture: service_provider
+# ** fixture: list_commands_evt
 @pytest.fixture
-def service_provider(cli_command_list):
+def list_commands_evt(cli_command_list):
     '''
-    Provide a mock service provider that resolves CLI events.
-
-    :param cli_command_list: The list of CLI commands returned by list_commands_evt.
-    :type cli_command_list: list
-    :return: A mock service provider.
-    :rtype: mock.Mock
+    Fixture to create a mock ListCliCommands event.
     '''
 
-    # Create the mock list-commands event returning the fixture command list.
-    list_commands_evt = mock.Mock()
-    list_commands_evt.execute.return_value = cli_command_list
+    # Build and return a mock ListCliCommands event.
+    evt = mock.Mock(spec=ListCliCommands)
+    evt.execute.return_value = cli_command_list
+    return evt
 
-    # Create the mock parent-args event returning an empty list.
-    get_parent_args_evt = mock.Mock()
-    get_parent_args_evt.execute.return_value = []
+# ** fixture: get_parent_args_evt
+@pytest.fixture
+def get_parent_args_evt():
+    '''
+    Fixture to create a mock GetParentArguments event.
+    '''
 
-    # Wire the provider to dispatch by service id.
-    provider = mock.Mock()
-    provider.get_service.side_effect = lambda service_id: {
-        'list_commands_evt': list_commands_evt,
-        'get_parent_args_evt': get_parent_args_evt,
-    }[service_id]
-    return provider
+    # Build and return a mock GetParentArguments event.
+    evt = mock.Mock(spec=GetParentArguments)
+    evt.execute.return_value = []
+    return evt
 
 # ** fixture: interface_context
 @pytest.fixture
 def interface_context():
     '''
-    Provide a mock AppInterfaceContext for the builder tests.
-
-    :return: A mock AppInterfaceContext instance.
-    :rtype: mock.Mock
+    Fixture to create a mock AppInterfaceContext.
     '''
 
-    # Create a mock interface context with a successful run return.
+    # Build and return a mock AppInterfaceContext with a default response.
     context = mock.Mock(spec=AppInterfaceContext)
-    context.run.return_value = 'ok'
+    context.run.return_value = 'test-response'
     return context
 
 # ** fixture: cli_builder
 @pytest.fixture
-def cli_builder(service_provider, interface_context):
+def cli_builder(list_commands_evt, get_parent_args_evt, interface_context):
     '''
-    Provide a CliBuilder with its service provider and load_interface patched.
-
-    :param service_provider: The mock service provider.
-    :type service_provider: mock.Mock
-    :param interface_context: The mock AppInterfaceContext.
-    :type interface_context: mock.Mock
-    :return: The configured CliBuilder.
-    :rtype: CliBuilder
+    Fixture to create a CliBuilder with a mocked service provider and interface context.
     '''
 
-    # Instantiate the builder and patch its runtime collaborators.
+    # Create the builder and wire the mocked service provider.
     builder = CliBuilder()
-    builder.service_provider = service_provider
+
+    # Map service IDs to the mocked events.
+    service_map = {
+        'list_commands_evt': list_commands_evt,
+        'get_parent_args_evt': get_parent_args_evt,
+    }
+    builder.service_provider = mock.Mock()
+    builder.service_provider.get_service.side_effect = lambda sid: service_map[sid]
+
+    # Patch load_interface to return the mocked interface context.
     builder.load_interface = mock.Mock(return_value=interface_context)
+
+    # Return the configured builder.
     return builder
 
 # *** tests
@@ -117,83 +113,96 @@ def test_cli_builder_is_app_builder_subclass():
     Test that CliBuilder is a subclass of AppBuilder.
     '''
 
-    # Import the parent and assert inheritance.
-    from ..main import AppBuilder
+    # Assert subclass relationship.
     assert issubclass(CliBuilder, AppBuilder)
 
 # ** test: cli_builder_get_commands
-def test_cli_builder_get_commands(cli_builder):
+def test_cli_builder_get_commands(cli_builder, list_commands_evt, cli_command_list):
     '''
-    Test that get_commands groups commands by their group keys.
+    Test that get_commands groups CLI commands by group_key.
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
+    :param list_commands_evt: The mock ListCliCommands event.
+    :type list_commands_evt: ListCliCommands
+    :param cli_command_list: The sample list of CLI commands.
+    :type cli_command_list: list
     '''
 
-    # Resolve the command map from the builder.
+    # Invoke get_commands.
     command_map = cli_builder.get_commands()
 
-    # Assert grouping by group key and the underlying event was invoked.
+    # Assert the list_commands_evt was invoked once.
+    list_commands_evt.execute.assert_called_once()
+
+    # Assert the returned map is grouped by group_key.
     assert 'test-group' in command_map
     assert len(command_map['test-group']) == 1
     assert command_map['test-group'][0].key == 'test-feature'
 
 # ** test: cli_builder_get_parent_arguments
-def test_cli_builder_get_parent_arguments(cli_builder):
+def test_cli_builder_get_parent_arguments(cli_builder, get_parent_args_evt):
     '''
-    Test that get_parent_arguments delegates to the parent-args event.
+    Test that get_parent_arguments delegates to the resolved event.
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
+    :param get_parent_args_evt: The mock GetParentArguments event.
+    :type get_parent_args_evt: GetParentArguments
     '''
 
-    # Resolve the parent arguments from the builder.
+    # Invoke get_parent_arguments.
     parent_arguments = cli_builder.get_parent_arguments()
 
-    # Assert the event returned the expected empty list.
+    # Assert event delegation and expected result.
+    get_parent_args_evt.execute.assert_called_once()
     assert parent_arguments == []
 
 # ** test: cli_builder_build_parser
 def test_cli_builder_build_parser(cli_builder, cli_command_list):
     '''
-    Test that build_parser produces a parser that accepts configured commands.
+    Test that build_parser produces a parser that accepts a valid argv.
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
-    :param cli_command_list: The fixture list of CLI commands.
+    :param cli_command_list: The sample list of CLI commands.
     :type cli_command_list: list
     '''
 
-    # Build the parser from the command map and empty parent args.
+    # Build the parser from the grouped commands with no parent arguments.
     command_map = {'test-group': cli_command_list}
     parser = cli_builder.build_parser(command_map, [])
 
-    # Parse a sample argv and assert the parsed values.
-    parsed = vars(parser.parse_args(['test-group', 'test-feature', '--arg1', 'test_value']))
+    # Assert the parser is an argparse.ArgumentParser.
+    assert isinstance(parser, argparse.ArgumentParser)
+
+    # Parse a valid argv and verify the namespace.
+    parsed = vars(parser.parse_args(['test-group', 'test-feature', '--arg1', 'hello']))
     assert parsed['group'] == 'test-group'
     assert parsed['command'] == 'test-feature'
-    assert parsed['arg1'] == 'test_value'
+    assert parsed['arg1'] == 'hello'
 
 # ** test: cli_builder_run_success
 def test_cli_builder_run_success(cli_builder, interface_context, capsys):
     '''
-    Test the happy path of CliBuilder.run.
+    Test the happy-path run flow dispatches to interface_context.run and prints the response.
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
     :param interface_context: The mock AppInterfaceContext.
-    :type interface_context: mock.Mock
-    :param capsys: The pytest capsys fixture.
+    :type interface_context: AppInterfaceContext
+    :param capsys: Pytest capsys fixture.
     :type capsys: pytest.CaptureFixture
     '''
 
-    # Run the CLI with a valid argv.
+    # Invoke run with a valid argv.
     response = cli_builder.run(
-        interface_id='test_cli',
-        argv=['test-group', 'test-feature', '--arg1', 'default_value'],
+        'test_cli',
+        argv=['test-group', 'test-feature', '--arg1', 'hello'],
     )
 
-    # Assert the interface context was invoked with the derived request.
+    # Assert the interface was loaded and run was called with derived feature_id/headers/data.
+    cli_builder.load_interface.assert_called_once_with('test_cli')
     interface_context.run.assert_called_once()
     call_kwargs = interface_context.run.call_args.kwargs
     assert call_kwargs['feature_id'] == 'test_group.test_feature'
@@ -201,52 +210,55 @@ def test_cli_builder_run_success(cli_builder, interface_context, capsys):
         command_group='test-group',
         command_key='test-feature',
     )
-    assert call_kwargs['data']['arg1'] == 'default_value'
+    assert call_kwargs['data']['group'] == 'test-group'
+    assert call_kwargs['data']['command'] == 'test-feature'
+    assert call_kwargs['data']['arg1'] == 'hello'
 
-    # Assert the response was returned and printed to stdout.
-    assert response == 'ok'
+    # Assert the response was returned and printed.
+    assert response == 'test-response'
     captured = capsys.readouterr()
-    assert 'ok' in captured.out
+    assert 'test-response' in captured.out
 
 # ** test: cli_builder_run_parse_error
 def test_cli_builder_run_parse_error(cli_builder):
     '''
-    Test that an argparse error triggers sys.exit(2).
+    Test that an argparse parse error triggers sys.exit(2).
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
     '''
 
-    # Run the CLI with an invalid command and assert the exit code.
+    # Invoke run with an invalid argv; expect SystemExit with code 2.
     with pytest.raises(SystemExit) as exc_info:
-        cli_builder.run(
-            interface_id='test_cli',
-            argv=['test-group', 'does-not-exist'],
-        )
+        cli_builder.run('test_cli', argv=['invalid-group'])
+
+    # Assert the exit code is 2.
     assert exc_info.value.code == 2
 
 # ** test: cli_builder_run_feature_error
 def test_cli_builder_run_feature_error(cli_builder, interface_context):
     '''
-    Test that a TiferetAPIError from the interface triggers sys.exit(1).
+    Test that a TiferetAPIError from interface_context.run triggers sys.exit(1).
 
-    :param cli_builder: The CliBuilder instance under test.
+    :param cli_builder: The configured CliBuilder fixture.
     :type cli_builder: CliBuilder
     :param interface_context: The mock AppInterfaceContext.
-    :type interface_context: mock.Mock
+    :type interface_context: AppInterfaceContext
     '''
 
-    # Raise a TiferetAPIError from the interface context's run method.
+    # Configure the interface context to raise a TiferetAPIError.
     interface_context.run.side_effect = TiferetAPIError(
-        'FEATURE_EXECUTION_FAILED',
-        'Feature Execution Failed',
-        'Feature execution failed',
+        error_code='FEATURE_EXECUTION_FAILED',
+        name='Feature Execution Failed',
+        message='Feature execution failed',
     )
 
-    # Run the CLI and assert the exit code.
+    # Invoke run and expect SystemExit with code 1.
     with pytest.raises(SystemExit) as exc_info:
         cli_builder.run(
-            interface_id='test_cli',
-            argv=['test-group', 'test-feature', '--arg1', 'default_value'],
+            'test_cli',
+            argv=['test-group', 'test-feature', '--arg1', 'hello'],
         )
+
+    # Assert the exit code is 1.
     assert exc_info.value.code == 1
