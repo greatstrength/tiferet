@@ -8,6 +8,7 @@
 try:
     from .assets import TiferetError, TiferetAPIError
     from .builders import AppBuilder as App
+    from .builders import CliBuilder as CLI
     from .domain import (
         DomainObject,
         StringType,

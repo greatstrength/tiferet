@@ -12,4 +12,3 @@ from .feature import FeatureContext
 from .app import (
     AppInterfaceContext
 )
-from .cli import CliContext
