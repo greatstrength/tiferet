@@ -24,15 +24,26 @@ This design keeps application code simple while maintaining full extensibility a
 
 ## Types of Builders
 
-Tiferet currently defines one primary builder:
+Tiferet currently defines two builders:
 
-- **High-level builder**: `AppBuilder` — used for general script, CLI, and custom interfaces.
+- **High-level builder**: `AppBuilder` — used for general script, web, and custom interfaces.
+- **CLI builder**: `CliBuilder` — extends `AppBuilder` to absorb argparse-based CLI parsing into the build procedure. Exposed globally as `CLI`.
 
 Future specialized builders may include:
 
-- `CliBuilder` — optimized for pure CLI applications with argument parsing
 - `WebBuilder` — for web framework integration (Flask, FastAPI, etc.)
 - `TestBuilder` — for integration and unit testing with mocked services
+
+### CliBuilder Build Procedure
+
+`CliBuilder` inherits everything from `AppBuilder` and overrides `run(interface_id, argv=None)` to:
+
+1. `load_interface(interface_id)` — inherited from `AppBuilder`.
+2. `get_commands()` / `get_parent_arguments()` — resolve CLI metadata via `list_commands_evt` / `get_parent_args_evt` from the builder's populated `service_provider`.
+3. `build_parser(cli_commands, parent_arguments)` — compose an `argparse.ArgumentParser` tree.
+4. Parse argv, derive `(feature_id, headers, data)`, and delegate to `interface_context.run(feature_id, headers, data)` like the base builder. Parse errors exit with code 2; `TiferetAPIError` from the interface exits with code 1.
+
+No argparse logic lives in runtime contexts — the default `AppInterfaceContext` is sufficient to run CLI interfaces.
 
 ## Structured Code Design of Builders
 

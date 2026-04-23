@@ -116,11 +116,24 @@ def run(self, interface_id: str, feature_id: str, headers=None, data=None, **kwa
     return context.run(feature_id, headers or {}, data or {}, **kwargs)
 ```
 
+## The CliBuilder Pattern
+
+`CliBuilder` (alias `CLI`) extends `AppBuilder` with a minimal argparse build procedure. Application code interacts with it identically to `AppBuilder`, except `run` derives `feature_id`, `headers`, and `data` from argv instead of taking them as arguments:
+
+```python
+from tiferet import CLI
+
+cli = CLI().load_app_service(app_yaml_file='app/configs/app.yml')
+if __name__ == '__main__':
+    cli.run('basic_calc_cli')
+```
+
+The build procedure is exposed as three overridable helpers — `get_commands`, `get_parent_arguments`, and `build_parser` — called by `run` before delegating to `interface_context.run(feature_id, headers, data)`. CLI interfaces no longer require a custom `module_path`/`class_name` override in YAML; the default `AppInterfaceContext` is sufficient.
+
 ## When to Create a New Builder
 
 Create a new builder when you need a specialized entry point:
 
-- `CliBuilder` — for CLI-only applications with argument parsing
 - `WebBuilder` — for Flask/FastAPI integration
 - `TestBuilder` — for integration testing with mocked services
 
