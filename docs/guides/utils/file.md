@@ -144,7 +144,7 @@ def test_count_file_lines_success(tmp_path):
 
 ## Related Documentation
 
-- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/utils.md) — Full utilities architecture and style guide
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/interfaces.md) — `FileService` contract definition
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/events.md) — Domain event patterns & testing
+- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — `FileService` contract definition
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

@@ -145,7 +145,7 @@ def test_record_visit_creates_table_and_row(tmp_path):
 ## Related reading
 
 - [FileLoader guide](../file.md) – the parent class everyone inherits from  
-- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/utils.md) – full utilities architecture  
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/interfaces.md) – `SqliteService` contract  
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/events.md) – domain events & testing patterns  
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/v2.0-proto/docs/core/code_style.md) – formatting & artifact comments
+- [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) – full utilities architecture  
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) – `SqliteService` contract  
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) – domain events & testing patterns  
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) – formatting & artifact comments

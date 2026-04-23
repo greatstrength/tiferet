@@ -37,11 +37,11 @@ include = [
     "tiferet.builders",
     "tiferet.contexts",
     "tiferet.di",
-    "tiferet.interfaces",
     "tiferet.domain",
     "tiferet.events",
-    "tiferet.repos",
+    "tiferet.interfaces",
     "tiferet.mappers",
+    "tiferet.repos",
     "tiferet.utils",
 ]
 
