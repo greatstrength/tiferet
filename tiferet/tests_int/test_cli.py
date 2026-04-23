@@ -114,9 +114,7 @@ TEST_CALC_CONFIG = {
         },
         'test_calc_cli': {
             'name': 'Integration Test - Basic Calculator CLI',
-            'description': 'CLI interface for testing calculator features via CliContext.',
-            'module_path': 'tiferet.contexts.cli',
-            'class_name': 'CliContext',
+            'description': 'CLI interface for testing calculator features via CliBuilder.',
             'constants': {
                 'feature_yaml_file': None,
                 'error_yaml_file': None,
@@ -328,12 +326,11 @@ def test_calc_cli_script(tmp_path, test_calc_yaml_file):
 
     # Build the CLI script with the main YAML file path injected.
     script = (
-        "from tiferet import App\n"
+        "from tiferet import CLI\n"
         "\n"
-        "app = App().load_app_service(app_yaml_file={main_yaml!r})\n"
-        "calc_cli = app.load_interface('test_calc_cli')\n"
+        "cli = CLI().load_app_service(app_yaml_file={main_yaml!r})\n"
         "if __name__ == '__main__':\n"
-        "    calc_cli.run()\n"
+        "    cli.run('test_calc_cli')\n"
     ).format(main_yaml=test_calc_yaml_file)
 
     # Write the CLI script to a temporary file.
