@@ -24,15 +24,26 @@ This design keeps application code simple while maintaining full extensibility a
 
 ## Types of Builders
 
-Tiferet currently defines one primary builder:
+Tiferet currently defines two builders:
 
-- **High-level builder**: `AppBuilder` — used for general script, CLI, and custom interfaces.
+- **High-level builder**: `AppBuilder` — used for general script and custom interfaces. Exposed globally as `App`.
+- **CLI builder**: `CliBuilder` — a specialized `AppBuilder` subclass that adds argparse-based CLI build-time translation of `sys.argv` into a feature invocation. Exposed globally as `CLI`.
 
 Future specialized builders may include:
 
-- `CliBuilder` — optimized for pure CLI applications with argument parsing
 - `WebBuilder` — for web framework integration (Flask, FastAPI, etc.)
 - `TestBuilder` — for integration and unit testing with mocked services
+
+### CliBuilder Build Procedure
+
+`CliBuilder` keeps all build-time CLI parsing in the builder and delegates runtime execution to the inherited `AppInterfaceContext`. Its `run(interface_id, argv=None)` method follows a four-step flow:
+
+1. **Load the interface context** via the inherited `load_interface(interface_id)`.
+2. **Build the argparse parser** by composing `get_commands()` (resolves `list_commands_evt` and groups returned commands by `group_key`), `get_parent_arguments()` (resolves `get_parent_args_evt`), and `build_parser(cli_commands, parent_arguments)`.
+3. **Parse arguments** with `vars(parser.parse_args(argv))`; on failure, print to stderr and `sys.exit(2)`.
+4. **Dispatch the feature** by deriving `feature_id = f"{group.replace('-', '_')}.{command.replace('-', '_')}"` and `headers = {'command_group': ..., 'command_key': ...}`, then calling `interface_context.run(feature_id=feature_id, headers=headers, data=parsed)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+
+Because the default `AppInterfaceContext` is sufficient for CLI interfaces, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
 
 ## Structured Code Design of Builders
 
