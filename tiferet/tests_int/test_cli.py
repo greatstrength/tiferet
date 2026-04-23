@@ -1,205 +1,513 @@
 # *** imports
 
 # ** core
-import os, subprocess
+import copy
+import subprocess
+import sys
 
 # ** infra
 import pytest
+import yaml
 
-# ** app
-from .. import App
+# *** constants
+
+# ** constant: test_calc_config
+TEST_CALC_CONFIG = {
+    'services': {
+        'add_number_cmd': {
+            'class_name': 'TestAddNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'subtract_number_cmd': {
+            'class_name': 'TestSubtractNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'multiply_number_cmd': {
+            'class_name': 'TestMultiplyNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+        'divide_number_cmd': {
+            'class_name': 'TestDivideNumber',
+            'module_path': 'tiferet.tests_int',
+        },
+    },
+    'errors': {
+        'DIVISION_BY_ZERO': {
+            'name': 'Division by Zero',
+            'description': 'This error occurs when an attempt is made to divide by zero.',
+            'error_code': 'DIVISION_BY_ZERO',
+            'message': [
+                {
+                    'lang': 'en_US',
+                    'text': 'Division by zero is not allowed.',
+                },
+            ],
+        },
+    },
+    'features': {
+        'test_calc': {
+            'add_number': {
+                'commands': [
+                    {
+                        'service_id': 'add_number_cmd',
+                        'name': 'Add Number Command',
+                    },
+                ],
+                'description': 'Adds two numbers.',
+                'name': 'Add Number Feature',
+            },
+            'subtract_number': {
+                'commands': [
+                    {
+                        'service_id': 'subtract_number_cmd',
+                        'name': 'Subtract Number Command',
+                    },
+                ],
+                'description': 'Subtracts two numbers.',
+                'name': 'Subtract Number Feature',
+            },
+            'multiply_number': {
+                'commands': [
+                    {
+                        'service_id': 'multiply_number_cmd',
+                        'name': 'Multiply Number Command',
+                    },
+                ],
+                'description': 'Multiplies two numbers.',
+                'name': 'Multiply Number Feature',
+            },
+            'divide_number': {
+                'commands': [
+                    {
+                        'service_id': 'divide_number_cmd',
+                        'name': 'Divide Number Command',
+                    },
+                ],
+                'description': 'Divides two numbers.',
+                'name': 'Divide Number Feature',
+            },
+            'square_number': {
+                'commands': [
+                    {
+                        'service_id': 'multiply_number_cmd',
+                        'name': 'Square Number Command',
+                        'params': {
+                            'b': '$r.a',
+                        },
+                    },
+                ],
+                'description': 'Squares a number.',
+                'name': 'Square Number Feature',
+            },
+        },
+    },
+    'interfaces': {
+        'test_calc': {
+            'name': 'Integration Test - Basic Int Calculator',
+            'description': 'The interface instance for testing the calculator features.',
+            'constants': {
+                'feature_yaml_file': None,
+                'error_yaml_file': None,
+                'di_yaml_file': None,
+                'logging_yaml_file': None,
+            },
+        },
+        'test_calc_cli': {
+            'name': 'Integration Test - Basic Calculator CLI',
+            'description': 'CLI interface for testing calculator features via CliContext.',
+            'module_path': 'tiferet.contexts.cli',
+            'class_name': 'CliContext',
+            'constants': {
+                'feature_yaml_file': None,
+                'error_yaml_file': None,
+                'di_yaml_file': None,
+                'logging_yaml_file': None,
+                'cli_yaml_file': None,
+            },
+        },
+    },
+    'logging': {
+        'formatters': {
+            'default': {
+                'name': 'Default Formatter',
+                'format': '%(message)s',
+            },
+        },
+        'handlers': {
+            'default': {
+                'name': 'Default Handler',
+                'module_path': 'logging',
+                'class_name': 'StreamHandler',
+                'level': 'WARNING',
+                'formatter': 'default',
+                'stream': 'ext://sys.stderr',
+            },
+        },
+        'loggers': {
+            'root': {
+                'name': 'Root Logger',
+                'level': 'WARNING',
+                'handlers': ['default'],
+                'is_root': True,
+            },
+            'default': {
+                'name': 'Default Logger',
+                'level': 'WARNING',
+                'handlers': ['default'],
+            },
+        },
+    },
+}
+
+# ** constant: test_calc_cli_config
+TEST_CALC_CLI_CONFIG = {
+    'cli': {
+        'cmds': {
+            'test-calc': {
+                'add-number': {
+                    'group_key': 'test-calc',
+                    'key': 'add-number',
+                    'name': 'Add Number Command',
+                    'description': 'Adds two numbers.',
+                    'args': [
+                        {
+                            'name_or_flags': ['a'],
+                            'description': 'The first number to add.',
+                        },
+                        {
+                            'name_or_flags': ['b'],
+                            'description': 'The second number to add.',
+                        },
+                    ],
+                },
+                'subtract-number': {
+                    'group_key': 'test-calc',
+                    'key': 'subtract-number',
+                    'name': 'Subtract Number Command',
+                    'description': 'Subtracts two numbers.',
+                    'args': [
+                        {
+                            'name_or_flags': ['a'],
+                            'description': 'The number to subtract from.',
+                        },
+                        {
+                            'name_or_flags': ['b'],
+                            'description': 'The number to subtract.',
+                        },
+                    ],
+                },
+                'multiply-number': {
+                    'group_key': 'test-calc',
+                    'key': 'multiply-number',
+                    'name': 'Multiply Number Command',
+                    'description': 'Multiplies two numbers.',
+                    'args': [
+                        {
+                            'name_or_flags': ['a'],
+                            'description': 'The first number to multiply.',
+                        },
+                        {
+                            'name_or_flags': ['b'],
+                            'description': 'The second number to multiply.',
+                        },
+                    ],
+                },
+                'divide-number': {
+                    'group_key': 'test-calc',
+                    'key': 'divide-number',
+                    'name': 'Divide Number Command',
+                    'description': 'Divides two numbers.',
+                    'args': [
+                        {
+                            'name_or_flags': ['a'],
+                            'description': 'The numerator.',
+                        },
+                        {
+                            'name_or_flags': ['b'],
+                            'description': 'The denominator.',
+                        },
+                    ],
+                },
+                'square-number': {
+                    'group_key': 'test-calc',
+                    'key': 'square-number',
+                    'name': 'Square Number Command',
+                    'description': 'Squares a number.',
+                    'args': [
+                        {
+                            'name_or_flags': ['a'],
+                            'description': 'The number to square.',
+                        },
+                    ],
+                },
+            },
+        },
+    },
+}
 
 # *** fixtures
 
-# ** fixture: test_calc_cli
+# ** fixture: test_calc_cli_yaml_file
 @pytest.fixture
-def test_calc_cli():
+def test_calc_cli_yaml_file(tmp_path):
     '''
-    Fixture to provide the path to the basic calculator CLI script.
-    This is used to run CLI commands in tests.
+    Write TEST_CALC_CLI_CONFIG to a temporary CLI YAML file using tmp_path.
+
+    :param tmp_path: The pytest temporary directory path.
+    :type tmp_path: pathlib.Path
+    :return: The path to the temporary CLI YAML file.
+    :rtype: str
     '''
-    script = '''
-# *** imports
 
-from tiferet import App
+    # Define the temporary CLI configuration file path.
+    file_path = tmp_path / 'test_calc_cli.yml'
 
-# *** code
+    # Write the CLI configuration to the temporary YAML file.
+    with open(str(file_path), 'w', encoding='utf-8') as f:
+        yaml.safe_dump(TEST_CALC_CLI_CONFIG, f)
 
-# Create an instance of the App class with the specified settings.
-app = App(settings=dict(
-    app_repo_module_path='tiferet.repos.app',
-    app_repo_class_name='AppYamlRepository',
-    app_repo_params=dict(
-        app_yaml_file='tiferet/assets/tests/test_calc.yml'
-    )
-))
+    # Return the file path as a string.
+    return str(file_path)
 
-# Load the CLI interface for the calculator.
-calc_cli = app.load_interface('test_calc_cli')
-
-# Run the CLI interface according to the provided arguments.
-if __name__ == '__main__':
-    calc_cli.run()'''
-
-    with open('test_calc_cli.py', 'w') as f:
-        f.write(script)
-
-    return 'test_calc_cli.py'
-
-# ** fixture: test_calc
+# ** fixture: test_calc_yaml_file
 @pytest.fixture
-def test_calc():
+def test_calc_yaml_file(tmp_path, test_calc_cli_yaml_file):
     '''
-    Fixture to provide the name of the test calculator group.
-    This is used to identify the calculator group in CLI commands.
+    Write TEST_CALC_CONFIG to a temporary main YAML file using tmp_path.
+
+    The main YAML file references the CLI YAML file path for the
+    ``test_calc_cli`` interface's ``cli_yaml_file`` constant.
+
+    :param tmp_path: The pytest temporary directory path.
+    :type tmp_path: pathlib.Path
+    :param test_calc_cli_yaml_file: The path to the temporary CLI YAML file.
+    :type test_calc_cli_yaml_file: str
+    :return: The path to the temporary main YAML file.
+    :rtype: str
     '''
+
+    # Define the temporary main configuration file path.
+    file_path = tmp_path / 'test_calc.yml'
+
+    # Deep copy the config and wire the shared YAML file paths.
+    config = copy.deepcopy(TEST_CALC_CONFIG)
+
+    # Point the test_calc interface constants at the main YAML file.
+    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+        config['interfaces']['test_calc']['constants'][key] = str(file_path)
+
+    # Point the test_calc_cli interface constants at the main and CLI YAML files.
+    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+        config['interfaces']['test_calc_cli']['constants'][key] = str(file_path)
+    config['interfaces']['test_calc_cli']['constants']['cli_yaml_file'] = test_calc_cli_yaml_file
+
+    # Write the configuration to the temporary YAML file.
+    with open(str(file_path), 'w', encoding='utf-8') as f:
+        yaml.safe_dump(config, f)
+
+    # Return the file path as a string.
+    return str(file_path)
+
+# ** fixture: test_calc_cli_script
+@pytest.fixture
+def test_calc_cli_script(tmp_path, test_calc_yaml_file):
+    '''
+    Generate a temporary CLI script that loads the ``test_calc_cli`` interface.
+
+    The script is written into ``tmp_path`` and references the temporary main
+    YAML file via string injection so the CLI interface resolves entirely from
+    temporary files.
+
+    :param tmp_path: The pytest temporary directory path.
+    :type tmp_path: pathlib.Path
+    :param test_calc_yaml_file: The path to the temporary main YAML file.
+    :type test_calc_yaml_file: str
+    :return: The path to the temporary CLI script.
+    :rtype: str
+    '''
+
+    # Build the CLI script with the main YAML file path injected.
+    script = (
+        "from tiferet import App\n"
+        "\n"
+        "app = App().load_app_service(app_yaml_file={main_yaml!r})\n"
+        "calc_cli = app.load_interface('test_calc_cli')\n"
+        "if __name__ == '__main__':\n"
+        "    calc_cli.run()\n"
+    ).format(main_yaml=test_calc_yaml_file)
+
+    # Write the CLI script to a temporary file.
+    script_path = tmp_path / 'test_calc_cli.py'
+    script_path.write_text(script, encoding='utf-8')
+
+    # Return the script path as a string.
+    return str(script_path)
+
+# ** fixture: test_calc_group
+@pytest.fixture
+def test_calc_group():
+    '''
+    Provide the CLI group key used by the calculator commands.
+
+    :return: The CLI group key.
+    :rtype: str
+    '''
+
+    # Return the group key for the test calculator CLI.
     return 'test-calc'
 
 # *** tests
 
 # ** test: basic_calc_cli_add_numbers
-@pytest.mark.skip()
-def test_basic_calc_cli_add_numbers(test_calc_cli, test_calc):
+def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group):
     '''
     Test the addition operation of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for addition using subprocess.
+
+    # Run the CLI command for addition via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'add-number', '5', '3'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'add-number', '5', '3'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the result is as expected.
-    assert result.returncode == 0, f"Command failed with return code {result.returncode}"
+    # Assert the command succeeded and produced the expected sum.
+    assert result.returncode == 0, f"Command failed with return code {result.returncode}: {result.stderr}"
     assert result.stdout.strip() == '8', f"Expected output '8', got '{result.stdout.strip()}'"
 
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
-
 # ** test: basic_calc_cli_subtract_numbers
-@pytest.mark.skip()
-def test_basic_calc_cli_subtract_numbers(test_calc_cli, test_calc):
+def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group):
     '''
     Test the subtraction operation of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for subtraction using subprocess.
+
+    # Run the CLI command for subtraction via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'subtract-number', '5', '3'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'subtract-number', '5', '3'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the result is as expected.
-    assert result.returncode == 0, f"Command failed with return code {result.returncode}"
+    # Assert the command succeeded and produced the expected difference.
+    assert result.returncode == 0, f"Command failed with return code {result.returncode}: {result.stderr}"
     assert result.stdout.strip() == '2', f"Expected output '2', got '{result.stdout.strip()}'"
 
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
-
 # ** test: basic_calc_cli_multiply_numbers
-@pytest.mark.skip()
-def test_basic_calc_cli_multiply_numbers(test_calc_cli, test_calc):
+def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group):
     '''
     Test the multiplication operation of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for multiplication using subprocess.
+
+    # Run the CLI command for multiplication via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'multiply-number', '5', '3'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'multiply-number', '5', '3'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the result is as expected.
-    assert result.returncode == 0, f"Command failed with return code {result.returncode}"
+    # Assert the command succeeded and produced the expected product.
+    assert result.returncode == 0, f"Command failed with return code {result.returncode}: {result.stderr}"
     assert result.stdout.strip() == '15', f"Expected output '15', got '{result.stdout.strip()}'"
 
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
-
 # ** test: basic_calc_cli_divide_numbers
-@pytest.mark.skip()
-def test_basic_calc_cli_divide_numbers(test_calc_cli, test_calc):
+def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group):
     '''
     Test the division operation of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for division using subprocess.
+
+    # Run the CLI command for division via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'divide-number', '6', '3'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'divide-number', '6', '3'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the result is as expected.
-    assert result.returncode == 0, f"Command failed with return code {result.returncode}"
+    # Assert the command succeeded and produced the expected quotient.
+    assert result.returncode == 0, f"Command failed with return code {result.returncode}: {result.stderr}"
     assert result.stdout.strip() == '2.0', f"Expected output '2.0', got '{result.stdout.strip()}'"
 
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
-
 # ** test: basic_calc_cli_divide_by_zero
-@pytest.mark.skip()
-def test_basic_calc_cli_divide_by_zero(test_calc_cli, test_calc):
+def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group):
     '''
-    Test the division by zero operation of the basic calculator CLI.
+    Test the division by zero handling of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for division by zero using subprocess.
+
+    # Run the CLI command for division by zero via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'divide-number', '6', '0'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'divide-number', '6', '0'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the command fails with an error message.
+    # Assert the command failed with a DIVISION_BY_ZERO error in stderr.
     assert result.returncode != 0, f"Command should have failed but returned {result.returncode}"
-    assert "DIVISION_BY_ZERO" in result.stderr, f"Expected error message about division by zero, got '{result.stderr}'"
-
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
+    assert 'DIVISION_BY_ZERO' in result.stderr, f"Expected error message about division by zero, got '{result.stderr}'"
 
 # ** test: basic_calc_cli_square_number
-@pytest.mark.skip()
-def test_basic_calc_cli_square_number(test_calc_cli, test_calc):
+def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group):
     '''
     Test the square operation of the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command for squaring a number using subprocess.
+
+    # Run the CLI command for squaring a number via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'square-number', '4'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'square-number', '4'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the result is as expected.
-    assert result.returncode == 0, f"Command failed with return code {result.returncode}"
+    # Assert the command succeeded and produced the expected square.
+    assert result.returncode == 0, f"Command failed with return code {result.returncode}: {result.stderr}"
     assert result.stdout.strip() == '16', f"Expected output '16', got '{result.stdout.strip()}'"
 
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
-
 # ** test: basic_calc_cli_invalid_command
-@pytest.mark.skip()
-def test_basic_calc_cli_invalid_command(test_calc_cli, test_calc):
+def test_basic_calc_cli_invalid_command(test_calc_cli_script, test_calc_group):
     '''
     Test the handling of an invalid command in the basic calculator CLI.
+
+    :param test_calc_cli_script: The path to the generated CLI script.
+    :type test_calc_cli_script: str
+    :param test_calc_group: The CLI group key for the calculator.
+    :type test_calc_group: str
     '''
-    # Run the CLI command with an invalid command using subprocess.
+
+    # Run the CLI with an invalid command via subprocess.
     result = subprocess.run(
-        ['python3', test_calc_cli, test_calc, 'invalid-command'],
+        [sys.executable, test_calc_cli_script, test_calc_group, 'invalid-command'],
         capture_output=True,
-        text=True
+        text=True,
     )
 
-    # Assert that the command fails with an error message.
+    # Assert the command failed with the argparse invalid choice error.
     assert result.returncode != 0, f"Command should have failed but returned {result.returncode}"
-    assert "error: argument command: invalid choice" in result.stderr, f"Expected error message about command not found, got '{result.stderr}'"
-
-    # Remove the temporary file created for the CLI script.
-    if os.path.exists(test_calc_cli):
-        os.remove(test_calc_cli)
+    assert 'error: argument command: invalid choice' in result.stderr, f"Expected error message about invalid command, got '{result.stderr}'"

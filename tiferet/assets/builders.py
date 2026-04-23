@@ -20,6 +20,12 @@ DEFAULT_CONSTANTS: Dict[str, str] = {
     'feature_yaml_file': 'config.yml',
 }
 
+# ** constant: default_app_service_module_path
+DEFAULT_APP_SERVICE_MODULE_PATH: str = 'tiferet.repos.app'
+
+# ** constant: default_app_service_class_name
+DEFAULT_APP_SERVICE_CLASS_NAME: str = 'AppYamlRepository'
+
 # ** constant: default_services
 # Each tuple contains exactly 4 elements in this order:
 # (service_id, module_path, class_name, parameters)
