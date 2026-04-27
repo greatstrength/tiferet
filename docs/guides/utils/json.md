@@ -225,8 +225,8 @@ def test_load_json_config_file_not_found(tmp_path):
 
 ## Related Documentation
 
-- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/v2.0a1-release/docs/guides/utils/file.md) — FileLoader guide (parent class)
-- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/v2.0a1-release/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
-- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/v2.0a1-release/docs/core/code_style.md) — Artifact comment & formatting rules
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/v2.0a1-release/docs/core/events.md) — Domain event patterns & testing
+- [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
+- [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
 ```
