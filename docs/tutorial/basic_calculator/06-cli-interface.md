@@ -10,6 +10,9 @@ In Tiferet v2.0, CLI definitions live in root `config.yml`. Add this section to 
 **config.yml** (add this section)
 
 ```yaml
+# ... (previous interfaces, attrs, features, and errors sections remain above)
+
+# CLI command definitions
 cli:
   cmds:
     calc:
