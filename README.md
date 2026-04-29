@@ -15,7 +15,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.0.0a9** (pre-release – actively evolving toward stable v2)
+Current status: **2.0.0a10** (pre-release – actively evolving toward stable v2)
 
 ## Quick Start – Add two numbers in ~3 minutes
 

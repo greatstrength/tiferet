@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0a9)
+# AGENTS.md — Tiferet Framework (v2.0.0a10)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a9`
+- **Version:** `2.0.0a10`
 
 ## Architecture
 
@@ -18,8 +18,8 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── builders/             # AppBuilder and top-level runtime orchestration
-├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, CLI, Logging)
+├── builders/             # AppBuilder, CliBuilder and top-level runtime orchestration
+├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -58,6 +58,14 @@ tiferet/
   - Injecting default services and constants (`load_default_services`, `DEFAULT_CONSTANTS`)
   - Resolving interface contexts (`load_interface`)
   - Delegating feature execution (`run`)
+- `CliBuilder` is defined in `tiferet/builders/cli.py` and is exported as `CLI` from `tiferet/__init__.py`.
+- It extends `AppBuilder` to provide an argparse-based CLI build procedure on top of the inherited app-service / interface-loading machinery.
+- Build procedure:
+  - `get_commands()` resolves and groups `CliCommand` objects by `group_key` via the `list_commands_evt` service.
+  - `get_parent_arguments()` resolves parent-level CLI arguments via the `get_parent_args_evt` service.
+  - `build_parser(cli_commands, parent_arguments)` composes the root `argparse.ArgumentParser`, group/command subparsers, and command/parent arguments.
+  - `run(interface_id, argv=None)` loads the interface context, builds the parser, parses argv (exits 2 on parse errors), derives `feature_id` and `headers` from the parsed group/command, dispatches to `interface_context.run(...)` (exits 1 on `TiferetAPIError`), and prints the response.
+- CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has been retired and `tiferet/contexts/cli.py` no longer exists.
 
 ### Dependency Injection
 
@@ -250,6 +258,7 @@ The top-level `tiferet/__init__.py` exports:
 
 **Core:**
 - `App` (alias for `AppBuilder`)
+- `CLI` (alias for `CliBuilder`)
 - `TiferetError`, `TiferetAPIError`
 
 **Domain:**
@@ -277,6 +286,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
 - `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
 - `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
+- `tiferet/builders/cli.py` — `CliBuilder` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext`
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
