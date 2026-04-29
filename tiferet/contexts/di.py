@@ -126,7 +126,7 @@ class DIContext(object):
         for config in configurations:
 
             # Get the dependency type based on the flags.
-            dep_type = self.get_configuration_type(config, *flags)
+            dep_type = config.get_service_type(*flags)
 
             # If no type is found, raise an error.
             if not dep_type:
@@ -168,26 +168,6 @@ class DIContext(object):
 
         # Return the resolved service from the provider.
         return provider.get_service(configuration_id)
-
-    # * method: get_configuration_type
-    # - obsolete: this method is redundant and can be removed in favor of direct calls to ServiceConfiguration.get_service_type() within build_service_provider.
-    def get_configuration_type(self, configuration: ServiceConfiguration, *flags) -> type:
-        '''
-        Resolve the implementation type for a service configuration.
-
-        Delegates to ServiceConfiguration.get_service_type() which checks
-        flagged dependencies first, then falls back to the default type.
-
-        :param configuration: The service configuration to resolve.
-        :type configuration: ServiceConfiguration
-        :param flags: The flags for the flagged dependency.
-        :type flags: Tuple[str, ...]
-        :return: The resolved type, or None.
-        :rtype: type
-        '''
-
-        # Delegate to the domain method for type resolution.
-        return configuration.get_service_type(*flags)
 
     # * method: load_constants
     def load_constants(self,
