@@ -124,7 +124,7 @@ class FeatureContext(object):
         Handle the execution of a command with the provided request and command-handling options.
         
         :param command: The command to execute.
-        :type command: Command
+        :type command: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
         :param debug: Debug flag.

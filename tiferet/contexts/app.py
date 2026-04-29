@@ -54,7 +54,7 @@ class AppInterfaceContext(object):
         self.logging = logging
 
     # * method: parse_request
-    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None) -> RequestContext:
+    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
         '''
         Parse the incoming request.
 
@@ -64,6 +64,8 @@ class AppInterfaceContext(object):
         :type data: dict
         :param feature_id: The feature identifier if provided.
         :type feature_id: str
+        :kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The parsed request as a request context.
         :rtype: RequestContext
         '''
@@ -86,7 +88,7 @@ class AppInterfaceContext(object):
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
-        Execute the feature context.
+        Execute the feature request.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -105,12 +107,14 @@ class AppInterfaceContext(object):
         self.features.execute_feature(feature_id, request, **kwargs)
 
     # * method: handle_error
-    def handle_error(self, error: Exception) -> Any:
+    def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
         Handle the error by formatting it via ErrorContext and raising TiferetAPIError.
 
         :param error: The error to handle.
         :type error: Exception
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The error response.
         :rtype: Any
         '''
@@ -130,12 +134,14 @@ class AppInterfaceContext(object):
         raise TiferetAPIError(**formatted_error)
 
     # * method: handle_response
-    def handle_response(self, request: RequestContext) -> Any:
+    def handle_response(self, request: RequestContext, **kwargs) -> Any:
         '''
         Handle the response from the request.
 
         :param request: The request context.
         :type request: RequestContext
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
         :return: The response.
         :rtype: Any
         '''
@@ -184,7 +190,7 @@ class AppInterfaceContext(object):
         # Handle error and return response if triggered.
         except TiferetError as e:
             logger.error(f'Error executing feature {feature_id}: {str(e)}')
-            return self.handle_error(e)
+            return self.handle_error(e, **kwargs)
 
         # Calculate execution duration in milliseconds.
         duration_ms = round((time.perf_counter() - start_time) * 1000)
