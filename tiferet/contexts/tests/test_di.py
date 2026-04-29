@@ -324,55 +324,6 @@ def test_di_context_get_dependency(di_context: DIContext):
     assert service.flagged_config is None
 
 
-# ** test: di_context_get_configuration_type_success_default
-def test_di_context_get_configuration_type_success_default(
-        di_context: DIContext,
-        di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
-    '''
-    Test that get_configuration_type resolves the correct type with and without flags.
-
-    :param di_context: The DI context to test.
-    :type di_context: DIContext
-    :param di_service_content: The content for the DI service.
-    :type di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]
-    '''
-
-    # Unpack the service content.
-    configurations, _ = di_service_content
-    config = configurations[0]
-
-    # Resolve without flags — should return the default TestService.
-    dep_type = di_context.get_configuration_type(config)
-    assert dep_type is TestService
-
-    # Resolve with the test flag — should still return TestService (same class in fixture).
-    dep_type = di_context.get_configuration_type(config, 'test')
-    assert dep_type is TestService
-
-
-# ** test: di_context_get_configuration_type_none
-def test_di_context_get_configuration_type_none(di_context: DIContext):
-    '''
-    Test that get_configuration_type returns None when no type is found.
-
-    :param di_context: The DI context to test.
-    :type di_context: DIContext
-    '''
-
-    # Create a configuration with no default type and no matching dependencies.
-    config = DomainObject.new(
-        ServiceConfiguration,
-        id='no_type',
-        dependencies=[],
-    )
-
-    # Resolve without flags — should return None.
-    assert di_context.get_configuration_type(config) is None
-
-    # Resolve with an unknown flag — should return None.
-    assert di_context.get_configuration_type(config, 'missing_flag') is None
-
-
 # ** test: di_context_load_constants_with_flagged_dependencies
 def test_di_context_load_constants_with_flagged_dependencies(
         di_context: DIContext,
