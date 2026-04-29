@@ -2,8 +2,10 @@
 
 # ** core
 import copy
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 # ** infra
 import pytest
@@ -353,10 +355,44 @@ def test_calc_group():
     # Return the group key for the test calculator CLI.
     return 'test-calc'
 
+# ** fixture: cli_subprocess_env
+@pytest.fixture
+def cli_subprocess_env():
+    '''
+    Build the environment for CLI subprocesses with PYTHONPATH set to the
+    repository root so the spawned interpreter can resolve the
+    ``tiferet`` package and its ``tests_int`` subpackage even when the
+    package is not installed in the active interpreter.
+
+    :return: A copy of the current environment with PYTHONPATH prefixed by
+        the repository root.
+    :rtype: dict
+    '''
+
+    # Resolve the repository root from this test module's location
+    # (tiferet/tests_int/test_cli.py -> repository root is two parents up).
+    repo_root = str(Path(__file__).resolve().parents[2])
+
+    # Copy the current environment to avoid mutating the test process env.
+    env = os.environ.copy()
+
+    # Prefix the existing PYTHONPATH with the repository root so the
+    # subprocess can import tiferet and tiferet.tests_int regardless of
+    # whether the package is installed in the active interpreter.
+    existing_pythonpath = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = (
+        f'{repo_root}{os.pathsep}{existing_pythonpath}'
+        if existing_pythonpath
+        else repo_root
+    )
+
+    # Return the augmented environment for use in subprocess.run.
+    return env
+
 # *** tests
 
 # ** test: basic_calc_cli_add_numbers
-def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the addition operation of the basic calculator CLI.
 
@@ -364,6 +400,9 @@ def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for addition via subprocess.
@@ -371,6 +410,7 @@ def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'add-number', '5', '3'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command succeeded and produced the expected sum.
@@ -378,7 +418,7 @@ def test_basic_calc_cli_add_numbers(test_calc_cli_script, test_calc_group):
     assert result.stdout.strip() == '8', f"Expected output '8', got '{result.stdout.strip()}'"
 
 # ** test: basic_calc_cli_subtract_numbers
-def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the subtraction operation of the basic calculator CLI.
 
@@ -386,6 +426,9 @@ def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for subtraction via subprocess.
@@ -393,6 +436,7 @@ def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'subtract-number', '5', '3'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command succeeded and produced the expected difference.
@@ -400,7 +444,7 @@ def test_basic_calc_cli_subtract_numbers(test_calc_cli_script, test_calc_group):
     assert result.stdout.strip() == '2', f"Expected output '2', got '{result.stdout.strip()}'"
 
 # ** test: basic_calc_cli_multiply_numbers
-def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the multiplication operation of the basic calculator CLI.
 
@@ -408,6 +452,9 @@ def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for multiplication via subprocess.
@@ -415,6 +462,7 @@ def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'multiply-number', '5', '3'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command succeeded and produced the expected product.
@@ -422,7 +470,7 @@ def test_basic_calc_cli_multiply_numbers(test_calc_cli_script, test_calc_group):
     assert result.stdout.strip() == '15', f"Expected output '15', got '{result.stdout.strip()}'"
 
 # ** test: basic_calc_cli_divide_numbers
-def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the division operation of the basic calculator CLI.
 
@@ -430,6 +478,9 @@ def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for division via subprocess.
@@ -437,6 +488,7 @@ def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'divide-number', '6', '3'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command succeeded and produced the expected quotient.
@@ -444,7 +496,7 @@ def test_basic_calc_cli_divide_numbers(test_calc_cli_script, test_calc_group):
     assert result.stdout.strip() == '2.0', f"Expected output '2.0', got '{result.stdout.strip()}'"
 
 # ** test: basic_calc_cli_divide_by_zero
-def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the division by zero handling of the basic calculator CLI.
 
@@ -452,6 +504,9 @@ def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for division by zero via subprocess.
@@ -459,6 +514,7 @@ def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'divide-number', '6', '0'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command failed with a DIVISION_BY_ZERO error in stderr.
@@ -466,7 +522,7 @@ def test_basic_calc_cli_divide_by_zero(test_calc_cli_script, test_calc_group):
     assert 'DIVISION_BY_ZERO' in result.stderr, f"Expected error message about division by zero, got '{result.stderr}'"
 
 # ** test: basic_calc_cli_square_number
-def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the square operation of the basic calculator CLI.
 
@@ -474,6 +530,9 @@ def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI command for squaring a number via subprocess.
@@ -481,6 +540,7 @@ def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'square-number', '4'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command succeeded and produced the expected square.
@@ -488,7 +548,7 @@ def test_basic_calc_cli_square_number(test_calc_cli_script, test_calc_group):
     assert result.stdout.strip() == '16', f"Expected output '16', got '{result.stdout.strip()}'"
 
 # ** test: basic_calc_cli_invalid_command
-def test_basic_calc_cli_invalid_command(test_calc_cli_script, test_calc_group):
+def test_basic_calc_cli_invalid_command(test_calc_cli_script, test_calc_group, cli_subprocess_env):
     '''
     Test the handling of an invalid command in the basic calculator CLI.
 
@@ -496,6 +556,9 @@ def test_basic_calc_cli_invalid_command(test_calc_cli_script, test_calc_group):
     :type test_calc_cli_script: str
     :param test_calc_group: The CLI group key for the calculator.
     :type test_calc_group: str
+    :param cli_subprocess_env: The environment for the CLI subprocess with
+        PYTHONPATH set to the repository root.
+    :type cli_subprocess_env: dict
     '''
 
     # Run the CLI with an invalid command via subprocess.
@@ -503,6 +566,7 @@ def test_basic_calc_cli_invalid_command(test_calc_cli_script, test_calc_group):
         [sys.executable, test_calc_cli_script, test_calc_group, 'invalid-command'],
         capture_output=True,
         text=True,
+        env=cli_subprocess_env,
     )
 
     # Assert the command failed with the argparse invalid choice error.
