@@ -110,10 +110,8 @@ class FeatureYamlRepository(FeatureService):
             return None
 
         # Map the feature data to a FeatureAggregate and return it.
-        return TransferObject.from_data(
-            FeatureYamlObject,
-            id=f'{group_id}.{feature_key}',
-            **feature_data,
+        return FeatureYamlObject.model_validate(
+            {**feature_data, 'id': f'{group_id}.{feature_key}'}
         ).map()
 
     # * method: list
@@ -142,20 +140,16 @@ class FeatureYamlRepository(FeatureService):
         if group_id:
             group_features = groups_data.get(group_id, {})
             for feature_key, feature_data in group_features.items():
-                features.append(TransferObject.from_data(
-                    FeatureYamlObject,
-                    id=f'{group_id}.{feature_key}',
-                    **feature_data,
+                features.append(FeatureYamlObject.model_validate(
+                    {**feature_data, 'id': f'{group_id}.{feature_key}'}
                 ))
 
         # Otherwise, flatten all groups.
         else:
             for group, group_features in groups_data.items():
                 for feature_key, feature_data in group_features.items():
-                    features.append(TransferObject.from_data(
-                        FeatureYamlObject,
-                        id=f'{group}.{feature_key}',
-                        **feature_data,
+                    features.append(FeatureYamlObject.model_validate(
+                        {**feature_data, 'id': f'{group}.{feature_key}'}
                     ))
 
         # Map all FeatureYamlObject instances to FeatureAggregates and return them.

@@ -144,7 +144,7 @@ class AddCliCommand(DomainEvent):
         )
 
         # Create CLI command aggregate.
-        command = CliCommandAggregate.new(
+        command = CliCommandAggregate(
             id=id,
             name=name,
             key=key,

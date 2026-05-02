@@ -3,21 +3,14 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import Any, ClassVar, Dict
+
+# ** infra
+from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import (
-    FlaggedDependency,
-    ServiceConfiguration,
-    DomainObject,
-    StringType,
-    DictType,
-    ModelType,
-)
-from .settings import (
-    Aggregate,
-    TransferObject,
-)
+from ..domain import FlaggedDependency, ServiceConfiguration
+from .settings import Aggregate, TransferObject
 
 # *** mappers
 
@@ -26,38 +19,6 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
     '''
     An aggregate representation of a flagged dependency.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        flagged_dependency_data: Dict[str, Any],
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'FlaggedDependencyAggregate':
-        '''
-        Initializes a new flagged dependency aggregate.
-
-        :param flagged_dependency_data: The data to create the flagged dependency aggregate from.
-        :type flagged_dependency_data: dict
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new flagged dependency aggregate.
-        :rtype: FlaggedDependencyAggregate
-        '''
-
-        # Create a new flagged dependency aggregate from the provided data.
-        return Aggregate.new(
-            FlaggedDependencyAggregate,
-            validate=validate,
-            strict=strict,
-            **flagged_dependency_data,
-            **kwargs
-        )
 
     # * method: set_parameters
     def set_parameters(self, parameters: Dict[str, Any] | None = None) -> None:
@@ -71,19 +32,16 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
         :rtype: None
         '''
 
-        # If parameters is None, clear all.
+        # Clear all when None is provided.
         if parameters is None:
             self.parameters = {}
-        else:
-            # Merge existing parameters with new ones (new values win).
-            merged = dict(self.parameters or {})
-            merged.update(parameters)
+            return
 
-            # Filter out keys where the value is None.
-            self.parameters = {
-                k: v for k, v in merged.items() if v is not None
-            }
-
+        # Merge existing parameters with new ones (new values win), then drop
+        # keys whose value is None. Reassign so validate_assignment fires.
+        merged = dict(self.parameters or {})
+        merged.update(parameters)
+        self.parameters = {k: v for k, v in merged.items() if v is not None}
 
 # ** mapper: flagged_dependency_yaml_object
 class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
@@ -91,108 +49,72 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
     A YAML data representation of a flagged dependency object.
     '''
 
-    class Options:
-        '''
-        The options for the flagged dependency data.
-        '''
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'flag'}},
+    }
 
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny(),
-            'to_data.yaml': TransferObject.deny('flag'),
-        }
+    # * attribute: flag
+    flag: str | None = Field(
+        default=None,
+        description=(
+            'The flag for the dependency. Optional in YAML data because the '
+            'flag is typically the dict key in the parent ServiceConfiguration.'
+        ),
+    )
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType,
-        default={},
-        serialized_name='params',
-        deserialize_from=['params', 'parameters'],
-        metadata=dict(
-            description='The parameters for the dependency.'
-        )
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        serialization_alias='params',
+        validation_alias=AliasChoices('params', 'parameters'),
+        description='The parameters for the dependency.',
     )
 
     # * method: map
-    def map(self, flag: str = None, **kwargs) -> FlaggedDependency:
+    def map(self, flag: str | None = None, **overrides) -> FlaggedDependency:
         '''
-        Maps the flagged dependency data to a flagged dependency object.
+        Maps the flagged dependency data to a runtime FlaggedDependency.
 
-        :param flag: The flag for the dependency.
-        :type flag: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new flagged dependency object.
+        :param flag: Optional flag override (used when keyed in parent dict).
+        :type flag: str | None
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FlaggedDependency instance.
         :rtype: FlaggedDependency
         '''
 
-        # Map to the flagged dependency object.
-        # Note: parent map() already calls to_primitive, so we only pass overrides.
-        return super().map(
-            FlaggedDependency,
-            flag=flag or self.flag,
-            parameters=self.parameters,
-            **kwargs
-        )
+        # Pass an explicit flag override only when one was supplied so we do
+        # not accidentally clear the YAML's own flag value.
+        if flag is not None:
+            overrides.setdefault('flag', flag)
+
+        # Delegate to the base mapper, targeting FlaggedDependency.
+        return super().map(FlaggedDependency, **overrides)
 
     # * method: from_model
-    @staticmethod
-    def from_model(flagged_dependency: FlaggedDependency, **kwargs) -> 'FlaggedDependencyYamlObject':
+    @classmethod
+    def from_model(cls, flagged_dependency: FlaggedDependency, **overrides) -> 'FlaggedDependencyYamlObject':
         '''
         Creates a FlaggedDependencyYamlObject from a FlaggedDependency model.
 
-        :param flagged_dependency: The flagged dependency model.
+        :param flagged_dependency: The flagged dependency model to copy from.
         :type flagged_dependency: FlaggedDependency
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FlaggedDependencyYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FlaggedDependencyYamlObject instance.
         :rtype: FlaggedDependencyYamlObject
         '''
 
-        # Create a new FlaggedDependencyYamlObject from the model.
-        return TransferObject.from_model(
-            FlaggedDependencyYamlObject,
-            flagged_dependency,
-            **kwargs,
-        )
+        # Delegate to the base mapper.
+        return super().from_model(flagged_dependency, **overrides)
 
 # ** mapper: service_configuration_aggregate
 class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
     '''
     An aggregate representation of a service configuration.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        service_configuration_data: Dict[str, Any],
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'ServiceConfigurationAggregate':
-        '''
-        Initializes a new service configuration aggregate.
-
-        :param service_configuration_data: The data to create the service configuration aggregate from.
-        :type service_configuration_data: dict
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new service configuration aggregate.
-        :rtype: ServiceConfigurationAggregate
-        '''
-
-        # Create a new service configuration aggregate from the provided data.
-        return Aggregate.new(
-            ServiceConfigurationAggregate,
-            validate=validate,
-            strict=strict,
-            **service_configuration_data,
-            **kwargs
-        )
 
     # * method: set_default_type
     def set_default_type(
@@ -225,7 +147,7 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
             self.module_path = module_path
             self.class_name = class_name
 
-        # Update parameters: if parameters is None, clear all; otherwise replace with filtered dict.
+        # Update parameters: clear when None, otherwise replace with filtered dict.
         if parameters is None:
             self.parameters = {}
         else:
@@ -257,28 +179,24 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
         # Normalize parameters to a dict.
         parameters = parameters or {}
 
-        # Replace the value of the dependency if a dependency with the same flag exists.
+        # Replace the existing dependency if one exists with the same flag.
         for dep in self.dependencies:
             if dep.flag == flag:
                 dep.module_path = module_path
                 dep.class_name = class_name
-
-                # Inline set_parameters semantics — works on any FlaggedDependency instance.
                 merged = dict(dep.parameters or {})
                 merged.update(parameters)
                 dep.parameters = {k: v for k, v in merged.items() if v is not None}
                 return
 
-        # Create a new dependency if none exists with this flag.
-        dependency = DomainObject.new(
-            FlaggedDependency,
+        # Otherwise create a new dependency and append it.
+        dependency = FlaggedDependency(
             module_path=module_path,
             class_name=class_name,
             flag=flag,
             parameters=parameters,
         )
-
-        self.dependencies.append(dependency)
+        self.dependencies = list(self.dependencies) + [dependency]
 
     # * method: remove_dependency
     def remove_dependency(self, flag: str) -> None:
@@ -291,13 +209,12 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
         :rtype: None
         '''
 
-        # Filter out any dependency whose flag matches the provided flag.
+        # Reassign so validate_assignment=True triggers field validation.
         self.dependencies = [
             dependency
             for dependency in self.dependencies
             if dependency.flag != flag
         ]
-
 
 # ** mapper: service_configuration_yaml_object
 class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
@@ -305,81 +222,67 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
     A YAML data representation of a service configuration object.
     '''
 
-    class Options:
-        '''
-        The options for the service configuration data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny('dependencies', 'parameters'),
-            'to_data.yaml': TransferObject.deny('id'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {'exclude': {'dependencies', 'parameters'}},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+    }
 
     # * attribute: dependencies
-    dependencies = DictType(
-        ModelType(FlaggedDependencyYamlObject),
-        default={},
-        serialized_name='deps',
-        deserialize_from=['deps', 'dependencies', 'flags'],
-        metadata=dict(
-            description='The dependencies as key-value pairs, keyed by flags.'
-        )
+    dependencies: Dict[str, FlaggedDependencyYamlObject] = Field(
+        default_factory=dict,
+        serialization_alias='deps',
+        validation_alias=AliasChoices('deps', 'dependencies', 'flags'),
+        description='The dependencies as key-value pairs, keyed by flags.',
     )
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType,
-        default={},
-        serialized_name='params',
-        deserialize_from=['params', 'parameters'],
-        metadata=dict(
-            description='The default parameters for the service configuration.'
-        )
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        serialization_alias='params',
+        validation_alias=AliasChoices('params', 'parameters'),
+        description='The default parameters for the service configuration.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> ServiceConfigurationAggregate:
+    def map(self, **overrides) -> ServiceConfigurationAggregate:
         '''
         Maps the service configuration data to a service configuration aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new service configuration aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new ServiceConfigurationAggregate instance.
         :rtype: ServiceConfigurationAggregate
         '''
 
-        # Map the service configuration data to a service configuration aggregate.
+        # Convert dict-keyed YAML deps into a flag-tagged list of FlaggedDependency.
         return super().map(
             ServiceConfigurationAggregate,
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
             parameters=self.parameters,
-            **self.to_primitive('to_model'),
-            **kwargs
+            **overrides,
         )
 
     # * method: from_model
-    @staticmethod
-    def from_model(service_configuration: ServiceConfiguration, **kwargs) -> 'ServiceConfigurationYamlObject':
+    @classmethod
+    def from_model(cls, service_configuration: ServiceConfiguration, **overrides) -> 'ServiceConfigurationYamlObject':
         '''
         Creates a ServiceConfigurationYamlObject from a ServiceConfiguration model.
 
-        :param service_configuration: The service configuration model.
+        :param service_configuration: The service configuration model to copy from.
         :type service_configuration: ServiceConfiguration
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new ServiceConfigurationYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new ServiceConfigurationYamlObject instance.
         :rtype: ServiceConfigurationYamlObject
         '''
 
-        # Create a new ServiceConfigurationYamlObject from the model, converting
-        # the dependencies list into a dictionary keyed by flag.
-        return TransferObject.from_model(
-            ServiceConfigurationYamlObject,
+        # Convert the dependencies list into a dictionary keyed by flag.
+        return super().from_model(
             service_configuration,
             dependencies={
-                dep.flag: TransferObject.from_model(FlaggedDependencyYamlObject, dep)
+                dep.flag: FlaggedDependencyYamlObject.from_model(dep)
                 for dep in service_configuration.dependencies
             },
-            **kwargs,
+            **overrides,
         )

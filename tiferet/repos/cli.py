@@ -89,11 +89,7 @@ class CliYamlRepository(CliService):
             return None
 
         # Map the data to a CliCommandAggregate and return it.
-        return TransferObject.from_data(
-            CliCommandYamlObject,
-            id=id,
-            **cmd_data,
-        ).map()
+        return CliCommandYamlObject.model_validate({**cmd_data, 'id': id}).map()
 
     # * method: list
     def list(self) -> List[CliCommandAggregate]:
@@ -116,10 +112,8 @@ class CliYamlRepository(CliService):
         result = []
         for group_key, commands in cmds_data.items():
             for command_key, command_data in commands.items():
-                cmd = TransferObject.from_data(
-                    CliCommandYamlObject,
-                    id=f'{group_key}.{command_key}',
-                    **command_data,
+                cmd = CliCommandYamlObject.model_validate(
+                    {**command_data, 'id': f'{group_key}.{command_key}'}
                 ).map()
                 result.append(cmd)
 
@@ -205,7 +199,7 @@ class CliYamlRepository(CliService):
         ).load(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
             data_factory=lambda args: [
-                CliArgumentAggregate.new(**arg)
+                CliArgumentAggregate(**arg)
                 for arg in args
             ],
         )
@@ -232,7 +226,7 @@ class CliYamlRepository(CliService):
 
         # Set the parent_args section to the serialized argument list.
         full_data.setdefault('cli', {})['parent_args'] = [
-            {k: v for k, v in arg.to_primitive().items() if v is not None}
+            {k: v for k, v in arg.model_dump().items() if v is not None}
             for arg in parent_arguments
         ]
 

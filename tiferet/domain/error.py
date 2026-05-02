@@ -3,15 +3,13 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List
+from typing import Any, List
+
+# ** infra
+from pydantic import Field, model_validator
 
 # ** app
-from .settings import (
-    DomainObject,
-    StringType,
-    ListType,
-    ModelType,
-)
+from .settings import DomainObject
 
 # *** models
 
@@ -22,19 +20,15 @@ class ErrorMessage(DomainObject):
     '''
 
     # * attribute: lang
-    lang = StringType(
-        required=True,
-        metadata=dict(
-            description='The language of the error message text.'
-        ),
+    lang: str = Field(
+        ...,
+        description='The language of the error message text.',
     )
 
     # * attribute: text
-    text = StringType(
-        required=True,
-        metadata=dict(
-            description='The error message text.'
-        ),
+    text: str = Field(
+        ...,
+        description='The error message text.',
     )
 
     # * method: format
@@ -62,74 +56,55 @@ class Error(DomainObject):
     '''
 
     # * attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The unique identifier of the error.'
-        ),
+    id: str = Field(
+        ...,
+        description='The unique identifier of the error.',
     )
 
     # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The name of the error.'
-        ),
+    name: str = Field(
+        ...,
+        description='The name of the error.',
     )
 
     # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the error.'
-        ),
+    description: str | None = Field(
+        default=None,
+        description='The description of the error.',
     )
 
     # * attribute: error_code
-    error_code = StringType(
-        metadata=dict(
-            description='The unique code of the error.'
-        ),
+    error_code: str | None = Field(
+        default=None,
+        description='The unique code of the error.',
     )
 
     # * attribute: message
-    message = ListType(
-        ModelType(ErrorMessage),
-        required=True,
-        metadata=dict(
-            description='The error message translations for the error.'
-        ),
+    message: List[ErrorMessage] = Field(
+        default_factory=list,
+        description='The error message translations for the error.',
     )
 
-    # * method: new
-    @staticmethod
-    def new(name: str, id: str, message: List[Dict[str, str]] = [], **kwargs) -> 'Error':
+    # * method: _derive_error_code (validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _derive_error_code(cls, data: Any) -> Any:
         '''
-        Initializes a new Error object.
+        Derive ``error_code`` from ``id`` when not explicitly provided.
 
-        :param name: The name of the error.
-        :type name: str
-        :param id: The unique identifier for the error.
-        :type id: str
-        :param message: The error message translations for the error.
-        :type message: list
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new Error object.
-        :rtype: Error
+        :param data: The raw input data passed to the model.
+        :type data: Any
+        :return: The (possibly augmented) input data.
+        :rtype: Any
         '''
 
-        # Set the error code as the id upper cased.
-        error_code = id.upper().replace(' ', '_')
+        # Only mutate dict-shaped inputs; pass other shapes through unchanged.
+        if isinstance(data, dict) and not data.get('error_code') and data.get('id'):
+            data = dict(data)
+            data['error_code'] = str(data['id']).upper().replace(' ', '_')
 
-        # Create and return a new Error object.
-        return DomainObject.new(
-            Error,
-            id=id,
-            name=name,
-            error_code=error_code,
-            message=message,
-            **kwargs,
-        )
+        # Return the (possibly augmented) input data.
+        return data
 
     # * method: format_message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:

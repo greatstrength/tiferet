@@ -36,7 +36,7 @@ def sample_formatter() -> Formatter:
     '''
 
     # Create a sample formatter aggregate.
-    return FormatterAggregate.new(
+    return FormatterAggregate(
         id='simple',
         name='Simple Formatter',
         format='%(levelname)s - %(message)s',
@@ -55,7 +55,7 @@ def sample_handler() -> Handler:
     '''
 
     # Create a sample handler aggregate.
-    return HandlerAggregate.new(
+    return HandlerAggregate(
         id='console',
         name='Console Handler',
         module_path='logging',
@@ -78,7 +78,7 @@ def sample_logger() -> Logger:
     '''
 
     # Create a sample logger aggregate.
-    return LoggerAggregate.new(
+    return LoggerAggregate(
         id='app',
         name='Application Logger',
         level='INFO',

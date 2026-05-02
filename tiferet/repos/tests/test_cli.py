@@ -227,8 +227,7 @@ def test_int_cli_config_repo_save(
     new_cmd_id = 'calc.multiply'
 
     # Create new CLI command config data and map to an aggregate.
-    cmd = TransferObject.from_data(
-        CliCommandYamlObject,
+    cmd = CliCommandYamlObject.model_validate(dict(
         id=new_cmd_id,
         name='Multiply Number Command',
         description='Multiplies two numbers.',
@@ -246,7 +245,7 @@ def test_int_cli_config_repo_save(
                 'type': 'str',
             },
         ],
-    ).map()
+    )).map()
 
     # Save the new CLI command.
     cli_config_repo.save(cmd)
@@ -317,12 +316,12 @@ def test_int_cli_config_repo_save_parent_arguments(
 
     # Create new parent arguments.
     new_parent_args = [
-        CliArgumentAggregate.new(
+        CliArgumentAggregate(
             name_or_flags=['--debug', '-d'],
             description='Enable debug mode.',
             action='store_true',
         ),
-        CliArgumentAggregate.new(
+        CliArgumentAggregate(
             name_or_flags=['--output', '-o'],
             description='Output file path.',
             type='str',

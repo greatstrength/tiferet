@@ -183,8 +183,7 @@ def test_int_app_config_repo_save(
     new_app_id = 'new.app'
 
     # Create new app interface config data and map to an aggregate.
-    app = TransferObject.from_data(
-        AppInterfaceYamlObject,
+    app = AppInterfaceYamlObject.model_validate(dict(
         id=new_app_id,
         name='New App',
         description='A new test app interface.',
@@ -192,7 +191,7 @@ def test_int_app_config_repo_save(
         class_name='NewApp',
         attributes={},
         constants={},
-    ).map()
+    )).map()
 
     # Save the new app interface.
     app_config_repo.save(app)

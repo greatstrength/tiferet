@@ -26,9 +26,7 @@ def feature() -> Feature:
     '''
 
     # Create and return a new Feature.
-    return DomainObject.new(
-        Feature,
-        id='test_group.test_feature',
+    return Feature(id='test_group.test_feature',
         name='Test Feature',
         group_id='test_group',
         feature_key='test_feature',
@@ -45,18 +43,16 @@ def test_feature_step_type_defaults_to_event() -> None:
     '''
 
     # Create a FeatureEvent with minimal required fields.
-    event = DomainObject.new(
-        FeatureEvent,
-        name='Test Event',
+    event = FeatureEvent(name='Test Event',
         service_id='test_event_service',
     )
 
     # Assert type defaults to 'event'.
     assert event.type == 'event'
 
-    # Serialize via to_primitive() and reload.
-    primitive = event.to_primitive()
-    reloaded = DomainObject.new(FeatureEvent, **primitive)
+    # Serialize via model_dump() and reload.
+    primitive = event.model_dump()
+    reloaded = FeatureEvent(**primitive)
 
     # Assert type is preserved through round-trip.
     assert reloaded.type == 'event'
@@ -68,9 +64,7 @@ def test_feature_event_flags_creation_and_round_trip() -> None:
     '''
 
     # Create a FeatureEvent with flags.
-    event = DomainObject.new(
-        FeatureEvent,
-        name='Flagged Event',
+    event = FeatureEvent(name='Flagged Event',
         service_id='flagged_event_service',
         flags=['flag1', 'flag2'],
     )
@@ -78,9 +72,9 @@ def test_feature_event_flags_creation_and_round_trip() -> None:
     # Assert flags are set correctly.
     assert event.flags == ['flag1', 'flag2']
 
-    # Serialize via to_primitive() and reload.
-    primitive = event.to_primitive()
-    reloaded = DomainObject.new(FeatureEvent, **primitive)
+    # Serialize via model_dump() and reload.
+    primitive = event.model_dump()
+    reloaded = FeatureEvent(**primitive)
 
     # Assert flags are preserved through round-trip.
     assert reloaded.flags == ['flag1', 'flag2']
@@ -95,14 +89,10 @@ def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     '''
 
     # Create two FeatureEvent steps.
-    step_0 = DomainObject.new(
-        FeatureEvent,
-        name='Step Zero',
+    step_0 = FeatureEvent(name='Step Zero',
         service_id='step_zero_service',
     )
-    step_1 = DomainObject.new(
-        FeatureEvent,
-        name='Step One',
+    step_1 = FeatureEvent(name='Step One',
         service_id='step_one_service',
     )
 

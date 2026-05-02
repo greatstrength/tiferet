@@ -236,14 +236,13 @@ def test_int_feature_config_repo_save(
     new_feature_id = 'new_group.new_feature'
 
     # Create new feature config data and map to a model.
-    feature = TransferObject.from_data(
-        FeatureYamlObject,
+    feature = FeatureYamlObject.model_validate(dict(
         id=new_feature_id,
         name='New Feature',
         description='A new test feature.',
         commands=[],
         log_params={},
-    ).map()
+    )).map()
 
     # Save the new feature.
     feature_config_repo.save(feature)

@@ -121,12 +121,12 @@ class TestAppInterfaceAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Override to use AppInterfaceAggregate.new(app_interface_data=...) signature.
+        Construct an AppInterfaceAggregate via the Pydantic constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return AppInterfaceAggregate.new(
-            app_interface_data=(data if data is not None else self.sample_data).copy()
+        # Build the aggregate from the resolved sample data.
+        return AppInterfaceAggregate(
+            **(data if data is not None else self.sample_data).copy()
         )
 
     # *** fixtures
@@ -151,7 +151,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
             data.update(overrides)
 
             # Create and return the aggregate.
-            return AppInterfaceAggregate.new(app_interface_data=data)
+            return AppInterfaceAggregate(**data)
 
         return factory
 
@@ -221,9 +221,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
 
         # Build services from the initial ids.
         services = [
-            DomainObject.new(
-                AppServiceDependency,
-                service_id=aid,
+            AppServiceDependency(service_id=aid,
                 module_path=f"mod.{aid}",
                 class_name=f"{aid.capitalize()}Class",
                 parameters={'p': aid},
@@ -344,12 +342,12 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Override to use AppInterfaceAggregate.new(app_interface_data=...) signature.
+        Construct an AppInterfaceAggregate via the Pydantic constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return AppInterfaceAggregate.new(
-            app_interface_data=(data if data is not None else self.aggregate_sample_data).copy()
+        # Build the aggregate from the resolved aggregate sample data.
+        return AppInterfaceAggregate(
+            **(data if data is not None else self.aggregate_sample_data).copy()
         )
 
     # *** child mapper: AppServiceDependencyYamlObject
@@ -368,10 +366,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
-            **self.dependency_sample_data,
-        )
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(self.dependency_sample_data)
         dep = yaml_obj.map(service_id='injected_svc')
 
         # Verify the mapped entity.
@@ -388,12 +383,11 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
             module_path='alias.test.mod',
             class_name='AliasImpl',
             params={'alias_key': 'value'},
-        )
+        ))
         dep = yaml_obj.map(service_id='aliased_dep')
 
         # Verify aliased parameters were deserialized correctly.
@@ -406,13 +400,12 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object with fields that should be excluded.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
             module_path='ex.test.mod',
             class_name='ExcludeTest',
             parameters={'secret': 'dontleak'},
             service_id='should_ignore',
-        )
+        ))
         primitive = yaml_obj.to_primitive('to_model')
 
         # Verify excluded fields are absent.

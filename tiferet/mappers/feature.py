@@ -3,23 +3,14 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
+from typing import Any, ClassVar, Dict, List
+
+# ** infra
+from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import (
-    Feature,
-    FeatureStep,
-    FeatureEvent,
-    ListType,
-    ModelType,
-    DictType,
-    StringType,
-)
-from ..events import RaiseError, a
-from .settings import (
-    Aggregate,
-    TransferObject,
-)
+from ..domain import Feature, FeatureStep, FeatureEvent
+from .settings import Aggregate, TransferObject
 
 # *** mappers
 
@@ -28,34 +19,6 @@ class FeatureEventAggregate(FeatureEvent, Aggregate):
     '''
     An aggregate representation of a feature event.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'FeatureEventAggregate':
-        '''
-        Initializes a new feature event aggregate.
-
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new feature event aggregate.
-        :rtype: FeatureEventAggregate
-        '''
-
-        # Create a new feature event aggregate from the provided data.
-        return Aggregate.new(
-            FeatureEventAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
 
     # * method: set_pass_on_error
     def set_pass_on_error(self, value: Any) -> None:
@@ -101,7 +64,7 @@ class FeatureEventAggregate(FeatureEvent, Aggregate):
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Set an attribute on the feature command, with special handling for
+        Set an attribute on the feature event, with special handling for
         ``parameters`` and ``pass_on_error``.
 
         :param attribute: The attribute name to set.
@@ -115,11 +78,15 @@ class FeatureEventAggregate(FeatureEvent, Aggregate):
         # Delegate to specialized helpers for parameters and pass_on_error.
         if attribute == 'parameters':
             self.set_parameters(value)
-        elif attribute == 'pass_on_error':
-            self.set_pass_on_error(value)
-        else:
-            setattr(self, attribute, value)
+            return
 
+        # Pass-on-error has bespoke string-coercion semantics.
+        if attribute == 'pass_on_error':
+            self.set_pass_on_error(value)
+            return
+
+        # All other attributes go through the standard existence check.
+        super().set_attribute(attribute, value)
 
 # ** mapper: feature_event_yaml_object
 class FeatureEventYamlObject(FeatureEvent, TransferObject):
@@ -127,137 +94,56 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
     A YAML data representation of a feature event object.
     '''
 
-    class Options():
-        '''
-        The options for the feature event data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny('type'),
-            'to_data.yaml': TransferObject.deny('type'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {'exclude': {'type'}},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'type'}},
+    }
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType(),
-        default={},
-        serialized_name='params',
-        deserialize_from=['params', 'parameters'],
-        metadata=dict(
-            description='The parameters for the feature event.'
-        )
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        serialization_alias='params',
+        validation_alias=AliasChoices('params', 'parameters'),
+        description='The parameters for the feature event.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> FeatureEvent:
+    def map(self, **overrides) -> FeatureEventAggregate:
         '''
-        Maps the feature event data to a feature event object.
+        Maps the feature event data to a feature event aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new feature event object.
-        :rtype: FeatureEvent
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FeatureEventAggregate instance.
+        :rtype: FeatureEventAggregate
         '''
 
-        # Map to the feature event aggregate.
-        return super().map(
-            FeatureEventAggregate,
-            parameters=self.parameters,
-            **self.to_primitive('to_model'),
-            **kwargs
-        )
+        # Delegate to the base mapper, targeting FeatureEventAggregate.
+        return super().map(FeatureEventAggregate, **overrides)
 
     # * method: from_model
-    @staticmethod
-    def from_model(feature_event: FeatureEvent, **kwargs) -> 'FeatureEventYamlObject':
+    @classmethod
+    def from_model(cls, feature_event: FeatureEvent, **overrides) -> 'FeatureEventYamlObject':
         '''
         Creates a FeatureEventYamlObject from a FeatureEvent model.
 
-        :param feature_event: The feature event model.
+        :param feature_event: The feature event model to copy from.
         :type feature_event: FeatureEvent
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FeatureEventYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FeatureEventYamlObject instance.
         :rtype: FeatureEventYamlObject
         '''
 
-        # Create a new FeatureEventYamlObject from the model.
-        return TransferObject.from_model(
-            FeatureEventYamlObject,
-            feature_event,
-            **kwargs,
-        )
+        # Delegate to the base mapper.
+        return super().from_model(feature_event, **overrides)
 
 # ** mapper: feature_aggregate
 class FeatureAggregate(Feature, Aggregate):
     '''
     An aggregate representation of a feature.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        name: str = None,
-        group_id: str = None,
-        feature_key: str = None,
-        id: str = None,
-        description: str = None,
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'FeatureAggregate':
-        '''
-        Initializes a new feature aggregate.
-
-        :param name: The name of the feature.
-        :type name: str
-        :param group_id: The context group identifier of the feature.
-        :type group_id: str
-        :param feature_key: The key of the feature.
-        :type feature_key: str
-        :param id: The identifier of the feature.
-        :type id: str
-        :param description: The description of the feature.
-        :type description: str
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new feature aggregate.
-        :rtype: FeatureAggregate
-        '''
-
-        # Derive group_id and feature_key from id if provided.
-        if id and '.' in id and (not group_id or not feature_key):
-            group_id, feature_key = id.split('.', 1)
-
-        # Set the feature key as the snake case of the name if not provided.
-        if name and not feature_key:
-            feature_key = name.lower().replace(' ', '_')
-
-        # Feature ID is the group ID and feature key separated by a period.
-        if not id and group_id and feature_key:
-            id = f'{group_id}.{feature_key}'
-
-        # Set the description as the name if not provided.
-        if name and not description:
-            description = name
-
-        # Create a new feature aggregate from the provided data.
-        return Aggregate.new(
-            FeatureAggregate,
-            validate=validate,
-            strict=strict,
-            id=id,
-            name=name,
-            group_id=group_id,
-            feature_key=feature_key,
-            description=description,
-            **kwargs
-        )
 
     # * method: add_step
     def add_step(
@@ -289,7 +175,7 @@ class FeatureAggregate(Feature, Aggregate):
         '''
 
         # Create the feature event from raw attributes.
-        step = FeatureEventAggregate.new(
+        step = FeatureEventAggregate(
             name=name,
             service_id=service_id,
             parameters=parameters or {},
@@ -297,11 +183,14 @@ class FeatureAggregate(Feature, Aggregate):
             pass_on_error=pass_on_error,
         )
 
-        # Add the feature event step to the feature.
+        # Insert at the specified position or append; reassign so
+        # validate_assignment=True triggers field validation.
+        steps = list(self.steps)
         if position is not None:
-            self.steps.insert(position, step)
+            steps.insert(position, step)
         else:
-            self.steps.append(step)
+            steps.append(step)
+        self.steps = steps
 
         return step
 
@@ -339,11 +228,14 @@ class FeatureAggregate(Feature, Aggregate):
         if not isinstance(position, int) or position < 0:
             return None
 
-        # Attempt to remove and return the step at the specified index.
+        # Reassign so validate_assignment=True triggers field validation.
+        steps = list(self.steps)
         try:
-            return self.steps.pop(position)
+            removed = steps.pop(position)
         except IndexError:
             return None
+        self.steps = steps
+        return removed
 
     # * method: reorder_step
     def reorder_step(self, current_position: int, new_position: int) -> FeatureStep | None:
@@ -359,21 +251,22 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: FeatureStep | None
         '''
 
-        # Attempt to remove the step at the current position.
+        # Reassign so validate_assignment=True triggers field validation.
+        steps = list(self.steps)
         try:
-            step = self.steps.pop(current_position)
+            step = steps.pop(current_position)
         except (IndexError, TypeError):
             return None
 
         # Clamp the new position index to the valid range.
         if new_position < 0:
             new_position = 0
-        if new_position > len(self.steps):
-            new_position = len(self.steps)
+        if new_position > len(steps):
+            new_position = len(steps)
 
         # Insert the step at the clamped position and return it.
-        self.steps.insert(new_position, step)
-
+        steps.insert(new_position, step)
+        self.steps = steps
         return step
 
     # * method: rename
@@ -387,10 +280,8 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: None
         '''
 
+        # Reassign; validate_assignment=True triggers validation.
         self.name = name
-
-        # Perform final aggregate validation.
-        self.validate()
 
     # * method: set_description
     def set_description(self, description: str | None) -> None:
@@ -403,6 +294,7 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: None
         '''
 
+        # Reassign; validate_assignment=True triggers validation.
         self.description = description
 
 
@@ -412,65 +304,57 @@ class FeatureYamlObject(Feature, TransferObject):
     A YAML data representation of a feature object.
     '''
 
-    class Options():
-        '''
-        The options for the feature data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny('steps'),
-            'to_data.yaml': TransferObject.deny('feature_key', 'group_id', 'id'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {'exclude': {'steps'}},
+        'to_data.yaml': {
+            'by_alias': True,
+            'exclude': {'feature_key', 'group_id', 'id'},
+        },
+    }
 
     # * attribute: steps
-    steps = ListType(
-        ModelType(FeatureEventYamlObject),
-        deserialize_from=['handlers', 'functions', 'commands', 'steps'],
-        default=[],
+    steps: List[FeatureEventYamlObject] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
+        description='The step workflow for the feature.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> FeatureAggregate:
+    def map(self, **overrides) -> FeatureAggregate:
         '''
         Maps the feature data to a feature aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new feature aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FeatureAggregate instance.
         :rtype: FeatureAggregate
         '''
 
-        # Map the feature data.
+        # Delegate to the base mapper, mapping each YAML step to a runtime step.
         return super().map(
             FeatureAggregate,
             steps=[step.map() for step in (self.steps or [])],
-            **self.to_primitive('to_model'),
-            **kwargs
+            **overrides,
         )
 
     # * method: from_model
-    @staticmethod
-    def from_model(feature: Feature, **kwargs) -> 'FeatureYamlObject':
+    @classmethod
+    def from_model(cls, feature: Feature, **overrides) -> 'FeatureYamlObject':
         '''
         Creates a FeatureYamlObject from a Feature model.
 
-        :param feature: The feature model.
+        :param feature: The feature model to copy from.
         :type feature: Feature
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FeatureYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FeatureYamlObject instance.
         :rtype: FeatureYamlObject
         '''
 
-        # Create a new FeatureYamlObject from the model, converting
-        # the steps list into FeatureEventYamlObject instances.
-        return TransferObject.from_model(
-            FeatureYamlObject,
+        # Convert each runtime step into a FeatureEventYamlObject.
+        return super().from_model(
             feature,
-            steps=[
-                TransferObject.from_model(FeatureEventYamlObject, step)
-                for step in feature.steps
-            ],
-            **kwargs,
+            steps=[FeatureEventYamlObject.from_model(step) for step in feature.steps],
+            **overrides,
         )

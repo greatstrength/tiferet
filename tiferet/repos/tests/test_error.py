@@ -199,8 +199,7 @@ def test_int_error_config_repo_save(
     new_error_id = 'NEW_ERROR_CODE'
 
     # Create new error config data and map to an aggregate.
-    error = TransferObject.from_data(
-        ErrorYamlObject,
+    error = ErrorYamlObject.model_validate(dict(
         id=new_error_id,
         name='New Error',
         message=[
@@ -213,7 +212,7 @@ def test_int_error_config_repo_save(
                 'text': 'Ocurrió un nuevo error',
             },
         ],
-    ).map()
+    )).map()
 
     # Save the new error.
     error_config_repo.save(error)

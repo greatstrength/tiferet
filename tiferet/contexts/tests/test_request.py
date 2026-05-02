@@ -4,7 +4,8 @@
 import pytest
 
 # ** app
-from ...domain import DomainObject, StringType
+from pydantic import Field
+from ...domain import DomainObject
 from ..request import *
 
 # *** fixtures
@@ -96,14 +97,13 @@ def test_request_context_handle_response_domain_object(request_context):
 
     # Create a DomainObject to simulate a response.
     class Data(DomainObject):
-
-        key = StringType(
+        key: str = Field(
             default='default_value',
-            required=True
+            description='The data key.',
         )
 
     # Set the request context result to a DomainObject.
-    request_context.result = DomainObject.new(Data, key='value')
+    request_context.result = Data(key='value')
 
     # Handle the response with a DomainObject.
     response = request_context.handle_response()
@@ -142,16 +142,15 @@ def test_request_context_handle_response_domain_object_list(request_context):
 
     # Create a DomainObject to simulate a response.
     class Item(DomainObject):
-
-        name = StringType(
+        name: str = Field(
             default='default_name',
-            required=True
+            description='The item name.',
         )
 
     # Set the request context result to a list of DomainObjects.
     request_context.result = [
-        DomainObject.new(Item, name='item1'),
-        DomainObject.new(Item, name='item2')
+        Item(name='item1'),
+        Item(name='item2'),
     ]
 
     # Handle the response with a list of DomainObjects.

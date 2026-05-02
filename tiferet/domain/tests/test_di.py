@@ -51,9 +51,7 @@ def flagged_dependency() -> FlaggedDependency:
     '''
 
     # Create and return a new FlaggedDependency.
-    return DomainObject.new(
-        FlaggedDependency,
-        flag='test_alpha',
+    return FlaggedDependency(flag='test_alpha',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependencyAlpha',
         parameters={'test_param': 'test_value', 'param': 'value1'},
@@ -70,9 +68,7 @@ def flagged_dependency_to_add() -> FlaggedDependency:
     '''
 
     # Create and return a new FlaggedDependency.
-    return DomainObject.new(
-        FlaggedDependency,
-        flag='test_beta',
+    return FlaggedDependency(flag='test_beta',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependencyBeta',
         parameters={'test_param': 'test_value', 'param': 'value2'},
@@ -91,9 +87,7 @@ def service_configuration(flagged_dependency: FlaggedDependency) -> ServiceConfi
     '''
 
     # Create and return a new ServiceConfiguration.
-    return DomainObject.new(
-        ServiceConfiguration,
-        id='test_service',
+    return ServiceConfiguration(id='test_service',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependency',
         dependencies=[flagged_dependency],
@@ -112,9 +106,7 @@ def service_configuration_no_default_type(flagged_dependency: FlaggedDependency)
     '''
 
     # Create and return a new ServiceConfiguration without default type.
-    return DomainObject.new(
-        ServiceConfiguration,
-        id='test_service_no_default',
+    return ServiceConfiguration(id='test_service_no_default',
         dependencies=[flagged_dependency],
     )
 
@@ -136,9 +128,7 @@ def service_configuration_multiple_deps(
     '''
 
     # Create and return a new ServiceConfiguration with multiple dependencies.
-    return DomainObject.new(
-        ServiceConfiguration,
-        id='test_service_multi',
+    return ServiceConfiguration(id='test_service_multi',
         module_path='tiferet.domain.tests.test_di',
         class_name='TestDependency',
         dependencies=[flagged_dependency, flagged_dependency_to_add],

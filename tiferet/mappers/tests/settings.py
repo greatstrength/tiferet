@@ -148,8 +148,8 @@ class AggregateTestBase(MapperAssertions):
         :rtype: Aggregate
         '''
 
-        # Create an aggregate using the standard Aggregate.new factory.
-        return Aggregate.new(self.aggregate_cls, **(data or self.sample_data))
+        # Construct an aggregate via the Pydantic constructor.
+        return self.aggregate_cls(**(data or self.sample_data))
 
     # * fixture: aggregate
     @pytest.fixture
@@ -238,8 +238,8 @@ class TransferObjectTestBase(MapperAssertions):
         :rtype: Aggregate
         '''
 
-        # Create an aggregate using the standard Aggregate.new factory.
-        return Aggregate.new(self.aggregate_cls, **(data or self.aggregate_sample_data))
+        # Construct an aggregate via the Pydantic constructor.
+        return self.aggregate_cls(**(data or self.aggregate_sample_data))
 
     # * fixture: aggregate
     @pytest.fixture
@@ -266,7 +266,7 @@ class TransferObjectTestBase(MapperAssertions):
             pytest.skip("transfer_cls not defined")
 
         # Create a transfer object from YAML-format sample data.
-        yaml_obj = TransferObject.from_data(self.transfer_cls, **self.sample_data)
+        yaml_obj = self.transfer_cls.model_validate(self.sample_data)
 
         # Map to an aggregate.
         mapped = yaml_obj.map(**self.map_kwargs)

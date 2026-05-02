@@ -27,15 +27,13 @@ def cli_command_list():
 
     # Return a list of test CLI commands.
     return [
-        CliCommand.new(
+        CliCommand(
             group_key='test-group',
             key='test-feature',
             name='Test Feature Command',
             description='A test feature command.',
             arguments=[
-                DomainObject.new(
-                    CliArgument,
-                    name_or_flags=['--arg1', '-a'],
+                CliArgument(name_or_flags=['--arg1', '-a'],
                     description='Test argument 1',
                     required=True,
                     type='str',

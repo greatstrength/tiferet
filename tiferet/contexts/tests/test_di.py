@@ -55,15 +55,11 @@ def di_service_content() -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
 
     # Create a list of service configurations.
     configurations = [
-        DomainObject.new(
-            ServiceConfiguration,
-            id='test_service',
+        ServiceConfiguration(id='test_service',
             module_path='tiferet.contexts.tests.test_di',
             class_name='TestService',
             dependencies=[
-                DomainObject.new(
-                    FlaggedDependency,
-                    module_path='tiferet.contexts.tests.test_di',
+                FlaggedDependency(module_path='tiferet.contexts.tests.test_di',
                     class_name='TestService',
                     flag='test',
                     parameters=dict(

@@ -10,7 +10,6 @@ from ..contexts.app import AppInterfaceContext
 from ..di import ServiceProvider, DependenciesServiceProvider
 from .. import assets as a
 from ..domain import (
-    DomainObject,
     AppInterface,
     AppServiceDependency,
 )
@@ -126,13 +125,11 @@ class AppBuilder(object):
 
         # Build domain dependency models from the default service configuration.
         return [
-            DomainObject.new(
-                AppServiceDependency,
+            AppServiceDependency.model_construct(
                 service_id=service_id,
                 module_path=module_path,
                 class_name=class_name,
                 parameters=parameters or {},
-                validate=False,
             )
             for service_id, module_path, class_name, parameters in a.bildr.DEFAULT_SERVICES
         ]

@@ -42,9 +42,7 @@ def flagged_dependency_for_di() -> FlaggedDependency:
     '''
 
     # Create a flagged dependency aggregate.
-    return Aggregate.new(
-        FlaggedDependencyAggregate,
-        module_path='tiferet.repos.example',
+    return FlaggedDependencyAggregate(module_path='tiferet.repos.example',
         class_name='ExampleRepository',
         flag='test_alpha',
         parameters={
@@ -66,14 +64,12 @@ def service_configuration_aggregate(flagged_dependency_for_di) -> ServiceConfigu
     '''
 
     # Create a service configuration aggregate with a default type and one dependency.
-    return ServiceConfigurationAggregate.new(
-        service_configuration_data=dict(
-            id='svc_test',
-            module_path='tiferet.repos.example',
-            class_name='ExampleRepository',
-            parameters={'param_1': 'value_1'},
-            dependencies=[flagged_dependency_for_di],
-        ),
+    return ServiceConfigurationAggregate(
+        id='svc_test',
+        module_path='tiferet.repos.example',
+        class_name='ExampleRepository',
+        parameters={'param_1': 'value_1'},
+        dependencies=[flagged_dependency_for_di],
     )
 
 # *** tests
@@ -579,12 +575,10 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         '''
 
         # Create a configuration with only a dependency and no default type.
-        config = ServiceConfigurationAggregate.new(
-            service_configuration_data=dict(
-                id='svc_only_deps',
-                dependencies=[flagged_dependency_for_di],
-                parameters={},
-            ),
+        config = ServiceConfigurationAggregate(
+            id='svc_only_deps',
+            dependencies=[flagged_dependency_for_di],
+            parameters={},
         )
         mock_dependencies['di_service'].get_configuration.return_value = config
 

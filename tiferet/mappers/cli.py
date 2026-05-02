@@ -3,22 +3,15 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
+from typing import Any, ClassVar, Dict, List
+
+# ** infra
+from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import (
-    CliCommand,
-    CliArgument,
-    DomainObject,
-    StringType,
-    ListType,
-    ModelType,
-)
+from ..domain import CliArgument, CliCommand
 from ..events import RaiseError, a
-from .settings import (
-    Aggregate,
-    TransferObject,
-)
+from .settings import Aggregate, TransferObject
 
 # *** mappers
 
@@ -27,34 +20,6 @@ class CliArgumentAggregate(CliArgument, Aggregate):
     '''
     An aggregate representation of a CLI argument.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'CliArgumentAggregate':
-        '''
-        Initializes a new CLI argument aggregate.
-
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new CLI argument aggregate.
-        :rtype: CliArgumentAggregate
-        '''
-
-        # Create a new CLI argument aggregate from the provided data.
-        return Aggregate.new(
-            CliArgumentAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
@@ -91,45 +56,14 @@ class CliArgumentAggregate(CliArgument, Aggregate):
                 supported=', '.join(sorted(supported)),
             )
 
-        # Apply the update to the attribute.
+        # Apply the update; validate_assignment=True triggers field validation.
         setattr(self, attribute, value)
-
-        # Perform final aggregate validation.
-        self.validate()
 
 # ** mapper: cli_command_aggregate
 class CliCommandAggregate(CliCommand, Aggregate):
     '''
     An aggregate representation of a CLI command.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'CliCommandAggregate':
-        '''
-        Initializes a new CLI command aggregate.
-
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new CLI command aggregate.
-        :rtype: CliCommandAggregate
-        '''
-
-        # Create a new CLI command aggregate from the provided CLI command data.
-        return Aggregate.new(
-            CliCommandAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
 
     # * method: add_argument
     def add_argument(self,
@@ -140,7 +74,7 @@ class CliCommandAggregate(CliCommand, Aggregate):
             default: str = None,
             choices: list = None,
             nargs: str = None,
-            action: str = None
+            action: str = None,
         ) -> None:
         '''
         Add an argument to the command.
@@ -165,21 +99,26 @@ class CliCommandAggregate(CliCommand, Aggregate):
         :rtype: None
         '''
 
-        # Create a new CliArgument instance using DomainObject.new.
-        argument = DomainObject.new(
-            CliArgument,
-            name_or_flags=name_or_flags,
-            description=description,
-            type=type,
-            required=required,
-            default=default,
-            choices=choices,
-            nargs=nargs,
-            action=action
-        )
+        # Build the kwargs for the argument, omitting any None values so
+        # CliArgument's defaults (e.g. type='str') are preserved.
+        argument_kwargs = {
+            k: v
+            for k, v in dict(
+                name_or_flags=name_or_flags,
+                description=description,
+                type=type,
+                required=required,
+                default=default,
+                choices=choices,
+                nargs=nargs,
+                action=action,
+            ).items()
+            if v is not None
+        }
 
-        # Append the argument to the command's arguments list.
-        self.arguments.append(argument)
+        # Create the argument and reassign so validate_assignment=True triggers validation.
+        argument = CliArgument(**argument_kwargs)
+        self.arguments = list(self.arguments) + [argument]
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
@@ -213,11 +152,8 @@ class CliCommandAggregate(CliCommand, Aggregate):
                 supported=', '.join(sorted(supported)),
             )
 
-        # Apply the update to the attribute.
+        # Apply the update; validate_assignment=True triggers field validation.
         setattr(self, attribute, value)
-
-        # Perform final aggregate validation.
-        self.validate()
 
 # ** mapper: cli_command_yaml_object
 class CliCommandYamlObject(CliCommand, TransferObject):
@@ -225,94 +161,52 @@ class CliCommandYamlObject(CliCommand, TransferObject):
     A YAML data representation of a CLI command object.
     '''
 
-    class Options():
-        '''
-        The options for the CLI command data.
-        '''
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.deny('arguments'),
-            'to_data.yaml': TransferObject.deny('id', 'arguments'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {'exclude': {'arguments'}},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+    }
 
     # * attribute: arguments
-    arguments = ListType(
-        ModelType(CliArgument),
-        default=[],
-        deserialize_from=['args', 'arguments'],
-        serialized_name='args',
-        metadata={
-            'description': 'The list of arguments for the CLI command.'
-        },
+    arguments: List[CliArgument] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices('args', 'arguments'),
+        serialization_alias='args',
+        description='The list of arguments for the CLI command.',
     )
 
-    # * method: to_primitive
-    def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
-        '''
-        Converts the CLI command data to a primitive dictionary representation.
-
-        :param role: The role to use for the conversion.
-        :type role: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A primitive dictionary representation of the CLI command data.
-        :rtype: dict
-        '''
-
-        # Convert the CLI command data to a primitive dictionary, converting
-        # the arguments list into dictionaries as well.
-        return dict(
-            **super().to_primitive(role=role, **kwargs),
-            args=[
-                arg.to_primitive()
-                for arg in self.arguments
-            ]
-        )
-
     # * method: map
-    def map(self, **kwargs) -> CliCommandAggregate:
+    def map(self, **overrides) -> CliCommandAggregate:
         '''
         Maps the CLI command data to a CLI command aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new CLI command aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new CliCommandAggregate instance.
         :rtype: CliCommandAggregate
         '''
 
-        # Map the CLI command data.
+        # Pass arguments back as primitives so the aggregate validates them
+        # under its canonical schema.
         return super().map(
             CliCommandAggregate,
-            arguments=[
-                arg.to_primitive()
-                for arg in self.arguments
-            ],
-            **self.to_primitive('to_model'),
-            **kwargs
+            arguments=[arg.model_dump() for arg in self.arguments],
+            **overrides,
         )
 
     # * method: from_model
-    @staticmethod
-    def from_model(cli_command: CliCommand, **kwargs) -> 'CliCommandYamlObject':
+    @classmethod
+    def from_model(cls, cli_command: CliCommand, **overrides) -> 'CliCommandYamlObject':
         '''
         Creates a CliCommandYamlObject from a CliCommand model.
 
-        :param cli_command: The CLI command model.
+        :param cli_command: The CLI command model to copy from.
         :type cli_command: CliCommand
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new CliCommandYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new CliCommandYamlObject instance.
         :rtype: CliCommandYamlObject
         '''
 
-        # Create a new CliCommandYamlObject from the model, converting
-        # the arguments list into primitive dictionaries.
-        return TransferObject.from_model(
-            CliCommandYamlObject,
-            cli_command,
-            arguments=[
-                arg.to_primitive()
-                for arg in cli_command.arguments
-            ],
-            **kwargs,
-        )
+        # Delegate to the base mapper.
+        return super().from_model(cli_command, **overrides)

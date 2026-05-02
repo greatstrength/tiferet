@@ -93,11 +93,7 @@ class ErrorYamlRepository(ErrorService):
             return None
 
         # Map the data to an ErrorAggregate and return it.
-        return TransferObject.from_data(
-            ErrorYamlObject,
-            id=id,
-            **error_data,
-        ).map()
+        return ErrorYamlObject.model_validate({**error_data, 'id': id}).map()
 
     # * method: list
     def list(self) -> List[ErrorAggregate]:
@@ -118,11 +114,7 @@ class ErrorYamlRepository(ErrorService):
 
         # Map each error entry to an ErrorAggregate.
         return [
-            TransferObject.from_data(
-                ErrorYamlObject,
-                id=error_id,
-                **error_data,
-            ).map()
+            ErrorYamlObject.model_validate({**error_data, 'id': error_id}).map()
             for error_id, error_data in errors_data.items()
         ]
 

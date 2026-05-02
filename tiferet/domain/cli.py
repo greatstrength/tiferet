@@ -3,16 +3,13 @@
 # *** imports
 
 # ** core
-from typing import List
+from typing import Any, List, Literal
+
+# ** infra
+from pydantic import Field, model_validator
 
 # ** app
-from .settings import (
-    DomainObject,
-    StringType,
-    BooleanType,
-    ListType,
-    ModelType,
-)
+from .settings import DomainObject
 
 # *** models
 
@@ -23,74 +20,70 @@ class CliArgument(DomainObject):
     '''
 
     # * attribute: name_or_flags
-    name_or_flags = ListType(
-        StringType,
-        required=True,
-        metadata=dict(
-            description='The name or flags of the argument. Can be a single name or multiple flags (e.g., ["-f", "--flag"])'
-        ),
+    name_or_flags: List[str] = Field(
+        ...,
+        description='The name or flags of the argument. Can be a single name or multiple flags (e.g., ["-f", "--flag"])',
     )
 
     # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='A brief description of the argument.'
-        ),
+    description: str | None = Field(
+        default=None,
+        description='A brief description of the argument.',
     )
 
     # * attribute: type
-    type = StringType(
-        choices=['str', 'int', 'float'],
+    type: Literal['str', 'int', 'float'] = Field(
         default='str',
-        metadata=dict(
-            description='The type of the argument. Can be "str", "int", or "float". Defaults to "str".'
-        ),
+        description='The type of the argument. Can be "str", "int", or "float". Defaults to "str".',
     )
 
     # * attribute: required
-    required = BooleanType(
-        metadata=dict(
-            description='Whether the argument is required. Defaults to False.'
-        ),
+    required: bool | None = Field(
+        default=None,
+        description='Whether the argument is required. Defaults to False.',
     )
 
     # * attribute: default
-    default = StringType(
-        metadata=dict(
-            description='The default value of the argument if it is not provided. Only applicable if the argument is not required.'
-        ),
+    default: str | None = Field(
+        default=None,
+        description='The default value of the argument if it is not provided. Only applicable if the argument is not required.',
     )
 
     # * attribute: choices
-    choices = ListType(
-        StringType,
-        metadata=dict(
-            description='A list of valid choices for the argument. If provided, the argument must be one of these choices.'
-        ),
+    choices: List[str] | None = Field(
+        default=None,
+        description='A list of valid choices for the argument. If provided, the argument must be one of these choices.',
     )
 
     # * attribute: nargs
-    nargs = StringType(
-        metadata=dict(
-            description='The number of arguments that should be consumed. Can be an integer or "?" for optional, "*" for zero or more, or "+" for one or more.'
-        ),
+    nargs: str | None = Field(
+        default=None,
+        description='The number of arguments that should be consumed. Can be an integer or "?" for optional, "*" for zero or more, or "+" for one or more.',
     )
 
     # * attribute: action
-    action = StringType(
-        choices=['store', 'store_const', 'store_true', 'store_false', 'append', 'append_const', 'count', 'help', 'version'],
-        metadata=dict(
-            description='The action to be taken when the argument is encountered.'
-        ),
+    action: Literal[
+        'store',
+        'store_const',
+        'store_true',
+        'store_false',
+        'append',
+        'append_const',
+        'count',
+        'help',
+        'version',
+    ] | None = Field(
+        default=None,
+        description='The action to be taken when the argument is encountered.',
     )
 
     # * method: get_type
-    def get_type(self) -> str | int | float:
+    def get_type(self) -> type:
         '''
-        Get the type of the argument.
+        Get the Python type that corresponds to the argument's declared type.
 
-        :return: The type of the argument.
-        :rtype: str | int | float
+        :return: The corresponding Python type.
+        :rtype: type
         '''
 
         # Map the type string to a Python type.
@@ -112,91 +105,69 @@ class CliCommand(DomainObject):
     '''
 
     # * attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The unique identifier for the command, typically formatted as "group_key.key".'
-        ),
+    id: str = Field(
+        ...,
+        description='The unique identifier for the command, typically formatted as "group_key.key".',
     )
 
     # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The name of the command.'
-        ),
+    name: str = Field(
+        ...,
+        description='The name of the command.',
     )
 
     # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='A brief description of the command.'
-        ),
+    description: str | None = Field(
+        default=None,
+        description='A brief description of the command.',
     )
 
     # * attribute: key
-    key = StringType(
-        required=True,
-        metadata=dict(
-            description='A unique key for the command, typically used for identification in a configuration file.'
-        ),
+    key: str = Field(
+        ...,
+        description='A unique key for the command, typically used for identification in a configuration file.',
     )
 
     # * attribute: group_key
-    group_key = StringType(
-        required=True,
-        metadata=dict(
-            description='A unique key for the group this command belongs to, typically used for modularly grouping commands by functional context in a configuration file.'
-        ),
+    group_key: str = Field(
+        ...,
+        description='A unique key for the group this command belongs to, typically used for modularly grouping commands by functional context in a configuration file.',
     )
 
     # * attribute: arguments
-    arguments = ListType(
-        ModelType(CliArgument),
-        default=[],
-        metadata=dict(
-            description='A list of arguments for the command.'
-        ),
+    arguments: List[CliArgument] = Field(
+        default_factory=list,
+        description='A list of arguments for the command.',
     )
 
-    # * method: new
-    @staticmethod
-    def new(group_key: str,
-            key: str,
-            name: str,
-            description: str = None,
-            arguments: List[CliArgument] = [],
-        ) -> 'CliCommand':
+    # * method: _derive_id (validator)
+    @model_validator(mode='before')
+    @classmethod
+    def _derive_id(cls, data: Any) -> Any:
         '''
-        Create a new command.
+        Derive ``id`` from ``group_key`` and ``key`` when not explicitly provided.
 
-        :param group_key: The group key for the command.
-        :type group_key: str
-        :param key: The unique key for the command.
-        :type key: str
-        :param name: The name of the command.
-        :type name: str
-        :param description: A brief description of the command.
-        :type description: str
-        :param arguments: A list of arguments for the command.
-        :type arguments: List[CliArgument]
-        :return: The created command.
-        :rtype: CliCommand
+        :param data: The raw input data passed to the model.
+        :type data: Any
+        :return: The (possibly augmented) input data.
+        :rtype: Any
         '''
 
-        # Create the command id from the formatted group key and key.
-        id = '{}.{}'.format(group_key.replace('-', '_'), key.replace('-', '_'))
+        # Only mutate dict-shaped inputs; pass other shapes through unchanged.
+        if (
+            isinstance(data, dict)
+            and not data.get('id')
+            and data.get('group_key')
+            and data.get('key')
+        ):
+            data = dict(data)
+            data['id'] = '{}.{}'.format(
+                str(data['group_key']).replace('-', '_'),
+                str(data['key']).replace('-', '_'),
+            )
 
-        # Create and return the command object.
-        return DomainObject.new(
-            CliCommand,
-            id=id,
-            group_key=group_key,
-            key=key,
-            name=name,
-            description=description,
-            arguments=arguments,
-        )
+        # Return the (possibly augmented) input data.
+        return data
 
     # * method: has_argument
     def has_argument(self, flags: List[str]) -> bool:
@@ -209,10 +180,10 @@ class CliCommand(DomainObject):
         :rtype: bool
         '''
 
-        # Loop through the flags and check if any of them match the flags of an existing argument
+        # Loop through the flags and check if any of them match the flags of an existing argument.
         for flag in flags:
             if any([argument for argument in self.arguments if flag in argument.name_or_flags]):
                 return True
 
-        # Return False if no argument was found
+        # Return False if no argument was found.
         return False

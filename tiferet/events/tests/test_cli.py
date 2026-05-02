@@ -32,7 +32,7 @@ def cli_command():
     '''
 
     # Create a test CliCommand instance.
-    return CliCommandAggregate.new(
+    return CliCommandAggregate(
         id='test.command',
         name='Test Command',
         key='command',
@@ -294,7 +294,7 @@ class TestListCliCommands(DomainEventTestBase):
         '''
 
         # Create another command for the list.
-        another = CliCommandAggregate.new(
+        another = CliCommandAggregate(
             id='test.another',
             name='Another Command',
             key='another',
@@ -337,16 +337,12 @@ class TestGetParentArguments(DomainEventTestBase):
 
         # Create sample parent arguments.
         parent_args = [
-            DomainObject.new(
-                CliArgument,
-                name_or_flags=['--verbose', '-v'],
+            CliArgument(name_or_flags=['--verbose', '-v'],
                 description='Enable verbose output',
                 type='str',
                 required=False,
             ),
-            DomainObject.new(
-                CliArgument,
-                name_or_flags=['--debug'],
+            CliArgument(name_or_flags=['--debug'],
                 description='Enable debug mode',
                 type='str',
                 required=False,

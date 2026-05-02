@@ -23,9 +23,7 @@ def formatter():
     '''
     Fixture to create a Formatter instance.
     '''
-    return DomainObject.new(
-        Formatter,
-        id='simple',
+    return Formatter(id='simple',
         name='Simple Formatter',
         description='A simple logging formatter.',
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -39,9 +37,7 @@ def handler(formatter):
     '''
     Fixture to create a Handler instance.
     '''
-    return DomainObject.new(
-        Handler,
-        id='console',
+    return Handler(id='console',
         name='Console Handler',
         description='A console logging handler.',
         module_path='logging',
@@ -58,9 +54,7 @@ def logger_root(handler):
     '''
     Fixture to create a root Logger instance.
     '''
-    return DomainObject.new(
-        Logger,
-        id='root',
+    return Logger(id='root',
         name='',
         description='Root logger.',
         level='DEBUG',
@@ -195,9 +189,7 @@ def test_logging_context_format_config_non_root_logger(logging_context, formatte
     '''
 
     # Create a non-root logger.
-    non_root_logger = DomainObject.new(
-        Logger,
-        id='app',
+    non_root_logger = Logger(id='app',
         name='app',
         description='Application logger.',
         level='INFO',
@@ -283,9 +275,7 @@ def test_logging_context_build_logger_error(logging_context, logging_list_all_ev
     '''
 
     # Mock list_all to return invalid configurations that will fail.
-    invalid_formatter = DomainObject.new(
-        Formatter,
-        id='invalid',
+    invalid_formatter = Formatter(id='invalid',
         name='Invalid Formatter',
         description='An invalid formatter.',
         format='%(invalid)s',

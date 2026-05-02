@@ -40,18 +40,14 @@ def app_interface():
     '''
 
     # Create a test AppInterface instance.
-    return Aggregate.new(
-        AppInterfaceAggregate,
-        id='test',
+    return AppInterfaceAggregate(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppContext',
         description='The test app.',
         flags=['test'],
         services=[
-            DomainObject.new(
-                AppServiceDependency,
-                service_id='test_service',
+            AppServiceDependency(service_id='test_service',
                 module_path='test_module_path',
                 class_name='test_class_name',
             ),
@@ -220,16 +216,12 @@ class TestGetAppInterface(ServiceEventTestBase):
 
         # Create default services with one duplicate and one missing service_id.
         default_services = [
-            DomainObject.new(
-                AppServiceDependency,
-                service_id='test_service',
+            AppServiceDependency(service_id='test_service',
                 module_path='ignored.module',
                 class_name='IgnoredClass',
                 parameters={'ignored': 'value'},
             ),
-            DomainObject.new(
-                AppServiceDependency,
-                service_id='new_service',
+            AppServiceDependency(service_id='new_service',
                 module_path='new.module',
                 class_name='NewClass',
                 parameters={'new': 'value'},
@@ -283,16 +275,12 @@ class TestGetAppInterface(ServiceEventTestBase):
         '''
 
         # Configure the service mock to return a plain AppInterface domain object.
-        domain_interface = DomainObject.new(
-            AppInterface,
-            id='test.interface',
+        domain_interface = AppInterface(id='test.interface',
             name='Test Interface',
             module_path='tiferet.contexts.app',
             class_name='AppContext',
             services=[
-                DomainObject.new(
-                    AppServiceDependency,
-                    service_id='existing_service',
+                AppServiceDependency(service_id='existing_service',
                     module_path='existing.module',
                     class_name='ExistingClass',
                     parameters={},
@@ -307,9 +295,7 @@ class TestGetAppInterface(ServiceEventTestBase):
             mock_dependencies,
             interface_id='test.interface',
             default_services=[
-                DomainObject.new(
-                    AppServiceDependency,
-                    service_id='new_service',
+                AppServiceDependency(service_id='new_service',
                     module_path='new.module',
                     class_name='NewClass',
                     parameters={'key': 'value'},
@@ -367,9 +353,7 @@ class TestListAppInterfaces(DomainEventTestBase):
         '''
 
         # Configure the service to return multiple interfaces.
-        another_interface = Aggregate.new(
-            AppInterfaceAggregate,
-            id='other',
+        another_interface = AppInterfaceAggregate(id='other',
             name='Other App',
             module_path='tiferet.contexts.app',
             class_name='OtherAppContext',

@@ -73,10 +73,10 @@ class AddError(DomainEvent):
 
         # Create the Error aggregate.
         error_messages = [{'lang': lang, 'text': message}] + additional_messages
-        new_error = ErrorAggregate.new(
+        new_error = ErrorAggregate(
             id=id,
             name=name,
-            message=error_messages
+            message=error_messages,
         )
 
         # Save the new error.
@@ -132,7 +132,7 @@ class GetError(DomainEvent):
         if include_defaults:
             error_data = a.DEFAULT_ERRORS.get(id)
             if error_data:
-                return ErrorAggregate.new(**error_data)
+                return ErrorAggregate(**error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
@@ -180,7 +180,7 @@ class ListErrors(DomainEvent):
             return self.error_service.list()
 
         # If defaults are included, merge repository and default errors.
-        errors = {id: ErrorAggregate.new(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
+        errors = {id: ErrorAggregate(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 
