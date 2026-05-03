@@ -3,16 +3,7 @@
 # *** imports
 
 # ** app
-from .settings import (
-    DomainObject,
-    StringType,
-    IntegerType,
-    FloatType,
-    BooleanType,
-    ListType,
-    DictType,
-    ModelType,
-)
+from .settings import DomainObject
 from .app import (
     AppInterface,
     AppServiceDependency,
@@ -38,8 +29,4 @@ from .logging import (
     Formatter,
     Handler,
     Logger,
-)
-from ..di import (
-    ServiceProvider,
-    DependenciesServiceProvider,
 )
