@@ -4,17 +4,14 @@
 
 # ** core
 from importlib import import_module
-from typing import Dict
+from typing import Dict, List
+
+# ** infra
+from pydantic import Field
 
 # ** app
-from .settings import (
-    DomainObject,
-    StringType,
-    ListType,
-    DictType,
-    ModelType,
-)
 from ..di import ServiceProvider
+from .settings import DomainObject
 
 # *** models
 
@@ -25,36 +22,27 @@ class AppServiceDependency(DomainObject):
     '''
 
     # * attribute: service_id
-    service_id = StringType(
-        required=True,
-        metadata=dict(
-            description='The service id for the application dependency.'
-        ),
+    service_id: str = Field(
+        ...,
+        description='The service id for the application dependency.',
     )
 
     # * attribute: module_path
-    module_path = StringType(
-        required=True,
-        metadata=dict(
-            description='The module path for the app dependency.'
-        ),
+    module_path: str = Field(
+        ...,
+        description='The module path for the app dependency.',
     )
 
     # * attribute: class_name
-    class_name = StringType(
-        required=True,
-        metadata=dict(
-            description='The class name for the app dependency.'
-        ),
+    class_name: str = Field(
+        ...,
+        description='The class name for the app dependency.',
     )
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType,
-        default={},
-        metadata=dict(
-            description='The parameters for the application dependency.'
-        ),
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        description='The parameters for the application dependency.',
     )
 
     # * method: get_service_type
@@ -77,105 +65,80 @@ class AppInterface(DomainObject):
     '''
 
     # * attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The unique identifier for the application interface.'
-        ),
+    id: str = Field(
+        ...,
+        description='The unique identifier for the application interface.',
     )
 
     # * attribute: name
-    name = StringType(
-        required=True,
-        metadata=dict(
-            description='The name of the application interface.'
-        ),
+    name: str = Field(
+        ...,
+        description='The name of the application interface.',
     )
 
     # * attribute: description
-    description = StringType(
-        metadata=dict(
-            description='The description of the application interface.'
-        ),
+    description: str | None = Field(
+        default=None,
+        description='The description of the application interface.',
     )
 
     # * attribute: module_path
-    module_path = StringType(
-        required=True,
-        metadata=dict(
-            description='The module path for the application instance context.'
-        ),
+    module_path: str = Field(
+        ...,
+        description='The module path for the application instance context.',
     )
 
     # * attribute: class_name
-    class_name = StringType(
-        required=True,
-        metadata=dict(
-            description='The class name for the application instance context.'
-        ),
-    )
-
-    # * attribute: logger_id
-    logger_id = StringType(
-        default='default',
-        metadata=dict(
-            description='The logger ID for the application instance.'
-        ),
-    )
-
-    # * attribute: flags
-    flags = ListType(
-        StringType(),
-        default=['default'],
-        metadata=dict(
-            description='The flags for the application interface.'
-        ),
-    )
-
-    # * attribute: services
-    services = ListType(
-        ModelType(AppServiceDependency),
-        required=True,
-        default=[],
-        metadata=dict(
-            description='The application instance service dependencies.'
-        ),
-    )
-
-    # * attribute: constants
-    constants = DictType(
-        StringType,
-        default={},
-        metadata=dict(
-            description='The application dependency constants.'
-        ),
+    class_name: str = Field(
+        ...,
+        description='The class name for the application instance context.',
     )
 
     # * attribute: service_provider_path
-    service_provider_path = StringType(
+    service_provider_path: str = Field(
         default='tiferet.di.dependencies',
-        metadata=dict(
-            description='The module path for the service provider to use for this dependency.'
-        ),
+        description='The module path for the service provider to use for this dependency.',
     )
 
     # * attribute: service_provider_class_name
-    service_provider_class_name = StringType(
+    service_provider_class_name: str = Field(
         default='DependenciesServiceProvider',
-        metadata=dict(
-            description='The class name for the service provider to use for this dependency.'
-        ),
+        description='The class name for the service provider to use for this dependency.',
+    )
+
+    # * attribute: logger_id
+    logger_id: str = Field(
+        default='default',
+        description='The logger ID for the application instance.',
+    )
+
+    # * attribute: flags
+    flags: List[str] = Field(
+        default_factory=lambda: ['default'],
+        description='The flags for the application interface.',
+    )
+
+    # * attribute: services
+    services: List[AppServiceDependency] = Field(
+        default_factory=list,
+        description='The application instance service dependencies.',
+    )
+
+    # * attribute: constants
+    constants: Dict[str, str] = Field(
+        default_factory=dict,
+        description='The application dependency constants.',
     )
 
     # * method: get_service
-    def get_service(self, service_id: str) -> AppServiceDependency:
+    def get_service(self, service_id: str) -> AppServiceDependency | None:
         '''
         Get the service dependency by service id.
 
         :param service_id: The service id of the service dependency.
         :type service_id: str
-        :return: The service dependency.
-        :rtype: AppServiceDependency
+        :return: The matching service dependency, or ``None``.
+        :rtype: AppServiceDependency | None
         '''
 
         # Get the service dependency by service id.
@@ -191,7 +154,7 @@ class AppInterface(DomainObject):
         '''
 
         # Retrieve the app context dependency, interface id, and logger id.
-        dependencies = dict(
+        dependencies: Dict[str, type] = dict(
             app_context=getattr(
                 import_module(self.module_path),
                 self.class_name,

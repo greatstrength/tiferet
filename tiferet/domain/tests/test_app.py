@@ -29,9 +29,7 @@ def app_dependency() -> AppServiceDependency:
     '''
 
     # Create and return a new AppServiceDependency.
-    return DomainObject.new(
-        AppServiceDependency,
-        service_id='test_service',
+    return AppServiceDependency(service_id='test_service',
         module_path='test_module_path',
         class_name='test_class_name',
         parameters={'param1': 'value1', 'param2': 'value2'},
@@ -49,9 +47,7 @@ def resolvable_app_dependency() -> AppServiceDependency:
     '''
 
     # Use a real module path so import_module resolves correctly.
-    return DomainObject.new(
-        AppServiceDependency,
-        service_id='resolvable_service',
+    return AppServiceDependency(service_id='resolvable_service',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
         parameters={'param1': 'value1'},
@@ -70,9 +66,7 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
     '''
 
     # Create and return a new AppInterface.
-    return DomainObject.new(
-        AppInterface,
-        id='test',
+    return AppInterface(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
@@ -127,9 +121,7 @@ def test_app_interface_get_service_type_mapping(resolvable_app_dependency: AppSe
     '''
 
     # Create an AppInterface with a resolvable service dependency.
-    interface = DomainObject.new(
-        AppInterface,
-        id='test',
+    interface = AppInterface(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
@@ -162,9 +154,7 @@ def test_app_interface_get_service_type_mapping_no_services() -> None:
     '''
 
     # Create an AppInterface with no services.
-    interface = DomainObject.new(
-        AppInterface,
-        id='empty',
+    interface = AppInterface(id='empty',
         name='Empty App',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
@@ -205,9 +195,7 @@ def test_app_interface_service_provider_defaults() -> None:
     '''
 
     # Create an AppInterface with minimal required data.
-    interface = DomainObject.new(
-        AppInterface,
-        id='test',
+    interface = AppInterface(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
@@ -229,9 +217,7 @@ def test_app_interface_create_service_provider(resolvable_app_dependency: AppSer
     '''
 
     # Create an AppInterface with a resolvable service dependency.
-    interface = DomainObject.new(
-        AppInterface,
-        id='test',
+    interface = AppInterface(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
         class_name='AppInterfaceContext',
