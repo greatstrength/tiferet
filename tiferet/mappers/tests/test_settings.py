@@ -4,13 +4,10 @@
 
 # ** infra
 import pytest
-from unittest import mock
+from pydantic import Field, ValidationError
 
 # ** app
-from ...domain import (
-    DomainObject,
-    StringType,
-)
+from ...domain import DomainObject
 from ..settings import Aggregate, TransferObject
 from ...assets import TiferetError
 
@@ -21,182 +18,127 @@ from ...assets import TiferetError
 def test_aggregate() -> type:
     '''
     Provides a fixture for a test Aggregate class.
-    
+
     :return: The Aggregate subclass.
     :rtype: type
     '''
-    
+
     class TestAggregate(Aggregate):
         '''
         A test Aggregate for testing purposes.
         '''
-        
-        id = StringType(
-            required=True,
-            metadata=dict(
-                description='The unique identifier.'
-            )
-        )
-        
-        name = StringType(
-            required=True,
-            metadata=dict(
-                description='The name of the aggregate.'
-            )
-        )
-    
-    return TestAggregate
 
-# ** fixture: mock_model
-@pytest.fixture
-def mock_model() -> DomainObject:
-    '''
-    Provides a fixture for a mocked DomainObject instance.
-    
-    :return: The mocked DomainObject instance.
-    :rtype: DomainObject
-    '''
-    
-    # Create a mocked DomainObject instance.
-    model = mock.Mock(spec=DomainObject)
-    model.to_primitive.return_value = {
-        'id': 'test_id',
-        'name': 'Test Model'
-    }
-    model.validate.return_value = None
-    
-    # Return the mocked model.
-    return model
+        id: str = Field(
+            ...,
+            description='The unique identifier.',
+        )
+
+        name: str = Field(
+            ...,
+            description='The name of the aggregate.',
+        )
+
+    return TestAggregate
 
 # ** fixture: test_data_object
 @pytest.fixture
-def test_data_object() -> TransferObject:
+def test_data_object(test_aggregate: type) -> type:
     '''
-    Provides a fixture for a TransferObject instance.
-    
-    :return: The TransferObject instance.
-    :rtype: TransferObject
+    Provides a fixture for a TransferObject subclass with _ROLES.
+
+    :param test_aggregate: The Aggregate subclass used as the map target.
+    :type test_aggregate: type
+    :return: The TransferObject subclass.
+    :rtype: type
     '''
-    
+
     class TestDataObject(TransferObject):
         '''
         A test TransferObject for testing purposes.
         '''
 
-        class Options:
-            '''
-            Options for the test TransferObject.
-            '''
+        _ROLES = {
+            'to_data': {'exclude': {'id'}},
+            'to_model': {},
+        }
 
-            serialize_when_none = False
-            roles = {
-                'to_data': TransferObject.allow('id', 'name'),
-                'to_model': TransferObject.allow('id', 'name')
-            }
-        
-        id = StringType(
-            required=True,
-            metadata=dict(
-                description='The unique identifier for the data object.'
-            )
+        id: str = Field(
+            ...,
+            description='The unique identifier for the data object.',
         )
 
-        name = StringType(
-            required=True,
-            metadata=dict(
-                description='The name of the data object.'
-            )
+        name: str = Field(
+            ...,
+            description='The name of the data object.',
         )
 
     return TestDataObject
 
+# ** fixture: source_model
+@pytest.fixture
+def source_model() -> DomainObject:
+    '''
+    Provides a real DomainObject instance for from_model tests.
+
+    :return: A DomainObject instance.
+    :rtype: DomainObject
+    '''
+
+    # Define a simple source model.
+    class SourceModel(DomainObject):
+        id: str = Field(...)
+        name: str = Field(...)
+
+    # Return an instance with sample data.
+    return SourceModel(id='test_id', name='Test Model')
+
 # *** tests
 
-# ** test: aggregate_new
-def test_aggregate_new(test_aggregate: type):
+# ** test: aggregate_construct
+def test_aggregate_construct(test_aggregate: type):
     '''
-    Test the Aggregate.new factory method.
-    
+    Test direct construction of an Aggregate subclass.
+
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
     '''
-    
-    # Create a new aggregate instance.
-    aggregate = Aggregate.new(
-        test_aggregate,
-        id='test_id',
-        name='Test Aggregate'
-    )
-    
+
+    # Construct via the standard Pydantic constructor.
+    aggregate = test_aggregate(id='test_id', name='Test Aggregate')
+
     # Assert the aggregate is correctly instantiated.
     assert isinstance(aggregate, test_aggregate)
     assert aggregate.id == 'test_id'
     assert aggregate.name == 'Test Aggregate'
 
-# ** test: aggregate_new_no_validation
-def test_aggregate_new_no_validation(test_aggregate: type):
+# ** test: aggregate_extra_field_rejected
+def test_aggregate_extra_field_rejected(test_aggregate: type):
     '''
-    Test the Aggregate.new factory method without validation.
-    
-    :param test_aggregate: The Aggregate subclass to test.
-    :type test_aggregate: type
-    '''
-    
-    # Create a new aggregate instance without validation.
-    aggregate = Aggregate.new(
-        test_aggregate,
-        validate=False,
-        id='test_id',
-        name='Test Aggregate'
-    )
-    
-    # Assert the aggregate is correctly instantiated.
-    assert isinstance(aggregate, test_aggregate)
-    assert aggregate.id == 'test_id'
-    assert aggregate.name == 'Test Aggregate'
+    Test that Aggregate rejects unknown fields under ``extra='forbid'``.
 
-# ** test: aggregate_new_not_strict
-def test_aggregate_new_not_strict(test_aggregate: type):
-    '''
-    Test the Aggregate.new factory method with strict=False.
-    
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
     '''
-    
-    # Create a new aggregate instance in non-strict mode.
-    aggregate = Aggregate.new(
-        test_aggregate,
-        strict=False,
-        id='test_id',
-        name='Test Aggregate',
-        extra_field='ignored'
-    )
-    
-    # Assert the aggregate is correctly instantiated.
-    assert isinstance(aggregate, test_aggregate)
-    assert aggregate.id == 'test_id'
-    assert aggregate.name == 'Test Aggregate'
+
+    # Constructing with an unknown field should raise.
+    with pytest.raises(ValidationError):
+        test_aggregate(id='test_id', name='Test', extra_field='nope')
 
 # ** test: aggregate_set_attribute_success
 def test_aggregate_set_attribute_success(test_aggregate: type):
     '''
     Test setting a valid attribute on an Aggregate instance.
-    
+
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
     '''
-    
+
     # Create an aggregate instance.
-    aggregate = Aggregate.new(
-        test_aggregate,
-        id='test_id',
-        name='Original Name'
-    )
-    
+    aggregate = test_aggregate(id='test_id', name='Original Name')
+
     # Update the name attribute.
     aggregate.set_attribute('name', 'Updated Name')
-    
+
     # Assert the attribute was updated.
     assert aggregate.name == 'Updated Name'
 
@@ -204,189 +146,138 @@ def test_aggregate_set_attribute_success(test_aggregate: type):
 def test_aggregate_set_attribute_invalid(test_aggregate: type):
     '''
     Test setting an invalid attribute raises TiferetError.
-    
+
     :param test_aggregate: The Aggregate subclass to test.
     :type test_aggregate: type
     '''
-    
+
     # Create an aggregate instance.
-    aggregate = Aggregate.new(
-        test_aggregate,
-        id='test_id',
-        name='Test Name'
-    )
-    
+    aggregate = test_aggregate(id='test_id', name='Test Name')
+
     # Attempt to set an invalid attribute.
     with pytest.raises(TiferetError) as exc_info:
         aggregate.set_attribute('invalid_attribute', 'value')
-    
+
     # Assert the correct error is raised.
     assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
 
-# ** test: data_object_from_data
-def test_data_object_from_data(test_data_object: type):
+# ** test: aggregate_set_attribute_validates_assignment
+def test_aggregate_set_attribute_validates_assignment(test_aggregate: type):
     '''
-    Test the creation of a TransferObject from a dictionary.
+    Test that set_attribute triggers Pydantic validate_assignment on invalid type.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Create an aggregate instance.
+    aggregate = test_aggregate(id='test_id', name='Test Name')
+
+    # Assigning a non-coercible type should raise ValidationError.
+    with pytest.raises(ValidationError):
+        aggregate.set_attribute('name', ['not', 'a', 'string'])
+
+# ** test: transfer_object_from_data
+def test_transfer_object_from_data(test_data_object: type):
+    '''
+    Test the creation of a TransferObject via model_validate.
 
     :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
-    
-    # Create a TransferObject from data.
-    data_object = TransferObject.from_data(
-        test_data_object,
+
+    # Create a TransferObject using model_validate.
+    data_object = test_data_object.model_validate(dict(
         id='test_id',
-        name='Test Data'
-    )
-    
+        name='Test Data',
+    ))
+
     # Assert the attributes are correctly set.
     assert isinstance(data_object, test_data_object)
-    assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Test Data'}
+    assert data_object.id == 'test_id'
+    assert data_object.name == 'Test Data'
 
 # ** test: transfer_object_from_model
-def test_transfer_object_from_model(mock_model, test_data_object):
+def test_transfer_object_from_model(source_model: DomainObject, test_data_object: type):
     '''
     Test the creation of a TransferObject from a DomainObject.
-    
-    :param mock_model: The mocked DomainObject instance.
-    :type mock_model: DomainObject
+
+    :param source_model: The source DomainObject instance.
+    :type source_model: DomainObject
     :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
-    
+
     # Create a TransferObject from the model.
-    data_object = TransferObject.from_model(
-        test_data_object,
-        mock_model
-    )
-    
+    data_object = test_data_object.from_model(source_model)
+
     # Assert the data object is valid.
     assert isinstance(data_object, test_data_object)
-    assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Test Model'}
+    assert data_object.id == 'test_id'
+    assert data_object.name == 'Test Model'
 
-# ** test: transfer_object_from_model_with_kwargs
-def test_transfer_object_from_model_with_kwargs(mock_model, test_data_object):
+# ** test: transfer_object_from_model_with_overrides
+def test_transfer_object_from_model_with_overrides(source_model: DomainObject, test_data_object: type):
     '''
-    Test the creation of a TransferObject from a DomainObject with additional keyword arguments.
-    
-    :param mock_model: The mocked DomainObject instance.
-    :type mock_model: DomainObject
+    Test that from_model overrides take priority over model data.
+
+    :param source_model: The source DomainObject instance.
+    :type source_model: DomainObject
     :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
-    
-    # Create a TransferObject from the model with additional attributes.
-    data_object = TransferObject.from_model(
-        test_data_object,
-        mock_model,
-        name='Overridden Name',
-    )
-    
-    # Assert the data object is valid and includes the extra attribute.
+
+    # Create a TransferObject from the model with an override.
+    data_object = test_data_object.from_model(source_model, name='Overridden Name')
+
+    # Assert the override takes priority.
     assert isinstance(data_object, test_data_object)
-    assert data_object.to_primitive() == {'id': 'test_id', 'name': 'Overridden Name'}
-    
+    assert data_object.id == 'test_id'
+    assert data_object.name == 'Overridden Name'
 
-# ** test: data_object_map_custom_new
-def test_transfer_object_map_custom_new(test_data_object: type):
+# ** test: transfer_object_map
+def test_transfer_object_map(test_data_object: type, test_aggregate: type):
     '''
-    Test mapping a TransferObject to a DomainObject with a custom new method.
-    
-    :param test_data_object: The TransferObject subclass type.
+    Test mapping a TransferObject to an Aggregate.
+
+    :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
+    :param test_aggregate: The Aggregate subclass to map to.
+    :type test_aggregate: type
     '''
-    
+
     # Create a TransferObject instance.
-    data_object = TransferObject.from_data(
-        test_data_object,
-        id='test_id',
-        name='Test Data'
-    )
+    data_object = test_data_object(id='test_id', name='Test Data')
 
-    # Mock a DomainObject class with a custom new method.
-    mock_model_type = mock.Mock()
-    mock_model_instance = mock.Mock(spec=DomainObject)
-    mock_model_instance.validate.return_value = None
-    mock_model_type.new.return_value = mock_model_instance
-    
-    # Map the DataObject to the model.
-    result = data_object.map(type=mock_model_type, role='to_model', validate=True)
-    
-    # Assert the mapped object is valid.
-    assert result == mock_model_instance
-    mock_model_type.new.assert_called_once_with(id='test_id', name='Test Data', strict=False)
-    mock_model_instance.validate.assert_called_once()
+    # Map to an aggregate.
+    result = data_object.map(target=test_aggregate)
 
-# ** test: data_object_map_fallback_new
-def test_data_object_map_fallback_new(test_data_object: type):
+    # Assert the mapped aggregate is valid.
+    assert isinstance(result, test_aggregate)
+    assert result.id == 'test_id'
+    assert result.name == 'Test Data'
+
+# ** test: transfer_object_to_primitive_with_role
+def test_transfer_object_to_primitive_with_role(test_data_object: type):
     '''
-    Test mapping a DataObject to a DomainObject using the fallback DomainObject.new.
-    
-    :param test_data_object: The DataObject subclass type.
+    Test to_primitive with _ROLES role resolution, exclude behavior, and unknown-role fallback.
+
+    :param test_data_object: The TransferObject subclass to test.
     :type test_data_object: type
     '''
 
     # Create a TransferObject instance.
-    data_object = TransferObject.from_data(
-        test_data_object,
-        id='test_id',
-        name='Test Data'
-    )
-    
-    # Mock a DomainObject class without a custom new method.
-    mock_model_type = mock.Mock()
-    mock_model_type.new.side_effect = AttributeError
-    mock_aggregate_instance = mock.Mock(spec=Aggregate)
-    mock_aggregate_instance.validate.return_value = None
-    with mock.patch.object(Aggregate, 'new', return_value=mock_aggregate_instance) as mock_new:
-        result = data_object.map(type=mock_model_type, role='to_model', validate=True)
-    
-    # Assert the mapped object is valid.
-    assert result == mock_aggregate_instance
-    mock_new.assert_called_once_with(mock_model_type, id='test_id', name='Test Data', strict=False)
-    mock_aggregate_instance.validate.assert_called_once()
+    data_object = test_data_object(id='test_id', name='Test Data')
 
-# ** test: data_object_allow_with_args
-def test_data_object_allow_with_args():
-    '''
-    Test the allow method with specific fields.
-    '''
-    
-    # Create a whitelist transform with fields.
-    transform = TransferObject.allow('id', 'name')
-    
-    # Assert the transform is a whitelist.
-    from schematics.transforms import Role
-    assert isinstance(transform, Role)
-    assert transform.fields == set(['id', 'name'])
-    assert transform.function.__name__ == 'whitelist'
+    # to_data role should exclude 'id'.
+    to_data = data_object.to_primitive(role='to_data')
+    assert 'id' not in to_data
+    assert to_data['name'] == 'Test Data'
 
-# ** test: data_object_allow_no_args
-def test_data_object_allow_no_args():
-    '''
-    Test the allow method with no arguments.
-    '''
-    
-    # Create a wholelist transform with no fields.
-    transform = TransferObject.allow()
-    
-    # Assert the transform is a wholelist.
-    from schematics.transforms import Role
-    assert isinstance(transform, Role)
-    assert transform.fields == set()
-    assert transform.function.__name__ == 'wholelist'
+    # to_model role should include all fields.
+    to_model = data_object.to_primitive(role='to_model')
+    assert to_model == {'id': 'test_id', 'name': 'Test Data'}
 
-# ** test: data_object_deny
-def test_data_object_deny():
-    '''
-    Test the deny method with specific fields.
-    '''
-    
-    # Create a blacklist transform with fields.
-    transform = TransferObject.deny('id', 'name')
-    
-    # Assert the transform is a blacklist.
-    from schematics.transforms import Role
-    assert isinstance(transform, Role)
-    assert transform.fields == set(['id', 'name'])
-    assert transform.function.__name__ == 'blacklist'
+    # Unknown role should fall back to defaults (exclude_none only).
+    fallback = data_object.to_primitive(role='unknown_role')
+    assert fallback == {'id': 'test_id', 'name': 'Test Data'}

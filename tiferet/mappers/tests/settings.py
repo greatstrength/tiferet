@@ -140,7 +140,7 @@ class AggregateTestBase(MapperAssertions):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> Aggregate:
         '''
-        Create an aggregate from data. Override for custom new() signatures.
+        Create an aggregate from data. Override for custom constructor signatures.
 
         :param data: The data to create from (defaults to self.sample_data).
         :type data: dict
@@ -148,8 +148,8 @@ class AggregateTestBase(MapperAssertions):
         :rtype: Aggregate
         '''
 
-        # Create an aggregate using the standard Aggregate.new factory.
-        return Aggregate.new(self.aggregate_cls, **(data or self.sample_data))
+        # Create an aggregate using the standard Pydantic constructor.
+        return self.aggregate_cls(**(data or self.sample_data))
 
     # * fixture: aggregate
     @pytest.fixture
@@ -230,7 +230,7 @@ class TransferObjectTestBase(MapperAssertions):
     def make_aggregate(self, data: dict = None) -> Aggregate:
         '''
         Create an aggregate for from_model / round_trip tests.
-        Override for custom new() signatures.
+        Override for custom constructor signatures.
 
         :param data: The data to create from (defaults to self.aggregate_sample_data).
         :type data: dict
@@ -238,8 +238,8 @@ class TransferObjectTestBase(MapperAssertions):
         :rtype: Aggregate
         '''
 
-        # Create an aggregate using the standard Aggregate.new factory.
-        return Aggregate.new(self.aggregate_cls, **(data or self.aggregate_sample_data))
+        # Create an aggregate using the standard Pydantic constructor.
+        return self.aggregate_cls(**(data or self.aggregate_sample_data))
 
     # * fixture: aggregate
     @pytest.fixture
@@ -258,7 +258,7 @@ class TransferObjectTestBase(MapperAssertions):
     # * method: test_map
     def test_map(self):
         '''
-        Verify TransferObject.from_data -> map() produces a valid aggregate.
+        Verify TransferObject construction -> map() produces a valid aggregate.
         '''
 
         # Skip if no transfer class is defined.
@@ -266,7 +266,7 @@ class TransferObjectTestBase(MapperAssertions):
             pytest.skip("transfer_cls not defined")
 
         # Create a transfer object from YAML-format sample data.
-        yaml_obj = TransferObject.from_data(self.transfer_cls, **self.sample_data)
+        yaml_obj = self.transfer_cls.model_validate(self.sample_data)
 
         # Map to an aggregate.
         mapped = yaml_obj.map(**self.map_kwargs)
@@ -285,7 +285,7 @@ class TransferObjectTestBase(MapperAssertions):
         if not self.transfer_cls:
             pytest.skip("transfer_cls not defined")
 
-        # Convert the aggregate to a transfer object.
+        # Convert the aggregate to a transfer object using the classmethod.
         yaml_obj = self.transfer_cls.from_model(aggregate)
 
         # Assert the result is the correct type.
