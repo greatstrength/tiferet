@@ -6,11 +6,8 @@ from typing import Callable, Any, List, Dict
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..domain import (
-    ServiceProvider,
-    DependenciesServiceProvider,
-    ServiceConfiguration,
-)
+from ..di import ServiceProvider, DependenciesServiceProvider
+from ..domain import ServiceConfiguration
 from ..events import DomainEvent, RaiseError, ParseParameter
 
 
