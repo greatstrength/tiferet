@@ -3,12 +3,13 @@
 # *** imports
 
 # ** core
-from typing import Any
+from typing import Any, ClassVar, Dict
 
 # ** infra
-from schematics.models import Model
+from pydantic import BaseModel, ConfigDict
 
 # ** app
+from ..domain import DomainObject
 from ..events import RaiseError, a
 
 # *** constants
@@ -22,215 +23,129 @@ DEFAULT_CLASS_NAME = 'AppInterfaceContext'
 # *** classes
 
 # ** class: aggregate
-class Aggregate(Model):
+class Aggregate(DomainObject):
     '''
-    A data representation of an aggregate object.
+    A mutable, validated representation of a domain aggregate.
+
+    Aggregates inherit the strict ``extra='forbid'`` and ``validate_assignment=True``
+    config from :class:`DomainObject`. Mutation goes through :meth:`set_attribute`
+    for an explicit existence check, but any direct ``setattr`` will still trigger
+    Pydantic field validation.
     '''
-
-    # * method: new
-    @staticmethod
-    def new(
-        aggregate_type: type,
-        validate: bool = True,
-        strict: bool = True,
-        **kwargs
-    ) -> 'Aggregate':
-        '''
-        Initializes a new aggregate object.
-
-        :param aggregate_type: The type of aggregate object to create.
-        :type aggregate_type: type
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param strict: True to enforce strict mode for the aggregate object.
-        :type strict: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new aggregate object.
-        :rtype: Aggregate
-        '''
-
-        # Create a new aggregate object.
-        aggregate_object: Aggregate = aggregate_type(dict(
-            **kwargs
-        ), strict=strict)
-
-        # Validate if specified.
-        if validate:
-            aggregate_object.validate()
-
-        # Return the new aggregate object.
-        return aggregate_object
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Update an attribute on the aggregate object.
-
-        Raises an error if the attribute does not exist on the instance.
+        Update an attribute on the aggregate, raising an error if it is unknown.
 
         :param attribute: The attribute name to update.
         :type attribute: str
-        :param value: The new value.
+        :param value: The new value to assign.
         :type value: Any
         :return: None
         :rtype: None
         '''
 
-        # Check if the attribute exists on the aggregate instance.
-        # If the attribute does not exist, raise an error.
-        if not hasattr(self, attribute):
+        # Reject unknown attribute names by raising a structured error.
+        if attribute not in type(self).model_fields:
             RaiseError.execute(
                 error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
                 attribute=attribute,
             )
 
-        # Apply the update to the attribute.
+        # Apply the update; validate_assignment=True triggers field validation.
         setattr(self, attribute, value)
 
-        # Perform final aggregate validation.
-        self.validate()
-
 # ** class: transfer_object
-class TransferObject(Model):
+class TransferObject(DomainObject):
     '''
-    A data representation object.
+    A serialization and mapping layer for domain data.
+
+    TransferObjects use a lenient config (``extra='ignore'``, ``validate_assignment=False``)
+    so that unknown or extra fields in external data sources (e.g. YAML) are silently
+    dropped rather than raising validation errors.
+
+    Subclasses declare a ``_ROLES`` ClassVar mapping role names to ``model_dump`` kwargs
+    for role-based serialization via :meth:`to_primitive`.
     '''
 
-    # ** method: map
-    def map(self,
-            type: Aggregate,
-            role: str = 'to_model',
-            validate: bool = True,
-            **kwargs
-            ) -> Aggregate:
+    # * attribute: model_config
+    model_config = ConfigDict(
+        extra='ignore',
+        populate_by_name=True,
+        validate_assignment=False,
+        arbitrary_types_allowed=True,
+        coerce_numbers_to_str=True,
+    )
+
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {}
+
+    # * method: to_primitive
+    def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
         '''
-        Maps the model data to a model object.
+        Serialize the transfer object to a dictionary, optionally applying role-specific kwargs.
 
-        :param type: The type of aggregate object to map to.
-        :type type: type
-        :param role: The role for the mapping.
+        :param role: The serialization role to apply.
         :type role: str
-        :param validate: True to validate the aggregate object.
-        :type validate: bool
-        :param kwargs: Additional keyword arguments for mapping.
-        :type kwargs: dict
-        :return: A new aggregate object.
+        :param overrides: Additional keyword arguments passed to ``model_dump``.
+        :type overrides: dict
+        :return: The serialized dictionary.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Start with the default kwargs.
+        kwargs: Dict[str, Any] = {'exclude_none': True}
+
+        # Merge role-specific kwargs if the role is known.
+        if role and role in type(self)._ROLES:
+            kwargs.update(type(self)._ROLES[role])
+
+        # Apply caller overrides last so they always win.
+        kwargs.update(overrides)
+
+        # Delegate to Pydantic model_dump.
+        return self.model_dump(**kwargs)
+
+    # * method: map
+    def map(self, target: type, **overrides) -> 'Aggregate':
+        '''
+        Map the transfer object to an aggregate instance.
+
+        :param target: The aggregate class to construct.
+        :type target: type
+        :param overrides: Additional keyword arguments merged into the data.
+        :type overrides: dict
+        :return: A new aggregate instance.
         :rtype: Aggregate
         '''
 
-        # Get primitive of the model data and merge with the keyword arguments.
-        # Give priority to the keyword arguments.
-        data_object = self.to_primitive(role=role)
-        for key, value in kwargs.items():
-            data_object[key] = value
+        # Serialize via the to_model role and merge overrides.
+        data = self.to_primitive(role='to_model')
+        data.update(overrides)
 
-        # Map the data object to an aggregate object.
-        # Attempt to create a new aggregate object with a custom factory method.
-        # If the factory method does not exist, employ the standard method.
-        try:
-            aggregate_object = type.new(**data_object, strict=False)
-        except Exception:
-            aggregate_object = Aggregate.new(type, **data_object, strict=False)
+        # Construct the target aggregate.
+        return target(**data)
 
-        # Validate if specified.
-        if validate:
-            aggregate_object.validate()
-
-        # Return the aggregate object.
-        return aggregate_object
-
-    # ** method: from_model
-    @staticmethod
-    def from_model(
-        transfer_obj: 'TransferObject',
-        aggregate: Aggregate,
-        validate: bool = True,
-        **kwargs
-    ) -> 'TransferObject':
+    # * method: from_model
+    @classmethod
+    def from_model(cls, model: BaseModel, **overrides) -> 'TransferObject':
         '''
-        Initializes a new data object from a model object.
+        Create a transfer object from a domain model or aggregate.
 
-        :param transfer_obj: The type of transfer object to map from.
-        :type transfer_obj: type
-        :param aggregate: The aggregate object to map from.
-        :type aggregate: Aggregate
-        :param validate: True to validate the data object.
-        :type validate: bool
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
+        :param model: The source model instance.
+        :type model: BaseModel
+        :param overrides: Additional keyword arguments that take priority.
+        :type overrides: dict
         :return: A new transfer object.
         :rtype: TransferObject
         '''
 
-        # Convert the aggregate object to a primitive dictionary and merge with the keyword arguments.
-        # Give priority to the keyword arguments.
-        aggregate_data = aggregate.to_primitive()
-        for key, value in kwargs.items():
-            aggregate_data[key] = value
+        # Dump the model to a dict using canonical field names.
+        data = model.model_dump(by_alias=False)
 
-        # Create a new transfer object.
-        data_object = transfer_obj(dict(
-            **aggregate_data
-        ), strict=False)
+        # Apply overrides so they take priority.
+        data.update(overrides)
 
-        # Validate the data object if specified.
-        if validate:
-            data_object.validate()
-
-        # Return the data object.
-        return data_object
-
-    # ** method: from_data
-    @staticmethod
-    def from_data(
-        data: type,
-        **kwargs
-    ) -> 'TransferObject':
-        '''
-        Initializes a new transfer object from a dictionary.
-
-        :param data: The type of transfer object to map from.
-        :param kwargs: Keyword arguments.
-        :type kwargs: dict
-        :return: A new transfer object.
-        :rtype: TransferObject
-        '''
-
-        # Create a new transfer object.
-        return data(dict(**kwargs), strict=False)
-
-    # ** method: allow
-    @staticmethod
-    def allow(*args) -> Any:
-        '''
-        Creates a whitelist transform for data mapping.
-
-        :param args: Fields to allow in the transform.
-        :type args: tuple
-        :return: The whitelist transform.
-        :rtype: Any
-        '''
-
-        # Create a whitelist transform.
-        # Create a wholelist transform if no arguments are specified.
-        from schematics.transforms import whitelist, wholelist
-        if args:
-            return whitelist(*args)
-        return wholelist()
-
-    # ** method: deny
-    @staticmethod
-    def deny(*args) -> Any:
-        '''
-        Creates a blacklist transform for data mapping.
-
-        :param args: Fields to deny in the transform.
-        :type args: tuple
-        :return: The blacklist transform.
-        :rtype: Any
-        '''
-
-        # Create a blacklist transform.
-        from schematics.transforms import blacklist
-        return blacklist(*args)
+        # Construct and return the transfer object.
+        return cls.model_validate(data)
