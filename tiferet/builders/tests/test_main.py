@@ -49,17 +49,15 @@ def app_interface_aggregate(app_builder: AppBuilder) -> AppInterfaceAggregate:
     '''
 
     # Create and return a representative app interface aggregate.
-    return AppInterfaceAggregate.new(
-        app_interface_data={
-            'id': 'test_calc',
-            'name': 'Test Calculator',
-            'module_path': 'tiferet.contexts.app',
-            'class_name': 'AppInterfaceContext',
-            'description': 'Test calculator interface',
-            'flags': ['test'],
-            'services': app_builder.load_default_services(),
-            'constants': a.bildr.DEFAULT_CONSTANTS,
-        }
+    return AppInterfaceAggregate(
+        id='test_calc',
+        name='Test Calculator',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        description='Test calculator interface',
+        flags=['test'],
+        services=app_builder.load_default_services(),
+        constants=a.bildr.DEFAULT_CONSTANTS,
     )
 
 # *** tests

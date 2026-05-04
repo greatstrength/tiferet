@@ -11,7 +11,6 @@ from unittest import mock
 from ...assets import TiferetAPIError
 from ...contexts.app import AppInterfaceContext
 from ...domain import CliCommand, CliArgument
-from ...domain.settings import DomainObject
 from ...events.cli import ListCliCommands, GetParentArguments
 from ..main import AppBuilder
 from ..cli import CliBuilder
@@ -27,14 +26,13 @@ def cli_command_list():
 
     # Return a list of test CLI commands.
     return [
-        CliCommand.new(
+        CliCommand(
             group_key='test-group',
             key='test-feature',
             name='Test Feature Command',
             description='A test feature command.',
             arguments=[
-                DomainObject.new(
-                    CliArgument,
+                CliArgument(
                     name_or_flags=['--arg1', '-a'],
                     description='Test argument 1',
                     required=True,
