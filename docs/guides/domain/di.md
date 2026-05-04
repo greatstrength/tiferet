@@ -6,8 +6,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -29,10 +29,10 @@ Represents one flag-qualified implementation override for a service.
 
 | Attribute      | Type                   | Required | Default | Description                                   |
 |----------------|------------------------|----------|---------|-----------------------------------------------|
-| `module_path`  | `StringType`           | Yes      | —       | The module path.                               |
-| `class_name`   | `StringType`           | Yes      | —       | The class name.                                |
-| `flag`         | `StringType`           | Yes      | —       | The flag for the container dependency.          |
-| `parameters`   | `DictType(StringType)` | No       | `{}`    | The container dependency parameters.            |
+| `module_path`  | `str`                  | Yes      | —       | The module path.                               |
+| `class_name`   | `str`                  | Yes      | —       | The class name.                                |
+| `flag`         | `str`                  | Yes      | —       | The flag for the container dependency.          |
+| `parameters`   | `Dict[str, str]`       | No       | `{}`    | The container dependency parameters.            |
 
 No methods. Pure data structure.
 
@@ -42,12 +42,12 @@ Represents a single injectable service entry in the DI registry.
 
 | Attribute       | Type                                  | Required | Default | Description                                       |
 |-----------------|---------------------------------------|----------|---------|---------------------------------------------------|
-| `id`            | `StringType`                          | Yes      | —       | The unique identifier for the service configuration. |
-| `name`          | `StringType`                          | No       | —       | The name of the service configuration.             |
-| `module_path`   | `StringType`                          | No       | —       | The default module path for the dependency class.  |
-| `class_name`    | `StringType`                          | No       | —       | The default class name for the dependency class.   |
-| `parameters`    | `DictType(StringType)`                | No       | `{}`    | The default configuration parameters.              |
-| `dependencies`  | `ListType(ModelType(FlaggedDependency))` | No    | `[]`    | The flag-specific implementation overrides.        |
+| `id`            | `str`                                 | Yes      | —       | The unique identifier for the service configuration. |
+| `name`          | `str \| None`                         | No       | `None`  | The name of the service configuration.             |
+| `module_path`   | `str \| None`                         | No       | `None`  | The default module path for the dependency class.  |
+| `class_name`    | `str \| None`                         | No       | `None`  | The default class name for the dependency class.   |
+| `parameters`    | `Dict[str, str]`                      | No       | `{}`    | The default configuration parameters.              |
+| `dependencies`  | `List[FlaggedDependency]`             | No       | `[]`    | The flag-specific implementation overrides.        |
 
 #### Methods
 
@@ -143,21 +143,19 @@ Concrete implementations (e.g., `ContainerYamlRepository`) satisfy this interfac
 
 ## Instantiation
 
-Both domain objects are instantiated via the standard `DomainObject.new()` factory:
+Both domain objects are instantiated directly via the Pydantic constructor:
 
 ```python
-from tiferet.domain import DomainObject, FlaggedDependency, ServiceConfiguration
+from tiferet.domain import FlaggedDependency, ServiceConfiguration
 
-dep = DomainObject.new(
-    FlaggedDependency,
+dep = FlaggedDependency(
     flag='sqlite',
     module_path='tiferet.repos.error_sqlite',
     class_name='ErrorSqliteRepository',
     parameters={'db_path': 'app/data/errors.db'},
 )
 
-config = DomainObject.new(
-    ServiceConfiguration,
+config = ServiceConfiguration(
     id='error_service',
     module_path='tiferet.repos.error',
     class_name='ErrorYamlRepository',

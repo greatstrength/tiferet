@@ -3,8 +3,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -34,13 +34,13 @@ Logger → [handler_id, ...] → Handler → formatter_id → Formatter
 
 Immutable value object representing a logging formatter configuration.
 
-| Attribute     | Type         | Required | Default | Description                          |
-|---------------|--------------|----------|---------|--------------------------------------|
-| `id`          | `StringType` | Yes      | —       | The unique identifier of the formatter. |
-| `name`        | `StringType` | Yes      | —       | The name of the formatter.           |
-| `description` | `StringType` | No       | —       | The description of the formatter.    |
-| `format`      | `StringType` | Yes      | —       | The format string for log messages.  |
-| `datefmt`     | `StringType` | No       | —       | The date format for log timestamps.  |
+| Attribute     | Type            | Required | Default | Description                          |
+|---------------|-----------------|----------|---------|--------------------------------------|
+| `id`          | `str`           | Yes      | —       | The unique identifier of the formatter. |
+| `name`        | `str`           | Yes      | —       | The name of the formatter.           |
+| `description` | `str \| None`   | No       | `None`  | The description of the formatter.    |
+| `format`      | `str`           | Yes      | —       | The format string for log messages.  |
+| `datefmt`     | `str \| None`   | No       | `None`  | The date format for log timestamps.  |
 
 #### Methods
 
@@ -49,7 +49,7 @@ Immutable value object representing a logging formatter configuration.
 Returns a `dictConfig`-compatible formatter entry:
 
 ```python
-formatter = DomainObject.new(Formatter, id='simple', name='Simple',
+formatter = Formatter(id='simple', name='Simple',
     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d')
 formatter.format_config()
 # {'format': '%(asctime)s - %(message)s', 'datefmt': '%Y-%m-%d'}
@@ -61,17 +61,17 @@ When `datefmt` is not set, the key is still present with a `None` value.
 
 Immutable value object representing a logging handler configuration.
 
-| Attribute     | Type         | Required | Default | Description                                              |
-|---------------|--------------|----------|---------|----------------------------------------------------------|
-| `id`          | `StringType` | Yes      | —       | The unique identifier of the handler.                    |
-| `name`        | `StringType` | Yes      | —       | The name of the handler.                                 |
-| `description` | `StringType` | No       | —       | The description of the handler.                          |
-| `module_path` | `StringType` | Yes      | —       | The module path for the handler class.                   |
-| `class_name`  | `StringType` | Yes      | —       | The class name of the handler.                           |
-| `level`       | `StringType` | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `formatter`   | `StringType` | Yes      | —       | The ID of the formatter to use.                          |
-| `stream`      | `StringType` | No       | —       | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
-| `filename`    | `StringType` | No       | —       | The file path for FileHandler (e.g., `app.log`).         |
+| Attribute     | Type            | Required | Default | Description                                              |
+|---------------|-----------------|----------|---------|----------------------------------------------------------|
+| `id`          | `str`           | Yes      | —       | The unique identifier of the handler.                    |
+| `name`        | `str`           | Yes      | —       | The name of the handler.                                 |
+| `description` | `str \| None`   | No       | `None`  | The description of the handler.                          |
+| `module_path` | `str`           | Yes      | —       | The module path for the handler class.                   |
+| `class_name`  | `str`           | Yes      | —       | The class name of the handler.                           |
+| `level`       | `str`           | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `formatter`   | `str`           | Yes      | —       | The ID of the formatter to use.                          |
+| `stream`      | `str \| None`   | No       | `None`  | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
+| `filename`    | `str \| None`   | No       | `None`  | The file path for FileHandler (e.g., `app.log`).         |
 
 #### Methods
 
@@ -80,7 +80,7 @@ Immutable value object representing a logging handler configuration.
 Returns a `dictConfig`-compatible handler entry. The `class` key is composed from `module_path` and `class_name`. Optional attributes (`stream`, `filename`) are only included when set:
 
 ```python
-handler = DomainObject.new(Handler, id='console', name='Console',
+handler = Handler(id='console', name='Console',
     module_path='logging', class_name='StreamHandler',
     level='INFO', formatter='simple', stream='ext://sys.stdout')
 handler.format_config()
@@ -91,15 +91,15 @@ handler.format_config()
 
 Immutable value object representing a logger configuration.
 
-| Attribute     | Type                   | Required | Default | Description                                              |
-|---------------|------------------------|----------|---------|----------------------------------------------------------|
-| `id`          | `StringType`           | Yes      | —       | The unique identifier of the logger.                     |
-| `name`        | `StringType`           | Yes      | —       | The name of the logger.                                  |
-| `description` | `StringType`           | No       | —       | The description of the logger.                           |
-| `level`       | `StringType`           | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `handlers`    | `ListType(StringType)` | No       | `[]`    | List of handler IDs for the logger.                      |
-| `propagate`   | `BooleanType`          | No       | `False` | Whether to propagate messages to parent loggers.         |
-| `is_root`     | `BooleanType`          | No       | `False` | Whether this is the root logger.                         |
+| Attribute     | Type             | Required | Default | Description                                              |
+|---------------|------------------|----------|---------|----------------------------------------------------------|
+| `id`          | `str`            | Yes      | —       | The unique identifier of the logger.                     |
+| `name`        | `str`            | Yes      | —       | The name of the logger.                                  |
+| `description` | `str \| None`    | No       | `None`  | The description of the logger.                           |
+| `level`       | `str`            | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `handlers`    | `List[str]`      | No       | `[]`    | List of handler IDs for the logger.                      |
+| `propagate`   | `bool`           | No       | `False` | Whether to propagate messages to parent loggers.         |
+| `is_root`     | `bool`           | No       | `False` | Whether this is the root logger.                         |
 
 #### Methods
 
@@ -108,7 +108,7 @@ Immutable value object representing a logger configuration.
 Returns a `dictConfig`-compatible logger entry:
 
 ```python
-logger = DomainObject.new(Logger, id='app', name='App Logger',
+logger = Logger(id='app', name='App Logger',
     level='DEBUG', handlers=['console'], propagate=True)
 logger.format_config()
 # {'level': 'DEBUG', 'handlers': ['console'], 'propagate': True}
@@ -194,18 +194,16 @@ Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, Formatter, Handler, Logger
+from tiferet.domain import Formatter, Handler, Logger
 
-fmt = DomainObject.new(
-    Formatter,
+fmt = Formatter(
     id='simple',
     name='Simple Formatter',
     format='%(asctime)s - %(message)s',
     datefmt='%Y-%m-%d',
 )
 
-hdlr = DomainObject.new(
-    Handler,
+hdlr = Handler(
     id='console',
     name='Console Handler',
     module_path='logging',
@@ -215,8 +213,7 @@ hdlr = DomainObject.new(
     stream='ext://sys.stdout',
 )
 
-lgr = DomainObject.new(
-    Logger,
+lgr = Logger(
     id='app',
     name='App Logger',
     level='DEBUG',

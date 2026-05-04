@@ -6,8 +6,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -28,14 +28,14 @@ Represents a single command-line argument or flag.
 
 | Attribute       | Type                   | Required | Default | Description                                                                      |
 |-----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
-| `name_or_flags` | `ListType(StringType)` | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
-| `description`   | `StringType`           | No       | —       | A brief description of the argument.                                              |
-| `type`          | `StringType`           | No       | `'str'` | The type: `"str"`, `"int"`, or `"float"`.                                         |
-| `required`      | `BooleanType`          | No       | —       | Whether the argument is required.                                                 |
-| `default`       | `StringType`           | No       | —       | The default value if not provided.                                                |
-| `choices`       | `ListType(StringType)` | No       | —       | Valid choices for the argument.                                                   |
-| `nargs`         | `StringType`           | No       | —       | Number of arguments: `"?"`, `"*"`, `"+"`, or an integer.                          |
-| `action`        | `StringType`           | No       | —       | The action: `store`, `store_true`, `store_false`, `append`, `count`, `help`, etc. |
+| `name_or_flags` | `List[str]`            | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
+| `description`   | `str \| None`          | No       | `None`  | A brief description of the argument.                                              |
+| `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, or `"float"`.                                         |
+| `required`      | `bool \| None`         | No       | `None`  | Whether the argument is required.                                                 |
+| `default`       | `str \| None`          | No       | `None`  | The default value if not provided.                                                |
+| `choices`       | `List[str] \| None`    | No       | `None`  | Valid choices for the argument.                                                   |
+| `nargs`         | `str \| None`          | No       | `None`  | Number of arguments: `"?"`, `"*"`, `"+"`, or an integer.                          |
+| `action`        | `str \| None`          | No       | `None`  | The action: `store`, `store_true`, `store_false`, `append`, `count`, `help`, etc. |
 
 #### Methods
 
@@ -44,7 +44,7 @@ Represents a single command-line argument or flag.
 Maps the stored `type` string to a Python type object. Falls back to `str` if the type is `None` or unrecognized.
 
 ```python
-arg = DomainObject.new(CliArgument, name_or_flags=['--count'], type='int')
+arg = CliArgument(name_or_flags=['--count'], type='int')
 assert arg.get_type() is int
 ```
 
@@ -54,24 +54,24 @@ Represents a CLI command with a composite identifier.
 
 | Attribute    | Type                              | Required | Default | Description                                                  |
 |--------------|-----------------------------------|----------|---------|--------------------------------------------------------------|
-| `id`         | `StringType`                      | Yes      | —       | The unique identifier, formatted as `"group_key.key"`.        |
-| `name`       | `StringType`                      | Yes      | —       | The name of the command.                                      |
-| `description`| `StringType`                      | No       | —       | A brief description of the command.                           |
-| `key`        | `StringType`                      | Yes      | —       | The unique key for the command.                               |
-| `group_key`  | `StringType`                      | Yes      | —       | The group key the command belongs to.                         |
-| `arguments`  | `ListType(ModelType(CliArgument))`| No       | `[]`    | A list of arguments for the command.                          |
+| `id`         | `str`                             | Yes      | —       | The unique identifier, formatted as `"group_key.key"`.        |
+| `name`       | `str`                             | Yes      | —       | The name of the command.                                      |
+| `description`| `str \| None`                     | No       | `None`  | A brief description of the command.                           |
+| `key`        | `str`                             | Yes      | —       | The unique key for the command.                               |
+| `group_key`  | `str`                             | Yes      | —       | The group key the command belongs to.                         |
+| `arguments`  | `List[CliArgument]`               | No       | `[]`    | A list of arguments for the command.                          |
 
 #### Methods
 
-**`new(group_key, key, name, description=None, arguments=[]) -> CliCommand`** (static)
+**ID Derivation via `@model_validator`**
 
-Custom factory that derives the `id` by normalizing hyphens to underscores in both `group_key` and `key`, then joining with a dot:
+The `id` is automatically derived by a `@model_validator(mode='before')` that normalizes hyphens to underscores in both `group_key` and `key`, then joins them with a dot:
 
 ```python
-cmd = CliCommand.new(group_key='calc', key='add', name='Add Number')
+cmd = CliCommand(group_key='calc', key='add', name='Add Number')
 assert cmd.id == 'calc.add'
 
-cmd = CliCommand.new(group_key='my-group', key='my-cmd', name='My Command')
+cmd = CliCommand(group_key='my-group', key='my-cmd', name='My Command')
 assert cmd.id == 'my_group.my_cmd'
 ```
 
@@ -169,19 +169,18 @@ Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, CliArgument, CliCommand
+from tiferet.domain import CliArgument, CliCommand
 
-# Create an argument directly
-arg = DomainObject.new(
-    CliArgument,
+# Create an argument directly via Pydantic constructor
+arg = CliArgument(
     name_or_flags=['--count', '-c'],
     description='Number of iterations.',
     type='int',
     required=True,
 )
 
-# Create a command via the custom factory
-cmd = CliCommand.new(
+# Create a command — id is derived automatically via @model_validator
+cmd = CliCommand(
     group_key='calc',
     key='add',
     name='Add Number',

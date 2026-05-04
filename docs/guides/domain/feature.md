@@ -3,8 +3,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 11, 2026  
-**Version:** 2.0.0a5
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -24,10 +24,10 @@ Base class for steps in a feature workflow. Provides a `type` discriminator for 
 
 | Attribute | Type         | Required | Default   | Description                        |
 |-----------|--------------|----------|-----------|------------------------------------|
-| `type`    | `StringType` | No       | `'event'` | The type of the feature step.      |
-| `name`    | `StringType` | Yes      | —         | The name of the feature step.      |
+| `type`    | `Literal['event']` | No | `'event'` | The type of the feature step.      |
+| `name`    | `str`        | Yes      | —         | The name of the feature step.      |
 
-Currently the only supported `type` value is `'event'`, constrained via `choices=['event']`.
+Currently the only supported `type` value is `'event'`, constrained via `Literal['event']`.
 
 ### FeatureEvent
 
@@ -35,13 +35,13 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
-| `service_id`     | `StringType`            | No *(todo: required)* | — | The service configuration ID for the feature event.          |
-| `attribute_id`   | `StringType`            | No *(obsolete)*       | — | The container attribute ID for the domain event. Replaced by `service_id`. |
-| `flags`          | `ListType(StringType)`  | No       | `[]`    | Feature flags that activate this event.                            |
-| `parameters`     | `DictType(StringType)`  | No       | `{}`    | Custom parameters for the event.                                   |
-| `return_to_data` | `BooleanType`           | No       | `False` | Whether to return the result to the feature data context (obsolete). |
-| `data_key`       | `StringType`            | No       | —       | Data key to store the result in if `return_to_data` is True.       |
-| `pass_on_error`  | `BooleanType`           | No       | `False` | Whether to continue the workflow if the event fails.               |
+| `service_id`     | `str \| None`           | No *(todo: required)* | `None` | The service configuration ID for the feature event.          |
+| `attribute_id`   | `str \| None`           | No *(obsolete)*       | `None` | The container attribute ID for the domain event. Replaced by `service_id`. |
+| `flags`          | `List[str]`             | No       | `[]`    | Feature flags that activate this event.                            |
+| `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
+| `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
+| `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in if `return_to_data` is True.       |
+| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
 
 Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
@@ -58,14 +58,14 @@ Immutable value object representing a complete feature workflow definition.
 
 | Attribute      | Type                            | Required | Default | Description                                          |
 |----------------|---------------------------------|----------|---------|------------------------------------------------------|
-| `id`           | `StringType`                    | Yes      | —       | The unique identifier (`group_id.feature_key`).      |
-| `name`         | `StringType`                    | Yes      | —       | The name of the feature.                             |
-| `flags`        | `ListType(StringType)`          | No       | `[]`    | Feature flags that activate this entire feature.     |
-| `description`  | `StringType`                    | No       | —       | The description of the feature.                      |
-| `group_id`     | `StringType`                    | Yes      | —       | The context group identifier for the feature.        |
-| `feature_key`  | `StringType`                    | Yes      | —       | The key of the feature.                              |
-| `steps`        | `ListType(ModelType(FeatureEvent))` | No   | `[]`    | The ordered step workflow for the feature.            |
-| `log_params`   | `DictType(StringType)`          | No       | `{}`    | Parameters to log for the feature.                   |
+| `id`           | `str`                           | Yes      | —       | The unique identifier (`group_id.feature_key`).      |
+| `name`         | `str`                           | Yes      | —       | The name of the feature.                             |
+| `flags`        | `List[str]`                     | No       | `[]`    | Feature flags that activate this entire feature.     |
+| `description`  | `str \| None`                   | No       | `None`  | The description of the feature.                      |
+| `group_id`     | `str`                           | Yes      | —       | The context group identifier for the feature.        |
+| `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
+| `steps`        | `List[FeatureEvent]`            | No       | `[]`    | The ordered step workflow for the feature.            |
+| `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 
 #### Methods
 
@@ -74,7 +74,7 @@ Immutable value object representing a complete feature workflow definition.
 Returns the step at the given index, or `None` if the index is out of range or invalid (e.g., non-integer):
 
 ```python
-feature = DomainObject.new(Feature, id='calc.add', name='Add', group_id='calc', feature_key='add', steps=[...])
+feature = Feature(id='calc.add', name='Add', group_id='calc', feature_key='add', steps=[...])
 step = feature.get_step(0)    # First step
 step = feature.get_step(99)   # None (out of range)
 step = feature.get_step('x')  # None (invalid type)
@@ -151,17 +151,15 @@ Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, Feature, FeatureEvent
+from tiferet.domain import Feature, FeatureEvent
 
-step = DomainObject.new(
-    FeatureEvent,
+step = FeatureEvent(
     name='Add a and b',
     service_id='add_number_event',
     parameters={'b': '0.5'},
 )
 
-feature = DomainObject.new(
-    Feature,
+feature = Feature(
     id='calc.add',
     name='Add Number',
     group_id='calc',
