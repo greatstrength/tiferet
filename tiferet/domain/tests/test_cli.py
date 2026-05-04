@@ -25,9 +25,7 @@ def cli_argument() -> CliArgument:
     '''
 
     # Create and return a new CliArgument.
-    return DomainObject.new(
-        CliArgument,
-        name_or_flags=['--test-arg', '-t'],
+    return CliArgument(name_or_flags=['--test-arg', '-t'],
         description='A test argument for CLI commands.',
         required=True,
         type='str',
@@ -44,14 +42,12 @@ def cli_command() -> CliCommand:
     '''
 
     # Create an argument for the command.
-    arg = DomainObject.new(
-        CliArgument,
-        name_or_flags=['--arg1', '-a'],
+    arg = CliArgument(name_or_flags=['--arg1', '-a'],
         description='First argument.',
     )
 
-    # Create and return a new CliCommand via the custom factory.
-    return CliCommand.new(
+    # Create and return a new CliCommand; the model_validator derives id from group_key/key.
+    return CliCommand(
         group_key='test-group',
         key='test-feature',
         name='Test Feature Command',
@@ -103,20 +99,18 @@ def test_cli_argument_get_type_float(cli_argument: CliArgument) -> None:
     # Assert the type resolves to float.
     assert cli_argument.get_type() is float
 
-# ** test: cli_argument_get_type_none
-def test_cli_argument_get_type_none(cli_argument: CliArgument) -> None:
+# ** test: cli_argument_get_type_default_str
+def test_cli_argument_get_type_default_str() -> None:
     '''
-    Test that get_type falls back to str when type is None.
-
-    :param cli_argument: The CliArgument fixture.
-    :type cli_argument: CliArgument
+    Test that get_type defaults to ``str`` when no type is supplied.
     '''
 
-    # Set the type to None.
-    cli_argument.type = None
+    # Construct a CliArgument without specifying type.
+    arg = CliArgument(name_or_flags=['--no-type'])
 
-    # Assert the type falls back to str.
-    assert cli_argument.get_type() is str
+    # Assert the default type is str.
+    assert arg.type == 'str'
+    assert arg.get_type() is str
 
 # ** test: cli_command_new
 def test_cli_command_new(cli_command: CliCommand) -> None:
