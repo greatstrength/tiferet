@@ -26,9 +26,7 @@ def formatter() -> Formatter:
     '''
 
     # Create and return a new Formatter.
-    return DomainObject.new(
-        Formatter,
-        id='simple',
+    return Formatter(id='simple',
         name='Simple Formatter',
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
@@ -45,9 +43,7 @@ def handler() -> Handler:
     '''
 
     # Create and return a new Handler.
-    return DomainObject.new(
-        Handler,
-        id='console',
+    return Handler(id='console',
         name='Console Handler',
         module_path='logging',
         class_name='StreamHandler',
@@ -67,9 +63,7 @@ def handler_no_optional() -> Handler:
     '''
 
     # Create and return a new Handler without optional attributes.
-    return DomainObject.new(
-        Handler,
-        id='bare',
+    return Handler(id='bare',
         name='Bare Handler',
         module_path='logging',
         class_name='StreamHandler',
@@ -88,9 +82,7 @@ def logger() -> Logger:
     '''
 
     # Create and return a new Logger.
-    return DomainObject.new(
-        Logger,
-        id='app',
+    return Logger(id='app',
         name='App Logger',
         level='DEBUG',
         handlers=['console'],
@@ -108,9 +100,7 @@ def logger_empty_handlers() -> Logger:
     '''
 
     # Create and return a new Logger with empty handlers.
-    return DomainObject.new(
-        Logger,
-        id='root',
+    return Logger(id='root',
         name='Root Logger',
         level='WARNING',
         handlers=[],
@@ -143,9 +133,7 @@ def test_formatter_format_config_no_datefmt() -> None:
     '''
 
     # Create a Formatter without datefmt.
-    formatter = DomainObject.new(
-        Formatter,
-        id='minimal',
+    formatter = Formatter(id='minimal',
         name='Minimal Formatter',
         format='%(message)s',
     )
