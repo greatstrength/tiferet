@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Tuple
 # ** app
 from ..interfaces import DIService
 from ..mappers import (
-    TransferObject,
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
 )
@@ -95,10 +94,8 @@ class DIYamlRepository(DIService):
             return None
 
         # Map the data to a ServiceConfigurationAggregate.
-        configuration = TransferObject.from_data(
-            ServiceConfigurationYamlObject,
-            id=configuration_id,
-            **config_data,
+        configuration = ServiceConfigurationYamlObject.model_validate(
+            {**config_data, 'id': configuration_id}
         ).map()
 
         # If a flag is provided, filter the configuration by flag.
@@ -132,10 +129,8 @@ class DIYamlRepository(DIService):
 
         # Map each service entry to a ServiceConfigurationAggregate.
         configurations = [
-            TransferObject.from_data(
-                ServiceConfigurationYamlObject,
-                id=config_id,
-                **config_data,
+            ServiceConfigurationYamlObject.model_validate(
+                {**config_data, 'id': config_id}
             ).map()
             for config_id, config_data in full_data.get('services', {}).items()
         ]

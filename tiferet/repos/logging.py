@@ -18,7 +18,6 @@ from ..mappers import (
     HandlerYamlObject,
     LoggerAggregate,
     LoggerYamlObject,
-    TransferObject
 )
 from ..utils import Yaml
 
@@ -90,10 +89,7 @@ class LoggingYamlRepository(LoggingService):
         '''
 
         # Create formatter data object from the model.
-        formatter_data = TransferObject.from_model(
-            FormatterYamlObject,
-            formatter
-        )
+        formatter_data = FormatterYamlObject.from_model(formatter)
 
         # Load the full configuration file.
         full_data = Yaml(
@@ -121,10 +117,7 @@ class LoggingYamlRepository(LoggingService):
         '''
 
         # Create handler data object from the model.
-        handler_data = TransferObject.from_model(
-            HandlerYamlObject,
-            handler
-        )
+        handler_data = HandlerYamlObject.from_model(handler)
 
         # Load the full configuration file.
         full_data = Yaml(
@@ -152,10 +145,7 @@ class LoggingYamlRepository(LoggingService):
         '''
 
         # Create logger data object from the model.
-        logger_data = TransferObject.from_model(
-            LoggerYamlObject,
-            logger
-        )
+        logger_data = LoggerYamlObject.from_model(logger)
 
         # Load the full configuration file.
         full_data = Yaml(

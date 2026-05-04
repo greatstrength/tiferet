@@ -9,10 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import (
-    TransferObject,
-    ServiceConfigurationYamlObject,
-)
+from ...mappers import ServiceConfigurationYamlObject
 from ..di import DIYamlRepository
 
 
@@ -199,13 +196,12 @@ def test_int_di_config_repo_save_configuration(
     new_service_id = 'new_service'
 
     # Create new service configuration data and map to an aggregate.
-    config = TransferObject.from_data(
-        ServiceConfigurationYamlObject,
+    config = ServiceConfigurationYamlObject.model_validate(dict(
         id=new_service_id,
         name='New Service',
         module_path='tiferet.services.new',
         class_name='NewServiceImpl',
-    ).map()
+    )).map()
 
     # Save the new service configuration.
     di_config_repo.save_configuration(config)
