@@ -81,11 +81,11 @@ class TestFormatterAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FormatterAggregate:
         '''
-        Override to use FormatterAggregate.new() which defaults to strict=False.
+        Override to use FormatterAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return FormatterAggregate.new(**(data or self.sample_data))
+        return FormatterAggregate(**(data or self.sample_data))
 
     # *** domain-specific tests
 
@@ -129,11 +129,11 @@ class TestHandlerAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> HandlerAggregate:
         '''
-        Override to use HandlerAggregate.new() which defaults to strict=False.
+        Override to use HandlerAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return HandlerAggregate.new(**(data or self.sample_data))
+        return HandlerAggregate(**(data or self.sample_data))
 
     # *** domain-specific tests
 
@@ -162,7 +162,7 @@ class TestHandlerAggregate(AggregateTestBase):
         '''
 
         # Create a handler without optional stream/filename.
-        handler = HandlerAggregate.new(
+        handler = HandlerAggregate(
             id='file_handler',
             name='File Handler',
             module_path='logging',
@@ -204,11 +204,11 @@ class TestLoggerAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> LoggerAggregate:
         '''
-        Override to use LoggerAggregate.new() which defaults to strict=False.
+        Override to use LoggerAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return LoggerAggregate.new(**(data or self.sample_data))
+        return LoggerAggregate(**(data or self.sample_data))
 
     # *** domain-specific tests
 
@@ -236,7 +236,7 @@ class TestLoggerAggregate(AggregateTestBase):
         '''
 
         # Create a root logger with empty handlers.
-        logger = LoggerAggregate.new(
+        logger = LoggerAggregate(
             id='root',
             name='Root Logger',
             level='WARNING',
@@ -268,11 +268,11 @@ class TestFormatterYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FormatterAggregate:
         '''
-        Override to use FormatterAggregate.new() which defaults to strict=False.
+        Override to use FormatterAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return FormatterAggregate.new(**(data or self.aggregate_sample_data))
+        return FormatterAggregate(**(data or self.aggregate_sample_data))
 
 
 # ** class: TestHandlerYamlObject
@@ -293,11 +293,11 @@ class TestHandlerYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> HandlerAggregate:
         '''
-        Override to use HandlerAggregate.new() which defaults to strict=False.
+        Override to use HandlerAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return HandlerAggregate.new(**(data or self.aggregate_sample_data))
+        return HandlerAggregate(**(data or self.aggregate_sample_data))
 
 
 # ** class: TestLoggerYamlObject
@@ -318,11 +318,11 @@ class TestLoggerYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> LoggerAggregate:
         '''
-        Override to use LoggerAggregate.new() which defaults to strict=False.
+        Override to use LoggerAggregate() which defaults to strict=False.
         '''
 
         # Create an aggregate using the custom factory.
-        return LoggerAggregate.new(**(data or self.aggregate_sample_data))
+        return LoggerAggregate(**(data or self.aggregate_sample_data))
 
 
 # *** standalone tests

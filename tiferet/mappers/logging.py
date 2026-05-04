@@ -3,21 +3,14 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any
+from typing import Any, ClassVar, Dict
+
+# ** infra
+from pydantic import Field
 
 # ** app
-from ..domain import (
-    Formatter,
-    Handler,
-    Logger,
-    StringType,
-    DictType,
-    ModelType,
-)
-from .settings import (
-    Aggregate,
-    TransferObject,
-)
+from ..domain import Formatter, Handler, Logger
+from .settings import Aggregate, TransferObject
 
 # *** mappers
 
@@ -27,34 +20,7 @@ class FormatterAggregate(Formatter, Aggregate):
     An aggregate for logging formatter configuration with domain logic.
     '''
 
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = False,
-        **kwargs
-    ) -> 'FormatterAggregate':
-        '''
-        Create a new FormatterAggregate.
-
-        :param validate: Whether to validate the data.
-        :type validate: bool
-        :param strict: Whether to use strict validation.
-        :type strict: bool
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FormatterAggregate.
-        :rtype: FormatterAggregate
-        '''
-
-        # Create a new formatter aggregate from the provided data.
-        return Aggregate.new(
-            FormatterAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
-
+    pass
 
 # ** mapper: formatter_yaml_object
 class FormatterYamlObject(Formatter, TransferObject):
@@ -62,64 +28,49 @@ class FormatterYamlObject(Formatter, TransferObject):
     A YAML data representation of a logging formatter configuration.
     '''
 
-    class Options():
-        '''
-        The default options for the formatter data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.allow(),
-            'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+    }
 
     # * attribute: id
-    id = StringType(
-        metadata=dict(
-            description='The unique identifier of the formatter.'
-        )
+    id: str | None = Field(
+        default=None,
+        description='The unique identifier of the formatter.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> FormatterAggregate:
+    def map(self, **overrides) -> FormatterAggregate:
         '''
-        Maps the formatter data to a formatter aggregate.
+        Map the formatter data to a formatter aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new formatter aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FormatterAggregate instance.
         :rtype: FormatterAggregate
         '''
 
-        # Map to the formatter aggregate.
-        return super().map(
-            FormatterAggregate,
-            **self.to_primitive('to_model'),
-            **kwargs
-        )
+        # Delegate to the base mapper.
+        return super().map(FormatterAggregate, **overrides)
 
     # * method: from_model
-    @staticmethod
-    def from_model(formatter: Formatter, **kwargs) -> 'FormatterYamlObject':
+    @classmethod
+    def from_model(cls, formatter: Formatter, **overrides) -> 'FormatterYamlObject':
         '''
-        Creates a FormatterYamlObject from a Formatter model.
+        Create a FormatterYamlObject from a Formatter model.
 
-        :param formatter: The formatter model.
+        :param formatter: The formatter model to copy from.
         :type formatter: Formatter
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new FormatterYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new FormatterYamlObject instance.
         :rtype: FormatterYamlObject
         '''
 
-        # Create a new FormatterYamlObject from the model.
-        return TransferObject.from_model(
-            FormatterYamlObject,
-            formatter,
-            **kwargs,
-        )
-
+        # Delegate to the base mapper.
+        return super().from_model(formatter, **overrides)
 
 # ** mapper: handler_aggregate
 class HandlerAggregate(Handler, Aggregate):
@@ -127,34 +78,7 @@ class HandlerAggregate(Handler, Aggregate):
     An aggregate for logging handler configuration with domain logic.
     '''
 
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = False,
-        **kwargs
-    ) -> 'HandlerAggregate':
-        '''
-        Create a new HandlerAggregate.
-
-        :param validate: Whether to validate the data.
-        :type validate: bool
-        :param strict: Whether to use strict validation.
-        :type strict: bool
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new HandlerAggregate.
-        :rtype: HandlerAggregate
-        '''
-
-        # Create a new handler aggregate from the provided data.
-        return Aggregate.new(
-            HandlerAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
-
+    pass
 
 # ** mapper: handler_yaml_object
 class HandlerYamlObject(Handler, TransferObject):
@@ -162,64 +86,49 @@ class HandlerYamlObject(Handler, TransferObject):
     A YAML data representation of a logging handler configuration.
     '''
 
-    class Options():
-        '''
-        The default options for the handler data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.allow(),
-            'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+    }
 
     # * attribute: id
-    id = StringType(
-        metadata=dict(
-            description='The unique identifier of the handler.'
-        )
+    id: str | None = Field(
+        default=None,
+        description='The unique identifier of the handler.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> HandlerAggregate:
+    def map(self, **overrides) -> HandlerAggregate:
         '''
-        Maps the handler data to a handler aggregate.
+        Map the handler data to a handler aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new handler aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new HandlerAggregate instance.
         :rtype: HandlerAggregate
         '''
 
-        # Map to the handler aggregate.
-        return super().map(
-            HandlerAggregate,
-            **self.to_primitive('to_model'),
-            **kwargs
-        )
+        # Delegate to the base mapper.
+        return super().map(HandlerAggregate, **overrides)
 
     # * method: from_model
-    @staticmethod
-    def from_model(handler: Handler, **kwargs) -> 'HandlerYamlObject':
+    @classmethod
+    def from_model(cls, handler: Handler, **overrides) -> 'HandlerYamlObject':
         '''
-        Creates a HandlerYamlObject from a Handler model.
+        Create a HandlerYamlObject from a Handler model.
 
-        :param handler: The handler model.
+        :param handler: The handler model to copy from.
         :type handler: Handler
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new HandlerYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new HandlerYamlObject instance.
         :rtype: HandlerYamlObject
         '''
 
-        # Create a new HandlerYamlObject from the model.
-        return TransferObject.from_model(
-            HandlerYamlObject,
-            handler,
-            **kwargs,
-        )
-
+        # Delegate to the base mapper.
+        return super().from_model(handler, **overrides)
 
 # ** mapper: logger_aggregate
 class LoggerAggregate(Logger, Aggregate):
@@ -227,34 +136,7 @@ class LoggerAggregate(Logger, Aggregate):
     An aggregate for logger configuration with domain logic.
     '''
 
-    # * method: new
-    @staticmethod
-    def new(
-        validate: bool = True,
-        strict: bool = False,
-        **kwargs
-    ) -> 'LoggerAggregate':
-        '''
-        Create a new LoggerAggregate.
-
-        :param validate: Whether to validate the data.
-        :type validate: bool
-        :param strict: Whether to use strict validation.
-        :type strict: bool
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new LoggerAggregate.
-        :rtype: LoggerAggregate
-        '''
-
-        # Create a new logger aggregate from the provided data.
-        return Aggregate.new(
-            LoggerAggregate,
-            validate=validate,
-            strict=strict,
-            **kwargs
-        )
-
+    pass
 
 # ** mapper: logger_yaml_object
 class LoggerYamlObject(Logger, TransferObject):
@@ -262,64 +144,49 @@ class LoggerYamlObject(Logger, TransferObject):
     A YAML data representation of a logger configuration.
     '''
 
-    class Options():
-        '''
-        The default options for the logger data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.allow(),
-            'to_data.yaml': TransferObject.deny('id'),
-            'to_data.json': TransferObject.deny('id'),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {},
+        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+    }
 
     # * attribute: id
-    id = StringType(
-        metadata=dict(
-            description='The unique identifier of the logger.'
-        )
+    id: str | None = Field(
+        default=None,
+        description='The unique identifier of the logger.',
     )
 
     # * method: map
-    def map(self, **kwargs) -> LoggerAggregate:
+    def map(self, **overrides) -> LoggerAggregate:
         '''
-        Maps the logger data to a logger aggregate.
+        Map the logger data to a logger aggregate.
 
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new logger aggregate.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new LoggerAggregate instance.
         :rtype: LoggerAggregate
         '''
 
-        # Map to the logger aggregate.
-        return super().map(
-            LoggerAggregate,
-            **self.to_primitive('to_model'),
-            **kwargs
-        )
+        # Delegate to the base mapper.
+        return super().map(LoggerAggregate, **overrides)
 
     # * method: from_model
-    @staticmethod
-    def from_model(logger: Logger, **kwargs) -> 'LoggerYamlObject':
+    @classmethod
+    def from_model(cls, logger: Logger, **overrides) -> 'LoggerYamlObject':
         '''
-        Creates a LoggerYamlObject from a Logger model.
+        Create a LoggerYamlObject from a Logger model.
 
-        :param logger: The logger model.
+        :param logger: The logger model to copy from.
         :type logger: Logger
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: A new LoggerYamlObject.
+        :param overrides: Additional field overrides.
+        :type overrides: dict
+        :return: A new LoggerYamlObject instance.
         :rtype: LoggerYamlObject
         '''
 
-        # Create a new LoggerYamlObject from the model.
-        return TransferObject.from_model(
-            LoggerYamlObject,
-            logger,
-            **kwargs,
-        )
-
+        # Delegate to the base mapper.
+        return super().from_model(logger, **overrides)
 
 # ** mapper: logging_settings_yaml_object
 class LoggingSettingsYamlObject(TransferObject):
@@ -327,81 +194,62 @@ class LoggingSettingsYamlObject(TransferObject):
     A YAML data representation of the overall logging configuration.
     '''
 
-    class Options():
-        '''
-        The default options for the logging settings data.
-        '''
-
-        serialize_when_none = False
-        roles = {
-            'to_model': TransferObject.allow(),
-            'to_data.yaml': TransferObject.allow(),
-            'to_data.json': TransferObject.allow(),
-        }
+    # * attribute: _ROLES
+    _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+        'to_model': {},
+        'to_data.yaml': {'by_alias': True},
+        'to_data.json': {'by_alias': True},
+    }
 
     # * attribute: id
-    id = StringType(
-        metadata=dict(
-            description='The unique identifier of the logging settings.'
-        )
+    id: str | None = Field(
+        default=None,
+        description='The unique identifier of the logging settings.',
     )
 
     # * attribute: formatters
-    formatters = DictType(
-        ModelType(FormatterYamlObject),
-        required=True,
-        metadata=dict(
-            description='Dictionary of formatter configurations, keyed by id.'
-        )
+    formatters: Dict[str, FormatterYamlObject] = Field(
+        default_factory=dict,
+        description='Dictionary of formatter configurations, keyed by id.',
     )
 
     # * attribute: handlers
-    handlers = DictType(
-        ModelType(HandlerYamlObject),
-        required=True,
-        metadata=dict(
-            description='Dictionary of handler configurations, keyed by id.'
-        )
+    handlers: Dict[str, HandlerYamlObject] = Field(
+        default_factory=dict,
+        description='Dictionary of handler configurations, keyed by id.',
     )
 
     # * attribute: loggers
-    loggers = DictType(
-        ModelType(LoggerYamlObject),
-        required=True,
-        metadata=dict(
-            description='Dictionary of logger configurations, keyed by id.'
-        )
+    loggers: Dict[str, LoggerYamlObject] = Field(
+        default_factory=dict,
+        description='Dictionary of logger configurations, keyed by id.',
     )
 
     # * method: from_data
-    @staticmethod
-    def from_data(**data) -> 'LoggingSettingsYamlObject':
+    @classmethod
+    def from_data(cls, **data) -> 'LoggingSettingsYamlObject':
         '''
-        Initializes a new LoggingSettingsYamlObject from a data representation.
+        Initialize a new LoggingSettingsYamlObject from a raw data dictionary,
+        injecting each section's keys as ``id`` on the contained YAML objects.
 
-        :param data: The data to initialize the LoggingSettingsYamlObject.
+        :param data: The raw data to construct the settings from.
         :type data: dict
-        :return: A new LoggingSettingsYamlObject.
+        :return: A new LoggingSettingsYamlObject instance.
         :rtype: LoggingSettingsYamlObject
         '''
 
-        # Create a new LoggingSettingsYamlObject from the provided data,
-        # injecting dictionary keys as id attributes.
-        return TransferObject.from_data(
-            LoggingSettingsYamlObject,
-            formatters={id: TransferObject.from_data(
-                FormatterYamlObject,
-                **formatter_data,
-                id=id
-            ) for id, formatter_data in data.get('formatters', {}).items()},
-            handlers={id: TransferObject.from_data(
-                HandlerYamlObject,
-                **handler_data,
-                id=id
-            ) for id, handler_data in data.get('handlers', {}).items()},
-            loggers={id: TransferObject.from_data(
-                LoggerYamlObject,
-                **logger_data,
-                id=id
-            ) for id, logger_data in data.get('loggers', {}).items()},
-        )
+        # Construct each section's YAML objects, threading the dict key as id.
+        return cls.model_validate({
+            'formatters': {
+                key: {**(formatter_data or {}), 'id': key}
+                for key, formatter_data in data.get('formatters', {}).items()
+            },
+            'handlers': {
+                key: {**(handler_data or {}), 'id': key}
+                for key, handler_data in data.get('handlers', {}).items()
+            },
+            'loggers': {
+                key: {**(logger_data or {}), 'id': key}
+                for key, logger_data in data.get('loggers', {}).items()
+            },
+        })
