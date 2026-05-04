@@ -3,9 +3,8 @@
 # *** imports
 
 # ** app
-from ...domain import DomainObject, FlaggedDependency
+from ...domain import FlaggedDependency
 from ...events import a
-from ..settings import TransferObject
 from ..di import (
     FlaggedDependencyAggregate,
     FlaggedDependencyYamlObject,
@@ -109,12 +108,12 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FlaggedDependencyAggregate:
         '''
-        Override to use FlaggedDependencyAggregate.new(flagged_dependency_data=...) signature.
+        Construct a FlaggedDependencyAggregate via the Pydantic constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return FlaggedDependencyAggregate.new(
-            flagged_dependency_data=(data if data is not None else self.sample_data).copy()
+        # Build the aggregate from the resolved sample data.
+        return FlaggedDependencyAggregate(
+            **(data if data is not None else self.sample_data).copy()
         )
 
     # *** domain-specific mutation tests
@@ -178,12 +177,12 @@ class TestServiceConfigurationAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> ServiceConfigurationAggregate:
         '''
-        Override to use ServiceConfigurationAggregate.new(service_configuration_data=...) signature.
+        Construct a ServiceConfigurationAggregate via the Pydantic constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return ServiceConfigurationAggregate.new(
-            service_configuration_data=(data if data is not None else self.sample_data).copy()
+        # Build the aggregate from the resolved sample data.
+        return ServiceConfigurationAggregate(
+            **(data if data is not None else self.sample_data).copy()
         )
 
     # *** domain-specific mutation tests
@@ -369,12 +368,12 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> ServiceConfigurationAggregate:
         '''
-        Override to use ServiceConfigurationAggregate.new(service_configuration_data=...) signature.
+        Construct a ServiceConfigurationAggregate via the Pydantic constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return ServiceConfigurationAggregate.new(
-            service_configuration_data=(data if data is not None else self.aggregate_sample_data).copy()
+        # Build the aggregate from the resolved aggregate sample data.
+        return ServiceConfigurationAggregate(
+            **(data if data is not None else self.aggregate_sample_data).copy()
         )
 
     # *** domain-specific tests
@@ -386,10 +385,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object from sample data.
-        yaml_obj = TransferObject.from_data(
-            ServiceConfigurationYamlObject,
-            **self.sample_data,
-        )
+        yaml_obj = ServiceConfigurationYamlObject.model_validate(self.sample_data)
 
         # Serialize to primitive format for YAML.
         primitive = yaml_obj.to_primitive(role='to_data.yaml')
@@ -425,10 +421,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object.
-        yaml_obj = TransferObject.from_data(
-            ServiceConfigurationYamlObject,
-            **self.sample_data,
-        )
+        yaml_obj = ServiceConfigurationYamlObject.model_validate(self.sample_data)
         primitive = yaml_obj.to_primitive('to_model')
 
         # Verify excluded fields.
@@ -446,8 +439,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a ServiceConfigurationYamlObject using the legacy 'flags' alias.
-        data_object = TransferObject.from_data(
-            ServiceConfigurationYamlObject,
+        data_object = ServiceConfigurationYamlObject.model_validate(dict(
             id='test_repo_flags',
             module_path='tests.repos.test',
             class_name='DefaultTestRepoProxy',
@@ -461,7 +453,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
             params=dict(
                 test_param='test_value',
             ),
-        )
+        ))
 
         # The alias should populate the dependencies mapping keyed by flag.
         assert isinstance(data_object, ServiceConfigurationYamlObject)
@@ -518,10 +510,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = TransferObject.from_data(
-            FlaggedDependencyYamlObject,
-            **self.flagged_dep_sample_data,
-        )
+        yaml_obj = FlaggedDependencyYamlObject.model_validate(self.flagged_dep_sample_data)
         dep = yaml_obj.map()
 
         # Verify the mapped entity.
@@ -538,13 +527,12 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = TransferObject.from_data(
-            FlaggedDependencyYamlObject,
+        yaml_obj = FlaggedDependencyYamlObject.model_validate(dict(
             module_path='alias.test.mod',
             class_name='AliasImpl',
             flag='aliased',
             params={'alias_key': 'value'},
-        )
+        ))
         dep = yaml_obj.map()
 
         # Verify aliased parameters were deserialized correctly.
@@ -557,9 +545,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a FlaggedDependency model.
-        model = DomainObject.new(
-            FlaggedDependency,
-            module_path='tests.repos.test',
+        model = FlaggedDependency(module_path='tests.repos.test',
             class_name='TestRepoProxy2',
             flag='test',
             parameters={'test_param2': 'test_value2'},
@@ -582,10 +568,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object.
-        yaml_obj = TransferObject.from_data(
-            FlaggedDependencyYamlObject,
-            **self.flagged_dep_sample_data,
-        )
+        yaml_obj = FlaggedDependencyYamlObject.model_validate(self.flagged_dep_sample_data)
 
         # Serialize with to_data.yaml role.
         primitive = yaml_obj.to_primitive('to_data.yaml')
