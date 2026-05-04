@@ -1,19 +1,16 @@
-"""Tiferet Domain DI"""
+"""Tiferet DI Domain Models"""
 
 # *** imports
 
 # ** core
 from importlib import import_module
-from typing import Dict
+from typing import Dict, List
+
+# ** infra
+from pydantic import Field
 
 # ** app
-from .settings import (
-    DomainObject,
-    StringType,
-    ListType,
-    DictType,
-    ModelType,
-)
+from .settings import DomainObject
 
 # *** models
 
@@ -24,38 +21,28 @@ class FlaggedDependency(DomainObject):
     '''
 
     # * attribute: module_path
-    module_path = StringType(
-        required=True,
-        metadata=dict(
-            description='The module path.'
-        ),
+    module_path: str = Field(
+        ...,
+        description='The module path.',
     )
 
     # * attribute: class_name
-    class_name = StringType(
-        required=True,
-        metadata=dict(
-            description='The class name.'
-        ),
+    class_name: str = Field(
+        ...,
+        description='The class name.',
     )
 
     # * attribute: flag
-    flag = StringType(
-        required=True,
-        metadata=dict(
-            description='The flag for the container dependency.'
-        ),
+    flag: str = Field(
+        ...,
+        description='The flag for the container dependency.',
     )
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType,
-        default={},
-        metadata=dict(
-            description='The container dependency parameters.'
-        ),
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        description='The container dependency parameters.',
     )
-
 
 # ** model: service_configuration
 class ServiceConfiguration(DomainObject):
@@ -64,61 +51,50 @@ class ServiceConfiguration(DomainObject):
     '''
 
     # * attribute: id
-    id = StringType(
-        required=True,
-        metadata=dict(
-            description='The unique identifier for the service configuration.'
-        ),
+    id: str = Field(
+        ...,
+        description='The unique identifier for the service configuration.',
     )
 
     # * attribute: name
-    name = StringType(
-        metadata=dict(
-            description='The name of the service configuration.'
-        ),
+    name: str | None = Field(
+        default=None,
+        description='The name of the service configuration.',
     )
 
     # * attribute: module_path
-    module_path = StringType(
-        metadata=dict(
-            description='The default module path for the dependency class.'
-        ),
+    module_path: str | None = Field(
+        default=None,
+        description='The default module path for the dependency class.',
     )
 
     # * attribute: class_name
-    class_name = StringType(
-        metadata=dict(
-            description='The default class name for the dependency class.'
-        ),
+    class_name: str | None = Field(
+        default=None,
+        description='The default class name for the dependency class.',
     )
 
     # * attribute: parameters
-    parameters = DictType(
-        StringType,
-        default={},
-        metadata=dict(
-            description='The default configuration parameters.'
-        ),
+    parameters: Dict[str, str] = Field(
+        default_factory=dict,
+        description='The default configuration parameters.',
     )
 
     # * attribute: dependencies
-    dependencies = ListType(
-        ModelType(FlaggedDependency),
-        default=[],
-        metadata=dict(
-            description='The flag-specific implementation overrides.'
-        ),
+    dependencies: List[FlaggedDependency] = Field(
+        default_factory=list,
+        description='The flag-specific implementation overrides.',
     )
 
     # * method: get_dependency
-    def get_dependency(self, *flags) -> FlaggedDependency:
+    def get_dependency(self, *flags) -> FlaggedDependency | None:
         '''
         Gets a flagged dependency by flag.
 
         :param flags: The flags to match against flagged dependencies.
         :type flags: Tuple[str, ...]
         :return: The first flagged dependency matching any provided flag, or None.
-        :rtype: FlaggedDependency
+        :rtype: FlaggedDependency | None
         '''
 
         # Return the first dependency that matches any of the provided flags.
@@ -126,7 +102,7 @@ class ServiceConfiguration(DomainObject):
         for flag in flags:
             match = next(
                 (dependency for dependency in self.dependencies if dependency.flag == flag),
-                None
+                None,
             )
             if match:
                 return match
@@ -135,17 +111,17 @@ class ServiceConfiguration(DomainObject):
         return None
 
     # * method: get_service_type
-    def get_service_type(self, *flags) -> type:
+    def get_service_type(self, *flags) -> type | None:
         '''
         Gets the service type based on the provided flags.
 
         Checks flagged dependencies first (in flag priority order), then
-        falls back to the configuration\'s default module_path/class_name.
+        falls back to the configuration's default module_path/class_name.
 
         :param flags: The flags for the flagged dependency.
         :type flags: Tuple[str, ...]
-        :return: The type of the service configuration.
-        :rtype: type
+        :return: The type of the service configuration, or None.
+        :rtype: type | None
         '''
 
         # Check the flagged dependencies for the type first.
