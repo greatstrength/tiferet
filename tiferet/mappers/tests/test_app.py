@@ -6,9 +6,9 @@
 import pytest
 
 # ** app
-from ...domain import AppServiceDependency, DomainObject
+from ...domain import AppServiceDependency
 from ...assets import TiferetError, const
-from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
+from ..settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from ..app import (
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
@@ -121,12 +121,12 @@ class TestAppInterfaceAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Override to use AppInterfaceAggregate.new(app_interface_data=...) signature.
+        Override to use AppInterfaceAggregate direct constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return AppInterfaceAggregate.new(
-            app_interface_data=(data if data is not None else self.sample_data).copy()
+        # Create an aggregate using the direct constructor.
+        return AppInterfaceAggregate(
+            **(data if data is not None else self.sample_data)
         )
 
     # *** fixtures
@@ -151,7 +151,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
             data.update(overrides)
 
             # Create and return the aggregate.
-            return AppInterfaceAggregate.new(app_interface_data=data)
+            return AppInterfaceAggregate(**data)
 
         return factory
 
@@ -221,8 +221,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
 
         # Build services from the initial ids.
         services = [
-            DomainObject.new(
-                AppServiceDependency,
+            AppServiceDependency(
                 service_id=aid,
                 module_path=f"mod.{aid}",
                 class_name=f"{aid.capitalize()}Class",
@@ -344,12 +343,12 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Override to use AppInterfaceAggregate.new(app_interface_data=...) signature.
+        Override to use AppInterfaceAggregate direct constructor.
         '''
 
-        # Create an aggregate using the custom factory.
-        return AppInterfaceAggregate.new(
-            app_interface_data=(data if data is not None else self.aggregate_sample_data).copy()
+        # Create an aggregate using the direct constructor.
+        return AppInterfaceAggregate(
+            **(data if data is not None else self.aggregate_sample_data)
         )
 
     # *** child mapper: AppServiceDependencyYamlObject
@@ -368,9 +367,8 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
-            **self.dependency_sample_data,
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(
+            self.dependency_sample_data,
         )
         dep = yaml_obj.map(service_id='injected_svc')
 
@@ -384,16 +382,15 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_aliasing_params
     def test_app_service_dependency_yaml_aliasing_params(self):
         '''
-        Test that the "params" serialized_name alias is correctly deserialized.
+        Test that the "params" alias is correctly deserialized.
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
             module_path='alias.test.mod',
             class_name='AliasImpl',
             params={'alias_key': 'value'},
-        )
+        ))
         dep = yaml_obj.map(service_id='aliased_dep')
 
         # Verify aliased parameters were deserialized correctly.
@@ -406,13 +403,12 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object with fields that should be excluded.
-        yaml_obj = TransferObject.from_data(
-            AppServiceDependencyYamlObject,
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
             module_path='ex.test.mod',
             class_name='ExcludeTest',
             parameters={'secret': 'dontleak'},
             service_id='should_ignore',
-        )
+        ))
         primitive = yaml_obj.to_primitive('to_model')
 
         # Verify excluded fields are absent.
