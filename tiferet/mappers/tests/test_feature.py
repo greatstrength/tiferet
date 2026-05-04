@@ -3,9 +3,8 @@
 # *** imports
 
 # ** app
-from ...domain import DomainObject, FeatureEvent
+from ...domain import FeatureEvent
 from ...events import a
-from ..settings import TransferObject
 from ..feature import (
     FeatureEventAggregate,
     FeatureEventYamlObject,
@@ -185,11 +184,11 @@ class TestFeatureAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FeatureAggregate:
         '''
-        Override to use FeatureAggregate.new() custom factory.
+        Override to use FeatureAggregate constructor with derivation.
         '''
 
-        # Create an aggregate using the custom factory.
-        return FeatureAggregate.new(**(data or self.sample_data))
+        # Create an aggregate using the direct constructor.
+        return FeatureAggregate(**(data or self.sample_data))
 
     # *** domain-specific tests
 
@@ -354,20 +353,20 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FeatureAggregate:
         '''
-        Override to use FeatureAggregate.new() custom factory.
+        Override to use direct constructors for aggregate and steps.
         '''
 
-        # Create an aggregate using the custom factory.
+        # Create an aggregate using the direct constructor.
         data = data or self.aggregate_sample_data
 
         # Build steps as FeatureEventAggregate instances.
         steps = [
-            FeatureEventAggregate.new(**step)
+            FeatureEventAggregate(**step)
             for step in data.get('steps', [])
         ]
 
         # Create the feature aggregate with mapped steps.
-        return FeatureAggregate.new(
+        return FeatureAggregate(
             **{k: v for k, v in data.items() if k != 'steps'},
             steps=steps,
         )
@@ -390,9 +389,8 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = TransferObject.from_data(
-            FeatureEventYamlObject,
-            **self.feature_event_sample_data,
+        yaml_obj = FeatureEventYamlObject.model_validate(
+            self.feature_event_sample_data,
         )
         event = yaml_obj.map()
 
@@ -411,12 +409,11 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = TransferObject.from_data(
-            FeatureEventYamlObject,
+        yaml_obj = FeatureEventYamlObject.model_validate(dict(
             name='Alias Event',
             service_id='alias_handler',
             params={'alias_key': 'value'},
-        )
+        ))
         event = yaml_obj.map()
 
         # Verify aliased parameters were deserialized correctly.
@@ -428,9 +425,8 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         Test that FeatureEventYamlObject can be created from a FeatureEvent model.
         '''
 
-        # Create a FeatureEvent model.
-        model = DomainObject.new(
-            FeatureEvent,
+        # Create a FeatureEvent model via direct constructor.
+        model = FeatureEvent(
             name='Test Event',
             service_id='test_event_handler',
             parameters={'key': 'value'},
