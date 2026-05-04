@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/repos/`  
-**Version:** 2.0.0a4
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -79,7 +79,7 @@ For complex loading that needs to construct multiple transfer objects in a singl
 ```python
 def data_factory(data):
     attrs = [
-        TransferObject.from_data(ServiceConfigurationYamlObject, id=id, **attr_data)
+        ServiceConfigurationYamlObject.model_validate({**attr_data, 'id': id})
         for id, attr_data in data.get('services', {}).items()
     ] if data.get('services') else []
     consts = data.get('const', {}) if data.get('const') else {}
@@ -97,10 +97,8 @@ Use `data_factory` when the YAML file contains **multiple sibling sections** tha
 YAML configuration files store entries as dictionaries keyed by identifier. The ID is not stored inside the value — it is derived from the key and injected during mapping:
 
 ```python
-return TransferObject.from_data(
-    ErrorYamlObject,
-    id=id,          # Key becomes the domain object's ID.
-    **error_data    # Value contains the remaining fields.
+return ErrorYamlObject.model_validate(
+    {**error_data, 'id': id}   # Key becomes the domain object's ID.
 ).map()
 ```
 
@@ -112,13 +110,13 @@ This pattern is universal across all repositories.
 
 Every save method follows the same three-step sequence:
 
-1. **Serialize** the domain object via `TransferObject.from_model()` and `to_primitive(default_role)`.
+1. **Serialize** the domain object via `TransferObject.from_model()` and `to_primitive(default_role)` (which delegates to `model_dump`).
 2. **Load the full file** to preserve sibling sections.
 3. **Update** the target section with `setdefault` and write back.
 
 ```python
 # Serialize.
-error_data = TransferObject.from_model(ErrorYamlObject, error)
+error_data = ErrorYamlObject.from_model(error)
 
 # Load full file.
 full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
@@ -207,7 +205,7 @@ The logging repository uses `LoggingSettingsYamlObject` — a transfer object th
 
 ```python
 data = Yaml(self.yaml_file, encoding=self.encoding).load(
-    data_factory=lambda d: LoggingSettingsYamlObject.from_data(**d),
+    data_factory=lambda d: LoggingSettingsYamlObject.hydrate(**d),
     start_node=lambda d: d.get('logging', {})
 )
 return (

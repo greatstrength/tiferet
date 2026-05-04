@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/builders/`  
-**Version:** 2.0.0a9
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -83,7 +83,7 @@ def load_app_service(self, module_path=..., class_name=..., **parameters) -> 'Ap
 ```python
 def load_default_services(self) -> List[AppServiceDependency]:
     return [
-        DomainObject.new(AppServiceDependency, **data, validate=False)
+        AppServiceDependency.model_validate(data)
         for data in a.const.DEFAULT_SERVICES
     ]
 ```

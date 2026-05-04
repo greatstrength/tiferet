@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/events/app.py`  
-**Version:** 2.0.0a6
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -52,7 +52,7 @@ Creates a new `AppInterface` and persists it via `AppService.save()`.
 
 **Behavior:**
 1. Collects all parameters into a data dict.
-2. Delegates to `AppInterfaceAggregate.new(app_interface_data=...)` for creation and validation.
+2. Creates an `AppInterfaceAggregate` via the Pydantic constructor for creation and validation.
 3. Saves via `app_service.save(interface)`.
 
 ```python

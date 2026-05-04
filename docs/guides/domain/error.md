@@ -6,8 +6,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 06, 2026  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -25,8 +25,8 @@ Represents a single localized error message.
 
 | Attribute | Type         | Required | Default | Description                         |
 |-----------|--------------|----------|---------|-------------------------------------|
-| `lang`    | `StringType` | Yes      | —       | The language of the error message.   |
-| `text`    | `StringType` | Yes      | —       | The error message text (may contain format placeholders). |
+| `lang`    | `str`        | Yes      | —       | The language of the error message.   |
+| `text`    | `str`        | Yes      | —       | The error message text (may contain format placeholders). |
 
 #### Methods
 
@@ -35,7 +35,7 @@ Represents a single localized error message.
 Returns the raw `text` when no kwargs are provided. When kwargs are given, performs Python string formatting:
 
 ```python
-msg = DomainObject.new(ErrorMessage, lang='en_US', text='Value {value} is invalid')
+msg = ErrorMessage(lang='en_US', text='Value {value} is invalid')
 msg.format()                    # 'Value {value} is invalid'
 msg.format(value='abc')         # 'Value abc is invalid'
 ```
@@ -46,20 +46,20 @@ Represents a named error definition with multilingual message support.
 
 | Attribute    | Type                              | Required | Default | Description                                   |
 |--------------|-----------------------------------|----------|---------|-----------------------------------------------|
-| `id`         | `StringType`                      | Yes      | —       | The unique identifier of the error.            |
-| `name`       | `StringType`                      | Yes      | —       | The name of the error.                         |
-| `description`| `StringType`                      | No       | —       | The description of the error.                  |
-| `error_code` | `StringType`                      | No       | —       | The unique code of the error (derived from id).|
-| `message`    | `ListType(ModelType(ErrorMessage))`| Yes     | —       | The error message translations.                |
+| `id`         | `str`                             | Yes      | —       | The unique identifier of the error.            |
+| `name`       | `str`                             | Yes      | —       | The name of the error.                         |
+| `description`| `str \| None`                     | No       | `None`  | The description of the error.                  |
+| `error_code` | `str \| None`                     | No       | —       | The unique code of the error (derived from id via `@model_validator`).|
+| `message`    | `List[ErrorMessage]`              | Yes      | —       | The error message translations.                |
 
 #### Methods
 
-**`new(name, id, message=[], **kwargs) -> Error`** (static)
+**ID Derivation via `@model_validator`**
 
-Custom factory that derives `error_code` by uppercasing `id` and replacing spaces with underscores:
+The `error_code` is automatically derived by a `@model_validator(mode='before')` that uppercases `id` and replaces spaces with underscores:
 
 ```python
-error = Error.new(id='invalid_input', name='Invalid Input', message=[...])
+error = Error(id='invalid_input', name='Invalid Input', message=[...])
 assert error.error_code == 'INVALID_INPUT'
 ```
 
@@ -154,17 +154,17 @@ Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, ErrorMessage, Error
+from tiferet.domain import ErrorMessage, Error
 
-msg_en = DomainObject.new(ErrorMessage, lang='en_US', text='Value {value} is invalid')
-msg_es = DomainObject.new(ErrorMessage, lang='es_ES', text='El valor {value} no es válido')
+msg_en = ErrorMessage(lang='en_US', text='Value {value} is invalid')
+msg_es = ErrorMessage(lang='es_ES', text='El valor {value} no es válido')
 
-error = Error.new(
+error = Error(
     id='invalid_input',
     name='Invalid Input',
     message=[msg_en, msg_es],
 )
-# error.error_code == 'INVALID_INPUT'
+# error.error_code == 'INVALID_INPUT' (derived via @model_validator)
 # error.format_message('es_ES', value='abc') == 'El valor abc no es válido'
 ```
 
