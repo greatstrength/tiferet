@@ -33,16 +33,14 @@ def app_interface():
     '''
 
     # Create a test AppInterfaceAggregate instance.
-    return AppInterfaceAggregate.new(
-        app_interface_data=dict(
-            id='test',
-            name='Test App',
-            module_path='tiferet.contexts.app',
-            class_name='AppInterfaceContext',
-            description='The test app.',
-            flags=['test'],
-            services=[],
-        ),
+    return AppInterfaceAggregate(
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        description='The test app.',
+        flags=['test'],
+        services=[],
     )
 
 # ** fixture: feature_context

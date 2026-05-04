@@ -8,7 +8,6 @@ from typing import Dict, Any, List, Callable
 # ** app
 from ..assets.logging import *
 from ..domain import (
-    DomainObject,
     Formatter,
     Handler,
     Logger,
@@ -126,18 +125,15 @@ class LoggingContext(object):
 
         # Set the default configurations if not provided.
         if not formatters:
-            formatters = [DomainObject.new(
-                Formatter,
+            formatters = [Formatter(
                 **data
             ) for data in DEFAULT_FORMATTERS]
         if not handlers:
-            handlers = [DomainObject.new(
-                Handler,
+            handlers = [Handler(
                 **data
             ) for data in DEFAULT_HANDLERS]
         if not loggers:
-            loggers = [DomainObject.new(
-                Logger,
+            loggers = [Logger(
                 **data
             ) for data in DEFAULT_LOGGERS]
 
