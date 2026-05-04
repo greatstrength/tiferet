@@ -8,7 +8,6 @@ from typing import List
 # ** app
 from ..interfaces import AppService
 from ..mappers import (
-    TransferObject,
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )
@@ -93,10 +92,8 @@ class AppYamlRepository(AppService):
             return None
 
         # Map the data to an AppInterfaceAggregate and return it.
-        return TransferObject.from_data(
-            AppInterfaceYamlObject,
-            id=id,
-            **interface_data,
+        return AppInterfaceYamlObject.model_validate(
+            {**interface_data, 'id': id}
         ).map()
 
     # * method: list
@@ -118,10 +115,8 @@ class AppYamlRepository(AppService):
 
         # Map each interface entry to an AppInterfaceAggregate.
         return [
-            TransferObject.from_data(
-                AppInterfaceYamlObject,
-                id=interface_id,
-                **interface_data,
+            AppInterfaceYamlObject.model_validate(
+                {**interface_data, 'id': interface_id}
             ).map()
             for interface_id, interface_data in interfaces_data.items()
         ]

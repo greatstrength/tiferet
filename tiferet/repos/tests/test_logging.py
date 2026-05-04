@@ -6,7 +6,7 @@
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
+from ...mappers import FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
 from ..logging import LoggingYamlRepository
 
 # *** constants
@@ -148,14 +148,13 @@ def test_int_logging_config_repo_save_formatter(
     NEW_FORMATTER_ID = 'new_test_formatter'
 
     # Create new formatter.
-    formatter = TransferObject.from_data(
-        FormatterYamlObject,
+    formatter = FormatterYamlObject.model_validate(dict(
         id=NEW_FORMATTER_ID,
         name='New Test Formatter',
         description='A new test formatter',
         format='%(levelname)s - %(message)s',
         datefmt='%H:%M:%S'
-    ).map()
+    )).map()
 
     # Save the formatter.
     logging_config_repo.save_formatter(formatter)
@@ -187,8 +186,7 @@ def test_int_logging_config_repo_save_handler(
     NEW_HANDLER_ID = 'new_test_handler'
 
     # Create new handler.
-    handler = TransferObject.from_data(
-        HandlerYamlObject,
+    handler = HandlerYamlObject.model_validate(dict(
         id=NEW_HANDLER_ID,
         name='New Test Handler',
         description='A new test handler',
@@ -197,7 +195,7 @@ def test_int_logging_config_repo_save_handler(
         level='ERROR',
         formatter=TEST_FORMATTER_ID,
         filename='test.log'
-    ).map()
+    )).map()
 
     # Save the handler.
     logging_config_repo.save_handler(handler)
@@ -230,8 +228,7 @@ def test_int_logging_config_repo_save_logger(
     NEW_LOGGER_ID = 'new_test_logger'
 
     # Create new logger.
-    logger = TransferObject.from_data(
-        LoggerYamlObject,
+    logger = LoggerYamlObject.model_validate(dict(
         id=NEW_LOGGER_ID,
         name='New Test Logger',
         description='A new test logger',
@@ -239,7 +236,7 @@ def test_int_logging_config_repo_save_logger(
         handlers=[TEST_HANDLER_ID],
         propagate=True,
         is_root=False
-    ).map()
+    )).map()
 
     # Save the logger.
     logging_config_repo.save_logger(logger)
