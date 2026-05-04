@@ -40,7 +40,7 @@ def sample_feature() -> Feature:
     '''
 
     # Create a sample feature aggregate.
-    return FeatureAggregate.new(
+    return FeatureAggregate(
         id='group.sample_feature',
         name='Sample Feature',
         group_id='group',

@@ -102,7 +102,7 @@ class AddFormatter(DomainEvent):
         '''
 
         # Create the formatter aggregate.
-        formatter = FormatterAggregate.new(
+        formatter = FormatterAggregate(
             id=id,
             name=name,
             format=format,
@@ -224,7 +224,7 @@ class AddHandler(DomainEvent):
         '''
 
         # Create the handler aggregate.
-        handler = HandlerAggregate.new(
+        handler = HandlerAggregate(
             id=id,
             name=name,
             module_path=module_path,
@@ -341,7 +341,7 @@ class AddLogger(DomainEvent):
         '''
 
         # Create the logger aggregate.
-        logger = LoggerAggregate.new(
+        logger = LoggerAggregate(
             id=id,
             name=name,
             level=level,
