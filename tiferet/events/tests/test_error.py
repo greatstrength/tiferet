@@ -38,7 +38,7 @@ def error() -> ErrorAggregate:
     '''
 
     # Create a sample error aggregate.
-    return ErrorAggregate.new(
+    return ErrorAggregate(
         id='TEST_ERROR',
         name='Test Error',
         message=[{
@@ -59,7 +59,7 @@ def default_errors() -> List[Error]:
 
     # Return a list of default Error aggregates.
     return [
-        ErrorAggregate.new(**data) for data in a.DEFAULT_ERRORS.values()
+        ErrorAggregate(**data) for data in a.DEFAULT_ERRORS.values()
     ]
 
 # *** tests
@@ -220,7 +220,7 @@ class TestGetError(ServiceEventTestBase):
         )
 
         # Assert the result matches the expected default error.
-        expected = ErrorAggregate.new(**a.DEFAULT_ERRORS.get(error_id))
+        expected = ErrorAggregate(**a.DEFAULT_ERRORS.get(error_id))
         assert result == expected
         mock_dependencies['error_service'].get.assert_called_once_with(error_id)
 
@@ -266,7 +266,7 @@ class TestListErrors(DomainEventTestBase):
         '''
 
         # Configure the mock to return a list with an additional error.
-        existing_error = ErrorAggregate.new(
+        existing_error = ErrorAggregate(
             id='EXISTING_ERROR',
             name='Existing Error',
             message=[{
@@ -292,7 +292,7 @@ class TestListErrors(DomainEventTestBase):
         '''
 
         # Create a repo error that overrides the default ERROR_NOT_FOUND.
-        overriding_error = ErrorAggregate.new(
+        overriding_error = ErrorAggregate(
             id=a.const.ERROR_NOT_FOUND_ID,
             name='Overriding Not Found Error',
             message=[{

@@ -89,9 +89,7 @@ class AddAppInterface(DomainEvent):
         }
 
         # Create the AppInterface model; flags defaults to ['default'].
-        interface = AppInterfaceAggregate.new(
-            app_interface_data=app_interface_data
-        )
+        interface = AppInterfaceAggregate(**app_interface_data)
 
         # Persist the new interface via the app service.
         self.app_service.save(interface)
@@ -160,9 +158,7 @@ class GetAppInterface(DomainEvent):
 
         # Ensure the interface is mutable before applying service/constant merges.
         if not isinstance(interface, AppInterfaceAggregate):
-            interface = AppInterfaceAggregate.new(
-                app_interface_data=interface.to_primitive(),
-            )
+            interface = AppInterfaceAggregate(**interface.model_dump())
 
         # Merge default services into the interface for any service_id not already present.
         if default_services:

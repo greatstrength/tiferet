@@ -78,14 +78,12 @@ class AddServiceConfiguration(DomainEvent):
         )
 
         # Create service configuration aggregate from dependency dicts.
-        configuration = ServiceConfigurationAggregate.new(
-            service_configuration_data=dict(
-                id=id,
-                module_path=module_path,
-                class_name=class_name,
-                parameters=parameters,
-                dependencies=flagged_dependencies,
-            ),
+        configuration = ServiceConfigurationAggregate(
+            id=id,
+            module_path=module_path,
+            class_name=class_name,
+            parameters=parameters,
+            dependencies=flagged_dependencies,
         )
 
         # Save the new configuration and return it.

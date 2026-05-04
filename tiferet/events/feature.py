@@ -71,7 +71,7 @@ class AddFeature(DomainEvent):
         '''
 
         # Create feature using the aggregate factory.
-        feature = FeatureAggregate.new(
+        feature = FeatureAggregate(
             name=name,
             group_id=group_id,
             feature_key=feature_key,
