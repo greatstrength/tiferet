@@ -5,7 +5,6 @@
 # ** app
 from ...domain import CliArgument, CliCommand, DomainObject
 from ...events import a
-from ..settings import TransferObject
 from ..cli import CliArgumentAggregate, CliCommandAggregate, CliCommandYamlObject
 from .settings import AggregateTestBase, TransferObjectTestBase
 
@@ -191,7 +190,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         '''
 
         # Create an aggregate with no arguments.
-        aggregate = CliCommandAggregate.new(
+        aggregate = CliCommandAggregate(
             id='calc.divide',
             name='Divide Number Command',
             key='divide',
@@ -256,10 +255,9 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object using the 'args' alias.
-        yaml_obj = TransferObject.from_data(
-            CliCommandYamlObject,
+        yaml_obj = CliCommandYamlObject.model_validate(dict(
             **self.sample_data,
-        )
+        ))
 
         # Assert the arguments were correctly deserialized.
         assert len(yaml_obj.arguments) == 2
@@ -275,10 +273,9 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize to primitive.
-        yaml_obj = TransferObject.from_data(
-            CliCommandYamlObject,
+        yaml_obj = CliCommandYamlObject.model_validate(dict(
             **self.sample_data,
-        )
+        ))
         primitive = yaml_obj.to_primitive('to_data.yaml')
 
         # Assert 'id' is excluded and 'args' is present with full dicts.
@@ -299,10 +296,9 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize with to_model role.
-        yaml_obj = TransferObject.from_data(
-            CliCommandYamlObject,
+        yaml_obj = CliCommandYamlObject.model_validate(dict(
             **self.sample_data,
-        )
+        ))
         primitive = yaml_obj.to_primitive('to_model')
 
         # Assert 'arguments' is excluded and other fields are retained.
@@ -319,15 +315,13 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a CliCommand domain object using the factory method.
-        cli_command = CliCommand.new(
+        cli_command = CliCommand(
             group_key='calc',
             key='subtract',
             name='Subtract Number Command',
             description='Subtracts one number from another.',
             arguments=[
-                DomainObject.new(
-                    CliArgument,
-                    name_or_flags=['a'],
+                CliArgument(name_or_flags=['a'],
                     description='The number to subtract from.',
                 ),
             ],
