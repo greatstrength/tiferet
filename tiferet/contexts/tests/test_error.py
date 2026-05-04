@@ -55,7 +55,7 @@ def test_error_context_get_error_by_code(get_error_evt_mock: DomainEvent, error_
     '''
 
     # Mock the get_error_handler to return a sample Error.
-    get_error_evt_mock.execute.return_value = Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+    get_error_evt_mock.execute.return_value = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
     
     error = error_context.get_error_by_code(ERROR_NOT_FOUND_ID)
     
@@ -101,7 +101,7 @@ def test_error_context_handle_error(error_context):
     tiferet_error = TiferetError('ERROR_NOT_FOUND', id='NON_EXISTENT_ERROR')
 
     # Mock the get_error_handler to return the appropriate Error object.
-    error_context.get_error_handler = mock.Mock(return_value=Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID)))
+    error_context.get_error_handler = mock.Mock(return_value=Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID)))
 
     # Handle the error using the error context.
     response = error_context.handle_error(tiferet_error, lang='en_US')

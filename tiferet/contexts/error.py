@@ -55,7 +55,7 @@ class ErrorContext(object):
         except TiferetError:
             
             # Retrieve and raise the "error not found" error to use its details.
-            error: Error = Error.new(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+            error: Error = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
             raise TiferetAPIError(
                 **error.format_response(),
                 id=error_code

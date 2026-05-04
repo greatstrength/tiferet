@@ -10,13 +10,11 @@ from ..di import DIContext
 from ..cache import CacheContext
 from ...assets.exceptions import TiferetError
 from ...assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
+from ...di import ServiceProvider, DependenciesServiceProvider
 from ...domain import (
-    ServiceProvider,
-    DependenciesServiceProvider,
     ServiceConfiguration,
     FlaggedDependency,
 )
-from ...domain.settings import DomainObject
 from ...events.di import ListAllSettings
 
 
@@ -55,14 +53,12 @@ def di_service_content() -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
 
     # Create a list of service configurations.
     configurations = [
-        DomainObject.new(
-            ServiceConfiguration,
+        ServiceConfiguration(
             id='test_service',
             module_path='tiferet.contexts.tests.test_di',
             class_name='TestService',
             dependencies=[
-                DomainObject.new(
-                    FlaggedDependency,
+                FlaggedDependency(
                     module_path='tiferet.contexts.tests.test_di',
                     class_name='TestService',
                     flag='test',
