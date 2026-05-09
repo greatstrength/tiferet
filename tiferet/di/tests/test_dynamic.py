@@ -303,6 +303,31 @@ def test_remove_service_nonexistent(empty_provider: DynamicServiceProvider):
     assert len(empty_provider.container.providers) == 0
 
 
+# ** test: add_services_mixed_types_and_scalars
+def test_add_services_mixed_types_and_scalars(empty_provider: DynamicServiceProvider):
+    '''
+    Test that add_services routes class types to Factory providers and
+    non-type values to Object providers when given a mixed dict.
+
+    :param empty_provider: The empty provider fixture.
+    :type empty_provider: DynamicServiceProvider
+    '''
+
+    # Register a mix of types and scalars in a single call.
+    empty_provider.add_services({
+        'config_value': 'test_config',
+        'configurable_service': ConfigurableService,
+    })
+
+    # Assert the scalar resolves as-is.
+    assert empty_provider.get_service('config_value') == 'test_config'
+
+    # Assert the service resolves with the scalar injected.
+    service = empty_provider.get_service('configurable_service')
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'test_config'
+
+
 # ** test: cascading_dependency_injection
 def test_cascading_dependency_injection(empty_provider: DynamicServiceProvider):
     '''

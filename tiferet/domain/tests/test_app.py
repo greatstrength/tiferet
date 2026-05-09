@@ -13,7 +13,7 @@ from ..app import (
 )
 from ...di import (
     ServiceProvider,
-    DependenciesServiceProvider,
+    DynamicServiceProvider,
 )
 
 # *** fixtures
@@ -203,8 +203,8 @@ def test_app_interface_service_provider_defaults() -> None:
     )
 
     # Assert default provider module path and class name values.
-    assert interface.service_provider_path == 'tiferet.di.dependencies'
-    assert interface.service_provider_class_name == 'DependenciesServiceProvider'
+    assert interface.service_provider_path == 'tiferet.di.dynamic'
+    assert interface.service_provider_class_name == 'DynamicServiceProvider'
 
 
 # ** test: app_interface_create_service_provider
@@ -229,6 +229,6 @@ def test_app_interface_create_service_provider(resolvable_app_dependency: AppSer
 
     # Assert the provider is correctly created and populated.
     assert isinstance(provider, ServiceProvider)
-    assert isinstance(provider, DependenciesServiceProvider)
-    assert 'app_context' in provider.services
-    assert 'resolvable_service' in provider.services
+    assert isinstance(provider, DynamicServiceProvider)
+    assert 'app_context' in provider.container.providers
+    assert 'resolvable_service' in provider.container.providers

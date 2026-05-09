@@ -64,13 +64,20 @@ class DynamicServiceProvider(ServiceProvider):
         '''
         Add multiple service dependencies to the service provider.
 
-        :param services: A dictionary of service IDs and their corresponding types.
+        Class types are registered as Factory providers (new instance per
+        resolution). Non-type values (scalars, callables, etc.) are registered
+        as Object providers (pass-through).
+
+        :param services: A dictionary of service IDs and their corresponding types or values.
         :type services: Dict[str, type]
         '''
 
-        # Register each service individually.
-        for service_id, service_type in services.items():
-            self.add_service(service_id, service_type)
+        # Route each entry to the appropriate provider type.
+        for service_id, value in services.items():
+            if isinstance(value, type):
+                self.add_service(service_id, value)
+            else:
+                self.container.set_provider(service_id, providers.Object(value))
 
     # * method: add_constants
     def add_constants(self, constants: Dict[str, Any]):

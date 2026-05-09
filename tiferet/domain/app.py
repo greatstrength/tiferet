@@ -96,13 +96,13 @@ class AppInterface(DomainObject):
 
     # * attribute: service_provider_path
     service_provider_path: str = Field(
-        default='tiferet.di.dependencies',
+        default='tiferet.di.dynamic',
         description='The module path for the service provider to use for this dependency.',
     )
 
     # * attribute: service_provider_class_name
     service_provider_class_name: str = Field(
-        default='DependenciesServiceProvider',
+        default='DynamicServiceProvider',
         description='The class name for the service provider to use for this dependency.',
     )
 
@@ -153,12 +153,8 @@ class AppInterface(DomainObject):
         :rtype: Dict[str, type]
         '''
 
-        # Retrieve the app context dependency, interface id, and logger id.
+        # Register scalars and constants first.
         dependencies: Dict[str, type] = dict(
-            app_context=getattr(
-                import_module(self.module_path),
-                self.class_name,
-            ),
             interface_id=self.id,
             logger_id=getattr(self, 'logger_id', None),
         )
@@ -171,6 +167,12 @@ class AppInterface(DomainObject):
             dependencies[dep.service_id] = dep.get_service_type()
             for param, value in dep.parameters.items():
                 dependencies[param] = value
+
+        # Register app_context last so all its dependencies are available.
+        dependencies['app_context'] = getattr(
+            import_module(self.module_path),
+            self.class_name,
+        )
 
         # Return the assembled dependencies mapping.
         return dependencies
