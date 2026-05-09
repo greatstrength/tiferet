@@ -10,7 +10,7 @@ from ..di import DIContext
 from ..cache import CacheContext
 from ...assets.exceptions import TiferetError
 from ...assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ...di import ServiceProvider, DependenciesServiceProvider
+from ...di import ServiceProvider, DynamicServiceProvider
 from ...domain import (
     ServiceConfiguration,
     FlaggedDependency,
@@ -163,7 +163,7 @@ def test_di_context_default_service_provider_factory():
     '''
 
     # Build a provider with a type map and injected constants.
-    provider = DIContext._default_service_provider(
+    provider = DIContext.default_service_provider(
         type_map={'test_service': TestService},
         test_config='factory_value',
     )
@@ -181,7 +181,7 @@ def test_di_context_custom_service_provider_factory(di_list_all_configs_evt_mock
     '''
 
     # Create a custom factory mock and provider return value.
-    provider = DependenciesServiceProvider()
+    provider = DynamicServiceProvider()
     create_factory = mock.Mock(return_value=provider)
 
     # Create context with custom provider factory and build provider.
