@@ -9,7 +9,7 @@ from unittest import mock
 # ** app
 from ... import assets as a
 from ...assets import TiferetError
-from ...di import DependenciesServiceProvider
+from ...di import DynamicServiceProvider
 from ...contexts.app import AppInterfaceContext
 from ...mappers import AppInterfaceAggregate
 from ...repos.app import AppYamlRepository
@@ -84,7 +84,7 @@ def test_app_builder_initialization():
     # Assert initialized state.
     assert isinstance(builder.cache, dict)
     assert len(builder.cache) == 0
-    assert isinstance(builder.service_provider, DependenciesServiceProvider)
+    assert isinstance(builder.service_provider, DynamicServiceProvider)
 
 
 # ** test: app_builder_load_app_service_defaults
