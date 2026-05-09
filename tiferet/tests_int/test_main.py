@@ -146,37 +146,23 @@ def test_calc_yaml_file(tmp_path):
     # Return the file path as a string.
     return str(file_path)
 
-# ** fixture: app_builder
+# ** fixture: basic_calc
 @pytest.fixture
-def app_builder(test_calc_yaml_file):
+def basic_calc(test_calc_yaml_file):
     '''
-    Initialize the AppBuilder with the temporary test calculator YAML file.
+    Fixture to build the basic calculator interface context.
 
     :param test_calc_yaml_file: The path to the temporary test calculator YAML file.
     :type test_calc_yaml_file: str
-    :return: The initialized AppBuilder.
-    :rtype: AppBuilder
-    '''
-
-    # Load the app service from the temporary YAML file.
-    return App().load_app_service(
-        app_yaml_file=test_calc_yaml_file
-    )
-
-# ** fixture: basic_calc
-@pytest.fixture
-def basic_calc(app_builder):
-    '''
-    Fixture to load the basic calculator interface from the app builder.
-
-    :param app_builder: The initialized AppBuilder.
-    :type app_builder: AppBuilder
     :return: The loaded basic calculator interface context.
     :rtype: AppInterfaceContext
     '''
 
-    # Load the test_calc interface using the app builder.
-    return app_builder.load_interface('test_calc')
+    # Build the test_calc interface in a single act.
+    return App(
+        'test_calc',
+        app_yaml_file=test_calc_yaml_file,
+    )
 
 # *** tests
 

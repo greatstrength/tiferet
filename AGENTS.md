@@ -18,7 +18,7 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── builders/             # AppBuilder, CliBuilder and top-level runtime orchestration
+├── blueprints/             # build_app, cli.build_app and top-level runtime orchestration
 ├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
 ├── domain/               # DomainObject base class and domain modules
@@ -42,7 +42,7 @@ tiferet/
 
 ### Runtime Flow
 
-1. `App()` (alias for `AppBuilder`) is initialized.
+1. `App()` (alias for `build_app`) is initialized.
 2. `app.load_app_service(...)` loads the app repository service (typically `AppYamlRepository`).
 3. `app.run(interface_id, feature_id, data={})` resolves the interface via `GetAppInterface` and builds an `AppInterfaceContext`.
 4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
@@ -51,15 +51,15 @@ tiferet/
 
 ### Builders
 
-- `AppBuilder` is defined in `tiferet/builders/main.py`.
+- `build_app` is defined in `tiferet/blueprints/main.py`.
 - It is the primary public orchestration entry point and is exported as `App` from `tiferet/__init__.py`.
 - Core responsibilities:
   - Loading the app service (`load_app_service`)
   - Injecting default services and constants (`load_default_services`, `DEFAULT_CONSTANTS`)
   - Resolving interface contexts (`load_interface`)
   - Delegating feature execution (`run`)
-- `CliBuilder` is defined in `tiferet/builders/cli.py` and is exported as `CLI` from `tiferet/__init__.py`.
-- It extends `AppBuilder` to provide an argparse-based CLI build procedure on top of the inherited app-service / interface-loading machinery.
+- `cli.build_app` is defined in `tiferet/blueprints/cli.py` and is exported as `CLI` from `tiferet/__init__.py`.
+- It extends `build_app` to provide an argparse-based CLI build procedure on top of the inherited app-service / interface-loading machinery.
 - Build procedure:
   - `get_commands()` resolves and groups `CliCommand` objects by `group_key` via the `list_commands_evt` service.
   - `get_parent_arguments()` resolves parent-level CLI arguments via the `get_parent_args_evt` service.
@@ -71,7 +71,7 @@ tiferet/
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `build_app.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
 - **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DependenciesServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 ## Structured Code Style
@@ -257,8 +257,8 @@ Current utilities:
 The top-level `tiferet/__init__.py` exports:
 
 **Core:**
-- `App` (alias for `AppBuilder`)
-- `CLI` (alias for `CliBuilder`)
+- `App` (alias for `build_app`)
+- `CLI` (alias for `cli.build_app`)
 - `TiferetError`, `TiferetAPIError`
 
 **Domain:**
@@ -287,8 +287,8 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
 - `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
-- `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
-- `tiferet/builders/cli.py` — `CliBuilder` (CLI orchestration entry point, exported as `CLI`)
+- `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point)
+- `tiferet/blueprints/cli.py` — `cli.build_app` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext`
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)

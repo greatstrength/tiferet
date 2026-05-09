@@ -328,11 +328,11 @@ def test_calc_cli_script(tmp_path, test_calc_yaml_file):
 
     # Build the CLI script with the main YAML file path injected.
     script = (
+        "import sys\n"
         "from tiferet import CLI\n"
         "\n"
-        "cli = CLI().load_app_service(app_yaml_file={main_yaml!r})\n"
         "if __name__ == '__main__':\n"
-        "    cli.run('test_calc_cli')\n"
+        "    CLI('test_calc_cli', argv=sys.argv[1:], app_yaml_file={main_yaml!r})\n"
     ).format(main_yaml=test_calc_yaml_file)
 
     # Write the CLI script to a temporary file.

@@ -2,14 +2,14 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/builders/`  
-**Version:** 2.0.0a9
+**Module:** `tiferet/blueprints/`  
+**Version:** 2.0.0b1
 
 ## Overview
 
-Builders are the top-level orchestration layer in Tiferet v2.0+. They serve as the primary public entry point for applications, replacing direct usage of `AppManagerContext`.
+Blueprints are the top-level orchestration layer in Tiferet v2.0+. They serve as the primary public entry point for applications, replacing direct usage of `AppManagerContext`.
 
-A builder is responsible for:
+A blueprint is responsible for:
 
 - Loading the application service (repository)
 - Preparing default services and constants
@@ -17,7 +17,7 @@ A builder is responsible for:
 - Wiring dependency injection
 - Executing features through the resolved interface context
 
-The canonical example is `AppBuilder` in `tiferet/builders/main.py`.
+The canonical example is `build_app` in `tiferet/blueprints/main.py`.
 
 ## Role of Builders in the Architecture
 
@@ -26,9 +26,9 @@ Builders sit at the highest level of the runtime graph. They are what applicatio
 ```python
 from tiferet import App
 
-builder = App()
-builder.load_app_service(...)          # optional custom service
-result = builder.run("basic_calc", "calc.add", data={"a": 5, "b": 3})
+blueprint = App()
+blueprint.load_app_service(...)          # optional custom service
+result = blueprint.run("basic_calc", "calc.add", data={"a": 5, "b": 3})
 ```
 
 Key responsibilities:
@@ -39,11 +39,11 @@ Key responsibilities:
 - **Interface resolution** — calling `GetAppInterface` and validating the result
 - **Execution** — delegating to `AppInterfaceContext.run()`
 
-Builders are intentionally **thin** — they coordinate rather than implement business logic.
+Blueprints are intentionally **thin** — they coordinate rather than implement business logic.
 
-## The AppBuilder Pattern
+## The build_app Pattern
 
-`AppBuilder` follows a clear, reusable pattern:
+`build_app` follows a clear, reusable pattern:
 
 ### 1. Initialization
 
@@ -72,7 +72,7 @@ This is registered in the DI container so contexts can create scoped providers.
 ### 3. Loading the App Service
 
 ```python
-def load_app_service(self, module_path=..., class_name=..., **parameters) -> 'AppBuilder':
+def load_app_service(self, module_path=..., class_name=..., **parameters) -> 'build_app':
     ...
     self.cache[APP_SERVICE_KEY] = app_service
     return self   # supports chaining
@@ -83,12 +83,12 @@ def load_app_service(self, module_path=..., class_name=..., **parameters) -> 'Ap
 ```python
 def load_default_services(self) -> List[AppServiceDependency]:
     return [
-        DomainObject.new(AppServiceDependency, **data, validate=False)
+        AppServiceDependency.model_validate(data)
         for data in a.const.DEFAULT_SERVICES
     ]
 ```
 
-Constants are passed via `default_constants=a.const.DEFAULT_CONSTANTS` to `GetAppInterface`.
+Constants are passed via `default_constants=a.bps.DEFAULT_CONSTANTS` to `GetAppInterface`.
 
 ### 5. Interface Resolution Flow
 
@@ -102,7 +102,7 @@ def load_interface(self, interface_id: str) -> AppInterfaceContext:
         dependencies={'app_service': app_service},
         interface_id=interface_id,
         default_services=default_services,
-        default_constants=a.const.DEFAULT_CONSTANTS,
+        default_constants=a.bps.DEFAULT_CONSTANTS,
     )
 
     return self.load_app_instance(app_interface)
@@ -116,9 +116,9 @@ def run(self, interface_id: str, feature_id: str, headers=None, data=None, **kwa
     return context.run(feature_id, headers or {}, data or {}, **kwargs)
 ```
 
-## The CliBuilder Pattern
+## The cli.build_app Pattern
 
-`CliBuilder` extends `AppBuilder` and encapsulates CLI build-time translation of `sys.argv` into a feature invocation. All argparse wiring lives in the builder; runtime execution is delegated to the inherited `AppInterfaceContext.run`.
+`cli.build_app` extends `build_app` and encapsulates CLI build-time translation of `sys.argv` into a feature invocation. All argparse wiring lives in the blueprint; runtime execution is delegated to the inherited `AppInterfaceContext.run`.
 
 ### Usage
 
@@ -132,35 +132,35 @@ if __name__ == '__main__':
 
 ### Build Procedure
 
-`CliBuilder.run(interface_id, argv=None)` follows four steps:
+`cli.build_app.run(interface_id, argv=None)` follows four steps:
 
 1. Load the interface context via the inherited `load_interface(interface_id)`.
 2. Build the argparse parser by composing `get_commands()`, `get_parent_arguments()`, and `build_parser(cli_commands, parent_arguments)`.
 3. Parse arguments with `vars(parser.parse_args(argv))`; on failure, print to stderr and `sys.exit(2)`.
 4. Derive `feature_id` and `headers` from the parsed namespace and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
 
-Because `CliBuilder` uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Because `cli.build_app` uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
 
 ## When to Create a New Builder
 
-Create a new builder when you need a specialized entry point:
+Create a new blueprint when you need a specialized entry point:
 
 - `WebBuilder` — for Flask/FastAPI integration
 - `TestBuilder` — for integration testing with mocked services
 
-If you find yourself repeating the same loading and wiring logic in multiple scripts, extract it into a dedicated builder.
+If you find yourself repeating the same loading and wiring logic in multiple scripts, extract it into a dedicated blueprint.
 
 ## Builder vs Context
 
 | Concern | Builder | Context |
 | --- | --- | --- |
-| Public API | Yes (`App().run(...)`) | Internal (used by builder) |
+| Public API | Yes (`App().run(...)`) | Internal (used by blueprint) |
 | Service loading | Yes | No |
 | Default config injection | Yes | No |
 | Feature execution | Delegates to interface context | Yes (`execute_feature`, `run`) |
 | Lifecycle | Application-level | Per-interface |
 
-Builders are **application-level**; contexts are **interface-level**.
+Blueprints are **application-level**; contexts are **interface-level**.
 
 ## Best Practices
 
@@ -169,7 +169,7 @@ Builders are **application-level**; contexts are **interface-level**.
 `load_app_service()` returns `self` to support fluent usage:
 
 ```python
-builder = App().load_app_service(...)
+blueprint = App().load_app_service(...)
 ```
 
 ### 2. Defensive Service Lookup
@@ -192,7 +192,7 @@ Builders should **not** contain domain logic — only orchestration, wiring, and
 
 ### 5. Register `create_service_provider`
 
-Always register the builder’s static factory so contexts can create scoped providers:
+Always register the blueprint’s static factory so contexts can create scoped providers:
 
 ```python
 dependencies['create_service_provider'] = self.create_service_provider
@@ -200,7 +200,7 @@ dependencies['create_service_provider'] = self.create_service_provider
 
 ## Related Documentation
 
-- [docs/core/builders.md](../core/builders.md) — detailed `AppBuilder` implementation reference
+- [docs/core/blueprints.md](../core/blueprints.md) — detailed `build_app` implementation reference
 - [docs/guides/domain/app.md](../guides/domain/app.md) — application-level configuration and runtime orchestration
 - [docs/guides/events/app.md](../guides/events/app.md) — app event usage in interface resolution
 - [docs/core/di.md](../core/di.md) — dependency injection and service provider architecture

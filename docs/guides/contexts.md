@@ -7,7 +7,7 @@
 
 ## Overview
 
-Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While builders (`tiferet/builders/`) own the application lifecycle and wiring, contexts own the per-interface runtime shape — how requests are parsed, features are executed, errors are handled, and responses are returned.
+Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While blueprints (`tiferet/blueprints/`) own the application lifecycle and wiring, contexts own the per-interface runtime shape — how requests are parsed, features are executed, errors are handled, and responses are returned.
 
 Tiferet distinguishes between two categories of contexts:
 
@@ -92,9 +92,9 @@ Override only the methods you need. Always call `super()` for shared behavior (e
 
 ### CLI Interfaces Without Custom Contexts
 
-In v2.0+, CLI interfaces are handled by `CliBuilder` rather than a `CliContext`. All argparse wiring lives in the builder; the CLI interface runs against the default `AppInterfaceContext`. As a result, CLI interface definitions in `app.yml` no longer require `module_path`/`class_name` overrides.
+In v2.0+, CLI interfaces are handled by `cli.build_app` rather than a `CliContext`. All argparse wiring lives in the blueprint; the CLI interface runs against the default `AppInterfaceContext`. As a result, CLI interface definitions in `app.yml` no longer require `module_path`/`class_name` overrides.
 
-If a CLI interface needs custom request parsing beyond argparse, the preferred pattern is still to extend `CliBuilder` — not to reintroduce a dedicated CLI context.
+If a CLI interface needs custom request parsing beyond argparse, the preferred pattern is still to extend `cli.build_app` — not to reintroduce a dedicated CLI context.
 
 ## Low-Level Context Lifecycles
 
@@ -122,7 +122,7 @@ Feature-level flags (defined on the `Feature`) are combined with step-level flag
 6. Call `create_service_provider(type_map=..., **constants)` to instantiate a provider.
 7. Cache and return the provider.
 
-The `create_service_provider` factory is supplied by the builder via `AppBuilder.create_service_provider` so that app-level and feature-level providers share a consistent construction strategy.
+The `create_service_provider` factory is supplied by the blueprint via `build_app.create_service_provider` so that app-level and feature-level providers share a consistent construction strategy.
 
 ### RequestContext
 
@@ -146,7 +146,7 @@ A simple keyed in-memory cache used by `FeatureContext` (for loaded features) an
 At runtime, a fully wired interface graph looks roughly like this:
 
 ```
-AppBuilder
+build_app
   └── AppInterfaceContext
         ├── FeatureContext
         │     ├── DIContext  ── CacheContext
@@ -231,8 +231,8 @@ Do not share a single `CacheContext` instance across interfaces. Each `AppInterf
 ## Related Documentation
 
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context base classes, artifact comments, and code style reference
-- [docs/core/builders.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/builders.md) — AppBuilder and CliBuilder design
-- [docs/guides/builders.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/builders.md) — Builder strategies and patterns
+- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — build_app and cli.build_app design
+- [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) — Builder strategies and patterns
 - [docs/core/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — Dependency injection and service provider architecture
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and usage
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting rules
