@@ -3,9 +3,8 @@
 # *** imports
 
 # ** app
-from ...domain import DomainObject, FeatureEvent
+from ...domain import FeatureEvent
 from ...events import a
-from ..settings import TransferObject
 from ..feature import (
     FeatureEventAggregate,
     FeatureEventYamlObject,
@@ -185,10 +184,10 @@ class TestFeatureAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FeatureAggregate:
         '''
-        Override to use FeatureAggregate() custom factory.
+        Override to use FeatureAggregate constructor with derivation.
         '''
 
-        # Create an aggregate using the custom factory.
+        # Create an aggregate using the direct constructor.
         return FeatureAggregate(**(data or self.sample_data))
 
     # *** domain-specific tests
@@ -354,10 +353,10 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> FeatureAggregate:
         '''
-        Override to use FeatureAggregate() custom factory.
+        Override to use direct constructors for aggregate and steps.
         '''
 
-        # Create an aggregate using the custom factory.
+        # Create an aggregate using the direct constructor.
         data = data or self.aggregate_sample_data
 
         # Build steps as FeatureEventAggregate instances.
@@ -390,9 +389,9 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = FeatureEventYamlObject.model_validate(dict(
-            **self.feature_event_sample_data,
-        ))
+        yaml_obj = FeatureEventYamlObject.model_validate(
+            self.feature_event_sample_data,
+        )
         event = yaml_obj.map()
 
         # Verify the mapped entity.
@@ -426,8 +425,9 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         Test that FeatureEventYamlObject can be created from a FeatureEvent model.
         '''
 
-        # Create a FeatureEvent model.
-        model = FeatureEvent(name='Test Event',
+        # Create a FeatureEvent model via direct constructor.
+        model = FeatureEvent(
+            name='Test Event',
             service_id='test_event_handler',
             parameters={'key': 'value'},
             data_key='result',

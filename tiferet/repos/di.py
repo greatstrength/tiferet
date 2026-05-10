@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Tuple
 # ** app
 from ..interfaces import DIService
 from ..mappers import (
-    TransferObject,
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
 )

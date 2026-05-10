@@ -70,9 +70,7 @@ class AddFeature(DomainEvent):
         :rtype: Feature
         '''
 
-        # Create feature using the aggregate constructor; the model_validator on
-        # FeatureAggregate derives any missing keys (id, group_id, feature_key,
-        # description) from the supplied inputs.
+        # Create feature using the aggregate factory.
         feature = FeatureAggregate(
             name=name,
             group_id=group_id,

@@ -6,7 +6,6 @@
 import pytest
 
 # ** app
-from ..settings import DomainObject
 from ..error import (
     Error,
     ErrorMessage,
@@ -25,9 +24,7 @@ def error_message() -> ErrorMessage:
     '''
 
     # Create and return a new ErrorMessage.
-    return ErrorMessage(lang='en_US',
-        text='An error occurred.',
-    )
+    return ErrorMessage(lang='en_US', text='An error occurred.')
 
 # ** fixture: formatted_error_message
 @pytest.fixture
@@ -40,9 +37,7 @@ def formatted_error_message() -> ErrorMessage:
     '''
 
     # Create and return a new ErrorMessage with a format placeholder.
-    return ErrorMessage(lang='en_US',
-        text='An error occurred: {error}',
-    )
+    return ErrorMessage(lang='en_US', text='An error occurred: {error}')
 
 # ** fixture: error
 @pytest.fixture
@@ -56,7 +51,7 @@ def error(error_message: ErrorMessage) -> Error:
     :rtype: Error
     '''
 
-    # Create and return a new Error; the model_validator derives error_code from id.
+    # Create and return a new Error via direct construction.
     return Error(
         id='TEST_ERROR',
         name='Test Error',
@@ -87,7 +82,7 @@ def error_with_formatted_message(formatted_error_message: ErrorMessage) -> Error
 # ** test: error_construction_derives_error_code
 def test_error_construction_derives_error_code(error: Error) -> None:
     '''
-    Test that constructing an Error sets id, name, derived error_code, and message correctly.
+    Test that constructing an Error derives error_code from id via the model validator.
 
     :param error: The Error fixture.
     :type error: Error

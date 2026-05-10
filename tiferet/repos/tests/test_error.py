@@ -9,10 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import (
-    TransferObject,
-    ErrorYamlObject,
-)
+from ...mappers import ErrorYamlObject
 from ..error import ErrorYamlRepository
 
 

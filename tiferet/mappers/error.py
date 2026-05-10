@@ -9,8 +9,14 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import Field
 
 # ** app
-from ..domain import Error, ErrorMessage
-from .settings import Aggregate, TransferObject
+from ..domain import (
+    Error,
+    ErrorMessage,
+)
+from .settings import (
+    Aggregate,
+    TransferObject,
+)
 
 # *** mappers
 
@@ -31,7 +37,7 @@ class ErrorAggregate(Error, Aggregate):
         :rtype: None
         '''
 
-        # Update the name; validate_assignment=True triggers validation.
+        # Update the name; validate_assignment=True handles re-validation.
         self.name = new_name
 
     # * method: set_message
@@ -53,7 +59,7 @@ class ErrorAggregate(Error, Aggregate):
                 msg.text = text
                 return
 
-        # Otherwise append a new ErrorMessage; reassignment triggers validation.
+        # If not, create a new ErrorMessage and add it via list reassignment.
         self.message = self.message + [ErrorMessage(lang=lang, text=text)]
 
     # * method: remove_message
@@ -67,8 +73,9 @@ class ErrorAggregate(Error, Aggregate):
         :rtype: None
         '''
 
-        # Reassign so validate_assignment=True triggers validation.
+        # Filter out the message with the specified language via list reassignment.
         self.message = [msg for msg in self.message if msg.lang != lang]
+
 
 # ** mapper: error_message_yaml_object
 class ErrorMessageYamlObject(ErrorMessage, TransferObject):
@@ -87,14 +94,15 @@ class ErrorMessageYamlObject(ErrorMessage, TransferObject):
         '''
         Maps the error message data to an error message object.
 
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new ErrorMessage instance.
+        :return: A new error message object.
         :rtype: ErrorMessage
         '''
 
-        # Delegate to the base mapper, targeting ErrorMessage.
+        # Map to the error message object.
         return super().map(ErrorMessage, **overrides)
+
 
 # ** mapper: error_yaml_object
 class ErrorYamlObject(Error, TransferObject):
@@ -119,13 +127,13 @@ class ErrorYamlObject(Error, TransferObject):
         '''
         Maps the error data to an error aggregate.
 
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new ErrorAggregate instance.
+        :return: A new error aggregate.
         :rtype: ErrorAggregate
         '''
 
-        # Convert nested YAML messages into runtime ErrorMessage instances.
+        # Map the error data with nested message conversion.
         return super().map(
             ErrorAggregate,
             message=[msg.map() for msg in self.message],
@@ -140,15 +148,19 @@ class ErrorYamlObject(Error, TransferObject):
 
         :param error: The error model to copy from.
         :type error: Error
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new ErrorYamlObject instance.
+        :return: A new ErrorYamlObject.
         :rtype: ErrorYamlObject
         '''
 
-        # Convert each runtime message into an ErrorMessageYamlObject.
+        # Create a new ErrorYamlObject from the model, converting
+        # the message list into ErrorMessageYamlObject instances.
         return super().from_model(
             error,
-            message=[ErrorMessageYamlObject.from_model(msg) for msg in error.message],
+            message=[
+                ErrorMessageYamlObject.from_model(msg)
+                for msg in error.message
+            ],
             **overrides,
         )

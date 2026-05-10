@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 11, 2026  
-**Version:** 2.0.0a5
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -19,11 +19,11 @@ Represents a single injectable service dependency binding for an application int
 
 | Attribute      | Type                   | Required | Default | Description                                                                      |
 |----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
-| `module_path`  | `StringType`           | Yes      | —       | The module path for the app dependency.                                           |
-| `class_name`   | `StringType`           | Yes      | —       | The class name for the app dependency.                                            |
-| `service_id`   | `StringType`           | No *(todo: required)* | — | The canonical service id for the application dependency.             |
-| `attribute_id` | `StringType`           | No *(obsolete)* | — | The attribute id for the application dependency. Superseded by `service_id`. |
-| `parameters`   | `DictType(StringType)` | No       | `{}`    | The parameters for the application dependency.                                    |
+| `module_path`  | `str`                  | Yes      | —       | The module path for the app dependency.                                           |
+| `class_name`   | `str`                  | Yes      | —       | The class name for the app dependency.                                            |
+| `service_id`   | `str`                  | No *(todo: required)* | — | The canonical service id for the application dependency.             |
+| `attribute_id` | `str`                  | No *(obsolete)* | — | The attribute id for the application dependency. Superseded by `service_id`. |
+| `parameters`   | `Dict[str, str]`       | No       | `{}`    | The parameters for the application dependency.                                    |
 
 No methods. Pure data structure.
 
@@ -35,17 +35,17 @@ In v1.x, service dependency bindings were called `AppAttribute`. In v2.0, the cl
 
 The top-level configuration for a single application interface. Every runtime session begins by loading one `AppInterface` by ID.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `basic_calc`, `calc_cli`) |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Optional description |
-| `module_path` | `str` (required) | Python module path of the context class to instantiate |
-| `class_name` | `str` (required) | Class name of the context to instantiate |
-| `logger_id` | `str` (default: `'default'`) | Logger configuration to use at runtime |
-| `flags` | `List[str]` (default: `['default']`) | Flags for dependency resolution |
-| `services` | `List[AppServiceDependency]` (default: `[]`) | Service dependencies to inject into the context |
-| `constants` | `Dict[str, str]` (default: `{}`) | Constant values passed to the DI injector |
+| Attribute      | Type                                | Required | Default       | Description                                           |
+|----------------|-------------------------------------|----------|---------------|-------------------------------------------------------|
+| `id`           | `str`                               | Yes      | —             | The unique identifier for the application interface.   |
+| `name`         | `str`                               | Yes      | —             | The name of the application interface.                 |
+| `description`  | `str \| None`                       | No       | `None`        | The description of the application interface.          |
+| `module_path`  | `str`                               | Yes      | —             | The module path for the application instance context.  |
+| `class_name`   | `str`                               | Yes      | —             | The class name for the application instance context.   |
+| `logger_id`    | `str`                               | No       | `'default'`   | The logger ID for the application instance.            |
+| `flags`        | `List[str]`                         | No       | `['default']` | The flags for the application interface.               |
+| `services`     | `List[AppServiceDependency]`        | Yes      | `[]`          | The application instance service dependencies.         |
+| `constants`    | `Dict[str, str]`                    | No       | `{}`          | The application dependency constants.                  |
 
 **Behavior method:**
 
@@ -136,21 +136,19 @@ Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
 
 ## Instantiation
 
-Both domain objects are instantiated via the standard `DomainObject.new()` factory:
+Both domain objects are instantiated directly via the Pydantic constructor:
 
 ```python
-from tiferet.domain import DomainObject, AppServiceDependency, AppInterface
+from tiferet.domain import AppServiceDependency, AppInterface
 
-dep = DomainObject.new(
-    AppServiceDependency,
+dep = AppServiceDependency(
     service_id='cli_repo',
     module_path='tiferet.proxies.yaml.cli',
     class_name='CliYamlProxy',
     parameters={'cli_config_file': 'app/configs/cli.yml'},
 )
 
-interface = DomainObject.new(
-    AppInterface,
+interface = AppInterface(
     id='calc_cli',
     name='Calculator CLI',
     module_path='tiferet.contexts.cli',

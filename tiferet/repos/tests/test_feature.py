@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, FeatureYamlObject
+from ...mappers import FeatureYamlObject
 from ..feature import FeatureYamlRepository
 
 

@@ -8,7 +8,6 @@ from typing import List
 # ** app
 from ..interfaces import ErrorService
 from ..mappers import (
-    TransferObject,
     ErrorAggregate,
     ErrorYamlObject,
 )
@@ -93,7 +92,9 @@ class ErrorYamlRepository(ErrorService):
             return None
 
         # Map the data to an ErrorAggregate and return it.
-        return ErrorYamlObject.model_validate({**error_data, 'id': id}).map()
+        return ErrorYamlObject.model_validate(
+            {**error_data, 'id': id}
+        ).map()
 
     # * method: list
     def list(self) -> List[ErrorAggregate]:
@@ -114,7 +115,9 @@ class ErrorYamlRepository(ErrorService):
 
         # Map each error entry to an ErrorAggregate.
         return [
-            ErrorYamlObject.model_validate({**error_data, 'id': error_id}).map()
+            ErrorYamlObject.model_validate(
+                {**error_data, 'id': error_id}
+            ).map()
             for error_id, error_data in errors_data.items()
         ]
 

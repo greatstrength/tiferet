@@ -125,11 +125,17 @@ class LoggingContext(object):
 
         # Set the default configurations if not provided.
         if not formatters:
-            formatters = [Formatter(**data) for data in DEFAULT_FORMATTERS]
+            formatters = [Formatter(
+                **data
+            ) for data in DEFAULT_FORMATTERS]
         if not handlers:
-            handlers = [Handler(**data) for data in DEFAULT_HANDLERS]
+            handlers = [Handler(
+                **data
+            ) for data in DEFAULT_HANDLERS]
         if not loggers:
-            loggers = [Logger(**data) for data in DEFAULT_LOGGERS]
+            loggers = [Logger(
+                **data
+            ) for data in DEFAULT_LOGGERS]
 
         # Format the configurations into a dictionary.
         config = self.format_config(

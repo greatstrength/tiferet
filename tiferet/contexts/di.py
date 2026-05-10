@@ -6,11 +6,8 @@ from typing import Callable, Any, List, Dict
 # ** app
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from ..domain import (
-    ServiceProvider,
-    DependenciesServiceProvider,
-    ServiceConfiguration,
-)
+from ..di import ServiceProvider, DynamicServiceProvider
+from ..domain import ServiceConfiguration
 from ..events import DomainEvent, RaiseError, ParseParameter
 
 
@@ -51,11 +48,11 @@ class DIContext(object):
         # Assign the attributes.
         self.list_all_configs_handler = di_list_all_configs_evt.execute
         self.cache = cache if cache else CacheContext()
-        self.create_service_provider = create_service_provider if create_service_provider else self._default_service_provider
+        self.create_service_provider = create_service_provider if create_service_provider else self.default_service_provider
 
-    # * method: _default_service_provider (static)
+    # * method: default_service_provider (static)
     @staticmethod
-    def _default_service_provider(type_map: Dict[str, type] = None, **constants) -> ServiceProvider:
+    def default_service_provider(type_map: Dict[str, type] = None, **constants) -> ServiceProvider:
         '''
         Create the default service provider for DI context resolution.
 
@@ -67,11 +64,14 @@ class DIContext(object):
         :rtype: ServiceProvider
         '''
 
-        # Create a provider seeded with service dependency types.
-        provider = DependenciesServiceProvider(services=type_map or {})
-
-        # Add constants to the provider for constructor injection.
+        # Create an empty provider and register constants first
+        # so Factory providers can wire constructor parameters.
+        provider = DynamicServiceProvider()
         provider.add_constants(constants)
+
+        # Add service types after constants are available.
+        if type_map:
+            provider.add_services(type_map)
 
         # Return the configured provider.
         return provider

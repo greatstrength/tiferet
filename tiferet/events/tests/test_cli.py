@@ -14,7 +14,7 @@ from ..cli import (
     GetParentArguments,
 )
 from ..settings import DomainEvent, a
-from ...domain import CliCommand, CliArgument, DomainObject
+from ...domain import CliCommand, CliArgument
 from ...interfaces import CliService
 from ...mappers import CliCommandAggregate
 from .settings import DomainEventTestBase, ServiceEventTestBase
@@ -337,12 +337,14 @@ class TestGetParentArguments(DomainEventTestBase):
 
         # Create sample parent arguments.
         parent_args = [
-            CliArgument(name_or_flags=['--verbose', '-v'],
+            CliArgument(
+                name_or_flags=['--verbose', '-v'],
                 description='Enable verbose output',
                 type='str',
                 required=False,
             ),
-            CliArgument(name_or_flags=['--debug'],
+            CliArgument(
+                name_or_flags=['--debug'],
                 description='Enable debug mode',
                 type='str',
                 required=False,

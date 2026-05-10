@@ -9,7 +9,7 @@ from typing import Any, ClassVar, Dict
 from pydantic import BaseModel, ConfigDict
 
 # ** app
-from ..domain.settings import DomainObject
+from ..domain import DomainObject
 from ..events import RaiseError, a
 
 # *** constants
@@ -59,18 +59,14 @@ class Aggregate(DomainObject):
 # ** class: transfer_object
 class TransferObject(DomainObject):
     '''
-    A representation used to serialize, deserialize, or otherwise map domain data
-    to and from external formats (YAML, JSON, SQL rows, HTTP payloads, etc.).
+    A serialization and mapping layer for domain data.
 
-    Transfer objects are deliberately lenient: ``extra='ignore'`` lets unknown
-    incoming keys flow through without raising, and ``validate_assignment=False``
-    keeps piecewise data shaping cheap. Subclasses declare a class-level
-    ``_ROLES`` constant whose values are keyword-argument dictionaries forwarded
-    to :meth:`pydantic.BaseModel.model_dump`, and resolve them via
-    :meth:`to_primitive`. ``'to_model'`` is the canonical role used by
-    :meth:`map` to produce an Aggregate; format-specific roles such as
-    ``'to_data.yaml'``, ``'to_data.json'``, or ``'to_data.sql'`` are conventions
-    consumers can adopt as needed.
+    TransferObjects use a lenient config (``extra='ignore'``, ``validate_assignment=False``)
+    so that unknown or extra fields in external data sources (e.g. YAML) are silently
+    dropped rather than raising validation errors.
+
+    Subclasses declare a ``_ROLES`` ClassVar mapping role names to ``model_dump`` kwargs
+    for role-based serialization via :meth:`to_primitive`.
     '''
 
     # * attribute: model_config
@@ -86,79 +82,70 @@ class TransferObject(DomainObject):
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {}
 
     # * method: to_primitive
-    def to_primitive(self,
-            role: str | None = None,
-            **overrides,
-        ) -> Dict[str, Any]:
+    def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
         '''
-        Serialize the transfer object via ``model_dump`` using role-specific kwargs.
+        Serialize the transfer object to a dictionary, optionally applying role-specific kwargs.
 
-        :param role: Optional role key indexing into ``_ROLES``.
-        :type role: str | None
-        :param overrides: Additional ``model_dump`` keyword overrides.
+        :param role: The serialization role to apply.
+        :type role: str
+        :param overrides: Additional keyword arguments passed to ``model_dump``.
         :type overrides: dict
-        :return: The serialized primitive dictionary.
+        :return: The serialized dictionary.
         :rtype: Dict[str, Any]
         '''
 
-        # Default to canonical-name dumps; YAML/JSON roles opt-in to by_alias=True.
+        # Start with the default kwargs.
         kwargs: Dict[str, Any] = {'exclude_none': True}
 
-        # Apply role-specific kwargs if a role is specified.
+        # Merge role-specific kwargs if the role is known.
         if role and role in type(self)._ROLES:
             kwargs.update(type(self)._ROLES[role])
 
-        # Apply caller overrides last so they win.
+        # Apply caller overrides last so they always win.
         kwargs.update(overrides)
 
-        # Delegate to Pydantic's model_dump.
+        # Delegate to Pydantic model_dump.
         return self.model_dump(**kwargs)
 
     # * method: map
-    def map(self,
-            target: type,
-            **overrides,
-        ) -> Aggregate:
+    def map(self, target: type, **overrides) -> 'Aggregate':
         '''
-        Map this transfer object to an aggregate type.
+        Map the transfer object to an aggregate instance.
 
         :param target: The aggregate class to construct.
         :type target: type
-        :param overrides: Field overrides applied after ``to_primitive('to_model')``.
+        :param overrides: Additional keyword arguments merged into the data.
         :type overrides: dict
         :return: A new aggregate instance.
         :rtype: Aggregate
         '''
 
-        # Serialize via the to_model role and apply overrides.
+        # Serialize via the to_model role and merge overrides.
         data = self.to_primitive(role='to_model')
         data.update(overrides)
 
-        # Construct and return the aggregate.
+        # Construct the target aggregate.
         return target(**data)
 
     # * method: from_model
     @classmethod
-    def from_model(cls,
-            model: BaseModel,
-            **overrides,
-        ) -> 'TransferObject':
+    def from_model(cls, model: BaseModel, **overrides) -> 'TransferObject':
         '''
-        Build a transfer object from an aggregate or domain object.
+        Create a transfer object from a domain model or aggregate.
 
-        :param model: The source model to copy data from.
+        :param model: The source model instance.
         :type model: BaseModel
-        :param overrides: Field overrides applied after the source dump.
+        :param overrides: Additional keyword arguments that take priority.
         :type overrides: dict
-        :return: A new transfer object instance.
+        :return: A new transfer object.
         :rtype: TransferObject
         '''
 
-        # Dump the source model using its canonical field names.
+        # Dump the model to a dict using canonical field names.
         data = model.model_dump(by_alias=False)
 
-        # Apply caller overrides last so they win.
+        # Apply overrides so they take priority.
         data.update(overrides)
 
-        # Validate and construct the transfer object.
+        # Construct and return the transfer object.
         return cls.model_validate(data)

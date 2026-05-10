@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/di.py`  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -15,18 +15,31 @@ A `ServiceConfiguration` is a registry entry that maps an identifier to a concre
 
 ## Domain Objects
 
+### FlaggedDependency
+
+Represents one flag-qualified implementation override for a service.
+
+| Attribute      | Type                   | Required | Default | Description                                   |
+|----------------|------------------------|----------|---------|-----------------------------------------------|
+| `module_path`  | `str`                  | Yes      | —       | The module path.                               |
+| `class_name`   | `str`                  | Yes      | —       | The class name.                                |
+| `flag`         | `str`                  | Yes      | —       | The flag for the container dependency.          |
+| `parameters`   | `Dict[str, str]`       | No       | `{}`    | The container dependency parameters.            |
+
+No methods. Pure data structure.
+
 ### ServiceConfiguration
 
 A single entry in the DI registry. Defines how to resolve a dependency — either from a default type or from a flag-matched override.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `add_number_event`, `feature_service`) |
-| `name` | `str` | Optional human-readable name |
-| `module_path` | `str` | Default module path for the dependency class |
-| `class_name` | `str` | Default class name to import |
-| `parameters` | `Dict[str, str]` (default: `{}`) | Default configuration parameters |
-| `dependencies` | `List[FlaggedDependency]` (default: `[]`) | Flag-specific implementation overrides |
+| Attribute       | Type                                  | Required | Default | Description                                       |
+|-----------------|---------------------------------------|----------|---------|---------------------------------------------------|
+| `id`            | `str`                                 | Yes      | —       | The unique identifier for the service configuration. |
+| `name`          | `str \| None`                         | No       | `None`  | The name of the service configuration.             |
+| `module_path`   | `str \| None`                         | No       | `None`  | The default module path for the dependency class.  |
+| `class_name`    | `str \| None`                         | No       | `None`  | The default class name for the dependency class.   |
+| `parameters`    | `Dict[str, str]`                      | No       | `{}`    | The default configuration parameters.              |
+| `dependencies`  | `List[FlaggedDependency]`             | No       | `[]`    | The flag-specific implementation overrides.        |
 
 A `ServiceConfiguration` must have **at least one** type source: either a default `module_path`/`class_name` pair, or one or more `FlaggedDependency` entries. The domain events enforce this invariant.
 
@@ -122,9 +135,36 @@ Each key under `attrs` becomes the `ServiceConfiguration.id`. The `dependencies`
 
 ## Relationship to Other Domains
 
-- **Feature domain** — Every `FeatureEvent.attribute_id` references a `ServiceConfiguration.id`. The DI container resolves the domain event class that the feature step executes.
-- **App domain** — `AppInterface.flags` controls which flagged dependencies are activated. `AppServiceDependency` entries on the interface are wired separately (at bootstrap), but often reference the same implementation classes registered here.
-- **Error domain** — Error service implementations (e.g., `ErrorYamlRepository`) are registered as service configurations and resolved via the DI container.
+Concrete implementations (e.g., `ContainerYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **App:** `AppInterface.flags` provides the primary set of runtime flags used during dependency resolution.
+- **Feature:** `Feature.flags` and `FeatureEvent.flags` can override or extend the active flag set for specific workflows.
+- **Error:** Error service implementations are resolved through the DI container, making `ServiceConfiguration` entries for `error_service` a common pattern.
+
+## Instantiation
+
+Both domain objects are instantiated directly via the Pydantic constructor:
+
+```python
+from tiferet.domain import FlaggedDependency, ServiceConfiguration
+
+dep = FlaggedDependency(
+    flag='sqlite',
+    module_path='tiferet.repos.error_sqlite',
+    class_name='ErrorSqliteRepository',
+    parameters={'db_path': 'app/data/errors.db'},
+)
+
+config = ServiceConfiguration(
+    id='error_service',
+    module_path='tiferet.repos.error',
+    class_name='ErrorYamlRepository',
+    parameters={'error_config_file': 'app/configs/error.yml'},
+    dependencies=[dep],
+)
+```
 
 ## Related Documentation
 

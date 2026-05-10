@@ -4,12 +4,10 @@
 
 # ** app
 from ...domain import (
-    DomainObject,
     Error,
     ErrorMessage,
 )
 from ...events import a
-from ..settings import TransferObject
 from ..error import (
     ErrorAggregate,
     ErrorYamlObject,
@@ -162,11 +160,11 @@ class TestErrorYamlObject(TransferObjectTestBase):
     # ** test: from_data
     def test_from_data(self):
         '''
-        Test that from_data() initializes scalar fields and nested ErrorMessageYamlObject instances.
+        Test that model_validate() initializes scalar fields and nested ErrorMessageYamlObject instances.
         '''
 
         # Create a YAML object from sample data.
-        yaml_obj = ErrorYamlObject.model_validate(dict( **self.sample_data))
+        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
 
         # Assert scalar fields.
         assert yaml_obj.name == 'TEST_ERROR'
@@ -185,7 +183,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize.
-        yaml_obj = ErrorYamlObject.model_validate(dict( **self.sample_data))
+        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
         primitive = yaml_obj.to_primitive('to_data.yaml')
 
         # Assert id is excluded.
@@ -206,7 +204,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object and map.
-        yaml_obj = ErrorYamlObject.model_validate(dict( **self.sample_data))
+        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
         mapped = yaml_obj.map()
 
         # Assert messages are ErrorMessage instances.
@@ -250,13 +248,13 @@ class TestErrorYamlObject(TransferObjectTestBase):
             assert restored.lang == original.lang
             assert restored.text == original.text
 
-    # ** test: from_model_via_error_new
-    def test_from_model_via_error_new(self):
+    # ** test: from_model_via_error_constructor
+    def test_from_model_via_error_constructor(self):
         '''
-        Test that from_model() works with an Error() factory-created model with multilingual messages.
+        Test that from_model() works with a directly constructed Error model with multilingual messages.
         '''
 
-        # Create an Error model via the domain factory.
+        # Create an Error model via the direct constructor.
         error = Error(
             id='test_error',
             name='Test Error',
@@ -286,10 +284,9 @@ def test_error_message_yaml_object_map():
     '''
 
     # Create from data and map.
-    yaml_obj = ErrorMessageYamlObject.model_validate(dict(
-        lang='en',
-        text='Test message',
-    ))
+    yaml_obj = ErrorMessageYamlObject.model_validate(
+        dict(lang='en', text='Test message'),
+    )
     msg = yaml_obj.map()
 
     # Assert the mapped domain object.
@@ -304,8 +301,9 @@ def test_error_message_yaml_object_from_model():
     Test that ErrorMessageYamlObject can be created from an ErrorMessage domain object.
     '''
 
-    # Create an ErrorMessage via DomainObject.new.
-    model = ErrorMessage(lang='es',
+    # Create an ErrorMessage via direct constructor.
+    model = ErrorMessage(
+        lang='es',
         text='Mensaje de prueba',
     )
 

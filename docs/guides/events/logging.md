@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/events/logging.py`  
-**Version:** 2.0.0a6
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -193,6 +193,6 @@ DomainEvent.handle(
 
 - **Artifact comments:** `# *** commands` → `# *** events`; `# ** command:` → `# ** event:`.
 - **Docstrings:** "Command to" → "Event to" throughout.
-- **Aggregate factory:** `Aggregate.new(FormatterAggregate, ...)` → `FormatterAggregate.new(...)` (same for Handler and Logger aggregates). The `Aggregate` base import is no longer needed.
+- **Aggregate instantiation:** Aggregates are instantiated directly via the Pydantic constructor (e.g., `FormatterAggregate(...)`, `HandlerAggregate(...)`, `LoggerAggregate(...)`). No static factory methods are used.
 - **No parameter renames** — logging events do not use `attribute_id`.
 - **Tests:** Converted from 13 function-based tests to 7 harness classes using `DomainEventTestBase` (27 pass, 1 skip).

@@ -97,9 +97,10 @@ def test_request_context_handle_response_domain_object(request_context):
 
     # Create a DomainObject to simulate a response.
     class Data(DomainObject):
+
         key: str = Field(
             default='default_value',
-            description='The data key.',
+            description='The data key.'
         )
 
     # Set the request context result to a DomainObject.
@@ -142,15 +143,16 @@ def test_request_context_handle_response_domain_object_list(request_context):
 
     # Create a DomainObject to simulate a response.
     class Item(DomainObject):
+
         name: str = Field(
             default='default_name',
-            description='The item name.',
+            description='The item name.'
         )
 
     # Set the request context result to a list of DomainObjects.
     request_context.result = [
         Item(name='item1'),
-        Item(name='item2'),
+        Item(name='item2')
     ]
 
     # Handle the response with a list of DomainObjects.

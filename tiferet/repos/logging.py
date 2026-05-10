@@ -18,7 +18,6 @@ from ..mappers import (
     HandlerYamlObject,
     LoggerAggregate,
     LoggerYamlObject,
-    TransferObject
 )
 from ..utils import Yaml
 

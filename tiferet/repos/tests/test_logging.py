@@ -6,7 +6,7 @@
 import pytest, yaml
 
 # ** app
-from ...mappers import TransferObject, FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
+from ...mappers import FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
 from ..logging import LoggingYamlRepository
 
 # *** constants

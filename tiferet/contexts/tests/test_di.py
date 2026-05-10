@@ -10,13 +10,11 @@ from ..di import DIContext
 from ..cache import CacheContext
 from ...assets.exceptions import TiferetError
 from ...assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
+from ...di import ServiceProvider, DynamicServiceProvider
 from ...domain import (
-    ServiceProvider,
-    DependenciesServiceProvider,
     ServiceConfiguration,
     FlaggedDependency,
 )
-from ...domain.settings import DomainObject
 from ...events.di import ListAllSettings
 
 
@@ -55,11 +53,13 @@ def di_service_content() -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
 
     # Create a list of service configurations.
     configurations = [
-        ServiceConfiguration(id='test_service',
+        ServiceConfiguration(
+            id='test_service',
             module_path='tiferet.contexts.tests.test_di',
             class_name='TestService',
             dependencies=[
-                FlaggedDependency(module_path='tiferet.contexts.tests.test_di',
+                FlaggedDependency(
+                    module_path='tiferet.contexts.tests.test_di',
                     class_name='TestService',
                     flag='test',
                     parameters=dict(
@@ -163,7 +163,7 @@ def test_di_context_default_service_provider_factory():
     '''
 
     # Build a provider with a type map and injected constants.
-    provider = DIContext._default_service_provider(
+    provider = DIContext.default_service_provider(
         type_map={'test_service': TestService},
         test_config='factory_value',
     )
@@ -181,7 +181,7 @@ def test_di_context_custom_service_provider_factory(di_list_all_configs_evt_mock
     '''
 
     # Create a custom factory mock and provider return value.
-    provider = DependenciesServiceProvider()
+    provider = DynamicServiceProvider()
     create_factory = mock.Mock(return_value=provider)
 
     # Create context with custom provider factory and build provider.

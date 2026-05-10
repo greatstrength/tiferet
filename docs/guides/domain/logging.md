@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/logging.py`  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -17,51 +17,72 @@ The Logging domain uses a three-model composition: `Formatter` defines how log m
 
 Defines the format string and date format for log messages.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `default`, `detailed`) |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Optional description |
-| `format` | `str` (required) | Log message format string (e.g., `%(asctime)s - %(name)s - %(message)s`) |
-| `datefmt` | `str` | Date format string (e.g., `%Y-%m-%d %H:%M:%S`) |
+| Attribute     | Type            | Required | Default | Description                          |
+|---------------|-----------------|----------|---------|--------------------------------------|
+| `id`          | `str`           | Yes      | —       | The unique identifier of the formatter. |
+| `name`        | `str`           | Yes      | —       | The name of the formatter.           |
+| `description` | `str \| None`   | No       | `None`  | The description of the formatter.    |
+| `format`      | `str`           | Yes      | —       | The format string for log messages.  |
+| `datefmt`     | `str \| None`   | No       | `None`  | The date format for log timestamps.  |
 
 **Behavior method:**
 
-- `format_config()` — returns a dict with `format` and `datefmt` keys, suitable for `logging.config.dictConfig`.
+**`format_config() -> Dict[str, Any]`**
+
+Returns a `dictConfig`-compatible formatter entry:
+
+```python
+formatter = Formatter(id='simple', name='Simple',
+    format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d')
+formatter.format_config()
+# {'format': '%(asctime)s - %(message)s', 'datefmt': '%Y-%m-%d'}
+```
+
+When `datefmt` is not set, the key is still present with a `None` value.
 
 ### Handler
 
 Defines a log destination — where messages are sent and at what level. References a `Formatter` by ID.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `console`, `file`) |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Optional description |
-| `module_path` | `str` (required) | Module path for the handler class (e.g., `logging`) |
-| `class_name` | `str` (required) | Handler class name (e.g., `StreamHandler`, `FileHandler`) |
-| `level` | `str` (required) | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
-| `formatter` | `str` (required) | ID of the `Formatter` to use |
-| `stream` | `str` | Stream specification for `StreamHandler` (e.g., `ext://sys.stdout`) |
-| `filename` | `str` | File path for `FileHandler` |
+| Attribute     | Type            | Required | Default | Description                                              |
+|---------------|-----------------|----------|---------|----------------------------------------------------------|
+| `id`          | `str`           | Yes      | —       | The unique identifier of the handler.                    |
+| `name`        | `str`           | Yes      | —       | The name of the handler.                                 |
+| `description` | `str \| None`   | No       | `None`  | The description of the handler.                          |
+| `module_path` | `str`           | Yes      | —       | The module path for the handler class.                   |
+| `class_name`  | `str`           | Yes      | —       | The class name of the handler.                           |
+| `level`       | `str`           | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `formatter`   | `str`           | Yes      | —       | The ID of the formatter to use.                          |
+| `stream`      | `str \| None`   | No       | `None`  | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
+| `filename`    | `str \| None`   | No       | `None`  | The file path for FileHandler (e.g., `app.log`).         |
 
 **Behavior method:**
 
-- `format_config()` — returns a dict with `class` (combined `module_path.class_name`), `level`, `formatter`, and optional `stream`/`filename` keys.
+**`format_config() -> Dict[str, Any]`**
+
+Returns a `dictConfig`-compatible handler entry. The `class` key is composed from `module_path` and `class_name`. Optional attributes (`stream`, `filename`) are only included when set:
+
+```python
+handler = Handler(id='console', name='Console',
+    module_path='logging', class_name='StreamHandler',
+    level='INFO', formatter='simple', stream='ext://sys.stdout')
+handler.format_config()
+# {'class': 'logging.StreamHandler', 'level': 'INFO', 'formatter': 'simple', 'stream': 'ext://sys.stdout'}
+```
 
 ### Logger
 
 Defines a logger configuration — its level, which handlers it uses, and whether it propagates to parent loggers.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `default`, `app`) |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Optional description |
-| `level` | `str` (required) | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
-| `handlers` | `List[str]` (default: `[]`) | IDs of handlers to attach |
-| `propagate` | `bool` (default: `False`) | Whether to propagate messages to parent loggers |
-| `is_root` | `bool` (default: `False`) | Whether this is the root logger |
+| Attribute     | Type             | Required | Default | Description                                              |
+|---------------|------------------|----------|---------|----------------------------------------------------------|
+| `id`          | `str`            | Yes      | —       | The unique identifier of the logger.                     |
+| `name`        | `str`            | Yes      | —       | The name of the logger.                                  |
+| `description` | `str \| None`    | No       | `None`  | The description of the logger.                           |
+| `level`       | `str`            | Yes      | —       | The logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `handlers`    | `List[str]`      | No       | `[]`    | List of handler IDs for the logger.                      |
+| `propagate`   | `bool`           | No       | `False` | Whether to propagate messages to parent loggers.         |
+| `is_root`     | `bool`           | No       | `False` | Whether this is the root logger.                         |
 
 **Behavior method:**
 
@@ -69,10 +90,11 @@ Defines a logger configuration — its level, which handlers it uses, and whethe
 
 ### Three-Model Composition
 
-The logging pipeline is a directed graph:
-
-```
-Logger → references Handler IDs → Handler references Formatter ID
+```python
+logger = Logger(id='app', name='App Logger',
+    level='DEBUG', handlers=['console'], propagate=True)
+logger.format_config()
+# {'level': 'DEBUG', 'handlers': ['console'], 'propagate': True}
 ```
 
 A `Logger` with `handlers: ['console', 'file']` uses two `Handler` objects, each of which references a `Formatter` by ID. This composition is resolved by `LoggingContext.format_config()`, which assembles all three layers into a single `dictConfig`-compatible dictionary.
@@ -151,8 +173,47 @@ Each section maps to the corresponding domain object type, keyed by ID.
 
 ## Relationship to Other Domains
 
-- **App domain** — Each `AppInterface` specifies a `logger_id` that determines which logger configuration is activated at runtime. When `AppInterfaceContext.run()` is called, it builds the logger before executing the feature.
-- **All contexts** — The logger produced by `LoggingContext.build_logger()` is passed to feature execution and used throughout the request lifecycle for debug, info, and error logging.
+Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **App:** `LoggingContext` is loaded as part of the application interface bootstrap, receiving `LoggingService` via dependency injection. Every application interface can have its own logging configuration.
+- **All Contexts:** Once configured, the Python logging system is available globally to all contexts, domain events, and services throughout the application lifecycle.
+
+## Instantiation
+
+```python
+from tiferet.domain import Formatter, Handler, Logger
+
+fmt = Formatter(
+    id='simple',
+    name='Simple Formatter',
+    format='%(asctime)s - %(message)s',
+    datefmt='%Y-%m-%d',
+)
+
+hdlr = Handler(
+    id='console',
+    name='Console Handler',
+    module_path='logging',
+    class_name='StreamHandler',
+    level='INFO',
+    formatter='simple',
+    stream='ext://sys.stdout',
+)
+
+lgr = Logger(
+    id='app',
+    name='App Logger',
+    level='DEBUG',
+    handlers=['console'],
+    propagate=False,
+)
+
+# fmt.format_config()  == {'format': '%(asctime)s - %(message)s', 'datefmt': '%Y-%m-%d'}
+# hdlr.format_config() == {'class': 'logging.StreamHandler', 'level': 'INFO', 'formatter': 'simple', 'stream': 'ext://sys.stdout'}
+# lgr.format_config()  == {'level': 'DEBUG', 'handlers': ['console'], 'propagate': False}
+```
 
 ## Related Documentation
 

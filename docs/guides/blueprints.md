@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/blueprints/`  
-**Version:** 2.0.0b1
+**Module:** `tiferet/builders/`  
+**Version:** 2.0.0b2
 
 ## Overview
 
@@ -60,7 +60,7 @@ A static factory allows downstream contexts to create providers consistently:
 ```python
 @staticmethod
 def create_service_provider(
-    provider_type: type = DependenciesServiceProvider,
+    provider_type: type = DynamicServiceProvider,
     type_map: Dict[str, type] = None,
     **constants
 ) -> ServiceProvider:

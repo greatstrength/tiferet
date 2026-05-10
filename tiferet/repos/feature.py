@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 # ** app
 from ..interfaces import FeatureService
 from ..mappers import (
-    TransferObject,
     FeatureAggregate,
     FeatureYamlObject,
 )

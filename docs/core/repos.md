@@ -51,7 +51,6 @@ from typing import List
 # ** app
 from ..interfaces import ErrorService
 from ..mappers import (
-    TransferObject,
     ErrorAggregate,
     ErrorYamlObject,
 )
@@ -144,7 +143,6 @@ from typing import List
 # ** app
 from ..interfaces import ErrorService           # Service interface
 from ..mappers import (                          # Transfer objects and aggregates
-    TransferObject,
     ErrorAggregate,
     ErrorYamlObject,
 )
@@ -153,7 +151,7 @@ from ..utils import Yaml                         # Data utility
 
 The `# ** app` section imports three categories:
 1. The **Service interface** being implemented.
-2. The **transfer objects and aggregates** used for mapping.
+2. The **transfer objects and aggregates** used for mapping (concrete classes only; no base-class imports needed).
 3. The **data utility** used for file I/O.
 
 No `# ** infra` section is needed — repositories do not import third-party libraries directly; all external interaction flows through Tiferet utilities.
@@ -176,32 +174,32 @@ error_data = Yaml(self.yaml_file, encoding=self.encoding).load(
 )
 ```
 
-Mapping from raw YAML data to domain aggregates uses `TransferObject.from_data` with the YAML dictionary key injected as the `id`:
+Mapping from raw YAML data to domain aggregates uses `model_validate` on the concrete TransferObject class with the YAML dictionary key injected as the `id`:
 
 ```python
-return TransferObject.from_data(
-    ErrorYamlObject,
-    id=id,
-    **error_data,
+return ErrorYamlObject.model_validate(
+    {**error_data, 'id': id}
 ).map()
 ```
 
 ### Writing: `save`
 
 Save methods follow a three-step sequence:
-1. **Serialize** the aggregate via `YamlObject.from_model()`.
+1. **Serialize** the aggregate via the TransferObject's `from_model()` classmethod.
 2. **Load the full file** to preserve sibling sections.
-3. **Update** the target section with `setdefault` and persist.
+3. **Update** the target section with `setdefault` and persist via `to_primitive(role)`.
 
 ```python
-# Serialize.
+# Convert the error model to configuration data.
 error_data = ErrorYamlObject.from_model(error)
 
-# Load full file.
+# Load the full configuration file.
 full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
 
-# Update and persist.
+# Update or insert the error entry.
 full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
+
+# Persist the updated configuration file.
 Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
 ```
 
@@ -254,7 +252,6 @@ from typing import List
 # ** app
 from ..interfaces.calculator import CalculatorService
 from ..mappers.calculator import (
-    TransferObject,
     CalculatorResultAggregate,
     CalculatorResultYamlObject,
 )
@@ -336,7 +333,8 @@ Create tests in `tiferet/repos/tests/test_<domain>.py` using `tmp_path` fixtures
 ### Best Practices
 - Use artifact comments consistently (`# *** repos`, `# ** repo:`, `# *`).
 - Follow the three-attribute foundation for all YAML-backed repos.
-- Use `TransferObject.from_data` for reads and `YamlObject.from_model` for writes.
+- Use `YamlObject.model_validate({**data, 'id': id}).map()` for reads.
+- Use `YamlObject.from_model(aggregate)` classmethod for writes, then `to_primitive(self.default_role)` to serialize.
 - Make delete operations idempotent.
 - Use `setdefault` for safe section updates on save.
 - Use `start_node` lambdas for all read operations.
@@ -389,17 +387,16 @@ Repositories are defined in `tiferet/repos/`:
 
 Tests live in `tiferet/repos/tests/`.
 
-## Migration from Proxies
+## Migration from Proxies and Schematics
 
 Repositories are the v2.0 successor to Proxies (`tiferet/proxies/`). Key changes:
 
 - **Package rename**: `tiferet/proxies/yaml/<domain>.py` → `tiferet/repos/<domain>.py`. The nested middleware-specific directory structure is flattened because the utility suffix in the class name (`YamlRepository`) already identifies the backing technology.
 - **Base class**: Proxies extended `YamlConfigurationProxy` (a middleware base class). Repositories extend the Service interface directly and compose the `Yaml` utility internally.
 - **Artifact comments**: `# *** proxies` / `# ** proxy:` → `# *** repos` / `# ** repo:`.
-- **Data mapping**: Proxies used `DataObject` (`from_data`, `map`). Repositories use `TransferObject` (`from_data`, `map`) and `Aggregate` for the same operations with clearer separation of concerns.
+- **Data mapping**: Proxies used `DataObject.from_data()` and `DataObject.map()`. Repositories use `model_validate()` for reads and `from_model()` classmethod + `to_primitive(role)` for writes.
 - **Contract alignment**: Proxies implemented `Repository` contracts. Repositories implement `Service` interfaces — the unified v2.0 contract type.
-
-The `tiferet/proxies/` package remains available for backward compatibility. New repositories should be created in `tiferet/repos/`.
+- **Pydantic v2 migration**: `TransferObject.from_data(Type, **kwargs)` → `Type.model_validate(data_dict)`; `Aggregate.new(Type, **kwargs)` → direct Pydantic constructor.
 
 ## Conclusion
 

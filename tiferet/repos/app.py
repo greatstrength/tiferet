@@ -8,7 +8,6 @@ from typing import List
 # ** app
 from ..interfaces import AppService
 from ..mappers import (
-    TransferObject,
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )

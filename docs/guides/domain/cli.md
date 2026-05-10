@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/cli.py`  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -13,52 +13,57 @@ A `CliCommand` represents a single CLI command (e.g., `calc add`) with its argum
 
 ## Domain Objects
 
+### CliArgument
+
+Represents a single command-line argument or flag.
+
+| Attribute       | Type                   | Required | Default | Description                                                                      |
+|-----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
+| `name_or_flags` | `List[str]`            | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
+| `description`   | `str \| None`          | No       | `None`  | A brief description of the argument.                                              |
+| `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, or `"float"`.                                         |
+| `required`      | `bool \| None`         | No       | `None`  | Whether the argument is required.                                                 |
+| `default`       | `str \| None`          | No       | `None`  | The default value if not provided.                                                |
+| `choices`       | `List[str] \| None`    | No       | `None`  | Valid choices for the argument.                                                   |
+| `nargs`         | `str \| None`          | No       | `None`  | Number of arguments: `"?"`, `"*"`, `"+"`, or an integer.                          |
+| `action`        | `str \| None`          | No       | `None`  | The action: `store`, `store_true`, `store_false`, `append`, `count`, `help`, etc. |
+
+#### Methods
+
+**`get_type() -> str | int | float`**
+
+Maps the stored `type` string to a Python type object. Falls back to `str` if the type is `None` or unrecognized.
+
+```python
+arg = CliArgument(name_or_flags=['--count'], type='int')
+assert arg.get_type() is int
+```
+
 ### CliCommand
 
 A single CLI command, identified by a composite `group_key.key` pattern that maps directly to a feature ID.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Composite identifier, derived as `{group_key}.{key}` |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Brief description shown in CLI help |
-| `key` | `str` (required) | Command key within its group (e.g., `add`, `sqrt`) |
-| `group_key` | `str` (required) | Group key for organizing related commands (e.g., `calc`) |
-| `arguments` | `List[CliArgument]` (default: `[]`) | Arguments for this command |
+| Attribute    | Type                              | Required | Default | Description                                                  |
+|--------------|-----------------------------------|----------|---------|--------------------------------------------------------------|
+| `id`         | `str`                             | Yes      | —       | The unique identifier, formatted as `"group_key.key"`.        |
+| `name`       | `str`                             | Yes      | —       | The name of the command.                                      |
+| `description`| `str \| None`                     | No       | `None`  | A brief description of the command.                           |
+| `key`        | `str`                             | Yes      | —       | The unique key for the command.                               |
+| `group_key`  | `str`                             | Yes      | —       | The group key the command belongs to.                         |
+| `arguments`  | `List[CliArgument]`               | No       | `[]`    | A list of arguments for the command.                          |
 
 **Custom factory:**
 
-- `CliCommand.new(group_key, key, name, ...)` — derives `id` from `group_key` and `key` by normalizing hyphens to underscores and joining with a dot. For example, `group_key='calc'`, `key='add'` produces `id='calc.add'`.
+**ID Derivation via `@model_validator`**
 
-**Behavior method:**
+The `id` is automatically derived by a `@model_validator(mode='before')` that normalizes hyphens to underscores in both `group_key` and `key`, then joins them with a dot:
 
-- `has_argument(flags)` — checks if any of the provided flags match an existing argument's `name_or_flags`. Used to avoid adding duplicate parent arguments.
+```python
+cmd = CliCommand(group_key='calc', key='add', name='Add Number')
+assert cmd.id == 'calc.add'
 
-### CliArgument
-
-A single command-line argument or flag. Maps directly to `argparse.add_argument()` parameters.
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `name_or_flags` | `List[str]` (required) | Argument name or flag strings (e.g., `['a']`, `['-v', '--verbose']`) |
-| `description` | `str` | Help text shown in CLI usage |
-| `type` | `str` (default: `'str'`) | Argument type: `str`, `int`, or `float` |
-| `required` | `bool` | Whether the argument is required |
-| `default` | `str` | Default value if not provided |
-| `choices` | `List[str]` | Valid choices for the argument |
-| `nargs` | `str` | Number of arguments: `?` (optional), `*` (zero+), `+` (one+) |
-| `action` | `str` | Argparse action: `store`, `store_true`, `store_false`, `append`, `count`, etc. |
-
-**Behavior method:**
-
-- `get_type()` — maps the `type` string to a Python type object (`str`, `int`, `float`). Returns `str` for unrecognized values. This is passed directly to `argparse.add_argument(type=...)`.
-
-### The CLI-to-Feature Bridge
-
-The key architectural insight is that CLI command IDs are feature IDs. When a user runs:
-
-```bash
-python calc_cli.py calc add 1 2
+cmd = CliCommand(group_key='my-group', key='my-cmd', name='My Command')
+assert cmd.id == 'my_group.my_cmd'
 ```
 
 `CliContext` parses `group='calc'` and `command='add'`, constructs `feature_id = 'calc.add'`, and delegates to `FeatureContext.execute_feature('calc.add', request)`. The arguments (`1`, `2`) become the request data that the feature's domain event receives.
@@ -150,19 +155,18 @@ Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, CliArgument, CliCommand
+from tiferet.domain import CliArgument, CliCommand
 
-# Create an argument directly
-arg = DomainObject.new(
-    CliArgument,
+# Create an argument directly via Pydantic constructor
+arg = CliArgument(
     name_or_flags=['--count', '-c'],
     description='Number of iterations.',
     type='int',
     required=True,
 )
 
-# Create a command via the custom factory
-cmd = CliCommand.new(
+# Create a command — id is derived automatically via @model_validator
+cmd = CliCommand(
     group_key='calc',
     key='add',
     name='Add Number',

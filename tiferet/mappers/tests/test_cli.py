@@ -5,7 +5,6 @@
 # ** app
 from ...domain import CliArgument, CliCommand, DomainObject
 from ...events import a
-from ..settings import TransferObject
 from ..cli import CliArgumentAggregate, CliCommandAggregate, CliCommandYamlObject
 from .settings import AggregateTestBase, TransferObjectTestBase
 

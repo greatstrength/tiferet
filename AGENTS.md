@@ -1,13 +1,13 @@
-# AGENTS.md — Tiferet Framework (v2.0.0a10)
+# AGENTS.md — Tiferet Framework (v2.0.0b2)
 
 ## Project Overview
 
-**Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML-based configuration files and `schematics` for model validation.
+**Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML-based configuration files and Pydantic v2 for model validation.
 
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0a10`
+- **Version:** `2.0.0b2`
 
 ## Architecture
 
@@ -20,7 +20,7 @@ tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/             # build_app, cli.build_app and top-level runtime orchestration
 ├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, Logging)
-├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
+├── di/                   # App-level DI: ServiceProvider, DynamicServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
 ├── interfaces/           # Service ABC and domain service interfaces
@@ -34,11 +34,11 @@ tiferet/
 
 **Key Concepts**:
 
-- **DomainObject** (`domain/settings.py`): Base domain model class extending `schematics.Model`. Instantiate via `DomainObject.new(Type, **kwargs)`. Domain objects are read-only; mutation goes through Aggregates.
+- **DomainObject** (`domain/settings.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
 - **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
 - **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Factory: `Aggregate.new(Type, **kwargs)`. Provides `set_attribute()` for validated mutation.
-- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control (`allow()`, `deny()`). Methods: `map()`, `from_model()`, `from_data()`.
+- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
+- **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
 
 ### Runtime Flow
 
@@ -71,8 +71,8 @@ tiferet/
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `build_app.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
-- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DependenciesServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 ## Structured Code Style
 
@@ -99,7 +99,7 @@ All code follows a strict artifact comment hierarchy. **This is mandatory.**
 from typing import List, Any
 
 # ** infra
-from schematics import Model
+from pydantic import BaseModel, Field, model_validator
 
 # ** app
 from ..domain import Feature
@@ -160,8 +160,13 @@ result = DomainEvent.handle(
 ## Domain Objects
 
 - Extend `DomainObject` from `tiferet/domain/settings.py`.
-- Use Schematics types: `StringType`, `IntegerType`, `FloatType`, `BooleanType`, `ListType`, `DictType`, `ModelType`.
-- Instantiate via `DomainObject.new(Type, **kwargs)`.
+- `DomainObject` extends `pydantic.BaseModel` with `ConfigDict(extra='forbid', populate_by_name=True, validate_assignment=True)`.
+- Declare fields with idiomatic Pydantic annotations: `name: str = Field(...)`.
+- Instantiate via direct constructors: `Error(id='invalid_input', name='Invalid Input')`.
+- Use `model_construct()` to skip validation where needed.
+- Use `@model_validator(mode='before')` for custom factory/derivation logic (replaces the old `DomainObject.new()` / custom `new()` factories).
+- Use `model_validate(data)` to construct from dicts with validation.
+- Use `model_dump()` to serialize to dicts.
 - Domain objects are **read-only**; place mutation logic in Aggregates (`mappers/`).
 
 ### Domain Modules
@@ -184,8 +189,8 @@ result = DomainEvent.handle(
 
 Split into two classes:
 
-- **Aggregate** — Extends domain object + `Aggregate`. Adds mutation methods (`rename()`, `add_command()`, `set_attribute()`).
-- **TransferObject** — Extends domain object + `TransferObject`. Adds serialization roles via inner `Options` class with `allow()`/`deny()`.
+- **Aggregate** — Extends domain object + `Aggregate`. Adds mutation methods (`rename()`, `add_command()`, `set_attribute()`). Inherits `validate_assignment=True` from `DomainObject`, so direct `setattr` triggers Pydantic field validation. `set_attribute()` checks `model_fields` for existence before assignment.
+- **TransferObject** — Extends domain object + `TransferObject`. Uses lenient config (`extra='ignore'`, `validate_assignment=False`). Role-based serialization via `_ROLES` ClassVar mapping role names to `model_dump` kwargs. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model(model)`.
 
 ### Naming Convention
 
@@ -203,7 +208,7 @@ Key patterns:
 - Artifact comments use `# *** repos` / `# ** repo: <name>`.
 - Three-attribute foundation: `yaml_file`, `encoding`, `default_role`.
 - Constructor param convention: `<domain>_yaml_file` (e.g., `error_yaml_file`).
-- Reads use `Yaml` utility with `start_node` lambdas; writes use `TransferObject.from_model` → `to_primitive(default_role)` → `Yaml.save`.
+- Reads use `Yaml` utility with `start_node` lambdas and `model_validate` to construct TransferObjects; writes use `TransferObject.from_model` → `to_primitive(default_role)` → `Yaml.save`.
 - Delete operations are always idempotent.
 - Tests are integration tests using `tmp_path` fixtures with real temporary YAML files.
 
@@ -262,7 +267,7 @@ The top-level `tiferet/__init__.py` exports:
 - `TiferetError`, `TiferetAPIError`
 
 **Domain:**
-- `DomainObject` and Schematics type wrappers (`StringType`, `IntegerType`, `BooleanType`, `FloatType`, `ListType`, `DictType`, `ModelType`)
+- `DomainObject`
 
 **Events:**
 - `DomainEvent`, `ParseParameter` (from `tiferet.events`)
@@ -279,21 +284,52 @@ The top-level `tiferet/__init__.py` exports:
 ## Key Files for Orientation
 
 - `tiferet/__init__.py` — Version and public exports
-- `tiferet/di/settings.py` — `ServiceProvider` (ABC) base class
-- `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
-- `tiferet/domain/settings.py` — `DomainObject` base class
+- `tiferet/domain/settings.py` — `DomainObject` base class (extends `pydantic.BaseModel`)
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
-- `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
-- `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point)
-- `tiferet/blueprints/cli.py` — `cli.build_app` (CLI orchestration entry point, exported as `CLI`)
+- `tiferet/di/dynamic.py` — `DynamicServiceProvider` (app-level DI, backed by `dependency-injector`)
+- `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
+- `tiferet/builders/cli.py` — `CliBuilder` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext`
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
+
+## Migration Notes
+
+### v2.0.0b2: DI Backend Migration
+
+The v2.0.0b2 release replaces the `dependencies` library DI backend with `dependency-injector`. Key changes:
+
+- **`DependenciesServiceProvider`** (backed by `dependencies.Injector`) has been removed. The concrete implementation is now `DynamicServiceProvider` (backed by `dependency-injector`'s `DynamicContainer`).
+- **`tiferet/di/dependencies.py`** has been deleted. The implementation lives in `tiferet/di/dynamic.py`.
+- **`pyproject.toml`** dependency is `dependency-injector>=4.49.0` (not `dependencies>=7.7.0`).
+- **Backward-compatible alias**: `DependenciesServiceProvider = DynamicServiceProvider` is provided in `tiferet/di/__init__.py` for downstream consumers.
+- **Scalar constants** registered via `add_constants()` can now be resolved directly via `get_service()` (previously not possible with the `dependencies` library).
+- **Class types** are registered as `Factory` providers (new instance per resolution); non-type values are registered as `Object` providers (pass-through).
+- The `ServiceProvider` ABC is unchanged.
+
+### v2.0.0b1: Schematics to Pydantic v2
+
+The v2.0.0b1 release completed the migration from `schematics` to Pydantic v2. Key breaking changes:
+
+- **`DomainObject`** now extends `pydantic.BaseModel` instead of `schematics.Model`.
+- **`DomainObject.new(Type, **kwargs)`** has been removed. Use direct constructors: `Feature(id='calc.add', name='Add')`. Use `model_construct()` to skip validation.
+- **`Aggregate.new(Type, **kwargs)`** has been removed. Use direct constructors.
+- **Schematics type wrappers** (`StringType`, `IntegerType`, `FloatType`, `BooleanType`, `ListType`, `DictType`, `ModelType`) are no longer exported. Use standard Python type annotations with `pydantic.Field(...)`.
+- **`TransferObject`** no longer uses `class Options`, `allow()`, `deny()`, or `from_data()`. Instead:
+  - Role-based serialization uses a `_ROLES: ClassVar[Dict]` mapping role names to `model_dump` kwargs.
+  - `to_primitive(role)` delegates to `model_dump()` with role-specific kwargs.
+  - `map(target)` constructs an Aggregate from the serialized data.
+  - `from_model(model)` is a `@classmethod` that constructs a TransferObject from a domain model via `model_validate`.
+- **Custom factories** on domain objects (`Error.new`, `Feature.new`, `CliCommand.new`) have been replaced by `@model_validator(mode='before')` class methods for pre-construction derivation logic.
+- **`model_validate(data)`** replaces `from_data()` at all call-sites.
+- **`model_dump()`** replaces `to_primitive()` at non-role call-sites.
+- **Aliases** use `serialization_alias` and `validation_alias=AliasChoices(...)` instead of Schematics `serialized_name` / `deserialize_from`.
+- **`pyproject.toml`** dependency is `pydantic>=2.6` (not `schematics`).
 
 ## Contributing
 

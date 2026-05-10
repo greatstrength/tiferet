@@ -3,7 +3,6 @@
 # *** imports
 
 # ** app
-from ..di import ServiceProvider, DependenciesServiceProvider
 from .settings import DomainObject
 from .app import (
     AppInterface,

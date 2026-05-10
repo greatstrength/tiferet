@@ -16,7 +16,6 @@ from ..feature import (
 from ...assets import TiferetError
 from ...events import DomainEvent
 from ...domain import (
-    DomainObject,
     Feature,
     FeatureEvent,
 )
@@ -84,7 +83,8 @@ def test_command():
 @pytest.fixture
 def feature():
 
-    return Feature(id='test_group.test_feature',
+    return Feature(
+        id='test_group.test_feature',
         group_id='test_group',
         feature_key='test_feature',
         name='Test Feature',
@@ -163,7 +163,8 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
 
-    feature_event: FeatureEvent = FeatureEvent(name='Test Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
     )
@@ -186,7 +187,8 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 
     feature_flags = ['feature_flag']
 
-    feature_event: FeatureEvent = FeatureEvent(name='Test Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         flags=[],
     )
@@ -200,7 +202,8 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
     """Test loading a feature step with only step flags."""
 
-    feature_event: FeatureEvent = FeatureEvent(name='Test Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         flags=['command_flag'],
     )
@@ -214,7 +217,8 @@ def test_feature_context_load_feature_step_only_command_flags(feature_context, s
 def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
     """Test loading a feature step that includes flags for dependency resolution."""
 
-    feature_event: FeatureEvent = FeatureEvent(name='Test Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         flags=['flag1', 'flag2'],
     )
@@ -229,7 +233,8 @@ def test_feature_context_load_feature_step_with_flags(feature_context, services_
 def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
     """Test loading a feature step when no flags are configured."""
 
-    feature_event: FeatureEvent = FeatureEvent(name='Test Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Test Command',
         service_id='test_command',
     )
 
@@ -249,7 +254,8 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
         'Feature command not found in services: non_existent_command',
     )
 
-    feature_event: FeatureEvent = FeatureEvent(name='Missing Command',
+    feature_event: FeatureEvent = FeatureEvent(
+        name='Missing Command',
         service_id='non_existent_command',
         flags=['flagX'],
     )
@@ -320,7 +326,8 @@ def test_feature_context_handle_command_with_pass_on_error(feature_context, test
 def test_feature_context_execute_feature(feature_context, get_feature_evt, feature):
 
     # Add a standard feature step with no data key or pass on error.
-    feature.steps.append(FeatureEvent(name='Test Command',
+    feature.steps.append(FeatureEvent(
+        name='Test Command',
         service_id='test_command',
     ))
 
@@ -344,7 +351,8 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     """Test executing a feature with a request parameter in the FeatureContext."""
 
     # Add a feature step with a data key and request parameter.
-    feature.steps.append(FeatureEvent(name='Test Command',
+    feature.steps.append(FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         parameters=dict(
             param='$r.key',
@@ -373,7 +381,8 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
     """Test executing a feature with pass_on_error in the FeatureContext."""
 
     # Add a feature step with pass_on_error enabled.
-    feature.steps.append(FeatureEvent(name='Test Command',
+    feature.steps.append(FeatureEvent(
+        name='Test Command',
         service_id='test_command',
         pass_on_error=True,
     ))

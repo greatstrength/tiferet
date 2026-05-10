@@ -9,7 +9,10 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import AppServiceDependency, AppInterface
+from ..domain import (
+    AppServiceDependency,
+    AppInterface,
+)
 from ..events import RaiseError, a
 from .settings import (
     Aggregate,
@@ -27,12 +30,13 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
     '''
 
     # * method: add_service
-    def add_service(self,
-            module_path: str,
-            class_name: str,
-            service_id: str,
-            parameters: Dict[str, str] | None = None,
-        ) -> None:
+    def add_service(
+        self,
+        module_path: str,
+        class_name: str,
+        service_id: str,
+        parameters: Dict[str, str] | None = None,
+    ) -> None:
         '''
         Add a service dependency to the app interface.
 
@@ -48,21 +52,24 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :rtype: None
         '''
 
-        # Create the new dependency and reassign so validate_assignment fires.
+        # Create a new AppServiceDependency object.
         dependency = AppServiceDependency(
             module_path=module_path,
             class_name=class_name,
             service_id=service_id,
             parameters=parameters or {},
         )
+
+        # Add the service dependency via list reassignment.
         self.services = list(self.services) + [dependency]
 
     # * method: remove_service
     # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
-    def remove_service(self,
-            service_id: str | None = None,
-            attribute_id: str | None = None,
-        ) -> AppServiceDependency | None:
+    def remove_service(
+        self,
+        service_id: str | None = None,
+        attribute_id: str | None = None,
+    ) -> AppServiceDependency | None:
         '''
         Remove and return a service dependency by its service_id (idempotent).
 
@@ -70,7 +77,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         :type service_id: str | None
         :param attribute_id: Deprecated alias for service_id.
         :type attribute_id: str | None
-        :return: The removed AppServiceDependency, or None when no match is found.
+        :return: The removed AppServiceDependency or None.
         :rtype: AppServiceDependency | None
         '''
 
@@ -78,30 +85,27 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         if service_id is None and attribute_id is not None:
             service_id = attribute_id
 
-        # Find the matching dependency, if any.
+        # Work on a local copy; reassign only when a match is found.
         services = list(self.services)
-        removed: AppServiceDependency | None = None
         for index, dep in enumerate(services):
             if dep.service_id == service_id:
                 removed = services.pop(index)
-                break
+                self.services = services
+                return removed
 
-        # Reassign so validate_assignment=True triggers field validation.
-        if removed is not None:
-            self.services = services
-
-        # Return the removed dependency (or None when no match).
-        return removed
+        # Return None when no match was found (idempotent).
+        return None
 
     # * method: set_service
     # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
-    def set_service(self,
-            service_id: str | None = None,
-            module_path: str | None = None,
-            class_name: str | None = None,
-            parameters: Dict[str, Any] | None = None,
-            attribute_id: str | None = None,
-        ) -> None:
+    def set_service(
+        self,
+        service_id: str | None = None,
+        module_path: str | None = None,
+        class_name: str | None = None,
+        parameters: Dict[str, Any] | None = None,
+        attribute_id: str | None = None,
+    ) -> None:
         '''
         Set or update a service dependency by service_id (PUT semantics).
 
@@ -146,14 +150,15 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
                 }
             return
 
-        # Otherwise create and append a new dependency.
-        new_dep = AppServiceDependency(
-            service_id=service_id,
-            module_path=module_path,
-            class_name=class_name,
-            parameters=parameters or {},
-        )
-        self.services = list(self.services) + [new_dep]
+        # If the service dependency does not exist, create a new one and reassign.
+        else:
+            new_dep = AppServiceDependency(
+                service_id=service_id,
+                module_path=module_path,
+                class_name=class_name,
+                parameters=parameters or {},
+            )
+            self.services = list(self.services) + [new_dep]
 
     # * method: set_constants
     def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
@@ -172,7 +177,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             self.constants = {}
             return
 
-        # Merge in new constants and drop any keys whose value is None.
+        # Merge new constants and remove keys with None value.
         merged = dict(self.constants or {})
         merged.update(constants)
         self.constants = {
@@ -225,8 +230,9 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
                     attribute=attribute,
                 )
 
-        # Apply the update; validate_assignment=True triggers field validation.
+        # Apply the update; validate_assignment=True handles re-validation.
         setattr(self, attribute, value)
+
 
 # ** mapper: app_service_dependency_yaml_object
 class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
@@ -243,7 +249,7 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
     # * attribute: service_id
     service_id: str | None = Field(
         default=None,
-        description='The service id for the application dependency, optional in YAML data.',
+        description='The service id for the application dependency that is not required for assembly.',
     )
 
     # * attribute: parameters
@@ -251,7 +257,7 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
         default_factory=dict,
         serialization_alias='params',
         validation_alias=AliasChoices('params', 'parameters'),
-        description='The parameters for the application dependency.',
+        description='The parameters for the application dependency that are not required for assembly.',
     )
 
     # * method: map
@@ -261,36 +267,37 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
 
         :param service_id: The id to assign to the dependency.
         :type service_id: str
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppServiceDependency instance.
+        :return: A new app service dependency object.
         :rtype: AppServiceDependency
         '''
 
-        # Inject the supplied service_id and the resolved parameters.
+        # Map to the app service dependency object, injecting service_id and parameters.
         return super().map(
             AppServiceDependency,
             service_id=service_id,
-            parameters=self.parameters,
+            parameters=dict(self.parameters or {}),
             **overrides,
         )
 
     # * method: from_model
     @classmethod
-    def from_model(cls, app_service_dependency: AppServiceDependency, **overrides) -> 'AppServiceDependencyYamlObject':
+    def from_model(cls, dependency: AppServiceDependency, **overrides) -> 'AppServiceDependencyYamlObject':
         '''
-        Create an AppServiceDependencyYamlObject from a runtime AppServiceDependency.
+        Creates an AppServiceDependencyYamlObject from an AppServiceDependency model.
 
-        :param app_service_dependency: The runtime app service dependency.
-        :type app_service_dependency: AppServiceDependency
-        :param overrides: Additional field overrides.
+        :param dependency: The app service dependency model.
+        :type dependency: AppServiceDependency
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppServiceDependencyYamlObject instance.
+        :return: A new AppServiceDependencyYamlObject.
         :rtype: AppServiceDependencyYamlObject
         '''
 
-        # Delegate to the base mapper.
-        return super().from_model(app_service_dependency, **overrides)
+        # Create a new AppServiceDependencyYamlObject from the model.
+        return super().from_model(dependency, **overrides)
+
 
 # ** mapper: app_interface_yaml_object
 class AppInterfaceYamlObject(AppInterface, TransferObject):
@@ -341,23 +348,19 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
         '''
         Map the app interface data to an app interface aggregate.
 
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppInterfaceAggregate instance.
+        :return: A new app interface aggregate.
         :rtype: AppInterfaceAggregate
         '''
 
-        # Inject the resolved services list and constants alongside the
-        # explicit module/class fields excluded from the to_model role.
+        # Map the app interface data with dict→list conversion for services.
         return super().map(
             AppInterfaceAggregate,
             module_path=self.module_path,
             class_name=self.class_name,
-            services=[
-                dep.map(service_id=dep_id)
-                for dep_id, dep in self.services.items()
-            ],
-            constants=self.constants,
+            services=[dep.map(service_id=dep_id) for dep_id, dep in (self.services or {}).items()],
+            constants=dict(self.constants or {}),
             **overrides,
         )
 
@@ -365,17 +368,18 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
     @classmethod
     def from_model(cls, app_interface: AppInterface, **overrides) -> 'AppInterfaceYamlObject':
         '''
-        Create an AppInterfaceYamlObject from an AppInterface model.
+        Creates an AppInterfaceYamlObject from an AppInterface model.
 
         :param app_interface: The app interface model.
         :type app_interface: AppInterface
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppInterfaceYamlObject instance.
+        :return: A new AppInterfaceYamlObject.
         :rtype: AppInterfaceYamlObject
         '''
 
-        # Convert the services list into a dictionary keyed by service_id.
+        # Create a new AppInterfaceYamlObject from the model, converting
+        # the services list into a dictionary keyed by service_id.
         return super().from_model(
             app_interface,
             services={

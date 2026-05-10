@@ -20,16 +20,10 @@ class ErrorMessage(DomainObject):
     '''
 
     # * attribute: lang
-    lang: str = Field(
-        ...,
-        description='The language of the error message text.',
-    )
+    lang: str = Field(..., description='The language of the error message text.')
 
     # * attribute: text
-    text: str = Field(
-        ...,
-        description='The error message text.',
-    )
+    text: str = Field(..., description='The error message text.')
 
     # * method: format
     def format(self, **kwargs) -> str:
@@ -56,34 +50,19 @@ class Error(DomainObject):
     '''
 
     # * attribute: id
-    id: str = Field(
-        ...,
-        description='The unique identifier of the error.',
-    )
+    id: str = Field(..., description='The unique identifier of the error.')
 
     # * attribute: name
-    name: str = Field(
-        ...,
-        description='The name of the error.',
-    )
+    name: str = Field(..., description='The name of the error.')
 
     # * attribute: description
-    description: str | None = Field(
-        default=None,
-        description='The description of the error.',
-    )
+    description: str | None = Field(default=None, description='The description of the error.')
 
     # * attribute: error_code
-    error_code: str | None = Field(
-        default=None,
-        description='The unique code of the error.',
-    )
+    error_code: str | None = Field(default=None, description='The unique code of the error.')
 
     # * attribute: message
-    message: List[ErrorMessage] = Field(
-        default_factory=list,
-        description='The error message translations for the error.',
-    )
+    message: List[ErrorMessage] = Field(default_factory=list, description='The error message translations for the error.')
 
     # * method: _derive_error_code (validator)
     @model_validator(mode='before')

@@ -25,7 +25,6 @@ from ...mappers.di import (
     ServiceConfigurationAggregate,
     FlaggedDependencyAggregate,
 )
-from ...mappers.settings import Aggregate
 from ...interfaces.di import DIService
 from .settings import DomainEventTestBase, ServiceEventTestBase
 
@@ -42,7 +41,8 @@ def flagged_dependency_for_di() -> FlaggedDependency:
     '''
 
     # Create a flagged dependency aggregate.
-    return FlaggedDependencyAggregate(module_path='tiferet.repos.example',
+    return FlaggedDependencyAggregate(
+        module_path='tiferet.repos.example',
         class_name='ExampleRepository',
         flag='test_alpha',
         parameters={

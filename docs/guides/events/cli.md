@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/events/cli.py`  
-**Version:** 2.0.0a6
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -51,7 +51,7 @@ Creates a new `CliCommand` and persists it via `CliService.save()`. Verifies the
 
 **Behavior:**
 1. Verifies the ID is not already in use via `cli_service.exists(id)`.
-2. Creates the command via `CliCommandAggregate.new(...)`.
+2. Creates the command via the `CliCommandAggregate` Pydantic constructor.
 3. Saves via `cli_service.save(command)`.
 
 ```python

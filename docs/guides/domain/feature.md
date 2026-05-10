@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** March 11, 2026  
-**Version:** 2.0.0a5
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -19,10 +19,10 @@ Base class for steps in a feature workflow. Provides a `type` discriminator for 
 
 | Attribute | Type         | Required | Default   | Description                        |
 |-----------|--------------|----------|-----------|------------------------------------|
-| `type`    | `StringType` | No       | `'event'` | The type of the feature step.      |
-| `name`    | `StringType` | Yes      | —         | The name of the feature step.      |
+| `type`    | `Literal['event']` | No | `'event'` | The type of the feature step.      |
+| `name`    | `str`        | Yes      | —         | The name of the feature step.      |
 
-Currently the only supported `type` value is `'event'`, constrained via `choices=['event']`.
+Currently the only supported `type` value is `'event'`, constrained via `Literal['event']`.
 
 ### FeatureEvent
 
@@ -30,13 +30,13 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
-| `service_id`     | `StringType`            | No *(todo: required)* | — | The service configuration ID for the feature event.          |
-| `attribute_id`   | `StringType`            | No *(obsolete)*       | — | The container attribute ID for the domain event. Replaced by `service_id`. |
-| `flags`          | `ListType(StringType)`  | No       | `[]`    | Feature flags that activate this event.                            |
-| `parameters`     | `DictType(StringType)`  | No       | `{}`    | Custom parameters for the event.                                   |
-| `return_to_data` | `BooleanType`           | No       | `False` | Whether to return the result to the feature data context (obsolete). |
-| `data_key`       | `StringType`            | No       | —       | Data key to store the result in if `return_to_data` is True.       |
-| `pass_on_error`  | `BooleanType`           | No       | `False` | Whether to continue the workflow if the event fails.               |
+| `service_id`     | `str \| None`           | No *(todo: required)* | `None` | The service configuration ID for the feature event.          |
+| `attribute_id`   | `str \| None`           | No *(obsolete)*       | `None` | The container attribute ID for the domain event. Replaced by `service_id`. |
+| `flags`          | `List[str]`             | No       | `[]`    | Feature flags that activate this event.                            |
+| `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
+| `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
+| `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in if `return_to_data` is True.       |
+| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
 
 Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
@@ -51,16 +51,16 @@ Parameters support two value modes:
 
 The top-level workflow definition. A feature groups a sequence of steps under a composite identifier (`group_id.feature_key`).
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Composite identifier, typically `{group_id}.{feature_key}` |
-| `name` | `str` (required) | Human-readable name |
-| `description` | `str` | Optional description |
-| `group_id` | `str` (required) | Group identifier for organizing related features |
-| `feature_key` | `str` (required) | Unique key within the group |
-| `flags` | `List[str]` (default: `[]`) | Feature-level flags for dependency resolution |
-| `steps` | `List[FeatureEvent]` (default: `[]`) | Ordered workflow steps |
-| `log_params` | `Dict[str, str]` (default: `{}`) | Parameters to include in log output |
+| Attribute      | Type                            | Required | Default | Description                                          |
+|----------------|---------------------------------|----------|---------|------------------------------------------------------|
+| `id`           | `str`                           | Yes      | —       | The unique identifier (`group_id.feature_key`).      |
+| `name`         | `str`                           | Yes      | —       | The name of the feature.                             |
+| `flags`        | `List[str]`                     | No       | `[]`    | Feature flags that activate this entire feature.     |
+| `description`  | `str \| None`                   | No       | `None`  | The description of the feature.                      |
+| `group_id`     | `str`                           | Yes      | —       | The context group identifier for the feature.        |
+| `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
+| `steps`        | `List[FeatureEvent]`            | No       | `[]`    | The ordered step workflow for the feature.            |
+| `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 
 **Behavior method:**
 
@@ -68,42 +68,12 @@ The top-level workflow definition. A feature groups a sequence of steps under a 
 
 ### FeatureStep (base class)
 
-The base class for any step in a feature workflow. `FeatureStep` defines the common contract that all step types share.
-
-> **Rename note (v2.0a2):** The concept of a polymorphic step base class is new in v2.0a2. Previously, only `FeatureCommand` existed as a flat command reference.
-
-`FeatureStep` enables future step types such as `FeatureCondition` (conditional routing), `FeatureLoop` (iteration), or any other workflow primitive — without changing the `Feature` model itself.
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `type` | `str` (choices: `['event']`, default: `'event'`) | Discriminator indicating the step type. Currently only `'event'` is supported; future values (e.g., `'condition'`, `'loop'`) will enable new step behaviors. |
-| `name` | `str` (required) | Human-readable name for the step |
-
-### FeatureEvent (extends FeatureStep)
-
-A concrete step that executes a domain event. This is the primary step type and carries the full orchestration metadata that `FeatureContext` uses to resolve, configure, and execute a domain event.
-
-> **Rename note (v2.0a2):** Previously named `FeatureCommand`. Renamed to `FeatureEvent` to align with the `Command` → `DomainEvent` transition and to clarify that this step type specifically executes a domain event.
-
-| Attribute | Type | Description |
-||-----------|------|-------------|
-|| `service_id` | `str` *(todo: required)* | The canonical identifier referencing a `ServiceConfiguration` in the DI container. Introduced in v2.0.0a5 as the successor to `attribute_id`. |
-|| `attribute_id` | `str` *(obsolete)* | Legacy container attribute ID. Retained for backward compatibility; will be removed once all downstream layers (mappers, events, contexts) are migrated to `service_id`. |
-|| `flags` | `List[str]` (default: `[]`) | Step-level flags for dependency resolution (combined with feature-level flags) |
-|| `parameters` | `Dict[str, str]` (default: `{}`) | Static or dynamic parameters passed to the domain event |
-|| `data_key` | `str` | If set, the step's result is stored in the request data under this key |
-|| `pass_on_error` | `bool` (default: `False`) | If `True`, errors from this step are swallowed and the result is set to `None` |
-
-*Inherited from FeatureStep:* `type` (always `'event'`), `name`.
-
-### Parameter Resolution
-
-The `parameters` dict supports two kinds of values:
-
-- **Static values** — literal strings (e.g., `b: '0.5'` for the square root feature).
-- **Request-backed values** — strings prefixed with `$r.` that are resolved from the request data at runtime (e.g., `$r.user_id` extracts `user_id` from the request).
-
-This enables a single domain event to be reused across multiple features with different parameter configurations.
+```python
+feature = Feature(id='calc.add', name='Add', group_id='calc', feature_key='add', steps=[...])
+step = feature.get_step(0)    # First step
+step = feature.get_step(99)   # None (out of range)
+step = feature.get_step('x')  # None (invalid type)
+```
 
 ## Runtime Role
 
@@ -188,17 +158,15 @@ Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 ## Instantiation
 
 ```python
-from tiferet.domain import DomainObject, Feature, FeatureEvent
+from tiferet.domain import Feature, FeatureEvent
 
-step = DomainObject.new(
-    FeatureEvent,
+step = FeatureEvent(
     name='Add a and b',
     service_id='add_number_event',
     parameters={'b': '0.5'},
 )
 
-feature = DomainObject.new(
-    Feature,
+feature = Feature(
     id='calc.add',
     name='Add Number',
     group_id='calc',

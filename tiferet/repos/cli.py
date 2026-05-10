@@ -8,7 +8,6 @@ from typing import List
 # ** app
 from ..interfaces import CliService
 from ..mappers import (
-    TransferObject,
     CliArgumentAggregate,
     CliCommandAggregate,
     CliCommandYamlObject,
@@ -89,7 +88,9 @@ class CliYamlRepository(CliService):
             return None
 
         # Map the data to a CliCommandAggregate and return it.
-        return CliCommandYamlObject.model_validate({**cmd_data, 'id': id}).map()
+        return CliCommandYamlObject.model_validate(
+            {**cmd_data, 'id': id}
+        ).map()
 
     # * method: list
     def list(self) -> List[CliCommandAggregate]:

@@ -9,8 +9,15 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import Feature, FeatureStep, FeatureEvent
-from .settings import Aggregate, TransferObject
+from ..domain import (
+    Feature,
+    FeatureStep,
+    FeatureEvent,
+)
+from .settings import (
+    Aggregate,
+    TransferObject,
+)
 
 # *** mappers
 
@@ -75,10 +82,18 @@ class FeatureEventAggregate(FeatureEvent, Aggregate):
         :rtype: None
         '''
 
-        # Delegate to specialized helpers for parameters and pass_on_error.
+        # Delegate to set_parameters for the parameters attribute.
         if attribute == 'parameters':
             self.set_parameters(value)
             return
+
+        # Delegate to set_pass_on_error for the pass_on_error attribute.
+        if attribute == 'pass_on_error':
+            self.set_pass_on_error(value)
+            return
+
+        # Delegate to the base Aggregate for all other attributes.
+        super().set_attribute(attribute, value)
 
         # Pass-on-error has bespoke string-coercion semantics.
         if attribute == 'pass_on_error':
@@ -113,13 +128,13 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
         '''
         Maps the feature event data to a feature event aggregate.
 
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureEventAggregate instance.
+        :return: A new feature event aggregate.
         :rtype: FeatureEventAggregate
         '''
 
-        # Delegate to the base mapper, targeting FeatureEventAggregate.
+        # Map to the feature event aggregate.
         return super().map(FeatureEventAggregate, **overrides)
 
     # * method: from_model
@@ -130,14 +145,15 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
 
         :param feature_event: The feature event model to copy from.
         :type feature_event: FeatureEvent
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureEventYamlObject instance.
+        :return: A new FeatureEventYamlObject.
         :rtype: FeatureEventYamlObject
         '''
 
-        # Delegate to the base mapper.
+        # Create a new FeatureEventYamlObject from the model.
         return super().from_model(feature_event, **overrides)
+
 
 # ** mapper: feature_aggregate
 class FeatureAggregate(Feature, Aggregate):
@@ -183,8 +199,7 @@ class FeatureAggregate(Feature, Aggregate):
             pass_on_error=pass_on_error,
         )
 
-        # Insert at the specified position or append; reassign so
-        # validate_assignment=True triggers field validation.
+        # Copy steps to a local list, insert or append, then reassign.
         steps = list(self.steps)
         if position is not None:
             steps.insert(position, step)
@@ -228,13 +243,14 @@ class FeatureAggregate(Feature, Aggregate):
         if not isinstance(position, int) or position < 0:
             return None
 
-        # Reassign so validate_assignment=True triggers field validation.
+        # Copy steps to a local list, pop, then reassign.
         steps = list(self.steps)
         try:
             removed = steps.pop(position)
         except IndexError:
             return None
         self.steps = steps
+
         return removed
 
     # * method: reorder_step
@@ -251,7 +267,7 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: FeatureStep | None
         '''
 
-        # Reassign so validate_assignment=True triggers field validation.
+        # Copy steps to a local list and attempt to pop the current position.
         steps = list(self.steps)
         try:
             step = steps.pop(current_position)
@@ -264,9 +280,10 @@ class FeatureAggregate(Feature, Aggregate):
         if new_position > len(steps):
             new_position = len(steps)
 
-        # Insert the step at the clamped position and return it.
+        # Insert the step at the clamped position, reassign, and return it.
         steps.insert(new_position, step)
         self.steps = steps
+
         return step
 
     # * method: rename
@@ -280,7 +297,7 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: None
         '''
 
-        # Reassign; validate_assignment=True triggers validation.
+        # Update the name; validate_assignment=True handles re-validation.
         self.name = name
 
     # * method: set_description
@@ -294,7 +311,7 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: None
         '''
 
-        # Reassign; validate_assignment=True triggers validation.
+        # Update the description.
         self.description = description
 
 
@@ -325,13 +342,13 @@ class FeatureYamlObject(Feature, TransferObject):
         '''
         Maps the feature data to a feature aggregate.
 
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureAggregate instance.
+        :return: A new feature aggregate.
         :rtype: FeatureAggregate
         '''
 
-        # Delegate to the base mapper, mapping each YAML step to a runtime step.
+        # Map the feature data with nested step conversion.
         return super().map(
             FeatureAggregate,
             steps=[step.map() for step in (self.steps or [])],
@@ -346,15 +363,19 @@ class FeatureYamlObject(Feature, TransferObject):
 
         :param feature: The feature model to copy from.
         :type feature: Feature
-        :param overrides: Additional field overrides.
+        :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureYamlObject instance.
+        :return: A new FeatureYamlObject.
         :rtype: FeatureYamlObject
         '''
 
-        # Convert each runtime step into a FeatureEventYamlObject.
+        # Create a new FeatureYamlObject from the model, converting
+        # the steps list into FeatureEventYamlObject instances.
         return super().from_model(
             feature,
-            steps=[FeatureEventYamlObject.from_model(step) for step in feature.steps],
+            steps=[
+                FeatureEventYamlObject.from_model(step)
+                for step in feature.steps
+            ],
             **overrides,
         )

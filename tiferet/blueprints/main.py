@@ -41,12 +41,13 @@ def create_service_provider(
     :rtype: ServiceProvider
     '''
 
-    # Create the provider and register service types/constants.
+    # Create the provider and register constants first so that
+    # Factory providers built during add_services can resolve them.
     provider = provider_type()
-    if type_map:
-        provider.add_services(type_map)
     if constants:
         provider.add_constants(constants)
+    if type_map:
+        provider.add_services(type_map)
 
     # Return the configured service provider.
     return provider

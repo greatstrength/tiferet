@@ -10,7 +10,6 @@ import pytest, yaml
 
 # ** app
 from ...mappers import (
-    TransferObject,
     CliArgumentAggregate,
     CliCommandYamlObject,
 )

@@ -2,8 +2,8 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/domain/error.py`  
-**Version:** 2.0.0a2
+**Date:** May 04, 2026  
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -13,63 +13,48 @@ An `Error` is a named error definition with a unique identifier, a human-readabl
 
 ## Domain Objects
 
+### ErrorMessage
+
+Represents a single localized error message.
+
+| Attribute | Type         | Required | Default | Description                         |
+|-----------|--------------|----------|---------|-------------------------------------|
+| `lang`    | `str`        | Yes      | —       | The language of the error message.   |
+| `text`    | `str`        | Yes      | —       | The error message text (may contain format placeholders). |
+
+#### Methods
+
+**`format(**kwargs) -> str`**
+
+Returns the raw `text` when no kwargs are provided. When kwargs are given, performs Python string formatting:
+
+```python
+msg = ErrorMessage(lang='en_US', text='Value {value} is invalid')
+msg.format()                    # 'Value {value} is invalid'
+msg.format(value='abc')         # 'Value abc is invalid'
+```
+
 ### Error
 
 A named error definition with multilingual message support.
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` (required) | Unique identifier (e.g., `invalid_input`, `division_by_zero`) |
-| `name` | `str` (required) | Human-readable name (e.g., `Invalid Numeric Input`) |
-| `description` | `str` | Optional description |
-| `error_code` | `str` | Derived uppercase code (e.g., `INVALID_INPUT`) |
-| `message` | `List[ErrorMessage]` (required) | Localized message translations |
+| Attribute    | Type                              | Required | Default | Description                                   |
+|--------------|-----------------------------------|----------|---------|-----------------------------------------------|
+| `id`         | `str`                             | Yes      | —       | The unique identifier of the error.            |
+| `name`       | `str`                             | Yes      | —       | The name of the error.                         |
+| `description`| `str \| None`                     | No       | `None`  | The description of the error.                  |
+| `error_code` | `str \| None`                     | No       | —       | The unique code of the error (derived from id via `@model_validator`).|
+| `message`    | `List[ErrorMessage]`              | Yes      | —       | The error message translations.                |
 
 **Custom factory:**
 
-- `Error.new(name, id, message, **kwargs)` — derives `error_code` from `id` by upper-casing and replacing spaces with underscores. This is one of the few domain objects with a custom `new()` override rather than using `DomainObject.new()` directly.
+**ID Derivation via `@model_validator`**
 
-**Behavior methods:**
-
-- `format_message(lang='en_US', **kwargs)` — finds the `ErrorMessage` matching the requested language and formats it with the provided keyword arguments. Returns the formatted string, or `None` if no matching language is found.
-- `format_response(lang='en_US', **kwargs)` — calls `format_message()` and wraps the result in a structured dict with `error_code`, `name`, `message`, and any additional kwargs. This dict is what `TiferetAPIError` ultimately carries to the caller.
-
-### ErrorMessage
-
-A single localized error message.
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `lang` | `str` (required) | Language code (e.g., `en_US`, `es_ES`) |
-| `text` | `str` (required) | Message text, optionally with `{}` or `{key}` format placeholders |
-
-**Behavior method:**
-
-- `format(**kwargs)` — applies Python string formatting to `text` with the provided keyword arguments. If no kwargs are provided, returns the raw text.
-
-### Error Formatting Flow
-
-When a domain event calls `self.verify(expression, error_code, message, **kwargs)` and the expression is falsy:
-
-1. A `TiferetError` is raised with the `error_code` and `kwargs`.
-2. The error propagates up to `AppInterfaceContext.handle_error()`.
-3. `ErrorContext.handle_error(exception)` retrieves the `Error` by code.
-4. `Error.format_response(lang, **exception.kwargs)` produces the structured dict.
-5. A `TiferetAPIError` is raised with the formatted payload.
+The `error_code` is automatically derived by a `@model_validator(mode='before')` that uppercases `id` and replaces spaces with underscores:
 
 ```python
-# In a domain event:
-self.verify(
-    b_verified != 0,
-    'DIVISION_BY_ZERO'  # error_code references an Error.id
-)
-
-# ErrorContext formats it:
-# {
-#     'error_code': 'division_by_zero',
-#     'name': 'Division By Zero',
-#     'message': 'Cannot divide by zero'
-# }
+error = Error(id='invalid_input', name='Invalid Input', message=[...])
+assert error.error_code == 'INVALID_INPUT'
 ```
 
 ## Built-in Defaults
@@ -129,9 +114,30 @@ Each key under `errors` becomes the `Error.id`. The `message` list maps to `Erro
 
 ## Relationship to Other Domains
 
-- **All domains** — Every domain event uses `verify()` and `raise_error()`, which raise `TiferetError` with error codes that reference `Error.id` values. The Error domain is the universal safety net.
-- **App domain** — `AppInterfaceContext.handle_error()` is the catch point that delegates to `ErrorContext`. Different app interfaces may handle errors differently (e.g., CLI prints to stderr, a web interface returns HTTP error responses).
-- **DI domain** — The `ErrorService` implementation (e.g., `ErrorYamlRepository`) is registered as a service configuration and resolved via the DI container.
+Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
+
+## Relationships to Other Domains
+
+- **All Domains:** Every domain event uses `verify()` and `raise_error()` to raise `TiferetError`, which is resolved to an `Error` for formatting.
+- **App:** `ErrorContext` is loaded as part of the application interface bootstrap, receiving `ErrorService` via dependency injection.
+- **DI:** `ErrorService` is wired through the DI container (`ServiceConfiguration` entries in `container.yml`).
+
+## Instantiation
+
+```python
+from tiferet.domain import ErrorMessage, Error
+
+msg_en = ErrorMessage(lang='en_US', text='Value {value} is invalid')
+msg_es = ErrorMessage(lang='es_ES', text='El valor {value} no es válido')
+
+error = Error(
+    id='invalid_input',
+    name='Invalid Input',
+    message=[msg_en, msg_es],
+)
+# error.error_code == 'INVALID_INPUT' (derived via @model_validator)
+# error.format_message('es_ES', value='abc') == 'El valor abc no es válido'
+```
 
 ## Related Documentation
 

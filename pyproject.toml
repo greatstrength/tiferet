@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.6",
     "pyyaml>=6.0.1",
-    "dependencies>=7.7.0"
+    "dependency-injector>=4.49.0"
 ]
 
 [project.urls]

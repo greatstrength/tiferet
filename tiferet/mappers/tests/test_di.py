@@ -3,9 +3,8 @@
 # *** imports
 
 # ** app
-from ...domain import DomainObject, FlaggedDependency
+from ...domain import FlaggedDependency
 from ...events import a
-from ..settings import TransferObject
 from ..di import (
     FlaggedDependencyAggregate,
     FlaggedDependencyYamlObject,

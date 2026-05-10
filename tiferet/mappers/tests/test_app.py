@@ -6,9 +6,9 @@
 import pytest
 
 # ** app
-from ...domain import AppServiceDependency, DomainObject
+from ...domain import AppServiceDependency
 from ...assets import TiferetError, const
-from ..settings import TransferObject, DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
+from ..settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from ..app import (
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
@@ -121,12 +121,12 @@ class TestAppInterfaceAggregate(AggregateTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Construct an AppInterfaceAggregate via the Pydantic constructor.
+        Override to use AppInterfaceAggregate direct constructor.
         '''
 
-        # Build the aggregate from the resolved sample data.
+        # Create an aggregate using the direct constructor.
         return AppInterfaceAggregate(
-            **(data if data is not None else self.sample_data).copy()
+            **(data if data is not None else self.sample_data)
         )
 
     # *** fixtures
@@ -221,7 +221,8 @@ class TestAppInterfaceAggregate(AggregateTestBase):
 
         # Build services from the initial ids.
         services = [
-            AppServiceDependency(service_id=aid,
+            AppServiceDependency(
+                service_id=aid,
                 module_path=f"mod.{aid}",
                 class_name=f"{aid.capitalize()}Class",
                 parameters={'p': aid},
@@ -342,12 +343,12 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # * method: make_aggregate
     def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
         '''
-        Construct an AppInterfaceAggregate via the Pydantic constructor.
+        Override to use AppInterfaceAggregate direct constructor.
         '''
 
-        # Build the aggregate from the resolved aggregate sample data.
+        # Create an aggregate using the direct constructor.
         return AppInterfaceAggregate(
-            **(data if data is not None else self.aggregate_sample_data).copy()
+            **(data if data is not None else self.aggregate_sample_data)
         )
 
     # *** child mapper: AppServiceDependencyYamlObject
@@ -366,7 +367,9 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = AppServiceDependencyYamlObject.model_validate(self.dependency_sample_data)
+        yaml_obj = AppServiceDependencyYamlObject.model_validate(
+            self.dependency_sample_data,
+        )
         dep = yaml_obj.map(service_id='injected_svc')
 
         # Verify the mapped entity.
@@ -379,7 +382,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_aliasing_params
     def test_app_service_dependency_yaml_aliasing_params(self):
         '''
-        Test that the "params" serialized_name alias is correctly deserialized.
+        Test that the "params" alias is correctly deserialized.
         '''
 
         # Create YAML object using the 'params' alias.

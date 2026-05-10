@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/mappers/`  
-**Version:** 2.0.0a3
+**Version:** 2.0.0b1
 
 ## Overview
 
@@ -34,55 +34,48 @@ If a domain object is only ever used as a **nested sub-object** inside a parent 
 | `FlaggedDependency` | Yes (`FlaggedDependencyAggregate`) | Parameter merge-and-prune logic |
 | `Formatter`, `Handler`, `Logger` | Yes (thin aggregates) | Provide `new` factory for consistent instantiation |
 
-**Rule of thumb:** if you need `DomainObject.new(SubType, ...)` to create it and nothing else, you don't need an aggregate for it.
+**Rule of thumb:** if you only need `SubType(...)` to create it and nothing else, you don't need an aggregate for it.
 
-## The `new` Factory Pattern
+## Instantiation Pattern
 
-Every aggregate provides a static `new` method. There are two common signatures:
+Aggregates are instantiated directly via the Pydantic constructor. There are two common patterns:
 
-### Pass-through factory
-Delegates directly to `Aggregate.new` with no additional logic. Used when the domain object's fields are sufficient as-is.
-
-```python
-@staticmethod
-def new(validate=True, strict=True, **kwargs) -> 'ErrorAggregate':
-    return Aggregate.new(ErrorAggregate, validate=validate, strict=strict, **kwargs)
-```
-
-### Derivation factory
-Computes or derives fields before delegating. Used when the aggregate needs to normalize inputs, compute IDs, or provide defaults.
+### Direct construction
+Used when the domain object's fields are sufficient as-is:
 
 ```python
-@staticmethod
-def new(name=None, group_id=None, feature_key=None, id=None, ...) -> 'FeatureAggregate':
-    # Derive group_id and feature_key from id if provided.
-    if id and '.' in id and (not group_id or not feature_key):
-        group_id, feature_key = id.split('.', 1)
-    # ...
-    return Aggregate.new(FeatureAggregate, id=id, name=name, ...)
+aggregate = ErrorAggregate(id='invalid_input', name='Invalid Input', message=[...])
 ```
 
-### Dict-wrapper factory
-Accepts a single data dict and unpacks it. Used when the caller already has a dict (e.g., from YAML loading).
+### Derivation via `@model_validator`
+Used when the aggregate needs to normalize inputs, compute IDs, or provide defaults. A `@model_validator(mode='before')` on the domain object handles derivation automatically:
 
 ```python
-@staticmethod
-def new(app_interface_data: Dict[str, Any], validate=True, strict=True, **kwargs):
-    return Aggregate.new(AppInterfaceAggregate, **app_interface_data, **kwargs)
+# FeatureAggregate inherits the @model_validator from Feature,
+# which derives group_id and feature_key from id if provided.
+aggregate = FeatureAggregate(id='calc.add', name='Add Number')
+# aggregate.group_id == 'calc'
+# aggregate.feature_key == 'add'
 ```
 
-Choose the pattern that fits the domain. Derivation factories are useful when an ID is composed from multiple parts; dict-wrapper factories are useful when the aggregate is populated from configuration data.
+### Dict-wrapper construction
+Used when the caller already has a dict (e.g., from YAML loading):
+
+```python
+aggregate = AppInterfaceAggregate(**app_interface_data)
+```
+
+Choose the pattern that fits the domain. Derivation via `@model_validator` is useful when an ID is composed from multiple parts; dict-wrapper construction is useful when the aggregate is populated from configuration data.
 
 ## Nested Sub-Objects Without Aggregates
 
-When a domain object has no aggregate, the parent aggregate creates instances via `DomainObject.new()` and mutates them directly. The parent transfer object handles all structural transformation.
+When a domain object has no aggregate, the parent aggregate creates instances directly via the Pydantic constructor and mutates them. The parent transfer object handles all structural transformation.
 
 ### Creation in the parent aggregate
 
 ```python
 # AppInterfaceAggregate.add_service
-dependency = DomainObject.new(
-    AppServiceDependency,
+dependency = AppServiceDependency(
     module_path=module_path,
     class_name=class_name,
     attribute_id=attribute_id,
@@ -110,7 +103,7 @@ This pattern appears in every domain that nests sub-objects: services in app int
 
 ## Transfer Object Role Strategy
 
-Transfer objects use Schematics role-based serialization to control which fields appear in different contexts. Tiferet defines three standard roles:
+Transfer objects use a `_ROLES` ClassVar to control which fields appear in different serialization contexts. Each role maps to a dict of `model_dump` kwargs. Tiferet defines three standard roles:
 
 | Role | Purpose |
 |---|---|
@@ -118,43 +111,42 @@ Transfer objects use Schematics role-based serialization to control which fields
 | `to_data.yaml` | Fields included when serializing to YAML configuration |
 | `to_data.json` | Fields included when serializing to JSON |
 
-### Deny vs Allow
+### Exclude vs Include
 
-- **`deny`** (blacklist) is the default strategy. Start with all fields and exclude the ones that don't belong in the role.
-- **`allow`** (whitelist) is used when the domain object is simple enough that listing included fields is clearer, or when you want a full pass-through (`allow()` with no arguments).
+- **`exclude`** (blacklist) is the default strategy. Start with all fields and exclude the ones that don't belong in the role.
+- **`include`** (whitelist) is used when the domain object is simple enough that listing included fields is clearer.
 
-### Common deny patterns
+### Common exclude patterns
 
-**Deny the ID on data roles.** The ID is typically derived from the YAML dictionary key, not stored as a field in the YAML value:
+**Exclude the ID on data roles.** The ID is typically derived from the YAML dictionary key, not stored as a field in the YAML value:
 
 ```python
-roles = {
-    'to_data.yaml': TransferObject.deny('id'),
-    'to_data.json': TransferObject.deny('id'),
+_ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+    'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+    'to_data.json': {'exclude': {'id'}},
 }
 ```
 
-**Deny nested collections on `to_model`.** Nested sub-objects need custom mapping (e.g., dict→list conversion), so they are excluded from the primitive and composed manually in `map()`:
+**Exclude nested collections on `to_model`.** Nested sub-objects need custom mapping (e.g., dict→list conversion), so they are excluded from the dump and composed manually in `map()`:
 
 ```python
-roles = {
-    'to_model': TransferObject.deny('services', 'constants', 'module_path', 'class_name'),
+_ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
+    'to_model': {'exclude': {'services', 'constants', 'module_path', 'class_name'}},
 }
 ```
 
-The fields denied from `to_model` are then passed explicitly in `map()` with the correct transformation applied.
+The fields excluded from `to_model` are then passed explicitly in `map()` with the correct transformation applied.
 
-### The map/deny handshake
+### The map/exclude handshake
 
-The `map()` method and `to_model` role work together. Whatever `to_model` denies, `map()` must supply:
+The `map()` method and `to_model` role work together. Whatever `to_model` excludes, `map()` must supply:
 
 ```python
-def map(self, **kwargs) -> ErrorAggregate:
+def map(self, **overrides) -> ErrorAggregate:
     return super().map(
         ErrorAggregate,
-        message=[msg.map() for msg in self.message],   # denied from to_model
-        **self.to_primitive('to_model'),                # everything else
-        **kwargs
+        message=[msg.map() for msg in self.message],   # excluded from to_model
+        **overrides
     )
 ```
 
@@ -162,20 +154,20 @@ This pattern ensures the transfer object's role controls what gets auto-serializ
 
 ## Attribute Aliasing
 
-Transfer objects support `serialized_name` and `deserialize_from` for mapping between YAML/JSON field names and domain attribute names. Domain objects must **not** use aliasing — only transfer objects.
+Transfer objects support `serialization_alias` and `validation_alias=AliasChoices(...)` for mapping between YAML/JSON field names and domain attribute names. Domain objects must **not** use aliasing — only transfer objects.
 
 Common aliases:
 
-| Domain field | YAML alias | `deserialize_from` |
+| Domain field | YAML alias (`serialization_alias`) | `validation_alias` (AliasChoices) |
 |---|---|---|
-| `parameters` | `params` | `['params', 'parameters']` |
-| `module_path` | `module` | `['module_path', 'module']` |
-| `class_name` | `class` | `['class_name', 'class']` |
-| `services` | `attrs` | `['attrs', 'services', 'dependencies', 'attributes']` |
-| `dependencies` | `deps` | `['deps', 'dependencies', 'flags']` |
-| `steps` | `commands` | `['handlers', 'functions', 'commands', 'steps']` |
+| `parameters` | `params` | `AliasChoices('params', 'parameters')` |
+| `module_path` | `module` | `AliasChoices('module_path', 'module')` |
+| `class_name` | `class` | `AliasChoices('class_name', 'class')` |
+| `services` | `attrs` | `AliasChoices('attrs', 'services', 'dependencies', 'attributes')` |
+| `dependencies` | `deps` | `AliasChoices('deps', 'dependencies', 'flags')` |
+| `steps` | `commands` | `AliasChoices('handlers', 'functions', 'commands', 'steps')` |
 
-Broad `deserialize_from` lists provide backward compatibility with older configuration formats. The `serialized_name` controls the canonical output key.
+Broad `AliasChoices` lists provide backward compatibility with older configuration formats. The `serialization_alias` controls the canonical output key.
 
 ## Gated `set_attribute` Pattern
 
@@ -240,17 +232,16 @@ When the transfer object performs structural transformations (dict↔list), both
 
 Some transfer objects don't extend a domain object — they compose multiple domain objects into a single configuration structure. `LoggingSettingsYamlObject` is the canonical example: it holds dicts of `FormatterYamlObject`, `HandlerYamlObject`, and `LoggerYamlObject`, representing the entire `logging.yml` file.
 
-These composite transfer objects override `from_data` to handle sub-object hydration:
+These composite transfer objects use `model_validate` with custom hydration logic:
 
 ```python
-@staticmethod
-def from_data(**data) -> 'LoggingSettingsYamlObject':
-    return TransferObject.from_data(
-        LoggingSettingsYamlObject,
-        formatters={id: TransferObject.from_data(FormatterYamlObject, **d, id=id)
+@classmethod
+def hydrate(cls, **data) -> 'LoggingSettingsYamlObject':
+    return cls.model_validate(dict(
+        formatters={id: FormatterYamlObject.model_validate({**d, 'id': id})
                     for id, d in data.get('formatters', {}).items()},
         # ...
-    )
+    ))
 ```
 
 Use this pattern when a YAML file contains multiple related configuration sections that are loaded together.
@@ -263,11 +254,11 @@ When the standard role-based serialization isn't sufficient, transfer objects ca
 def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
     return dict(
         **super().to_primitive(role=role, **kwargs),
-        args=[arg.to_primitive() for arg in self.arguments]
+        args=[arg.model_dump(exclude_none=True) for arg in self.arguments]
     )
 ```
 
-Use sparingly — prefer role-based deny/allow when possible.
+Use sparingly — prefer role-based `_ROLES` exclude/include when possible.
 
 ## Related Documentation
 
