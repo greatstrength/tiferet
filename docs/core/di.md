@@ -5,12 +5,12 @@
 
 ## Overview
 
-The `tiferet/di/` package provides the **app-level dependency injection** layer for the Tiferet framework. It defines the `ServiceProvider` abstract base class and its concrete implementation, `DependenciesServiceProvider`, which backs the `AppManagerContext` during interface loading.
+The `tiferet/di/` package provides the **app-level dependency injection** layer for the Tiferet framework. It defines the `ServiceProvider` abstract base class and its concrete implementation, `DynamicServiceProvider`, which backs `AppBuilder` during interface loading.
 
 The `di/` package is distinct from the feature-level DI managed by `DIContext` (`contexts/di.py`):
 
-- **`tiferet/di/`** — App-level DI. Manages the lifecycle of injected contexts and repositories for an interface (e.g., `FeatureContext`, `ErrorContext`, `LoggingContext`). Consumed by `AppManagerContext`.
-- **`tiferet/contexts/di.py` (`DIContext`)** — Feature-level DI. Loads `ServiceConfiguration` objects, resolves flagged dependencies, and builds per-flag injectors for feature execution. Consumed by `FeatureContext`.
+- **`tiferet/di/`** — App-level DI. Manages the lifecycle of injected contexts and repositories for an interface (e.g., `FeatureContext`, `ErrorContext`, `LoggingContext`). Consumed by `AppBuilder`.
+- **`tiferet/contexts/di.py` (`DIContext`)** — Feature-level DI. Loads `ServiceConfiguration` objects, resolves flagged dependencies, and builds per-flag providers for feature execution. Consumed by `FeatureContext`.
 
 This document describes the structure, design principles, and best practices for writing and extending the DI layer, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
 
@@ -20,16 +20,14 @@ A `ServiceProvider` is an abstract class that manages a registry of service IDs 
 
 Key characteristics:
 - Extends `ServiceProvider` (ABC) from `tiferet/di/settings.py`.
-- Maintains a `services` dictionary mapping service IDs to types or scalar values.
-- Rebuilds its internal injector every time the registry is mutated.
 - Uses `RaiseError.execute()` for structured error handling.
-- Returns fully resolved instances via `get_service()` — callers never interact with the injector directly.
+- Returns fully resolved instances via `get_service()` — callers never interact with the container directly.
 
 ### Role in Runtime
 
-`AppManagerContext` holds a single `ServiceProvider` instance for the lifetime of an interface load:
+`AppBuilder` holds a single `ServiceProvider` instance for the lifetime of an interface load:
 
-1. `AppManagerContext.__init__` creates a `DependenciesServiceProvider` (or accepts an injected one).
+1. `AppBuilder.__init__` creates a `DynamicServiceProvider` via `create_service_provider()`.
 2. `load_interface` calls `app_interface.get_service_type_mapping()` to obtain a `Dict[str, type]`.
 3. `load_app_instance` calls `service_provider.add_services(dependencies)` to register all interface dependencies.
 4. `service_provider.get_service('app_context')` resolves and returns the fully constructed `AppInterfaceContext`.
@@ -72,56 +70,74 @@ class ServiceProvider(ABC):
 
 ### Method Semantics
 
-- **`add_service(service_id, service_type)`** — Registers a single service type under an ID.
-- **`add_services(services)`** — Bulk-registers a `Dict[str, type]` mapping. Equivalent to calling `add_service` for each entry. Prefer this for registering multiple services at once (e.g., all interface dependencies from `get_service_type_mapping()`).
-- **`add_constants(constants)`** — Registers scalar values (strings, integers, etc.) as constructor injection parameters. **Important:** scalars registered this way are injected into other services at construction time; they cannot be resolved directly via `get_service`. See [Scalar Constants vs. Service Types](#scalar-constants-vs-service-types) below.
+- **`add_service(service_id, service_type)`** — Registers a single service type under an ID as a `Factory` provider.
+- **`add_services(services)`** — Bulk-registers a `Dict[str, type]` mapping. Class types are registered as `Factory` providers (new instance per resolution); non-type values (scalars, callables, etc.) are registered as `Object` providers (pass-through).
+- **`add_constants(constants)`** — Registers scalar values (strings, numbers, booleans) as `Object` providers. Unlike the previous `dependencies` library backend, constants **can** be resolved directly via `get_service`.
 - **`get_service(service_id)`** — Returns the fully resolved service instance. Raises `INVALID_DEPENDENCY_ERROR` if the service cannot be resolved.
 - **`remove_service(service_id)`** — Deregisters a service. No-op if the ID is not present.
 
-## The DependenciesServiceProvider
+## The DynamicServiceProvider
 
-`DependenciesServiceProvider` is the concrete implementation in `tiferet/di/dependencies.py`. It satisfies the `ServiceProvider` contract using the [`dependencies`](https://pypi.org/project/dependencies/) library's `Injector` as its backing resolver.
+`DynamicServiceProvider` is the concrete implementation in `tiferet/di/dynamic.py`. It satisfies the `ServiceProvider` contract using [`dependency-injector`](https://pypi.org/project/dependency-injector/)'s `DynamicContainer` as its backing resolver.
 
 ### Key Design Decisions
 
-**Injector rebuild on every mutation.** Each call to `add_service`, `add_services`, `add_constants`, or `remove_service` triggers `build_injector()`, which creates a new `Injector` subclass type from the current `services` dict. This is intentional — injectors in the `dependencies` library are immutable class definitions, so they must be recreated to reflect changes.
+**DynamicContainer.** The `dependency-injector` library provides `DynamicContainer`, which supports runtime provider registration via `set_provider()`. Unlike the previous `dependencies` library (which required rebuilding an immutable `Injector` subclass on every mutation), providers can be added and removed incrementally.
 
-**Empty scope guard.** The `dependencies` library raises `DependencyError: Extension scope can not be empty` when an `Injector` is created with no attributes. `build_injector` guards against this by setting `self.injector = None` when `services` is empty. `get_service` checks for `None` and raises `INVALID_DEPENDENCY_ERROR` immediately rather than letting the library raise.
+**Provider types.** Two provider types are used:
+- `Factory` — Wraps a class type. Each `get_service()` call creates a new instance with constructor kwargs wired to sibling providers.
+- `Object` — Wraps a scalar value or callable. Each `get_service()` call returns the same value.
 
-**Named injector.** The `_name` attribute is stored at construction time and used as the class name for every rebuilt `Injector` type. The default is `'TiferetInjector'`. Pass a custom `name` via `__init__` or `new()` when you need distinguishable repr output (e.g., in tests or logging).
+**Automatic constructor wiring.** `_build_factory()` inspects the service class constructor via `inspect.signature()` and wires each parameter to a sibling provider if one exists. This enables cascading dependency resolution without explicit wiring configuration.
+
+**No empty scope guard needed.** Unlike the `dependencies` library, `DynamicContainer` works correctly with zero providers. No special `None` guard is required.
 
 ```python
-# tiferet/di/dependencies.py
+# tiferet/di/dynamic.py
 
-# ** class: dependencies_service_provider
-class DependenciesServiceProvider(ServiceProvider):
+# ** class: dynamic_service_provider
+class DynamicServiceProvider(ServiceProvider):
 
-    # * attribute: services
-    services: Dict[str, type]
-
-    # * attribute: injector
-    injector: type          # Injector subclass type, or None if empty
-
-    # * attribute: _name
-    _name: str
+    # * attribute: container
+    container: containers.DynamicContainer
 
     # * init
-    def __init__(self, services: Dict[str, type] = None, name: str = 'TiferetInjector'):
-        self._name = name
-        self.services = services or {}
-        self.build_injector()
+    def __init__(self, services: Dict[str, type] = None):
+        self.container = containers.DynamicContainer()
+        if services:
+            self.add_services(services)
 
-    # * method: new (static)
-    @staticmethod
-    def new(name: str, dependencies: Dict[str, type]) -> 'DependenciesServiceProvider':
-        return DependenciesServiceProvider(services=dependencies, name=name)
+    # * method: add_service
+    def add_service(self, service_id: str, service_type: type):
+        factory = self._build_factory(service_type)
+        self.container.set_provider(service_id, factory)
 
-    # * method: build_injector
-    def build_injector(self):
-        if self.services:
-            self.injector = type(self._name, (Injector,), self.services)
-        else:
-            self.injector = None
+    # * method: add_services
+    def add_services(self, services: Dict[str, type]):
+        for service_id, value in services.items():
+            if isinstance(value, type):
+                self.add_service(service_id, value)
+            else:
+                self.container.set_provider(service_id, providers.Object(value))
+
+    # * method: get_service
+    def get_service(self, service_id: str) -> Any:
+        provider = self.container.providers.get(service_id)
+        if provider is None:
+            RaiseError.execute('INVALID_DEPENDENCY_ERROR', ...)
+        return provider()
+
+    # * method: _build_factory
+    def _build_factory(self, service_type: type) -> providers.Factory:
+        sig = inspect.signature(service_type.__init__)
+        kwargs = {}
+        for param_name, param in sig.parameters.items():
+            if param_name == 'self' or param.kind in (VAR_POSITIONAL, VAR_KEYWORD):
+                continue
+            sibling = self.container.providers.get(param_name)
+            if sibling is not None:
+                kwargs[param_name] = sibling
+        return providers.Factory(service_type, **kwargs)
 ```
 
 ## Structured Code Design
@@ -160,16 +176,16 @@ class ServiceProvider(ABC):
         ...
 ```
 
-**Example** — `dependencies.py` layout:
+**Example** — `dynamic.py` layout:
 ```python
 # *** imports
 
 # ** core
 from typing import Any, Dict
+import inspect
 
 # ** infra
-from dependencies import Injector
-from dependencies.exceptions import DependencyError
+from dependency_injector import containers, providers
 
 # ** app
 from ..events import RaiseError
@@ -178,45 +194,50 @@ from .settings import ServiceProvider
 
 # *** classes
 
-# ** class: dependencies_service_provider
-class DependenciesServiceProvider(ServiceProvider):
+# ** class: dynamic_service_provider
+class DynamicServiceProvider(ServiceProvider):
     '''...'''
 
-    # * attribute: services
-    services: Dict[str, type]
+    # * attribute: container
+    container: containers.DynamicContainer
 
     # * init
-    def __init__(self, services: Dict[str, type] = None, name: str = 'TiferetInjector'):
+    def __init__(self, services: Dict[str, type] = None):
         ...
 
-    # * method: new (static)
-    @staticmethod
-    def new(name: str, dependencies: Dict[str, type]) -> 'DependenciesServiceProvider':
+    # * method: add_service
+    def add_service(self, service_id: str, service_type: type):
         ...
 ```
 
-## Scalar Constants vs. Service Types
+## Provider Types and Registration
 
-The `add_constants` method accepts plain scalar values (strings, numbers, booleans) alongside class types. These behave differently inside the injector:
+### Factory Providers (Class Types)
 
-- **Service types** (classes): Resolved by the `dependencies` library through instantiation. Accessed via `get_service(service_id)`.
-- **Scalar constants**: Injected as constructor parameters into other services that declare them as `__init__` arguments. They **cannot** be accessed directly via `get_service` — the library raises `DependencyError: Scalar dependencies could only be used to instantiate classes`.
+When a class type is registered via `add_service()`, it is wrapped in a `providers.Factory`. Each resolution creates a new instance with constructor kwargs wired to sibling providers:
 
 ```python
-# Correct use of add_constants — injectable into a service constructor.
-provider.add_services({'configurable_repo': MyYamlRepository})
-provider.add_constants({'my_yaml_file': 'app/configs/my.yml'})
+provider.add_service('feature_service', FeatureYamlRepository)
+provider.add_constants({'feature_yaml_file': 'app/configs/feature.yml'})
 
-# MyYamlRepository(my_yaml_file) is resolved correctly:
-repo = provider.get_service('configurable_repo')  # ✓
+# FeatureYamlRepository(feature_yaml_file='app/configs/feature.yml') is resolved:
+repo = provider.get_service('feature_service')  # ✓ new instance each time
+```
 
-# Accessing the scalar directly raises INVALID_DEPENDENCY_ERROR:
-path = provider.get_service('my_yaml_file')  # ✗
+### Object Providers (Scalars and Callables)
+
+Non-type values registered via `add_services()` or `add_constants()` are wrapped in `providers.Object`. Each resolution returns the same value:
+
+```python
+provider.add_constants({'app_config_file': 'app/configs/app.yml'})
+
+# Direct scalar resolution works (unlike the previous dependencies library):
+path = provider.get_service('app_config_file')  # ✓ returns 'app/configs/app.yml'
 ```
 
 ## Creating a New ServiceProvider Implementation
 
-To provide an alternative DI backend (e.g., backed by a different IoC library or a simple dict for testing), extend `ServiceProvider` from `tiferet/di/settings.py` and implement all abstract methods.
+To provide an alternative DI backend (e.g., for testing), extend `ServiceProvider` from `tiferet/di/settings.py` and implement all abstract methods.
 
 **Example** — `SimpleServiceProvider` (dict-backed, for testing):
 ```python
@@ -293,11 +314,7 @@ class SimpleServiceProvider(ServiceProvider):
         self.registry.pop(service_id, None)
 ```
 
-Inject a custom provider into `AppManagerContext` via the `service_provider` parameter:
-
-```python
-app = AppManagerContext(service_provider=SimpleServiceProvider())
-```
+Inject a custom provider into `AppBuilder` via the `create_service_provider` static method or by subclassing.
 
 ## Testing ServiceProvider Implementations
 
@@ -305,29 +322,28 @@ Tests live in `tiferet/di/tests/` and follow the standard artifact comment struc
 
 ### Key Patterns
 
-- Test `init` with no services — assert `injector is None` (empty scope guard).
+- Test `init` with no services — assert container has no providers.
 - Test `init` with services — assert types are registered and resolvable.
 - Test `add_service` / `add_services` — assert services resolve to the correct types.
-- Test `add_constants` — register a service that depends on the constant, resolve the service, and assert the value was injected.
+- Test `add_constants` — register a constant, resolve it directly, and register a service that depends on it to verify injection.
 - Test `get_service` on an unregistered ID — assert `TiferetError` with `error_code == 'INVALID_DEPENDENCY_ERROR'`.
 - Test `remove_service` — assert the service is gone and no longer resolvable.
 - Test `remove_service` on an unknown ID — assert no exception is raised.
-- Test injector rebuild — assert `injector` reference changes after mutation.
 
 ```python
 # *** fixtures
 
 # ** fixture: populated_provider
 @pytest.fixture
-def populated_provider() -> DependenciesServiceProvider:
+def populated_provider() -> DynamicServiceProvider:
     '''Pre-populated provider for success-path tests.'''
-    return DependenciesServiceProvider(services={'my_service': MyService})
+    return DynamicServiceProvider(services={'my_service': MyService})
 
 
 # *** tests
 
 # ** test: get_service_success
-def test_get_service_success(populated_provider: DependenciesServiceProvider):
+def test_get_service_success(populated_provider: DynamicServiceProvider):
     '''Test that a registered service resolves to the correct type.'''
 
     # Resolve the service.
@@ -342,7 +358,7 @@ def test_get_service_not_found():
     '''Test that an unregistered service raises INVALID_DEPENDENCY_ERROR.'''
 
     # Create an empty provider.
-    provider = DependenciesServiceProvider()
+    provider = DynamicServiceProvider()
 
     # Attempt to resolve an unknown service.
     with pytest.raises(TiferetError) as exc_info:
@@ -352,22 +368,32 @@ def test_get_service_not_found():
     assert exc_info.value.error_code == 'INVALID_DEPENDENCY_ERROR'
 ```
 
+## Backward Compatibility
+
+A backward-compatible alias is provided in `tiferet/di/__init__.py`:
+
+```python
+DependenciesServiceProvider = DynamicServiceProvider
+```
+
+Downstream consumers importing `DependenciesServiceProvider` will receive `DynamicServiceProvider` transparently. The `ServiceProvider` ABC is unchanged.
+
 ## Package Layout
 
 ```
 tiferet/di/
-├── __init__.py          — Exports: ServiceProvider, DependenciesServiceProvider
+├── __init__.py          — Exports: ServiceProvider, DynamicServiceProvider (+ backward-compat alias)
 ├── settings.py          — ServiceProvider (ABC)
-├── dependencies.py      — DependenciesServiceProvider (dependencies-library-backed)
+├── dynamic.py           — DynamicServiceProvider (dependency-injector-backed)
 └── tests/
     ├── __init__.py
-    └── test_dependencies.py
+    └── test_dynamic.py
 ```
 
 ## Conclusion
 
-The `tiferet/di/` package provides the app-level DI foundation for the Tiferet framework, abstracting the lifecycle of contexts and repositories behind the `ServiceProvider` contract. The `DependenciesServiceProvider` satisfies this contract using the `dependencies` library while handling the library's constraints (empty scope guard, scalar injection limitations) transparently.
+The `tiferet/di/` package provides the app-level DI foundation for the Tiferet framework, abstracting the lifecycle of contexts and repositories behind the `ServiceProvider` contract. The `DynamicServiceProvider` satisfies this contract using the `dependency-injector` library's `DynamicContainer`, providing incremental provider registration, automatic constructor wiring, and direct scalar resolution.
 
-New implementations extend `ServiceProvider` and override all abstract methods. Inject them into `AppManagerContext` via the `service_provider` constructor parameter to swap backends without changing application code.
+New implementations extend `ServiceProvider` and override all abstract methods. Inject them into `AppBuilder` via the `create_service_provider` static method to swap backends without changing application code.
 
-Explore source in `tiferet/di/`, runtime consumers in `tiferet/contexts/app.py`, and tests in `tiferet/di/tests/`.
+Explore source in `tiferet/di/`, runtime consumers in `tiferet/builders/main.py`, and tests in `tiferet/di/tests/`.

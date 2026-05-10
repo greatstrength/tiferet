@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0b1)
+# AGENTS.md — Tiferet Framework (v2.0.0b2)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0b1`
+- **Version:** `2.0.0b2`
 
 ## Architecture
 
@@ -20,7 +20,7 @@ tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── builders/             # AppBuilder, CliBuilder and top-level runtime orchestration
 ├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, Logging)
-├── di/                   # App-level DI: ServiceProvider, DependenciesServiceProvider
+├── di/                   # App-level DI: ServiceProvider, DynamicServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
 ├── interfaces/           # Service ABC and domain service interfaces
@@ -71,8 +71,8 @@ tiferet/
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DependenciesServiceProvider` concrete implementation. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
-- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DependenciesServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 ## Structured Code Style
 
@@ -289,7 +289,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
-- `tiferet/di/dependencies.py` — `DependenciesServiceProvider` (app-level DI)
+- `tiferet/di/dynamic.py` — `DynamicServiceProvider` (app-level DI, backed by `dependency-injector`)
 - `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
 - `tiferet/builders/cli.py` — `CliBuilder` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext`
@@ -298,9 +298,23 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/assets/constants.py` — Error codes and default configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
 
-## Migration from Schematics to Pydantic v2
+## Migration Notes
 
-The v2.0.0b1 release completes the migration from `schematics` to Pydantic v2. Key breaking changes for downstream consumers:
+### v2.0.0b2: DI Backend Migration
+
+The v2.0.0b2 release replaces the `dependencies` library DI backend with `dependency-injector`. Key changes:
+
+- **`DependenciesServiceProvider`** (backed by `dependencies.Injector`) has been removed. The concrete implementation is now `DynamicServiceProvider` (backed by `dependency-injector`'s `DynamicContainer`).
+- **`tiferet/di/dependencies.py`** has been deleted. The implementation lives in `tiferet/di/dynamic.py`.
+- **`pyproject.toml`** dependency is `dependency-injector>=4.49.0` (not `dependencies>=7.7.0`).
+- **Backward-compatible alias**: `DependenciesServiceProvider = DynamicServiceProvider` is provided in `tiferet/di/__init__.py` for downstream consumers.
+- **Scalar constants** registered via `add_constants()` can now be resolved directly via `get_service()` (previously not possible with the `dependencies` library).
+- **Class types** are registered as `Factory` providers (new instance per resolution); non-type values are registered as `Object` providers (pass-through).
+- The `ServiceProvider` ABC is unchanged.
+
+### v2.0.0b1: Schematics to Pydantic v2
+
+The v2.0.0b1 release completed the migration from `schematics` to Pydantic v2. Key breaking changes:
 
 - **`DomainObject`** now extends `pydantic.BaseModel` instead of `schematics.Model`.
 - **`DomainObject.new(Type, **kwargs)`** has been removed. Use direct constructors: `Feature(id='calc.add', name='Add')`. Use `model_construct()` to skip validation.
