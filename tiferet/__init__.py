@@ -7,8 +7,8 @@
 # Use a try-except block to avoid import errors on build systems.
 try:
     from .assets import TiferetError, TiferetAPIError
-    from .builders import AppBuilder as App
-    from .builders import CliBuilder as CLI
+    from .blueprints import build_app as App
+    from .blueprints import build_cli as CLI
     from .domain import DomainObject
     from .events import (
         DomainEvent,

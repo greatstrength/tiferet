@@ -1,0 +1,270 @@
+"""Tiferet CLI Blueprints"""
+
+# *** imports
+
+# ** core
+import sys
+import argparse
+from typing import Any, Dict, List, Optional, Tuple
+
+# ** app
+from ..assets import TiferetAPIError
+from ..di import ServiceProvider
+from ..domain import CliCommand
+from .. import assets as a
+from ..events import DomainEvent
+from ..events.app import GetAppInterface
+from .main import (
+    create_service_provider,
+    load_default_services,
+    resolve_interface,
+    realize_interface,
+)
+
+# *** blueprints
+
+# ** blueprint: get_commands
+def get_commands(service_provider: ServiceProvider) -> Dict[str, List[CliCommand]]:
+    '''
+    Retrieve the CLI commands grouped by their group_key.
+
+    :param service_provider: The service provider to resolve CLI events from.
+    :type service_provider: ServiceProvider
+    :return: A dictionary mapping group keys to lists of CLI commands.
+    :rtype: Dict[str, List[CliCommand]]
+    '''
+
+    # Resolve the list CLI commands event and execute it.
+    list_commands_evt = service_provider.get_service('list_commands_evt')
+    cli_commands = list_commands_evt.execute()
+
+    # Group the commands by group_key.
+    command_map: Dict[str, List[CliCommand]] = {}
+    for command in cli_commands:
+        if command.group_key not in command_map:
+            command_map[command.group_key] = [command]
+        else:
+            command_map[command.group_key].append(command)
+
+    # Return the command map.
+    return command_map
+
+
+# ** blueprint: get_parent_arguments
+def get_parent_arguments(service_provider: ServiceProvider) -> List:
+    '''
+    Retrieve the parent-level CLI arguments.
+
+    :param service_provider: The service provider to resolve CLI events from.
+    :type service_provider: ServiceProvider
+    :return: A list of parent-level CLI arguments.
+    :rtype: List
+    '''
+
+    # Resolve the parent arguments event and execute it.
+    get_parent_args_evt = service_provider.get_service('get_parent_args_evt')
+    return get_parent_args_evt.execute()
+
+
+# ** blueprint: build_parser
+def build_parser(
+    cli_commands: Dict[str, List[CliCommand]],
+    parent_arguments: List,
+) -> argparse.ArgumentParser:
+    '''
+    Build an argparse.ArgumentParser from grouped CLI commands and parent arguments.
+
+    :param cli_commands: The CLI commands grouped by group_key.
+    :type cli_commands: Dict[str, List[CliCommand]]
+    :param parent_arguments: The parent-level CLI arguments.
+    :type parent_arguments: List
+    :return: A configured argument parser.
+    :rtype: argparse.ArgumentParser
+    '''
+
+    # Create the root parser.
+    parser = argparse.ArgumentParser()
+
+    # Add command subparsers for the command groups.
+    group_subparsers = parser.add_subparsers(dest='group')
+
+    # Loop through the command map and create a parser for each command.
+    for group_key in cli_commands:
+        group_subparser = group_subparsers.add_parser(
+            group_key,
+            help=f'Commands for the {group_key} group.'
+        )
+        cli_group_commands = cli_commands[group_key]
+        cmd_subparsers = group_subparser.add_subparsers(dest='command')
+
+        # Add each command's parser with its arguments.
+        for cli_command in cli_group_commands:
+            cli_command_parser = cmd_subparsers.add_parser(
+                cli_command.key,
+                help=cli_command.description
+            )
+
+            # Add the command-level arguments.
+            for argument in cli_command.arguments:
+                args = dict(
+                    help=argument.description,
+                    type=argument.get_type(),
+                    default=argument.default,
+                    nargs=argument.nargs,
+                    choices=argument.choices,
+                    action=argument.action
+                )
+                if argument.required is not None:
+                    args['required'] = argument.required
+                cli_command_parser.add_argument(*argument.name_or_flags, **args)
+
+            # Add parent arguments that don't collide with declared command arguments.
+            for argument in parent_arguments:
+                if not cli_command.has_argument(argument.name_or_flags):
+                    cli_command_parser.add_argument(
+                        *argument.name_or_flags,
+                        help=argument.description,
+                        type=argument.get_type(),
+                        default=argument.default,
+                        required=argument.required,
+                        nargs=argument.nargs,
+                        choices=argument.choices,
+                        action=argument.action
+                    )
+
+    # Return the configured parser.
+    return parser
+
+
+# ** blueprint: parse_argv
+def parse_argv(
+    parser: argparse.ArgumentParser,
+    argv: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    '''
+    Parse CLI arguments from the given parser, exiting on failure.
+
+    :param parser: The configured argument parser.
+    :type parser: argparse.ArgumentParser
+    :param argv: Optional argument list; defaults to sys.argv[1:] when None.
+    :type argv: Optional[List[str]]
+    :return: The parsed arguments as a dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Parse the CLI arguments; on failure, print to stderr and exit with code 2.
+    try:
+        return vars(parser.parse_args(argv))
+    except Exception as e:
+        print(e, file=sys.stderr)
+        sys.exit(2)
+
+
+# ** blueprint: derive_feature_request
+def derive_feature_request(
+    parsed: Dict[str, Any],
+) -> Tuple[str, Dict[str, str]]:
+    '''
+    Derive the feature ID and request headers from parsed CLI arguments.
+
+    :param parsed: The parsed argument namespace as a dictionary.
+    :type parsed: Dict[str, Any]
+    :return: A tuple of (feature_id, headers).
+    :rtype: Tuple[str, Dict[str, str]]
+    '''
+
+    # Extract the group and command from the parsed arguments.
+    group = parsed.get('group')
+    command = parsed.get('command')
+
+    # Derive the feature id by normalizing hyphens to underscores.
+    feature_id = '{}.{}'.format(
+        group.replace('-', '_'),
+        command.replace('-', '_'),
+    )
+
+    # Build the request headers from the raw group and command values.
+    headers = dict(
+        command_group=group,
+        command_key=command,
+    )
+
+    # Return the derived feature id and headers.
+    return feature_id, headers
+
+
+# ** blueprint: build_app
+def build_app(
+    interface_id: str,
+    argv: Optional[List[str]] = None,
+    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    **parameters
+) -> Any:
+    '''
+    Build the CLI application, parse arguments, and dispatch to the interface feature.
+
+    Loads the app service, resolves the interface, builds the CLI parser from
+    configured commands, parses argv, and executes the corresponding feature.
+
+    :param interface_id: The CLI interface identifier.
+    :type interface_id: str
+    :param argv: Optional argument list; defaults to sys.argv[1:] when None.
+    :type argv: Optional[List[str]]
+    :param module_path: The module path of the app service implementation.
+    :type module_path: str
+    :param class_name: The class name of the app service implementation.
+    :type class_name: str
+    :param parameters: Additional parameters to pass to the app service constructor.
+    :type parameters: dict
+    :return: The response from the feature execution.
+    :rtype: Any
+    '''
+
+    # Resolve the interface definition in a single pass.
+    app_interface, default_services = resolve_interface(
+        interface_id, module_path, class_name, **parameters)
+
+    # Merge constants in priority order: defaults < interface < user parameters.
+    merged_constants = {
+        **{k: v for dep in default_services for k, v in dep.parameters.items()},
+        **a.bps.DEFAULT_CONSTANTS,
+        **(app_interface.constants or {}),
+        **parameters,
+    }
+
+    # Build a service provider seeded with default service dependencies
+    # and the merged constants so CLI events can resolve.
+    service_provider = create_service_provider(
+        type_map={dep.service_id: dep.get_service_type() for dep in default_services},
+        **merged_constants,
+    )
+
+    # Build the CLI parser from the resolved commands and parent arguments.
+    cli_commands = get_commands(service_provider)
+    parent_arguments = get_parent_arguments(service_provider)
+    parser = build_parser(cli_commands, parent_arguments)
+
+    # Parse the CLI arguments.
+    parsed = parse_argv(parser, argv)
+
+    # Derive the feature id and headers from the parsed arguments.
+    feature_id, headers = derive_feature_request(parsed)
+
+    # Realize the app interface context from the already-resolved definition.
+    interface_context = realize_interface(app_interface, interface_id)
+
+    # Execute the feature via the interface context; on API error, exit 1.
+    try:
+        response = interface_context.run(
+            feature_id=feature_id,
+            headers=headers,
+            data=parsed,
+        )
+    except TiferetAPIError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
+    # Print and return the response.
+    print(response)
+    return response
