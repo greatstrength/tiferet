@@ -1,4 +1,4 @@
-# AGENTS.md — Tiferet Framework (v2.0.0b2)
+# AGENTS.md — Tiferet Framework (v2.0.0b3)
 
 ## Project Overview
 
@@ -7,7 +7,7 @@
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0b2`
+- **Version:** `2.0.0b3`
 
 ## Architecture
 
@@ -18,8 +18,8 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 ```
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
-├── builders/             # AppBuilder, CliBuilder and top-level runtime orchestration
-├── contexts/             # Runtime orchestration (AppInterface, DIContext, Feature, Error, Logging)
+├── blueprints/           # build_app, build_cli and top-level runtime orchestration
+├── contexts/             # Runtime orchestration (AppInterfaceContext, DIContext, Feature, Error, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DynamicServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -29,6 +29,8 @@ tiferet/
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
 ```
+
+A working calculator application is provided in `examples/basic_calculator/`.
 
 ### Key Concepts
 
@@ -42,37 +44,46 @@ tiferet/
 
 ### Runtime Flow
 
-1. `App()` (alias for `AppBuilder`) is initialized.
-2. `app.load_app_service(...)` loads the app repository service (typically `AppYamlRepository`).
-3. `app.run(interface_id, feature_id, data={})` resolves the interface via `GetAppInterface` and builds an `AppInterfaceContext`.
+1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
+2. The blueprint loads the app service (typically `AppYamlRepository`), resolves the interface via `GetAppInterface`, and wires the DI container.
+3. `AppInterfaceContext.run(feature_id, data={})` parses the request, executes the feature, and returns the response.
 4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
 6. Results flow back through `RequestContext` and `handle_response()`.
 
-### Builders
+### Blueprints
 
-- `AppBuilder` is defined in `tiferet/builders/main.py`.
-- It is the primary public orchestration entry point and is exported as `App` from `tiferet/__init__.py`.
-- Core responsibilities:
-  - Loading the app service (`load_app_service`)
-  - Injecting default services and constants (`load_default_services`, `DEFAULT_CONSTANTS`)
-  - Resolving interface contexts (`load_interface`)
-  - Delegating feature execution (`run`)
-- `CliBuilder` is defined in `tiferet/builders/cli.py` and is exported as `CLI` from `tiferet/__init__.py`.
-- It extends `AppBuilder` to provide an argparse-based CLI build procedure on top of the inherited app-service / interface-loading machinery.
-- Build procedure:
-  - `get_commands()` resolves and groups `CliCommand` objects by `group_key` via the `list_commands_evt` service.
-  - `get_parent_arguments()` resolves parent-level CLI arguments via the `get_parent_args_evt` service.
-  - `build_parser(cli_commands, parent_arguments)` composes the root `argparse.ArgumentParser`, group/command subparsers, and command/parent arguments.
-  - `run(interface_id, argv=None)` loads the interface context, builds the parser, parses argv (exits 2 on parse errors), derives `feature_id` and `headers` from the parsed group/command, dispatches to `interface_context.run(...)` (exits 1 on `TiferetAPIError`), and prints the response.
-- CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has been retired and `tiferet/contexts/cli.py` no longer exists.
+Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate application bootstrapping and execution. They replace the previous class-based `AppBuilder`/`CliBuilder` pattern from v2.0.0b2.
+
+- `build_app(interface_id, ...)` is defined in `tiferet/blueprints/main.py` and exported as `App` from `tiferet/__init__.py`. It resolves the interface definition, builds the DI container, and returns a fully wired `AppInterfaceContext`.
+- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It extends the app blueprint with argparse-based CLI parsing.
+
+**Key blueprint functions in `main.py`:**
+- `create_service_provider(provider_type, type_map, **constants)` — Creates and configures a `ServiceProvider` instance.
+- `load_app_service(module_path, class_name, **parameters)` — Imports and constructs the application service.
+- `load_default_services()` — Loads default app service dependencies from `assets.blueprints`.
+- `resolve_interface(interface_id, ...)` — Loads the app service and resolves the interface definition via `GetAppInterface`.
+- `realize_interface(app_interface, interface_id, service_provider)` — Builds and validates the concrete `AppInterfaceContext`.
+- `build_app(interface_id, ...)` — Resolves and realizes the interface in a single call.
+
+**CLI blueprint functions in `cli.py`:**
+- `get_commands(service_provider)` — Resolves and groups `CliCommand` objects by `group_key`.
+- `get_parent_arguments(service_provider)` — Resolves parent-level CLI arguments.
+- `build_parser(cli_commands, parent_arguments)` — Composes the root `argparse.ArgumentParser`.
+- `parse_argv(parser, argv)` — Parses CLI arguments; exits 2 on failure.
+- `derive_feature_request(parsed)` — Derives `feature_id` and `headers` from parsed arguments.
+- `build_app(interface_id, argv, ...)` — Full CLI build: resolve interface, build parser, parse argv, dispatch feature. Exits 1 on `TiferetAPIError`.
+
+CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has been retired.
 
 ### Dependency Injection
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. Backs `AppBuilder.load_app_instance()`: assembles the full interface dependency graph (contexts, repos, events) via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. The `create_service_provider` blueprint function assembles the full interface dependency graph via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
 - **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
+
+`DynamicServiceProvider.build_factory(service_type)` is a public method that builds a `Factory` provider with constructor kwargs wired to sibling providers. It inspects the constructor signature to identify injectable parameters and maps them to registered sibling providers.
 
 ## Structured Code Style
 
@@ -80,8 +91,8 @@ All code follows a strict artifact comment hierarchy. **This is mandatory.**
 
 ### Comment Levels
 
-- `# *** <section>` — Top-level: `imports`, `exports`, `models`, `events`, `contexts`, `interfaces`, `mappers`, `repos`, `constants`, `classes`
-- `# ** <category>: <name>` — Mid-level: `core`, `infra`, `app` (for imports); `model: <name>`, `event: <name>`, `context: <name>`, etc.
+- `# *** <section>` — Top-level: `imports`, `exports`, `models`, `events`, `contexts`, `interfaces`, `mappers`, `repos`, `constants`, `classes`, `blueprints`
+- `# ** <category>: <name>` — Mid-level: `core`, `infra`, `app` (for imports); `model: <name>`, `event: <name>`, `context: <name>`, `blueprint: <name>`, etc.
 - `# * <component>` — Low-level: `attribute: <name>`, `init`, `method: <name>`, `method: <name> (static)`
 
 ### Spacing Rules
@@ -222,6 +233,15 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 - Default error definitions in `assets/constants.py::DEFAULT_ERRORS` dict.
 - Access constants via `from .. import assets as a` then `a.const.ERROR_CODE_ID`.
 
+### Error Constants (v2.0.0b3)
+
+New error constants added in the b2→b3 cycle:
+
+- `YAML_FILE_NOT_FOUND_ID`, `YAML_FILE_LOAD_ERROR_ID`, `YAML_FILE_SAVE_ERROR_ID` — YAML utility errors.
+- `JSON_FILE_NOT_FOUND_ID`, `JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`, `INVALID_JSON_PATH_ID` — JSON utility errors.
+- `CSV_INVALID_MODE_ID`, `CSV_HANDLE_NOT_INITIALIZED_ID`, `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, `CSV_FIELDNAMES_REQUIRED_ID`, `CSV_DICT_NO_HEADER_ID` — CSV utility errors.
+- `CONFIG_FILE_NOT_FOUND`, `APP_CONFIG_LOADING_FAILED`, `CONTAINER_CONFIG_LOADING_FAILED`, `FEATURE_CONFIG_LOADING_FAILED`, `ERROR_CONFIG_LOADING_FAILED`, `CLI_CONFIG_LOADING_FAILED` — Configuration loading errors.
+
 ## Configuration
 
 Applications are configured in a consolidated root `config.yml` file:
@@ -257,13 +277,24 @@ Current utilities:
 - `CsvDict` / `CsvDictLoader` — Dict-based CSV.
 - `Sqlite` / `SqliteClient` — SQLite client implementing `SqliteService` and `FileService`.
 
+### SQLite API (v2.0.0b3)
+
+`SqliteClient` constructor signature:
+```python
+SqliteClient(path=':memory:', mode='rw', isolation_level=None, timeout=5.0, **kwargs)
+```
+
+Key methods: `execute(sql, parameters)`, `executemany(sql, seq_of_parameters)`, `executescript(sql_script)`, `fetch_one(query, parameters)`, `fetch_all(query, parameters)`, `commit()`, `rollback()`, `backup(target_path, pages, progress)`.
+
+All query/mutation methods guard against uninitialized connections with `SQLITE_CONN_NOT_INITIALIZED` errors. Context manager protocol (`__enter__`/`__exit__`) auto-commits on success and auto-rolls-back on exception.
+
 ## Package Exports
 
 The top-level `tiferet/__init__.py` exports:
 
 **Core:**
-- `App` (alias for `AppBuilder`)
-- `CLI` (alias for `CliBuilder`)
+- `App` (alias for `build_app`)
+- `CLI` (alias for `build_cli`)
 - `TiferetError`, `TiferetAPIError`
 
 **Domain:**
@@ -290,15 +321,42 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
 - `tiferet/di/settings.py` — `ServiceProvider` ABC
 - `tiferet/di/dynamic.py` — `DynamicServiceProvider` (app-level DI, backed by `dependency-injector`)
-- `tiferet/builders/main.py` — `AppBuilder` (public app orchestration entry point)
-- `tiferet/builders/cli.py` — `CliBuilder` (CLI orchestration entry point, exported as `CLI`)
+- `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point)
+- `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext`
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and default configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
+- `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### v2.0.0b3: Blueprints Pattern
+
+The v2.0.0b3 release replaces the class-based `AppBuilder`/`CliBuilder` pattern with module-level blueprint functions. Key changes:
+
+- **`tiferet/builders/`** package has been renamed to **`tiferet/blueprints/`**. The `builders` package no longer exists.
+- **`AppBuilder`** class has been replaced by the **`build_app`** function in `tiferet/blueprints/main.py`. The `App` export is now an alias for `build_app` (not `AppBuilder`).
+- **`CliBuilder`** class has been replaced by the **`build_cli`** function (also named `build_app` locally) in `tiferet/blueprints/cli.py`. The `CLI` export is now an alias for `build_cli`.
+- **`_build_factory`** (previously a private method on `DynamicServiceProvider`) is now the **public** method **`build_factory`** on `DynamicServiceProvider`. It builds a `Factory` provider with constructor kwargs wired to sibling providers.
+- **Blueprint constants** live in `tiferet/assets/blueprints.py` (accessible as `a.bps`), providing `DEFAULT_CONSTANTS`, `DEFAULT_SERVICES`, `DEFAULT_APP_SERVICE_MODULE_PATH`, and `DEFAULT_APP_SERVICE_CLASS_NAME`.
+- **SQLite API** — `SqliteClient.__init__` now accepts `mode='rw'` (default), `isolation_level`, and `timeout` parameters. All query/mutation methods guard against uninitialized connections.
+- **Usage pattern change**:
+  ```python
+  # Before (v2.0.0b2)
+  from tiferet import App
+  app = App()
+  app.load_app_service(app_yaml_file='config.yml')
+  result = app.run('basic_calc', 'calc.add', data={'a': 1, 'b': 2})
+
+  # After (v2.0.0b3)
+  from tiferet import App
+  app = App('basic_calc', app_yaml_file='config.yml')
+  result = app.run('calc.add', data={'a': 1, 'b': 2})
+  ```
+- The `ServiceProvider` ABC is unchanged.
+- The backward-compatible alias `DependenciesServiceProvider = DynamicServiceProvider` remains in `tiferet/di/__init__.py`.
 
 ### v2.0.0b2: DI Backend Migration
 

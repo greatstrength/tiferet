@@ -9,13 +9,13 @@
 Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet helps you turn complex business logic into maintainable, configuration-driven applications — where purpose, structure, and execution feel naturally aligned.
 
 ### At a glance
-- Builders-first app entry point via `AppBuilder` (exported as `App`)  
+- Blueprints-first app entry point via `build_app` (exported as `App`)  
 - Domain events as the core unit of behavior  
 - YAML for features, workflows, dependency injection, errors, CLI commands  
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.0.0a10** (pre-release – actively evolving toward stable v2)
+Current status: **2.0.0b3** (pre-release – actively evolving toward stable v2)
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -30,14 +30,14 @@ Create these files in your project folder:
 **demo.py**
 ```python
 from tiferet import App
-app = App().load_app_service(
-    app_yaml_file="config.yml"
-)                               # App is the AppBuilder alias
+app = App(
+    'basic_calc',
+    app_yaml_file='config.yml',
+)                               # App is the build_app alias
 
 result = app.run(
-    interface_id="basic_calc",
-    feature_id="calc.add",
-    data={"a": 19, "b": 23}
+    feature_id='calc.add',
+    data={'a': 19, 'b': 23},
 )
 
 print(f"19 + 23 = {result}")    # → 42
@@ -100,7 +100,7 @@ You should see:
 
 **Core architecture**  
 - [Code Style & Artifact Comments](docs/core/code_style.md)  
-- [Builders (AppBuilder)](docs/core/builders.md)  
+- [Blueprints (build_app)](docs/core/blueprints.md)  
 - [Domain Objects](docs/core/domain.md)  
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
