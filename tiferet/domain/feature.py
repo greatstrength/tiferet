@@ -81,10 +81,10 @@ class Feature(DomainObject):
     # * attribute: log_params
     log_params: Dict[str, str] = Field(default_factory=dict, description='The parameters to log for the feature.')
 
-    # * method: _derive_keys (validator)
+    # * method: derive_keys (validator)
     @model_validator(mode='before')
     @classmethod
-    def _derive_keys(cls, data: Any) -> Any:
+    def derive_keys(cls, data: Any) -> Any:
         '''
         Derive ``id``, ``group_id``, ``feature_key``, and ``description`` from
         whichever inputs are provided so callers may supply any consistent subset.
