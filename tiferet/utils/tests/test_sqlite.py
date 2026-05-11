@@ -169,8 +169,7 @@ def test_sqlite_client_execute_success(memory_client: SqliteClient, sample_table
         assert isinstance(cursor, sqlite3.Cursor)
 
         # Verify the row was inserted.
-        db.execute('SELECT COUNT(*) FROM items')
-        count = db.fetch_one()[0]
+        count = db.fetch_one('SELECT COUNT(*) FROM items')[0]
         assert count == 1
 
 # ** test: sqlite_client_executemany_success
@@ -196,8 +195,7 @@ def test_sqlite_client_executemany_success(memory_client: SqliteClient, sample_t
         db.executemany(sample_insert_sql, rows)
 
         # Verify all rows were inserted.
-        db.execute('SELECT COUNT(*) FROM items')
-        count = db.fetch_one()[0]
+        count = db.fetch_one('SELECT COUNT(*) FROM items')[0]
         assert count == 3
 
 # ** test: sqlite_client_executescript_success
@@ -222,8 +220,7 @@ def test_sqlite_client_executescript_success(memory_client: SqliteClient):
         db.executescript(script)
 
         # Verify the rows were created.
-        db.execute('SELECT COUNT(*) FROM colors')
-        count = db.fetch_one()[0]
+        count = db.fetch_one('SELECT COUNT(*) FROM colors')[0]
         assert count == 2
 
 # ** test: sqlite_client_fetch_one
@@ -246,8 +243,7 @@ def test_sqlite_client_fetch_one(memory_client: SqliteClient, sample_table_sql: 
         db.execute(sample_insert_sql, ('widget', 9.99))
 
         # Fetch one row.
-        db.execute('SELECT name, value FROM items WHERE name = ?', ('widget',))
-        row = db.fetch_one()
+        row = db.fetch_one('SELECT name, value FROM items WHERE name = ?', ('widget',))
 
         # Verify the row is a tuple with expected values.
         assert row == ('widget', 9.99)
@@ -255,8 +251,7 @@ def test_sqlite_client_fetch_one(memory_client: SqliteClient, sample_table_sql: 
     # Verify fetch_one returns None when no more rows.
     with SqliteClient(path=':memory:') as db:
         db.execute('CREATE TABLE empty (id INTEGER)')
-        db.execute('SELECT * FROM empty')
-        assert db.fetch_one() is None
+        assert db.fetch_one('SELECT * FROM empty') is None
 
 # ** test: sqlite_client_fetch_all
 def test_sqlite_client_fetch_all(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
@@ -278,8 +273,7 @@ def test_sqlite_client_fetch_all(memory_client: SqliteClient, sample_table_sql: 
         db.executemany(sample_insert_sql, [('a', 1.0), ('b', 2.0)])
 
         # Fetch all rows.
-        db.execute('SELECT name, value FROM items ORDER BY name')
-        rows = db.fetch_all()
+        rows = db.fetch_all('SELECT name, value FROM items ORDER BY name')
 
         # Verify all rows returned.
         assert rows == [('a', 1.0), ('b', 2.0)]
@@ -301,8 +295,7 @@ def test_sqlite_client_context_manager_commit_on_success(tmp_path: Path):
 
     # Reopen and verify the data persisted.
     with SqliteClient(path=db_path, mode='ro') as db:
-        db.execute('SELECT val FROM test')
-        row = db.fetch_one()
+        row = db.fetch_one('SELECT val FROM test')
         assert row == ('committed',)
 
 # ** test: sqlite_client_context_manager_rollback_on_exception
@@ -327,15 +320,16 @@ def test_sqlite_client_context_manager_rollback_on_exception(tmp_path: Path):
 
     # Verify the insert was rolled back.
     with SqliteClient(path=db_path, mode='ro') as db:
-        db.execute('SELECT COUNT(*) FROM test')
-        count = db.fetch_one()[0]
+        count = db.fetch_one('SELECT COUNT(*) FROM test')[0]
         assert count == 0
 
 # ** test: sqlite_client_backup_success
-def test_sqlite_client_backup_success(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+def test_sqlite_client_backup_success(tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
     '''
-    Test successful database backup between two connections.
+    Test successful database backup to a file path.
 
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
     :param memory_client: The in-memory SqliteClient fixture.
     :type memory_client: SqliteClient
     :param sample_table_sql: SQL to create a sample table.
@@ -350,41 +344,88 @@ def test_sqlite_client_backup_success(memory_client: SqliteClient, sample_table_
     memory_client.execute(sample_insert_sql, ('backup_item', 42.0))
     memory_client.commit()
 
-    # Create and open target database.
-    target = SqliteClient(path=':memory:')
-    target.open_file()
+    # Define the backup target path.
+    backup_path = tmp_path / 'backup.db'
 
     try:
 
-        # Perform backup.
-        memory_client.backup(target)
+        # Perform backup to file path.
+        memory_client.backup(str(backup_path))
 
-        # Verify the target has the data.
-        target.execute('SELECT name, value FROM items')
-        row = target.fetch_one()
-        assert row == ('backup_item', 42.0)
+        # Verify the target file was created and has the data.
+        with SqliteClient(path=backup_path, mode='ro') as db:
+            row = db.fetch_one('SELECT name, value FROM items')
+            assert row == ('backup_item', 42.0)
 
     finally:
 
-        # Clean up both connections.
-        target.close_file()
+        # Clean up source connection.
+        memory_client.close_file()
+
+# ** test: sqlite_client_backup_with_progress
+def test_sqlite_client_backup_with_progress(tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test backup with a progress callback.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert a row.
+    :type sample_insert_sql: str
+    '''
+
+    # Set up source database.
+    memory_client.open_file()
+    memory_client.execute(sample_table_sql)
+    memory_client.execute(sample_insert_sql, ('progress_item', 7.0))
+    memory_client.commit()
+
+    # Track progress calls.
+    progress_calls = []
+    def on_progress(status, remaining, total):
+        progress_calls.append((status, remaining, total))
+
+    # Define the backup target path.
+    backup_path = tmp_path / 'progress_backup.db'
+
+    try:
+
+        # Perform backup with progress callback.
+        memory_client.backup(str(backup_path), progress=on_progress)
+
+        # Verify the progress callback was invoked.
+        assert len(progress_calls) > 0
+
+        # Verify the backup succeeded.
+        with SqliteClient(path=backup_path, mode='ro') as db:
+            row = db.fetch_one('SELECT name, value FROM items')
+            assert row == ('progress_item', 7.0)
+
+    finally:
+
+        # Clean up source connection.
         memory_client.close_file()
 
 # ** test: sqlite_client_backup_not_initialized
-def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient):
+def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_path: Path):
     '''
-    Test that backup raises SQLITE_CONN_NOT_INITIALIZED when connections are not open.
+    Test that backup raises SQLITE_CONN_NOT_INITIALIZED when source is not open.
 
     :param memory_client: The in-memory SqliteClient fixture.
     :type memory_client: SqliteClient
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
     '''
 
-    # Create a target that is not opened.
-    target = SqliteClient(path=':memory:')
+    # Define a target path.
+    backup_path = tmp_path / 'backup_fail.db'
 
-    # Attempt backup with both closed; expect error.
+    # Attempt backup with source closed; expect error.
     with pytest.raises(TiferetError) as exc_info:
-        memory_client.backup(target)
+        memory_client.backup(str(backup_path))
 
     # Verify the error code.
     assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
