@@ -396,4 +396,4 @@ The `tiferet/di/` package provides the app-level DI foundation for the Tiferet f
 
 New implementations extend `ServiceProvider` and override all abstract methods. Inject them into `AppBuilder` via the `create_service_provider` static method to swap backends without changing application code.
 
-Explore source in `tiferet/di/`, runtime consumers in `tiferet/builders/main.py`, and tests in `tiferet/di/tests/`.
+Explore source in `tiferet/di/`, runtime consumers in `tiferet/blueprints/main.py`, and tests in `tiferet/di/tests/`.

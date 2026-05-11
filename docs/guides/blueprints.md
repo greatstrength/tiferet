@@ -1,15 +1,15 @@
-# Builders – Strategies and Patterns
+# Blueprints – Strategies and Patterns
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/builders/`  
-**Version:** 2.0.0b2
+**Module:** `tiferet/blueprints/`  
+**Version:** 2.0.0b3
 
 ## Overview
 
-Builders are the top-level orchestration layer in Tiferet v2.0+. They serve as the primary public entry point for applications, replacing direct usage of `AppManagerContext`.
+Blueprints are the top-level orchestration layer in Tiferet v2.0+. They serve as the primary public entry point for applications, providing module-level functions that replace the previous class-based `AppBuilder`/`CliBuilder` pattern.
 
-A builder is responsible for:
+A blueprint is responsible for:
 
 - Loading the application service (repository)
 - Preparing default services and constants
@@ -17,48 +17,37 @@ A builder is responsible for:
 - Wiring dependency injection
 - Executing features through the resolved interface context
 
-The canonical example is `AppBuilder` in `tiferet/builders/main.py`.
+The canonical example is `build_app` in `tiferet/blueprints/main.py`.
 
-## Role of Builders in the Architecture
+## Role of Blueprints in the Architecture
 
-Builders sit at the highest level of the runtime graph. They are what application code interacts with directly:
+Blueprints sit at the highest level of the runtime graph. They are what application code interacts with directly:
 
 ```python
 from tiferet import App
 
-builder = App()
-builder.load_app_service(...)          # optional custom service
-result = builder.run("basic_calc", "calc.add", data={"a": 5, "b": 3})
+app = App('basic_calc', app_yaml_file='config.yml')
+result = app.run('calc.add', data={'a': 5, 'b': 3})
 ```
 
 Key responsibilities:
 
-- **Initialization** — cache and service provider setup
 - **Service loading** — dynamic import of the app service (usually a repository)
-- **Default configuration** — injecting `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS`
+- **Default configuration** — injecting `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` from `assets.blueprints`
 - **Interface resolution** — calling `GetAppInterface` and validating the result
 - **Execution** — delegating to `AppInterfaceContext.run()`
 
-Builders are intentionally **thin** — they coordinate rather than implement business logic.
+Blueprints are intentionally **thin** — they coordinate rather than implement business logic.
 
-## The AppBuilder Pattern
+## The build_app Blueprint
 
-`AppBuilder` follows a clear, reusable pattern:
+`build_app` follows a clear, composable pattern built from smaller blueprint functions:
 
-### 1. Initialization
+### 1. Service Provider Factory
 
-```python
-def __init__(self):
-    self.cache = {}
-    self.service_provider = self.create_service_provider()
-```
-
-### 2. Service Provider Factory
-
-A static factory allows downstream contexts to create providers consistently:
+A standalone function allows downstream contexts to create providers consistently:
 
 ```python
-@staticmethod
 def create_service_provider(
     provider_type: type = DynamicServiceProvider,
     type_map: Dict[str, type] = None,
@@ -69,138 +58,124 @@ def create_service_provider(
 
 This is registered in the DI container so contexts can create scoped providers.
 
-### 3. Loading the App Service
+### 2. Loading the App Service
 
 ```python
-def load_app_service(self, module_path=..., class_name=..., **parameters) -> 'AppBuilder':
-    ...
-    self.cache[APP_SERVICE_KEY] = app_service
-    return self   # supports chaining
+def load_app_service(module_path=..., class_name=..., **parameters) -> Any:
+    service_cls = ImportDependency.execute(module_path, class_name)
+    return service_cls(**parameters)
 ```
 
-### 4. Loading Default Services and Constants
+### 3. Loading Default Services and Constants
 
 ```python
-def load_default_services(self) -> List[AppServiceDependency]:
+def load_default_services() -> List[AppServiceDependency]:
     return [
-        AppServiceDependency.model_validate(data)
-        for data in a.const.DEFAULT_SERVICES
+        AppServiceDependency.model_construct(...)
+        for ... in a.bps.DEFAULT_SERVICES
     ]
 ```
 
-Constants are passed via `default_constants=a.const.DEFAULT_CONSTANTS` to `GetAppInterface`.
+Constants are passed via `default_constants=a.bps.DEFAULT_CONSTANTS` to `GetAppInterface`.
 
-### 5. Interface Resolution Flow
+### 4. Interface Resolution Flow
 
 ```python
-def load_interface(self, interface_id: str) -> AppInterfaceContext:
-    app_service = self.cache[APP_SERVICE_KEY]
-    default_services = self.load_default_services()
-
+def resolve_interface(interface_id, ...) -> tuple:
+    app_service = load_app_service(...)
+    default_services = load_default_services()
     app_interface = DomainEvent.handle(
         GetAppInterface,
         dependencies={'app_service': app_service},
         interface_id=interface_id,
         default_services=default_services,
-        default_constants=a.const.DEFAULT_CONSTANTS,
+        default_constants=a.bps.DEFAULT_CONSTANTS,
     )
-
-    return self.load_app_instance(app_interface)
+    return app_interface, default_services
 ```
 
-### 6. High-level Run Method
+### 5. High-level Entry Point
 
 ```python
-def run(self, interface_id: str, feature_id: str, headers=None, data=None, **kwargs):
-    context = self.load_interface(interface_id)
-    return context.run(feature_id, headers or {}, data or {}, **kwargs)
+def build_app(interface_id, ...) -> AppInterfaceContext:
+    app_interface, _ = resolve_interface(interface_id, ...)
+    return realize_interface(app_interface, interface_id)
 ```
 
-## The CliBuilder Pattern
+## The build_cli Blueprint
 
-`CliBuilder` extends `AppBuilder` and encapsulates CLI build-time translation of `sys.argv` into a feature invocation. All argparse wiring lives in the builder; runtime execution is delegated to the inherited `AppInterfaceContext.run`.
+The CLI blueprint extends the app blueprint with argparse-based CLI parsing. All argparse wiring lives in the blueprint; runtime execution is delegated to `AppInterfaceContext.run`.
 
 ### Usage
 
 ```python
 from tiferet import CLI
 
-cli = CLI().load_app_service(app_yaml_file='app/configs/app.yml')
 if __name__ == '__main__':
-    cli.run('basic_calc_cli')
+    CLI('basic_calc_cli', app_yaml_file='config.yml')
 ```
 
 ### Build Procedure
 
-`CliBuilder.run(interface_id, argv=None)` follows four steps:
+`build_cli(interface_id, argv=None, ...)` follows these steps:
 
-1. Load the interface context via the inherited `load_interface(interface_id)`.
+1. Resolve the interface via `resolve_interface(interface_id, ...)`.
 2. Build the argparse parser by composing `get_commands()`, `get_parent_arguments()`, and `build_parser(cli_commands, parent_arguments)`.
-3. Parse arguments with `vars(parser.parse_args(argv))`; on failure, print to stderr and `sys.exit(2)`.
-4. Derive `feature_id` and `headers` from the parsed namespace and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+3. Parse arguments with `parse_argv(parser, argv)`; on failure, print to stderr and `sys.exit(2)`.
+4. Derive `feature_id` and `headers` via `derive_feature_request(parsed)` and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
 
-Because `CliBuilder` uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Because the CLI blueprint uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
 
-## When to Create a New Builder
+## When to Create a New Blueprint
 
-Create a new builder when you need a specialized entry point:
+Create a new blueprint when you need a specialized entry point:
 
-- `WebBuilder` — for Flask/FastAPI integration
-- `TestBuilder` — for integration testing with mocked services
+- Web blueprint — for Flask/FastAPI integration
+- Test blueprint — for integration testing with mocked services
 
-If you find yourself repeating the same loading and wiring logic in multiple scripts, extract it into a dedicated builder.
+If you find yourself repeating the same loading and wiring logic in multiple scripts, extract it into a dedicated blueprint.
 
-## Builder vs Context
+## Blueprint vs Context
 
-| Concern | Builder | Context |
+| Concern | Blueprint | Context |
 | --- | --- | --- |
-| Public API | Yes (`App().run(...)`) | Internal (used by builder) |
+| Public API | Yes (`App('basic_calc')`) | Internal (used by blueprint) |
 | Service loading | Yes | No |
 | Default config injection | Yes | No |
 | Feature execution | Delegates to interface context | Yes (`execute_feature`, `run`) |
 | Lifecycle | Application-level | Per-interface |
 
-Builders are **application-level**; contexts are **interface-level**.
+Blueprints are **application-level**; contexts are **interface-level**.
 
 ## Best Practices
 
-### 1. Method Chaining
+### 1. Single-call Entry Point
 
-`load_app_service()` returns `self` to support fluent usage:
-
-```python
-builder = App().load_app_service(...)
-```
-
-### 2. Defensive Service Lookup
-
-Always check the cache before using `app_service`:
+`build_app` resolves and realizes in one call:
 
 ```python
-app_service = self.cache.get(APP_SERVICE_KEY)
-if not app_service:
-    RaiseError.execute(...)
+app = App('basic_calc', app_yaml_file='config.yml')
 ```
 
-### 3. Consistent Error Handling
+### 2. Consistent Error Handling
 
 Use framework constants and `RaiseError.execute()` for all failure paths.
 
-### 4. Keep Builders Thin
+### 3. Keep Blueprints Thin
 
-Builders should **not** contain domain logic — only orchestration, wiring, and delegation.
+Blueprints should **not** contain domain logic — only orchestration, wiring, and delegation.
 
-### 5. Register `create_service_provider`
+### 4. Register `create_service_provider`
 
-Always register the builder’s static factory so contexts can create scoped providers:
+Always register the function so contexts can create scoped providers:
 
 ```python
-dependencies['create_service_provider'] = self.create_service_provider
+dependencies['create_service_provider'] = create_service_provider
 ```
 
 ## Related Documentation
 
-- [docs/core/builders.md](../core/builders.md) — detailed `AppBuilder` implementation reference
+- [docs/core/blueprints.md](../core/blueprints.md) — detailed blueprint implementation reference
 - [docs/guides/domain/app.md](../guides/domain/app.md) — application-level configuration and runtime orchestration
 - [docs/guides/events/app.md](../guides/events/app.md) — app event usage in interface resolution
 - [docs/core/di.md](../core/di.md) — dependency injection and service provider architecture

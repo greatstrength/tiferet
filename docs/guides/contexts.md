@@ -7,7 +7,7 @@
 
 ## Overview
 
-Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While builders (`tiferet/builders/`) own the application lifecycle and wiring, contexts own the per-interface runtime shape — how requests are parsed, features are executed, errors are handled, and responses are returned.
+Contexts form the runtime "body" of a Tiferet application. They encapsulate interaction surfaces, orchestration, and supporting services behind clean, injectable classes. While blueprints (`tiferet/blueprints/`) own the application lifecycle and wiring, contexts own the per-interface runtime shape — how requests are parsed, features are executed, errors are handled, and responses are returned.
 
 Tiferet distinguishes between two categories of contexts:
 
@@ -254,8 +254,8 @@ Do not share a single `CacheContext` instance across interfaces. Each `AppInterf
 ## Related Documentation
 
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context base classes, artifact comments, and code style reference
-- [docs/core/builders.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/builders.md) — AppBuilder and CliBuilder design
-- [docs/guides/builders.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/builders.md) — Builder strategies and patterns
+- [docs/core/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — Blueprint design (build_app, build_cli)
+- [docs/guides/blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/blueprints.md) — Blueprint strategies and patterns
 - [docs/core/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — Dependency injection and service provider architecture
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns and usage
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting rules
