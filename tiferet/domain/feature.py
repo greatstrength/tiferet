@@ -50,6 +50,12 @@ class FeatureEvent(FeatureStep):
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the feature event fails.')
 
+    # * attribute: condition
+    condition: str | None = Field(
+        default=None,
+        description='Optional boolean expression evaluated against request data. Step executes only when the expression resolves to True. When None, the step always executes.',
+    )
+
 
 # ** model: feature
 class Feature(DomainObject):
