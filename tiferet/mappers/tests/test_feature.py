@@ -23,6 +23,7 @@ FEATURE_EVENT_AGGREGATE_SAMPLE_DATA = {
     'parameters': {'key': 'value'},
     'data_key': 'result',
     'pass_on_error': True,
+    'condition': '$r.x > 0',
 }
 
 # ** constant: feature_event_equality_fields
@@ -32,6 +33,7 @@ FEATURE_EVENT_EQUALITY_FIELDS = [
     'parameters',
     'data_key',
     'pass_on_error',
+    'condition',
 ]
 
 # ** constant: feature_aggregate_sample_data
@@ -96,6 +98,7 @@ class TestFeatureEventAggregate(AggregateTestBase):
         ('name', 'Updated Event', None),
         ('service_id', 'updated_handler', None),
         ('data_key', 'new_key', None),
+        ('condition', '$r.y != 0', None),
     ]
 
     # *** domain-specific mutation tests
@@ -380,6 +383,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         'params': {'key': 'value'},
         'data_key': 'result',
         'pass_on_error': True,
+        'condition': '$r.x > 0',
     }
 
     # ** test: feature_event_yaml_map_basic
@@ -418,6 +422,24 @@ class TestFeatureYamlObject(TransferObjectTestBase):
 
         # Verify aliased parameters were deserialized correctly.
         assert event.parameters == {'alias_key': 'value'}
+
+    # ** test: feature_event_yaml_map_with_condition
+    def test_feature_event_yaml_map_with_condition(self):
+        '''
+        Test mapping a FeatureEventYamlObject with a condition field.
+        '''
+
+        # Create a YAML object with a condition and map it.
+        yaml_obj = FeatureEventYamlObject.model_validate(dict(
+            name='Conditional Event',
+            service_id='conditional_handler',
+            condition='$r.b != 0',
+        ))
+        event = yaml_obj.map()
+
+        # Verify the condition is preserved.
+        assert isinstance(event, FeatureEventAggregate)
+        assert event.condition == '$r.b != 0'
 
     # ** test: feature_event_yaml_from_model
     def test_feature_event_yaml_from_model(self):

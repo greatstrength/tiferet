@@ -133,6 +133,44 @@ def test_feature_derive_keys_explicit_description_preserved() -> None:
     # Assert the explicit description is preserved.
     assert feature.description == 'Custom description'
 
+# ** test: feature_event_condition_defaults_to_none
+def test_feature_event_condition_defaults_to_none() -> None:
+    '''
+    Test that FeatureEvent condition defaults to None when not provided.
+    '''
+
+    # Create a FeatureEvent without condition.
+    event = FeatureEvent(
+        name='Test Event',
+        service_id='test_event_service',
+    )
+
+    # Assert condition defaults to None.
+    assert event.condition is None
+
+# ** test: feature_event_condition_preserves_value
+def test_feature_event_condition_preserves_value() -> None:
+    '''
+    Test that FeatureEvent condition is preserved through construction and round-trip.
+    '''
+
+    # Create a FeatureEvent with a condition.
+    event = FeatureEvent(
+        name='Conditional Event',
+        service_id='conditional_event_service',
+        condition='$r.x > 0',
+    )
+
+    # Assert condition is set correctly.
+    assert event.condition == '$r.x > 0'
+
+    # Serialize via model_dump() and reload.
+    primitive = event.model_dump()
+    reloaded = FeatureEvent(**primitive)
+
+    # Assert condition is preserved through round-trip.
+    assert reloaded.condition == '$r.x > 0'
+
 # ** test: feature_get_step_valid_and_invalid_indices
 def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     '''

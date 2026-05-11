@@ -76,6 +76,13 @@ features:
           params:
             b: 0.5    # fixed exponent for square root (a^(1/2))
 
+    safe_divide:
+      name: Safe Divide
+      description: Divides only when denominator is non-zero
+      steps:
+        - attribute_id: divide_event
+          condition: '$r.b != 0'    # skip when b is zero instead of raising
+
 # Structured error messages
 errors:
   INVALID_INPUT:
@@ -98,13 +105,20 @@ errors:
 - **Still fully flexible** — You can define multiple interfaces, complex features, and rich error handling.
 - Tiferet automatically loads `config.yml` from the project root when you create `App()`.
 
-### 4.3 Quick recap
+### 4.3 Conditional steps
+
+Notice `calc.safe_divide` — it uses a `condition` on the step. The expression `$r.b != 0` is evaluated against the request data at runtime. If `b` is zero, the step is silently skipped instead of raising a division-by-zero error. This enables declarative, configuration-driven conditional branching without writing custom flow-control events.
+
+Conditions support `$r.<key>` references for any value in the request data and simple boolean comparisons (e.g., `$r.mode == 'advanced'`, `$r.x > 0`). When `condition` is omitted, the step always executes.
+
+### 4.4 Quick recap
 
 In this single `config.yml` file we defined:
 
 - **Interfaces** (`basic_calc`) — the entry point for our script runner
 - **Dependency mappings** (`attrs`) — links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
-- **Features** (`calc.add`, `calc.sqrt`, etc.) — defines the workflows and which event to run for each operation
+- **Features** (`calc.add`, `calc.sqrt`, `calc.safe_divide`, etc.) — defines the workflows and which event to run for each operation
+- **Conditional steps** — declarative `condition` expressions on feature steps for runtime branching
 - **Errors** — user-friendly, structured error messages with support for multiple languages
 
 When you run `app = App()`, Tiferet reads this `config.yml` and wires everything together automatically.

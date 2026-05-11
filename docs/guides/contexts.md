@@ -104,11 +104,34 @@ If a CLI interface needs custom request parsing beyond argparse, the preferred p
 
 1. Load the feature (cached when possible) via `get_feature_handler`.
 2. For each configured step:
+   - Evaluate the step's `condition` expression (if present) via `evaluate_condition`. If the condition resolves to `False`, the step is silently skipped.
    - Resolve the domain event from `DIContext.get_dependency(service_id, *flags)`.
    - Parse each step parameter with `parse_request_parameter` (supports `$r.<key>` request-backed parameters).
    - Invoke `handle_command`, which executes the event and stores the result on the `RequestContext` under `data_key`.
 
 Feature-level flags (defined on the `Feature`) are combined with step-level flags and passed to the DI context. Higher priority is given to feature-level flags.
+
+### Conditional Step Execution
+
+`FeatureEvent` supports an optional `condition` field — a boolean expression string evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`).
+
+- When `condition` is `None` or empty, the step always executes (backward compatible).
+- When `condition` evaluates to `False`, the step is silently skipped (no error raised).
+- Invalid or unparseable expressions are treated as `False` (defensive).
+
+YAML configuration example:
+
+```yaml
+features:
+  calc:
+    safe_divide:
+      name: Safe Divide
+      description: Divides only when denominator is non-zero
+      commands:
+        - service_id: divide_number_event
+          name: Divide a by b
+          condition: '$r.b != 0'
+```
 
 ### DIContext
 

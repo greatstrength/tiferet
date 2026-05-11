@@ -375,6 +375,139 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Assert that the GetFeature event was invoked once for this feature id.
     get_feature_evt.execute.assert_called_once_with(id=feature.id)
 
+# ** test: feature_context_evaluate_condition_none_returns_true
+def test_feature_context_evaluate_condition_none_returns_true(feature_context):
+    """Test that evaluate_condition returns True when condition is None."""
+
+    # Create a mock request.
+    request = RequestContext(data={})
+
+    # Assert that None condition evaluates to True.
+    assert feature_context.evaluate_condition(None, request) is True
+
+# ** test: feature_context_evaluate_condition_empty_returns_true
+def test_feature_context_evaluate_condition_empty_returns_true(feature_context):
+    """Test that evaluate_condition returns True when condition is empty."""
+
+    # Create a mock request.
+    request = RequestContext(data={})
+
+    # Assert that empty string condition evaluates to True.
+    assert feature_context.evaluate_condition('', request) is True
+    assert feature_context.evaluate_condition('   ', request) is True
+
+# ** test: feature_context_evaluate_condition_true_expression
+def test_feature_context_evaluate_condition_true_expression(feature_context):
+    """Test that evaluate_condition returns True when expression resolves to True."""
+
+    # Create a request with data for the condition.
+    request = RequestContext(data={'x': 5})
+
+    # Assert that the condition evaluates to True.
+    assert feature_context.evaluate_condition('$r.x > 0', request) is True
+
+# ** test: feature_context_evaluate_condition_false_expression
+def test_feature_context_evaluate_condition_false_expression(feature_context):
+    """Test that evaluate_condition returns False when expression resolves to False."""
+
+    # Create a request with data for the condition.
+    request = RequestContext(data={'x': -1})
+
+    # Assert that the condition evaluates to False.
+    assert feature_context.evaluate_condition('$r.x > 0', request) is False
+
+# ** test: feature_context_evaluate_condition_string_equality
+def test_feature_context_evaluate_condition_string_equality(feature_context):
+    """Test that evaluate_condition supports string equality checks."""
+
+    # Create a request with a string value.
+    request = RequestContext(data={'mode': 'advanced'})
+
+    # Assert string equality condition evaluates correctly.
+    assert feature_context.evaluate_condition("$r.mode == 'advanced'", request) is True
+    assert feature_context.evaluate_condition("$r.mode == 'basic'", request) is False
+
+# ** test: feature_context_evaluate_condition_missing_key_returns_false
+def test_feature_context_evaluate_condition_missing_key_returns_false(feature_context):
+    """Test that evaluate_condition returns False when a referenced key is missing."""
+
+    # Create a request without the referenced key.
+    request = RequestContext(data={})
+
+    # Assert that a condition referencing a missing key evaluates to False.
+    assert feature_context.evaluate_condition('$r.x > 0', request) is False
+
+# ** test: feature_context_evaluate_condition_invalid_expression_returns_false
+def test_feature_context_evaluate_condition_invalid_expression_returns_false(feature_context):
+    """Test that evaluate_condition returns False on unparseable expressions."""
+
+    # Create a mock request.
+    request = RequestContext(data={'x': 5})
+
+    # Assert that an invalid expression evaluates to False (defensive).
+    assert feature_context.evaluate_condition('$r.x >>>!!! invalid', request) is False
+
+# ** test: feature_context_execute_feature_skips_false_condition
+def test_feature_context_execute_feature_skips_false_condition(feature_context, get_feature_evt, feature, services_context):
+    """Test that execute_feature skips a step whose condition evaluates to False."""
+
+    # Add a conditional step that should be skipped (x > 100 is False when x=5).
+    feature.steps.append(FeatureEvent(
+        name='Skipped Command',
+        service_id='test_command',
+        condition='$r.x > 100',
+        data_key='skipped_result',
+    ))
+
+    # Add an unconditional step that should execute.
+    feature.steps.append(FeatureEvent(
+        name='Executed Command',
+        service_id='test_command',
+    ))
+
+    # Set the feature as the GetFeature event's return value.
+    get_feature_evt.execute.return_value = feature
+
+    # Create a request with x=5 and key for the unconditional step.
+    request = RequestContext(data={'key': 'value', 'x': 5})
+
+    # Clear the cache to avoid stale feature data from prior tests.
+    feature_context.cache.clear()
+
+    # Execute the feature.
+    feature_context.execute_feature(feature.id, request)
+
+    # Assert the skipped step did NOT store a result.
+    assert request.data.get('skipped_result') is None
+
+    # Assert the unconditional step DID execute.
+    assert request.handle_response() == {"status": "success", "data": {"key": "value"}}
+
+# ** test: feature_context_execute_feature_runs_true_condition
+def test_feature_context_execute_feature_runs_true_condition(feature_context, get_feature_evt, feature):
+    """Test that execute_feature runs a step whose condition evaluates to True."""
+
+    # Add a conditional step that should execute (x > 0 is True when x=5).
+    feature.steps.append(FeatureEvent(
+        name='Conditional Command',
+        service_id='test_command',
+        condition='$r.x > 0',
+        data_key='conditional_result',
+    ))
+
+    # Set the feature as the GetFeature event's return value.
+    get_feature_evt.execute.return_value = feature
+
+    # Create a request with x=5 and key for the step.
+    request = RequestContext(data={'key': 'value', 'x': 5})
+
+    # Execute the feature.
+    feature_context.cache.clear()
+    feature_context.execute_feature(feature.id, request)
+
+    # Assert the conditional step DID execute and stored its result.
+    assert request.data.get('conditional_result') == {"status": "success", "data": {"key": "value"}}
+
 # ** test: feature_context_execute_feature_with_pass_on_error
 def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_evt, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
