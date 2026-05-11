@@ -169,6 +169,7 @@ class FeatureAggregate(Feature, Aggregate):
         parameters: Dict[str, Any] | None = None,
         data_key: str | None = None,
         pass_on_error: bool = False,
+        condition: str | None = None,
         position: int | None = None,
     ) -> FeatureEvent:
         '''
@@ -184,6 +185,8 @@ class FeatureAggregate(Feature, Aggregate):
         :type data_key: str | None
         :param pass_on_error: Whether to pass on errors from this step.
         :type pass_on_error: bool
+        :param condition: Optional boolean expression for conditional execution.
+        :type condition: str | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created FeatureEvent instance.
@@ -197,6 +200,7 @@ class FeatureAggregate(Feature, Aggregate):
             parameters=parameters or {},
             data_key=data_key,
             pass_on_error=pass_on_error,
+            condition=condition,
         )
 
         # Copy steps to a local list, insert or append, then reassign.

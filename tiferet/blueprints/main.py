@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
-from ..di import ServiceProvider, DependenciesServiceProvider
+from ..di import ServiceProvider, DynamicServiceProvider
 from .. import assets as a
 from ..domain import (
     AppInterface,
@@ -24,7 +24,7 @@ from ..events.app import GetAppInterface
 
 # ** blueprint: create_service_provider
 def create_service_provider(
-    provider_type: type = DependenciesServiceProvider,
+    provider_type: type = DynamicServiceProvider,
     type_map: Dict[str, type] = None,
     **constants
 ) -> ServiceProvider:

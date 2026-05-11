@@ -324,10 +324,12 @@ def test_sqlite_client_context_manager_rollback_on_exception(tmp_path: Path):
         assert count == 0
 
 # ** test: sqlite_client_backup_success
-def test_sqlite_client_backup_success(memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str, tmp_path: Path):
+def test_sqlite_client_backup_success(tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
     '''
     Test successful database backup to a file path.
 
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
     :param memory_client: The in-memory SqliteClient fixture.
     :type memory_client: SqliteClient
     :param sample_table_sql: SQL to create a sample table.
@@ -341,22 +343,75 @@ def test_sqlite_client_backup_success(memory_client: SqliteClient, sample_table_
     # Define the backup target path.
     backup_path = str(tmp_path / 'backup.db')
 
-    # Set up source database and perform backup.
-    with memory_client as db:
-        db.execute(sample_table_sql)
-        db.execute(sample_insert_sql, ('backup_item', 42.0))
-        db.commit()
-        db.backup(backup_path)
+    # Define the backup target path.
+    backup_path = tmp_path / 'backup.db'
 
-    # Verify the target has the data.
-    with SqliteClient(path=backup_path, mode='ro') as target:
-        row = target.fetch_one('SELECT name, value FROM items')
-        assert row == ('backup_item', 42.0)
+    try:
+
+        # Perform backup to file path.
+        memory_client.backup(str(backup_path))
+
+        # Verify the target file was created and has the data.
+        with SqliteClient(path=backup_path, mode='ro') as db:
+            row = db.fetch_one('SELECT name, value FROM items')
+            assert row == ('backup_item', 42.0)
+
+    finally:
+
+        # Clean up source connection.
+        memory_client.close_file()
+
+# ** test: sqlite_client_backup_with_progress
+def test_sqlite_client_backup_with_progress(tmp_path: Path, memory_client: SqliteClient, sample_table_sql: str, sample_insert_sql: str):
+    '''
+    Test backup with a progress callback.
+
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    :param sample_table_sql: SQL to create a sample table.
+    :type sample_table_sql: str
+    :param sample_insert_sql: SQL to insert a row.
+    :type sample_insert_sql: str
+    '''
+
+    # Set up source database.
+    memory_client.open_file()
+    memory_client.execute(sample_table_sql)
+    memory_client.execute(sample_insert_sql, ('progress_item', 7.0))
+    memory_client.commit()
+
+    # Track progress calls.
+    progress_calls = []
+    def on_progress(status, remaining, total):
+        progress_calls.append((status, remaining, total))
+
+    # Define the backup target path.
+    backup_path = tmp_path / 'progress_backup.db'
+
+    try:
+
+        # Perform backup with progress callback.
+        memory_client.backup(str(backup_path), progress=on_progress)
+
+        # Verify the progress callback was invoked.
+        assert len(progress_calls) > 0
+
+        # Verify the backup succeeded.
+        with SqliteClient(path=backup_path, mode='ro') as db:
+            row = db.fetch_one('SELECT name, value FROM items')
+            assert row == ('progress_item', 7.0)
+
+    finally:
+
+        # Clean up source connection.
+        memory_client.close_file()
 
 # ** test: sqlite_client_backup_not_initialized
 def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_path: Path):
     '''
-    Test that backup raises SQLITE_CONN_NOT_INITIALIZED when source connection is not open.
+    Test that backup raises SQLITE_CONN_NOT_INITIALIZED when source is not open.
 
     :param memory_client: The in-memory SqliteClient fixture.
     :type memory_client: SqliteClient
@@ -365,11 +420,11 @@ def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_p
     '''
 
     # Define a target path.
-    backup_path = str(tmp_path / 'backup.db')
+    backup_path = tmp_path / 'backup_fail.db'
 
-    # Attempt backup without opening source; expect error.
+    # Attempt backup with source closed; expect error.
     with pytest.raises(TiferetError) as exc_info:
-        memory_client.backup(backup_path)
+        memory_client.backup(str(backup_path))
 
     # Verify the error code.
     assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID

@@ -332,7 +332,7 @@ def test_calc_cli_script(tmp_path, test_calc_yaml_file):
         "from tiferet import CLI\n"
         "\n"
         "if __name__ == '__main__':\n"
-        "    CLI('test_calc_cli', argv=sys.argv[1:], app_yaml_file={main_yaml!r})\n"
+        "    CLI('test_calc_cli', app_yaml_file={main_yaml!r})\n"
     ).format(main_yaml=test_calc_yaml_file)
 
     # Write the CLI script to a temporary file.

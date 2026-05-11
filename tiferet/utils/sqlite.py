@@ -303,16 +303,21 @@ class SqliteClient(FileLoader, SqliteService):
                 error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
+        # Open a target connection for the backup.
+        target = SqliteClient(path=target_path, mode='rwc')
+
         try:
 
-            # Open a connection to the target database.
-            target_conn = sqlite3.connect(target_path)
+            # Open the target connection.
+            target.open_file()
+
+            # Build backup kwargs.
+            backup_kwargs = dict(pages=pages)
+            if progress is not None:
+                backup_kwargs['progress'] = progress
 
             # Perform the backup to the target connection.
-            self.conn.backup(target_conn, pages=pages, progress=progress)
-
-            # Close the target connection.
-            target_conn.close()
+            self.conn.backup(target.conn, **backup_kwargs)
 
         except sqlite3.Error as e:
 
@@ -320,8 +325,13 @@ class SqliteClient(FileLoader, SqliteService):
             RaiseError.execute(
                 error_code=a.const.SQLITE_BACKUP_FAILED_ID,
                 original_error=str(e),
-                target_path=target_path,
+                target_path=str(target_path),
             )
+
+        finally:
+
+            # Always close the target connection.
+            target.close_file()
 
     # * method: __enter__
     def __enter__(self) -> 'SqliteClient':

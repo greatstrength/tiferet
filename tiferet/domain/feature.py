@@ -49,6 +49,13 @@ class FeatureEvent(FeatureStep):
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the feature event fails.')
 
+    # * attribute: condition
+    condition: str | None = Field(
+        default=None,
+        description='Optional boolean expression evaluated against request data. Step executes only when the expression resolves to True. When None, the step always executes.',
+    )
+
+
 # ** model: feature
 class Feature(DomainObject):
     '''
@@ -79,10 +86,10 @@ class Feature(DomainObject):
     # * attribute: log_params
     log_params: Dict[str, str] = Field(default_factory=dict, description='The parameters to log for the feature.')
 
-    # * method: _derive_keys (validator)
+    # * method: derive_keys (validator)
     @model_validator(mode='before')
     @classmethod
-    def _derive_keys(cls, data: Any) -> Any:
+    def derive_keys(cls, data: Any) -> Any:
         '''
         Derive ``id``, ``group_id``, ``feature_key``, and ``description`` from
         whichever inputs are provided so callers may supply any consistent subset.

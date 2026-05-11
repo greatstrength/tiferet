@@ -150,7 +150,7 @@ def test_calc_yaml_file(tmp_path):
 @pytest.fixture
 def basic_calc(test_calc_yaml_file):
     '''
-    Fixture to build the basic calculator interface context.
+    Build the basic calculator interface context using the functional blueprint API.
 
     :param test_calc_yaml_file: The path to the temporary test calculator YAML file.
     :type test_calc_yaml_file: str
@@ -158,11 +158,8 @@ def basic_calc(test_calc_yaml_file):
     :rtype: AppInterfaceContext
     '''
 
-    # Build the test_calc interface in a single act.
-    return App(
-        'test_calc',
-        app_yaml_file=test_calc_yaml_file,
-    )
+    # Build and return the test_calc interface context.
+    return App('test_calc', app_yaml_file=test_calc_yaml_file)
 
 # *** tests
 

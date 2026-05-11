@@ -1,1 +1,1 @@
-"""Tiferet Builder Tests"""
+"""Tiferet Blueprint Tests"""

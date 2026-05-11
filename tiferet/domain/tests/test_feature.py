@@ -81,6 +81,96 @@ def test_feature_event_flags_creation_and_round_trip() -> None:
     # Assert flags are preserved through round-trip.
     assert reloaded.flags == ['flag1', 'flag2']
 
+# ** test: feature_derive_keys_from_dotted_id
+def test_feature_derive_keys_from_dotted_id() -> None:
+    '''
+    Test that Feature auto-derives group_id and feature_key from a dotted id.
+    '''
+
+    # Create a Feature with only id and name.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert group_id and feature_key are derived.
+    assert feature.group_id == 'calc'
+    assert feature.feature_key == 'add'
+    assert feature.description == 'Add'
+
+# ** test: feature_derive_keys_from_group_and_name
+def test_feature_derive_keys_from_group_and_name() -> None:
+    '''
+    Test that Feature auto-derives feature_key and id from group_id and name.
+    '''
+
+    # Create a Feature with group_id and name only.
+    feature = Feature(group_id='calc', name='Add Number')
+
+    # Assert feature_key is snake-cased from name, and id is composed.
+    assert feature.feature_key == 'add_number'
+    assert feature.id == 'calc.add_number'
+    assert feature.description == 'Add Number'
+
+# ** test: feature_derive_keys_description_defaults_to_name
+def test_feature_derive_keys_description_defaults_to_name() -> None:
+    '''
+    Test that description defaults to name when not provided.
+    '''
+
+    # Create a Feature without description.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert description equals name.
+    assert feature.description == 'Add'
+
+# ** test: feature_derive_keys_explicit_description_preserved
+def test_feature_derive_keys_explicit_description_preserved() -> None:
+    '''
+    Test that an explicit description is not overwritten by the validator.
+    '''
+
+    # Create a Feature with an explicit description.
+    feature = Feature(id='calc.add', name='Add', description='Custom description')
+
+    # Assert the explicit description is preserved.
+    assert feature.description == 'Custom description'
+
+# ** test: feature_event_condition_defaults_to_none
+def test_feature_event_condition_defaults_to_none() -> None:
+    '''
+    Test that FeatureEvent condition defaults to None when not provided.
+    '''
+
+    # Create a FeatureEvent without condition.
+    event = FeatureEvent(
+        name='Test Event',
+        service_id='test_event_service',
+    )
+
+    # Assert condition defaults to None.
+    assert event.condition is None
+
+# ** test: feature_event_condition_preserves_value
+def test_feature_event_condition_preserves_value() -> None:
+    '''
+    Test that FeatureEvent condition is preserved through construction and round-trip.
+    '''
+
+    # Create a FeatureEvent with a condition.
+    event = FeatureEvent(
+        name='Conditional Event',
+        service_id='conditional_event_service',
+        condition='$r.x > 0',
+    )
+
+    # Assert condition is set correctly.
+    assert event.condition == '$r.x > 0'
+
+    # Serialize via model_dump() and reload.
+    primitive = event.model_dump()
+    reloaded = FeatureEvent(**primitive)
+
+    # Assert condition is preserved through round-trip.
+    assert reloaded.condition == '$r.x > 0'
+
 # ** test: feature_get_step_valid_and_invalid_indices
 def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     '''

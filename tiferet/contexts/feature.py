@@ -1,7 +1,8 @@
 # *** imports
 
 # ** core
-from typing import Callable
+import re
+from typing import Any, Callable
 
 # ** app
 from .di import DIContext
@@ -195,6 +196,42 @@ class FeatureContext(object):
         # Return the parsed parameter.
         return result
 
+    # * method: evaluate_condition
+    def evaluate_condition(self, condition: str, request: RequestContext) -> bool:
+        '''
+        Evaluate a boolean expression against request data.
+        Returns True when condition is None or empty.
+
+        :param condition: The boolean expression to evaluate. Uses ``$r.`` prefix
+            to reference values from ``request.data``.
+        :type condition: str
+        :param request: The request context containing the data to resolve references against.
+        :type request: RequestContext
+        :return: The boolean result of the evaluated expression.
+        :rtype: bool
+        '''
+
+        # Return True if condition is None or empty (unconditional step).
+        if not condition or not condition.strip():
+            return True
+
+        # Resolve $r. references by substituting values from request data.
+        def _resolve_ref(match: re.Match) -> str:
+            key = match.group(1)
+            value = request.data.get(key)
+            if value is None:
+                return 'None'
+            return repr(value)
+
+        # Replace all $r.<key> references with their repr'd values.
+        resolved = re.sub(r'\$r\.(\w+)', _resolve_ref, condition)
+
+        # Evaluate the resolved expression safely; return False on failure.
+        try:
+            return bool(eval(resolved, {"__builtins__": {}}, {}))  # noqa: S307
+        except Exception:
+            return False
+
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -211,6 +248,10 @@ class FeatureContext(object):
 
         # Execute the feature by iterating over its configured steps.
         for feature_event in feature.steps:
+
+            # Evaluate the step condition; skip if False.
+            if not self.evaluate_condition(feature_event.condition, request):
+                continue
 
             # Load the event dependency for this step, honoring any configured flags.
             cmd = self.load_feature_step(feature_event, feature_flags=feature.flags)

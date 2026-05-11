@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** March 02, 2026  
-**Version:** 2.0.0a1
+**Version:** 2.0.0b3
 
 ## Overview
 
@@ -25,7 +25,7 @@ The context manager is especially helpful here:
 | Quick query or small script / test            | `with Sqlite(...) as db:`                    | Zero setup, immediate access                                                |
 | Need to mock or swap database backends later  | Inject `SqliteService`                       | Follows dependency injection; easy to test & replace                        |
 | Persistent domain objects (users, settings…)  | Use domain repository + injected service     | Keeps business logic clean and path-agnostic                                |
-| One-time database backup                      | `source.backup(target)`                      | Built-in, safe, with proper error wrapping                                  |
+| One-time database backup                      | `source.backup(target_path)`                 | Built-in, safe, with proper error wrapping and optional progress callback    |
 | Enforce read-only access                      | `mode='ro'`                                  | SQLite itself prevents writes at connection level                           |
 
 ## Quick examples to get you started
@@ -37,8 +37,7 @@ from tiferet.utils import Sqlite
 with Sqlite() as db:                        # defaults to :memory:
     db.execute("CREATE TABLE pets (name TEXT, age INTEGER)")
     db.execute("INSERT INTO pets VALUES (?, ?)", ("Luna", 3))
-    db.execute("SELECT * FROM pets WHERE age > 2")
-    print(db.fetch_all())                   # → [('Luna', 3)]
+    print(db.fetch_all("SELECT * FROM pets WHERE age > 2"))  # → [('Luna', 3)]
 
 # === Persistent file database – create if missing ===
 with Sqlite(path="data/myapp.db", mode="rwc") as db:
@@ -52,8 +51,7 @@ with Sqlite(path="data/myapp.db", mode="rwc") as db:
 
 # === Read-only connection (safe for shared / production read paths) ===
 with Sqlite("data/myapp.db", mode="ro") as db:
-    db.execute("SELECT value FROM config WHERE key = 'theme'")
-    theme = db.fetch_one()[0]               # → 'dark'
+    theme = db.fetch_one("SELECT value FROM config WHERE key = 'theme'")[0]  # → 'dark'
 ```
 
 ## Constructor parameters (the ones you’ll use most)
@@ -69,11 +67,11 @@ with Sqlite("data/myapp.db", mode="ro") as db:
 
 - `execute(sql, parameters=())` → run one statement, get a cursor back  
 - `executemany(sql, sequence)` → bulk insert / update  
-- `executescript(sql_script)` → run several statements at once ( DDL + data usually)  
-- `fetch_one()` → get next row (or `None`)  
-- `fetch_all()` → get list of all remaining rows  
+- `executescript(sql_script)` → run several statements at once (DDL + data usually)  
+- `fetch_one(query, parameters=())` → execute query and get next row (or `None`)  
+- `fetch_all(query, parameters=())` → execute query and get list of all rows  
 - `commit()` / `rollback()` → manual transaction control (rarely needed with context manager)  
-- `backup(target_client)` → efficient page-by-page copy to another database
+- `backup(target_path, pages=-1, progress=None)` → efficient backup to a file path with optional progress callback
 
 The context manager handles commit / rollback / close for you automatically.
 
@@ -99,8 +97,7 @@ class RecordVisit(DomainEvent):
                 )
             """)
             db.execute("INSERT INTO visits (page) VALUES (?)", (page,))
-            db.execute("SELECT COUNT(*) FROM visits")
-            return db.fetch_one()[0]
+            return db.fetch_one("SELECT COUNT(*) FROM visits")[0]
 ```
 
 ## Automatic rollback example (safety net)
@@ -130,8 +127,7 @@ def test_record_visit_creates_table_and_row(tmp_path):
     assert count == 1
 
     with Sqlite(db_path, mode="ro") as db:
-        db.execute("SELECT page FROM visits")
-        assert db.fetch_one()[0] == "/home"
+        assert db.fetch_one("SELECT page FROM visits")[0] == "/home"
 ```
 
 ## Quick reminders – how SqliteClient is different
