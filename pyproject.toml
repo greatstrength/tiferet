@@ -34,7 +34,7 @@ where = ["."]
 include = [
     "tiferet",
     "tiferet.assets",
-    "tiferet.builders",
+    "tiferet.blueprints",
     "tiferet.contexts",
     "tiferet.di",
     "tiferet.domain",
