@@ -160,15 +160,17 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
                     if value is not None
                 }
 
+            # Return early after in-place update.
+            return
+
         # If the service dependency does not exist, create a new one and reassign.
-        else:
-            new_dep = AppServiceDependency(
-                service_id=service_id,
-                module_path=module_path,
-                class_name=class_name,
-                parameters=parameters or {},
-            )
-            self.services = list(self.services) + [new_dep]
+        new_dep = AppServiceDependency(
+            service_id=service_id,
+            module_path=module_path,
+            class_name=class_name,
+            parameters=parameters or {},
+        )
+        self.services = list(self.services) + [new_dep]
 
     # * method: set_constants
     def set_constants(self, constants: Dict[str, Any] | None = None) -> None:
