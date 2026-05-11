@@ -54,7 +54,7 @@ class DynamicServiceProvider(ServiceProvider):
         '''
 
         # Build a Factory provider with constructor kwargs wired to sibling providers.
-        factory = self._build_factory(service_type)
+        factory = self.build_factory(service_type)
 
         # Register the provider on the container.
         self.container.set_provider(service_id, factory)
@@ -146,8 +146,8 @@ class DynamicServiceProvider(ServiceProvider):
         if service_id in self.container.providers:
             delattr(self.container, service_id)
 
-    # * method: _build_factory
-    def _build_factory(self, service_type: type) -> providers.Factory:
+    # * method: build_factory
+    def build_factory(self, service_type: type) -> providers.Factory:
         '''
         Build a Factory provider with constructor kwargs wired to sibling providers.
 
