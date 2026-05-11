@@ -63,6 +63,13 @@ features:
           name: Calculate square root of `a`
           params:
             b: '0.5'
+    safe_divide:
+      name: Safe Divide
+      description: Divides only when denominator is non-zero
+      commands:
+        - service_id: divide_number_event
+          name: Divide `a` by `b` (skipped when b is 0)
+          condition: '$r.b != 0'
 
 errors:
   INVALID_INPUT:

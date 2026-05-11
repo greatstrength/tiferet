@@ -228,7 +228,7 @@ Applications are configured in a consolidated root `config.yml` file:
 
 - `interfaces` — Interface definitions (name, module_path, class_name, service dependencies)
 - `services` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
-- `features` — Feature workflows (commands with service_id, parameters, and data mapping)
+- `features` — Feature workflows (commands with service_id, parameters, data mapping, and optional `condition` expressions for conditional step execution)
 - `errors` — Error definitions with multilingual messages
 - `cli` — CLI command definitions with arguments
 - `logging` — Logging formatters, handlers, loggers
