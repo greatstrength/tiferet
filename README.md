@@ -86,7 +86,7 @@ You should see:
 ```
 
 → Want a full calculator (add, subtract, multiply, divide, sqrt, …) with CLI, validation and proper error handling?  
-→ Continue with the **[step-by-step Calculator Tutorial →](docs/tutorial/basic_calculator/index.md)**
+→ See the **[working example →](examples/basic_calculator/)** or follow the **[step-by-step Tutorial →](docs/tutorial/basic_calculator/index.md)**
 
 ## Why Tiferet?
 
