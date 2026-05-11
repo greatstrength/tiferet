@@ -88,7 +88,7 @@ class ServiceProvider(ABC):
 - `Factory` — Wraps a class type. Each `get_service()` call creates a new instance with constructor kwargs wired to sibling providers.
 - `Object` — Wraps a scalar value or callable. Each `get_service()` call returns the same value.
 
-**Automatic constructor wiring.** `_build_factory()` inspects the service class constructor via `inspect.signature()` and wires each parameter to a sibling provider if one exists. This enables cascading dependency resolution without explicit wiring configuration.
+**Automatic constructor wiring.** `build_factory()` inspects the service class constructor via `inspect.signature()` and wires each parameter to a sibling provider if one exists. This enables cascading dependency resolution without explicit wiring configuration.
 
 **No empty scope guard needed.** Unlike the `dependencies` library, `DynamicContainer` works correctly with zero providers. No special `None` guard is required.
 
@@ -109,7 +109,7 @@ class DynamicServiceProvider(ServiceProvider):
 
     # * method: add_service
     def add_service(self, service_id: str, service_type: type):
-        factory = self._build_factory(service_type)
+        factory = self.build_factory(service_type)
         self.container.set_provider(service_id, factory)
 
     # * method: add_services
@@ -127,8 +127,8 @@ class DynamicServiceProvider(ServiceProvider):
             RaiseError.execute('INVALID_DEPENDENCY_ERROR', ...)
         return provider()
 
-    # * method: _build_factory
-    def _build_factory(self, service_type: type) -> providers.Factory:
+    # * method: build_factory
+    def build_factory(self, service_type: type) -> providers.Factory:
         sig = inspect.signature(service_type.__init__)
         kwargs = {}
         for param_name, param in sig.parameters.items():
