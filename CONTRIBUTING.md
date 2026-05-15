@@ -64,6 +64,35 @@ Upon completion of a story or issue, a **Collaboration Report** is published as 
 See the full report format guide:
 **[docs/collab/collab_report.md](docs/collab/collab_report.md)**
 
+## Prototype Release Process
+
+Ecosystem extension packages (e.g., `tiferet-agents`, `tiferet-kb`, `tiferet-h5`) use a **prototype branch workflow** for early-stage alpha development before graduating to formal release branches.
+
+### Branch Convention
+
+- **Prototype branch**: `v0.x-proto` — the long-lived development branch for pre-1.0 packages.
+- **Release branches**: `v0.1.0a1-release`, `v0.1.0a2-release`, etc. — created from the prototype branch for each alpha milestone.
+- PRs from release branches target `v0.x-proto` and are **squash-merged** as a single alpha commit.
+
+### Workflow
+
+1. Create a release branch from the prototype branch: `git checkout -b v0.1.0a1-release v0.x-proto`
+2. Implement the alpha milestone (all issues for that release).
+3. Open a PR targeting `v0.x-proto` with the `proto-release` label.
+4. Squash-merge the PR as a single commit representing the alpha release.
+5. After merge, delete the release branch (local and remote).
+
+### Labeling
+
+- Use the **`proto-release`** label on all prototype alpha PRs to distinguish them from standard feature/bugfix work.
+
+### Graduating to Formal Releases
+
+Once a package reaches sufficient maturity (typically after beta), it transitions to the standard Tiferet release workflow:
+- Release branches created from `main` (e.g., `v1.0.0-release`).
+- Tagged releases published to PyPI.
+- The `v0.x-proto` branch is archived or deleted.
+
 ## Code Style
 
 Tiferet enforces a structured code style across all modules. The essentials:
