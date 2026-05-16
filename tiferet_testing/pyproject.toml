@@ -1,7 +1,7 @@
 [project]
-name = "tiferet"
+name = "tiferet-testing"
 dynamic = ["version"]
-description = "A multi-purpose application framework embodying beauty in form."
+description = "Test harness, base classes, and helpers for building tests with the Tiferet DDD framework."
 authors = [
     { name = "Andrew Shatz, Great Strength Systems", email = "andrew@greatstrength.me" }
 ]
@@ -9,54 +9,31 @@ license = { text = "BSD-3-Clause" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pydantic>=2.6",
-    "pyyaml>=6.0.1",
-    "dependency-injector>=4.49.0"
+    "tiferet>=2.0.0b4",
+    "pytest>=8.3.3"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Framework :: Pytest",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Testing",
 ]
 
 [project.urls]
 Homepage = "https://github.com/greatstrength/tiferet"
 Repository = "https://github.com/greatstrength/tiferet"
-Download = "https://github.com/greatstrength/tiferet"
-
-[project.optional-dependencies]
-test = [
-    "tiferet-testing>=2.0.0b4",
-    "pytest>=8.3.3",
-    "pytest_env>=1.1.5"
-]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = [
-    "tiferet",
-    "tiferet.assets",
-    "tiferet.blueprints",
-    "tiferet.contexts",
-    "tiferet.di",
-    "tiferet.domain",
-    "tiferet.events",
-    "tiferet.interfaces",
-    "tiferet.mappers",
-    "tiferet.repos",
-    "tiferet.utils",
-]
+where = ["src"]
+include = ["tiferet_testing"]
 
 [tool.setuptools.dynamic]
-version = { attr = "tiferet.__version__" }
-
-[tool.pytest.ini_options]
-testpaths = ["tests", "tests_int"]
+version = { attr = "tiferet_testing.__version__" }

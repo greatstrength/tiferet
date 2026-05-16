@@ -2,6 +2,15 @@
 
 # *** exports
 
+__all__ = [
+    'TiferetError',
+    'TiferetAPIError',
+    'ERROR_NOT_FOUND_ID',
+    'DEFAULT_ERRORS',
+    'const',
+    'bps',
+]
+
 # ** app
 from .exceptions import TiferetError, TiferetAPIError
 from .constants import (

@@ -2,6 +2,19 @@
 
 # *** exports
 
+__all__ = [
+    'Service',
+    'ConfigurationService',
+    'FileService',
+    'SqliteService',
+    'AppService',
+    'CliService',
+    'DIService',
+    'ErrorService',
+    'FeatureService',
+    'LoggingService',
+]
+
 # ** app
 from .settings import Service
 from .config import ConfigurationService

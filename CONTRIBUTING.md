@@ -64,34 +64,29 @@ Upon completion of a story or issue, a **Collaboration Report** is published as 
 See the full report format guide:
 **[docs/collab/collab_report.md](docs/collab/collab_report.md)**
 
-## Prototype Release Process
+## Prototype Branching Conventions
 
-Ecosystem extension packages (e.g., `tiferet-agents`, `tiferet-kb`, `tiferet-h5`) use a **prototype branch workflow** for early-stage alpha development before graduating to formal release branches.
+All development happens on **prototype branches** before merging into `main`. Tags and releases on `main` represent the publishable state of the project.
 
-### Branch Convention
+### Prototype Branches
 
-- **Prototype branch**: `v0.x-proto` — the long-lived development branch for pre-1.0 packages.
-- **Release branches**: `v0.1.0a1-release`, `v0.1.0a2-release`, etc. — created from the prototype branch for each alpha milestone.
-- PRs from release branches target `v0.x-proto` and are **squash-merged** as a single alpha commit.
+- **Naming**: `v<major>.<minor>-proto` (e.g., `v1.x-proto`, `v2.0-proto`, `v0.x-proto`).
+- **Purpose**: Long-lived development branches where iterative milestone work accumulates.
+- **Merge to main**: Squash-merged into `main` when a publishable milestone is reached. A tag is created on `main` to mark the release.
 
-### Workflow
+### Worktree Milestone Branches
 
-1. Create a release branch from the prototype branch: `git checkout -b v0.1.0a1-release v0.x-proto`
-2. Implement the alpha milestone (all issues for that release).
-3. Open a PR targeting `v0.x-proto` with the `proto-release` label.
-4. Squash-merge the PR as a single commit representing the alpha release.
-5. After merge, delete the release branch (local and remote).
+For iterative milestone work (e.g., beta cycles), use **worktree branches** to isolate each milestone:
 
-### Labeling
+- **Naming**: `beta-<N>-proto` (e.g., `beta-6-proto`, `beta-7-proto`).
+- **Creation**: `git worktree add <path> -b beta-<N>-proto <prototype-branch>`
+- **Workflow**:
+  1. Create a worktree branch from the prototype branch.
+  2. Develop the milestone (commits, feature work, etc.).
+  3. Squash-merge the worktree branch back into the prototype branch.
+  4. Remove the worktree and delete the branch after merge.
 
-- Use the **`proto-release`** label on all prototype alpha PRs to distinguish them from standard feature/bugfix work.
-
-### Graduating to Formal Releases
-
-Once a package reaches sufficient maturity (typically after beta), it transitions to the standard Tiferet release workflow:
-- Release branches created from `main` (e.g., `v1.0.0-release`).
-- Tagged releases published to PyPI.
-- The `v0.x-proto` branch is archived or deleted.
+This keeps the prototype branch clean with one squash commit per milestone while allowing free-form development on the worktree branch.
 
 ## Code Style
 
