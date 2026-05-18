@@ -6,7 +6,7 @@
 from tiferet.domain import CliArgument, CliCommand, DomainObject
 from tiferet.events import a
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandYamlObject
-from tiferet_testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants

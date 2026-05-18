@@ -11,7 +11,7 @@ from tiferet.mappers.di import (
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
 )
-from tiferet_testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants

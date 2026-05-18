@@ -18,7 +18,7 @@ from .mappers import (
     AggregateTestBase,
     TransferObjectTestBase,
 )
-from .events import (
+from .domain import (
     DomainEventTestBase,
     ServiceEventTestBase,
 )
@@ -26,7 +26,3 @@ from .hooks import (
     register_mapper_hooks,
     register_event_hooks,
 )
-
-# *** version
-
-__version__ = '2.0.0b4'

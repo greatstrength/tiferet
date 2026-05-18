@@ -24,7 +24,7 @@ from tiferet.domain import (
 )
 from tiferet.interfaces import AppService
 from tiferet.mappers import AppInterfaceAggregate
-from tiferet_testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 

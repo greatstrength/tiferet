@@ -25,7 +25,7 @@ from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.domain import Feature
 from tiferet.interfaces import FeatureService
 from tiferet.mappers import FeatureAggregate
-from tiferet_testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 

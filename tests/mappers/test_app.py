@@ -14,7 +14,7 @@ from tiferet.mappers.app import (
     AppInterfaceYamlObject,
     AppServiceDependencyYamlObject,
 )
-from tiferet_testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants

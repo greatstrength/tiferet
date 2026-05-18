@@ -3,7 +3,7 @@
 # *** imports
 
 # ** app
-from tiferet_testing.hooks import register_mapper_hooks
+from tiferet.testing.hooks import register_mapper_hooks
 
 # *** hooks
 

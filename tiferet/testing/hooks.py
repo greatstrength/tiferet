@@ -4,7 +4,7 @@
 
 # ** app
 from .mappers import AggregateTestBase
-from .events import DomainEventTestBase
+from .domain import DomainEventTestBase
 
 
 # *** hooks

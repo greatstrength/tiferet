@@ -14,7 +14,7 @@ from tiferet.mappers.logging import (
     LoggerYamlObject,
     LoggingSettingsYamlObject,
 )
-from tiferet_testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants

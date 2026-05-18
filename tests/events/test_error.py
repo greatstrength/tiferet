@@ -23,7 +23,7 @@ from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.domain import Error
 from tiferet.interfaces import ErrorService
 from tiferet.mappers import ErrorAggregate
-from tiferet_testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 

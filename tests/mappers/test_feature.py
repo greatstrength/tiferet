@@ -11,7 +11,7 @@ from tiferet.mappers.feature import (
     FeatureAggregate,
     FeatureYamlObject,
 )
-from tiferet_testing import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants

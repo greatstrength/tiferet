@@ -30,7 +30,6 @@ Download = "https://github.com/greatstrength/tiferet"
 
 [project.optional-dependencies]
 test = [
-    "tiferet-testing>=2.0.0b4",
     "pytest>=8.3.3",
     "pytest_env>=1.1.5"
 ]
@@ -52,6 +51,7 @@ include = [
     "tiferet.interfaces",
     "tiferet.mappers",
     "tiferet.repos",
+    "tiferet.testing",
     "tiferet.utils",
 ]
 

@@ -20,7 +20,7 @@ from tiferet.events.settings import DomainEvent, a
 from tiferet.domain import Formatter, Handler, Logger
 from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
-from tiferet_testing import DomainEventTestBase
+from tiferet.testing import DomainEventTestBase
 
 
 # *** fixtures

@@ -17,7 +17,7 @@ from tiferet.events.settings import DomainEvent, a
 from tiferet.domain import CliCommand, CliArgument
 from tiferet.interfaces import CliService
 from tiferet.mappers import CliCommandAggregate
-from tiferet_testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 

@@ -26,7 +26,7 @@ from tiferet.mappers.di import (
     FlaggedDependencyAggregate,
 )
 from tiferet.interfaces.di import DIService
-from tiferet_testing import DomainEventTestBase, ServiceEventTestBase
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 

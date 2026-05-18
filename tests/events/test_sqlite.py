@@ -21,7 +21,7 @@ from tiferet.events.sqlite import (
 )
 from tiferet.events.settings import DomainEvent, a, TiferetError
 from tiferet.interfaces import SqliteService
-from tiferet_testing import DomainEventTestBase
+from tiferet.testing import DomainEventTestBase
 
 
 # *** classes
