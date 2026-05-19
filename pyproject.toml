@@ -1,6 +1,6 @@
 [project]
 name = "tiferet"
-dynamic = ["version"]  # Mark version as dynamic
+dynamic = ["version"]
 description = "A multi-purpose application framework embodying beauty in form."
 authors = [
     { name = "Andrew Shatz, Great Strength Systems", email = "andrew@greatstrength.me" }
@@ -11,7 +11,17 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.6",
     "pyyaml>=6.0.1",
-    "dependency-injector>=4.49.0"
+    "dependency-injector>=4.49.0",
+    "tomli>=2.0; python_version < '3.11'"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 
 [project.urls]
@@ -42,8 +52,12 @@ include = [
     "tiferet.interfaces",
     "tiferet.mappers",
     "tiferet.repos",
+    "tiferet.testing",
     "tiferet.utils",
 ]
 
 [tool.setuptools.dynamic]
 version = { attr = "tiferet.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "tests_int"]

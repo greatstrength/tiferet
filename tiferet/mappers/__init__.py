@@ -2,6 +2,32 @@
 
 # *** exports
 
+__all__ = [
+    'Aggregate',
+    'TransferObject',
+    'AppInterfaceAggregate',
+    'AppInterfaceYamlObject',
+    'ServiceConfigurationAggregate',
+    'ServiceConfigurationYamlObject',
+    'CliArgumentAggregate',
+    'CliCommandAggregate',
+    'CliCommandYamlObject',
+    'ErrorAggregate',
+    'ErrorYamlObject',
+    'ErrorMessageYamlObject',
+    'FeatureAggregate',
+    'FeatureYamlObject',
+    'FeatureEventAggregate',
+    'FeatureEventYamlObject',
+    'FormatterAggregate',
+    'FormatterYamlObject',
+    'HandlerAggregate',
+    'HandlerYamlObject',
+    'LoggerAggregate',
+    'LoggerYamlObject',
+    'LoggingSettingsYamlObject',
+]
+
 # ** app
 from .settings import (
     Aggregate,
