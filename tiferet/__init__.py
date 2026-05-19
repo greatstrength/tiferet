@@ -25,6 +25,8 @@ __all__ = [
     'CsvDict',
     'SqliteClient',
     'Sqlite',
+    'TomlLoader',
+    'Toml',
 ]
 
 # ** app
@@ -51,6 +53,8 @@ try:
         YamlLoader as Yaml,
         JsonLoader,
         JsonLoader as Json,
+        TomlLoader,
+        TomlLoader as Toml,
         CsvLoader,
         CsvLoader as Csv,
         CsvDictLoader,
@@ -67,4 +71,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.0b4'
+__version__ = '2.0.0b5'

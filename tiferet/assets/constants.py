@@ -204,6 +204,10 @@ JSON_FILE_LOAD_ERROR_ID         = 'JSON_FILE_LOAD_ERROR'
 JSON_FILE_SAVE_ERROR_ID         = 'JSON_FILE_SAVE_ERROR'
 INVALID_JSON_PATH_ID            = 'INVALID_JSON_PATH'
 
+TOML_FILE_NOT_FOUND_ID          = 'TOML_FILE_NOT_FOUND'
+TOML_FILE_LOAD_ERROR_ID         = 'TOML_FILE_LOAD_ERROR'
+INVALID_TOML_FILE_ID            = 'INVALID_TOML_FILE'
+
 CSV_INVALID_MODE_ID             = 'CSV_INVALID_MODE'
 CSV_HANDLE_NOT_INITIALIZED_ID   = 'CSV_HANDLE_NOT_INITIALIZED'
 CSV_INVALID_READ_MODE_ID        = 'CSV_INVALID_READ_MODE'
@@ -911,6 +915,33 @@ DEFAULT_ERRORS = {
         'name': 'Invalid JSON Path',
         'message': [
             {'lang': 'en_US', 'text': 'Invalid JSON path: {path}. Failed at segment: {part}.'}
+        ]
+    },
+
+    # * error: TOML_FILE_NOT_FOUND
+    TOML_FILE_NOT_FOUND_ID: {
+        'id': TOML_FILE_NOT_FOUND_ID,
+        'name': 'TOML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified TOML file could not be found at {path}.'}
+        ]
+    },
+
+    # * error: TOML_FILE_LOAD_ERROR
+    TOML_FILE_LOAD_ERROR_ID: {
+        'id': TOML_FILE_LOAD_ERROR_ID,
+        'name': 'TOML Load Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to parse TOML file: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_TOML_FILE
+    INVALID_TOML_FILE_ID: {
+        'id': INVALID_TOML_FILE_ID,
+        'name': 'Invalid TOML File',
+        'message': [
+            {'lang': 'en_US', 'text': 'File is not a valid TOML file: {path}.'}
         ]
     },
 

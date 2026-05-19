@@ -76,6 +76,31 @@ class DIContext(object):
         # Return the configured provider.
         return provider
 
+    # * method: normalize_flags (static)
+    @staticmethod
+    def normalize_flags(*flags) -> List[str]:
+        '''
+        Normalize a mixed sequence of flag arguments into a flat list of strings.
+
+        Accepts individual strings, lists, tuples, or any combination thereof.
+
+        :param flags: The flags to normalize.
+        :type flags: str | list | tuple
+        :return: A flat list of flag strings.
+        :rtype: List[str]
+        '''
+
+        # Flatten the flags into a single list.
+        result: List[str] = []
+        for flag in flags:
+            if isinstance(flag, (list, tuple)):
+                result.extend(str(f) for f in flag)
+            else:
+                result.append(str(flag))
+
+        # Return the flattened list.
+        return result
+
     # * method: create_cache_key
     def create_cache_key(self, flags: List[str] = None) -> str:
         '''
@@ -151,20 +176,25 @@ class DIContext(object):
         return provider
 
     # * method: get_dependency
-    def get_dependency(self, configuration_id: str, flags: List[str] = None) -> Any:
+    def get_dependency(self, configuration_id: str, *flags) -> Any:
         '''
         Get a resolved service by its configuration ID.
+
+        Accepts flags as individual strings, lists, or tuples in any combination.
 
         :param configuration_id: The service configuration identifier.
         :type configuration_id: str
         :param flags: The feature or data flags to use.
-        :type flags: List[str] | None
+        :type flags: str | list | tuple
         :return: The resolved service instance.
         :rtype: Any
         '''
 
+        # Normalize the flags into a flat list.
+        normalized = self.normalize_flags(*flags) if flags else []
+
         # Build (or retrieve) the service provider for these flags.
-        provider = self.build_service_provider(flags)
+        provider = self.build_service_provider(normalized)
 
         # Return the resolved service from the provider.
         return provider.get_service(configuration_id)

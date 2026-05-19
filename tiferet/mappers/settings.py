@@ -56,6 +56,31 @@ class Aggregate(DomainObject):
         # Apply the update; validate_assignment=True triggers field validation.
         setattr(self, attribute, value)
 
+    # * method: to_dict
+    def to_dict(self, role: str = None, **overrides) -> Dict[str, Any]:
+        '''
+        Serialize the aggregate to a dictionary, optionally applying role-specific kwargs.
+
+        Mirrors :meth:`TransferObject.to_primitive` for consistent serialization
+        across both aggregates and transfer objects.
+
+        :param role: Optional serialization role to apply.
+        :type role: str
+        :param overrides: Additional keyword arguments passed to ``model_dump``.
+        :type overrides: dict
+        :return: The serialized dictionary.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Start with the default kwargs.
+        kwargs: Dict[str, Any] = {'exclude_none': True}
+
+        # Apply caller overrides.
+        kwargs.update(overrides)
+
+        # Delegate to Pydantic model_dump.
+        return self.model_dump(**kwargs)
+
 # ** class: transfer_object
 class TransferObject(DomainObject):
     '''

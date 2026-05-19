@@ -320,6 +320,65 @@ def test_di_context_get_dependency(di_context: DIContext):
     assert service.flagged_config is None
 
 
+# ** test: di_context_get_dependency_with_varargs
+def test_di_context_get_dependency_with_varargs(di_context: DIContext):
+    '''
+    Test retrieving a dependency using *flags varargs.
+
+    :param di_context: The DI context to test.
+    :type di_context: DIContext
+    '''
+
+    # Retrieve the dependency with a single string flag.
+    service = di_context.get_dependency('test_service', 'test')
+
+    # Assert the service was resolved with flagged parameters.
+    assert service.test_config == 'test_value'
+    assert service.flagged_config == 'flagged_value'
+
+
+# ** test: di_context_get_dependency_with_list_flag
+def test_di_context_get_dependency_with_list_flag(di_context: DIContext):
+    '''
+    Test retrieving a dependency passing a list as a flag argument.
+
+    :param di_context: The DI context to test.
+    :type di_context: DIContext
+    '''
+
+    # Retrieve the dependency with a list flag (normalized to individual flags).
+    service = di_context.get_dependency('test_service', ['test'])
+
+    # Assert the service was resolved with flagged parameters.
+    assert service.test_config == 'test_value'
+    assert service.flagged_config == 'flagged_value'
+
+
+# ** test: di_context_normalize_flags
+def test_di_context_normalize_flags():
+    '''
+    Test the normalize_flags static method handles mixed input types.
+    '''
+
+    # Single string.
+    assert DIContext.normalize_flags('a') == ['a']
+
+    # Multiple strings.
+    assert DIContext.normalize_flags('a', 'b') == ['a', 'b']
+
+    # List.
+    assert DIContext.normalize_flags(['a', 'b']) == ['a', 'b']
+
+    # Tuple.
+    assert DIContext.normalize_flags(('a', 'b')) == ['a', 'b']
+
+    # Mixed.
+    assert DIContext.normalize_flags('a', ['b', 'c'], ('d',)) == ['a', 'b', 'c', 'd']
+
+    # Empty.
+    assert DIContext.normalize_flags() == []
+
+
 # ** test: di_context_load_constants_with_flagged_dependencies
 def test_di_context_load_constants_with_flagged_dependencies(
         di_context: DIContext,
