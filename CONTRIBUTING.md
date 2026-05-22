@@ -5,7 +5,7 @@ Thank you for your interest in contributing to the Tiferet framework! This docum
 ## Getting Started
 
 1. **Fork** the repository and clone your fork locally.
-2. Create a new branch from the appropriate base branch (e.g., `v1.x-proto` or `v2.0-proto`).
+2. Create a new branch from the appropriate base branch (see Contribution Streams below).
 3. Set up a virtual environment and install the package in development mode:
    ```bash
    python3.10 -m venv venv
@@ -13,13 +13,27 @@ Thank you for your interest in contributing to the Tiferet framework! This docum
    pip install -e .
    ```
 
-## Contribution Workflow
+## Contribution Workflow Streams
 
-### 1. Open or Claim an Issue
+Tiferet uses three distinct contribution workflow streams, each with its own branching, versioning, and review process:
 
-All contributions should be tied to a GitHub issue. If one doesn't exist for the work you'd like to do, open an issue first to discuss the change with maintainers before starting.
+- **[RFP — Request for Prototype](docs/collab/rfp.md)**: Exploratory and architectural work developed on prototype branches with alpha/beta versioning. Used for significant refactors and new architectural ideas.
+- **[Main — Feature Release](docs/collab/main.md)**: The primary path for feature releases. Work is organized into milestones, implemented on feature branches from `main`, and merged via pull requests.
+- **[Doc — Documentation Updates](docs/collab/doc.md)**: Standalone documentation changes merged directly into `main` via pull requests. No milestones or releases involved.
 
-### 2. Write a Technical Requirements Document (TRD)
+Each stream guide covers branch naming, workflow steps, and versioning conventions in detail.
+
+For a reference of git and `gh` CLI commands used across all streams, see **[docs/collab/commands.md](docs/collab/commands.md)**.
+
+## Common Workflow Steps
+
+Regardless of stream, all contributions share the following practices.
+
+### Open or Claim an Issue
+
+All contributions should be tied to a GitHub issue (except internal RFPs and standalone doc changes). If one doesn't exist for the work you'd like to do, open an issue first to discuss the change with maintainers before starting.
+
+### Write a Technical Requirements Document (TRD)
 
 For non-trivial changes (new features, refactors, architectural updates), a **Technical Requirements Document** is required before implementation begins. TRDs ensure clarity, alignment, and traceability across the project.
 
@@ -30,8 +44,9 @@ Key points:
 - Follow the standard structure (Overview, Scope, Components Affected, Detailed Requirements, Acceptance Criteria).
 - Include code signatures and behavior descriptions where applicable.
 - Reference the relevant [code style guides](docs/core/) for the components you're modifying.
+- Set the **Version** field according to the applicable stream (milestone version for Main, "Request for Prototype" for RFP, latest released version for Doc).
 
-### 3. Implement
+### Implement
 
 - Follow the [Structured Code Style](docs/core/code_style.md) — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase.
 - Consult the component-specific guides in `docs/core/` for the layers you're working in:
@@ -44,20 +59,21 @@ Key points:
   - [utils.md](docs/core/utils.md) — Utilities
 - Write tests using `pytest`.
 
-### 4. Commit Hygiene
+### Commit Hygiene
 
 - Separate functional code changes from documentation, configuration, and packaging into distinct, atomic commits.
-- Title commits by scope (e.g., `Events – AddFeature event`, `Docs/Packaging – update guides`).
+- Title commits by scope (e.g., `Events – AddFeature Event`, `Docs/Packaging – Update Guides`).
 - Include `Co-Authored-By: <name> <email>` in commit messages when collaborating with AI agents or other contributors.
 
-### 5. Open a Pull Request
+### Open a Pull Request
 
-- Target the appropriate base branch.
+- Target the appropriate base branch for the stream (`main` for Main/Doc, prototype branch for RFP).
 - Reference the GitHub issue in the PR description.
 - Ensure all tests pass and the code follows project conventions.
 - Keep PRs focused — one logical change per PR.
+- After submitting, provide the PR URL to the user.
 
-### 6. Collaboration Report
+### Collaboration Report
 
 Upon completion of a story or issue, a **Collaboration Report** is published as a comment on the originating GitHub issue. This report documents the implementation, deviations from the TRD, git state, and a log of key decisions made during development.
 
