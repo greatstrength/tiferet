@@ -1,7 +1,3 @@
-**This conversation is part of the Tiferet Framework project.**  
-**Repository:** https://github.com/greatstrength/tiferet – Tiferet Framework  
-
-```markdown
 # Utilities – FileLoader (alias: File)
 
 **Project:** Tiferet Framework  

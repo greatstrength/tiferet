@@ -1,7 +1,3 @@
-**This conversation is part of the Tiferet Framework project.**  
-**Repository:** https://github.com/greatstrength/tiferet – Tiferet Framework  
-
-```markdown
 # Utilities – CsvLoader (alias: Csv) & CsvDictLoader (alias: CsvDict)
 
 **Project:** Tiferet Framework  
@@ -281,4 +277,3 @@ def test_import_csv_records_file_not_found(tmp_path):
 - [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) — JsonLoader guide (sibling utility)
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```

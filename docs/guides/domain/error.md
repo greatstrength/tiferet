@@ -1,7 +1,3 @@
-**This conversation is part of the Tiferet Framework project.**  
-**Repository:** https://github.com/greatstrength/tiferet – Tiferet Framework  
-
-```markdown
 # Domain – Error: ErrorMessage and Error
 
 **Project:** Tiferet Framework  
@@ -95,11 +91,11 @@ Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERR
 - `FEATURE_NOT_FOUND` — unknown feature ID
 - `INVALID_MODEL_ATTRIBUTE` — invalid attribute on a domain object
 
-Application-specific errors are defined in `app/configs/error.yml` and loaded via `ErrorService`.
+Application-specific errors are defined in the `errors` section of the configuration file (typically `config.yml`, though per-file configs such as `error.yml` are also supported) and loaded via `ErrorService`.
 
 ## Configuration Mapping
 
-Errors are defined in `app/configs/error.yml`. Each top-level key maps to an `Error`:
+Errors are defined in the `errors` section of the configuration file (typically `config.yml`). Each top-level key maps to an `Error`:
 
 ```yaml
 errors:
@@ -176,4 +172,3 @@ error = Error(
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```

@@ -1,7 +1,3 @@
-**This conversation is part of the Tiferet Framework project.**  
-**Repository:** https://github.com/greatstrength/tiferet – Tiferet Framework  
-
-```markdown
 # Domain – DI: ServiceConfiguration and FlaggedDependency
 
 **Project:** Tiferet Framework  
@@ -172,4 +168,3 @@ config = ServiceConfiguration(
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (AppInterface, flags)
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```

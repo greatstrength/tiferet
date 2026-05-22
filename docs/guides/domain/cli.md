@@ -1,7 +1,3 @@
-**This conversation is part of the Tiferet Framework project.**  
-**Repository:** https://github.com/greatstrength/tiferet – Tiferet Framework  
-
-```markdown
 # Domain – CLI: CliArgument and CliCommand
 
 **Project:** Tiferet Framework  
@@ -106,7 +102,7 @@ The `build_cli` blueprint (`tiferet/blueprints/cli.py`) is the primary consumer 
 
 ## Configuration Mapping
 
-CLI commands are defined in `app/configs/cli.yml`. Each entry under `cli.cmds.<group>.<key>` maps to a `CliCommand`:
+CLI commands are defined in the `cli` section of the configuration file (typically `config.yml`, though per-file configs such as `cli.yml` are also supported). Each entry under `cli.cmds.<group>.<key>` maps to a `CliCommand`:
 
 ```yaml
 cli:
@@ -197,4 +193,3 @@ cmd = CliCommand(
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (interface configuration)
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```

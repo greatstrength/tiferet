@@ -1,4 +1,3 @@
-```markdown
 # Domain – Feature: FeatureStep, FeatureEvent, and Feature
 
 **Project:** Tiferet Framework  
@@ -98,7 +97,7 @@ The Feature domain objects participate in runtime workflow execution through the
 
 ## Configuration Mapping
 
-Features are defined in `app/configs/feature.yml`. Each group contains keyed features:
+Features are defined in the `features` section of the configuration file (typically `config.yml`, though per-file configs such as `feature.yml` are also supported). Each group contains keyed features:
 
 ```yaml
 features:
@@ -185,4 +184,3 @@ feature = Feature(
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```
