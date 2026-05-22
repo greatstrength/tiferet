@@ -7,7 +7,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** March 01, 2026  
-**Version:** 2.0.0a0
+**Version:** 2.0.0
 
 ## Overview
 

@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/events/sqlite.py`  
-**Version:** 2.0.0a6
+**Version:** 2.0.0
 
 ## Overview
 

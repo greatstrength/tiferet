@@ -7,7 +7,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** May 04, 2026  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -71,32 +71,32 @@ Flags flow into the DI container from multiple sources:
 2. **`Feature.flags`** — feature-level flag overrides defined in `feature.yml`.
 3. **`FeatureEvent.flags`** — command-level flag overrides within a feature workflow.
 
-At resolution time, `ContainerContext` merges these flag sources and calls `ServiceConfiguration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.
+At resolution time, `DIContext` merges these flag sources and calls `ServiceConfiguration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.
 
 ## Runtime Role
 
 The DI domain objects participate in the service resolution flow:
 
-1. **`ContainerContext`** loads all `ServiceConfiguration` entries from `app/configs/container.yml` via `ContainerService`.
-2. **`build_injector()`** iterates each `ServiceConfiguration`, resolving concrete types:
+1. **`DIContext`** loads all `ServiceConfiguration` entries from the `services` section of the configuration file via `DIService`.
+2. **`build_service_provider()`** iterates each `ServiceConfiguration`, resolving concrete types:
    - If a matching `FlaggedDependency` is found via `get_dependency(*flags)`, its `module_path` and `class_name` are used.
    - Otherwise, the default `module_path` and `class_name` on `ServiceConfiguration` are used.
-3. **`get_attribute_type()`** calls `ImportDependency.execute()` to dynamically import the resolved class.
-4. The resolved types and their parameters are wired into the dependency injection `Injector`.
+3. **`get_configuration_type()`** calls `ImportDependency.execute()` to dynamically import the resolved class.
+4. The resolved types and their parameters are wired into the DI service provider.
 5. Domain events and contexts receive fully constructed service instances via constructor injection.
 
 ## Configuration Mapping
 
-Service configurations are defined in `app/configs/container.yml`. Each top-level key under `attrs` maps to a `ServiceConfiguration`:
+Service configurations are defined in the `services` section of the configuration file (typically `config.yml`). Each top-level key maps to a `ServiceConfiguration`:
 
 ```yaml
-attrs:
+services:
   error_service:
     module_path: tiferet.repos.error
     class_name: ErrorYamlRepository
     params:
-      error_config_file: app/configs/error.yml
-    dependencies:
+      error_yaml_file: config.yml
+    deps:
       - flag: sqlite
         module_path: tiferet.repos.error_sqlite
         class_name: ErrorSqliteRepository
@@ -107,7 +107,7 @@ attrs:
     module_path: tiferet.repos.feature
     class_name: FeatureYamlRepository
     params:
-      feature_config_file: app/configs/feature.yml
+      feature_yaml_file: config.yml
 ```
 
 ## Domain Events
@@ -121,19 +121,20 @@ The following domain events interact with `ServiceConfiguration` and `FlaggedDep
 | `UpdateServiceConfiguration`| Modifies an existing `ServiceConfiguration` via aggregate.|
 | `DeleteServiceConfiguration`| Removes a `ServiceConfiguration` by ID.                   |
 
-These events depend on the `ContainerService` interface for persistence operations.
+These events depend on the `DIService` interface for persistence operations.
 
 ## Service Interface
 
-**`ContainerService`** (`tiferet/interfaces/container.py`) defines the abstract contract for DI configuration persistence:
+**`DIService`** (`tiferet/interfaces/di.py`) defines the abstract contract for DI configuration persistence:
 
-- `exists(id: str) -> bool`
-- `get(id: str) -> ServiceConfiguration`
-- `list() -> List[ServiceConfiguration]`
-- `save(service_configuration) -> None`
-- `delete(id: str) -> None`
+- `configuration_exists(id: str) -> bool`
+- `get_configuration(id: str) -> ServiceConfiguration`
+- `list_all() -> Tuple[List[ServiceConfiguration], Dict[str, str]]`
+- `save_configuration(service_configuration) -> None`
+- `delete_configuration(id: str) -> None`
+- `save_constants(constants: Dict[str, Any]) -> None`
 
-Concrete implementations (e.g., `ContainerYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `DIYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

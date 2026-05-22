@@ -7,7 +7,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** May 04, 2026  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -149,7 +149,7 @@ Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
 
 - **All Domains:** Every domain event uses `verify()` and `raise_error()` to raise `TiferetError`, which is resolved to an `Error` for formatting.
 - **App:** `ErrorContext` is loaded as part of the application interface bootstrap, receiving `ErrorService` via dependency injection.
-- **DI:** `ErrorService` is wired through the DI container (`ServiceConfiguration` entries in `container.yml`).
+- **DI:** `ErrorService` is wired through the DI container (`ServiceConfiguration` entries in the `services` section of the configuration).
 
 ## Instantiation
 
