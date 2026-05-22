@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet
 
-This document lists key commands used across all contribution streams. Each entry notes whether the operation is available via **GitHub MCP tools** (model-agnostic, preferred when available) or requires the **`gh` CLI** directly.
+This document lists key commands used across all contribution workflow streams. Each entry notes whether the operation is available via **Warp/Oz GitHub MCP tools** (preferred when available) or requires the **`gh` CLI** directly.
 
 ## Branch Operations
 
@@ -28,7 +28,7 @@ git pull origin main
 
 ## Issue and PR Management
 
-**Tool availability:** Available via **GitHub MCP tools** where supported; fall back to `gh` CLI.
+**Tool availability:** Available via **Warp/Oz GitHub MCP tools**; fall back to `gh` CLI.
 
 ```bash
 # Create an issue
@@ -136,7 +136,7 @@ git tag --list 'v2.0.0*' --sort=-version:refname
 
 ## Issue Linking and Labels
 
-**Tool availability:** Available via **GitHub MCP tools** where supported; fall back to `gh` CLI.
+**Tool availability:** Available via **Warp/Oz GitHub MCP tools**; fall back to `gh` CLI.
 
 ```bash
 # Add a label to an issue

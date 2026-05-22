@@ -13,9 +13,9 @@ Thank you for your interest in contributing to the Tiferet framework! This docum
    pip install -e .
    ```
 
-## Contribution Streams
+## Contribution Workflow Streams
 
-Tiferet uses three distinct contribution streams, each with its own branching, versioning, and review process:
+Tiferet uses three distinct contribution workflow streams, each with its own branching, versioning, and review process:
 
 - **[RFP — Request for Prototype](docs/collab/rfp.md)**: Exploratory and architectural work developed on prototype branches with alpha/beta versioning. Used for significant refactors and new architectural ideas.
 - **[Main — Feature Release](docs/collab/main.md)**: The primary path for feature releases. Work is organized into milestones, implemented on feature branches from `main`, and merged via pull requests.
@@ -62,7 +62,7 @@ Key points:
 ### Commit Hygiene
 
 - Separate functional code changes from documentation, configuration, and packaging into distinct, atomic commits.
-- Title commits by scope (e.g., `Events – AddFeature event`, `Docs/Packaging – update guides`).
+- Title commits by scope (e.g., `Events – AddFeature Event`, `Docs/Packaging – Update Guides`).
 - Include `Co-Authored-By: <name> <email>` in commit messages when collaborating with AI agents or other contributors.
 
 ### Open a Pull Request
