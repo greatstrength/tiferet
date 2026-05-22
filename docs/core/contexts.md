@@ -1,6 +1,6 @@
 # Contexts in Tiferet
 
-Contexts are a core component of the Tiferet framework, representing the structural "body" of an application in runtime "graph space." While Initializer Scripts control the timing, execution, and procedure of the app, Contexts define its shape and behavior, encapsulating user interactions, internal orchestration, and supporting services. In Tiferet, Contexts are the primary runtime components safely accessible to Initializer Scripts, making their methods and attributes extensible for developers (human or AI). This document explores the structured code design behind Contexts, how to write and extend them, and how to test them, using the calculator application as an example and adhering to Tiferet’s code style ([docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
+Contexts are a core component of the Tiferet framework, representing the structural "body" of an application in runtime "graph space." While blueprints (`tiferet/blueprints/`) control the timing, execution, and procedure of the app, Contexts define its shape and behavior, encapsulating user interactions, internal orchestration, and supporting services. In Tiferet, Contexts are the primary runtime components safely accessible to blueprints, making their methods and attributes extensible for developers (human or AI). This document explores the structured code design behind Contexts, how to write and extend them, and how to test them, using the calculator application as an example and adhering to Tiferet's code style ([docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
 
 ## What is a Context?
 
@@ -9,10 +9,10 @@ A Context in Tiferet is a class that encapsulates a specific aspect of an applic
 ### Types of Contexts
 Tiferet recognizes two broad categories:
 
-- **High-Level Contexts**: Handle user interactions (e.g., `CliContext` for command-line, `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`.
-- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `ContainerContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
+- **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
+- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `DIContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
-In the calculator application, `CliContext` handles CLI inputs, while low-level contexts manage feature execution, error handling, and logging.
+In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
 
 **Note on Method Design**: The nature of methods in Contexts is not restrictive regarding inputs and outputs. Methods must be defined according to the domain requirements of the context containing them, allowing flexibility for domain-specific tasks while maintaining clear, documented signatures.
 
@@ -33,43 +33,61 @@ Contexts are organized under the `# *** contexts` top-level comment, with indivi
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets.
 
-**Example** – `tiferet/contexts/cli.py`:
+**Example** – `tiferet/contexts/app.py`:
 ```python
 # *** imports
 
-# ** core
-import sys
-
 # ** app
-from .app import AppInterfaceContext
-from ..handlers.cli import CliService
+from .feature import FeatureContext
+from .error import ErrorContext
+from .logging import LoggingContext
 
 # *** contexts
 
-# ** context: cli_context
-class CliContext(AppInterfaceContext):
+# ** context: app_interface_context
+class AppInterfaceContext:
 
-    # * attribute: cli_service
-    cli_service: CliService
+    # * attribute: interface_id
+    interface_id: str
+
+    # * attribute: features
+    features: FeatureContext
+
+    # * attribute: errors
+    errors: ErrorContext
+
+    # * attribute: logging
+    logging: LoggingContext
 
     # * init
-    def __init__(self, interface_id, features, errors, logging, cli_service):
+    def __init__(self, interface_id, features, errors, logging):
         '''
-        Initialize the CLI context.
+        Initialize the application interface context.
         '''
-        super().__init__(interface_id, features, errors, logging)
-        self.cli_service = cli_service
+        self.interface_id = interface_id
+        self.features = features
+        self.errors = errors
+        self.logging = logging
 
-    # * method: parse_request
-    def parse_request(self):
+    # * method: run
+    def run(self, feature_id, headers=None, data=None, **kwargs):
         '''
-        Parse CLI arguments and return RequestContext.
+        Execute a feature and return the response.
         '''
-        # Retrieve commands and parse args
-        cli_commands = self.cli_service.get_commands()
-        data = self.cli_service.parse_arguments(cli_commands)
-        # Build feature_id and return RequestContext
-        ...
+        # Build logger.
+        logger = self.logging.build_logger()
+
+        # Parse request into a RequestContext.
+        request = self.parse_request(headers or {}, data or {}, feature_id)
+
+        # Execute the feature.
+        try:
+            self.execute_feature(feature_id=feature_id, request=request, logger=logger, **kwargs)
+        except TiferetError as e:
+            return self.handle_error(e)
+
+        # Return the response.
+        return self.handle_response(request)
 ```
 
 ## Writing Contexts
@@ -110,31 +128,33 @@ class FlaskApiContext(AppInterfaceContext):
 
 Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`.
 
-**Example** – `CliContext` test:
+**Example** – `AppInterfaceContext` test:
 ```python
 # *** fixtures
 
-# ** fixture: cli_context
+# ** fixture: app_interface_context
 @pytest.fixture
-def cli_context(feature_context, error_context, logging_context):
-    return CliContext(
-        interface_id='calc_cli',
+def app_interface_context(feature_context, error_context, logging_context):
+    return AppInterfaceContext(
+        interface_id='basic_calc',
         features=feature_context,
         errors=error_context,
         logging=logging_context,
-        cli_service=mock.Mock(spec=CliService)
     )
 
 # *** tests
 
-# ** test: cli_context_parse_request
-def test_cli_context_parse_request(cli_context):
-    # Mock service responses
-    cli_context.cli_service.get_commands.return_value = {...}
-    cli_context.cli_service.parse_arguments.return_value = {...}
-    request = cli_context.parse_request()
-    assert isinstance(request, RequestContext)
-    assert request.feature_id == 'calc.add'
+# ** test: app_interface_context_run_success
+def test_app_interface_context_run_success(app_interface_context):
+    # Arrange the logger.
+    app_interface_context.logging.build_logger.return_value = mock.Mock()
+
+    # Act.
+    result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
+
+    # Assert execution was invoked.
+    app_interface_context.features.execute_feature.assert_called_once()
+    assert result is not None
 ```
 
 ### Best Practices

@@ -5,11 +5,11 @@
 
 ## Overview
 
-The `tiferet/di/` package provides the **app-level dependency injection** layer for the Tiferet framework. It defines the `ServiceProvider` abstract base class and its concrete implementation, `DynamicServiceProvider`, which backs `AppBuilder` during interface loading.
+The `tiferet/di/` package provides the **app-level dependency injection** layer for the Tiferet framework. It defines the `ServiceProvider` abstract base class and its concrete implementation, `DynamicServiceProvider`, which backs the `build_app` blueprint during interface loading.
 
 The `di/` package is distinct from the feature-level DI managed by `DIContext` (`contexts/di.py`):
 
-- **`tiferet/di/`** — App-level DI. Manages the lifecycle of injected contexts and repositories for an interface (e.g., `FeatureContext`, `ErrorContext`, `LoggingContext`). Consumed by `AppBuilder`.
+- **`tiferet/di/`** — App-level DI. Manages the lifecycle of injected contexts and repositories for an interface (e.g., `FeatureContext`, `ErrorContext`, `LoggingContext`). Consumed by the `build_app` blueprint (`tiferet/blueprints/main.py`).
 - **`tiferet/contexts/di.py` (`DIContext`)** — Feature-level DI. Loads `ServiceConfiguration` objects, resolves flagged dependencies, and builds per-flag providers for feature execution. Consumed by `FeatureContext`.
 
 This document describes the structure, design principles, and best practices for writing and extending the DI layer, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
@@ -25,11 +25,11 @@ Key characteristics:
 
 ### Role in Runtime
 
-`AppBuilder` holds a single `ServiceProvider` instance for the lifetime of an interface load:
+The `build_app` blueprint creates a single `ServiceProvider` instance for the lifetime of an interface load:
 
-1. `AppBuilder.__init__` creates a `DynamicServiceProvider` via `create_service_provider()`.
-2. `load_interface` calls `app_interface.get_service_type_mapping()` to obtain a `Dict[str, type]`.
-3. `load_app_instance` calls `service_provider.add_services(dependencies)` to register all interface dependencies.
+1. `create_service_provider()` creates a `DynamicServiceProvider`.
+2. `resolve_interface` calls `GetAppInterface` to load the interface definition and obtain its service type mapping.
+3. `realize_interface` calls `service_provider.add_services(dependencies)` to register all interface dependencies.
 4. `service_provider.get_service('app_context')` resolves and returns the fully constructed `AppInterfaceContext`.
 
 ## The ServiceProvider Abstract Base
@@ -314,7 +314,7 @@ class SimpleServiceProvider(ServiceProvider):
         self.registry.pop(service_id, None)
 ```
 
-Inject a custom provider into `AppBuilder` via the `create_service_provider` static method or by subclassing.
+Inject a custom provider into `build_app` via the `provider_type` parameter of `create_service_provider`.
 
 ## Testing ServiceProvider Implementations
 
@@ -394,6 +394,6 @@ tiferet/di/
 
 The `tiferet/di/` package provides the app-level DI foundation for the Tiferet framework, abstracting the lifecycle of contexts and repositories behind the `ServiceProvider` contract. The `DynamicServiceProvider` satisfies this contract using the `dependency-injector` library's `DynamicContainer`, providing incremental provider registration, automatic constructor wiring, and direct scalar resolution.
 
-New implementations extend `ServiceProvider` and override all abstract methods. Inject them into `AppBuilder` via the `create_service_provider` static method to swap backends without changing application code.
+New implementations extend `ServiceProvider` and override all abstract methods. Inject them into the `build_app` blueprint via the `provider_type` parameter of `create_service_provider` to swap backends without changing application code.
 
 Explore source in `tiferet/di/`, runtime consumers in `tiferet/blueprints/main.py`, and tests in `tiferet/di/tests/`.

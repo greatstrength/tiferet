@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/events/logging.py`  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
