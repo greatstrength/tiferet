@@ -1,4 +1,4 @@
-# Domain – Feature (Workflow Orchestration)
+# Domain – Feature: FeatureStep, FeatureEvent, and Feature
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -106,9 +106,7 @@ step = feature.get_step('x')  # None (invalid type)
 #           b: '2'
 ```
 
-## Configuration
-
-Features are defined in `app/configs/feature.yml`:
+Features are defined in the `features` section of the configuration file (typically `config.yml`, though per-file configs such as `feature.yml` are also supported). Each group contains keyed features:
 
 ```yaml
 features:
@@ -189,3 +187,5 @@ feature = Feature(
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

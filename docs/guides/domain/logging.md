@@ -1,4 +1,4 @@
-# Domain – Logging (Observability)
+# Domain – Logging: Formatter, Handler, and Logger
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -124,9 +124,7 @@ These defaults are used by `LoggingContext.build_logger()` when no logging confi
 
 The resulting logger is used throughout the request lifecycle — from parsing to feature execution to response handling.
 
-## Configuration
-
-Logging is defined in `app/configs/logging.yml`:
+Logging is configured in the `logging` section of the configuration file (typically `config.yml`, though per-file configs such as `logging.yml` are also supported):
 
 ```yaml
 formatters:
@@ -220,3 +218,7 @@ lgr = Logger(
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
+- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
+- [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

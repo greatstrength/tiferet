@@ -1,4 +1,4 @@
-# Domain – CLI (Command-Line Interface)
+# Domain – CLI: CliArgument and CliCommand
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -87,9 +87,7 @@ feature_id = '{}.{}'.format(
 # 'calc' + 'add' → 'calc.add'
 ```
 
-## Configuration
-
-CLI commands are defined in `app/configs/cli.yml`:
+CLI commands are defined in the `cli` section of the configuration file (typically `config.yml`, though per-file configs such as `cli.yml` are also supported). Each entry under `cli.cmds.<group>.<key>` maps to a `CliCommand`:
 
 ```yaml
 cli:
@@ -180,4 +178,3 @@ cmd = CliCommand(
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (interface configuration)
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
-```

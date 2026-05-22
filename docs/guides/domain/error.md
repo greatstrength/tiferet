@@ -1,4 +1,4 @@
-# Domain – Error (Structured Error Handling)
+# Domain – Error: ErrorMessage and Error
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -74,7 +74,26 @@ The framework ships with a set of default error definitions in `assets/constants
 
 ## Configuration
 
-Errors are defined in `app/configs/error.yml`:
+1. A domain event calls `self.verify(expression, error_code, ...)` or `self.raise_error(error_code, ...)`.
+2. A `TiferetError` is raised with the `error_code` and contextual kwargs.
+3. The application context catches the error and delegates to `ErrorContext.handle_error()`.
+4. `ErrorContext` retrieves the `Error` domain object via `ErrorService.get(error_code)`.
+5. `Error.format_response(lang, **kwargs)` produces the structured error response.
+6. The response is returned to the caller (API response, CLI output, etc.).
+
+## Built-In Defaults
+
+Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERRORS`. These cover framework-level errors such as:
+
+- `COMMAND_PARAMETER_REQUIRED` — missing required parameters
+- `FEATURE_NOT_FOUND` — unknown feature ID
+- `INVALID_MODEL_ATTRIBUTE` — invalid attribute on a domain object
+
+Application-specific errors are defined in the `errors` section of the configuration file (typically `config.yml`, though per-file configs such as `error.yml` are also supported) and loaded via `ErrorService`.
+
+## Configuration Mapping
+
+Errors are defined in the `errors` section of the configuration file (typically `config.yml`). Each top-level key maps to an `Error`:
 
 ```yaml
 errors:
@@ -145,3 +164,6 @@ error = Error(
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns (verify, raise_error)
 - [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
+- [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
+- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
+- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
