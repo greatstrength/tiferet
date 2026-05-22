@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/blueprints/`  
-**Version:** 2.0.0b3
+**Version:** 2.0.0
 
 ## Overview
 

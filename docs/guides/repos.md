@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/repos/`  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -19,7 +19,7 @@ Every repository implements a Service interface from `tiferet/interfaces/`. The 
 |---|---|---|
 | `AppYamlRepository` | `AppService` | `Yaml` |
 | `CliYamlRepository` | `CliService` | `Yaml` |
-| `ContainerYamlRepository` | `ContainerService` | `Yaml` |
+| `DIYamlRepository` | `DIService` | `Yaml` |
 | `DIYamlRepository` | `DIService` | `Yaml` |
 | `ErrorYamlRepository` | `ErrorService` | `Yaml` |
 | `FeatureYamlRepository` | `FeatureService` | `Yaml` |

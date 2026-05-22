@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Module:** `tiferet/contexts/`  
-**Version:** 2.0.0a10
+**Version:** 2.0.0
 
 ## Overview
 

@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** May 04, 2026  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -36,7 +36,8 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 | `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
 | `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
 | `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in if `return_to_data` is True.       |
-| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
+|| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
+|| `condition`      | `str \| None`           | No       | `None`  | Boolean expression evaluated against request data before execution. If `False`, the step is silently skipped. |
 
 Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
@@ -46,6 +47,10 @@ Parameters support two value modes:
 
 - **Static values** — literal strings provided directly in configuration (e.g., `b: '0.5'`).
 - **Request-backed values** — prefixed with `$r.` to indicate the value is resolved from the incoming request data at runtime (e.g., `$r.user_id`).
+
+#### Conditional Execution
+
+The optional `condition` field supports boolean expression strings evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`). When `condition` is `None` or empty, the step always executes. When it evaluates to `False`, the step is silently skipped.
 
 ### Feature
 

@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** May 04, 2026  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -70,16 +70,13 @@ assert cmd.id == 'my_group.my_cmd'
 
 ## Runtime Role
 
-`CliContext` (which extends `AppInterfaceContext`) is the sole consumer of the CLI domain at runtime:
+The `build_cli` blueprint (`tiferet/blueprints/cli.py`) is the primary consumer of the CLI domain at runtime:
 
-1. **`get_commands()`** retrieves all `CliCommand` objects via `ListCliCommands` and groups them by `group_key`.
-2. **`parse_arguments(cli_commands)`** builds a nested `argparse` parser:
-   - Top-level subparsers for each group (e.g., `calc`).
-   - Sub-subparsers for each command within a group (e.g., `add`, `sqrt`).
-   - Each `CliArgument` is added via `add_argument()` with its type, default, choices, etc.
-   - **Parent arguments** (retrieved via `GetParentArguments`) are added to all commands that don't already define them.
-3. **`parse_request()`** calls `parse_arguments()`, extracts `group` and `command` from the result, constructs the feature ID, and creates a `RequestContext` with the parsed data.
-4. **`run()`** executes the feature via the inherited `AppInterfaceContext.execute_feature()`.
+1. **`get_commands(service_provider)`** resolves all `CliCommand` entries from the configuration via `CliService`.
+2. **`build_parser()`** iterates each `CliCommand`, registering subparsers and arguments with `argparse` using `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action`).
+3. **`parse_argv()`** parses the user's CLI input and returns the matched command group and key.
+4. **`derive_feature_request()`** maps the parsed arguments to a feature ID (`group_key.key`) and dispatches to `AppInterfaceContext.run()`.
+5. **`FeatureContext`** executes the corresponding feature with the parsed data.
 
 ```python
 # CliContext constructs the feature ID from parsed arguments:
@@ -149,7 +146,7 @@ Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
 ## Relationships to Other Domains
 
 - **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
-- **App:** The `calc_cli` interface in `app.yml` specifies `CliContext` as its implementation, with `CliService` and `CliHandler` as service dependencies.
+- **App:** The CLI interface in the configuration specifies `CliService` as a service dependency. The `build_cli` blueprint handles argparse wiring and dispatches to `AppInterfaceContext`.
 - **Error:** CLI error responses are formatted via `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
 
 ## Instantiation

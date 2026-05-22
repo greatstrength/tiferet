@@ -3,7 +3,7 @@
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** May 04, 2026  
-**Version:** 2.0.0b1
+**Version:** 2.0.0
 
 ## Overview
 
@@ -67,13 +67,21 @@ A single service dependency that tells the framework what to import and how to b
 
 ## Runtime Role
 
-`AppManagerContext` is the sole consumer of the App domain at runtime. The flow is:
+The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer of the App domain at runtime. The flow is:
 
-1. **`App()`** creates an `AppManagerContext` with optional settings.
-2. **`load_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event.
-3. **`load_app_instance(app_interface, default_attrs)`** iterates through `app_interface.services`, imports each class via `ImportDependency.execute()`, and collects them (along with parameters and constants) into a dependencies dict.
-4. The dependencies dict is passed to `create_injector`, which builds a DI container that instantiates the context class with all its wired services.
-5. The resulting context (e.g., `AppInterfaceContext`, `CliContext`) is returned, ready to execute features.
+1. **`App('basic_calc', app_yaml_file='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
+2. **`resolve_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event, merging default services.
+3. **`realize_interface(app_interface, ...)`** iterates through `app_interface.services`, imports each class via `ImportDependency.execute()`, and collects them (along with parameters and constants) into a dependencies dict.
+4. The dependencies dict is passed to `create_service_provider`, which builds a DI container that instantiates the context class with all its wired services.
+5. The resulting `AppInterfaceContext` is returned, ready to execute features.
+
+```python
+# Simplified runtime flow
+from tiferet import App
+
+app = App('basic_calc', app_yaml_file='config.yml')  # resolves interface, wires dependencies
+result = app.run('calc.add', data={'a': 1, 'b': 2})  # executes features via the wired context
+```
 
 ```python
 # Simplified runtime flow
@@ -82,30 +90,25 @@ interface = app.load_interface('calc_cli')       # loads AppInterface, wires dep
 result = interface.run()                         # executes features via the wired context
 ```
 
-Application interfaces are defined in `app/configs/app.yml`. Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects. Each key under `attrs` becomes the `service_id` of the corresponding `AppServiceDependency`:
+Application interfaces are defined in the `interfaces` section of the configuration file (typically `config.yml`). Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects. Each key under `attrs` becomes the `service_id` of the corresponding `AppServiceDependency`:
 
 ```yaml
 interfaces:
   basic_calc:
     name: Basic Calculator
     description: Perform basic calculator operations
-  calc_cli:
+  basic_calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
-    module_path: tiferet.contexts.cli
-    class_name: CliContext
     attrs:
       cli_repo:
         module_path: tiferet.repos.cli
         class_name: CliYamlRepository
         params:
-          cli_config_file: app/configs/cli.yml
-      cli_service:
-        module_path: tiferet.handlers.cli
-        class_name: CliHandler
+          cli_yaml_file: config.yml
 ```
 
-Each key under `interfaces` becomes the `AppInterface.id`. The `attrs` section maps to the `services` list, where each key becomes the `service_id` of the corresponding `AppServiceDependency`.
+CLI interfaces no longer require `module_path`/`class_name` overrides — they use the default `AppInterfaceContext` with argparse wiring handled by the `build_cli` blueprint.
 
 ## Domain Events
 
@@ -130,9 +133,9 @@ Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Dependency Injection (Container):** `AppServiceDependency` entries reference container attributes that are resolved at runtime via `ContainerContext`.
-- **Feature:** Once an interface is loaded and its context instantiated, features defined in `feature.yml` are executed through the `FeatureContext`.
-- **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain (`logging.yml`).
+- **Dependency Injection:** `AppServiceDependency` entries reference service configurations that are resolved at runtime via `DIContext`.
+- **Feature:** Once an interface is loaded and its context instantiated, features defined in the configuration are executed through the `FeatureContext`.
+- **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain.
 
 ## Instantiation
 
@@ -143,16 +146,14 @@ from tiferet.domain import AppServiceDependency, AppInterface
 
 dep = AppServiceDependency(
     service_id='cli_repo',
-    module_path='tiferet.proxies.yaml.cli',
-    class_name='CliYamlProxy',
-    parameters={'cli_config_file': 'app/configs/cli.yml'},
+    module_path='tiferet.repos.cli',
+    class_name='CliYamlRepository',
+    parameters={'cli_yaml_file': 'config.yml'},
 )
 
 interface = AppInterface(
-    id='calc_cli',
+    id='basic_calc_cli',
     name='Calculator CLI',
-    module_path='tiferet.contexts.cli',
-    class_name='CliContext',
     services=[dep],
 )
 ```
