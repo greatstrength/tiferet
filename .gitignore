@@ -166,5 +166,8 @@ test.py
 # VS Code
 .vscode/
 
+# TRD local copies
+.trd/
+
 # pytest
 pytest.ini
