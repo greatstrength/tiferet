@@ -92,9 +92,9 @@ Override only the methods you need. Always call `super()` for shared behavior (e
 
 ### CLI Interfaces Without Custom Contexts
 
-In v2.0+, CLI interfaces are handled by `cli.build_app` rather than a `CliContext`. All argparse wiring lives in the blueprint; the CLI interface runs against the default `AppInterfaceContext`. As a result, CLI interface definitions in `app.yml` no longer require `module_path`/`class_name` overrides.
+In v2.0+, CLI interfaces are handled by `CliBuilder` rather than a `CliContext`. All argparse wiring lives in the builder; the CLI interface runs against the default `AppInterfaceContext`. As a result, CLI interface definitions in `app.yml` no longer require `module_path`/`class_name` overrides.
 
-If a CLI interface needs custom request parsing beyond argparse, the preferred pattern is still to extend `cli.build_app` — not to reintroduce a dedicated CLI context.
+If a CLI interface needs custom request parsing beyond argparse, the preferred pattern is still to extend `CliBuilder` — not to reintroduce a dedicated CLI context.
 
 ## Low-Level Context Lifecycles
 
@@ -145,7 +145,7 @@ features:
 6. Call `create_service_provider(type_map=..., **constants)` to instantiate a provider.
 7. Cache and return the provider.
 
-The `create_service_provider` factory is supplied by the blueprint via `build_app.create_service_provider` so that app-level and feature-level providers share a consistent construction strategy.
+The `create_service_provider` factory is supplied by the builder via `AppBuilder.create_service_provider` so that app-level and feature-level providers share a consistent construction strategy.
 
 ### RequestContext
 
@@ -169,7 +169,7 @@ A simple keyed in-memory cache used by `FeatureContext` (for loaded features) an
 At runtime, a fully wired interface graph looks roughly like this:
 
 ```
-build_app
+AppBuilder
   └── AppInterfaceContext
         ├── FeatureContext
         │     ├── DIContext  ── CacheContext

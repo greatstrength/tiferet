@@ -20,7 +20,7 @@ Use **pure Markdown** and follow this exact structure and heading levels:
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
 **Date:** [Current date — e.g., February 23, 2026]  
-**Version:** [Milestone version — e.g., 1.9.0]
+**Version:** [Milestone version — e.g., 1.9.0. For RFP work, use "Request for Prototype".]
 
 ## 1. Story / TRD Summary
 - **Issue:** `[exact title]` (greatstrength/tiferet#[issue-number])
@@ -53,6 +53,11 @@ Numbered list of intentional differences (only include meaningful ones):
   1. `short commit message` (abcdef1) – [optional Co-Authored-By note]
   2. …
 - **Current state:** pushed / merged / up-to-date with main / tagged, etc.
+
+**RFP-specific fields** (include when the report covers RFP stream work):
+- **Prototype worktree branch:** full branch name (e.g., `v2.0.0b6-dicontext-varargs`)
+- **Alpha tags:** list any alpha tags created on the worktree branch (e.g., `v2.0.0a11`, `v2.0.0a12`)
+- **Beta tag:** the final beta tag applied to the main prototype branch (e.g., `v2.0.0b6`)
 
 ## 5. Collaboration Log (AI ↔ Human)
 Chronological numbered list of key decision points:

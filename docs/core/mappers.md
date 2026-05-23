@@ -105,13 +105,6 @@ def to_primitive(self, role: str = None, **overrides) -> Dict[str, Any]:
     return self.model_dump(**kwargs)
 ```
 
-### Role Naming Conventions
-
-- **`to_data.yaml`** — Serialization for YAML persistence. Typically excludes derived or identity fields (e.g., `id`, computed codes) that are inferred from the YAML structure.
-- **`to_model`** — Serialization for mapping to an Aggregate or DomainObject. May exclude nested collections that require special mapping logic (e.g., `arguments`, `dependencies`).
-
-JSON-specific roles (`to_data.json`) have been removed. Use `to_data.yaml` for all persistence serialization.
-
 ## Structured Code Design
 
 Mapper classes follow the standard Tiferet artifact comment structure:
@@ -233,9 +226,13 @@ Repositories use transfer objects to load from configuration and map to aggregat
 
 ## Testing Mappers
 
-Mapper tests use a shared test harness defined in `mappers/tests/settings.py` and `mappers/tests/conftest.py`. The harness provides base classes that automatically generate standard tests for Aggregate and TransferObject components, while allowing domain-specific tests to be added alongside them.
+Tests validate factory creation, mutation, mapping, serialization, and error handling using `pytest`.
 
-The base class tests in `test_settings.py` cover the `Aggregate` and `TransferObject` base classes themselves using standalone functions. Concrete mapper tests should use the harness-based class style described below.
+**Structure:**
+- `# *** fixtures`
+- `# ** fixture: <name>`
+- `# *** tests`
+- `# ** test: <name>`
 
 **Example** – Aggregate tests cover constructor instantiation, `set_attribute` (success and invalid attribute error).
 
@@ -436,7 +433,7 @@ Mappers are defined in `tiferet/mappers/`:
 - `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their YamlObject counterparts.
 - `__init__.py` — Public exports.
 
-Tests live in `tiferet/mappers/tests/`:
+Tests live in `tiferet/mappers/tests/`.
 
 ## Migration from Schematics to Pydantic v2
 

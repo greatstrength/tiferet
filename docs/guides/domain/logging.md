@@ -7,15 +7,31 @@
 
 ## Overview
 
-The Logging domain defines **how execution is observed**. It provides a configuration-driven approach to Python's `logging` module, representing formatters, handlers, and loggers as domain objects that can be managed through YAML configuration and domain events — just like any other Tiferet domain concept.
+The Logging domain defines the structural foundation for observability and logging configuration in Tiferet. Logging configuration is expressed as three composable domain objects — `Formatter`, `Handler`, and `Logger` — that together describe how log messages are formatted, where they are sent, and which loggers are active at what level.
 
-The Logging domain uses a three-model composition: `Formatter` defines how log messages are formatted, `Handler` defines where they go (console, file, etc.), and `Logger` ties them together with a log level and propagation rules. At runtime, `LoggingContext` loads these objects, converts them to a `dictConfig`-compatible dictionary, and produces a live `logging.Logger` instance.
+All domain objects in this module are **immutable value objects**: they carry no mutation methods and expose only read-only queries via `format_config()`. All state changes (renaming, adding/removing handlers, etc.) occur exclusively through Aggregates in the mappers layer.
+
+**Module:** `tiferet/domain/logging.py`
+
+## Three-Model Composition
+
+The Logging domain follows a three-model composition pattern:
+
+1. **Formatter** defines how log messages are formatted (format string, date format).
+2. **Handler** defines where log messages are sent (console, file), at what level, and references a `Formatter` by ID.
+3. **Logger** defines a named logger with a level, a list of `Handler` IDs, and propagation behavior.
+
+At runtime, `LoggingContext` assembles these into a `dictConfig`-compatible dictionary by calling `format_config()` on each domain object and composing the results into the standard Python `logging.config.dictConfig` structure.
+
+```
+Logger → [handler_id, ...] → Handler → formatter_id → Formatter
+```
 
 ## Domain Objects
 
 ### Formatter
 
-Defines the format string and date format for log messages.
+Immutable value object representing a logging formatter configuration.
 
 | Attribute     | Type            | Required | Default | Description                          |
 |---------------|-----------------|----------|---------|--------------------------------------|
@@ -25,7 +41,7 @@ Defines the format string and date format for log messages.
 | `format`      | `str`           | Yes      | —       | The format string for log messages.  |
 | `datefmt`     | `str \| None`   | No       | `None`  | The date format for log timestamps.  |
 
-**Behavior method:**
+#### Methods
 
 **`format_config() -> Dict[str, Any]`**
 
@@ -42,7 +58,7 @@ When `datefmt` is not set, the key is still present with a `None` value.
 
 ### Handler
 
-Defines a log destination — where messages are sent and at what level. References a `Formatter` by ID.
+Immutable value object representing a logging handler configuration.
 
 | Attribute     | Type            | Required | Default | Description                                              |
 |---------------|-----------------|----------|---------|----------------------------------------------------------|
@@ -56,7 +72,7 @@ Defines a log destination — where messages are sent and at what level. Referen
 | `stream`      | `str \| None`   | No       | `None`  | The stream for StreamHandler (e.g., `ext://sys.stdout`). |
 | `filename`    | `str \| None`   | No       | `None`  | The file path for FileHandler (e.g., `app.log`).         |
 
-**Behavior method:**
+#### Methods
 
 **`format_config() -> Dict[str, Any]`**
 
@@ -72,7 +88,7 @@ handler.format_config()
 
 ### Logger
 
-Defines a logger configuration — its level, which handlers it uses, and whether it propagates to parent loggers.
+Immutable value object representing a logger configuration.
 
 | Attribute     | Type             | Required | Default | Description                                              |
 |---------------|------------------|----------|---------|----------------------------------------------------------|
@@ -84,11 +100,11 @@ Defines a logger configuration — its level, which handlers it uses, and whethe
 | `propagate`   | `bool`           | No       | `False` | Whether to propagate messages to parent loggers.         |
 | `is_root`     | `bool`           | No       | `False` | Whether this is the root logger.                         |
 
-**Behavior method:**
+#### Methods
 
-- `format_config()` — returns a dict with `level`, `handlers`, and `propagate` keys.
+**`format_config() -> Dict[str, Any]`**
 
-### Three-Model Composition
+Returns a `dictConfig`-compatible logger entry:
 
 ```python
 logger = Logger(id='app', name='App Logger',
@@ -97,39 +113,29 @@ logger.format_config()
 # {'level': 'DEBUG', 'handlers': ['console'], 'propagate': True}
 ```
 
-A `Logger` with `handlers: ['console', 'file']` uses two `Handler` objects, each of which references a `Formatter` by ID. This composition is resolved by `LoggingContext.format_config()`, which assembles all three layers into a single `dictConfig`-compatible dictionary.
+## Built-In Defaults
 
-## Built-in Defaults
-
-The framework provides default logging configurations in `assets/logging.py`:
-
-- **Default formatter** — `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
-- **Default handler** — `StreamHandler` to `sys.stdout` at `DEBUG` level
-- **Default logger** — `DEBUG` level with the default handler, non-propagating
-
-These defaults are used by `LoggingContext.build_logger()` when no logging configuration is defined in `logging.yml`. This ensures every app interface has basic logging even without explicit configuration.
+Tiferet provides built-in logging defaults in `assets/logging.py`. These define a standard console formatter, stream handler, and root logger that are used when no application-specific logging configuration is provided.
 
 ## Runtime Role
 
-`LoggingContext` is the sole consumer of the Logging domain at runtime:
+The Logging domain objects participate in runtime configuration through the following flow:
 
-1. **`build_logger()`** loads all formatters, handlers, and loggers via `ListAllLoggingConfigs`.
-2. If any category is empty, **defaults from `assets/logging.py`** are substituted as `DomainObject.new(Formatter, ...)`, etc.
-3. **`format_config(formatters, handlers, loggers)`** calls each model's `format_config()` method and assembles the result into a `dictConfig`-compatible dictionary:
-   - `formatters` — keyed by formatter ID
-   - `handlers` — keyed by handler ID
-   - `loggers` — keyed by logger ID (excluding root)
-   - `root` — the logger with `is_root=True`, if any
-4. **`create_logger(logger_id, logging_config)`** applies `logging.config.dictConfig()` and returns `logging.getLogger(logger_id)`.
+1. `LoggingContext.build_logger()` is called during application interface initialization.
+2. `LoggingService` loads all `Formatter`, `Handler`, and `Logger` domain objects from `logging.yml`.
+3. `LoggingContext` calls `format_config()` on each domain object to produce `dictConfig`-compatible entries.
+4. The results are assembled into a complete `dictConfig` dictionary with `formatters`, `handlers`, and `loggers` sections.
+5. `logging.config.dictConfig(config)` is called to configure the Python logging system.
+6. The configured logger is available for use throughout the application.
 
-The resulting logger is used throughout the request lifecycle — from parsing to feature execution to response handling.
+## Configuration Mapping
 
 Logging is configured in the `logging` section of the configuration file (typically `config.yml`, though per-file configs such as `logging.yml` are also supported):
 
 ```yaml
 formatters:
-  default:
-    name: Default Formatter
+  simple:
+    name: Simple Formatter
     format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     datefmt: '%Y-%m-%d %H:%M:%S'
 
@@ -138,38 +144,44 @@ handlers:
     name: Console Handler
     module_path: logging
     class_name: StreamHandler
-    level: DEBUG
-    formatter: default
+    level: INFO
+    formatter: simple
     stream: ext://sys.stdout
 
 loggers:
-  default:
-    name: Default Logger
+  app:
+    name: App Logger
     level: DEBUG
     handlers:
       - console
     propagate: false
 ```
 
-Each section maps to the corresponding domain object type, keyed by ID.
+Each top-level section (`formatters`, `handlers`, `loggers`) maps directly to the corresponding domain object type.
 
 ## Domain Events
 
-| Event | Purpose |
-|-------|---------|
-| `ListAllLoggingConfigs` | Retrieve all formatters, handlers, and loggers (used during logger build) |
-| `AddFormatter` | Create a new formatter configuration |
-| `RemoveFormatter` | Delete a formatter configuration |
-| `AddHandler` | Create a new handler configuration |
-| `RemoveHandler` | Delete a handler configuration |
-| `AddLogger` | Create a new logger configuration |
-| `RemoveLogger` | Delete a logger configuration |
+The following domain events interact with `Formatter`, `Handler`, and `Logger`:
+
+| Event                     | Description                                           |
+|---------------------------|-------------------------------------------------------|
+| `ListAllLoggingConfigs`   | Retrieves all formatters, handlers, and loggers.      |
+| `AddFormatter`            | Creates and persists a new `Formatter`.               |
+| `AddHandler`              | Creates and persists a new `Handler`.                 |
+| `AddLogger`               | Creates and persists a new `Logger`.                  |
+
+These events depend on the `LoggingService` interface for persistence operations.
 
 ## Service Interface
 
-`LoggingService` (`tiferet/interfaces/logging.py`) — abstracts access to logging configurations (formatters, handlers, loggers).
+**`LoggingService`** (`tiferet/interfaces/logging.py`) defines the abstract contract for Logging domain persistence:
 
-## Relationship to Other Domains
+- `list_formatters() -> List[Formatter]`
+- `list_handlers() -> List[Handler]`
+- `list_loggers() -> List[Logger]`
+- `save_formatter(formatter) -> None`
+- `save_handler(handler) -> None`
+- `save_logger(logger) -> None`
 
 Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
 
@@ -215,8 +227,8 @@ lgr = Logger(
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
 - [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
 - [docs/guides/domain/feature.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/feature.md) — Feature domain guide

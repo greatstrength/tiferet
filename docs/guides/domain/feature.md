@@ -7,9 +7,13 @@
 
 ## Overview
 
-The Feature domain defines **what the application does**. While the App domain assembles the runtime and the DI domain wires up services, the Feature domain describes the user-facing units of execution — the workflows that transform input into output.
+The Feature domain defines the structural foundation for workflow orchestration in Tiferet. A `Feature` represents a complete workflow definition — a named, identifiable unit composed of ordered steps that execute domain events from the dependency injection container. Each step is described by a `FeatureEvent`, which carries container resolution metadata, flags, parameters, result routing, and error handling configuration.
 
-A `Feature` is a named workflow composed of ordered steps. Each step references a domain event registered in the DI container and carries orchestration metadata — parameters, result routing, error handling behavior, and flag-based resolution. When a user calls `app.run('basic_calc', 'calc.add', data={'a': 1, 'b': 2})`, the framework loads the `calc.add` feature and executes its steps in sequence.
+All domain objects in this module are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing steps, renaming, reordering) occur exclusively through Aggregates in the mappers layer.
+
+**Module:** `tiferet/domain/feature.py`
+
+> **Rename note (v2.0a2):** `FeatureCommand` has been renamed to `FeatureEvent` to align with the `Command` → `DomainEvent` transition. The polymorphic `FeatureStep` base class is new in v2.0a2.
 
 ## Domain Objects
 
@@ -54,7 +58,7 @@ The optional `condition` field supports boolean expression strings evaluated aga
 
 ### Feature
 
-The top-level workflow definition. A feature groups a sequence of steps under a composite identifier (`group_id.feature_key`).
+Immutable value object representing a complete feature workflow definition.
 
 | Attribute      | Type                            | Required | Default | Description                                          |
 |----------------|---------------------------------|----------|---------|------------------------------------------------------|
@@ -67,11 +71,11 @@ The top-level workflow definition. A feature groups a sequence of steps under a 
 | `steps`        | `List[FeatureEvent]`            | No       | `[]`    | The ordered step workflow for the feature.            |
 | `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 
-**Behavior method:**
+#### Methods
 
-- `get_step(position)` — retrieves the step at a given index, returning `None` for out-of-range positions. Used by events that update or remove individual steps.
+**`get_step(position: int) -> FeatureStep | None`**
 
-### FeatureStep (base class)
+Returns the step at the given index, or `None` if the index is out of range or invalid (e.g., non-integer):
 
 ```python
 feature = Feature(id='calc.add', name='Add', group_id='calc', feature_key='add', steps=[...])
@@ -82,7 +86,7 @@ step = feature.get_step('x')  # None (invalid type)
 
 ## Runtime Role
 
-`FeatureContext` is the sole consumer of the Feature domain at runtime. The execution flow is:
+The Feature domain objects participate in runtime workflow execution through the following flow:
 
 1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
 2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
@@ -91,20 +95,7 @@ step = feature.get_step('x')  # None (invalid type)
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
 6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
 
-```python
-# A feature with two steps — the second step uses the result of the first
-# feature.yml:
-#   calc.add_and_double:
-#     steps:
-#       - service_id: add_number_event
-#         name: Add a and b
-#         data_key: sum_result
-#       - service_id: multiply_number_event
-#         name: Double the sum
-#         params:
-#           a: $r.sum_result
-#           b: '2'
-```
+## Configuration Mapping
 
 Features are defined in the `features` section of the configuration file (typically `config.yml`, though per-file configs such as `feature.yml` are also supported). Each group contains keyed features:
 
@@ -127,27 +118,30 @@ features:
             b: '0.5'
 ```
 
-The two-level nesting (`calc.add`) becomes the composite `Feature.id`. The `commands` list maps to `steps`. Each step's `service_id` references a `ServiceConfiguration` in the DI container. The `sqrt` feature demonstrates parameter reuse — `exponentiate_number_event` is shared with the `exp` feature but configured with a fixed `b: '0.5'`.
+The `commands` key in YAML maps to `steps` (list of `FeatureEvent`) on the domain object. The `params` key maps to `parameters`.
 
 ## Domain Events
 
-| Event | Purpose |
-|-------|---------|
-| `GetFeature` | Retrieve a feature by ID (used during execution) |
-| `AddFeature` | Create a new feature configuration |
-| `UpdateFeature` | Update name or description |
-| `RemoveFeature` | Delete a feature configuration |
-| `ListFeatures` | List features, optionally filtered by group |
-| `AddFeatureCommand` | Append or insert a step into a feature's workflow |
-| `UpdateFeatureCommand` | Update an attribute on a step at a given position |
-| `RemoveFeatureCommand` | Remove a step by position |
-| `ReorderFeatureCommand` | Move a step from one position to another |
+The following domain events interact with `Feature`, `FeatureStep`, and `FeatureEvent`:
+
+| Event               | Description                                          |
+|---------------------|------------------------------------------------------|
+| `GetFeature`        | Retrieves a `Feature` by ID.                         |
+| `AddFeature`        | Creates and persists a new `Feature`.                |
+| `AddFeatureCommand` | Adds a `FeatureEvent` step to an existing `Feature`. |
+| `RenameFeature`     | Renames an existing `Feature` via aggregate.         |
+
+These events depend on the `FeatureService` interface for persistence operations.
 
 ## Service Interface
 
-`FeatureService` (`tiferet/interfaces/feature.py`) — abstracts CRUD access to feature configurations.
+**`FeatureService`** (`tiferet/interfaces/feature.py`) defines the abstract contract for Feature domain persistence:
 
-## Relationship to Other Domains
+- `exists(id: str) -> bool`
+- `get(id: str) -> Feature`
+- `list() -> List[Feature]`
+- `save(feature) -> None`
+- `delete(id: str) -> None`
 
 Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
 
@@ -183,9 +177,10 @@ feature = Feature(
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
+- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
+- [docs/guides/domain/error.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/error.md) — Error domain guide
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

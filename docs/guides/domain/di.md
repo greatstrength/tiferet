@@ -7,11 +7,15 @@
 
 ## Overview
 
-The DI domain defines **how services are connected at runtime**. Every domain event that a feature step executes is resolved from the DI container — and the DI domain controls what class is instantiated, what parameters it receives, and which implementation is selected based on active flags.
+The DI (Dependency Injection) domain defines the structural configuration for the Tiferet service container. Every injectable service entry is described by a `ServiceConfiguration` domain object, which holds a default implementation binding and zero or more `FlaggedDependency` overrides that are selected based on active runtime flags.
 
-A `ServiceConfiguration` is a registry entry that maps an identifier to a concrete class. It can optionally carry `FlaggedDependency` overrides that swap the implementation based on the runtime environment (e.g., a YAML-backed repository for production, a mock for testing). The `ContainerContext` reads all service configurations, resolves their types, and builds a live DI injector.
+These domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing dependencies, setting default types, updating parameters) occur exclusively through Aggregates in the mappers layer.
 
-> **Rename note (v2.0a2):** The module was renamed from `container.py` to `di.py` to capture its true role as part of the Dependency Injection infrastructure. `ContainerAttribute` was renamed to `ServiceConfiguration` to align with the event naming (`AddServiceConfiguration`, etc.).
+**Module:** `tiferet/domain/di.py`
+
+### Rename Note: container.py → di.py, ContainerAttribute → ServiceConfiguration
+
+In v1.x, dependency injection configuration was defined in `container.py` with the `ContainerAttribute` domain object. In v2.0, the module is renamed to `di.py` and the class to `ServiceConfiguration` to better reflect its role in the DI infrastructure. `FlaggedDependency` retains its original name. The field set and semantics are unchanged.
 
 ## Domain Objects
 
@@ -30,7 +34,7 @@ No methods. Pure data structure.
 
 ### ServiceConfiguration
 
-A single entry in the DI registry. Defines how to resolve a dependency — either from a default type or from a flag-matched override.
+Represents a single injectable service entry in the DI registry.
 
 | Attribute       | Type                                  | Required | Default | Description                                       |
 |-----------------|---------------------------------------|----------|---------|---------------------------------------------------|
@@ -41,32 +45,33 @@ A single entry in the DI registry. Defines how to resolve a dependency — eithe
 | `parameters`    | `Dict[str, str]`                      | No       | `{}`    | The default configuration parameters.              |
 | `dependencies`  | `List[FlaggedDependency]`             | No       | `[]`    | The flag-specific implementation overrides.        |
 
-A `ServiceConfiguration` must have **at least one** type source: either a default `module_path`/`class_name` pair, or one or more `FlaggedDependency` entries. The domain events enforce this invariant.
+#### Methods
 
-**Behavior method:**
+**`get_dependency(*flags) -> FlaggedDependency`**
 
-- `get_dependency(*flags)` — searches flagged dependencies in flag-priority order. Returns the first `FlaggedDependency` whose `flag` matches any of the provided flags, or `None` if no match is found. This enables ordinal flag precedence — the caller lists flags from highest to lowest priority.
+Returns the first `FlaggedDependency` whose `flag` matches any of the provided flags. Flags are evaluated in argument order (ordinal priority), so the first match wins. Returns `None` if no dependency matches.
 
-### FlaggedDependency
+```python
+# Single flag lookup
+dep = config.get_dependency('yaml')
 
-An alternative implementation binding activated by a specific flag. When the runtime's active flags match, this dependency's `module_path`/`class_name` is used instead of the default.
+# Priority-ordered lookup: prefer 'sqlite' over 'yaml'
+dep = config.get_dependency('sqlite', 'yaml')
+```
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `module_path` | `str` (required) | Module path for the flag-specific implementation |
-| `class_name` | `str` (required) | Class name for the flag-specific implementation |
-| `flag` | `str` (required) | The flag that activates this dependency |
-| `parameters` | `Dict[str, str]` (default: `{}`) | Flag-specific configuration parameters |
+## Flag Resolution Flow
 
-### Flag Resolution
+Flags flow into the DI container from multiple sources:
 
-Flags flow from two sources:
+1. **`AppInterface.flags`** — interface-level flags set in `app/configs/app.yml` (e.g., `['yaml']`, `['sqlite', 'yaml']`).
+2. **`Feature.flags`** — feature-level flag overrides defined in `feature.yml`.
+3. **`FeatureEvent.flags`** — command-level flag overrides within a feature workflow.
 
 At resolution time, `DIContext` merges these flag sources and calls `ServiceConfiguration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.
 
 ## Runtime Role
 
-`ContainerContext` is the sole consumer of the DI domain at runtime. The flow is:
+The DI domain objects participate in the service resolution flow:
 
 1. **`DIContext`** loads all `ServiceConfiguration` entries from the `services` section of the configuration file via `DIService`.
 2. **`build_service_provider()`** iterates each `ServiceConfiguration`, resolving concrete types:
@@ -76,7 +81,7 @@ At resolution time, `DIContext` merges these flag sources and calls `ServiceConf
 4. The resolved types and their parameters are wired into the DI service provider.
 5. Domain events and contexts receive fully constructed service instances via constructor injection.
 
-The injector is cached per flag combination, so repeated calls with the same flags reuse the same container.
+## Configuration Mapping
 
 Service configurations are defined in the `services` section of the configuration file (typically `config.yml`). Each top-level key maps to a `ServiceConfiguration`:
 
@@ -100,8 +105,6 @@ services:
     params:
       feature_yaml_file: config.yml
 ```
-
-Each key under `attrs` becomes the `ServiceConfiguration.id`. The `dependencies` list maps to `FlaggedDependency` entries, enabling environment-specific overrides without changing the feature configuration.
 
 ## Domain Events
 

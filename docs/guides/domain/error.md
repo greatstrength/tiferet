@@ -7,9 +7,11 @@
 
 ## Overview
 
-The Error domain defines **how failures are communicated**. Every `TiferetError` raised anywhere in the application — whether from a domain event's `verify()`, a `raise_error()` call, or a utility's `RaiseError.execute()` — ultimately flows through the Error domain to produce a structured, multilingual response.
+The Error domain defines the structural foundation for structured error handling in Tiferet. Every error definition is described by an `Error` domain object, which holds a unique identifier, error code, name, and one or more localized `ErrorMessage` translations. This enables consistent, multilingual error formatting across all application interfaces.
 
-An `Error` is a named error definition with a unique identifier, a human-readable name, and one or more `ErrorMessage` translations. When an exception is caught at the interface level, the framework looks up the `Error` by code, formats the message for the requested language, and returns a structured response with error code, name, and localized message.
+Both domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries and formatting methods. All state changes (renaming, adding/removing messages) occur exclusively through Aggregates in the mappers layer.
+
+**Module:** `tiferet/domain/error.py`
 
 ## Domain Objects
 
@@ -36,7 +38,7 @@ msg.format(value='abc')         # 'Value abc is invalid'
 
 ### Error
 
-A named error definition with multilingual message support.
+Represents a named error definition with multilingual message support.
 
 | Attribute    | Type                              | Required | Default | Description                                   |
 |--------------|-----------------------------------|----------|---------|-----------------------------------------------|
@@ -46,7 +48,7 @@ A named error definition with multilingual message support.
 | `error_code` | `str \| None`                     | No       | —       | The unique code of the error (derived from id via `@model_validator`).|
 | `message`    | `List[ErrorMessage]`              | Yes      | —       | The error message translations.                |
 
-**Custom factory:**
+#### Methods
 
 **ID Derivation via `@model_validator`**
 
@@ -57,22 +59,22 @@ error = Error(id='invalid_input', name='Invalid Input', message=[...])
 assert error.error_code == 'INVALID_INPUT'
 ```
 
-## Built-in Defaults
+**`format_message(lang='en_US', **kwargs) -> str`**
 
-The framework ships with a set of default error definitions in `assets/constants.py::DEFAULT_ERRORS`. These cover common framework-level errors (parameter required, feature not found, dependency import failed, etc.) and serve as fallbacks when an error code is not found in the application's `error.yml`.
+Finds the first `ErrorMessage` matching the given `lang` and formats it. Returns `None` if no message matches the language.
 
-`GetError` checks the configured repository first, then falls back to `DEFAULT_ERRORS` when `include_defaults=True`.
+**`format_response(lang='en_US', **kwargs) -> dict`**
 
-## Runtime Role
+Returns a structured error response dict with `error_code`, `name`, `message`, and any additional kwargs. Returns `None` if the language is not supported.
 
-`ErrorContext` is the primary consumer of the Error domain at runtime:
+```python
+response = error.format_response('en_US', value='abc')
+# {'error_code': 'invalid_input', 'name': 'Invalid Input', 'message': 'Value abc is invalid', 'value': 'abc'}
+```
 
-1. **`handle_error(exception)`** receives a `TiferetError` with an `error_code` and `kwargs`.
-2. **`get_error_by_code(error_code)`** retrieves the `Error` via `GetError`, falling back to defaults if needed.
-3. **`error.format_response(lang, **kwargs)`** produces the structured response dict.
-4. The response is returned to `AppInterfaceContext`, which raises `TiferetAPIError` with the formatted payload.
+## Error Formatting Flow
 
-## Configuration
+The error formatting flow in Tiferet follows this path:
 
 1. A domain event calls `self.verify(expression, error_code, ...)` or `self.raise_error(error_code, ...)`.
 2. A `TiferetError` is raised with the `error_code` and contextual kwargs.
@@ -113,25 +115,29 @@ errors:
         text: 'No se puede dividir por cero'
 ```
 
-Each key under `errors` becomes the `Error.id`. The `message` list maps to `ErrorMessage` entries with language codes and format-string texts.
-
 ## Domain Events
 
-| Event | Purpose |
-|-------|---------|
-| `GetError` | Retrieve an error by ID (with optional default fallback) |
-| `AddError` | Create a new error definition |
-| `RenameError` | Update the name of an existing error |
-| `SetErrorMessage` | Set or update a message for a specific language |
-| `RemoveErrorMessage` | Remove a message by language (validates at least one remains) |
-| `RemoveError` | Delete an error definition |
-| `ListErrors` | List all errors (with optional default merging) |
+The following domain events interact with `Error` and `ErrorMessage`:
+
+| Event         | Description                                       |
+|---------------|---------------------------------------------------|
+| `GetError`    | Retrieves an `Error` by ID.                       |
+| `AddError`    | Creates and persists a new `Error`.                |
+| `RenameError` | Renames an existing `Error` via aggregate.         |
+| `SetErrorMessage` | Sets/updates a message translation via aggregate. |
+| `RemoveErrorMessage` | Removes a message translation via aggregate.  |
+
+These events depend on the `ErrorService` interface for persistence operations.
 
 ## Service Interface
 
-`ErrorService` (`tiferet/interfaces/error.py`) — abstracts CRUD access to error definitions.
+**`ErrorService`** (`tiferet/interfaces/error.py`) defines the abstract contract for Error domain persistence:
 
-## Relationship to Other Domains
+- `exists(id: str) -> bool`
+- `get(id: str) -> Error`
+- `list() -> List[Error]`
+- `save(error) -> None`
+- `delete(id: str) -> None`
 
 Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
 
@@ -160,9 +166,8 @@ error = Error(
 
 ## Related Documentation
 
-- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — DomainObject base class and general patterns
-- [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns (verify, raise_error)
-- [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — Context conventions and lifecycle
+- [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
+- [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
 - [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide
 - [docs/guides/domain/di.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/di.md) — DI domain guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions

@@ -7,9 +7,14 @@
 
 ## Overview
 
-The CLI domain defines **how users interact with the application from the command line**. It bridges the gap between raw terminal input and the feature execution engine by describing a structured command hierarchy — groups of commands, each with typed arguments — that maps directly to feature IDs.
+The CLI domain defines the structural configuration for command-line interface commands in Tiferet. CLI commands serve as the **terminal-to-feature bridge**: each `CliCommand` has a composite identifier (`group_key.key`) that maps directly to a feature ID in `feature.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input.
 
-A `CliCommand` represents a single CLI command (e.g., `calc add`) with its arguments, description, and group membership. A `CliArgument` represents a single argument or flag on that command (e.g., `a`, `b`, `--verbose`). Together, they generate the `argparse` configuration that `CliContext` uses to parse user input into feature execution requests.
+- `CliArgument` — represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
+- `CliCommand` — represents a CLI command with a composite ID, a custom `new()` factory for ID derivation, and a `has_argument()` query method.
+
+Both domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
+
+**Module:** `tiferet/domain/cli.py`
 
 ## Domain Objects
 
@@ -41,7 +46,7 @@ assert arg.get_type() is int
 
 ### CliCommand
 
-A single CLI command, identified by a composite `group_key.key` pattern that maps directly to a feature ID.
+Represents a CLI command with a composite identifier.
 
 | Attribute    | Type                              | Required | Default | Description                                                  |
 |--------------|-----------------------------------|----------|---------|--------------------------------------------------------------|
@@ -52,7 +57,7 @@ A single CLI command, identified by a composite `group_key.key` pattern that map
 | `group_key`  | `str`                             | Yes      | —       | The group key the command belongs to.                         |
 | `arguments`  | `List[CliArgument]`               | No       | `[]`    | A list of arguments for the command.                          |
 
-**Custom factory:**
+#### Methods
 
 **ID Derivation via `@model_validator`**
 
@@ -66,7 +71,24 @@ cmd = CliCommand(group_key='my-group', key='my-cmd', name='My Command')
 assert cmd.id == 'my_group.my_cmd'
 ```
 
-`CliContext` parses `group='calc'` and `command='add'`, constructs `feature_id = 'calc.add'`, and delegates to `FeatureContext.execute_feature('calc.add', request)`. The arguments (`1`, `2`) become the request data that the feature's domain event receives.
+**`has_argument(flags: List[str]) -> bool`**
+
+Returns `True` if any of the provided flags match the `name_or_flags` of an existing argument in the command.
+
+```python
+cmd.has_argument(['-a', '--arg1'])  # True if arg1 exists
+cmd.has_argument(['-z'])            # False if no match
+```
+
+## The CLI-to-Feature Bridge
+
+The CLI domain's key design pattern is the **CLI-to-Feature bridge**: every `CliCommand.id` corresponds exactly to a feature ID in `feature.yml`. When a user runs a CLI command, the `CliContext` maps the parsed command to a feature and executes it via `FeatureContext`.
+
+For example:
+- CLI command `calc.add` → Feature `calc.add` (defined in `feature.yml`)
+- CLI command `calc.sqrt` → Feature `calc.sqrt`
+
+This 1:1 mapping ensures CLI commands are thin entry points that delegate all business logic to the feature layer.
 
 ## Runtime Role
 
@@ -78,14 +100,7 @@ The `build_cli` blueprint (`tiferet/blueprints/cli.py`) is the primary consumer 
 4. **`derive_feature_request()`** maps the parsed arguments to a feature ID (`group_key.key`) and dispatches to `AppInterfaceContext.run()`.
 5. **`FeatureContext`** executes the corresponding feature with the parsed data.
 
-```python
-# CliContext constructs the feature ID from parsed arguments:
-feature_id = '{}.{}'.format(
-    data.get('group').replace('-', '_'),
-    data.get('command').replace('-', '_')
-)
-# 'calc' + 'add' → 'calc.add'
-```
+## Configuration Mapping
 
 CLI commands are defined in the `cli` section of the configuration file (typically `config.yml`, though per-file configs such as `cli.yml` are also supported). Each entry under `cli.cmds.<group>.<key>` maps to a `CliCommand`:
 

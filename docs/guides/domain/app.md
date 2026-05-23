@@ -7,9 +7,11 @@
 
 ## Overview
 
-The App domain defines **how the application is assembled**. It is the entry point for every Tiferet runtime session — before any feature executes, before any dependency is resolved, an `AppInterface` is loaded and its `AppServiceDependency` list is used to wire up the entire application context.
+The App domain defines the structural foundation for application entry points in Tiferet. Every runnable interface — whether a REST API, CLI, background worker, or custom context — is described by an `AppInterface` domain object. Each interface declares its context implementation, logging configuration, dependency-resolution flags, static constants, and a list of injectable service dependency bindings (`AppServiceDependency`).
 
-Think of `AppInterface` as the blueprint for a running application instance. It declares which context class to instantiate, what service dependencies to inject, and which flags to use for dependency resolution. `AppServiceDependency` is a single entry in that blueprint — one service binding that tells the framework where to find a class and how to configure it.
+These domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing services, updating constants, renaming) occur exclusively through Aggregates in the mappers layer.
+
+**Module:** `tiferet/domain/app.py`
 
 ## Domain Objects
 
@@ -33,7 +35,7 @@ In v1.x, service dependency bindings were called `AppAttribute`. In v2.0, the cl
 
 ### AppInterface
 
-The top-level configuration for a single application interface. Every runtime session begins by loading one `AppInterface` by ID.
+Represents the complete configuration of an application entry point.
 
 | Attribute      | Type                                | Required | Default       | Description                                           |
 |----------------|-------------------------------------|----------|---------------|-------------------------------------------------------|
@@ -47,23 +49,17 @@ The top-level configuration for a single application interface. Every runtime se
 | `services`     | `List[AppServiceDependency]`        | Yes      | `[]`          | The application instance service dependencies.         |
 | `constants`    | `Dict[str, str]`                    | No       | `{}`          | The application dependency constants.                  |
 
-**Behavior method:**
+#### Methods
 
 **`get_service(service_id: str) -> AppServiceDependency`**
 
 Returns the `AppServiceDependency` whose `service_id` matches the given value, or `None` if no match is found. For backward compatibility, also falls back to matching on `attribute_id` (this fallback will be removed once `attribute_id` is fully migrated).
 
-A single service dependency that tells the framework what to import and how to bind it in the dependency injector.
-
-> **Rename note (v2.0a2):** Previously named `AppAttribute`. Renamed to `AppServiceDependency` to reflect its true role as a service dependency binding, not a generic attribute.
-
-| Attribute | Type | Description |
-||-----------|------|-------------|
-|| `service_id` | `str` *(todo: required)* | The dependency name in the injector (e.g., `cli_repo`, `cli_service`). Canonical identifier going forward. |
-|| `attribute_id` | `str` *(obsolete)* | Deprecated alias for `service_id`. Retained for backward compatibility; will be removed once all layers are migrated. |
-|| `module_path` | `str` (required) | Python module path for the dependency class |
-|| `class_name` | `str` (required) | Class name to import |
-|| `parameters` | `Dict[str, str]` (default: `{}`) | Configuration parameters passed to the dependency |
+```python
+service = app_interface.get_service('cli_repo')
+if service:
+    print(service.module_path, service.class_name)
+```
 
 ## Runtime Role
 
@@ -83,12 +79,7 @@ app = App('basic_calc', app_yaml_file='config.yml')  # resolves interface, wires
 result = app.run('calc.add', data={'a': 1, 'b': 2})  # executes features via the wired context
 ```
 
-```python
-# Simplified runtime flow
-app = App()                                     # creates AppManagerContext
-interface = app.load_interface('calc_cli')       # loads AppInterface, wires dependencies
-result = interface.run()                         # executes features via the wired context
-```
+## Configuration Mapping
 
 Application interfaces are defined in the `interfaces` section of the configuration file (typically `config.yml`). Each top-level key under `interfaces` maps to an `AppInterface`, and nested `attrs` entries map to `AppServiceDependency` objects. Each key under `attrs` becomes the `service_id` of the corresponding `AppServiceDependency`:
 
@@ -112,22 +103,26 @@ CLI interfaces no longer require `module_path`/`class_name` overrides — they u
 
 ## Domain Events
 
-| Event | Purpose |
-|-------|---------|
-| `GetAppInterface` | Retrieve an interface by ID (used during bootstrapping) |
-| `AddAppInterface` | Create a new interface configuration |
-| `UpdateAppInterface` | Update a scalar attribute on an existing interface |
-| `SetAppConstants` | Set or clear constants on an interface |
-| `SetServiceDependency` | Add or update a dependency on an interface |
-| `RemoveServiceDependency` | Remove a dependency from an interface |
-| `RemoveAppInterface` | Delete an entire interface configuration |
-| `ListAppInterfaces` | List all configured interfaces |
+The following domain events interact with `AppInterface` and `AppServiceDependency`:
+
+| Event                | Description                                       |
+|----------------------|---------------------------------------------------|
+| `GetAppInterface`    | Retrieves an `AppInterface` by ID.                |
+| `AddAppInterface`    | Creates and persists a new `AppInterface`.         |
+| `UpdateAppInterface` | Modifies an existing `AppInterface` via aggregate. |
+| `DeleteAppInterface` | Removes an `AppInterface` by ID.                   |
+
+These events depend on the `AppService` interface for persistence operations.
 
 ## Service Interface
 
-`AppService` (`tiferet/interfaces/app.py`) — abstracts CRUD access to app interface configurations.
+**`AppService`** (`tiferet/interfaces/app.py`) defines the abstract contract for App domain persistence:
 
-## Relationship to Other Domains
+- `exists(id: str) -> bool`
+- `get(id: str) -> AppInterface`
+- `list() -> List[AppInterface]`
+- `save(app_interface) -> None`
+- `delete(id: str) -> None`
 
 Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
 

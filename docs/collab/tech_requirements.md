@@ -100,33 +100,40 @@ Additional component-specific style guides will be added as the framework evolve
 
 ## Branch Naming and Workflow Conventions
 
-All work in the Tiferet project follows a standard GitHub branching workflow. TRD authors and AI agents must follow these conventions.
+Branch naming and workflow differ by **contribution stream**. TRD authors and AI agents must follow the conventions for the applicable stream. See [docs/collab/](.) for the full stream guides.
 
-### Branch Naming
+### Stream-Specific Branch Naming
+
+**Main stream** (feature releases):
 - Feature branches are named after their GitHub issue: `<issue-number>-<lowercase-hyphenated-title>`.
-- Spaces and special characters are replaced with a single hyphen (`-`). All letters are lowercase.
+- Created from and targeting `main`.
 - Examples:
   - Issue #574 "Utils – JsonLoader Utility" → `574-utils-jsonloader-utility`
   - Issue #568 "Interfaces – File, Configuration, and SQLite Service Contracts" → `568-interfaces-file-configuration-and-sqlite-service-contracts`
+- See [main.md](main.md) for the full workflow.
 
-### Branch Workflow
-- **Feature branches** are created from and target `main`.
-- PRs are opened against the release branch, not `main`.
-- Upon completion of all release work, the **release branch is rebased into `main`**.
-- After merge, the feature branch is deleted (both remote and local).
+**RFP stream** (prototype work):
+- Prototype worktree branches: `v<major>.<minor>.<patch>b<next_beta>-<context>` (e.g., `v2.0.0b6-dicontext-varargs`).
+- Created from and targeting the main prototype branch (e.g., `v2.0-proto`).
+- TRD **Version** field is set to `Request for Prototype`.
+- See [rfp.md](rfp.md) for branch conventions, versioning/tagging rules, and workflows.
+
+**Doc stream** (documentation updates):
+- Documentation branches: `docs-<lowercase-hyphenated-context>` (e.g., `docs-contribution-streams`).
+- Created from and targeting `main`.
+- See [doc.md](doc.md) for the full workflow.
 
 ### AI Agent Checkout Conventions
 When an AI agent begins work on a TRD:
-1. Confirm the current branch matches the expected feature branch (check `git_head` in environment context).
-2. If the feature branch does not exist yet, create it from the release branch: `git checkout -b <feature-branch> <release-branch>`.
-3. After PR merge, check out the release branch, pull changes, confirm the merge landed, and delete the local feature branch.
-4. Do **not** check out or push directly to `main`.
+1. Confirm the current branch matches the expected branch for the applicable stream (check `git_head` in environment context).
+2. If the branch does not exist yet, create it from the appropriate base branch (`main` for Main/Doc streams, `v<major>.<minor>-proto` for RFP stream).
+3. After PR merge, check out the base branch, pull changes, confirm the merge landed, and delete the local feature/docs branch.
 
 ### Acceptance Criteria (branch-related)
 When a TRD includes branch/PR work, Acceptance Criteria should reference:
-- Feature branch name follows the naming convention.
-- PR targets the correct release branch.
-- Feature branch deleted after merge.
+- Branch name follows the naming convention for its stream.
+- PR targets the correct base branch (`main` or the prototype branch).
+- Branch deleted after merge.
 
 ## Process Conventions (for TRD authors and executors)
 
