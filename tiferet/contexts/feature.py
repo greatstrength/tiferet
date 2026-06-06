@@ -1,8 +1,9 @@
 # *** imports
 
 # ** core
+import asyncio
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Generator, Tuple, Dict
 
 # ** app
 from .di import DIContext
@@ -232,21 +233,31 @@ class FeatureContext(object):
         except Exception:
             return False
 
-    # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
+    # * method: resolve_feature_steps
+    def resolve_feature_steps(self,
+            feature_id: str,
+            request: RequestContext,
+        ) -> Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]:
         '''
-        Execute a feature by its ID with the provided request.
-        
-        :param request: The request context object.
+        Resolve and yield executable steps for a feature.
+
+        Loads the feature, evaluates step conditions, resolves each step's
+        domain event from the DI context, and parses its parameters. Yields
+        tuples of ``(command, feature_event, params)`` for each step that
+        should execute.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
+        :return: A generator yielding (command, feature_event, params) tuples.
+        :rtype: Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]
         '''
 
         # Load the feature by id, using the cache when possible.
         feature = self.load_feature(feature_id)
 
-        # Execute the feature by iterating over its configured steps.
+        # Iterate over the feature's configured steps.
         for feature_event in feature.steps:
 
             # Evaluate the step condition; skip if False.
@@ -262,12 +273,107 @@ class FeatureContext(object):
                 for param, value in feature_event.parameters.items()
             }
 
-            # Execute the step with the request data and parameters.
+            # Yield the resolved step.
+            yield cmd, feature_event, params
+
+    # * method: execute_feature
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
+        '''
+        Execute a feature by its ID with the provided request.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :param request: The request context object.
+        :type request: RequestContext
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Resolve and execute each step synchronously.
+        for cmd, step, params in self.resolve_feature_steps(feature_id, request):
             self.handle_command(
                 cmd,
                 request,
-                data_key=feature_event.data_key,
-                pass_on_error=feature_event.pass_on_error,
+                data_key=step.data_key,
+                pass_on_error=step.pass_on_error,
+                **params,
+                services=self.services,
+                cache=self.cache,
+                **kwargs
+            )
+
+    # * method: handle_command_async
+    async def handle_command_async(self,
+        command: DomainEvent,
+        request: RequestContext,
+        data_key: str = None,
+        pass_on_error: bool = False,
+        **kwargs
+    ):
+        '''
+        Handle the execution of a command with the provided request,
+        supporting both sync and async commands.
+
+        Detects whether the command's ``execute`` is a coroutine function
+        and awaits it when necessary, otherwise calls it synchronously.
+
+        :param command: The command to execute (sync or async).
+        :type command: DomainEvent
+        :param request: The request context object.
+        :type request: RequestContext
+        :param data_key: Optional key to store the result in the request data.
+        :type data_key: str
+        :param pass_on_error: If True, pass on the error instead of raising it.
+        :type pass_on_error: bool
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Execute the command, awaiting if async or calling directly if sync.
+        try:
+            if asyncio.iscoroutinefunction(command.execute):
+                result = await command.execute(
+                    **request.data,
+                    **kwargs
+                )
+            else:
+                result = command.execute(
+                    **request.data,
+                    **kwargs
+                )
+
+        # If an error occurs during command execution, handle it based on the pass_on_error flag.
+        except Exception as e:
+            if not pass_on_error:
+                raise e
+
+            # Set the result to None if passing on the error.
+            result = None
+
+        # Store the result via the request context.
+        request.set_result(result, data_key)
+
+    # * method: execute_feature_async
+    async def execute_feature_async(self, feature_id: str, request: RequestContext, **kwargs):
+        '''
+        Execute a feature by its ID with the provided request, supporting
+        mixed sync/async step chains.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :param request: The request context object.
+        :type request: RequestContext
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Resolve and execute each step, awaiting async commands as needed.
+        for cmd, step, params in self.resolve_feature_steps(feature_id, request):
+            await self.handle_command_async(
+                cmd,
+                request,
+                data_key=step.data_key,
+                pass_on_error=step.pass_on_error,
                 **params,
                 services=self.services,
                 cache=self.cache,

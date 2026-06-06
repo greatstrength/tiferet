@@ -4,6 +4,7 @@
 
 __all__ = [
     'DomainEvent',
+    'AsyncDomainEvent',
     'TiferetError',
     'a',
     'ParseParameter',
@@ -12,5 +13,5 @@ __all__ = [
 ]
 
 # ** app
-from .settings import DomainEvent, TiferetError, a
+from .settings import DomainEvent, AsyncDomainEvent, TiferetError, a
 from .static import ParseParameter, ImportDependency, RaiseError

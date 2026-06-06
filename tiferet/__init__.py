@@ -9,6 +9,7 @@ __all__ = [
     'TiferetAPIError',
     'DomainObject',
     'DomainEvent',
+    'AsyncDomainEvent',
     'ParseParameter',
     'Service',
     'Aggregate',
@@ -39,6 +40,7 @@ try:
     from .domain import DomainObject
     from .events import (
         DomainEvent,
+        AsyncDomainEvent,
         ParseParameter,
     )
     from .interfaces import Service
@@ -71,4 +73,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.0b6'
+__version__ = '2.0.0a11'

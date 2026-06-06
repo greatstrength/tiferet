@@ -5,7 +5,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.events.settings import DomainEvent, TiferetError
+from tiferet.events.settings import DomainEvent, AsyncDomainEvent, TiferetError
 
 # *** fixtures
 
@@ -278,3 +278,192 @@ def test_parameters_required_error_message_content():
     assert exc_info.value.error_code == 'COMMAND_PARAMETER_REQUIRED', 'Should use correct error code'
     assert exc_info.value.kwargs.get('command') == 'MyCustomEvent', 'Should include the event class name'
     assert exc_info.value.kwargs.get('parameters') == ['id', 'name'], 'Should list all missing parameters'
+
+# ** test: test_async_execute_not_implemented
+@pytest.mark.asyncio
+async def test_async_execute_not_implemented():
+    '''
+    Test that AsyncDomainEvent.execute raises NotImplementedError.
+    '''
+
+    # Create an AsyncDomainEvent instance and attempt to call execute.
+    event = AsyncDomainEvent()
+    with pytest.raises(NotImplementedError):
+        await event.execute()
+
+# ** test: test_async_execute_returns_result
+@pytest.mark.asyncio
+async def test_async_execute_returns_result():
+    '''
+    Test that a concrete AsyncDomainEvent returns a result.
+    '''
+
+    # Define a concrete async event.
+    class AddAsync(AsyncDomainEvent):
+        async def execute(self, a=0, b=0, **kwargs):
+            return a + b
+
+    # Execute and verify the result.
+    event = AddAsync()
+    result = await event.execute(a=3, b=4)
+    assert result == 7, 'Should return the sum'
+
+# ** test: test_async_verify_success
+@pytest.mark.asyncio
+async def test_async_verify_success():
+    '''
+    Test that verify works correctly in an async event context.
+    '''
+
+    # Define a concrete async event that uses verify.
+    class VerifyAsync(AsyncDomainEvent):
+        async def execute(self, value=None, **kwargs):
+            self.verify(value is not None, 'VALUE_REQUIRED', 'Value is required.')
+            return value
+
+    # Execute with a valid value, expect no error.
+    event = VerifyAsync()
+    result = await event.execute(value='hello')
+    assert result == 'hello', 'Should return the value'
+
+# ** test: test_async_verify_failure
+@pytest.mark.asyncio
+async def test_async_verify_failure():
+    '''
+    Test that verify raises TiferetError in an async event context.
+    '''
+
+    # Define a concrete async event that uses verify.
+    class VerifyAsync(AsyncDomainEvent):
+        async def execute(self, value=None, **kwargs):
+            self.verify(value is not None, 'VALUE_REQUIRED', 'Value is required.')
+            return value
+
+    # Execute with None, expect TiferetError.
+    event = VerifyAsync()
+    with pytest.raises(TiferetError) as exc_info:
+        await event.execute(value=None)
+    assert exc_info.value.error_code == 'VALUE_REQUIRED', 'Should raise with correct error code'
+
+# ** test: test_handle_async_basic
+@pytest.mark.asyncio
+async def test_handle_async_basic():
+    '''
+    Test handle_async with a concrete async event.
+    '''
+
+    # Define a concrete async event.
+    class MultiplyAsync(AsyncDomainEvent):
+        async def execute(self, a=0, b=0, **kwargs):
+            return a * b
+
+    # Handle via the static async method.
+    result = await DomainEvent.handle_async(MultiplyAsync, a=5, b=6)
+    assert result == 30, 'Should return the product'
+
+# ** test: test_handle_async_with_dependencies
+@pytest.mark.asyncio
+async def test_handle_async_with_dependencies(mocker: mock.Mock):
+    '''
+    Test handle_async with injected dependencies.
+
+    :param mocker: The mocker fixture.
+    :type mocker: mock.Mock
+    '''
+
+    # Create a mock service dependency.
+    mock_service = mocker()
+    mock_service.fetch.return_value = 'fetched'
+
+    # Define an async event with a dependency.
+    class FetchAsync(AsyncDomainEvent):
+        def __init__(self, service):
+            self.service = service
+
+        async def execute(self, key=None, **kwargs):
+            return self.service.fetch(key)
+
+    # Handle via handle_async.
+    result = await DomainEvent.handle_async(
+        FetchAsync,
+        dependencies={'service': mock_service},
+        key='test_key'
+    )
+    assert result == 'fetched', 'Should return the fetched value'
+    mock_service.fetch.assert_called_once_with('test_key')
+
+# ** test: test_parameters_required_async_raises_on_missing
+@pytest.mark.asyncio
+async def test_parameters_required_async_raises_on_missing():
+    '''
+    Test that parameters_required raises on a missing parameter for an async event.
+    '''
+
+    # Define an async event with parameters_required.
+    class AsyncRequiredEvent(AsyncDomainEvent):
+
+        @DomainEvent.parameters_required(['id'])
+        async def execute(self, **kwargs):
+            return 'ok'
+
+    # Handle without required parameter, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        await DomainEvent.handle_async(AsyncRequiredEvent, id=None)
+    assert 'id' in exc_info.value.kwargs.get('parameters', []), 'Should list missing parameter'
+    assert exc_info.value.kwargs.get('command') == 'AsyncRequiredEvent', 'Should include the command name'
+
+# ** test: test_parameters_required_async_passes_valid
+@pytest.mark.asyncio
+async def test_parameters_required_async_passes_valid():
+    '''
+    Test that parameters_required passes for a valid async event invocation.
+    '''
+
+    # Define an async event with parameters_required.
+    class AsyncRequiredEvent(AsyncDomainEvent):
+
+        @DomainEvent.parameters_required(['id'])
+        async def execute(self, **kwargs):
+            return 'ok'
+
+    # Handle with a valid value, expect success.
+    result = await DomainEvent.handle_async(AsyncRequiredEvent, id='valid')
+    assert result == 'ok', 'Should return the execution result'
+
+# ** test: test_parameters_required_async_multiple_missing
+@pytest.mark.asyncio
+async def test_parameters_required_async_multiple_missing():
+    '''
+    Test that parameters_required collects all violations for an async event.
+    '''
+
+    # Define an async event with multiple required parameters.
+    class AsyncMultiEvent(AsyncDomainEvent):
+
+        @DomainEvent.parameters_required(['id', 'name', 'value'])
+        async def execute(self, **kwargs):
+            return 'ok'
+
+    # Handle with all parameters missing or invalid, expect TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        await DomainEvent.handle_async(AsyncMultiEvent, name=None, value='  ')
+
+    # Verify all three parameters are collected.
+    missing = exc_info.value.kwargs.get('parameters', [])
+    assert 'id' in missing, 'Should list missing parameter id'
+    assert 'name' in missing, 'Should list None parameter name'
+    assert 'value' in missing, 'Should list empty string parameter value'
+    assert len(missing) == 3, 'Should collect exactly three violations'
+
+# ** test: test_async_domain_event_inherits_domain_event
+def test_async_domain_event_inherits_domain_event():
+    '''
+    Test that AsyncDomainEvent is a subclass of DomainEvent.
+    '''
+
+    # Verify inheritance.
+    assert issubclass(AsyncDomainEvent, DomainEvent), 'AsyncDomainEvent should extend DomainEvent'
+
+    # Verify instance check.
+    event = AsyncDomainEvent()
+    assert isinstance(event, DomainEvent), 'AsyncDomainEvent instance should be a DomainEvent'

@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import asyncio
 from typing import Dict, Any
 
 # ** app
@@ -93,7 +94,9 @@ class DomainEvent(object):
         '''
 
         def decorator(method):
-            def wrapper(self, *args, **kwargs):
+
+            # Shared validation logic for both sync and async wrappers.
+            def _validate(self, **kwargs):
 
                 # Collect all missing or invalid parameters.
                 missing = []
@@ -123,7 +126,16 @@ class DomainEvent(object):
                         command=self.__class__.__name__,
                     )
 
-                # Call the wrapped method.
+            # Emit an async wrapper when the decorated method is a coroutine function.
+            if asyncio.iscoroutinefunction(method):
+                async def async_wrapper(self, *args, **kwargs):
+                    _validate(self, **kwargs)
+                    return await method(self, *args, **kwargs)
+                return async_wrapper
+
+            # Otherwise emit a synchronous wrapper.
+            def wrapper(self, *args, **kwargs):
+                _validate(self, **kwargs)
                 return method(self, *args, **kwargs)
 
             return wrapper
@@ -155,3 +167,54 @@ class DomainEvent(object):
         # Execute the event handler.
         result = event_handler.execute(**kwargs)
         return result
+
+    # * method: handle_async (static)
+    @staticmethod
+    async def handle_async(
+            event_cls: type,
+            dependencies: Dict[str, Any] = {},
+            **kwargs) -> Any:
+        '''
+        Handle an async domain event instance via the instantiate-await pattern.
+
+        :param event_cls: The domain event class to handle.
+        :type event_cls: type
+        :param dependencies: The event dependencies.
+        :type dependencies: Dict[str, Any]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The result of the event.
+        :rtype: Any
+        '''
+
+        # Instantiate the event with its dependencies.
+        event_handler = event_cls(**dependencies)
+
+        # Await the async event handler.
+        result = await event_handler.execute(**kwargs)
+        return result
+
+
+# ** class: async_domain_event
+class AsyncDomainEvent(DomainEvent):
+    '''
+    A base class for an async domain event object.
+
+    Extends :class:`DomainEvent` with an async ``execute`` method.
+    Inherits ``verify``, ``raise_error``, and ``parameters_required``
+    unchanged — synchronous exception-raisers work correctly in async context.
+    '''
+
+    # * method: execute
+    async def execute(self, **kwargs) -> Any:
+        '''
+        Execute the async domain event.
+
+        :param kwargs: The event arguments.
+        :type kwargs: dict
+        :return: The event result.
+        :rtype: Any
+        '''
+
+        # Not implemented.
+        raise NotImplementedError()
