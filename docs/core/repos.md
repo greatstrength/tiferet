@@ -17,7 +17,7 @@ Repositories are **never exported** from `tiferet/repos/__init__.py`. They are r
 ### Example: Error Domain
 
 ```python
-class ErrorYamlRepository(ErrorService):
+class ErrorConfigRepository(ErrorService):
     # Implements ErrorService interface
     # Uses Yaml utility for file I/O
     # Uses ErrorYamlObject for serialization
@@ -59,13 +59,13 @@ from ..utils import Yaml
 # *** repos
 
 # ** repo: error_yaml_repository
-class ErrorYamlRepository(ErrorService):
+class ErrorConfigRepository(ErrorService):
     '''
     The error YAML repository.
     '''
 
     # * attribute: yaml_file
-    yaml_file: str
+    config_file: str
 
     # * attribute: encoding
     encoding: str
@@ -74,20 +74,20 @@ class ErrorYamlRepository(ErrorService):
     default_role: str
 
     # * init
-    def __init__(self, error_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the error YAML repository.
 
-        :param error_yaml_file: The YAML configuration file path.
-        :type error_yaml_file: str
+        :param error_config: The YAML configuration file path.
+        :type error_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = error_yaml_file
+        self.config_file = error_config
         self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        self.default_role = 'to_data'
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -102,7 +102,7 @@ class ErrorYamlRepository(ErrorService):
 
         # Load the errors mapping from the configuration file.
         errors_data = Yaml(
-            self.yaml_file,
+            self.config_file,
             encoding=self.encoding,
         ).load(
             start_node=lambda data: data.get('errors', {})
@@ -118,16 +118,16 @@ Every YAML-backed repository shares three instance attributes:
 
 - **`yaml_file`** (`str`) — Path to the YAML configuration file.
 - **`encoding`** (`str`) — File encoding, defaulting to `'utf-8'`.
-- **`default_role`** (`str`) — The TransferObject serialization role used for writes, typically `'to_data.yaml'`.
+- **`default_role`** (`str`) — The TransferObject serialization role used for writes, typically `'to_data'`.
 
-The constructor parameter follows the convention `<domain>_yaml_file` (e.g., `error_yaml_file`, `feature_yaml_file`, `cli_yaml_file`). This domain-prefixed naming enables clean DI wiring in `container.yml`.
+The constructor parameter follows the convention `<domain>_yaml_file` (e.g., `error_config`, `feature_config`, `cli_config`). This domain-prefixed naming enables clean DI wiring in `container.yml`.
 
 ```python
 # * init
-def __init__(self, error_yaml_file: str, encoding: str = 'utf-8') -> None:
-    self.yaml_file = error_yaml_file
+def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
+    self.config_file = error_config
     self.encoding = encoding
-    self.default_role = 'to_data.yaml'
+    self.default_role = 'to_data'
 ```
 
 ## Import Organization
@@ -164,12 +164,12 @@ All read methods compose a `Yaml` utility instance with a `start_node` lambda to
 
 ```python
 # Load a section.
-errors_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+errors_data = Yaml(self.config_file, encoding=self.encoding).load(
     start_node=lambda data: data.get('errors', {})
 )
 
 # Load a single entry by ID.
-error_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+error_data = Yaml(self.config_file, encoding=self.encoding).load(
     start_node=lambda data: data.get('errors', {}).get(id)
 )
 ```
@@ -194,13 +194,13 @@ Save methods follow a three-step sequence:
 error_data = ErrorYamlObject.from_model(error)
 
 # Load the full configuration file.
-full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
+full_data = Yaml(self.config_file, encoding=self.encoding).load()
 
 # Update or insert the error entry.
 full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
 
 # Persist the updated configuration file.
-Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
+Yaml(self.config_file, mode='w', encoding=self.encoding).save(data=full_data)
 ```
 
 ### Deleting: `delete`
@@ -209,25 +209,25 @@ Delete operations are always **idempotent** — deleting a non-existent entry mu
 
 ```python
 # Load the full configuration file.
-full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
+full_data = Yaml(self.config_file, encoding=self.encoding).load()
 
 # Remove the entry if it exists (idempotent).
 full_data.get('errors', {}).pop(id, None)
 
 # Persist the updated configuration file.
-Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
+Yaml(self.config_file, mode='w', encoding=self.encoding).save(data=full_data)
 ```
 
 ## Naming Convention
 
-Repository classes follow the pattern `<Domain>YamlRepository`:
+Repository classes follow the pattern `<Domain>ConfigRepository`:
 
-- `AppYamlRepository` implements `AppService`
-- `CliYamlRepository` implements `CliService`
-- `DIYamlRepository` implements `DIService`
-- `ErrorYamlRepository` implements `ErrorService`
-- `FeatureYamlRepository` implements `FeatureService`
-- `LoggingYamlRepository` implements `LoggingService`
+- `AppConfigRepository` implements `AppService`
+- `CliConfigRepository` implements `CliService`
+- `DIConfigRepository` implements `DIService`
+- `ErrorConfigRepository` implements `ErrorService`
+- `FeatureConfigRepository` implements `FeatureService`
+- `LoggingConfigRepository` implements `LoggingService`
 
 The `Yaml` suffix identifies the backing utility. Other utility-backed implementations (e.g., JSON, SQLite) would follow the same interface with a different suffix (e.g., `ErrorJsonRepository`, `ErrorSqliteRepository`).
 
@@ -240,7 +240,7 @@ The `Yaml` suffix identifies the backing utility. Other utility-backed implement
 - Set the three-attribute foundation in `__init__`.
 - Implement each Service method using the read/write patterns described above.
 
-**Example** — `CalculatorYamlRepository`:
+**Example** — `CalculatorConfigRepository`:
 ```python
 """Tiferet Calculator YAML Repository"""
 
@@ -260,13 +260,13 @@ from ..utils import Yaml
 # *** repos
 
 # ** repo: calculator_yaml_repository
-class CalculatorYamlRepository(CalculatorService):
+class CalculatorConfigRepository(CalculatorService):
     '''
     The calculator YAML repository.
     '''
 
     # * attribute: yaml_file
-    yaml_file: str
+    config_file: str
 
     # * attribute: encoding
     encoding: str
@@ -275,20 +275,20 @@ class CalculatorYamlRepository(CalculatorService):
     default_role: str
 
     # * init
-    def __init__(self, calculator_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, calculator_config_file: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the calculator YAML repository.
 
         :param calculator_yaml_file: The YAML configuration file path.
-        :type calculator_yaml_file: str
+        :type calculator_config_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
         # Set the repository attributes.
-        self.yaml_file = calculator_yaml_file
+        self.config_file = calculator_yaml_file
         self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        self.default_role = 'to_data'
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -303,7 +303,7 @@ class CalculatorYamlRepository(CalculatorService):
 
         # Load the results mapping from the configuration file.
         results_data = Yaml(
-            self.yaml_file,
+            self.config_file,
             encoding=self.encoding,
         ).load(
             start_node=lambda data: data.get('results', {})
@@ -321,7 +321,7 @@ Add the repository to the DI configuration file (`container.yml` or equivalent) 
 services:
   calculator_service:
     module_path: tiferet.repos.calculator
-    class_name: CalculatorYamlRepository
+    class_name: CalculatorConfigRepository
     params:
       calculator_yaml_file: app/configs/calculator.yml
 ```
@@ -351,9 +351,9 @@ Repository tests are **integration tests** that operate against real temporary Y
 
 **Example** — Error repository test fixture:
 ```python
-# ** fixture: error_yaml_file
+# ** fixture: error_config
 @pytest.fixture
-def error_yaml_file(tmp_path) -> str:
+def error_config(tmp_path) -> str:
     file_path = tmp_path / 'test_error.yaml'
     with open(file_path, 'w', encoding='utf-8') as yaml_file:
         yaml.safe_dump(ERROR_DATA, yaml_file)
@@ -361,8 +361,8 @@ def error_yaml_file(tmp_path) -> str:
 
 # ** fixture: error_config_repo
 @pytest.fixture
-def error_config_repo(error_yaml_file: str) -> ErrorYamlRepository:
-    return ErrorYamlRepository(error_yaml_file)
+def error_config_repo(error_config: str) -> ErrorConfigRepository:
+    return ErrorConfigRepository(error_config)
 ```
 
 Standard test cases cover:
@@ -377,13 +377,13 @@ Standard test cases cover:
 Repositories are defined in `tiferet/repos/`:
 
 - `__init__.py` — Empty exports (repositories are never exported).
-- `app.py` — `AppYamlRepository`.
-- `cli.py` — `CliYamlRepository`.
-- `container.py` — `ContainerYamlRepository` (legacy).
-- `di.py` — `DIYamlRepository`.
-- `error.py` — `ErrorYamlRepository`.
-- `feature.py` — `FeatureYamlRepository`.
-- `logging.py` — `LoggingYamlRepository`.
+- `app.py` — `AppConfigRepository`.
+- `cli.py` — `CliConfigRepository`.
+- `container.py` — `DIConfigRepository` (legacy).
+- `di.py` — `DIConfigRepository`.
+- `error.py` — `ErrorConfigRepository`.
+- `feature.py` — `FeatureConfigRepository`.
+- `logging.py` — `LoggingConfigRepository`.
 
 Tests live in `tiferet/repos/tests/`.
 
@@ -391,7 +391,7 @@ Tests live in `tiferet/repos/tests/`.
 
 Repositories are the v2.0 successor to Proxies (`tiferet/proxies/`). Key changes:
 
-- **Package rename**: `tiferet/proxies/yaml/<domain>.py` → `tiferet/repos/<domain>.py`. The nested middleware-specific directory structure is flattened because the utility suffix in the class name (`YamlRepository`) already identifies the backing technology.
+- **Package rename**: `tiferet/proxies/yaml/<domain>.py` → `tiferet/repos/<domain>.py`. The nested middleware-specific directory structure is flattened into a single `repos/` package.
 - **Base class**: Proxies extended `YamlConfigurationProxy` (a middleware base class). Repositories extend the Service interface directly and compose the `Yaml` utility internally.
 - **Artifact comments**: `# *** proxies` / `# ** proxy:` → `# *** repos` / `# ** repo:`.
 - **Data mapping**: Proxies used `DataObject.from_data()` and `DataObject.map()`. Repositories use `model_validate()` for reads and `from_model()` classmethod + `to_primitive(role)` for writes.

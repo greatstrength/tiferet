@@ -13,7 +13,7 @@ from tiferet.mappers import (
     CliArgumentAggregate,
     CliCommandYamlObject,
 )
-from tiferet.repos.cli import CliYamlRepository
+from tiferet.repos.cli import CliConfigRepository
 
 
 # *** constants
@@ -106,30 +106,30 @@ def cli_yaml_file(tmp_path) -> str:
 
 # ** fixture: cli_config_repo
 @pytest.fixture
-def cli_config_repo(cli_yaml_file: str) -> CliYamlRepository:
+def cli_config_repo(cli_yaml_file: str) -> CliConfigRepository:
     '''
     Fixture to create an instance of the CLI Configuration Repository.
 
     :param cli_yaml_file: The CLI YAML configuration file path.
     :type cli_yaml_file: str
-    :return: An instance of CliYamlRepository.
-    :rtype: CliYamlRepository
+    :return: An instance of CliConfigRepository.
+    :rtype: CliConfigRepository
     '''
 
-    # Create and return the CliYamlRepository instance.
-    return CliYamlRepository(cli_yaml_file)
+    # Create and return the CliConfigRepository instance.
+    return CliConfigRepository(cli_yaml_file)
 
 # *** tests
 
 # ** test_int: cli_config_repo_list
 def test_int_cli_config_repo_list(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the list method of the CliYamlRepository.
+    Test the list method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # List all CLI commands.
@@ -144,13 +144,13 @@ def test_int_cli_config_repo_list(
 
 # ** test_int: cli_config_repo_get
 def test_int_cli_config_repo_get(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the get method of the CliYamlRepository.
+    Test the get method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Get a CLI command by id.
@@ -173,13 +173,13 @@ def test_int_cli_config_repo_get(
 
 # ** test_int: cli_config_repo_get_not_found
 def test_int_cli_config_repo_get_not_found(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the get method of the CliYamlRepository for a non-existent command.
+    Test the get method of the CliConfigRepository for a non-existent command.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Attempt to get a non-existent CLI command.
@@ -190,13 +190,13 @@ def test_int_cli_config_repo_get_not_found(
 
 # ** test_int: cli_config_repo_get_parent_arguments
 def test_int_cli_config_repo_get_parent_arguments(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the get_parent_arguments method of the CliYamlRepository.
+    Test the get_parent_arguments method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Get all parent-level CLI arguments.
@@ -213,13 +213,13 @@ def test_int_cli_config_repo_get_parent_arguments(
 
 # ** test_int: cli_config_repo_save
 def test_int_cli_config_repo_save(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the save method of the CliYamlRepository.
+    Test the save method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Create constant for new test CLI command.
@@ -261,13 +261,13 @@ def test_int_cli_config_repo_save(
 
 # ** test_int: cli_config_repo_delete
 def test_int_cli_config_repo_delete(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the delete method of the CliYamlRepository.
+    Test the delete method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Delete an existing CLI command.
@@ -286,13 +286,13 @@ def test_int_cli_config_repo_delete(
 
 # ** test_int: cli_config_repo_delete_idempotent
 def test_int_cli_config_repo_delete_idempotent(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the delete method of the CliYamlRepository for idempotent behavior.
+    Test the delete method of the CliConfigRepository for idempotent behavior.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Delete a non-existent CLI command (should not raise).
@@ -304,13 +304,13 @@ def test_int_cli_config_repo_delete_idempotent(
 
 # ** test_int: cli_config_repo_save_parent_arguments
 def test_int_cli_config_repo_save_parent_arguments(
-        cli_config_repo: CliYamlRepository,
+        cli_config_repo: CliConfigRepository,
     ) -> None:
     '''
-    Test the save_parent_arguments method of the CliYamlRepository.
+    Test the save_parent_arguments method of the CliConfigRepository.
 
     :param cli_config_repo: The CLI configuration repository.
-    :type cli_config_repo: CliYamlRepository
+    :type cli_config_repo: CliConfigRepository
     '''
 
     # Create new parent arguments.

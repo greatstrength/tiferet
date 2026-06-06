@@ -217,10 +217,10 @@ class DynamicServiceProvider(ServiceProvider):
 When a class type is registered via `add_service()`, it is wrapped in a `providers.Factory`. Each resolution creates a new instance with constructor kwargs wired to sibling providers:
 
 ```python
-provider.add_service('feature_service', FeatureYamlRepository)
-provider.add_constants({'feature_yaml_file': 'app/configs/feature.yml'})
+provider.add_service('feature_service', FeatureConfigRepository)
+provider.add_constants({'feature_config': 'app/configs/feature.yml'})
 
-# FeatureYamlRepository(feature_yaml_file='app/configs/feature.yml') is resolved:
+# FeatureConfigRepository(feature_config='app/configs/feature.yml') is resolved:
 repo = provider.get_service('feature_service')  # ✓ new instance each time
 ```
 

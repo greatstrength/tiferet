@@ -65,7 +65,7 @@ if service:
 
 The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer of the App domain at runtime. The flow is:
 
-1. **`App('basic_calc', app_yaml_file='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
+1. **`App('basic_calc', app_config='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
 2. **`resolve_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event, merging default services.
 3. **`realize_interface(app_interface, ...)`** iterates through `app_interface.services`, imports each class via `ImportDependency.execute()`, and collects them (along with parameters and constants) into a dependencies dict.
 4. The dependencies dict is passed to `create_service_provider`, which builds a DI container that instantiates the context class with all its wired services.
@@ -75,7 +75,7 @@ The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer
 # Simplified runtime flow
 from tiferet import App
 
-app = App('basic_calc', app_yaml_file='config.yml')  # resolves interface, wires dependencies
+app = App('basic_calc', app_config='config.yml')  # resolves interface, wires dependencies
 result = app.run('calc.add', data={'a': 1, 'b': 2})  # executes features via the wired context
 ```
 
@@ -94,9 +94,9 @@ interfaces:
     attrs:
       cli_repo:
         module_path: tiferet.repos.cli
-        class_name: CliYamlRepository
+        class_name: CliConfigRepository
         params:
-          cli_yaml_file: config.yml
+          cli_config: config.yml
 ```
 
 CLI interfaces no longer require `module_path`/`class_name` overrides — they use the default `AppInterfaceContext` with argparse wiring handled by the `build_cli` blueprint.
@@ -124,7 +124,7 @@ These events depend on the `AppService` interface for persistence operations.
 - `save(app_interface) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `AppConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
@@ -142,8 +142,8 @@ from tiferet.domain import AppServiceDependency, AppInterface
 dep = AppServiceDependency(
     service_id='cli_repo',
     module_path='tiferet.repos.cli',
-    class_name='CliYamlRepository',
-    parameters={'cli_yaml_file': 'config.yml'},
+    class_name='CliConfigRepository',
+    parameters={'cli_config': 'config.yml'},
 )
 
 interface = AppInterface(

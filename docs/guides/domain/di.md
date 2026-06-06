@@ -89,9 +89,9 @@ Service configurations are defined in the `services` section of the configuratio
 services:
   error_service:
     module_path: tiferet.repos.error
-    class_name: ErrorYamlRepository
+    class_name: ErrorConfigRepository
     params:
-      error_yaml_file: config.yml
+      error_config: config.yml
     deps:
       - flag: sqlite
         module_path: tiferet.repos.error_sqlite
@@ -101,9 +101,9 @@ services:
 
   feature_service:
     module_path: tiferet.repos.feature
-    class_name: FeatureYamlRepository
+    class_name: FeatureConfigRepository
     params:
-      feature_yaml_file: config.yml
+      feature_config: config.yml
 ```
 
 ## Domain Events
@@ -130,7 +130,7 @@ These events depend on the `DIService` interface for persistence operations.
 - `delete_configuration(id: str) -> None`
 - `save_constants(constants: Dict[str, Any]) -> None`
 
-Concrete implementations (e.g., `DIYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `DIConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
@@ -155,7 +155,7 @@ dep = FlaggedDependency(
 config = ServiceConfiguration(
     id='error_service',
     module_path='tiferet.repos.error',
-    class_name='ErrorYamlRepository',
+    class_name='ErrorConfigRepository',
     parameters={'error_config_file': 'app/configs/error.yml'},
     dependencies=[dep],
 )

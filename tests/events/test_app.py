@@ -253,7 +253,7 @@ class TestGetAppInterface(ServiceEventTestBase):
 
         # Seed interface constants with an existing key that should be preserved.
         app_interface.constants = {
-            'di_yaml_file': 'custom.yml',
+            'di_config': 'custom.yml',
             'custom_key': 'custom_value',
         }
 
@@ -261,14 +261,14 @@ class TestGetAppInterface(ServiceEventTestBase):
         result = self.handle(
             mock_dependencies,
             default_constants={
-                'di_yaml_file': 'config.yml',
-                'feature_yaml_file': 'config.yml',
+                'di_config': 'config.yml',
+                'feature_config': 'config.yml',
             },
         )
 
         # Assert existing keys are preserved and missing keys are added.
-        assert result.constants['di_yaml_file'] == 'custom.yml'
-        assert result.constants['feature_yaml_file'] == 'config.yml'
+        assert result.constants['di_config'] == 'custom.yml'
+        assert result.constants['feature_config'] == 'config.yml'
         assert result.constants['custom_key'] == 'custom_value'
 
     # * method: test_converts_to_aggregate_and_merges_services_and_constants
@@ -291,7 +291,7 @@ class TestGetAppInterface(ServiceEventTestBase):
                     parameters={},
                 ),
             ],
-            constants={'di_yaml_file': 'custom.yml'},
+            constants={'di_config': 'custom.yml'},
         )
         mock_dependencies['app_service'].get.return_value = domain_interface
 
@@ -308,8 +308,8 @@ class TestGetAppInterface(ServiceEventTestBase):
                 ),
             ],
             default_constants={
-                'di_yaml_file': 'config.yml',
-                'feature_yaml_file': 'config.yml',
+                'di_config': 'config.yml',
+                'feature_config': 'config.yml',
             },
         )
 
@@ -317,8 +317,8 @@ class TestGetAppInterface(ServiceEventTestBase):
         assert isinstance(result, AppInterfaceAggregate)
         assert result.get_service('existing_service') is not None
         assert result.get_service('new_service') is not None
-        assert result.constants['di_yaml_file'] == 'custom.yml'
-        assert result.constants['feature_yaml_file'] == 'config.yml'
+        assert result.constants['di_config'] == 'custom.yml'
+        assert result.constants['feature_config'] == 'config.yml'
 
 
 # ** test: TestListAppInterfaces

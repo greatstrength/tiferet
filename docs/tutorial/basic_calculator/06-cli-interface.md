@@ -119,7 +119,7 @@ interfaces:
 ```python
 from tiferet import App
 
-app = App().load_app_service(app_yaml_file="config.yml")
+app = App().load_app_service(app_config="config.yml")
 
 # Load the CLI interface we defined in config.yml
 cli = app.load_interface("calc_cli")

@@ -245,7 +245,7 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'parameters', 'service_id'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'service_id'}},
+        'to_data': {'by_alias': True, 'exclude': {'service_id'}},
     }
 
     # * attribute: service_id
@@ -310,7 +310,7 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'services', 'constants', 'module_path', 'class_name'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: module_path

@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from tiferet.mappers import AppInterfaceYamlObject
-from tiferet.repos.app import AppYamlRepository
+from tiferet.repos.app import AppConfigRepository
 
 
 # *** constants
@@ -67,30 +67,30 @@ def app_config_file(tmp_path) -> str:
 
 # ** fixture: app_config_repo
 @pytest.fixture
-def app_config_repo(app_config_file: str) -> AppYamlRepository:
+def app_config_repo(app_config_file: str) -> AppConfigRepository:
     '''
     Fixture to create an instance of the App Configuration Repository.
 
     :param app_config_file: The app YAML configuration file path.
     :type app_config_file: str
-    :return: An instance of AppYamlRepository.
-    :rtype: AppYamlRepository
+    :return: An instance of AppConfigRepository.
+    :rtype: AppConfigRepository
     '''
 
-    # Create and return the AppYamlRepository instance.
-    return AppYamlRepository(app_config_file)
+    # Create and return the AppConfigRepository instance.
+    return AppConfigRepository(app_config_file)
 
 # *** tests
 
 # ** test_int: app_config_repo_exists
 def test_int_app_config_repo_exists(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the exists method of the AppYamlRepository.
+    Test the exists method of the AppConfigRepository.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # Check if the app interfaces exist.
@@ -100,13 +100,13 @@ def test_int_app_config_repo_exists(
 
 # ** test_int: app_config_repo_get
 def test_int_app_config_repo_get(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the get method of the AppYamlRepository.
+    Test the get method of the AppConfigRepository.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # Get app interfaces by id.
@@ -129,13 +129,13 @@ def test_int_app_config_repo_get(
 
 # ** test_int: app_config_repo_get_not_found
 def test_int_app_config_repo_get_not_found(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the get method of the AppYamlRepository for a non-existent app interface.
+    Test the get method of the AppConfigRepository for a non-existent app interface.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # Attempt to get a non-existent app interface.
@@ -146,13 +146,13 @@ def test_int_app_config_repo_get_not_found(
 
 # ** test_int: app_config_repo_list
 def test_int_app_config_repo_list(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the list method of the AppYamlRepository for all app interfaces.
+    Test the list method of the AppConfigRepository for all app interfaces.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # List all app interfaces.
@@ -167,13 +167,13 @@ def test_int_app_config_repo_list(
 
 # ** test_int: app_config_repo_save
 def test_int_app_config_repo_save(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the save method of the AppYamlRepository.
+    Test the save method of the AppConfigRepository.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # Create constant for new test app interface.
@@ -205,13 +205,13 @@ def test_int_app_config_repo_save(
 
 # ** test_int: app_config_repo_delete
 def test_int_app_config_repo_delete(
-        app_config_repo: AppYamlRepository,
+        app_config_repo: AppConfigRepository,
     ) -> None:
     '''
-    Test the delete method of the AppYamlRepository.
+    Test the delete method of the AppConfigRepository.
 
     :param app_config_repo: The app configuration repository.
-    :type app_config_repo: AppYamlRepository
+    :type app_config_repo: AppConfigRepository
     '''
 
     # Delete an existing app interface.

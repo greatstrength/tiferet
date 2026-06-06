@@ -1,4 +1,4 @@
-"""Tiferet DI YAML Repository"""
+"""Tiferet DI Configuration Repository"""
 
 # *** imports
 
@@ -11,40 +11,29 @@ from ..mappers import (
     ServiceConfigurationAggregate,
     ServiceConfigurationYamlObject,
 )
-from ..utils import Yaml
+from .settings import ConfigurationRepository
 
 # *** repos
 
 # ** repo: di_yaml_repository
-class DIYamlRepository(DIService):
+class DIConfigRepository(DIService, ConfigurationRepository):
     '''
     The DI YAML repository.
     '''
 
-    # * attribute: yaml_file
-    yaml_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
-
     # * init
-    def __init__(self, di_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, di_config: str, encoding: str = 'utf-8') -> None:
         '''
-        Initialize the DI YAML repository.
+        Initialize the di configuration repository.
 
-        :param di_yaml_file: The YAML configuration file path.
-        :type di_yaml_file: str
+        :param di_config: The configuration file path.
+        :type di_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
-        # Set the repository attributes.
-        self.yaml_file = di_yaml_file
-        self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        # Initialize the configuration repository base.
+        ConfigurationRepository.__init__(self, config_file=di_config, encoding=encoding)
 
     # * method: configuration_exists
     def configuration_exists(self, id: str) -> bool:
@@ -58,10 +47,7 @@ class DIYamlRepository(DIService):
         '''
 
         # Load the services mapping from the configuration file.
-        services_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        services_data = self._load(
             start_node=lambda data: data.get('services', {})
         )
 
@@ -82,10 +68,7 @@ class DIYamlRepository(DIService):
         '''
 
         # Load the specific service configuration data from the configuration file.
-        config_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        config_data = self._load(
             start_node=lambda data: data.get('services', {}).get(configuration_id)
         )
 
@@ -122,10 +105,7 @@ class DIYamlRepository(DIService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Map each service entry to a ServiceConfigurationAggregate.
         configurations = [
@@ -156,20 +136,13 @@ class DIYamlRepository(DIService):
         config_data = ServiceConfigurationYamlObject.from_model(configuration)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update or insert the service configuration entry.
         full_data.setdefault('services', {})[configuration.id] = config_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)
 
     # * method: delete_configuration
     def delete_configuration(self, configuration_id: str) -> None:
@@ -183,20 +156,13 @@ class DIYamlRepository(DIService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Remove the service configuration entry if it exists (idempotent).
         full_data.get('services', {}).pop(configuration_id, None)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)
 
     # * method: save_constants
     def save_constants(self, constants: Dict[str, Any] = {}) -> None:
@@ -210,10 +176,7 @@ class DIYamlRepository(DIService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Merge existing constants with new ones.
         existing_constants = full_data.get('const', {})
@@ -223,8 +186,4 @@ class DIYamlRepository(DIService):
         full_data['const'] = {k: v for k, v in existing_constants.items() if v is not None}
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)

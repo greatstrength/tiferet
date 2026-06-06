@@ -161,7 +161,7 @@ class GetFeature(DomainEvent):
         return feature
 ```
 
-The concrete implementation (`FeatureYamlRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
+The concrete implementation (`FeatureConfigRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
 
 ```python
 mock_feature_service = mock.Mock(spec=FeatureService)

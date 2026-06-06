@@ -108,21 +108,21 @@ TEST_CALC_CONFIG = {
             'name': 'Integration Test - Basic Int Calculator',
             'description': 'The interface instance for testing the calculator features.',
             'constants': {
-                'feature_yaml_file': None,
-                'error_yaml_file': None,
-                'di_yaml_file': None,
-                'logging_yaml_file': None,
+                'feature_config': None,
+                'error_config': None,
+                'di_config': None,
+                'logging_config': None,
             },
         },
         'test_calc_cli': {
             'name': 'Integration Test - Basic Calculator CLI',
             'description': 'CLI interface for testing calculator features via CliBuilder.',
             'constants': {
-                'feature_yaml_file': None,
-                'error_yaml_file': None,
-                'di_yaml_file': None,
-                'logging_yaml_file': None,
-                'cli_yaml_file': None,
+                'feature_config': None,
+                'error_config': None,
+                'di_config': None,
+                'logging_config': None,
+                'cli_config': None,
             },
         },
     },
@@ -293,13 +293,13 @@ def test_calc_yaml_file(tmp_path, test_calc_cli_yaml_file):
     config = copy.deepcopy(TEST_CALC_CONFIG)
 
     # Point the test_calc interface constants at the main YAML file.
-    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+    for key in ('feature_config', 'error_config', 'di_config', 'logging_config'):
         config['interfaces']['test_calc']['constants'][key] = str(file_path)
 
     # Point the test_calc_cli interface constants at the main and CLI YAML files.
-    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+    for key in ('feature_config', 'error_config', 'di_config', 'logging_config'):
         config['interfaces']['test_calc_cli']['constants'][key] = str(file_path)
-    config['interfaces']['test_calc_cli']['constants']['cli_yaml_file'] = test_calc_cli_yaml_file
+    config['interfaces']['test_calc_cli']['constants']['cli_config'] = test_calc_cli_yaml_file
 
     # Write the configuration to the temporary YAML file.
     with open(str(file_path), 'w', encoding='utf-8') as f:
@@ -332,7 +332,7 @@ def test_calc_cli_script(tmp_path, test_calc_yaml_file):
         "from tiferet import CLI\n"
         "\n"
         "if __name__ == '__main__':\n"
-        "    CLI('test_calc_cli', app_yaml_file={main_yaml!r})\n"
+        "    CLI('test_calc_cli', app_config={main_yaml!r})\n"
     ).format(main_yaml=test_calc_yaml_file)
 
     # Write the CLI script to a temporary file.

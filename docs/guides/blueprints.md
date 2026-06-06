@@ -26,7 +26,7 @@ Blueprints sit at the highest level of the runtime graph. They are what applicat
 ```python
 from tiferet import App
 
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 result = app.run('calc.add', data={'a': 5, 'b': 3})
 ```
 
@@ -112,7 +112,7 @@ The CLI blueprint extends the app blueprint with argparse-based CLI parsing. All
 from tiferet import CLI
 
 if __name__ == '__main__':
-    CLI('basic_calc_cli', app_yaml_file='config.yml')
+    CLI('basic_calc_cli', app_config='config.yml')
 ```
 
 ### Build Procedure
@@ -154,7 +154,7 @@ Blueprints are **application-level**; contexts are **interface-level**.
 `build_app` resolves and realizes in one call:
 
 ```python
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 ```
 
 ### 2. Consistent Error Handling

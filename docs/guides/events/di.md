@@ -64,8 +64,8 @@ result = DomainEvent.handle(
     dependencies={'di_service': di_service},
     id='error_repo',
     module_path='myapp.repos.error',
-    class_name='ErrorYamlRepository',
-    parameters={'error_yaml_file': 'app/configs/error.yml'},
+    class_name='ErrorConfigRepository',
+    parameters={'error_config': 'app/configs/error.yml'},
 )
 ```
 

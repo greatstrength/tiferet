@@ -388,7 +388,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         yaml_obj = ServiceConfigurationYamlObject.model_validate(self.sample_data)
 
         # Serialize to primitive format for YAML.
-        primitive = yaml_obj.to_primitive(role='to_data.yaml')
+        primitive = yaml_obj.to_primitive(role='to_data')
 
         # Verify id is excluded and the remaining structure is correct.
         assert isinstance(primitive, dict)
@@ -461,7 +461,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyYamlObject)
 
         # When serializing to data, dependencies should still be emitted as 'deps'.
-        primitive = data_object.to_primitive(role='to_data.yaml')
+        primitive = data_object.to_primitive(role='to_data')
         assert 'flags' not in primitive
         assert 'deps' in primitive
         assert 'flag1' in primitive['deps']
@@ -564,14 +564,14 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # ** test: flagged_dependency_yaml_roles_to_data_yaml_excludes_flag
     def test_flagged_dependency_yaml_roles_to_data_yaml_excludes_flag(self):
         '''
-        Test that to_data.yaml role excludes the flag field.
+        Test that to_data role excludes the flag field.
         '''
 
         # Create a YAML object.
         yaml_obj = FlaggedDependencyYamlObject.model_validate(self.flagged_dep_sample_data)
 
-        # Serialize with to_data.yaml role.
-        primitive = yaml_obj.to_primitive('to_data.yaml')
+        # Serialize with to_data role.
+        primitive = yaml_obj.to_primitive('to_data')
 
         # Flag should be excluded; other fields present.
         assert 'flag' not in primitive

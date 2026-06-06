@@ -154,7 +154,7 @@ These events depend on the `CliService` interface for persistence operations.
 - `save(cli_command) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `CliConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

@@ -1,4 +1,4 @@
-"""Tiferet App YAML Repository"""
+"""Tiferet App Configuration Repository"""
 
 # *** imports
 
@@ -11,40 +11,29 @@ from ..mappers import (
     AppInterfaceAggregate,
     AppInterfaceYamlObject,
 )
-from ..utils import Yaml
+from .settings import ConfigurationRepository
 
 # *** repos
 
-# ** repo: app_yaml_repository
-class AppYamlRepository(AppService):
+# ** repo: app_config_repository
+class AppConfigRepository(AppService, ConfigurationRepository):
     '''
-    The app YAML repository.
+    The app configuration repository.
     '''
-
-    # * attribute: yaml_file
-    yaml_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
 
     # * init
-    def __init__(self, app_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, app_config: str, encoding: str = 'utf-8') -> None:
         '''
-        Initialize the app YAML repository.
+        Initialize the app configuration repository.
 
-        :param app_yaml_file: The YAML configuration file path.
-        :type app_yaml_file: str
+        :param app_config: The configuration file path.
+        :type app_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
-        # Set the repository attributes.
-        self.yaml_file = app_yaml_file
-        self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        # Initialize the configuration repository base.
+        ConfigurationRepository.__init__(self, config_file=app_config, encoding=encoding)
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -58,10 +47,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the interfaces mapping from the configuration file.
-        interfaces_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        interfaces_data = self._load(
             start_node=lambda data: data.get('interfaces', {})
         )
 
@@ -80,10 +66,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the specific interface data from the configuration file.
-        interface_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        interface_data = self._load(
             start_node=lambda data: data.get('interfaces', {}).get(id)
         )
 
@@ -106,10 +89,7 @@ class AppYamlRepository(AppService):
         '''
 
         # Load all interfaces data from the configuration file.
-        interfaces_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        interfaces_data = self._load(
             start_node=lambda data: data.get('interfaces', {})
         )
 
@@ -136,20 +116,13 @@ class AppYamlRepository(AppService):
         interface_data = AppInterfaceYamlObject.from_model(interface)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update or insert the interface entry.
         full_data.setdefault('interfaces', {})[interface.id] = interface_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -163,17 +136,10 @@ class AppYamlRepository(AppService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Remove the interface entry if it exists (idempotent).
         full_data.get('interfaces', {}).pop(id, None)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)

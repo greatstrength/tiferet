@@ -79,7 +79,7 @@ Blueprints are organized under the `# *** blueprints` top-level comment, with in
 `build_app` resolves and realizes in one call:
 
 ```python
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 ```
 
 **Default configuration injection**  

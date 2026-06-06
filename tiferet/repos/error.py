@@ -1,4 +1,4 @@
-"""Tiferet Error YAML Repository"""
+"""Tiferet Error Configuration Repository"""
 
 # *** imports
 
@@ -11,40 +11,29 @@ from ..mappers import (
     ErrorAggregate,
     ErrorYamlObject,
 )
-from ..utils import Yaml
+from .settings import ConfigurationRepository
 
 # *** repos
 
-# ** repo: error_yaml_repository
-class ErrorYamlRepository(ErrorService):
+# ** repo: error_config_repository
+class ErrorConfigRepository(ErrorService, ConfigurationRepository):
     '''
-    The error YAML repository.
+    The error configuration repository.
     '''
-
-    # * attribute: yaml_file
-    yaml_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
 
     # * init
-    def __init__(self, error_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
         '''
-        Initialize the error YAML repository.
+        Initialize the error configuration repository.
 
-        :param error_yaml_file: The YAML configuration file path.
-        :type error_yaml_file: str
+        :param error_config: The configuration file path.
+        :type error_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
-        # Set the repository attributes.
-        self.yaml_file = error_yaml_file
-        self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        # Initialize the configuration repository base.
+        ConfigurationRepository.__init__(self, config_file=error_config, encoding=encoding)
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -58,10 +47,7 @@ class ErrorYamlRepository(ErrorService):
         '''
 
         # Load the errors mapping from the configuration file.
-        errors_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        errors_data = self._load(
             start_node=lambda data: data.get('errors', {})
         )
 
@@ -80,10 +66,7 @@ class ErrorYamlRepository(ErrorService):
         '''
 
         # Load the specific error data from the configuration file.
-        error_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        error_data = self._load(
             start_node=lambda data: data.get('errors', {}).get(id)
         )
 
@@ -106,10 +89,7 @@ class ErrorYamlRepository(ErrorService):
         '''
 
         # Load all errors data from the configuration file.
-        errors_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        errors_data = self._load(
             start_node=lambda data: data.get('errors', {})
         )
 
@@ -136,20 +116,13 @@ class ErrorYamlRepository(ErrorService):
         error_data = ErrorYamlObject.from_model(error)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update or insert the error entry.
         full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -163,17 +136,10 @@ class ErrorYamlRepository(ErrorService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Remove the error entry if it exists (idempotent).
         full_data.get('errors', {}).pop(id, None)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(data=full_data)

@@ -1,13 +1,13 @@
-# AGENTS.md — Tiferet Framework (v2.0.0b3)
+# AGENTS.md — Tiferet Framework (v2.0.0)
 
 ## Project Overview
 
-**Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML-based configuration files and Pydantic v2 for model validation.
+**Tiferet** is a Python framework for Domain-Driven Design (DDD). It provides a layered architecture for building applications with domain events, service interfaces, configuration-driven feature workflows, and dependency injection. The framework uses YAML or JSON configuration files and Pydantic v2 for model validation.
 
 - **Repository:** https://github.com/greatstrength/tiferet
 - **Branch:** `main`
 - **Python:** ≥ 3.10
-- **Version:** `2.0.0b3`
+- **Version:** `2.0.0`
 
 ## Architecture
 
@@ -25,7 +25,7 @@ tiferet/
 ├── events/               # DomainEvent base class and domain event modules
 ├── interfaces/           # Service ABC and domain service interfaces
 ├── mappers/              # Aggregate + TransferObject base classes and domain mappers
-├── repos/                # YAML-backed Service implementations
+├── repos/                # Configuration-backed Service implementations (YAML/JSON)
 ├── utils/                # Infrastructure utilities (file I/O, database, computational processes)
 └── tests_int/            # Integration tests
 ```
@@ -45,7 +45,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 ### Runtime Flow
 
 1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
-2. The blueprint loads the app service (typically `AppYamlRepository`), resolves the interface via `GetAppInterface`, and wires the DI container.
+2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, and wires the DI container.
 3. `AppInterfaceContext.run(feature_id, data={})` parses the request, executes the feature, and returns the response.
 4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
@@ -81,7 +81,7 @@ CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has be
 Tiferet uses a two-layer DI architecture:
 
 - **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. The `create_service_provider` blueprint function assembles the full interface dependency graph via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
-- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIYamlRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
+- **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIConfigRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 `DynamicServiceProvider.build_factory(service_type)` is a public method that builds a `Factory` provider with constructor kwargs wired to sibling providers. It inspects the constructor signature to identify injectable parameters and maps them to registered sibling providers.
 
@@ -210,16 +210,16 @@ Split into two classes:
 
 ## Repositories
 
-Concrete `Service` implementations in `tiferet/repos/`. Currently all YAML-backed. Repositories are **never exported** from `__init__.py` — they are resolved at runtime through DI configuration.
+Concrete `Service` implementations in `tiferet/repos/`. All configuration repositories extend `ConfigurationRepository` (`repos/settings.py`), which provides format-agnostic I/O via `_load()` / `_save()` with automatic dispatch to YAML or JSON based on file extension. Repositories are **never exported** from `__init__.py` — they are resolved at runtime through DI configuration.
 
-- `AppYamlRepository`, `CliYamlRepository`, `ContainerYamlRepository`
-- `DIYamlRepository`, `ErrorYamlRepository`, `FeatureYamlRepository`, `LoggingYamlRepository`
+- `AppConfigRepository`, `CliConfigRepository`
+- `DIConfigRepository`, `ErrorConfigRepository`, `FeatureConfigRepository`, `LoggingConfigRepository`
 
 Key patterns:
 - Artifact comments use `# *** repos` / `# ** repo: <name>`.
-- Three-attribute foundation: `yaml_file`, `encoding`, `default_role`.
-- Constructor param convention: `<domain>_yaml_file` (e.g., `error_yaml_file`).
-- Reads use `Yaml` utility with `start_node` lambdas and `model_validate` to construct TransferObjects; writes use `TransferObject.from_model` → `to_primitive(default_role)` → `Yaml.save`.
+- All repos extend `ConfigurationRepository` which provides: `config_file`, `encoding`, `default_role` (set to `'to_data'`).
+- Constructor param convention: `<domain>_config` (e.g., `error_config`, `app_config`).
+- Reads use `self._load(start_node=..., data_factory=...)` and `model_validate` to construct TransferObjects; writes use `TransferObject.from_model` → `to_primitive(self.default_role)` → `self._save(data=...)`.
 - Delete operations are always idempotent.
 - Tests are integration tests using `tmp_path` fixtures with real temporary YAML files.
 
@@ -328,9 +328,36 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
+- `tiferet/repos/settings.py` — `ConfigurationRepository` base class (format-agnostic config I/O)
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### v2.0.0b7: ConfigurationRepository & Role Consolidation
+
+The v2.0.0b7 release introduces a format-agnostic `ConfigurationRepository` base class and consolidates TransferObject serialization roles. Key changes:
+
+- **`ConfigurationRepository`** (`tiferet/repos/settings.py`) — New base class providing `_load()`, `_save()`, and `_get_loader()` methods that dispatch to `YamlLoader` or `JsonLoader` based on the config file extension (`.yml`/`.yaml` → YAML, `.json` → JSON). Raises `UNSUPPORTED_CONFIG_FILE_TYPE` for unknown extensions.
+- **Repository renames** — All six concrete repos have been renamed from `*YamlRepository` to `*ConfigRepository`:
+  - `AppYamlRepository` → `AppConfigRepository`
+  - `CliYamlRepository` → `CliConfigRepository`
+  - `DIYamlRepository` → `DIConfigRepository`
+  - `ErrorYamlRepository` → `ErrorConfigRepository`
+  - `FeatureYamlRepository` → `FeatureConfigRepository`
+  - `LoggingYamlRepository` → `LoggingConfigRepository`
+- **Constructor scalars** — Each repo’s constructor parameter has been renamed from `<domain>_yaml_file` to `<domain>_config` (e.g., `app_yaml_file` → `app_config`, `error_yaml_file` → `error_config`).
+- **Bootstrap defaults** (`tiferet/assets/blueprints.py`) — `DEFAULT_CONSTANTS` keys updated to match (`cli_config`, `di_config`, `error_config`, `logging_config`, `feature_config`). `DEFAULT_APP_SERVICE_CLASS_NAME` changed to `'AppConfigRepository'`. All `DEFAULT_SERVICES` class names updated.
+- **`_ROLES` consolidation** — All TransferObject `_ROLES` dicts have been consolidated: `'to_data.yaml'` → `'to_data'`, and redundant `'to_data.json'` entries have been removed. The `default_role` on all repos is now `'to_data'`.
+- **Usage pattern change**:
+  ```python
+  # Before (v2.0.0b6)
+  from tiferet import App
+  app = App('basic_calc', app_yaml_file='config.yml')
+
+  # After (v2.0.0b7)
+  from tiferet import App
+  app = App('basic_calc', app_config='config.yml')
+  ```
 
 ### v2.0.0b3: Blueprints Pattern
 

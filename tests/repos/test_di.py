@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from tiferet.mappers import ServiceConfigurationYamlObject
-from tiferet.repos.di import DIYamlRepository
+from tiferet.repos.di import DIConfigRepository
 
 
 # *** constants
@@ -34,9 +34,9 @@ DI_DATA: Dict[str, Dict] = {
             'deps': {
                 'yaml': {
                     'module_path': 'tiferet.repos.di',
-                    'class_name': 'DIYamlRepository',
+                    'class_name': 'DIConfigRepository',
                     'params': {
-                        'di_yaml_file': 'app/configs/di.yml',
+                        'di_config': 'app/configs/di.yml',
                     },
                 },
             },
@@ -76,30 +76,30 @@ def di_config_file(tmp_path) -> str:
 
 # ** fixture: di_config_repo
 @pytest.fixture
-def di_config_repo(di_config_file: str) -> DIYamlRepository:
+def di_config_repo(di_config_file: str) -> DIConfigRepository:
     '''
     Fixture to create an instance of the DI Configuration Repository.
 
     :param di_config_file: The DI YAML configuration file path.
     :type di_config_file: str
-    :return: An instance of DIYamlRepository.
-    :rtype: DIYamlRepository
+    :return: An instance of DIConfigRepository.
+    :rtype: DIConfigRepository
     '''
 
-    # Create and return the DIYamlRepository instance.
-    return DIYamlRepository(di_config_file)
+    # Create and return the DIConfigRepository instance.
+    return DIConfigRepository(di_config_file)
 
 # *** tests
 
 # ** test_int: di_config_repo_configuration_exists
 def test_int_di_config_repo_configuration_exists(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the configuration_exists method of the DIYamlRepository.
+    Test the configuration_exists method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Check if the service configurations exist.
@@ -109,13 +109,13 @@ def test_int_di_config_repo_configuration_exists(
 
 # ** test_int: di_config_repo_get_configuration
 def test_int_di_config_repo_get_configuration(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the get_configuration method of the DIYamlRepository.
+    Test the get_configuration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Get service configurations by id.
@@ -141,13 +141,13 @@ def test_int_di_config_repo_get_configuration(
 
 # ** test_int: di_config_repo_get_configuration_not_found
 def test_int_di_config_repo_get_configuration_not_found(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the get_configuration method of the DIYamlRepository for a non-existent configuration.
+    Test the get_configuration method of the DIConfigRepository for a non-existent configuration.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Attempt to get a non-existent service configuration.
@@ -158,13 +158,13 @@ def test_int_di_config_repo_get_configuration_not_found(
 
 # ** test_int: di_config_repo_list_all
 def test_int_di_config_repo_list_all(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the list_all method of the DIYamlRepository.
+    Test the list_all method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # List all service configurations and constants.
@@ -183,13 +183,13 @@ def test_int_di_config_repo_list_all(
 
 # ** test_int: di_config_repo_save_configuration
 def test_int_di_config_repo_save_configuration(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the save_configuration method of the DIYamlRepository.
+    Test the save_configuration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Create constant for new service configuration.
@@ -218,13 +218,13 @@ def test_int_di_config_repo_save_configuration(
 
 # ** test_int: di_config_repo_delete_configuration
 def test_int_di_config_repo_delete_configuration(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the delete_configuration method of the DIYamlRepository.
+    Test the delete_configuration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Delete an existing service configuration.
@@ -241,13 +241,13 @@ def test_int_di_config_repo_delete_configuration(
 
 # ** test_int: di_config_repo_save_constants
 def test_int_di_config_repo_save_constants(
-        di_config_repo: DIYamlRepository,
+        di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the save_constants method of the DIYamlRepository.
+    Test the save_constants method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
-    :type di_config_repo: DIYamlRepository
+    :type di_config_repo: DIConfigRepository
     '''
 
     # Save new constants.

@@ -143,7 +143,7 @@ These events depend on the `FeatureService` interface for persistence operations
 - `save(feature) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `FeatureConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

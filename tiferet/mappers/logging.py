@@ -31,8 +31,7 @@ class FormatterYamlObject(Formatter, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
-        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: id
@@ -89,8 +88,7 @@ class HandlerYamlObject(Handler, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
-        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: id
@@ -147,8 +145,7 @@ class LoggerYamlObject(Logger, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
-        'to_data.json': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: id
@@ -197,8 +194,7 @@ class LoggingSettingsYamlObject(TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True},
-        'to_data.json': {'by_alias': True},
+        'to_data': {'by_alias': True},
     }
 
     # * attribute: id

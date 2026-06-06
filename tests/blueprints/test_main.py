@@ -12,7 +12,7 @@ from tiferet.assets import TiferetError
 from tiferet.di import DependenciesServiceProvider
 from tiferet.contexts.app import AppInterfaceContext
 from tiferet.mappers import AppInterfaceAggregate
-from tiferet.repos.app import AppYamlRepository
+from tiferet.repos.app import AppConfigRepository
 from tiferet import App
 from tiferet.blueprints.main import (
     build_app,
@@ -74,14 +74,14 @@ def test_create_service_provider_empty():
 # ** test: load_app_service_defaults
 def test_load_app_service_defaults():
     '''
-    Validate that load_app_service defaults to AppYamlRepository.
+    Validate that load_app_service defaults to AppConfigRepository.
     '''
 
     # Load the default app service.
-    service = load_app_service(app_yaml_file='app/configs/app.yml')
+    service = load_app_service(app_config='app/configs/app.yml')
 
-    # Assert the service is an AppYamlRepository.
-    assert isinstance(service, AppYamlRepository)
+    # Assert the service is an AppConfigRepository.
+    assert isinstance(service, AppConfigRepository)
 
 
 # ** test: load_default_services_returns_list
@@ -132,8 +132,8 @@ def test_build_app_success(app_interface_aggregate):
         result = build_app(
             'test_calc',
             module_path='tiferet.repos.app',
-            class_name='AppYamlRepository',
-            app_yaml_file='tiferet/assets/tests/test_calc.yml',
+            class_name='AppConfigRepository',
+            app_config='tiferet/assets/tests/test_calc.yml',
         )
         assert isinstance(result, AppInterfaceContext)
         mock_resolve.assert_called_once()
@@ -156,8 +156,8 @@ def test_build_app_forwards_default_constants(app_interface_aggregate):
         build_app(
             'test_calc',
             module_path='tiferet.repos.app',
-            class_name='AppYamlRepository',
-            app_yaml_file='tiferet/assets/tests/test_calc.yml',
+            class_name='AppConfigRepository',
+            app_config='tiferet/assets/tests/test_calc.yml',
         )
 
         # Assert resolve_interface was called with the expected interface_id.
@@ -189,8 +189,8 @@ def test_build_app_invalid_context(app_interface_aggregate):
             build_app(
                 'invalid_interface',
                 module_path='tiferet.repos.app',
-                class_name='AppYamlRepository',
-                app_yaml_file='tiferet/assets/tests/test_calc.yml',
+                class_name='AppConfigRepository',
+                app_config='tiferet/assets/tests/test_calc.yml',
             )
 
         assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID

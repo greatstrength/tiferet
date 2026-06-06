@@ -139,7 +139,7 @@ These events depend on the `ErrorService` interface for persistence operations.
 - `save(error) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `ErrorConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

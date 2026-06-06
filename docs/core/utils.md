@@ -32,7 +32,7 @@ In both cases, the pattern is identical: a utility provides a concrete, reusable
 
 ### Role in Runtime
 
-- **Repositories and proxies** are the primary consumers of physical infrastructure utilities (e.g., `FeatureYamlRepository` uses `YamlLoader`).
+- **Repositories and proxies** are the primary consumers of physical infrastructure utilities (e.g., `FeatureConfigRepository` uses `YamlLoader`).
 - **Domain events** consume utilities indirectly through injected Services, keeping domain logic decoupled from infrastructure.
 - **Contexts** may use utilities directly for low-level operations when a full repository is unnecessary.
 - **Application code** (scripts, CLI handlers) may use utilities directly for quick operations outside the DDD layer.

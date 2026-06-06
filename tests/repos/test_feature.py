@@ -10,7 +10,7 @@ import pytest, yaml
 
 # ** app
 from tiferet.mappers import FeatureYamlObject
-from tiferet.repos.feature import FeatureYamlRepository
+from tiferet.repos.feature import FeatureConfigRepository
 
 
 # *** constants
@@ -85,31 +85,31 @@ def feature_yaml_file(tmp_path) -> str:
 
 # ** fixture: feature_config_repo
 @pytest.fixture
-def feature_config_repo(feature_yaml_file: str) -> FeatureYamlRepository:
+def feature_config_repo(feature_yaml_file: str) -> FeatureConfigRepository:
     '''
     Fixture to create an instance of the Feature Configuration Repository.
 
     :param feature_yaml_file: The feature YAML configuration file path.
     :type feature_yaml_file: str
-    :return: An instance of FeatureYamlRepository.
-    :rtype: FeatureYamlRepository
+    :return: An instance of FeatureConfigRepository.
+    :rtype: FeatureConfigRepository
     '''
 
-    # Create and return the FeatureYamlRepository instance.
-    return FeatureYamlRepository(feature_yaml_file=feature_yaml_file)
+    # Create and return the FeatureConfigRepository instance.
+    return FeatureConfigRepository(feature_config=feature_yaml_file)
 
 
 # *** tests
 
 # ** test_int: feature_config_repo_exists
 def test_int_feature_config_repo_exists(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the exists method of the FeatureYamlRepository.
+    Test the exists method of the FeatureConfigRepository.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # Check if the features exist.
@@ -120,13 +120,13 @@ def test_int_feature_config_repo_exists(
 
 # ** test_int: feature_config_repo_get
 def test_int_feature_config_repo_get(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the get method of the FeatureYamlRepository.
+    Test the get method of the FeatureConfigRepository.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # Get features by id.
@@ -157,13 +157,13 @@ def test_int_feature_config_repo_get(
 
 # ** test_int: feature_config_repo_get_not_found
 def test_int_feature_config_repo_get_not_found(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the get method of the FeatureYamlRepository for a non-existent feature.
+    Test the get method of the FeatureConfigRepository for a non-existent feature.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # Attempt to get a non-existent feature.
@@ -174,13 +174,13 @@ def test_int_feature_config_repo_get_not_found(
 
 # ** test_int: feature_config_repo_list_all
 def test_int_feature_config_repo_list_all(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the list method of the FeatureYamlRepository for all features.
+    Test the list method of the FeatureConfigRepository for all features.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # List all features.
@@ -196,13 +196,13 @@ def test_int_feature_config_repo_list_all(
 
 # ** test_int: feature_config_repo_list_by_group
 def test_int_feature_config_repo_list_by_group(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the list method of the FeatureYamlRepository filtered by group.
+    Test the list method of the FeatureConfigRepository filtered by group.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # List features for a specific group.
@@ -223,13 +223,13 @@ def test_int_feature_config_repo_list_by_group(
 
 # ** test_int: feature_config_repo_save
 def test_int_feature_config_repo_save(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the save method of the FeatureYamlRepository.
+    Test the save method of the FeatureConfigRepository.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # Create constant for new test feature.
@@ -259,13 +259,13 @@ def test_int_feature_config_repo_save(
 
 # ** test_int: feature_config_repo_delete
 def test_int_feature_config_repo_delete(
-        feature_config_repo: FeatureYamlRepository,
+        feature_config_repo: FeatureConfigRepository,
     ) -> None:
     '''
-    Test the delete method of the FeatureYamlRepository.
+    Test the delete method of the FeatureConfigRepository.
 
     :param feature_config_repo: The feature configuration repository.
-    :type feature_config_repo: FeatureYamlRepository
+    :type feature_config_repo: FeatureConfigRepository
     '''
 
     # Delete an existing feature.

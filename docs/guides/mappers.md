@@ -108,8 +108,7 @@ Transfer objects use a `_ROLES` ClassVar to control which fields appear in diffe
 | Role | Purpose |
 |---|---|
 | `to_model` | Fields included when mapping to an aggregate or domain object |
-| `to_data.yaml` | Fields included when serializing to YAML configuration |
-| `to_data.json` | Fields included when serializing to JSON |
+| `to_data` | Fields included when serializing to configuration files |
 
 ### Exclude vs Include
 
@@ -122,8 +121,8 @@ Transfer objects use a `_ROLES` ClassVar to control which fields appear in diffe
 
 ```python
 _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-    'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
-    'to_data.json': {'exclude': {'id'}},
+    'to_data': {'by_alias': True, 'exclude': {'id'}},
+    'to_data': {'exclude': {'id'}},
 }
 ```
 
@@ -251,7 +250,7 @@ Use this pattern when a YAML file contains multiple related configuration sectio
 When the standard role-based serialization isn't sufficient, transfer objects can override `to_primitive` to produce a custom dictionary. `CliCommandYamlObject` does this to handle argument serialization:
 
 ```python
-def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
+def to_primitive(self, role='to_data', **kwargs) -> Dict[str, Any]:
     return dict(
         **super().to_primitive(role=role, **kwargs),
         args=[arg.model_dump(exclude_none=True) for arg in self.arguments]

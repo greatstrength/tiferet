@@ -1,7 +1,7 @@
 from tiferet import App, TiferetError
 
 # Initialize the Tiferet application with the basic_calc interface.
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 
 # Define test cases for calculator features.
 test_cases = [

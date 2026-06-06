@@ -17,15 +17,15 @@ Every repository implements a Service interface from `tiferet/interfaces/`. The 
 
 | Repository | Implements | Utility |
 |---|---|---|
-| `AppYamlRepository` | `AppService` | `Yaml` |
-| `CliYamlRepository` | `CliService` | `Yaml` |
-| `DIYamlRepository` | `DIService` | `Yaml` |
-| `DIYamlRepository` | `DIService` | `Yaml` |
-| `ErrorYamlRepository` | `ErrorService` | `Yaml` |
-| `FeatureYamlRepository` | `FeatureService` | `Yaml` |
-| `LoggingYamlRepository` | `LoggingService` | `Yaml` |
+| `AppConfigRepository` | `AppService` | `Yaml` |
+| `CliConfigRepository` | `CliService` | `Yaml` |
+| `DIConfigRepository` | `DIService` | `Yaml` |
+| `DIConfigRepository` | `DIService` | `Yaml` |
+| `ErrorConfigRepository` | `ErrorService` | `Yaml` |
+| `FeatureConfigRepository` | `FeatureService` | `Yaml` |
+| `LoggingConfigRepository` | `LoggingService` | `Yaml` |
 
-The naming convention is `<Domain>YamlRepository`. Other utility-backed implementations (e.g., JSON, SQLite) would follow the same interface with a different suffix.
+The naming convention is `<Domain>ConfigRepository`. Other utility-backed implementations (e.g., JSON, SQLite) would follow the same interface with a different suffix.
 
 ## No Package Exports
 
@@ -37,7 +37,7 @@ Every repository shares three instance attributes set during construction:
 
 ```python
 # * attribute: yaml_file
-yaml_file: str
+config_file: str
 
 # * attribute: default_role
 default_role: str
@@ -47,10 +47,10 @@ encoding: str
 ```
 
 - **`yaml_file`** — path to the YAML configuration file.
-- **`default_role`** — the TransferObject serialization role used for writes (typically `'to_data.yaml'`).
+- **`default_role`** — the TransferObject serialization role used for writes (typically `'to_data'`).
 - **`encoding`** — file encoding (default `'utf-8'`).
 
-The constructor parameter follows the convention `<domain>_yaml_file` (e.g., `error_yaml_file`, `feature_yaml_file`).
+The constructor parameter follows the convention `<domain>_yaml_file` (e.g., `error_config`, `feature_config`).
 
 ## Reading Patterns
 
@@ -60,12 +60,12 @@ The `Yaml` utility's `start_node` callback navigates into the YAML structure bef
 
 ```python
 # Single entry by ID.
-error_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+error_data = Yaml(self.config_file, encoding=self.encoding).load(
     start_node=lambda data: data.get('errors').get(id)
 )
 
 # Entire section.
-interfaces_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+interfaces_data = Yaml(self.config_file, encoding=self.encoding).load(
     start_node=lambda data: data.get('interfaces', {})
 )
 ```
@@ -85,7 +85,7 @@ def data_factory(data):
     consts = data.get('const', {}) if data.get('const') else {}
     return attrs, consts
 
-services_data, consts = Yaml(self.yaml_file, encoding=self.encoding).load(
+services_data, consts = Yaml(self.config_file, encoding=self.encoding).load(
     data_factory=data_factory
 )
 ```
@@ -119,11 +119,11 @@ Every save method follows the same three-step sequence:
 error_data = ErrorYamlObject.from_model(error)
 
 # Load full file.
-full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
+full_data = Yaml(self.config_file, encoding=self.encoding).load()
 
 # Update and persist.
 full_data.setdefault('errors', {})[error.id] = error_data.to_primitive(self.default_role)
-Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
+Yaml(self.config_file, mode='w', encoding=self.encoding).save(data=full_data)
 ```
 
 The `setdefault` call ensures the section exists even on a fresh file.
@@ -134,7 +134,7 @@ Deletes are always **idempotent** — deleting a non-existent entry is a no-op:
 
 ```python
 # Load the section.
-errors_data = Yaml(self.yaml_file, encoding=self.encoding).load(
+errors_data = Yaml(self.config_file, encoding=self.encoding).load(
     start_node=lambda data: data.get('errors', {})
 )
 
@@ -142,9 +142,9 @@ errors_data = Yaml(self.yaml_file, encoding=self.encoding).load(
 errors_data.pop(id, None)
 
 # Load full, update, persist.
-full_data = Yaml(self.yaml_file, encoding=self.encoding).load()
+full_data = Yaml(self.config_file, encoding=self.encoding).load()
 full_data['errors'] = errors_data
-Yaml(self.yaml_file, mode='w', encoding=self.encoding).save(data=full_data)
+Yaml(self.config_file, mode='w', encoding=self.encoding).save(data=full_data)
 ```
 
 ## Grouped YAML Structures
@@ -204,7 +204,7 @@ Each section is parsed independently within the `data_factory`.
 The logging repository uses `LoggingSettingsYamlObject` — a transfer object that composes `FormatterYamlObject`, `HandlerYamlObject`, and `LoggerYamlObject` into a single object representing the entire file:
 
 ```python
-data = Yaml(self.yaml_file, encoding=self.encoding).load(
+data = Yaml(self.config_file, encoding=self.encoding).load(
     data_factory=lambda d: LoggingSettingsYamlObject.hydrate(**d),
     start_node=lambda d: d.get('logging', {})
 )

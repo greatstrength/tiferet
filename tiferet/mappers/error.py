@@ -86,7 +86,7 @@ class ErrorMessageYamlObject(ErrorMessage, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True},
+        'to_data': {'by_alias': True},
     }
 
     # * method: map
@@ -113,7 +113,7 @@ class ErrorYamlObject(Error, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'message'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: message

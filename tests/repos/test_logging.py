@@ -7,7 +7,7 @@ import pytest, yaml
 
 # ** app
 from tiferet.mappers import FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
-from tiferet.repos.logging import LoggingYamlRepository
+from tiferet.repos.logging import LoggingConfigRepository
 
 # *** constants
 
@@ -81,30 +81,30 @@ def logging_config_file(tmp_path) -> str:
 
 # ** fixture: logging_config_repo
 @pytest.fixture
-def logging_config_repo(logging_config_file: str) -> LoggingYamlRepository:
+def logging_config_repo(logging_config_file: str) -> LoggingConfigRepository:
     '''
     Fixture to create an instance of the Logging Configuration Repository.
 
     :param logging_config_file: The logging YAML configuration file path.
     :type logging_config_file: str
-    :return: An instance of LoggingYamlRepository.
-    :rtype: LoggingYamlRepository
+    :return: An instance of LoggingConfigRepository.
+    :rtype: LoggingConfigRepository
     '''
 
-    # Create and return the LoggingYamlRepository instance.
-    return LoggingYamlRepository(logging_config_file)
+    # Create and return the LoggingConfigRepository instance.
+    return LoggingConfigRepository(logging_config_file)
 
 # *** tests
 
 # ** test_int: logging_config_repo_list_all
 def test_int_logging_config_repo_list_all(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the list_all method of the LoggingYamlRepository.
+    Test the list_all method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # List all formatters, handlers, and loggers.
@@ -135,13 +135,13 @@ def test_int_logging_config_repo_list_all(
 
 # ** test_int: logging_config_repo_save_formatter
 def test_int_logging_config_repo_save_formatter(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the save_formatter method of the LoggingYamlRepository.
+    Test the save_formatter method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Create constant for new test formatter.
@@ -173,13 +173,13 @@ def test_int_logging_config_repo_save_formatter(
 
 # ** test_int: logging_config_repo_save_handler
 def test_int_logging_config_repo_save_handler(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the save_handler method of the LoggingYamlRepository.
+    Test the save_handler method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Create constant for new test handler.
@@ -215,13 +215,13 @@ def test_int_logging_config_repo_save_handler(
 
 # ** test_int: logging_config_repo_save_logger
 def test_int_logging_config_repo_save_logger(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the save_logger method of the LoggingYamlRepository.
+    Test the save_logger method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Create constant for new test logger.
@@ -256,13 +256,13 @@ def test_int_logging_config_repo_save_logger(
 
 # ** test_int: logging_config_repo_delete_formatter
 def test_int_logging_config_repo_delete_formatter(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the delete_formatter method of the LoggingYamlRepository.
+    Test the delete_formatter method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Delete an existing formatter.
@@ -277,13 +277,13 @@ def test_int_logging_config_repo_delete_formatter(
 
 # ** test_int: logging_config_repo_delete_handler
 def test_int_logging_config_repo_delete_handler(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the delete_handler method of the LoggingYamlRepository.
+    Test the delete_handler method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Delete an existing handler.
@@ -298,13 +298,13 @@ def test_int_logging_config_repo_delete_handler(
 
 # ** test_int: logging_config_repo_delete_logger
 def test_int_logging_config_repo_delete_logger(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
-    Test the delete_logger method of the LoggingYamlRepository.
+    Test the delete_logger method of the LoggingConfigRepository.
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Delete an existing logger.
@@ -319,13 +319,13 @@ def test_int_logging_config_repo_delete_logger(
 
 # ** test_int: logging_config_repo_delete_idempotent
 def test_int_logging_config_repo_delete_idempotent(
-        logging_config_repo: LoggingYamlRepository,
+        logging_config_repo: LoggingConfigRepository,
     ):
     '''
     Test that delete methods are idempotent (no error on non-existent ID).
 
     :param logging_config_repo: The logging configuration repository.
-    :type logging_config_repo: LoggingYamlRepository
+    :type logging_config_repo: LoggingConfigRepository
     '''
 
     # Delete a non-existent formatter (should not raise error).
@@ -364,7 +364,7 @@ def test_int_logging_config_repo_empty_sections(tmp_path):
         yaml.safe_dump(empty_data, f)
 
     # Create repository instance.
-    repo = LoggingYamlRepository(str(file_path))
+    repo = LoggingConfigRepository(str(file_path))
 
     # List all (should return empty lists).
     formatters, handlers, loggers = repo.list_all()

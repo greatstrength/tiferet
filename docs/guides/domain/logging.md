@@ -183,7 +183,7 @@ These events depend on the `LoggingService` interface for persistence operations
 - `save_handler(handler) -> None`
 - `save_logger(logger) -> None`
 
-Concrete implementations (e.g., `LoggingYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `LoggingConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 

@@ -179,12 +179,12 @@ class TestErrorYamlObject(TransferObjectTestBase):
     # ** test: to_primitive_to_data_yaml
     def test_to_primitive_to_data_yaml(self):
         '''
-        Test that to_primitive('to_data.yaml') excludes id and serializes messages correctly.
+        Test that to_primitive('to_data') excludes id and serializes messages correctly.
         '''
 
         # Create a YAML object and serialize.
         yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
-        primitive = yaml_obj.to_primitive('to_data.yaml')
+        primitive = yaml_obj.to_primitive('to_data')
 
         # Assert id is excluded.
         assert isinstance(primitive, dict)
