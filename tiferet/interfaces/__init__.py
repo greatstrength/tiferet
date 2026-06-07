@@ -13,6 +13,7 @@ __all__ = [
     'ErrorService',
     'FeatureService',
     'LoggingService',
+    'MiddlewareService',
 ]
 
 # ** app
@@ -26,3 +27,4 @@ from .di import DIService
 from .error import ErrorService
 from .feature import FeatureService
 from .logging import LoggingService
+from .middleware import MiddlewareService

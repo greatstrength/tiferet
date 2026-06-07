@@ -115,43 +115,84 @@ class FeatureContext(object):
         # Return the loaded feature.
         return feature
     
+    # * method: load_feature_middleware
+    def load_feature_middleware(self, middleware_ids: list) -> list:
+        '''
+        Resolve a list of middleware service IDs to callable middleware instances.
+
+        :param middleware_ids: Ordered list of service IDs to resolve.
+        :type middleware_ids: list
+        :return: Resolved middleware instances in the same order.
+        :rtype: list
+        '''
+
+        # Return early when no middleware is configured.
+        if not middleware_ids:
+            return []
+
+        # Resolve each service ID from the DI context.
+        return [self.services.get_dependency(mid_id) for mid_id in middleware_ids]
+
     # * method: handle_command
     def handle_command(self,
         command: DomainEvent,
         request: RequestContext,
         data_key: str = None,
         pass_on_error: bool = False,
+        middleware: list = None,
         **kwargs
     ):
         '''
         Handle the execution of a command with the provided request and command-handling options.
-        
+
+        When ``middleware`` is provided the command execution is wrapped in an
+        ordered chain.  Each middleware callable receives
+        ``(event, kwargs, next_fn)`` and must call ``next_fn()`` to continue.
+
         :param command: The command to execute.
         :type command: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
-        :param debug: Debug flag.
-        :type debug: bool
         :param data_key: Optional key to store the result in the request data.
         :type data_key: str
         :param pass_on_error: If True, pass on the error instead of raising it.
         :type pass_on_error: bool
+        :param middleware: Optional ordered list of resolved middleware callables.
+        :type middleware: list | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Execute the command with the request data and parameters, and optional contexts.
+        # Merge request data with step parameters.
+        merged_kwargs = {**request.data, **kwargs}
+
+        # Build the base execution callable.
+        def base():
+            return command.execute(**merged_kwargs)
+
+        # Compose middleware chain when middleware is configured.
+        if middleware:
+            chain = base
+            for mw in reversed(middleware):
+                _next = chain
+                _mw = mw
+                def _make_wrapper(_mw, _next):
+                    def wrapper():
+                        return _mw(command, merged_kwargs, _next)
+                    return wrapper
+                chain = _make_wrapper(_mw, _next)
+        else:
+            chain = base
+
+        # Execute the command (or chain), handling errors per pass_on_error.
         try:
-            result = command.execute(
-                **request.data,
-                **kwargs
-            )
+            result = chain()
 
         # If an error occurs during command execution, handle it based on the pass_on_error flag.
         except Exception as e:
             if not pass_on_error:
                 raise e
-            
+
             # Set the result to None if passing on the error.
             result = None
 
@@ -289,13 +330,23 @@ class FeatureContext(object):
         :type kwargs: dict
         '''
 
+        # Resolve feature-level middleware once for all steps.
+        feature = self.load_feature(feature_id)
+        feature_middleware = self.load_feature_middleware(feature.middleware)
+
         # Resolve and execute each step synchronously.
         for cmd, step, params in self.resolve_feature_steps(feature_id, request):
+
+            # Compose feature-level (outer) + step-level (inner) middleware.
+            step_middleware = self.load_feature_middleware(step.middleware)
+            combined_middleware = feature_middleware + step_middleware or None
+
             self.handle_command(
                 cmd,
                 request,
                 data_key=step.data_key,
                 pass_on_error=step.pass_on_error,
+                middleware=combined_middleware,
                 **params,
                 services=self.services,
                 cache=self.cache,
@@ -308,6 +359,7 @@ class FeatureContext(object):
         request: RequestContext,
         data_key: str = None,
         pass_on_error: bool = False,
+        middleware: list = None,
         **kwargs
     ):
         '''
@@ -316,6 +368,8 @@ class FeatureContext(object):
 
         Detects whether the command's ``execute`` is a coroutine function
         and awaits it when necessary, otherwise calls it synchronously.
+        When ``middleware`` is provided the execution is wrapped in an ordered
+        async chain; async middleware must ``await next_fn()``.
 
         :param command: The command to execute (sync or async).
         :type command: DomainEvent
@@ -325,22 +379,43 @@ class FeatureContext(object):
         :type data_key: str
         :param pass_on_error: If True, pass on the error instead of raising it.
         :type pass_on_error: bool
+        :param middleware: Optional ordered list of resolved middleware callables.
+        :type middleware: list | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
-        # Execute the command, awaiting if async or calling directly if sync.
-        try:
+        # Merge request data with step parameters.
+        merged_kwargs = {**request.data, **kwargs}
+
+        # Build the base async execution callable.
+        async def base():
             if asyncio.iscoroutinefunction(command.execute):
-                result = await command.execute(
-                    **request.data,
-                    **kwargs
-                )
-            else:
-                result = command.execute(
-                    **request.data,
-                    **kwargs
-                )
+                return await command.execute(**merged_kwargs)
+            return command.execute(**merged_kwargs)
+
+        # Compose async middleware chain when middleware is configured.
+        if middleware:
+            chain = base
+            for mw in reversed(middleware):
+                _next = chain
+                _mw = mw
+                def _make_async_wrapper(_mw, _next):
+                    async def wrapper():
+                        # Call the middleware; await the result if it is a coroutine
+                        # (handles both async def functions and async def __call__ instances).
+                        result = _mw(command, merged_kwargs, _next)
+                        if asyncio.iscoroutine(result):
+                            return await result
+                        return result
+                    return wrapper
+                chain = _make_async_wrapper(_mw, _next)
+        else:
+            chain = base
+
+        # Execute the chain, handling errors per pass_on_error.
+        try:
+            result = await chain()
 
         # If an error occurs during command execution, handle it based on the pass_on_error flag.
         except Exception as e:
@@ -367,13 +442,23 @@ class FeatureContext(object):
         :type kwargs: dict
         '''
 
+        # Resolve feature-level middleware once for all steps.
+        feature = self.load_feature(feature_id)
+        feature_middleware = self.load_feature_middleware(feature.middleware)
+
         # Resolve and execute each step, awaiting async commands as needed.
         for cmd, step, params in self.resolve_feature_steps(feature_id, request):
+
+            # Compose feature-level (outer) + step-level (inner) middleware.
+            step_middleware = self.load_feature_middleware(step.middleware)
+            combined_middleware = feature_middleware + step_middleware or None
+
             await self.handle_command_async(
                 cmd,
                 request,
                 data_key=step.data_key,
                 pass_on_error=step.pass_on_error,
+                middleware=combined_middleware,
                 **params,
                 services=self.services,
                 cache=self.cache,

@@ -12,6 +12,7 @@ __all__ = [
     'AsyncDomainEvent',
     'ParseParameter',
     'Service',
+    'MiddlewareService',
     'Aggregate',
     'TransferObject',
     'FileLoader',
@@ -28,6 +29,8 @@ __all__ = [
     'Sqlite',
     'TomlLoader',
     'Toml',
+    'LoggingMiddleware',
+    'TimingMiddleware',
 ]
 
 # ** app
@@ -43,7 +46,7 @@ try:
         AsyncDomainEvent,
         ParseParameter,
     )
-    from .interfaces import Service
+    from .interfaces import Service, MiddlewareService
     from .mappers import (
         Aggregate,
         TransferObject,
@@ -63,6 +66,8 @@ try:
         CsvDictLoader as CsvDict,
         SqliteClient,
         SqliteClient as Sqlite,
+        LoggingMiddleware,
+        TimingMiddleware,
     )
 except Exception as e:
     import os, sys

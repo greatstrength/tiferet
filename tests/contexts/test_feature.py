@@ -696,6 +696,119 @@ async def test_feature_context_execute_feature_async_basic(async_feature_context
     # Assert the result.
     assert request.handle_response() == {"status": "async_success", "data": {"key": "value"}}
 
+# ** test: feature_context_handle_command_with_middleware
+def test_feature_context_handle_command_with_middleware(feature_context, test_command):
+    """Test that middleware is applied when provided to handle_command."""
+
+    # Track execution order.
+    order = []
+
+    # Define a simple middleware.
+    class TrackMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            order.append('pre')
+            result = next_fn()
+            order.append('post')
+            return result
+
+    # Create a mock request.
+    request = RequestContext(data={'key': 'value'})
+
+    # Handle the command with middleware.
+    feature_context.handle_command(
+        test_command,
+        request,
+        middleware=[TrackMiddleware()],
+    )
+
+    # Assert middleware ran in correct order and result is correct.
+    assert order == ['pre', 'post']
+    assert request.handle_response() == {'status': 'success', 'data': {'key': 'value'}}
+
+# ** test: feature_context_execute_feature_with_feature_middleware
+def test_feature_context_execute_feature_with_feature_middleware(
+        feature_context, get_feature_evt, feature):
+    """Test execute_feature resolves and applies feature-level middleware."""
+
+    # Track call count.
+    call_counts = {'pre': 0, 'post': 0}
+
+    # Define tracking middleware.
+    class CountMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            call_counts['pre'] += 1
+            result = next_fn()
+            call_counts['post'] += 1
+            return result
+
+    # Wire up the DI context to return the middleware for the middleware service_id.
+    mw_instance = CountMiddleware()
+    original_get_dep = feature_context.services.get_dependency.side_effect
+
+    def resolve(service_id, *flags):
+        if service_id == 'count_middleware':
+            return mw_instance
+        from unittest import mock
+        return mock.Mock()
+
+    feature_context.services.get_dependency.side_effect = resolve
+    feature_context.services.get_dependency.return_value = None
+
+    # Add feature-level middleware and a step.
+    feature.middleware = ['count_middleware']
+    feature.steps.append(FeatureEvent(
+        name='Test Command',
+        service_id='test_command',
+    ))
+
+    # Manually register the test command resolution.
+    def resolve_full(service_id, *flags):
+        if service_id == 'count_middleware':
+            return mw_instance
+        from tiferet.contexts.feature import DomainEvent
+        from typing import Any
+        class TestEvent(DomainEvent):
+            def execute(self, key=None, **kwargs) -> Any:
+                return {'status': 'success', 'data': {'key': key}}
+        return TestEvent()
+
+    feature_context.services.get_dependency.side_effect = resolve_full
+
+    get_feature_evt.execute.return_value = feature
+    request = RequestContext(data={'key': 'value'})
+    feature_context.cache.clear()
+
+    feature_context.execute_feature(feature.id, request)
+
+    # Assert middleware was called once per step.
+    assert call_counts['pre'] == 1
+    assert call_counts['post'] == 1
+
+# ** test: feature_context_load_feature_middleware_empty
+def test_feature_context_load_feature_middleware_empty(feature_context):
+    """Test that load_feature_middleware returns empty list for empty input."""
+
+    # Assert empty list returned for no middleware.
+    assert feature_context.load_feature_middleware([]) == []
+    assert feature_context.load_feature_middleware(None) == []
+
+# ** test: feature_context_load_feature_middleware_resolves_services
+def test_feature_context_load_feature_middleware_resolves_services(
+        feature_context, services_context):
+    """Test that load_feature_middleware resolves service IDs from the DI context."""
+
+    # Configure the DI context to return a sentinel value.
+    sentinel = object()
+    services_context.get_dependency.return_value = sentinel
+
+    # Resolve middleware.
+    result = feature_context.load_feature_middleware(['mw_a', 'mw_b'])
+
+    # Verify both service IDs were resolved.
+    assert len(result) == 2
+    assert result[0] is sentinel
+    assert result[1] is sentinel
+
 # ** test: feature_context_execute_feature_async_mixed_chain
 @pytest.mark.asyncio
 async def test_feature_context_execute_feature_async_mixed_chain(get_feature_evt, feature):
