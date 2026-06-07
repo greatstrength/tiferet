@@ -191,6 +191,36 @@ New service interfaces should be created in `tiferet.interfaces` from the start.
 - Inject Services into commands and events — never hard-code concrete classes.
 - Maintain one empty line between sections, comments, and code blocks.
 
+## MiddlewareService
+
+`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware. Middleware instances are resolved from the DI container by `service_id` and composed into an ordered chain that wraps event execution.
+
+```python
+# *** interfaces
+
+# ** interface: middleware_service
+class MiddlewareService(Service):
+    '''
+    Abstract service interface for domain event middleware.
+    '''
+
+    # * method: __call__
+    @abstractmethod
+    def __call__(self,
+            event: Any,
+            kwargs: Dict[str, Any],
+            next_fn: Callable[[], Any]) -> Any:
+        '''
+        Execute the middleware, calling next_fn() to continue the chain.
+
+        In async execution contexts next_fn is a coroutine function
+        and must be awaited.
+        '''
+        raise NotImplementedError()
+```
+
+For async middleware, implement `async def __call__` and `await next_fn()`. The concrete class is exported from `tiferet.interfaces` as `MiddlewareService`.
+
 ## Conclusion
 
 Services are the unified vertical interfaces in Tiferet, serving as the primary interface for middleware, data access, configuration management, and utilities. Commands and domain events depend exclusively on these Service interfaces, achieving high decoupling, testability, and extensibility. Concrete implementations satisfy the Service interfaces while hiding infrastructure details.

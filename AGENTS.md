@@ -39,6 +39,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 - **DomainObject** (`domain/settings.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
 - **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests.
 - **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
 - **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
 - **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
 
@@ -194,7 +195,7 @@ result = DomainEvent.handle(
 - Extend `Service` (ABC) from `tiferet/interfaces/settings.py`.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
-- Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`.
+- Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`.
 
 ## Mappers
 
@@ -248,7 +249,7 @@ Applications are configured in a consolidated root `config.yml` file:
 
 - `interfaces` — Interface definitions (name, module_path, class_name, service dependencies)
 - `services` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
-- `features` — Feature workflows (commands with service_id, parameters, data mapping, and optional `condition` expressions for conditional step execution)
+- `features` — Feature workflows (commands with service_id, parameters, data mapping, optional `condition` expressions for conditional step execution, and optional `middleware` lists at feature or step level)
 - `errors` — Error definitions with multilingual messages
 - `cli` — CLI command definitions with arguments
 - `logging` — Logging formatters, handlers, loggers
@@ -276,6 +277,8 @@ Current utilities:
 - `Csv` / `CsvLoader` — List-based CSV with helpers.
 - `CsvDict` / `CsvDictLoader` — Dict-based CSV.
 - `Sqlite` / `SqliteClient` — SQLite client implementing `SqliteService` and `FileService`.
+- `LoggingMiddleware` — DEBUG/ERROR logging middleware via stdlib `logging`; takes `logger_id: str`.
+- `TimingMiddleware` — Wall-clock timing middleware via `time.perf_counter`; takes `logger_id: str`.
 
 ### SQLite API (v2.0.0b3)
 

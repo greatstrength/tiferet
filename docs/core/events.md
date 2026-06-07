@@ -308,6 +308,75 @@ def test_add_error_success(mock_error_service):
 - Use `DomainEvent.handle` for consistent instantiation and execution.
 - Override `mock_dependencies` when tests need a pre-configured aggregate.
 
+## Middleware Support
+
+`DomainEvent.handle()` and `DomainEvent.handle_async()` accept an optional `middleware` list that wraps event execution with cross-cutting concerns.
+
+### Protocol
+
+Each middleware is a callable (or `MiddlewareService` instance) that receives three arguments:
+
+- **`event`** — the instantiated `DomainEvent` instance.
+- **`kwargs`** — the merged execution keyword arguments dict.
+- **`next_fn`** — a zero-argument callable that invokes the next middleware or the event. In async contexts `next_fn` is a coroutine function.
+
+The first entry in the list is the outermost wrapper.
+
+### Sync example
+
+```python
+class TimingMiddleware(MiddlewareService):
+    def __call__(self, event, kwargs, next_fn):
+        start = time.perf_counter()
+        result = next_fn()
+        print(f"{event.__class__.__name__} took {time.perf_counter() - start:.4f}s")
+        return result
+
+result = DomainEvent.handle(
+    AddNumber,
+    dependencies={'...'},
+    middleware=[TimingMiddleware()],
+    a=1, b=2,
+)
+```
+
+### Async example
+
+Async middleware must implement `async def __call__` and `await next_fn()`:
+
+```python
+class AuditMiddleware(MiddlewareService):
+    async def __call__(self, event, kwargs, next_fn):
+        print(f"Before: {event.__class__.__name__}")
+        result = await next_fn()
+        print(f"After: {event.__class__.__name__}")
+        return result
+
+result = await DomainEvent.handle_async(
+    AsyncAddNumber,
+    middleware=[AuditMiddleware()],
+    a=1, b=2,
+)
+```
+
+### Configuration-driven middleware
+
+Middleware service IDs declared in `config.yml` are resolved from the DI container by `FeatureContext` and applied automatically during `execute_feature` / `execute_feature_async`. Feature-level middleware wraps every step; step-level middleware applies to that step only.
+
+```yaml
+features:
+  calc:
+    middleware:
+      - timing_middleware     # outermost — applies to every step
+    add:
+      commands:
+        - attribute_id: add_number_event
+          middleware:
+            - audit_middleware  # innermost — step-specific
+```
+
+See `docs/guides/middleware.md` for full usage guidance.
+
 ## Package Layout
 
 Domain events are defined in `tiferet/events/`:
