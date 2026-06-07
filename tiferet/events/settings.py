@@ -147,14 +147,22 @@ class DomainEvent(object):
     def handle(
             event_cls: type,
             dependencies: Dict[str, Any] = {},
+            middleware: list = None,
             **kwargs) -> Any:
         '''
         Handle a domain event instance via the instantiate-execute pattern.
+
+        When ``middleware`` is provided, the event execution is wrapped in an
+        ordered middleware chain.  Each middleware callable receives
+        ``(event, kwargs, next_fn)`` and must call ``next_fn()`` to continue.
+        The first entry in the list is the outermost wrapper.
 
         :param event_cls: The domain event class to handle.
         :type event_cls: type
         :param dependencies: The event dependencies.
         :type dependencies: Dict[str, Any]
+        :param middleware: Optional ordered list of middleware callables.
+        :type middleware: list | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The result of the event.
@@ -164,23 +172,51 @@ class DomainEvent(object):
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)
 
-        # Execute the event handler.
-        result = event_handler.execute(**kwargs)
-        return result
+        # Build the base execution callable.
+        def base():
+            return event_handler.execute(**kwargs)
+
+        # Return immediately when no middleware is configured.
+        if not middleware:
+            return base()
+
+        # Compose the middleware chain (outermost = first in list).
+        chain = base
+        for mw in reversed(middleware):
+            _next = chain
+            _mw = mw
+            def _make_wrapper(_mw, _next):
+                def wrapper():
+                    return _mw(event_handler, kwargs, _next)
+                return wrapper
+            chain = _make_wrapper(_mw, _next)
+
+        # Execute the composed chain.
+        return chain()
 
     # * method: handle_async (static)
     @staticmethod
     async def handle_async(
             event_cls: type,
             dependencies: Dict[str, Any] = {},
+            middleware: list = None,
             **kwargs) -> Any:
         '''
         Handle an async domain event instance via the instantiate-await pattern.
+
+        When ``middleware`` is provided, the event execution is wrapped in an
+        ordered async middleware chain.  Each middleware callable receives
+        ``(event, kwargs, next_fn)`` where ``next_fn`` is a coroutine function.
+        Async middleware must ``await next_fn()``; sync middleware may call
+        ``next_fn()`` but will receive a coroutine it cannot inspect directly.
+        The first entry in the list is the outermost wrapper.
 
         :param event_cls: The domain event class to handle.
         :type event_cls: type
         :param dependencies: The event dependencies.
         :type dependencies: Dict[str, Any]
+        :param middleware: Optional ordered list of middleware callables.
+        :type middleware: list | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The result of the event.
@@ -190,9 +226,32 @@ class DomainEvent(object):
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)
 
-        # Await the async event handler.
-        result = await event_handler.execute(**kwargs)
-        return result
+        # Build the base async execution callable.
+        async def base():
+            return await event_handler.execute(**kwargs)
+
+        # Return immediately when no middleware is configured.
+        if not middleware:
+            return await base()
+
+        # Compose the async middleware chain (outermost = first in list).
+        chain = base
+        for mw in reversed(middleware):
+            _next = chain
+            _mw = mw
+            def _make_async_wrapper(_mw, _next):
+                async def wrapper():
+                    # Call the middleware; await the result if it is a coroutine
+                    # (handles both async def functions and async def __call__ instances).
+                    result = _mw(event_handler, kwargs, _next)
+                    if asyncio.iscoroutine(result):
+                        return await result
+                    return result
+                return wrapper
+            chain = _make_async_wrapper(_mw, _next)
+
+        # Execute the composed async chain.
+        return await chain()
 
 
 # ** class: async_domain_event

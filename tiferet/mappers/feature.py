@@ -123,6 +123,12 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
         description='The parameters for the feature event.',
     )
 
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs for this step.',
+    )
+
     # * method: map
     def map(self, **overrides) -> FeatureEventAggregate:
         '''
@@ -170,6 +176,7 @@ class FeatureAggregate(Feature, Aggregate):
         data_key: str | None = None,
         pass_on_error: bool = False,
         condition: str | None = None,
+        middleware: List[str] | None = None,
         position: int | None = None,
     ) -> FeatureEvent:
         '''
@@ -187,6 +194,8 @@ class FeatureAggregate(Feature, Aggregate):
         :type pass_on_error: bool
         :param condition: Optional boolean expression for conditional execution.
         :type condition: str | None
+        :param middleware: Optional ordered list of middleware service IDs.
+        :type middleware: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created FeatureEvent instance.
@@ -201,6 +210,7 @@ class FeatureAggregate(Feature, Aggregate):
             data_key=data_key,
             pass_on_error=pass_on_error,
             condition=condition,
+            middleware=middleware or [],
         )
 
         # Copy steps to a local list, insert or append, then reassign.
@@ -333,6 +343,12 @@ class FeatureYamlObject(Feature, TransferObject):
             'exclude': {'feature_key', 'group_id', 'id'},
         },
     }
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of feature-level middleware service IDs.',
+    )
 
     # * attribute: steps
     steps: List[FeatureEventYamlObject] = Field(

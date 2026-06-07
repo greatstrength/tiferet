@@ -464,3 +464,68 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         assert yaml_obj.name == model.name
         assert yaml_obj.service_id == model.service_id
         assert yaml_obj.parameters == model.parameters
+
+    # ** test: feature_event_yaml_middleware_round_trip
+    def test_feature_event_yaml_middleware_round_trip(self):
+        '''
+        Test that middleware is preserved through FeatureEventYamlObject map/from_model round-trip.
+        '''
+
+        # Create a YAML object with middleware and map to aggregate.
+        yaml_obj = FeatureEventYamlObject.model_validate(dict(
+            name='Middleware Event',
+            service_id='mw_handler',
+            middleware=['timing_middleware', 'audit_middleware'],
+        ))
+        event = yaml_obj.map()
+
+        # Verify the middleware list is preserved on the aggregate.
+        assert event.middleware == ['timing_middleware', 'audit_middleware']
+
+        # Round-trip: aggregate -> YamlObject -> re-map.
+        yaml_obj2 = FeatureEventYamlObject.from_model(event)
+        event2 = yaml_obj2.map()
+        assert event2.middleware == ['timing_middleware', 'audit_middleware']
+
+    # ** test: feature_yaml_middleware_round_trip
+    def test_feature_yaml_middleware_round_trip(self):
+        '''
+        Test that feature-level middleware is preserved through FeatureYamlObject round-trip.
+        '''
+
+        # Create a YAML object with feature-level middleware.
+        yaml_obj = FeatureYamlObject.model_validate(dict(
+            id='calc.add',
+            name='Add Number',
+            group_id='calc',
+            feature_key='add',
+            middleware=['timing_middleware'],
+            steps=[],
+        ))
+        aggregate = yaml_obj.map()
+
+        # Verify feature-level middleware on the aggregate.
+        assert aggregate.middleware == ['timing_middleware']
+
+        # Round-trip: aggregate -> YamlObject -> re-map.
+        yaml_obj2 = FeatureYamlObject.from_model(aggregate)
+        aggregate2 = yaml_obj2.map()
+        assert aggregate2.middleware == ['timing_middleware']
+
+    # ** test: feature_aggregate_add_step_with_middleware
+    def test_feature_aggregate_add_step_with_middleware(self):
+        '''
+        Test that add_step accepts and stores a middleware list.
+        '''
+
+        # Create a FeatureAggregate and add a step with middleware.
+        agg = FeatureAggregate(name='Add Number', group_id='calc')
+        step = agg.add_step(
+            name='Step One',
+            service_id='step_one_event',
+            middleware=['timing_middleware'],
+        )
+
+        # Verify the middleware is attached to the step.
+        assert step.middleware == ['timing_middleware']
+        assert agg.steps[0].middleware == ['timing_middleware']

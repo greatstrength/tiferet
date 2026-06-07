@@ -467,3 +467,244 @@ def test_async_domain_event_inherits_domain_event():
     # Verify instance check.
     event = AsyncDomainEvent()
     assert isinstance(event, DomainEvent), 'AsyncDomainEvent instance should be a DomainEvent'
+
+# ** test: test_handle_with_single_middleware
+def test_handle_with_single_middleware():
+    '''
+    Test that a single middleware wraps event execution correctly.
+    '''
+
+    # Track execution order.
+    order = []
+
+    # Define a simple event.
+    class AddEvent(DomainEvent):
+        def execute(self, a=0, b=0, **kwargs):
+            order.append('execute')
+            return a + b
+
+    # Define middleware that records pre/post execution.
+    class TrackMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            order.append('pre')
+            result = next_fn()
+            order.append('post')
+            return result
+
+    # Handle with middleware.
+    mw = TrackMiddleware()
+    result = DomainEvent.handle(AddEvent, middleware=[mw], a=2, b=3)
+
+    # Verify result and execution order.
+    assert result == 5, 'Should return the sum'
+    assert order == ['pre', 'execute', 'post'], 'Should run pre, execute, post in order'
+
+# ** test: test_handle_with_multiple_middleware_ordering
+def test_handle_with_multiple_middleware_ordering():
+    '''
+    Test that multiple middleware execute in outermost-first order.
+    '''
+
+    # Track execution order.
+    order = []
+
+    # Define a simple event.
+    class EchoEvent(DomainEvent):
+        def execute(self, **kwargs):
+            order.append('execute')
+            return 'result'
+
+    # Define two middleware layers.
+    class OuterMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            order.append('outer-pre')
+            result = next_fn()
+            order.append('outer-post')
+            return result
+
+    class InnerMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            order.append('inner-pre')
+            result = next_fn()
+            order.append('inner-post')
+            return result
+
+    # Handle with two middleware (outer first).
+    result = DomainEvent.handle(
+        EchoEvent,
+        middleware=[OuterMiddleware(), InnerMiddleware()],
+    )
+
+    # Verify result and ordering: outer wraps inner.
+    assert result == 'result'
+    assert order == ['outer-pre', 'inner-pre', 'execute', 'inner-post', 'outer-post'], \
+        'Should execute in outermost-first order'
+
+# ** test: test_handle_without_middleware_unchanged
+def test_handle_without_middleware_unchanged(mocker: mock.Mock):
+    '''
+    Test that handle() with no middleware behaves identically to before.
+    '''
+
+    # Create mock command.
+    mock_instance = mocker()
+    mock_instance.execute.return_value = 'plain'
+    mock_cls = mocker(return_value=mock_instance)
+
+    # Handle with no middleware.
+    result = DomainEvent.handle(mock_cls, dependencies={'dep': 'val'}, x=1)
+
+    # Verify unchanged behavior.
+    assert result == 'plain'
+    mock_cls.assert_called_once_with(dep='val')
+    mock_instance.execute.assert_called_once_with(x=1)
+
+# ** test: test_handle_middleware_receives_event_and_kwargs
+def test_handle_middleware_receives_event_and_kwargs():
+    '''
+    Test that middleware receives the event instance and kwargs dict.
+    '''
+
+    # Capture middleware arguments.
+    captured = {}
+
+    # Define a simple event.
+    class SimpleEvent(DomainEvent):
+        def execute(self, val=None, **kwargs):
+            return val
+
+    # Define middleware that captures its arguments.
+    class CaptureMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            captured['event'] = event
+            captured['kwargs'] = dict(kwargs)
+            return next_fn()
+
+    # Handle with capture middleware.
+    instance = SimpleEvent()
+    DomainEvent.handle(SimpleEvent, middleware=[CaptureMiddleware()], val='hello')
+
+    # Verify middleware received correct arguments.
+    assert isinstance(captured['event'], SimpleEvent), 'Should receive the event instance'
+    assert captured['kwargs'].get('val') == 'hello', 'Should receive the execution kwargs'
+
+# ** test: test_handle_middleware_pass_on_error
+def test_handle_middleware_pass_on_error():
+    '''
+    Test that middleware can intercept and suppress errors.
+    '''
+
+    # Define a failing event.
+    class FailEvent(DomainEvent):
+        def execute(self, **kwargs):
+            raise ValueError('boom')
+
+    # Define error-suppressing middleware.
+    class SuppressMiddleware:
+        def __call__(self, event, kwargs, next_fn):
+            try:
+                return next_fn()
+            except ValueError:
+                return 'suppressed'
+
+    # Handle with suppressing middleware.
+    result = DomainEvent.handle(FailEvent, middleware=[SuppressMiddleware()])
+
+    # Verify error was suppressed and a fallback returned.
+    assert result == 'suppressed', 'Middleware should suppress the error'
+
+# ** test: test_handle_async_with_middleware
+@pytest.mark.asyncio
+async def test_handle_async_with_middleware():
+    '''
+    Test that async handle_async correctly applies async middleware.
+    '''
+
+    # Track execution order.
+    order = []
+
+    # Define a simple async event.
+    class AsyncAdd(AsyncDomainEvent):
+        async def execute(self, a=0, b=0, **kwargs):
+            order.append('execute')
+            return a + b
+
+    # Define async middleware.
+    class AsyncTrackMiddleware:
+        async def __call__(self, event, kwargs, next_fn):
+            order.append('pre')
+            result = await next_fn()
+            order.append('post')
+            return result
+
+    # Handle via handle_async.
+    result = await DomainEvent.handle_async(
+        AsyncAdd,
+        middleware=[AsyncTrackMiddleware()],
+        a=4,
+        b=6,
+    )
+
+    # Verify result and execution order.
+    assert result == 10, 'Should return the sum'
+    assert order == ['pre', 'execute', 'post'], 'Should run pre, execute, post in order'
+
+# ** test: test_handle_async_multiple_middleware_ordering
+@pytest.mark.asyncio
+async def test_handle_async_multiple_middleware_ordering():
+    '''
+    Test async middleware executes in outermost-first order.
+    '''
+
+    # Track execution order.
+    order = []
+
+    # Define a simple async event.
+    class EchoAsync(AsyncDomainEvent):
+        async def execute(self, **kwargs):
+            order.append('execute')
+            return 'async-result'
+
+    # Define two async middleware layers.
+    class OuterAsync:
+        async def __call__(self, event, kwargs, next_fn):
+            order.append('outer-pre')
+            result = await next_fn()
+            order.append('outer-post')
+            return result
+
+    class InnerAsync:
+        async def __call__(self, event, kwargs, next_fn):
+            order.append('inner-pre')
+            result = await next_fn()
+            order.append('inner-post')
+            return result
+
+    # Handle with two middleware (outer first).
+    result = await DomainEvent.handle_async(
+        EchoAsync,
+        middleware=[OuterAsync(), InnerAsync()],
+    )
+
+    # Verify result and ordering.
+    assert result == 'async-result'
+    assert order == ['outer-pre', 'inner-pre', 'execute', 'inner-post', 'outer-post'], \
+        'Should execute in outermost-first order'
+
+# ** test: test_handle_async_without_middleware_unchanged
+@pytest.mark.asyncio
+async def test_handle_async_without_middleware_unchanged():
+    '''
+    Test that handle_async() with no middleware behaves identically to before.
+    '''
+
+    # Define a simple async event.
+    class SimpleAsync(AsyncDomainEvent):
+        async def execute(self, val=None, **kwargs):
+            return val
+
+    # Handle without middleware.
+    result = await DomainEvent.handle_async(SimpleAsync, val='unchanged')
+
+    # Verify unchanged behavior.
+    assert result == 'unchanged', 'Should return the value without modification'
