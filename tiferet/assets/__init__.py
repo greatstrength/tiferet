@@ -9,6 +9,10 @@ __all__ = [
     'DEFAULT_ERRORS',
     'const',
     'bps',
+    'cli_app',
+    'cli_svc',
+    'cli_feat',
+    'cli_cmd',
 ]
 
 # ** app
@@ -19,3 +23,7 @@ from .constants import (
 )
 from . import constants as const
 from . import blueprints as bps
+from . import app as cli_app
+from . import service as cli_svc
+from . import feature as cli_feat
+from . import cli_commands as cli_cmd

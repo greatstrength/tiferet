@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # ** app
 from .settings import DomainEvent, a
@@ -118,11 +118,41 @@ class GetAppInterface(DomainEvent):
         # Set the app service dependency.
         self.app_service = app_service
 
+    # * method: get_from_defaults
+    def get_from_defaults(
+            self,
+            interface_id: str,
+            default_interfaces: List[Dict[str, Any]],
+        ) -> AppInterfaceAggregate | None:
+        '''
+        Search the provided default interface definitions for a matching id
+        and return a constructed ``AppInterfaceAggregate``, or ``None`` when
+        no match is found.
+
+        :param interface_id: The interface ID to look up.
+        :type interface_id: str
+        :param default_interfaces: List of interface definition dicts, each
+            containing at minimum an ``id`` key.
+        :type default_interfaces: List[Dict[str, Any]]
+        :return: The matching aggregate, or ``None``.
+        :rtype: AppInterfaceAggregate | None
+        '''
+
+        # Find the first dict whose id matches the requested interface_id.
+        matching = next(
+            (d for d in default_interfaces if d.get('id') == interface_id),
+            None,
+        )
+
+        # Construct and return the aggregate, or None if no match found.
+        return AppInterfaceAggregate(**matching) if matching else None
+
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
     def execute(
             self,
             interface_id: str,
+            default_interfaces: List[Dict[str, Any]] = [],
             default_services: List[AppServiceDependency] | None = None,
             default_constants: Dict[str, str] | None = None,
             **kwargs,
@@ -132,6 +162,11 @@ class GetAppInterface(DomainEvent):
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
+        :param default_interfaces: A list of interface definition dicts used as a
+            fallback when the interface is not found in the repository. The first
+            dict whose ``id`` matches ``interface_id`` is used. Defaults to an
+            empty list (no fallback).
+        :type default_interfaces: List[Dict[str, Any]]
         :param default_services: A list of AppServiceDependency objects to merge
             into the interface for any service_id not already present.
         :type default_services: List[AppServiceDependency] | None
@@ -145,10 +180,13 @@ class GetAppInterface(DomainEvent):
         :raises TiferetError: If the interface cannot be found.
         '''
 
-        # Retrieve the app interface via the app service.
-        interface = self.app_service.get(interface_id)
+        # Retrieve from the repository, falling back to defaults when absent.
+        interface = (
+            self.app_service.get(interface_id)
+            or self.get_from_defaults(interface_id, default_interfaces)
+        )
 
-        # Raise an error if the interface is not found.
+        # Raise an error if the interface is still not found.
         if not interface:
             self.raise_error(
                 a.const.APP_INTERFACE_NOT_FOUND_ID,

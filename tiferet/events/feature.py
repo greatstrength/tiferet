@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import List, Any
+from typing import Any, Dict, List
 
 # ** app
 from ..domain import Feature
@@ -105,23 +105,55 @@ class GetFeature(DomainEvent):
     # * attribute: feature_service
     feature_service: FeatureService
 
+    # * attribute: default_features
+    default_features: List[Dict[str, Any]]
+
     # * init
-    def __init__(self, feature_service: FeatureService):
+    def __init__(self, feature_service: FeatureService, default_features: List[Dict[str, Any]] = []):
         '''
         Initialize the GetFeature event.
 
         :param feature_service: The feature service to use for retrieving features.
         :type feature_service: FeatureService
+        :param default_features: Optional list of feature definition dicts used as a
+            fallback when the repository does not contain the requested feature.
+        :type default_features: List[Dict[str, Any]]
         '''
 
         # Set the feature service dependency.
         self.feature_service = feature_service
 
+        # Store the default feature definitions for fallback use.
+        self.default_features = list(default_features) if default_features else []
+
+    # * method: get_from_defaults
+    def get_from_defaults(self, feature_id: str) -> FeatureAggregate | None:
+        '''
+        Search the stored default feature definitions for a matching id and
+        return a constructed ``FeatureAggregate``, or ``None`` when no match
+        is found.
+
+        :param feature_id: The feature ID to look up.
+        :type feature_id: str
+        :return: The matching aggregate, or ``None``.
+        :rtype: FeatureAggregate | None
+        '''
+
+        # Find the first dict whose id matches the requested feature_id.
+        matching = next(
+            (d for d in (self.default_features or []) if d.get('id') == feature_id),
+            None,
+        )
+
+        # Construct and return the aggregate, or None if no match found.
+        return FeatureAggregate(**matching) if matching else None
+
     # * method: execute
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> Feature:
         '''
-        Retrieve a feature by ID.
+        Retrieve a feature by ID, falling back to built-in defaults when the
+        repository does not contain the requested feature.
 
         :param id: The feature identifier.
         :type id: str
@@ -131,8 +163,11 @@ class GetFeature(DomainEvent):
         :rtype: Feature
         '''
 
-        # Retrieve the feature from the feature service.
-        feature = self.feature_service.get(id)
+        # Retrieve from the repository, falling back to defaults when absent.
+        feature = (
+            self.feature_service.get(id)
+            or self.get_from_defaults(id)
+        )
 
         # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
         self.verify(

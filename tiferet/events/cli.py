@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
 
 # ** app
 from .settings import DomainEvent, a
@@ -22,22 +22,44 @@ class ListCliCommands(DomainEvent):
     # * attribute: cli_service
     cli_service: CliService
 
+    # * attribute: default_commands
+    default_commands: List[Dict[str, Any]]
+
     # * init
-    def __init__(self, cli_service: CliService):
+    def __init__(self, cli_service: CliService, default_commands: List[Dict[str, Any]] = []):
         '''
         Initialize the ListCliCommands event.
 
         :param cli_service: The CLI service.
         :type cli_service: CliService
+        :param default_commands: Optional list of default CLI command definition dicts
+            used as a fallback when the repository returns no commands.
+        :type default_commands: List[Dict[str, Any]]
         '''
 
         # Set the CLI service dependency.
         self.cli_service = cli_service
 
+        # Store the default command definitions for fallback use.
+        self.default_commands = list(default_commands) if default_commands else []
+
+    # * method: get_from_defaults
+    def get_from_defaults(self) -> List[CliCommand]:
+        '''
+        Construct CLI commands from the stored default command definitions.
+
+        :return: A list of CliCommandAggregate instances built from defaults.
+        :rtype: List[CliCommand]
+        '''
+
+        # Build and return aggregate instances from the default command dicts.
+        return [CliCommandAggregate(**cmd) for cmd in (self.default_commands or [])]
+
     # * method: execute
     def execute(self, **kwargs) -> List[CliCommand]:
         '''
-        List all CLI commands.
+        List all CLI commands, falling back to built-in defaults when the
+        repository returns no results.
 
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
@@ -45,8 +67,9 @@ class ListCliCommands(DomainEvent):
         :rtype: List[CliCommand]
         '''
 
-        # Delegate to the CLI service.
-        return self.cli_service.list()
+        # Retrieve commands from the service; fall back to defaults if empty.
+        commands = self.cli_service.list()
+        return commands or self.get_from_defaults()
 
 
 # ** event: get_parent_arguments

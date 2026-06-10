@@ -440,26 +440,84 @@ class ListAllSettings(DomainEvent):
     # * attribute: di_service
     di_service: DIService
 
+    # * attribute: default_configurations
+    default_configurations: List[Dict[str, Any]]
+
+    # * attribute: default_constants
+    default_constants: Dict[str, Any]
+
     # * init
-    def __init__(self, di_service: DIService):
+    def __init__(
+            self,
+            di_service: DIService,
+            default_configurations: List[Dict[str, Any]] = [],
+            default_constants: Dict[str, Any] = {},
+        ):
         '''
         Initialize the ListAllSettings event.
 
         :param di_service: The DI service.
         :type di_service: DIService
+        :param default_configurations: Optional list of service configuration definition
+            dicts used as fallbacks for any service ID not present in the repository.
+        :type default_configurations: List[Dict[str, Any]]
+        :param default_constants: Optional mapping of constants merged as lower-priority
+            fallbacks when the repository's constants section is absent or incomplete.
+        :type default_constants: Dict[str, Any]
         '''
 
         # Set the event attributes.
         self.di_service = di_service
 
-    # * method: execute
-    def execute(self) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
-        '''
-        Execute the list all settings event.
+        # Store the default configuration dicts and constants for fallback use.
+        self.default_configurations = list(default_configurations) if default_configurations else []
+        self.default_constants = dict(default_constants) if default_constants else {}
 
-        :return: The list of all service configurations and constants.
+    # * method: get_from_defaults
+    def get_from_defaults(
+            self,
+            existing_ids: set,
+        ) -> List[ServiceConfiguration]:
+        '''
+        Construct service configurations from the stored default definitions for
+        any service ID not already present in the repository.
+
+        :param existing_ids: Set of service IDs already loaded from the repository.
+        :type existing_ids: set
+        :return: A list of ServiceConfigurationAggregate instances for missing IDs.
+        :rtype: List[ServiceConfiguration]
+        '''
+
+        # Build and return aggregate instances for configurations not in the repo.
+        return [
+            ServiceConfigurationAggregate(**d)
+            for d in (self.default_configurations or [])
+            if d.get('id') not in existing_ids
+        ]
+
+    # * method: execute
+    def execute(self, **kwargs) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+        '''
+        Execute the list all settings event, merging bootstrap defaults for any
+        service configurations or constants not present in the repository.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: Merged list of service configurations and constants.
         :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
         '''
 
-        # Return the list of all service configurations from the DI service.
-        return self.di_service.list_all()
+        # Retrieve configurations and constants from the DI service.
+        configs, constants = self.di_service.list_all()
+
+        # Build the set of existing service IDs for deduplication.
+        existing_ids = {c.id for c in (configs or [])}
+
+        # Merge bootstrap defaults for any service ID not already present.
+        default_configs = self.get_from_defaults(existing_ids)
+
+        # Merge constants: defaults are lower priority than repository constants.
+        merged_constants = {**(self.default_constants or {}), **(constants or {})}
+
+        # Return the merged configurations and constants.
+        return list(configs or []) + default_configs, merged_constants

@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
@@ -145,6 +145,7 @@ def resolve_interface(
     interface_id: str,
     module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> tuple:
     '''
@@ -159,6 +160,9 @@ def resolve_interface(
     :type module_path: str
     :param class_name: The class name of the app service implementation.
     :type class_name: str
+    :param default_interfaces: A list of interface definition dicts used as a
+        fallback when the interface is not found in the repository.
+    :type default_interfaces: List[Dict[str, Any]]
     :param parameters: Additional parameters to pass to the app service constructor.
     :type parameters: dict
     :return: A tuple of (app_interface, default_services).
@@ -171,11 +175,12 @@ def resolve_interface(
     # Load the default app service dependencies.
     default_services = load_default_services()
 
-    # Get the app interface via the event.
+    # Get the app interface via the event, passing any provided interface defaults.
     app_interface = DomainEvent.handle(
         GetAppInterface,
         dependencies=dict(app_service=app_service),
         interface_id=interface_id,
+        default_interfaces=default_interfaces,
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )
@@ -223,6 +228,7 @@ def build_app(
     interface_id: str,
     module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> AppInterfaceContext:
     '''
@@ -234,14 +240,23 @@ def build_app(
     :type module_path: str
     :param class_name: The class name of the app service implementation.
     :type class_name: str
+    :param default_interfaces: A list of interface definition dicts used as a
+        fallback when the interface is not found in the repository.
+    :type default_interfaces: List[Dict[str, Any]]
     :param parameters: Additional parameters to pass to the app service constructor.
     :type parameters: dict
     :return: The fully prepared application interface context.
     :rtype: AppInterfaceContext
     '''
 
-    # Resolve the interface definition.
-    app_interface, _ = resolve_interface(interface_id, module_path, class_name, **parameters)
+    # Resolve the interface definition, passing any provided interface defaults.
+    app_interface, _ = resolve_interface(
+        interface_id,
+        module_path,
+        class_name,
+        default_interfaces=default_interfaces,
+        **parameters,
+    )
 
     # Realize and return the app interface context.
     return realize_interface(app_interface, interface_id)
