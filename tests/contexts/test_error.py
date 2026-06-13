@@ -1,115 +1,90 @@
+"""Tiferet Error Context Tests"""
+
 # *** imports
 
 # ** infra
 import pytest
-from unittest import mock
 
 # ** app
 from tiferet.assets import (
     TiferetError,
-    TiferetAPIError,
     DEFAULT_ERRORS,
-    ERROR_NOT_FOUND_ID
+    ERROR_NOT_FOUND_ID,
 )
 from tiferet.contexts.error import ErrorContext
 from tiferet.domain import Error
-from tiferet.events import DomainEvent
-from tiferet.events.error import GetError
 
 # *** fixtures
 
-# ** fixture: get_error_evt_mock
-@pytest.fixture
-def get_error_evt_mock() -> DomainEvent:
-    '''
-    Fixture to create a mock GetError event.
-
-    :return: A mock GetError event.
-    :rtype: DomainEvent
-    '''
-
-    # Return the mocked GetError event (spec kept as GetError for method signature).
-    return mock.Mock(spec=GetError)
-
 # ** fixture: error_context
 @pytest.fixture
-def error_context(get_error_evt_mock: DomainEvent):
+def error_context() -> ErrorContext:
     '''
     Fixture to create a new ErrorContext object.
+
+    :return: An ErrorContext instance.
+    :rtype: ErrorContext
     '''
 
-    # Create an instance of ErrorContext with the mock event.
-    return ErrorContext(get_error_evt=get_error_evt_mock)
+    # Create an instance of ErrorContext (pure formatting; no event needed).
+    return ErrorContext()
+
+# ** fixture: error
+@pytest.fixture
+def error() -> Error:
+    '''
+    Fixture to create a sample Error domain object.
+
+    :return: The ERROR_NOT_FOUND error domain object.
+    :rtype: Error
+    '''
+
+    # Build and return the ERROR_NOT_FOUND error.
+    return Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
 
 # *** tests
 
-# ** test: error_context_get_error_by_code
-def test_error_context_get_error_by_code(get_error_evt_mock: DomainEvent, error_context: ErrorContext):
+# ** test: error_context_format_response
+def test_error_context_format_response(error_context: ErrorContext, error: Error):
     '''
-    Test retrieving an error by its code from the ErrorContext.
-
-    :param get_error_evt_mock: The mocked GetError event.
-    :type get_error_evt_mock: DomainEvent
-    :param error_context: The error context to test.
-    :type error_context: ErrorContext
-    '''
-
-    # Mock the get_error_handler to return a sample Error.
-    get_error_evt_mock.execute.return_value = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
-    
-    error = error_context.get_error_by_code(ERROR_NOT_FOUND_ID)
-    
-    # Assert that the retrieved error matches the expected data.
-    assert error
-    assert error.error_code == ERROR_NOT_FOUND_ID
-    assert error.name == 'Error Not Found'
-    assert len(error.message) == 1
-    assert error.message[0].lang == 'en_US'
-    assert error.message[0].text == 'Error not found: {id}.'
-
-
-# ** test: error_context_get_error_by_code_not_found
-def test_error_context_get_error_by_code_not_found(error_context: ErrorContext):
-    '''
-    Test retrieving a non-existent error code from the ErrorContext.
+    Test formatting a structured error response from a loaded error.
 
     :param error_context: The error context to test.
     :type error_context: ErrorContext
+    :param error: The sample error domain object.
+    :type error: Error
     '''
 
-    # Mock the get_error_handler to raise a TiferetError when the error is not found.
-    error_context.get_error_handler = mock.Mock(side_effect=TiferetError('ERROR_NOT_FOUND', id='NON_EXISTENT_ERROR'))
-    
-    # Attempt to retrieve a non-existent error code.
-    with pytest.raises(TiferetAPIError) as exc_info:
-        error_context.get_error_by_code('NON_EXISTENT_ERROR')
-    
-    # Assert that the raised error is of type TiferetError.
-    assert isinstance(exc_info.value, TiferetAPIError)
-    
-    # Assert that the error message matches the expected format.
-    assert exc_info.value.error_code == ERROR_NOT_FOUND_ID
-    assert exc_info.value.name == 'Error Not Found'
-    assert 'Error not found: {id}.' in str(exc_info.value.message)
-    assert exc_info.value.kwargs.get('id') == 'NON_EXISTENT_ERROR'
+    # Build a TiferetError carrying format kwargs.
+    exception = TiferetError('ERROR_NOT_FOUND', id='NON_EXISTENT_ERROR')
 
-# ** test: error_context_handle_error
-def test_error_context_handle_error(error_context):
-    """Test handling an error using the ErrorContext."""
+    # Format the response.
+    response = error_context.format_response(error, exception, lang='en_US')
 
-    # Do this again, but with the new TiferetError.
-    tiferet_error = TiferetError('ERROR_NOT_FOUND', id='NON_EXISTENT_ERROR')
-
-    # Mock the get_error_handler to return the appropriate Error object.
-    error_context.get_error_handler = mock.Mock(return_value=Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID)))
-
-    # Handle the error using the error context.
-    response = error_context.handle_error(tiferet_error, lang='en_US')
-    
-    # Assert that the response is a dictionary containing the expected error data.
+    # Assert the response is a dict with the expected, formatted data.
     assert isinstance(response, dict)
     assert response.get('error_code') == 'ERROR_NOT_FOUND'
     assert response.get('name') == 'Error Not Found'
     assert 'Error not found: NON_EXISTENT_ERROR.' in response.get('message', '')
     assert response.get('id') == 'NON_EXISTENT_ERROR'
-    
+
+# ** test: error_context_format_response_default_lang
+def test_error_context_format_response_default_lang(error_context: ErrorContext, error: Error):
+    '''
+    Test that format_response defaults to en_US and uses the exception kwargs.
+
+    :param error_context: The error context to test.
+    :type error_context: ErrorContext
+    :param error: The sample error domain object.
+    :type error: Error
+    '''
+
+    # Build a TiferetError with the required id kwarg.
+    exception = TiferetError('ERROR_NOT_FOUND', id='SOME_ID')
+
+    # Format the response without specifying a language.
+    response = error_context.format_response(error, exception)
+
+    # Assert the formatted message uses the default language.
+    assert response.get('error_code') == 'ERROR_NOT_FOUND'
+    assert 'Error not found: SOME_ID.' in response.get('message', '')

@@ -132,14 +132,13 @@ def test_app_interface_get_service_type_mapping(resolvable_app_dependency: AppSe
     mapping = interface.get_service_type_mapping()
 
     # Assert the mapping contains the expected keys.
-    assert 'app_context' in mapping
     assert 'interface_id' in mapping
     assert 'logger_id' in mapping
     assert 'resolvable_service' in mapping
 
-    # Assert the app_context and service types resolve correctly.
+    # Assert the service types resolve correctly (the hub is built declaratively,
+    # so app_context is intentionally not part of the mapping).
     from tiferet.contexts.app import AppInterfaceContext
-    assert mapping['app_context'] is AppInterfaceContext
     assert mapping['resolvable_service'] is AppInterfaceContext
     assert mapping['interface_id'] == 'test'
 
@@ -164,11 +163,10 @@ def test_app_interface_get_service_type_mapping_no_services() -> None:
     # Get the service type mapping.
     mapping = interface.get_service_type_mapping()
 
-    # Assert only the base keys are present (app_context, interface_id, logger_id).
-    assert 'app_context' in mapping
+    # Assert only the base keys are present (interface_id, logger_id).
     assert 'interface_id' in mapping
     assert 'logger_id' in mapping
-    assert len(mapping) == 3
+    assert len(mapping) == 2
 
 
 # ** test: app_service_dependency_get_service_type
@@ -230,5 +228,4 @@ def test_app_interface_create_service_provider(resolvable_app_dependency: AppSer
     # Assert the provider is correctly created and populated.
     assert isinstance(provider, ServiceProvider)
     assert isinstance(provider, DynamicServiceProvider)
-    assert 'app_context' in provider.container.providers
     assert 'resolvable_service' in provider.container.providers
