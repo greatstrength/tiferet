@@ -70,7 +70,9 @@ class AddFeature(DomainEvent):
         :rtype: Feature
         '''
 
-        # Create feature using the aggregate factory.
+        # Create the feature from explicit fields. Contextual pipeline kwargs
+        # (e.g. services, cache, logger, CLI routing) are intentionally not
+        # forwarded, since FeatureAggregate forbids unknown fields.
         feature = FeatureAggregate(
             name=name,
             group_id=group_id,
@@ -79,7 +81,6 @@ class AddFeature(DomainEvent):
             description=description,
             steps=steps or [],
             log_params=log_params or {},
-            **kwargs,
         )
 
         # Check for duplicate feature identifier.
@@ -105,68 +106,41 @@ class GetFeature(DomainEvent):
     # * attribute: feature_service
     feature_service: FeatureService
 
-    # * attribute: default_features
-    default_features: List[Dict[str, Any]]
-
     # * init
-    def __init__(self, feature_service: FeatureService, default_features: List[Dict[str, Any]] = []):
+    def __init__(self, feature_service: FeatureService):
         '''
         Initialize the GetFeature event.
 
         :param feature_service: The feature service to use for retrieving features.
         :type feature_service: FeatureService
-        :param default_features: Optional list of feature definition dicts used as a
-            fallback when the repository does not contain the requested feature.
-        :type default_features: List[Dict[str, Any]]
         '''
 
         # Set the feature service dependency.
         self.feature_service = feature_service
 
-        # Store the default feature definitions for fallback use.
-        self.default_features = list(default_features) if default_features else []
-
-    # * method: get_from_defaults
-    def get_from_defaults(self, feature_id: str) -> FeatureAggregate | None:
-        '''
-        Search the stored default feature definitions for a matching id and
-        return a constructed ``FeatureAggregate``, or ``None`` when no match
-        is found.
-
-        :param feature_id: The feature ID to look up.
-        :type feature_id: str
-        :return: The matching aggregate, or ``None``.
-        :rtype: FeatureAggregate | None
-        '''
-
-        # Find the first dict whose id matches the requested feature_id.
-        matching = next(
-            (d for d in (self.default_features or []) if d.get('id') == feature_id),
-            None,
-        )
-
-        # Construct and return the aggregate, or None if no match found.
-        return FeatureAggregate(**matching) if matching else None
-
     # * method: execute
     @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> Feature:
+    def execute(self, id: str, default_feature_index: Dict[str, Feature] = {}, **kwargs) -> Feature:
         '''
-        Retrieve a feature by ID, falling back to built-in defaults when the
-        repository does not contain the requested feature.
+        Retrieve a feature by ID, falling back to a provided default feature
+        index when the repository does not contain the requested feature.
 
         :param id: The feature identifier.
         :type id: str
+        :param default_feature_index: Optional mapping of feature id to Feature used
+            as an execute-time fallback when the repository does not contain the
+            requested feature.
+        :type default_feature_index: Dict[str, Feature]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The retrieved feature.
         :rtype: Feature
         '''
 
-        # Retrieve from the repository, falling back to defaults when absent.
+        # Retrieve from the repository, falling back to the default index when absent.
         feature = (
             self.feature_service.get(id)
-            or self.get_from_defaults(id)
+            or (default_feature_index or {}).get(id)
         )
 
         # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.

@@ -102,15 +102,23 @@ def load_default_services() -> List[AppServiceDependency]:
 def load_app_instance(
     app_interface: AppInterface,
     service_provider: ServiceProvider = None,
+    **context_kwargs,
 ) -> Any:
     '''
-    Load the concrete app interface context instance.
+    Declaratively construct the app interface context from a loaded interface.
+
+    The service provider resolves the context's collaborators (events and their
+    repositories) by name; the context graph itself is built declaratively via
+    ``from_domain`` rather than resolved from the DI container.
 
     :param app_interface: The prepared app interface definition.
     :type app_interface: AppInterface
     :param service_provider: The service provider to use for resolution.
         When None, a fresh provider is created.
     :type service_provider: ServiceProvider
+    :param context_kwargs: Additional keyword arguments forwarded to the context
+        constructor (e.g. bootstrap defaults).
+    :type context_kwargs: dict
     :return: The resolved app interface context.
     :rtype: Any
     '''
@@ -119,7 +127,7 @@ def load_app_instance(
     if service_provider is None:
         service_provider = create_service_provider()
 
-    # Build the app interface dependencies map.
+    # Build the app interface dependencies map (events, repos, constants).
     try:
         dependencies = app_interface.get_service_type_mapping()
 
@@ -136,8 +144,30 @@ def load_app_instance(
     # Add dependencies to the service provider.
     service_provider.add_services(dependencies)
 
-    # Resolve and return the app interface context.
-    return service_provider.get_service('app_context')
+    # Resolve the context collaborators by name from the provider.
+    resolved = {
+        name: service_provider.get_service(name)
+        for name in (
+            'get_feature_evt',
+            'get_error_evt',
+            'di_list_all_configs_evt',
+            'logging_list_all_evt',
+        )
+    }
+
+    # Import the context class declared by the interface (supports custom contexts).
+    context_cls = ImportDependency.execute(
+        app_interface.module_path,
+        app_interface.class_name,
+    )
+
+    # Construct the context declaratively from the loaded interface.
+    return context_cls.from_domain(
+        app_interface,
+        create_service_provider=create_service_provider,
+        **resolved,
+        **context_kwargs,
+    )
 
 
 # ** blueprint: resolve_interface
@@ -194,6 +224,7 @@ def realize_interface(
     app_interface: AppInterface,
     interface_id: str,
     service_provider: ServiceProvider = None,
+    **context_kwargs,
 ) -> AppInterfaceContext:
     '''
     Build and validate the concrete app interface context from a resolved interface.
@@ -204,12 +235,15 @@ def realize_interface(
     :type interface_id: str
     :param service_provider: Optional service provider; a fresh one is created if None.
     :type service_provider: ServiceProvider
+    :param context_kwargs: Additional keyword arguments forwarded to the context
+        constructor (e.g. bootstrap defaults).
+    :type context_kwargs: dict
     :return: The validated app interface context.
     :rtype: AppInterfaceContext
     '''
 
     # Create the concrete app interface context.
-    app_interface_context = load_app_instance(app_interface, service_provider)
+    app_interface_context = load_app_instance(app_interface, service_provider, **context_kwargs)
 
     # Verify that the resolved context is valid.
     if not isinstance(app_interface_context, AppInterfaceContext):

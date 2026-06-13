@@ -42,8 +42,4 @@ DEFAULT_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] = [
     ('list_commands_evt', 'tiferet.events.cli', 'ListCliCommands', None),
     ('get_parent_args_evt', 'tiferet.events.cli', 'GetParentArguments', None),
     ('di_list_all_configs_evt', 'tiferet.events.di', 'ListAllSettings', None),
-    ('services', 'tiferet.contexts.di', 'DIContext', None),
-    ('features', 'tiferet.contexts.feature', 'FeatureContext', None),
-    ('errors', 'tiferet.contexts.error', 'ErrorContext', None),
-    ('logging', 'tiferet.contexts.logging', 'LoggingContext', None),
 ]

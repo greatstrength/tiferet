@@ -3,6 +3,8 @@
 # *** exports
 
 __all__ = [
+    'BaseContext',
+    'ContextMeta',
     'LoggingContext',
     'RequestContext',
     'CacheContext',
@@ -13,6 +15,7 @@ __all__ = [
 ]
 
 # ** app
+from .base import BaseContext, ContextMeta
 from .logging import LoggingContext
 from .request import RequestContext
 from .cache import CacheContext

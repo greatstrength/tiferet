@@ -167,13 +167,9 @@ class AppInterface(DomainObject):
             for param, value in dep.parameters.items():
                 dependencies[param] = value
 
-        # Register app_context last so all its dependencies are available.
-        dependencies['app_context'] = getattr(
-            import_module(self.module_path),
-            self.class_name,
-        )
-
-        # Return the assembled dependencies mapping.
+        # Return the assembled dependencies mapping. The application interface
+        # context itself is constructed declaratively by the blueprint, so it is
+        # intentionally not registered here as a DI-resolved service.
         return dependencies
 
     # * method: create_service_provider

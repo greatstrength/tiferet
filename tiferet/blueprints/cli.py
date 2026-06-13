@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # ** app
 from ..assets import TiferetAPIError
 from ..di import ServiceProvider
-from ..domain import CliCommand
+from ..domain import CliArgument, CliCommand
 from .. import assets as a
 from ..events import DomainEvent
 from ..events.app import GetAppInterface
@@ -66,6 +66,48 @@ def get_parent_arguments(service_provider: ServiceProvider) -> List:
     return get_parent_args_evt.execute()
 
 
+# ** blueprint: build_argument_kwargs
+def build_argument_kwargs(argument: CliArgument) -> Dict[str, Any]:
+    '''
+    Build the ``argparse.add_argument`` keyword arguments for a CLI argument.
+
+    Value-only keywords (``type``, ``nargs``, ``choices``) are included only for
+    value-consuming actions (``store``, ``append``, or the default).  Flag and
+    const actions such as ``store_true`` reject those keywords, so they are
+    omitted to keep parser construction valid.
+
+    :param argument: The CLI argument definition.
+    :type argument: CliArgument
+    :return: The keyword arguments for ``add_argument``.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Start with keywords accepted by every argparse action.
+    kwargs: Dict[str, Any] = dict(help=argument.description)
+
+    # Include the action only when explicitly configured.
+    if argument.action is not None:
+        kwargs['action'] = argument.action
+
+    # Value-consuming actions accept type, nargs, and choices.
+    if argument.action in (None, 'store', 'append'):
+        kwargs['type'] = argument.get_type()
+        kwargs['nargs'] = argument.nargs
+        kwargs['choices'] = argument.choices
+
+    # Include an explicit default only when configured so flag actions keep
+    # their argparse-native defaults (e.g. store_true defaults to False).
+    if argument.default is not None:
+        kwargs['default'] = argument.default
+
+    # Required is only meaningful for optional (flagged) arguments.
+    if argument.required is not None:
+        kwargs['required'] = argument.required
+
+    # Return the assembled keyword arguments.
+    return kwargs
+
+
 # ** blueprint: build_parser
 def build_parser(
     cli_commands: Dict[str, List[CliCommand]],
@@ -106,30 +148,17 @@ def build_parser(
 
             # Add the command-level arguments.
             for argument in cli_command.arguments:
-                args = dict(
-                    help=argument.description,
-                    type=argument.get_type(),
-                    default=argument.default,
-                    nargs=argument.nargs,
-                    choices=argument.choices,
-                    action=argument.action
+                cli_command_parser.add_argument(
+                    *argument.name_or_flags,
+                    **build_argument_kwargs(argument),
                 )
-                if argument.required is not None:
-                    args['required'] = argument.required
-                cli_command_parser.add_argument(*argument.name_or_flags, **args)
 
             # Add parent arguments that don't collide with declared command arguments.
             for argument in parent_arguments:
                 if not cli_command.has_argument(argument.name_or_flags):
                     cli_command_parser.add_argument(
                         *argument.name_or_flags,
-                        help=argument.description,
-                        type=argument.get_type(),
-                        default=argument.default,
-                        required=argument.required,
-                        nargs=argument.nargs,
-                        choices=argument.choices,
-                        action=argument.action
+                        **build_argument_kwargs(argument),
                     )
 
     # Return the configured parser.

@@ -73,6 +73,9 @@ INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 # ** constant: invalid_app_interface_type_id
 INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
 
+# ** constant: context_not_found_id
+CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
+
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
 
@@ -316,7 +319,7 @@ DEFAULT_ERRORS = {
         'id': FEATURE_COMMAND_LOADING_FAILED_ID,
         'name': 'Feature Command Loading Failed',
         'message': [
-            {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {attribute_id}. Error: {exception}.'}
+            {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {service_id}. Error: {exception}.'}
         ]
     },
 
@@ -352,7 +355,16 @@ DEFAULT_ERRORS = {
         'id': DEPENDENCY_TYPE_NOT_FOUND_ID,
         'name': 'Dependency Type Not Found',
         'message': [
-            {'lang': 'en_US', 'text': 'No dependency type found for attribute {attribute_id} with flags {flags}.'}
+            {'lang': 'en_US', 'text': 'No dependency type found for configuration {configuration_id} with flags {flags}.'}
+        ]
+    },
+
+    # * error: CONTEXT_NOT_FOUND
+    CONTEXT_NOT_FOUND_ID: {
+        'id': CONTEXT_NOT_FOUND_ID,
+        'name': 'Context Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'No context registered for domain type: {domain_type}.'}
         ]
     },
 

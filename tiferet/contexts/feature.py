@@ -1,11 +1,14 @@
+"""Tiferet Feature Contexts"""
+
 # *** imports
 
 # ** core
 import asyncio
 import re
-from typing import Any, Callable, Generator, Tuple, Dict
+from typing import Any, Generator, List, Tuple, Dict
 
 # ** app
+from .base import BaseContext
 from .di import DIContext
 from .cache import CacheContext
 from .request import RequestContext
@@ -24,7 +27,16 @@ from ..domain import Feature, FeatureEvent
 # *** contexts
 
 # ** context: feature_context
-class FeatureContext(object):
+class FeatureContext(BaseContext):
+    '''
+    The feature context orchestrates feature step execution, resolving each
+    step's domain event from the DI context and applying any configured
+    middleware. It operates on pre-loaded ``Feature`` domain objects supplied
+    by the application interface hub.
+    '''
+
+    # * attribute: domain_type
+    domain_type = Feature
 
     # * attribute: services
     services: DIContext
@@ -32,32 +44,34 @@ class FeatureContext(object):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: get_feature_handler
-    get_feature_handler: Callable
+    # * attribute: context_data
+    context_data: Dict[str, Any]
 
     # * init
     def __init__(self,
-            get_feature_evt: DomainEvent,
             services: DIContext,
-            cache: CacheContext = None):
+            cache: CacheContext = None,
+            context_data: Dict[str, Any] = None):
         '''
         Initialize the feature context.
 
-        :param get_feature_evt: The event used to retrieve features.
-        :type get_feature_evt: DomainEvent
         :param services: The DI context for dependency injection.
         :type services: DIContext
-        :param cache: The cache context to use for caching feature data.
+        :param cache: The shared cache context to use for caching feature data.
         :type cache: CacheContext
+        :param context_data: Lowest-priority context defaults merged into every
+            command execution (e.g. bootstrap ``default_commands_list``).
+        :type context_data: Dict[str, Any]
         '''
 
-        # Assign the attributes.
-        self.services = services
-        self.cache = cache if cache else CacheContext()
-        self.get_feature_handler = get_feature_evt.execute
+        # Initialize shared services and cache via the base context.
+        super().__init__(services=services, cache=cache)
+
+        # Store the context-level execution defaults.
+        self.context_data = context_data if context_data is not None else {}
 
     # * method: load_feature_step
-    def load_feature_step(self, feature_event: FeatureEvent, feature_flags: list[str] = None) -> DomainEvent:
+    def load_feature_step(self, feature_event: FeatureEvent, feature_flags: List[str] = None) -> DomainEvent:
         '''
         Load a feature event step from the DI context using its service ID and
         any configured flags.
@@ -66,7 +80,7 @@ class FeatureContext(object):
             service configuration and flags.
         :type feature_event: FeatureEvent
         :param feature_flags: Optional list of flags from the parent feature.
-        :type feature_flags: list[str]
+        :type feature_flags: List[str]
         :return: The resolved domain event.
         :rtype: DomainEvent
         '''
@@ -93,28 +107,6 @@ class FeatureContext(object):
                 exception=str(e)
             )
 
-    # * method: load_feature
-    def load_feature(self, feature_id: str) -> Feature:
-        '''
-        Load a feature by ID, using cache when available.
-
-        :param feature_id: The feature identifier.
-        :type feature_id: str
-        :return: The loaded feature.
-        :rtype: Feature
-        '''
-
-        # Try to get the feature from the cache first.
-        feature = self.cache.get(feature_id)
-
-        # If not in cache, retrieve via command and cache the result.
-        if not feature:
-            feature = self.get_feature_handler(id=feature_id)
-            self.cache.set(feature_id, feature)
-
-        # Return the loaded feature.
-        return feature
-    
     # * method: load_feature_middleware
     def load_feature_middleware(self, middleware_ids: list) -> list:
         '''
@@ -163,8 +155,8 @@ class FeatureContext(object):
         :type kwargs: dict
         '''
 
-        # Merge request data with step parameters.
-        merged_kwargs = {**request.data, **kwargs}
+        # Merge context defaults (lowest priority), request data, and step parameters.
+        merged_kwargs = {**self.context_data, **request.data, **kwargs}
 
         # Build the base execution callable.
         def base():
@@ -276,27 +268,23 @@ class FeatureContext(object):
 
     # * method: resolve_feature_steps
     def resolve_feature_steps(self,
-            feature_id: str,
+            feature: Feature,
             request: RequestContext,
         ) -> Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]:
         '''
-        Resolve and yield executable steps for a feature.
+        Resolve and yield executable steps for a pre-loaded feature.
 
-        Loads the feature, evaluates step conditions, resolves each step's
-        domain event from the DI context, and parses its parameters. Yields
-        tuples of ``(command, feature_event, params)`` for each step that
-        should execute.
+        Evaluates step conditions, resolves each step's domain event from the
+        DI context, and parses its parameters. Yields tuples of
+        ``(command, feature_event, params)`` for each step that should execute.
 
-        :param feature_id: The feature identifier.
-        :type feature_id: str
+        :param feature: The pre-loaded feature domain object.
+        :type feature: Feature
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
         :return: A generator yielding (command, feature_event, params) tuples.
         :rtype: Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]
         '''
-
-        # Load the feature by id, using the cache when possible.
-        feature = self.load_feature(feature_id)
 
         # Iterate over the feature's configured steps.
         for feature_event in feature.steps:
@@ -318,12 +306,12 @@ class FeatureContext(object):
             yield cmd, feature_event, params
 
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
+    def execute_feature(self, feature: Feature, request: RequestContext, **kwargs):
         '''
-        Execute a feature by its ID with the provided request.
+        Execute a pre-loaded feature with the provided request.
 
-        :param feature_id: The feature identifier.
-        :type feature_id: str
+        :param feature: The pre-loaded feature domain object.
+        :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
         :param kwargs: Additional keyword arguments.
@@ -331,11 +319,10 @@ class FeatureContext(object):
         '''
 
         # Resolve feature-level middleware once for all steps.
-        feature = self.load_feature(feature_id)
         feature_middleware = self.load_feature_middleware(feature.middleware)
 
         # Resolve and execute each step synchronously.
-        for cmd, step, params in self.resolve_feature_steps(feature_id, request):
+        for cmd, step, params in self.resolve_feature_steps(feature, request):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
             step_middleware = self.load_feature_middleware(step.middleware)
@@ -385,8 +372,8 @@ class FeatureContext(object):
         :type kwargs: dict
         '''
 
-        # Merge request data with step parameters.
-        merged_kwargs = {**request.data, **kwargs}
+        # Merge context defaults (lowest priority), request data, and step parameters.
+        merged_kwargs = {**self.context_data, **request.data, **kwargs}
 
         # Build the base async execution callable.
         async def base():
@@ -429,13 +416,13 @@ class FeatureContext(object):
         request.set_result(result, data_key)
 
     # * method: execute_feature_async
-    async def execute_feature_async(self, feature_id: str, request: RequestContext, **kwargs):
+    async def execute_feature_async(self, feature: Feature, request: RequestContext, **kwargs):
         '''
-        Execute a feature by its ID with the provided request, supporting
+        Execute a pre-loaded feature with the provided request, supporting
         mixed sync/async step chains.
 
-        :param feature_id: The feature identifier.
-        :type feature_id: str
+        :param feature: The pre-loaded feature domain object.
+        :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
         :param kwargs: Additional keyword arguments.
@@ -443,11 +430,10 @@ class FeatureContext(object):
         '''
 
         # Resolve feature-level middleware once for all steps.
-        feature = self.load_feature(feature_id)
         feature_middleware = self.load_feature_middleware(feature.middleware)
 
         # Resolve and execute each step, awaiting async commands as needed.
-        for cmd, step, params in self.resolve_feature_steps(feature_id, request):
+        for cmd, step, params in self.resolve_feature_steps(feature, request):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
             step_middleware = self.load_feature_middleware(step.middleware)

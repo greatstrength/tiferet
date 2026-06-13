@@ -5,6 +5,8 @@
 __all__ = [
     'App',
     'CLI',
+    'TiferetApp',
+    'TiferetCLI',
     'TiferetError',
     'TiferetAPIError',
     'DomainObject',
@@ -40,6 +42,8 @@ try:
     from .assets import TiferetError, TiferetAPIError
     from .blueprints import build_app as App
     from .blueprints import build_cli as CLI
+    from .blueprints import build_tiferet_app as TiferetApp
+    from .blueprints import build_tiferet_cli as TiferetCLI
     from .domain import DomainObject
     from .events import (
         DomainEvent,
@@ -78,4 +82,4 @@ except Exception as e:
 
 # *** version
 
-__version__ = '2.0.0b8'
+__version__ = '2.0.0b9'

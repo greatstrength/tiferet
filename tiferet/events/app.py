@@ -75,6 +75,12 @@ class AddAppInterface(DomainEvent):
         :rtype: AppInterface
         '''
 
+        # Coerce optional list/dict args that argparse may pass as None.
+        logger_id = logger_id or 'default'
+        flags = flags or ['default']
+        services = services or []
+        constants = constants or {}
+
         # Collect the app interface data.
         app_interface_data = {
             'id': id,

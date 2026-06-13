@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import json
 import sys
 from typing import Any, Dict, List, Optional
 
@@ -13,7 +14,6 @@ from .. import assets as a
 from .main import (
     create_service_provider,
     load_default_services,
-    load_app_instance,
     resolve_interface,
     realize_interface,
 )
@@ -48,6 +48,43 @@ def _build_tiferet_command_map() -> Dict[str, List]:
 
     # Return the grouped command map.
     return command_map
+
+
+# ** blueprint: _decode_json_arguments
+def _decode_json_arguments(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    '''
+    Decode JSON-valued CLI arguments in place.
+
+    Complex arguments (``parameters``, ``constants``, ``services``, and
+    ``flagged_dependencies``) arrive from argparse as raw strings.  This helper
+    parses each present string value with ``json.loads`` so domain events
+    receive structured data.  Malformed JSON results in a controlled CLI exit
+    rather than an unhandled traceback.
+
+    :param parsed: The parsed argument namespace as a dictionary.
+    :type parsed: Dict[str, Any]
+    :return: The parsed dictionary with JSON-valued arguments decoded.
+    :rtype: Dict[str, Any]
+    '''
+
+    # The complex argument keys whose string values carry JSON payloads.
+    json_keys = ('parameters', 'constants', 'services', 'flagged_dependencies')
+
+    # Decode each present string value, failing cleanly on malformed JSON.
+    for key in json_keys:
+        value = parsed.get(key)
+        if isinstance(value, str):
+            try:
+                parsed[key] = json.loads(value)
+            except json.JSONDecodeError as e:
+                print(
+                    f"Invalid JSON for argument '--{key.replace('_', '-')}': {e}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+
+    # Return the parsed dictionary with decoded values.
+    return parsed
 
 
 # ** blueprint: build_tiferet_cli
@@ -109,18 +146,21 @@ def build_tiferet_cli(
     ]
     all_services = default_services + cli_service_deps
 
-    # Convert DEFAULT_TIFERET_CLI_SERVICES to dicts for injection into
-    # ListAllSettings so that the feature-level DI context can resolve CLI
-    # service events that are not present in the consumer's config file.
+    # Convert the merged service dependencies (framework defaults + CLI
+    # services) into service configuration dicts for the feature-level DI
+    # context. Keying each entry by its service_id registers every bootstrap
+    # event (e.g. add_feature_evt) AND the repositories the events depend on
+    # (e.g. feature_service), so each event's service dependency can be wired
+    # even when the consumer's config file does not define them.
     default_configuration_dicts = [
         {
-            'id': sid,
-            'module_path': mp,
-            'class_name': cn,
-            'parameters': p or {},
+            'id': dep.service_id,
+            'module_path': dep.module_path,
+            'class_name': dep.class_name,
+            'parameters': dep.parameters or {},
             'dependencies': [],
         }
-        for sid, mp, cn, p in a.cli_svc.DEFAULT_TIFERET_CLI_SERVICES
+        for dep in all_services
     ]
 
     # Build the bootstrap constants dict, pointing all config file keys at the
@@ -135,22 +175,21 @@ def build_tiferet_cli(
         'logging_config': app_config,
     }
 
-    # Merge all constants, preserving any interface-level overrides, and inject
-    # the bootstrap list constants for the three bootstrap events.
+    # Build the merged constants by starting from the defaults (the service
+    # parameters and the placeholder config paths that GetAppInterface seeds
+    # onto the built-in interface), then updating with the bootstrap constants
+    # so the consumer's app_config path wins for every config-file key.
     merged_constants: Dict[str, Any] = {
-        **{k: v for dep in all_services for k, v in dep.parameters.items()},
-        **bootstrap_constants,
-        **(app_interface.constants or {}),
-        # Bootstrap default lists injected into the three bootstrap events:
-        #   GetFeature(default_features=...) for feature routing
-        'default_features': a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
-        #   ListAllSettings(default_configurations=..., default_constants=...)
-        #   for feature-level DI service resolution
-        'default_configurations': default_configuration_dicts,
-        'default_constants': bootstrap_constants,
-        #   ListCliCommands(default_commands=...) for cli list-commands feature
-        'default_commands': a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS,
+        k: v for dep in all_services for k, v in dep.parameters.items()
     }
+    merged_constants.update(app_interface.constants or {})
+    merged_constants.update(bootstrap_constants)
+
+    # Re-seed the interface constants with the merged result so the constants
+    # re-registered during realization (AppInterface.get_service_type_mapping)
+    # also resolve to the consumer's app_config file rather than the seeded
+    # 'config.yml' placeholders.
+    app_interface.set_constants(merged_constants)
 
     # Build the service provider seeded with all service types and constants.
     service_provider = create_service_provider(
@@ -159,8 +198,22 @@ def build_tiferet_cli(
     )
 
     # Realize the app interface context, passing the pre-built provider so that
-    # all bootstrap constants are already wired before service construction.
-    interface_context = realize_interface(app_interface, 'tiferet_cli', service_provider)
+    # all bootstrap constants are already wired before service construction, and
+    # seeding the bootstrap defaults directly onto the hub initializer so the
+    # bootstrap events resolve features, configurations, and commands that are
+    # not present in the consumer's config file.
+    interface_context = realize_interface(
+        app_interface,
+        'tiferet_cli',
+        service_provider,
+        default_features=a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
+        default_commands=a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS,
+        default_configurations=default_configuration_dicts,
+        default_constants=bootstrap_constants,
+    )
+
+    # Decode JSON-valued CLI arguments before dispatching to the feature.
+    parsed = _decode_json_arguments(parsed)
 
     # Execute the feature via the interface context; on API error, exit 1.
     try:

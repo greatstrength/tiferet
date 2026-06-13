@@ -1,3 +1,5 @@
+"""Tiferet Logging Contexts"""
+
 # *** imports
 
 # ** core
@@ -6,6 +8,8 @@ import logging.config
 from typing import Dict, Any, List, Callable
 
 # ** app
+from .base import BaseContext
+from .cache import CacheContext
 from ..assets.logging import *
 from ..domain import (
     Formatter,
@@ -17,7 +21,11 @@ from ..events import DomainEvent, RaiseError, a
 # *** contexts
 
 # ** context: logging_context
-class LoggingContext(object):
+class LoggingContext(BaseContext):
+    '''
+    The logging context builds a configured logger from formatter, handler, and
+    logger definitions, applying built-in defaults when none are configured.
+    '''
 
     # * attribute: list_all_handler
     list_all_handler: Callable
@@ -26,7 +34,7 @@ class LoggingContext(object):
     logger_id: str
 
     # * init
-    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str):
+    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str, cache: CacheContext = None):
         '''
         Initialize the logging context.
 
@@ -34,7 +42,12 @@ class LoggingContext(object):
         :type logging_list_all_evt: DomainEvent
         :param logger_id: The ID of the logger configuration to create.
         :type logger_id: str
+        :param cache: The shared cache context.
+        :type cache: CacheContext
         '''
+
+        # Initialize the shared cache via the base context.
+        super().__init__(cache=cache)
 
         # Bind the list all handler and store the logger ID.
         self.list_all_handler = logging_list_all_evt.execute

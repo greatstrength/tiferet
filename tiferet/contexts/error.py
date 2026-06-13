@@ -1,89 +1,53 @@
+"""Tiferet Error Contexts"""
+
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 
 # ** app
-from ..assets import (
-    TiferetError,
-    TiferetAPIError,
-    ERROR_NOT_FOUND_ID,
-    DEFAULT_ERRORS
-)
+from .base import BaseContext
+from .cache import CacheContext
 from ..domain import Error
-from ..events import DomainEvent
 
 # *** contexts
 
 # ** context: error_context
-class ErrorContext(object):
+class ErrorContext(BaseContext):
     '''
-    The error context object.
+    The error context formats structured error responses from loaded ``Error``
+    domain objects. Error retrieval is owned by the application interface hub.
     '''
 
-    # * attribute: get_error_handler
-    get_error_handler: Callable
+    # * attribute: domain_type
+    domain_type = Error
 
     # * init
-    def __init__(self, get_error_evt: DomainEvent):
+    def __init__(self, cache: CacheContext = None):
         '''
         Initialize the error context.
 
-        :param get_error_evt: The event to get an error by id.
-        :type get_error_evt: DomainEvent
+        :param cache: The shared cache context.
+        :type cache: CacheContext
         '''
 
-        # Assign the attributes.
-        self.get_error_handler = get_error_evt.execute
-    
-    # * method: get_error_by_code
-    def get_error_by_code(self, error_code: str) -> Error:
+        # Initialize the shared cache via the base context.
+        super().__init__(cache=cache)
+
+    # * method: format_response
+    def format_response(self, error: Error, exception: Exception, lang: str = 'en_US') -> Dict[str, Any]:
         '''
-        Get an error by its code.
+        Format a structured error response dictionary from a loaded error.
 
-        :param error_code: The error code to retrieve.
-        :type error_code: str
-        :return: The error object.
-        :rtype: Error
-        '''
-
-        # Try to retrieve the error by its code.
-        try:
-            return self.get_error_handler(error_code, include_defaults=True)
-        
-        # If the error is not found, raise the "error not found" error.
-        except TiferetError:
-            
-            # Retrieve and raise the "error not found" error to use its details.
-            error: Error = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
-            raise TiferetAPIError(
-                **error.format_response(),
-                id=error_code,
-            )
-        
-        # Return the retrieved error.
-        return error
-
-    # * method: handle_error
-    def handle_error(self, exception: TiferetError, lang: str = 'en_US') -> Dict[str, Any]:
-        '''
-        Format and return the structured error response dictionary.
-        Does not raise — raising is now handled by the calling context.
-
-        :param exception: The exception to handle.
-        :type exception: TiferetError
+        :param error: The loaded error domain object.
+        :type error: Error
+        :param exception: The raised exception carrying format kwargs.
+        :type exception: Exception
         :param lang: The language to use for the error message.
         :type lang: str
         :return: The formatted error response dictionary.
         :rtype: Dict[str, Any]
         '''
 
-        # Raise the exception if it is not a TiferetError.
-        if not isinstance(exception, TiferetError):
-            raise exception
-
-        # Get the error by its code from the error service.
-        error = self.get_error_by_code(exception.error_code)
-
-        # Return the formatted response dictionary (no raise).
-        return error.format_response(lang=lang, **exception.kwargs)
+        # Format and return the structured response using the exception kwargs.
+        return error.format_response(lang=lang, **getattr(exception, 'kwargs', {}))

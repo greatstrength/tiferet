@@ -4,10 +4,20 @@
 
 # ** core
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # ** app
-from ..assets import TiferetError, TiferetAPIError
+from ..assets import (
+    TiferetError,
+    TiferetAPIError,
+    ERROR_NOT_FOUND_ID,
+    DEFAULT_ERRORS,
+)
+from ..domain import AppInterface, Feature, CliCommand, ServiceConfiguration, Error
+from ..events import DomainEvent
+from .base import BaseContext
+from .cache import CacheContext
+from .di import DIContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
@@ -16,41 +26,238 @@ from .request import RequestContext
 # *** contexts
 
 # ** context: app_interface_context
-class AppInterfaceContext(object): 
+class AppInterfaceContext(BaseContext):
     '''
-    The application interface context is a class that is used to create and run the application interface.
+    The application interface context is a minimal hub that builds operational
+    sub-contexts on demand from a loaded ``AppInterface`` domain object and
+    orchestrates feature execution, error handling, and logging.
     '''
 
-    # * attribute: interface_id
-    interface_id: str
+    # * attribute: domain_type
+    domain_type = AppInterface
 
-    # * attribute: features
-    features: FeatureContext
+    # * attribute: get_feature_evt
+    get_feature_evt: DomainEvent
 
-    # * attribute: errors
-    errors: ErrorContext
+    # * attribute: get_error_evt
+    get_error_evt: DomainEvent
 
-    # * attribute: logging
-    logging: LoggingContext
+    # * attribute: di_list_all_configs_evt
+    di_list_all_configs_evt: DomainEvent
+
+    # * attribute: logging_list_all_evt
+    logging_list_all_evt: DomainEvent
+
+    # * attribute: create_service_provider
+    create_service_provider: Any
 
     # * init
-    def __init__(self, interface_id: str, features: FeatureContext, errors: ErrorContext, logging: LoggingContext):
+    def __init__(self,
+            get_feature_evt: DomainEvent,
+            get_error_evt: DomainEvent,
+            di_list_all_configs_evt: DomainEvent,
+            logging_list_all_evt: DomainEvent,
+            create_service_provider: Any = None,
+            cache: CacheContext = None,
+            default_features: List[Dict[str, Any]] = None,
+            default_commands: List[Dict[str, Any]] = None,
+            default_configurations: List[Dict[str, Any]] = None,
+            default_constants: Dict[str, Any] = None,
+        ):
         '''
-        Initialize the application interface context.
+        Initialize the application interface hub.
 
-        :param interface_id: The interface ID.
-        :type interface_id: str
-        :param features: The feature context.
-        :type features: FeatureContext
-        :param errors: The error context.
-        :type errors: ErrorContext
+        The bound ``AppInterface`` domain object (set via ``from_domain``)
+        supplies the interface id and logger id on demand, so no standalone
+        ``interface_id`` is stored.
+
+        :param get_feature_evt: The event used to retrieve features.
+        :type get_feature_evt: DomainEvent
+        :param get_error_evt: The event used to retrieve errors.
+        :type get_error_evt: DomainEvent
+        :param di_list_all_configs_evt: The event used to list DI configurations.
+        :type di_list_all_configs_evt: DomainEvent
+        :param logging_list_all_evt: The event used to list logging configurations.
+        :type logging_list_all_evt: DomainEvent
+        :param create_service_provider: Optional factory for creating service providers.
+        :type create_service_provider: Any
+        :param cache: The shared cache context for all sub-contexts.
+        :type cache: CacheContext
+        :param default_features: Optional raw feature dicts for bootstrap fallback.
+        :type default_features: List[Dict[str, Any]]
+        :param default_commands: Optional raw CLI command dicts for bootstrap fallback.
+        :type default_commands: List[Dict[str, Any]]
+        :param default_configurations: Optional raw service configuration dicts for bootstrap fallback.
+        :type default_configurations: List[Dict[str, Any]]
+        :param default_constants: Optional default DI constants for bootstrap fallback.
+        :type default_constants: Dict[str, Any]
         '''
 
-        # Assign instance variables.
-        self.interface_id = interface_id
-        self.features = features
-        self.errors = errors
-        self.logging = logging
+        # Initialize the shared cache via the base context.
+        super().__init__(cache=cache)
+
+        # Store the retrieval and configuration events plus the provider factory.
+        self.get_feature_evt = get_feature_evt
+        self.get_error_evt = get_error_evt
+        self.di_list_all_configs_evt = di_list_all_configs_evt
+        self.logging_list_all_evt = logging_list_all_evt
+        self.create_service_provider = create_service_provider
+
+        # Validate raw bootstrap feature dicts into a typed index keyed by id.
+        self.default_feature_index = {
+            feature.id: feature
+            for feature in (Feature.model_validate(data) for data in (default_features or []))
+        }
+
+        # Validate raw bootstrap command dicts into a typed list.
+        self.default_commands_list = [
+            CliCommand.model_validate(data) for data in (default_commands or [])
+        ]
+
+        # Validate raw bootstrap configuration dicts into a typed index keyed by id.
+        self.default_config_index = {
+            config.id: config
+            for config in (ServiceConfiguration.model_validate(data) for data in (default_configurations or []))
+        }
+
+        # Copy the bootstrap DI constants, defaulting to an empty mapping.
+        self.default_di_constants = dict(default_constants) if default_constants else {}
+
+        # Initialize lazily-built sub-context caches.
+        self._services = None
+        self._features = None
+        self._errors = None
+        self._logging = None
+
+    # * method: _get_services
+    def _get_services(self) -> DIContext:
+        '''
+        Build (once) and return the shared DI context.
+
+        :return: The shared DI context.
+        :rtype: DIContext
+        '''
+
+        # Build the DI context on first access, wiring bootstrap defaults.
+        if self._services is None:
+            self._services = DIContext(
+                di_list_all_configs_evt=self.di_list_all_configs_evt,
+                cache=self.cache,
+                create_service_provider=self.create_service_provider,
+                default_config_index=self.default_config_index,
+                default_di_constants=self.default_di_constants,
+            )
+
+        # Return the shared DI context.
+        return self._services
+
+    # * method: load_feature
+    def load_feature(self) -> FeatureContext:
+        '''
+        Build (once) and return the feature context, resolved via the registry.
+
+        :return: The shared feature context.
+        :rtype: FeatureContext
+        '''
+
+        # Build the feature context on first access using the registry.
+        if self._features is None:
+            feature_context_cls = BaseContext.for_domain(Feature)
+            self._features = feature_context_cls(
+                services=self._get_services(),
+                cache=self.cache,
+                context_data={'default_commands_list': self.default_commands_list},
+            )
+
+        # Return the shared feature context.
+        return self._features
+
+    # * method: load_error_context
+    def load_error_context(self) -> ErrorContext:
+        '''
+        Build (once) and return the error context, resolved via the registry.
+
+        :return: The shared error context.
+        :rtype: ErrorContext
+        '''
+
+        # Build the error context on first access using the registry.
+        if self._errors is None:
+            error_context_cls = BaseContext.for_domain(Error)
+            self._errors = error_context_cls(cache=self.cache)
+
+        # Return the shared error context.
+        return self._errors
+
+    # * method: load_logging_context
+    def load_logging_context(self) -> LoggingContext:
+        '''
+        Build (once) and return the logging context.
+
+        :return: The shared logging context.
+        :rtype: LoggingContext
+        '''
+
+        # Build the logging context on first access, reading the logger id from the domain.
+        if self._logging is None:
+            self._logging = LoggingContext(
+                logging_list_all_evt=self.logging_list_all_evt,
+                logger_id=self.domain.logger_id,
+                cache=self.cache,
+            )
+
+        # Return the shared logging context.
+        return self._logging
+
+    # * method: load_feature_domain
+    def load_feature_domain(self, feature_id: str) -> Feature:
+        '''
+        Load a feature domain object by id, using the shared cache and the
+        bootstrap default feature index as an execute-time fallback.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :return: The loaded feature domain object.
+        :rtype: Feature
+        '''
+
+        # Try the shared cache first.
+        feature = self.cache.get(feature_id)
+
+        # Retrieve via the get-feature event and cache the result when absent.
+        if not feature:
+            feature = self.get_feature_evt.execute(
+                id=feature_id,
+                default_feature_index=self.default_feature_index,
+            )
+            self.cache.set(feature_id, feature)
+
+        # Return the loaded feature.
+        return feature
+
+    # * method: load_error_domain
+    def load_error_domain(self, error_code: str) -> Error:
+        '''
+        Load an error domain object by its code, falling back to the built-in
+        ``ERROR_NOT_FOUND`` definition when the code cannot be resolved.
+
+        :param error_code: The error code to resolve.
+        :type error_code: str
+        :return: The loaded error domain object.
+        :rtype: Error
+        '''
+
+        # Retrieve the error by code, including built-in defaults.
+        try:
+            return self.get_error_evt.execute(error_code, include_defaults=True)
+
+        # On lookup failure, raise the API error using the ERROR_NOT_FOUND details.
+        except TiferetError:
+            error = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+            raise TiferetAPIError(
+                **error.format_response(),
+                id=error_code,
+            )
 
     # * method: parse_request
     def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
@@ -69,9 +276,9 @@ class AppInterfaceContext(object):
         :rtype: RequestContext
         '''
 
-        # Add the interface id to the request headers.
+        # Add the interface id (from the bound domain) to the request headers.
         headers.update(dict(
-            interface_id=self.interface_id,
+            interface_id=self.domain.id,
         ))
 
         # Create the request context object.
@@ -102,8 +309,9 @@ class AppInterfaceContext(object):
             feature_id=feature_id
         ))
 
-        # Execute feature context and return session.
-        self.features.execute_feature(feature_id, request, **kwargs)
+        # Load the feature domain object and execute it via the feature context.
+        feature = self.load_feature_domain(feature_id)
+        self.load_feature().execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
@@ -126,8 +334,11 @@ class AppInterfaceContext(object):
                 error=str(error)
             )
 
-        # Get formatted response from ErrorContext.
-        formatted_error = self.errors.handle_error(error)
+        # Load the error domain object for the error code.
+        error_domain = self.load_error_domain(error.error_code)
+
+        # Format the response via the error context.
+        formatted_error = self.load_error_context().format_response(error_domain, error)
 
         # Raise the API exception with the formatted payload.
         raise TiferetAPIError(**formatted_error)
@@ -171,7 +382,7 @@ class AppInterfaceContext(object):
         start_time = time.perf_counter()
 
         # Create the logger for the app interface context.
-        logger = self.logging.build_logger()
+        logger = self.load_logging_context().build_logger()
 
         # Parse request.
         logger.debug(f'Parsing request for feature: {feature_id}')
