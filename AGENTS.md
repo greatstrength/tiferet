@@ -19,7 +19,7 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/           # build_app, build_cli and top-level runtime orchestration
-├── contexts/             # Runtime orchestration (AppInterfaceContext, DIContext, Feature, Error, Logging)
+├── contexts/             # Runtime orchestration: BaseContext registry + AppInterfaceContext hub (DIContext, Feature, Error, Logging)
 ├── di/                   # App-level DI: ServiceProvider, DynamicServiceProvider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -42,13 +42,14 @@ A working calculator application is provided in `examples/basic_calculator/`.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
 - **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
 - **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
+- **BaseContext** (`contexts/base.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The `AppInterfaceContext` hub binds the loaded `AppInterface` and builds its sub-contexts on demand.
 
 ### Runtime Flow
 
 1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
-2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, and wires the DI container.
-3. `AppInterfaceContext.run(feature_id, data={})` parses the request, executes the feature, and returns the response.
-4. `FeatureContext.execute_feature()` loads the feature config, resolves services from `DIContext`, and executes them sequentially.
+2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, resolves the context's event/repo collaborators by name from the DI container, and constructs the `AppInterfaceContext` declaratively via `BaseContext.from_domain(app_interface, ...)` — the context graph itself is not DI-resolved.
+3. `AppInterfaceContext.run(feature_id, data={})` builds a logger, parses the request, loads the `Feature` domain object, executes it, and returns the response.
+4. The hub builds its sub-contexts (`DIContext`, `FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service from `DIContext` and executes it sequentially.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
 6. Results flow back through `RequestContext` and `handle_response()`.
 
@@ -64,7 +65,7 @@ Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate a
 - `load_app_service(module_path, class_name, **parameters)` — Imports and constructs the application service.
 - `load_default_services()` — Loads default app service dependencies from `assets.blueprints`.
 - `resolve_interface(interface_id, ...)` — Loads the app service and resolves the interface definition via `GetAppInterface`.
-- `realize_interface(app_interface, interface_id, service_provider)` — Builds and validates the concrete `AppInterfaceContext`.
+- `realize_interface(app_interface, interface_id, service_provider, **context_kwargs)` — Declaratively builds and validates the concrete `AppInterfaceContext` from the loaded interface; forwards `**context_kwargs` (e.g. bootstrap defaults) to the context constructor.
 - `build_app(interface_id, ...)` — Resolves and realizes the interface in a single call.
 
 **CLI blueprint functions in `cli.py`:**
@@ -81,7 +82,7 @@ CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has be
 
 Tiferet uses a two-layer DI architecture:
 
-- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. The `create_service_provider` blueprint function assembles the full interface dependency graph via `AppInterface.get_service_type_mapping()` and resolves `AppInterfaceContext` via `service_provider.get_service('app_context')`.
+- **App-level DI** (`tiferet/di/`) — `ServiceProvider` ABC and `DynamicServiceProvider` concrete implementation backed by `dependency-injector`'s `DynamicContainer`. The provider resolves the interface's events and repositories (via `AppInterface.get_service_type_mapping()`); `load_app_instance` then resolves those named collaborators and constructs the `AppInterfaceContext` declaratively (the hub is no longer resolved from the container).
 - **Feature-level DI** (`tiferet/contexts/di.py` — `DIContext`) — Builds and caches a `DynamicServiceProvider` per flag set from `ServiceConfiguration` objects loaded by `DIConfigRepository`. `FeatureContext` calls `DIContext.get_dependency(service_id, *flags)` to resolve each feature step.
 
 `DynamicServiceProvider.build_factory(service_type)` is a public method that builds a `Factory` provider with constructor kwargs wired to sibling providers. It inspects the constructor signature to identify injectable parameters and maps them to registered sibling providers.
@@ -326,7 +327,8 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/di/dynamic.py` — `DynamicServiceProvider` (app-level DI, backed by `dependency-injector`)
 - `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point)
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
-- `tiferet/contexts/app.py` — `AppInterfaceContext`
+- `tiferet/contexts/base.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
+- `tiferet/contexts/app.py` — `AppInterfaceContext` (minimal declarative hub bound to the loaded `AppInterface`)
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
 - `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
@@ -335,6 +337,15 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### v2.0.0b9: Declarative Context Architecture (Minimal Hub)
+
+The v2.0.0b9 release standardizes contexts under a `BaseContext` registry and makes the application interface context a minimal, declaratively-constructed hub. Key changes:
+
+- **`BaseContext` + `ContextMeta`** (`tiferet/contexts/base.py`) — New base class and metaclass. Contexts declare a `domain_type` ClassVar; the metaclass registers each `{domain_type: context_class}` pair (own-namespace declarations only, so subclasses do not clobber base registrations). `BaseContext.for_domain(DomainType)` resolves the registered class (raising `CONTEXT_NOT_FOUND` when missing); `BaseContext.from_domain(domain_obj, **kwargs)` constructs the context and binds the object as `ctx.domain`.
+- **`AppInterfaceContext` is now a minimal hub** — It no longer stores `interface_id`/`features`/`errors`/`logging`. Its constructor takes collaborators (`get_feature_evt`, `get_error_evt`, `di_list_all_configs_evt`, `logging_list_all_evt`, `create_service_provider`, `cache`) plus bootstrap defaults (`default_features`, `default_commands`, `default_configurations`, `default_constants`). It binds the loaded `AppInterface` via `from_domain` and reads `self.domain.id` / `self.domain.logger_id` on demand. Sub-contexts are built lazily and share one `CacheContext` (`load_feature`, `load_error_context`, `load_logging_context`, `load_feature_domain`, `load_error_domain`).
+- **Declarative construction** — `load_app_instance` resolves the events/repos by name from the DI container, imports the context class from the interface's `module_path`/`class_name` (custom contexts like `FlaskApiContext` still work), and constructs it via `from_domain`. `AppInterface.get_service_type_mapping()` no longer adds an `app_context` entry, and `DEFAULT_SERVICES` no longer registers the `services`/`features`/`errors`/`logging` contexts.
+- **Specialized contexts are pure operational behavior** — `FeatureContext.execute_feature(feature, request)` (and async/`resolve_feature_steps`) accept a pre-loaded `Feature`; feature retrieval moved to the hub. `ErrorContext` exposes `format_response(error, exception, lang)` (error retrieval moved to the hub's `load_error_domain`). The b9 `set_default_*` setters were removed; bootstrap defaults are seeded on the hub initializer and threaded through `realize_interface(..., default_*=...)`.
 
 ### v2.0.0b7: ConfigurationRepository & Role Consolidation
 

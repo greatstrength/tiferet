@@ -29,6 +29,9 @@ Homepage = "https://github.com/greatstrength/tiferet"
 Repository = "https://github.com/greatstrength/tiferet"
 Download = "https://github.com/greatstrength/tiferet"
 
+[project.scripts]
+tiferet = "tiferet.blueprints.tiferet_cli:main"
+
 [project.optional-dependencies]
 test = [
     "pytest>=8.3.3",

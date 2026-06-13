@@ -145,7 +145,7 @@ features:
 6. Call `create_service_provider(type_map=..., **constants)` to instantiate a provider.
 7. Cache and return the provider.
 
-The `create_service_provider` factory is supplied by the builder via `AppBuilder.create_service_provider` so that app-level and feature-level providers share a consistent construction strategy.
+The `create_service_provider` factory is supplied by the blueprint via `create_service_provider` (`tiferet/blueprints/main.py`) and threaded through the hub into `DIContext` so that app-level and feature-level providers share a consistent construction strategy.
 
 ### RequestContext
 
@@ -153,32 +153,29 @@ The `create_service_provider` factory is supplied by the builder via `AppBuilder
 
 ### ErrorContext and LoggingContext
 
-Both are configuration-driven:
-
-- `ErrorContext` receives a `TiferetError`, formats it via `ErrorService`, and returns a localized payload. `AppInterfaceContext.handle_error` wraps the payload in `TiferetAPIError`.
+- `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object (error retrieval is owned by the hub's `load_error_domain`). `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
 - `LoggingContext.build_logger` composes formatters, handlers, and loggers defined in configuration into a ready-to-use logger instance.
 
-Both contexts are injected into `AppInterfaceContext` and are typically not subclassed — extend the underlying services instead.
+Both contexts are built lazily by `AppInterfaceContext` (`load_error_context`, `load_logging_context`) and are typically not subclassed — extend the underlying services instead.
 
 ### CacheContext
 
-A simple keyed in-memory cache used by `FeatureContext` (for loaded features) and `DIContext` (for service providers). Treat it as a per-interface cache — it is not shared across interfaces.
+A simple keyed in-memory cache. `AppInterfaceContext` creates one `CacheContext` per interface and shares it with the sub-contexts it builds (`DIContext` for service providers, plus the feature, error, and logging contexts). Treat it as a per-interface cache — it is not shared across interfaces.
 
 ## Composition in the Application Graph
 
-At runtime, a fully wired interface graph looks roughly like this:
+The `build_app` blueprint constructs the `AppInterfaceContext` declaratively from the loaded `AppInterface` (binding it as `self.domain`). The hub then builds its sub-contexts on demand, sharing a single `CacheContext`:
 
 ```
-AppBuilder
-  └── AppInterfaceContext
-        ├── FeatureContext
-        │     ├── DIContext  ── CacheContext
-        │     └── CacheContext
-        ├── ErrorContext
-        └── LoggingContext
+build_app (blueprint)
+  └── AppInterfaceContext  (hub, bound to AppInterface)
+        ├── DIContext        ── shared CacheContext
+        ├── FeatureContext   ── shared DIContext + CacheContext
+        ├── ErrorContext     ── shared CacheContext
+        └── LoggingContext   ── shared CacheContext
 ```
 
-Each `AppInterfaceContext` instance is per-interface; its dependencies are resolved by the app-level service provider. Because all contexts are constructor-injected, tests can replace any node in this graph with a mock.
+Each `AppInterfaceContext` instance is per-interface. The DI container resolves only the events and repositories by name; the context graph itself is built declaratively. Tests can inject mocks by setting the hub's lazy caches (`_features`, `_errors`, `_logging`, `_services`).
 
 ## Testing Contexts
 
@@ -198,13 +195,19 @@ Context tests use `pytest` with `unittest.mock`. Focus on behavior, not implemen
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context():
-    return AppInterfaceContext(
-        interface_id='basic_calc',
-        features=mock.Mock(spec=FeatureContext),
-        errors=mock.Mock(spec=ErrorContext),
-        logging=mock.Mock(spec=LoggingContext),
+def app_interface_context(app_interface):
+    # Build the hub declaratively, then inject mock sub-contexts via the caches.
+    context = AppInterfaceContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        di_list_all_configs_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
     )
+    context._features = mock.Mock(spec=FeatureContext)
+    context._errors = mock.Mock(spec=ErrorContext)
+    context._logging = mock.Mock(spec=LoggingContext)
+    return context
 
 # *** tests
 
@@ -215,13 +218,13 @@ def test_run_success(app_interface_context):
     '''
 
     # Arrange the logger and response.
-    app_interface_context.logging.build_logger.return_value = mock.Mock()
+    app_interface_context.load_logging_context().build_logger.return_value = mock.Mock()
 
     # Act.
     result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
 
     # Assert execution and response handling were invoked.
-    app_interface_context.features.execute_feature.assert_called_once()
+    app_interface_context.load_feature().execute_feature.assert_called_once()
     assert result is not None
 ```
 
@@ -249,7 +252,7 @@ Contexts must raise structured `TiferetError` instances with framework error cod
 
 ### 6. Treat CacheContext as Per-Interface
 
-Do not share a single `CacheContext` instance across interfaces. Each `AppInterfaceContext` (and its nested contexts) gets its own cache instance to avoid cross-interface leakage.
+Each `AppInterfaceContext` creates one `CacheContext` and shares it with the sub-contexts it builds. Do not share a single `CacheContext` across interfaces — a fresh hub per interface means a fresh cache, avoiding cross-interface leakage.
 
 ## Related Documentation
 
