@@ -5,23 +5,10 @@
 __all__ = [
     'BaseContext',
     'ContextMeta',
-    'LoggingContext',
-    'RequestContext',
-    'CacheContext',
-    'ErrorContext',
-    'DIContext',
-    'FeatureContext',
-    'AppInterfaceContext',
 ]
 
 # ** app
+# Only the base context primitives are exported at the framework level. Domain
+# context implementations (feature, error, di, logging, app) are imported
+# directly from their submodules when needed.
 from .base import BaseContext, ContextMeta
-from .logging import LoggingContext
-from .request import RequestContext
-from .cache import CacheContext
-from .error import ErrorContext
-from .di import DIContext
-from .feature import FeatureContext
-from .app import (
-    AppInterfaceContext
-)

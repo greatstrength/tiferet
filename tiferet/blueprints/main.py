@@ -20,6 +20,18 @@ from ..events import (
 )
 from ..events.app import GetAppInterface
 
+# *** constants
+
+# ** constant: app_context_collaborators
+# Service IDs of the context collaborators resolved by name from the provider
+# when constructing the app interface context declaratively.
+APP_CONTEXT_COLLABORATORS = (
+    'get_feature_evt',
+    'get_error_evt',
+    'di_list_all_configs_evt',
+    'logging_list_all_evt',
+)
+
 # *** blueprints
 
 # ** blueprint: create_service_provider
@@ -129,7 +141,7 @@ def load_app_instance(
 
     # Build the app interface dependencies map (events, repos, constants).
     try:
-        dependencies = app_interface.get_service_type_mapping()
+        dependencies = AppInterfaceContext.get_service_type_mapping(app_interface)
 
     # Raise a structured error if dependency mapping fails.
     except Exception as e:
@@ -147,12 +159,7 @@ def load_app_instance(
     # Resolve the context collaborators by name from the provider.
     resolved = {
         name: service_provider.get_service(name)
-        for name in (
-            'get_feature_evt',
-            'get_error_evt',
-            'di_list_all_configs_evt',
-            'logging_list_all_evt',
-        )
+        for name in APP_CONTEXT_COLLABORATORS
     }
 
     # Import the context class declared by the interface (supports custom contexts).

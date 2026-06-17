@@ -11,8 +11,10 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
+from tiferet.domain import Feature, Error
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.app import (
+    BaseContext,
     FeatureContext,
     ErrorContext,
     LoggingContext,
@@ -105,10 +107,11 @@ def logging_context():
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context, logging_context):
+def app_interface_context(app_interface, feature_context, error_context, logging_context, monkeypatch):
     """
-    Fixture to create an AppInterfaceContext hub bound to the test interface
-    with mock sub-contexts injected via the lazy caches.
+    Fixture to create an AppInterfaceContext hub bound to the test interface.
+    The logging context is injected via its lazy cache; feature and error
+    contexts are provided by patching the on-demand registry resolver.
 
     :return: An AppInterfaceContext instance.
     :rtype: AppInterfaceContext
@@ -123,10 +126,24 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         logging_list_all_evt=mock.Mock(),
     )
 
-    # Inject mock sub-contexts via the lazy caches.
-    context._features = feature_context
-    context._errors = error_context
+    # Inject the mock logging context via its lazy cache (still supported).
     context._logging = logging_context
+
+    # Feature and error contexts are now built on demand via the registry, so
+    # patch the resolver to return the mock contexts for those domain types.
+    original_for_domain = BaseContext.for_domain
+
+    def fake_for_domain(domain_cls):
+        if domain_cls is Feature:
+            return lambda **kwargs: feature_context
+        if domain_cls is Error:
+            return lambda **kwargs: error_context
+        return original_for_domain(domain_cls)
+
+    monkeypatch.setattr(
+        'tiferet.contexts.app.BaseContext.for_domain',
+        staticmethod(fake_for_domain),
+    )
 
     # Return the hub.
     return context
@@ -273,8 +290,8 @@ def test_app_interface_context_handle_response(app_interface_context):
         'data': {"key": "value"}
     }
 
-    # Handle the response using the app interface context.
-    response = app_interface_context.handle_response(request)
+    # Handle the response directly via the request context.
+    response = request.handle_response()
 
     # Assert that the response is not None and has the expected attributes.
     assert response is not None

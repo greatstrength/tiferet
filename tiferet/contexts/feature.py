@@ -125,8 +125,8 @@ class FeatureContext(BaseContext):
         # Resolve each service ID from the DI context.
         return [self.services.get_dependency(mid_id) for mid_id in middleware_ids]
 
-    # * method: handle_command
-    def handle_command(self,
+    # * method: handle_feature_step
+    def handle_feature_step(self,
         command: DomainEvent,
         request: RequestContext,
         data_key: str = None,
@@ -328,7 +328,7 @@ class FeatureContext(BaseContext):
             step_middleware = self.load_feature_middleware(step.middleware)
             combined_middleware = feature_middleware + step_middleware or None
 
-            self.handle_command(
+            self.handle_feature_step(
                 cmd,
                 request,
                 data_key=step.data_key,
@@ -340,8 +340,8 @@ class FeatureContext(BaseContext):
                 **kwargs
             )
 
-    # * method: handle_command_async
-    async def handle_command_async(self,
+    # * method: handle_feature_step_async
+    async def handle_feature_step_async(self,
         command: DomainEvent,
         request: RequestContext,
         data_key: str = None,
@@ -439,7 +439,7 @@ class FeatureContext(BaseContext):
             step_middleware = self.load_feature_middleware(step.middleware)
             combined_middleware = feature_middleware + step_middleware or None
 
-            await self.handle_command_async(
+            await self.handle_feature_step_async(
                 cmd,
                 request,
                 data_key=step.data_key,

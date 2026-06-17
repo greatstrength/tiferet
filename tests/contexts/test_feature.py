@@ -255,22 +255,22 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
 
-# ** test: feature_context_handle_command
-def test_feature_context_handle_command(feature_context, test_command):
+# ** test: feature_context_handle_feature_step
+def test_feature_context_handle_feature_step(feature_context, test_command):
     """Test handling a command in the FeatureContext."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle the command using the feature context.
-    feature_context.handle_command(test_command, request)
+    feature_context.handle_feature_step(test_command, request)
     response = request.handle_response()
 
     # Assert that the response matches the expected output.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_error
-def test_feature_context_handle_command_with_error(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_error
+def test_feature_context_handle_feature_step_with_error(feature_context, test_command):
     """Test handling a command that raises an error in the FeatureContext."""
 
     # Create a mock request that will raise an error.
@@ -278,34 +278,34 @@ def test_feature_context_handle_command_with_error(feature_context, test_command
 
     # Attempt to handle the command and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.handle_command(test_command, request)
+        feature_context.handle_feature_step(test_command, request)
 
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
     assert 'No key provided for command execution.' in str(exc_info.value)
 
-# ** test: feature_context_handle_command_with_data_key
-def test_feature_context_handle_command_with_data_key(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_data_key
+def test_feature_context_handle_feature_step_with_data_key(feature_context, test_command):
     """Test handling a command with a data key in the FeatureContext."""
 
     # Create a mock request with a data key.
     request = RequestContext(data={"key": "value"})
 
     # Handle the command using the feature context.
-    feature_context.handle_command(test_command, request, data_key="response_data")
+    feature_context.handle_feature_step(test_command, request, data_key="response_data")
 
     # Assert that the response matches the expected output.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_pass_on_error
-def test_feature_context_handle_command_with_pass_on_error(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_pass_on_error
+def test_feature_context_handle_feature_step_with_pass_on_error(feature_context, test_command):
     """Test handling a command with pass_on_error in the FeatureContext."""
 
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})
 
     # Handle the command with pass_on_error set to True.
-    feature_context.handle_command(test_command, request, pass_on_error=True)
+    feature_context.handle_feature_step(test_command, request, pass_on_error=True)
 
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
@@ -565,39 +565,39 @@ def async_feature_context(async_services_context):
 
     return FeatureContext(services=async_services_context)
 
-# ** test: feature_context_handle_command_async
+# ** test: feature_context_handle_feature_step_async
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async(async_feature_context, async_test_command):
     """Test handling an async command in the FeatureContext."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle the async command.
-    await async_feature_context.handle_command_async(async_test_command, request)
+    await async_feature_context.handle_feature_step_async(async_test_command, request)
     response = request.handle_response()
 
     # Assert that the response matches the expected output.
     assert response == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_async_with_sync_command
+# ** test: feature_context_handle_feature_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_with_sync_command(feature_context, test_command):
-    """Test that handle_command_async correctly dispatches a sync command."""
+async def test_feature_context_handle_feature_step_async_with_sync_command(feature_context, test_command):
+    """Test that handle_feature_step_async correctly dispatches a sync command."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle a sync command via the async handler.
-    await feature_context.handle_command_async(test_command, request)
+    await feature_context.handle_feature_step_async(test_command, request)
     response = request.handle_response()
 
     # Assert that the sync command executed correctly.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_async_with_error
+# ** test: feature_context_handle_feature_step_async_with_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_with_error(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async_with_error(async_feature_context, async_test_command):
     """Test handling an async command that raises an error."""
 
     # Create a request that will cause verify to fail.
@@ -605,20 +605,20 @@ async def test_feature_context_handle_command_async_with_error(async_feature_con
 
     # Attempt to handle the command and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        await async_feature_context.handle_command_async(async_test_command, request)
+        await async_feature_context.handle_feature_step_async(async_test_command, request)
 
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
 
-# ** test: feature_context_handle_command_async_pass_on_error
+# ** test: feature_context_handle_feature_step_async_pass_on_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_pass_on_error(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async_pass_on_error(async_feature_context, async_test_command):
     """Test handling an async command with pass_on_error."""
 
     # Create a request that will cause verify to fail.
     request = RequestContext(data={'key': None})
 
     # Handle with pass_on_error=True.
-    await async_feature_context.handle_command_async(async_test_command, request, pass_on_error=True)
+    await async_feature_context.handle_feature_step_async(async_test_command, request, pass_on_error=True)
 
     # Assert that the request handled the error without raising.
     assert not request.handle_response()
@@ -643,9 +643,9 @@ async def test_feature_context_execute_feature_async_basic(async_feature_context
     # Assert the result.
     assert request.handle_response() == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_middleware
-def test_feature_context_handle_command_with_middleware(feature_context, test_command):
-    """Test that middleware is applied when provided to handle_command."""
+# ** test: feature_context_handle_feature_step_with_middleware
+def test_feature_context_handle_feature_step_with_middleware(feature_context, test_command):
+    """Test that middleware is applied when provided to handle_feature_step."""
 
     # Track execution order.
     order = []
@@ -662,7 +662,7 @@ def test_feature_context_handle_command_with_middleware(feature_context, test_co
     request = RequestContext(data={'key': 'value'})
 
     # Handle the command with middleware.
-    feature_context.handle_command(
+    feature_context.handle_feature_step(
         test_command,
         request,
         middleware=[TrackMiddleware()],

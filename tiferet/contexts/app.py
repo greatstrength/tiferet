@@ -123,11 +123,45 @@ class AppInterfaceContext(BaseContext):
         # Copy the bootstrap DI constants, defaulting to an empty mapping.
         self.default_di_constants = dict(default_constants) if default_constants else {}
 
-        # Initialize lazily-built sub-context caches.
+        # Initialize lazily-built sub-context caches for the shared DI and
+        # logging contexts. Feature and error contexts are built on demand.
         self._services = None
-        self._features = None
-        self._errors = None
         self._logging = None
+
+    # * method: get_service_type_mapping (static)
+    @staticmethod
+    def get_service_type_mapping(app_interface: AppInterface) -> Dict[str, Any]:
+        '''
+        Build the dependency type mapping for an app interface.
+
+        Assembles the interface's scalars, constants, and service dependency
+        types (plus their parameters) into a single mapping consumed by the
+        service provider. The hub itself is constructed declaratively by the
+        blueprint, so it is intentionally not registered here.
+
+        :param app_interface: The loaded app interface definition.
+        :type app_interface: AppInterface
+        :return: A mapping of service IDs to their types and constant values.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Register interface scalars first.
+        dependencies: Dict[str, Any] = {
+            'interface_id': app_interface.id,
+            'logger_id': getattr(app_interface, 'logger_id', None),
+        }
+
+        # Add the interface constants.
+        dependencies.update(app_interface.constants)
+
+        # Add each service dependency type and its parameters.
+        for dep in app_interface.services:
+            dependencies[dep.service_id] = dep.get_service_type()
+            for param, value in dep.parameters.items():
+                dependencies[param] = value
+
+        # Return the assembled dependency mapping.
+        return dependencies
 
     # * method: _get_services
     def _get_services(self) -> DIContext:
@@ -150,44 +184,6 @@ class AppInterfaceContext(BaseContext):
 
         # Return the shared DI context.
         return self._services
-
-    # * method: load_feature
-    def load_feature(self) -> FeatureContext:
-        '''
-        Build (once) and return the feature context, resolved via the registry.
-
-        :return: The shared feature context.
-        :rtype: FeatureContext
-        '''
-
-        # Build the feature context on first access using the registry.
-        if self._features is None:
-            feature_context_cls = BaseContext.for_domain(Feature)
-            self._features = feature_context_cls(
-                services=self._get_services(),
-                cache=self.cache,
-                context_data={'default_commands_list': self.default_commands_list},
-            )
-
-        # Return the shared feature context.
-        return self._features
-
-    # * method: load_error_context
-    def load_error_context(self) -> ErrorContext:
-        '''
-        Build (once) and return the error context, resolved via the registry.
-
-        :return: The shared error context.
-        :rtype: ErrorContext
-        '''
-
-        # Build the error context on first access using the registry.
-        if self._errors is None:
-            error_context_cls = BaseContext.for_domain(Error)
-            self._errors = error_context_cls(cache=self.cache)
-
-        # Return the shared error context.
-        return self._errors
 
     # * method: load_logging_context
     def load_logging_context(self) -> LoggingContext:
@@ -255,7 +251,9 @@ class AppInterfaceContext(BaseContext):
         except TiferetError:
             error = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
             raise TiferetAPIError(
-                **error.format_response(),
+                error_code=error.id,
+                name=error.name,
+                message=error.format_message(),
                 id=error_code,
             )
 
@@ -309,9 +307,18 @@ class AppInterfaceContext(BaseContext):
             feature_id=feature_id
         ))
 
-        # Load the feature domain object and execute it via the feature context.
+        # Load the feature domain object for execution.
         feature = self.load_feature_domain(feature_id)
-        self.load_feature().execute_feature(feature, request, **kwargs)
+
+        # Build the feature context on demand (resolved via the registry) and
+        # execute the loaded feature through it.
+        feature_context_cls = BaseContext.for_domain(Feature)
+        feature_context = feature_context_cls(
+            services=self._get_services(),
+            cache=self.cache,
+            context_data={'default_commands_list': self.default_commands_list},
+        )
+        feature_context.execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
@@ -337,27 +344,13 @@ class AppInterfaceContext(BaseContext):
         # Load the error domain object for the error code.
         error_domain = self.load_error_domain(error.error_code)
 
-        # Format the response via the error context.
-        formatted_error = self.load_error_context().format_response(error_domain, error)
+        # Build the error context on demand (resolved via the registry) and
+        # format the response for the loaded error.
+        error_context_cls = BaseContext.for_domain(Error)
+        formatted_error = error_context_cls(cache=self.cache).format_response(error_domain, error)
 
         # Raise the API exception with the formatted payload.
         raise TiferetAPIError(**formatted_error)
-
-    # * method: handle_response
-    def handle_response(self, request: RequestContext, **kwargs) -> Any:
-        '''
-        Handle the response from the request.
-
-        :param request: The request context.
-        :type request: RequestContext
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The response.
-        :rtype: Any
-        '''
-
-        # Handle the response and return it.
-        return request.handle_response()
 
     # * method: run
     def run(self, 
@@ -410,5 +403,5 @@ class AppInterfaceContext(BaseContext):
         logger.debug(f'Feature {feature_id} executed successfully, handling response.')
         logger.info(f'Executed Feature - {feature_id}{duration_str}')
 
-        # Handle response.
-        return self.handle_response(request)
+        # Handle the response via the request context.
+        return request.handle_response()

@@ -49,5 +49,18 @@ class ErrorContext(BaseContext):
         :rtype: Dict[str, Any]
         '''
 
-        # Format and return the structured response using the exception kwargs.
-        return error.format_response(lang=lang, **getattr(exception, 'kwargs', {}))
+        # Extract any format kwargs carried by the exception.
+        kwargs = getattr(exception, 'kwargs', {})
+
+        # Format the localized message; return no response when none is found.
+        error_message = error.format_message(lang, **kwargs)
+        if not error_message:
+            return None
+
+        # Assemble and return the structured error response.
+        return {
+            'error_code': error.id,
+            'name': error.name,
+            'message': error_message,
+            **kwargs,
+        }

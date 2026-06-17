@@ -10,7 +10,6 @@ from typing import Dict, List
 from pydantic import Field
 
 # ** app
-from ..di import ServiceProvider
 from .settings import DomainObject
 
 # *** models
@@ -142,53 +141,3 @@ class AppInterface(DomainObject):
 
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
-
-    # * method: get_service_type_mapping
-    def get_service_type_mapping(self) -> Dict[str, type]:
-        '''
-        Get a mapping of service IDs to their corresponding types.
-
-        :return: A dictionary mapping service IDs to their types.
-        :rtype: Dict[str, type]
-        '''
-
-        # Register scalars and constants first.
-        dependencies: Dict[str, type] = dict(
-            interface_id=self.id,
-            logger_id=getattr(self, 'logger_id', None),
-        )
-
-        # Add the constants from the app interface to the dependencies.
-        dependencies.update(self.constants)
-
-        # Add the remaining app context service dependencies and parameters.
-        for dep in self.services:
-            dependencies[dep.service_id] = dep.get_service_type()
-            for param, value in dep.parameters.items():
-                dependencies[param] = value
-
-        # Return the assembled dependencies mapping. The application interface
-        # context itself is constructed declaratively by the blueprint, so it is
-        # intentionally not registered here as a DI-resolved service.
-        return dependencies
-
-    # * method: create_service_provider
-    def create_service_provider(self) -> ServiceProvider:
-        '''
-        Create a service provider for this app interface.
-
-        :return: A configured service provider instance.
-        :rtype: ServiceProvider
-        '''
-
-        # Build the service type mapping for this interface.
-        type_map = self.get_service_type_mapping()
-
-        # Resolve the configured service provider class.
-        provider_class = getattr(
-            import_module(self.service_provider_path),
-            self.service_provider_class_name,
-        )
-
-        # Create and return the configured service provider instance.
-        return provider_class(services=type_map)
