@@ -26,10 +26,10 @@ This duality ensures a single source of truth for domain structure and behavior,
 
 - **Runtime Use** (`ErrorContext`):
   ```python
-  error = self.get_error_handler(error_code, include_defaults=True)
-  formatted = error.format_response(lang=lang, **exception.kwargs)
+  # The hub loads the Error; the context formats the response from it.
+  error_message = error.format_message(lang, **getattr(exception, 'kwargs', {}))
   ```
-  The `Error` domain object is retrieved via command and actively formats responses.
+  The `Error` domain object is retrieved via the hub's `load_error_domain` and used by `ErrorContext.format_response` to assemble the structured response.
 
 - **Mapper Layer Use** (`ErrorAggregate`, `ErrorYamlObject`):
   ```python
@@ -154,7 +154,7 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 - `# *** tests`
 - `# ** test: <name>`
 
-**Example** – Error domain object tests cover constructor instantiation, `format_message`, `format_response`, and multilingual support.
+**Example** – Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
 
 ## Package Layout
 

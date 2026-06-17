@@ -211,7 +211,7 @@ class RetryMiddleware(MiddlewareService):
         raise last_exc
 ```
 
-If middleware raises, the exception propagates normally through `handle_command` — `pass_on_error` on the step still applies.
+If middleware raises, the exception propagates normally through `handle_feature_step` — `pass_on_error` on the step still applies.
 
 ## Testing Middleware
 

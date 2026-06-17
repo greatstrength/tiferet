@@ -85,11 +85,11 @@ class AppInterfaceContext(BaseContext):
         except TiferetError as e:
             return self.handle_error(e)
 
-        # Return the response.
-        return self.handle_response(request)
+        # Return the response via the request context.
+        return request.handle_response()
 ```
 
-The hub builds its sub-contexts on demand (`load_feature`, `load_error_context`, `load_logging_context`) and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`.
+The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `DIContext` and `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`.
 
 ## Writing Contexts
 
@@ -147,9 +147,8 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         di_list_all_configs_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
     )
-    # Inject mock sub-contexts via the lazy caches.
-    context._features = feature_context
-    context._errors = error_context
+    # Inject the mock logging context via its cache; feature and error contexts
+    # are built on demand, so patch BaseContext.for_domain to return the mocks.
     context._logging = logging_context
     return context
 
@@ -163,8 +162,8 @@ def test_app_interface_context_run_success(app_interface_context, logging_contex
     # Act.
     result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
 
-    # Assert execution was invoked on the (mock) feature context.
-    app_interface_context.load_feature().execute_feature.assert_called_once()
+    # The feature context is built on demand inside execute_feature; assert the
+    # run completed and produced a response.
     assert result is not None
 ```
 

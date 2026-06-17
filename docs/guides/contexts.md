@@ -50,8 +50,8 @@ def run(self, feature_id, headers=None, data=None, **kwargs):
     except TiferetError as e:
         return self.handle_error(e)
 
-    # Format and return the response.
-    return self.handle_response(request)
+    # Return the response via the request context.
+    return request.handle_response()
 ```
 
 The four steps — **parse**, **execute**, **handle errors**, **handle response** — are the extension points subclasses typically override.
@@ -107,7 +107,7 @@ If a CLI interface needs custom request parsing beyond argparse, the preferred p
    - Evaluate the step's `condition` expression (if present) via `evaluate_condition`. If the condition resolves to `False`, the step is silently skipped.
    - Resolve the domain event from `DIContext.get_dependency(service_id, *flags)`.
    - Parse each step parameter with `parse_request_parameter` (supports `$r.<key>` request-backed parameters).
-   - Invoke `handle_command`, which executes the event and stores the result on the `RequestContext` under `data_key`.
+   - Invoke `handle_feature_step`, which executes the event and stores the result on the `RequestContext` under `data_key`.
 
 Feature-level flags (defined on the `Feature`) are combined with step-level flags and passed to the DI context. Higher priority is given to feature-level flags.
 
@@ -156,7 +156,7 @@ The `create_service_provider` factory is supplied by the blueprint via `create_s
 - `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object (error retrieval is owned by the hub's `load_error_domain`). `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
 - `LoggingContext.build_logger` composes formatters, handlers, and loggers defined in configuration into a ready-to-use logger instance.
 
-Both contexts are built lazily by `AppInterfaceContext` (`load_error_context`, `load_logging_context`) and are typically not subclassed — extend the underlying services instead.
+The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.
 
 ### CacheContext
 
@@ -175,7 +175,7 @@ build_app (blueprint)
         └── LoggingContext   ── shared CacheContext
 ```
 
-Each `AppInterfaceContext` instance is per-interface. The DI container resolves only the events and repositories by name; the context graph itself is built declaratively. Tests can inject mocks by setting the hub's lazy caches (`_features`, `_errors`, `_logging`, `_services`).
+Each `AppInterfaceContext` instance is per-interface. The DI container resolves only the events and repositories by name; the context graph itself is built declaratively. Tests can inject the logging/DI mocks via the hub's lazy caches (`_logging`, `_services`) and provide feature/error contexts by patching `BaseContext.for_domain`.
 
 ## Testing Contexts
 
@@ -204,8 +204,8 @@ def app_interface_context(app_interface):
         di_list_all_configs_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
     )
-    context._features = mock.Mock(spec=FeatureContext)
-    context._errors = mock.Mock(spec=ErrorContext)
+    # Inject the logging mock via its cache; feature/error contexts are built on
+    # demand, so patch BaseContext.for_domain to supply mocks for them.
     context._logging = mock.Mock(spec=LoggingContext)
     return context
 
@@ -223,8 +223,8 @@ def test_run_success(app_interface_context):
     # Act.
     result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
 
-    # Assert execution and response handling were invoked.
-    app_interface_context.load_feature().execute_feature.assert_called_once()
+    # Assert the run completed and produced a response (the feature context is
+    # built on demand inside execute_feature).
     assert result is not None
 ```
 
