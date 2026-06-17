@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import List, Any
+from typing import Any, Dict, List
 
 # ** app
 from ..domain import Feature
@@ -70,7 +70,9 @@ class AddFeature(DomainEvent):
         :rtype: Feature
         '''
 
-        # Create feature using the aggregate factory.
+        # Create the feature from explicit fields. Contextual pipeline kwargs
+        # (e.g. services, cache, logger, CLI routing) are intentionally not
+        # forwarded, since FeatureAggregate forbids unknown fields.
         feature = FeatureAggregate(
             name=name,
             group_id=group_id,
@@ -79,7 +81,6 @@ class AddFeature(DomainEvent):
             description=description,
             steps=steps or [],
             log_params=log_params or {},
-            **kwargs,
         )
 
         # Check for duplicate feature identifier.
@@ -119,20 +120,28 @@ class GetFeature(DomainEvent):
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
-    def execute(self, id: str, **kwargs) -> Feature:
+    def execute(self, id: str, default_feature_index: Dict[str, Feature] = {}, **kwargs) -> Feature:
         '''
-        Retrieve a feature by ID.
+        Retrieve a feature by ID, falling back to a provided default feature
+        index when the repository does not contain the requested feature.
 
         :param id: The feature identifier.
         :type id: str
+        :param default_feature_index: Optional mapping of feature id to Feature used
+            as an execute-time fallback when the repository does not contain the
+            requested feature.
+        :type default_feature_index: Dict[str, Feature]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The retrieved feature.
         :rtype: Feature
         '''
 
-        # Retrieve the feature from the feature service.
-        feature = self.feature_service.get(id)
+        # Retrieve from the repository, falling back to the default index when absent.
+        feature = (
+            self.feature_service.get(id)
+            or (default_feature_index or {}).get(id)
+        )
 
         # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
         self.verify(

@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
@@ -19,6 +19,18 @@ from ..events import (
     RaiseError,
 )
 from ..events.app import GetAppInterface
+
+# *** constants
+
+# ** constant: app_context_collaborators
+# Service IDs of the context collaborators resolved by name from the provider
+# when constructing the app interface context declaratively.
+APP_CONTEXT_COLLABORATORS = (
+    'get_feature_evt',
+    'get_error_evt',
+    'di_list_all_configs_evt',
+    'logging_list_all_evt',
+)
 
 # *** blueprints
 
@@ -102,15 +114,23 @@ def load_default_services() -> List[AppServiceDependency]:
 def load_app_instance(
     app_interface: AppInterface,
     service_provider: ServiceProvider = None,
+    **context_kwargs,
 ) -> Any:
     '''
-    Load the concrete app interface context instance.
+    Declaratively construct the app interface context from a loaded interface.
+
+    The service provider resolves the context's collaborators (events and their
+    repositories) by name; the context graph itself is built declaratively via
+    ``from_domain`` rather than resolved from the DI container.
 
     :param app_interface: The prepared app interface definition.
     :type app_interface: AppInterface
     :param service_provider: The service provider to use for resolution.
         When None, a fresh provider is created.
     :type service_provider: ServiceProvider
+    :param context_kwargs: Additional keyword arguments forwarded to the context
+        constructor (e.g. bootstrap defaults).
+    :type context_kwargs: dict
     :return: The resolved app interface context.
     :rtype: Any
     '''
@@ -119,9 +139,9 @@ def load_app_instance(
     if service_provider is None:
         service_provider = create_service_provider()
 
-    # Build the app interface dependencies map.
+    # Build the app interface dependencies map (events, repos, constants).
     try:
-        dependencies = app_interface.get_service_type_mapping()
+        dependencies = AppInterfaceContext.get_service_type_mapping(app_interface)
 
     # Raise a structured error if dependency mapping fails.
     except Exception as e:
@@ -136,8 +156,25 @@ def load_app_instance(
     # Add dependencies to the service provider.
     service_provider.add_services(dependencies)
 
-    # Resolve and return the app interface context.
-    return service_provider.get_service('app_context')
+    # Resolve the context collaborators by name from the provider.
+    resolved = {
+        name: service_provider.get_service(name)
+        for name in APP_CONTEXT_COLLABORATORS
+    }
+
+    # Import the context class declared by the interface (supports custom contexts).
+    context_cls = ImportDependency.execute(
+        app_interface.module_path,
+        app_interface.class_name,
+    )
+
+    # Construct the context declaratively from the loaded interface.
+    return context_cls.from_domain(
+        app_interface,
+        create_service_provider=create_service_provider,
+        **resolved,
+        **context_kwargs,
+    )
 
 
 # ** blueprint: resolve_interface
@@ -145,6 +182,7 @@ def resolve_interface(
     interface_id: str,
     module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> tuple:
     '''
@@ -159,6 +197,9 @@ def resolve_interface(
     :type module_path: str
     :param class_name: The class name of the app service implementation.
     :type class_name: str
+    :param default_interfaces: A list of interface definition dicts used as a
+        fallback when the interface is not found in the repository.
+    :type default_interfaces: List[Dict[str, Any]]
     :param parameters: Additional parameters to pass to the app service constructor.
     :type parameters: dict
     :return: A tuple of (app_interface, default_services).
@@ -171,11 +212,12 @@ def resolve_interface(
     # Load the default app service dependencies.
     default_services = load_default_services()
 
-    # Get the app interface via the event.
+    # Get the app interface via the event, passing any provided interface defaults.
     app_interface = DomainEvent.handle(
         GetAppInterface,
         dependencies=dict(app_service=app_service),
         interface_id=interface_id,
+        default_interfaces=default_interfaces,
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )
@@ -189,6 +231,7 @@ def realize_interface(
     app_interface: AppInterface,
     interface_id: str,
     service_provider: ServiceProvider = None,
+    **context_kwargs,
 ) -> AppInterfaceContext:
     '''
     Build and validate the concrete app interface context from a resolved interface.
@@ -199,12 +242,15 @@ def realize_interface(
     :type interface_id: str
     :param service_provider: Optional service provider; a fresh one is created if None.
     :type service_provider: ServiceProvider
+    :param context_kwargs: Additional keyword arguments forwarded to the context
+        constructor (e.g. bootstrap defaults).
+    :type context_kwargs: dict
     :return: The validated app interface context.
     :rtype: AppInterfaceContext
     '''
 
     # Create the concrete app interface context.
-    app_interface_context = load_app_instance(app_interface, service_provider)
+    app_interface_context = load_app_instance(app_interface, service_provider, **context_kwargs)
 
     # Verify that the resolved context is valid.
     if not isinstance(app_interface_context, AppInterfaceContext):
@@ -223,6 +269,7 @@ def build_app(
     interface_id: str,
     module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> AppInterfaceContext:
     '''
@@ -234,14 +281,23 @@ def build_app(
     :type module_path: str
     :param class_name: The class name of the app service implementation.
     :type class_name: str
+    :param default_interfaces: A list of interface definition dicts used as a
+        fallback when the interface is not found in the repository.
+    :type default_interfaces: List[Dict[str, Any]]
     :param parameters: Additional parameters to pass to the app service constructor.
     :type parameters: dict
     :return: The fully prepared application interface context.
     :rtype: AppInterfaceContext
     '''
 
-    # Resolve the interface definition.
-    app_interface, _ = resolve_interface(interface_id, module_path, class_name, **parameters)
+    # Resolve the interface definition, passing any provided interface defaults.
+    app_interface, _ = resolve_interface(
+        interface_id,
+        module_path,
+        class_name,
+        default_interfaces=default_interfaces,
+        **parameters,
+    )
 
     # Realize and return the app interface context.
     return realize_interface(app_interface, interface_id)

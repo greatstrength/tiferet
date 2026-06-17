@@ -7,9 +7,11 @@ Contexts are a core component of the Tiferet framework, representing the structu
 A Context in Tiferet is a class that encapsulates a specific aspect of an application’s runtime behavior, such as user-facing interactions (e.g., CLI, web), feature execution, dependency injection, error handling, caching, or logging. Contexts form a graph-like structure during execution, defining how the application processes inputs, executes domain logic, and returns outputs. They align with Domain-Driven Design (DDD) principles, isolating concerns to ensure modularity and extensibility.
 
 ### Types of Contexts
+All contexts extend `BaseContext` (`tiferet/contexts/base.py`), which provides a shared `services`/`cache` and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`).
+
 Tiferet recognizes two broad categories:
 
-- **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
+- **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
 - **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `DIContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
 In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
@@ -33,51 +35,48 @@ Contexts are organized under the `# *** contexts` top-level comment, with indivi
 - One empty line between each `# *` section.
 - One empty line after docstrings and between code snippets.
 
-**Example** – `tiferet/contexts/app.py`:
+**Example** – `tiferet/contexts/app.py` (minimal hub):
 ```python
 # *** imports
 
 # ** app
+from .base import BaseContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
+from ..domain import AppInterface
 
 # *** contexts
 
 # ** context: app_interface_context
-class AppInterfaceContext:
+class AppInterfaceContext(BaseContext):
 
-    # * attribute: interface_id
-    interface_id: str
-
-    # * attribute: features
-    features: FeatureContext
-
-    # * attribute: errors
-    errors: ErrorContext
-
-    # * attribute: logging
-    logging: LoggingContext
+    # * attribute: domain_type
+    domain_type = AppInterface
 
     # * init
-    def __init__(self, interface_id, features, errors, logging):
+    def __init__(self, get_feature_evt, get_error_evt, di_list_all_configs_evt,
+                 logging_list_all_evt, create_service_provider=None, cache=None,
+                 default_features=None, default_commands=None,
+                 default_configurations=None, default_constants=None):
         '''
-        Initialize the application interface context.
+        Initialize the hub. The loaded AppInterface is bound via from_domain as
+        self.domain, supplying the interface id and logger id on demand.
         '''
-        self.interface_id = interface_id
-        self.features = features
-        self.errors = errors
-        self.logging = logging
+        super().__init__(cache=cache)
+        self.get_feature_evt = get_feature_evt
+        # ... store the remaining events, provider factory, and validated
+        # bootstrap defaults; sub-contexts are created lazily on first use ...
 
     # * method: run
     def run(self, feature_id, headers=None, data=None, **kwargs):
         '''
         Execute a feature and return the response.
         '''
-        # Build logger.
-        logger = self.logging.build_logger()
+        # Build the logger from the lazily-created logging context.
+        logger = self.load_logging_context().build_logger()
 
-        # Parse request into a RequestContext.
+        # Parse request into a RequestContext (interface id from self.domain.id).
         request = self.parse_request(headers or {}, data or {}, feature_id)
 
         # Execute the feature.
@@ -86,9 +85,11 @@ class AppInterfaceContext:
         except TiferetError as e:
             return self.handle_error(e)
 
-        # Return the response.
-        return self.handle_response(request)
+        # Return the response via the request context.
+        return request.handle_response()
 ```
+
+The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `DIContext` and `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`.
 
 ## Writing Contexts
 
@@ -107,8 +108,11 @@ class FlaskApiContext(AppInterfaceContext):
     flask_handler: FlaskApiHandler
 
     # * init
-    def __init__(self, interface_id, features, errors, logging, flask_handler):
-        super().__init__(interface_id, features, errors, logging)
+    def __init__(self, flask_handler, **kwargs):
+        # Forward the resolved hub collaborators/defaults to AppInterfaceContext.
+        # The blueprint imports this class from the interface's module_path/
+        # class_name and constructs it via from_domain.
+        super().__init__(**kwargs)
         self.flask_handler = flask_handler
 
     # * method: parse_request
@@ -134,26 +138,32 @@ Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `#
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(feature_context, error_context, logging_context):
-    return AppInterfaceContext(
-        interface_id='basic_calc',
-        features=feature_context,
-        errors=error_context,
-        logging=logging_context,
+def app_interface_context(app_interface, feature_context, error_context, logging_context):
+    # Build the hub declaratively from a loaded interface with mock events.
+    context = AppInterfaceContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        di_list_all_configs_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
     )
+    # Inject the mock logging context via its cache; feature and error contexts
+    # are built on demand, so patch BaseContext.for_domain to return the mocks.
+    context._logging = logging_context
+    return context
 
 # *** tests
 
 # ** test: app_interface_context_run_success
-def test_app_interface_context_run_success(app_interface_context):
+def test_app_interface_context_run_success(app_interface_context, logging_context):
     # Arrange the logger.
-    app_interface_context.logging.build_logger.return_value = mock.Mock()
+    logging_context.build_logger.return_value = mock.Mock()
 
     # Act.
     result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
 
-    # Assert execution was invoked.
-    app_interface_context.features.execute_feature.assert_called_once()
+    # The feature context is built on demand inside execute_feature; assert the
+    # run completed and produced a response.
     assert result is not None
 ```
 

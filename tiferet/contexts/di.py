@@ -1,9 +1,12 @@
+"""Tiferet DI Contexts"""
+
 # *** imports
 
 # ** core
 from typing import Callable, Any, List, Dict
 
 # ** app
+from .base import BaseContext
 from .cache import CacheContext
 from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..di import ServiceProvider, DynamicServiceProvider
@@ -14,7 +17,7 @@ from ..events import DomainEvent, RaiseError, ParseParameter
 # *** contexts
 
 # ** context: di_context
-class DIContext(object):
+class DIContext(BaseContext):
     '''
     A context for managing dependency injection configuration and service provider lifecycle.
     '''
@@ -28,27 +31,47 @@ class DIContext(object):
     # * attribute: create_service_provider
     create_service_provider: Callable
 
+    # * attribute: default_config_index
+    default_config_index: Dict[str, ServiceConfiguration]
+
+    # * attribute: default_di_constants
+    default_di_constants: Dict[str, Any]
+
     # * init
     def __init__(self,
             di_list_all_configs_evt: DomainEvent,
             cache: CacheContext = None,
             create_service_provider: Callable = None,
+            default_config_index: Dict[str, ServiceConfiguration] = None,
+            default_di_constants: Dict[str, Any] = None,
         ):
         '''
         Initialize the DI context.
 
         :param di_list_all_configs_evt: The event to list all service configurations and constants.
         :type di_list_all_configs_evt: DomainEvent
-        :param cache: The cache context to use for caching service providers.
+        :param cache: The shared cache context to use for caching service providers.
         :type cache: CacheContext
         :param create_service_provider: Optional factory for creating service providers.
         :type create_service_provider: Callable | None
+        :param default_config_index: Optional typed default service configuration index,
+            keyed by id, used as execute-time fallback in ``ListAllSettings``.
+        :type default_config_index: Dict[str, ServiceConfiguration] | None
+        :param default_di_constants: Optional default constants merged beneath the
+            repository's constants at lower priority.
+        :type default_di_constants: Dict[str, Any] | None
         '''
 
-        # Assign the attributes.
+        # Initialize the shared cache via the base context.
+        super().__init__(cache=cache)
+
+        # Assign the configuration handler and provider factory.
         self.list_all_configs_handler = di_list_all_configs_evt.execute
-        self.cache = cache if cache else CacheContext()
         self.create_service_provider = create_service_provider if create_service_provider else self.default_service_provider
+
+        # Store the typed bootstrap defaults, defaulting to empty containers.
+        self.default_config_index = default_config_index if default_config_index is not None else {}
+        self.default_di_constants = default_di_constants if default_di_constants is not None else {}
 
     # * method: default_service_provider (static)
     @staticmethod
@@ -136,8 +159,12 @@ class DIContext(object):
         if cached_provider:
             return cached_provider
 
-        # Get all service configurations and constants from the DI service.
-        configurations, constants = self.list_all_configs_handler()
+        # Get all service configurations and constants from the DI service,
+        # merging any execute-time bootstrap defaults seeded on this context.
+        configurations, constants = self.list_all_configs_handler(
+            default_config_index=self.default_config_index,
+            default_constants=self.default_di_constants,
+        )
 
         # Load and parse constants from configurations and the top-level constants dict.
         constants = self.load_constants(

@@ -11,8 +11,10 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
+from tiferet.domain import Feature, Error
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.app import (
+    BaseContext,
     FeatureContext,
     ErrorContext,
     LoggingContext,
@@ -75,8 +77,8 @@ def error_context():
     # Create a mock ErrorContext instance.
     error_context = mock.Mock(spec=ErrorContext)
 
-    # Mock the handle_error method to return a specific formatted message.
-    error_context.handle_error.return_value = dict(
+    # Mock the format_response method to return a specific formatted message.
+    error_context.format_response.return_value = dict(
         error_code='TEST_ERROR',
         message='This is a test error message.',
     )
@@ -105,21 +107,46 @@ def logging_context():
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context, logging_context):
+def app_interface_context(app_interface, feature_context, error_context, logging_context, monkeypatch):
     """
-    Fixture to create a mock AppInterfaceContext instance.
+    Fixture to create an AppInterfaceContext hub bound to the test interface.
+    The logging context is injected via its lazy cache; feature and error
+    contexts are provided by patching the on-demand registry resolver.
 
-    :return: A mock instance of AppInterfaceContext.
+    :return: An AppInterfaceContext instance.
     :rtype: AppInterfaceContext
     """
 
-    # Create a mock AppInterfaceContext instance.
-    return AppInterfaceContext(
-        interface_id=app_interface.id,
-        features=feature_context,
-        errors=error_context,
-        logging=logging_context,
+    # Construct the hub declaratively from the loaded interface with mock events.
+    context = AppInterfaceContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        di_list_all_configs_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
     )
+
+    # Inject the mock logging context via its lazy cache (still supported).
+    context._logging = logging_context
+
+    # Feature and error contexts are now built on demand via the registry, so
+    # patch the resolver to return the mock contexts for those domain types.
+    original_for_domain = BaseContext.for_domain
+
+    def fake_for_domain(domain_cls):
+        if domain_cls is Feature:
+            return lambda **kwargs: feature_context
+        if domain_cls is Error:
+            return lambda **kwargs: error_context
+        return original_for_domain(domain_cls)
+
+    monkeypatch.setattr(
+        'tiferet.contexts.app.BaseContext.for_domain',
+        staticmethod(fake_for_domain),
+    )
+
+    # Return the hub.
+    return context
 
 
 # *** tests
@@ -148,7 +175,7 @@ def test_app_interface_context_parse_request(app_interface_context):
     # Assert that the parsed request is not None and has the expected attributes.
     assert request is not None
     assert isinstance(request, RequestContext)
-    assert request.headers.get('interface_id') == app_interface_context.interface_id
+    assert request.headers.get('interface_id') == app_interface_context.domain.id
     assert request.data.get('key') == 'value'
     assert request.data.get('param') == 'test_param'
     assert request.feature_id == 'test_group.test_feature'
@@ -167,8 +194,8 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     # Create a new request object.
     request = RequestContext(
         headers={
-            'Content-Type': 'application/json', 
-            'interface_id': app_interface_context.interface_id
+            'Content-Type': 'application/json',
+            'interface_id': app_interface_context.domain.id
         },
         data={"key": "value"}
     )
@@ -178,6 +205,9 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
 
     # Assert that the feature id is set correctly to the request headers.
     assert request.headers.get('feature_id') == 'test_group.test_feature'
+
+    # Assert the feature context was delegated to with the loaded domain feature.
+    feature_context.execute_feature.assert_called_once()
 
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
@@ -197,7 +227,7 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     )
 
     # Mock the ErrorContext to return the formatted error dict.
-    error_context.handle_error.return_value = {
+    error_context.format_response.return_value = {
         'error_code': 'TEST_ERROR',
         'name': 'Test Error',
         'message': 'This is a test error message.'
@@ -225,7 +255,7 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     invalid_error = Exception("This is an invalid error.")
 
     # Mock the ErrorContext to return the formatted error dict.
-    error_context.handle_error.return_value = {
+    error_context.format_response.return_value = {
         'error_code': 'APP_ERROR',
         'name': 'App Error',
         'message': 'An error occurred in the app: This is an invalid error.'
@@ -249,7 +279,7 @@ def test_app_interface_context_handle_response(app_interface_context):
     """
 
     # Create a mock request with a response data.
-    request = RequestContext( 
+    request = RequestContext(
         headers={'Content-Type': 'application/json'},
         data={"key": "value"}
     )
@@ -260,8 +290,8 @@ def test_app_interface_context_handle_response(app_interface_context):
         'data': {"key": "value"}
     }
 
-    # Handle the response using the app interface context.
-    response = app_interface_context.handle_response(request)
+    # Handle the response directly via the request context.
+    response = request.handle_response()
 
     # Assert that the response is not None and has the expected attributes.
     assert response is not None
@@ -282,11 +312,11 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
 
     # Run the app interface context.
     app_interface_context.run(
-        'test_group.test_feature', 
+        'test_group.test_feature',
         headers={
             'Content-Type': 'application/json',
-            'interface_id': app_interface_context.interface_id
-        }, 
+            'interface_id': app_interface_context.domain.id
+        },
         data={
             'key': 'value',
             'param': 'test_param'
@@ -328,8 +358,8 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
         message='Feature not found: invalid_group.invalid_feature.'
     )
 
-    # Mock the ErrorContext to handle the error and return a formatted message.
-    error_context.handle_error.return_value = {
+    # Mock the ErrorContext to format the error and return a formatted message.
+    error_context.format_response.return_value = {
         'error_code': 'FEATURE_NOT_FOUND',
         'name': 'Feature Not Found',
         'message': 'Feature not found: invalid_group.invalid_feature.'
@@ -341,7 +371,7 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
             'invalid_group.invalid_feature',
             headers={
                 'Content-Type': 'application/json',
-                'interface_id': app_interface_context.interface_id
+                'interface_id': app_interface_context.domain.id
             },
             data={
                 'key': 'value',
@@ -452,8 +482,8 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
         message='Test error occurred.'
     )
 
-    # Mock the ErrorContext to handle the error.
-    error_context.handle_error.return_value = {
+    # Mock the ErrorContext to format the error.
+    error_context.format_response.return_value = {
         'error_code': 'TEST_ERROR',
         'name': 'Test Error',
         'message': 'Test error occurred.'

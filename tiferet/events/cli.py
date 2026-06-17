@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Optional, List
+from typing import List, Optional
 
 # ** app
 from .settings import DomainEvent, a
@@ -35,18 +35,23 @@ class ListCliCommands(DomainEvent):
         self.cli_service = cli_service
 
     # * method: execute
-    def execute(self, **kwargs) -> List[CliCommand]:
+    def execute(self, default_commands_list: List[CliCommand] = [], **kwargs) -> List[CliCommand]:
         '''
-        List all CLI commands.
+        List all CLI commands, falling back to a provided default command list
+        when the repository returns no results.
 
+        :param default_commands_list: Optional list of CLI commands used as an
+            execute-time fallback when the repository returns no commands.
+        :type default_commands_list: List[CliCommand]
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
         :return: List of CLI commands.
         :rtype: List[CliCommand]
         '''
 
-        # Delegate to the CLI service.
-        return self.cli_service.list()
+        # Retrieve commands from the service; fall back to the provided defaults if empty.
+        commands = self.cli_service.list()
+        return commands or list(default_commands_list or [])
 
 
 # ** event: get_parent_arguments
@@ -142,6 +147,9 @@ class AddCliCommand(DomainEvent):
             a.const.CLI_COMMAND_ALREADY_EXISTS_ID,
             id=id,
         )
+
+        # Coerce optional list args that argparse may pass as None.
+        arguments = arguments or []
 
         # Create CLI command aggregate.
         command = CliCommandAggregate(

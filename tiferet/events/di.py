@@ -77,6 +77,10 @@ class AddServiceConfiguration(DomainEvent):
             a.const.INVALID_SERVICE_CONFIGURATION_ID,
         )
 
+        # Coerce optional list/dict args that argparse may pass as None.
+        parameters = parameters or {}
+        flagged_dependencies = flagged_dependencies or []
+
         # Create service configuration aggregate from dependency dicts.
         configuration = ServiceConfigurationAggregate(
             id=id,
@@ -243,6 +247,9 @@ class SetServiceDependency(DomainEvent):
             a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
             id=id,
         )
+
+        # Coerce optional parameters that argparse may pass as None.
+        parameters = parameters or {}
 
         # Delegate to the model to set/update the flagged dependency.
         configuration.set_dependency(
@@ -453,13 +460,43 @@ class ListAllSettings(DomainEvent):
         self.di_service = di_service
 
     # * method: execute
-    def execute(self) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+    def execute(
+            self,
+            default_config_index: Dict[str, ServiceConfiguration] = {},
+            default_constants: Dict[str, Any] = {},
+            **kwargs,
+        ) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
         '''
-        Execute the list all settings event.
+        Execute the list all settings event, merging execute-time defaults for any
+        service configurations or constants not present in the repository.
 
-        :return: The list of all service configurations and constants.
+        :param default_config_index: Optional mapping of service id to ServiceConfiguration
+            used as a fallback for any service ID not present in the repository.
+        :type default_config_index: Dict[str, ServiceConfiguration]
+        :param default_constants: Optional mapping of constants merged as lower-priority
+            fallbacks beneath the repository's constants.
+        :type default_constants: Dict[str, Any]
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: Merged list of service configurations and constants.
         :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
         '''
 
-        # Return the list of all service configurations from the DI service.
-        return self.di_service.list_all()
+        # Retrieve configurations and constants from the DI service.
+        configs, constants = self.di_service.list_all()
+
+        # Build the set of existing service IDs for deduplication.
+        existing_ids = {c.id for c in (configs or [])}
+
+        # Merge default-index entries for any service ID not already present.
+        default_configs = [
+            config
+            for config_id, config in (default_config_index or {}).items()
+            if config_id not in existing_ids
+        ]
+
+        # Merge constants: defaults are lower priority than repository constants.
+        merged_constants = {**(default_constants or {}), **(constants or {})}
+
+        # Return the merged configurations and constants.
+        return list(configs or []) + default_configs, merged_constants

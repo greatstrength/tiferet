@@ -1,3 +1,5 @@
+"""Tiferet Feature Context Tests"""
+
 # *** imports
 
 # ** core
@@ -22,17 +24,6 @@ from tiferet.domain import (
 
 # *** fixtures
 
-# ** fixture: get_feature_evt
-@pytest.fixture
-def get_feature_evt() -> DomainEvent:
-    """Fixture to provide a mock GetFeature event instance."""
-
-    # Create a mock GetFeature event.
-    evt = mock.Mock(spec=DomainEvent)
-
-    # Return the mock event instance.
-    return evt
-
 # ** fixture: services_context
 @pytest.fixture
 def services_context(test_command):
@@ -49,14 +40,11 @@ def services_context(test_command):
 
 # ** fixture: feature_context
 @pytest.fixture
-def feature_context(get_feature_evt, services_context):
+def feature_context(services_context):
     """Fixture to provide an instance of FeatureContext."""
 
-    # Create an instance of FeatureContext with the mock event and DI context.
-    return FeatureContext(
-        get_feature_evt=get_feature_evt,
-        services=services_context
-    )
+    # Create an instance of FeatureContext with the mock DI context.
+    return FeatureContext(services=services_context)
 
 # ** fixture: test_command
 @pytest.fixture
@@ -75,7 +63,7 @@ def test_command():
             if not param:
                 return {"status": "success", "data": {"key": key}}
             return {"status": "success", "data": {"key": key, "param": param}}
-        
+
     # Return an instance of the mock event.
     return TestEvent()
 
@@ -267,63 +255,63 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
 
-# ** test: feature_context_handle_command
-def test_feature_context_handle_command(feature_context, test_command):
+# ** test: feature_context_handle_feature_step
+def test_feature_context_handle_feature_step(feature_context, test_command):
     """Test handling a command in the FeatureContext."""
-    
+
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
-    
+
     # Handle the command using the feature context.
-    feature_context.handle_command(test_command, request)
+    feature_context.handle_feature_step(test_command, request)
     response = request.handle_response()
-    
+
     # Assert that the response matches the expected output.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_error
-def test_feature_context_handle_command_with_error(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_error
+def test_feature_context_handle_feature_step_with_error(feature_context, test_command):
     """Test handling a command that raises an error in the FeatureContext."""
-    
+
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})
-    
+
     # Attempt to handle the command and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.handle_command(test_command, request)
-    
+        feature_context.handle_feature_step(test_command, request)
+
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
     assert 'No key provided for command execution.' in str(exc_info.value)
 
-# ** test: feature_context_handle_command_with_data_key
-def test_feature_context_handle_command_with_data_key(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_data_key
+def test_feature_context_handle_feature_step_with_data_key(feature_context, test_command):
     """Test handling a command with a data key in the FeatureContext."""
-    
+
     # Create a mock request with a data key.
     request = RequestContext(data={"key": "value"})
-    
+
     # Handle the command using the feature context.
-    feature_context.handle_command(test_command, request, data_key="response_data")
-    
+    feature_context.handle_feature_step(test_command, request, data_key="response_data")
+
     # Assert that the response matches the expected output.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_pass_on_error
-def test_feature_context_handle_command_with_pass_on_error(feature_context, test_command):
+# ** test: feature_context_handle_feature_step_with_pass_on_error
+def test_feature_context_handle_feature_step_with_pass_on_error(feature_context, test_command):
     """Test handling a command with pass_on_error in the FeatureContext."""
-    
+
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})
-    
+
     # Handle the command with pass_on_error set to True.
-    feature_context.handle_command(test_command, request, pass_on_error=True)
-    
+    feature_context.handle_feature_step(test_command, request, pass_on_error=True)
+
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature
-def test_feature_context_execute_feature(feature_context, get_feature_evt, feature):
+def test_feature_context_execute_feature(feature_context, feature):
 
     # Add a standard feature step with no data key or pass on error.
     feature.steps.append(FeatureEvent(
@@ -331,23 +319,17 @@ def test_feature_context_execute_feature(feature_context, get_feature_evt, featu
         service_id='test_command',
     ))
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Execute the feature using the feature context.
-    feature_context.execute_feature(feature.id, request)
+    # Execute the pre-loaded feature using the feature context.
+    feature_context.execute_feature(feature, request)
 
     # Assert that the request handled the response correctly.
     assert request.handle_response() == {"status": "success", "data": {"key": "value"}}
 
-    # Assert that the GetFeature event was invoked once for this feature id.
-    get_feature_evt.execute.assert_called_once_with(id=feature.id)
-
 # ** test: feature_context_execute_feature_with_request_parameter
-def test_feature_context_execute_feature_with_request_parameter(feature_context, get_feature_evt, feature):
+def test_feature_context_execute_feature_with_request_parameter(feature_context, feature):
     """Test executing a feature with a request parameter in the FeatureContext."""
 
     # Add a feature step with a data key and request parameter.
@@ -360,21 +342,14 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
         data_key='response_data',
     ))
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Execute the feature using the feature context with a data key.
-    feature_context.cache.clear()
-    feature_context.execute_feature(feature.id, request)
+    # Execute the pre-loaded feature using the feature context with a data key.
+    feature_context.execute_feature(feature, request)
 
     # Assert that the response is stored in the request data under the specified key.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value", "param": "value"}}
-
-    # Assert that the GetFeature event was invoked once for this feature id.
-    get_feature_evt.execute.assert_called_once_with(id=feature.id)
 
 # ** test: feature_context_evaluate_condition_none_returns_true
 def test_feature_context_evaluate_condition_none_returns_true(feature_context):
@@ -449,7 +424,7 @@ def test_feature_context_evaluate_condition_invalid_expression_returns_false(fea
     assert feature_context.evaluate_condition('$r.x >>>!!! invalid', request) is False
 
 # ** test: feature_context_resolve_feature_steps_yields_steps
-def test_feature_context_resolve_feature_steps_yields_steps(feature_context, get_feature_evt, feature, test_command):
+def test_feature_context_resolve_feature_steps_yields_steps(feature_context, feature, test_command):
     """Test that resolve_feature_steps yields (cmd, feature_event, params) for each step."""
 
     # Add two steps to the feature.
@@ -457,14 +432,11 @@ def test_feature_context_resolve_feature_steps_yields_steps(feature_context, get
     step_b = FeatureEvent(name='Step B', service_id='test_command')
     feature.steps.extend([step_a, step_b])
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a request.
     request = RequestContext(data={'key': 'value'})
 
-    # Resolve steps and collect results.
-    resolved = list(feature_context.resolve_feature_steps(feature.id, request))
+    # Resolve steps from the pre-loaded feature and collect results.
+    resolved = list(feature_context.resolve_feature_steps(feature, request))
 
     # Assert both steps were yielded with the correct command and empty params.
     assert len(resolved) == 2
@@ -472,7 +444,7 @@ def test_feature_context_resolve_feature_steps_yields_steps(feature_context, get
     assert resolved[1] == (test_command, step_b, {})
 
 # ** test: feature_context_resolve_feature_steps_skips_false_condition
-def test_feature_context_resolve_feature_steps_skips_false_condition(feature_context, get_feature_evt, feature, test_command):
+def test_feature_context_resolve_feature_steps_skips_false_condition(feature_context, feature, test_command):
     """Test that resolve_feature_steps skips steps with false conditions."""
 
     # Add a skipped step (false condition) and an unconditional step.
@@ -480,38 +452,32 @@ def test_feature_context_resolve_feature_steps_skips_false_condition(feature_con
     executed = FeatureEvent(name='Executed', service_id='test_command')
     feature.steps.extend([skipped, executed])
 
-    # Set the feature.
-    get_feature_evt.execute.return_value = feature
-
     # Create a request where x=5 (fails the condition).
     request = RequestContext(data={'key': 'value', 'x': 5})
 
     # Resolve and assert only the unconditional step is yielded.
-    resolved = list(feature_context.resolve_feature_steps(feature.id, request))
+    resolved = list(feature_context.resolve_feature_steps(feature, request))
     assert len(resolved) == 1
     assert resolved[0][1] is executed
 
 # ** test: feature_context_resolve_feature_steps_yields_true_condition
-def test_feature_context_resolve_feature_steps_yields_true_condition(feature_context, get_feature_evt, feature, test_command):
+def test_feature_context_resolve_feature_steps_yields_true_condition(feature_context, feature, test_command):
     """Test that resolve_feature_steps yields steps with true conditions."""
 
     # Add a step with a true condition.
     step = FeatureEvent(name='Conditional', service_id='test_command', condition='$r.x > 0')
     feature.steps.append(step)
 
-    # Set the feature.
-    get_feature_evt.execute.return_value = feature
-
     # Create a request where x=5 (passes the condition).
     request = RequestContext(data={'key': 'value', 'x': 5})
 
     # Resolve and assert the step is yielded.
-    resolved = list(feature_context.resolve_feature_steps(feature.id, request))
+    resolved = list(feature_context.resolve_feature_steps(feature, request))
     assert len(resolved) == 1
     assert resolved[0][1] is step
 
 # ** test: feature_context_resolve_feature_steps_parses_parameters
-def test_feature_context_resolve_feature_steps_parses_parameters(feature_context, get_feature_evt, feature, test_command):
+def test_feature_context_resolve_feature_steps_parses_parameters(feature_context, feature, test_command):
     """Test that resolve_feature_steps parses request-backed parameters."""
 
     # Add a step with a request-backed parameter.
@@ -522,33 +488,27 @@ def test_feature_context_resolve_feature_steps_parses_parameters(feature_context
     )
     feature.steps.append(step)
 
-    # Set the feature.
-    get_feature_evt.execute.return_value = feature
-
     # Create a request.
     request = RequestContext(data={'key': 'resolved_value'})
 
     # Resolve and assert the parameter was parsed.
-    resolved = list(feature_context.resolve_feature_steps(feature.id, request))
+    resolved = list(feature_context.resolve_feature_steps(feature, request))
     assert len(resolved) == 1
     assert resolved[0][2] == {'param': 'resolved_value'}
 
 # ** test: feature_context_resolve_feature_steps_empty_feature
-def test_feature_context_resolve_feature_steps_empty_feature(feature_context, get_feature_evt, feature):
+def test_feature_context_resolve_feature_steps_empty_feature(feature_context, feature):
     """Test that resolve_feature_steps yields nothing for a feature with no steps."""
-
-    # Set the feature (no steps appended).
-    get_feature_evt.execute.return_value = feature
 
     # Create a request.
     request = RequestContext(data={'key': 'value'})
 
     # Resolve and assert nothing is yielded.
-    resolved = list(feature_context.resolve_feature_steps(feature.id, request))
+    resolved = list(feature_context.resolve_feature_steps(feature, request))
     assert len(resolved) == 0
 
 # ** test: feature_context_execute_feature_with_pass_on_error
-def test_feature_context_execute_feature_with_pass_on_error(feature_context, get_feature_evt, feature):
+def test_feature_context_execute_feature_with_pass_on_error(feature_context, feature):
     """Test executing a feature with pass_on_error in the FeatureContext."""
 
     # Add a feature step with pass_on_error enabled.
@@ -558,21 +518,14 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, get
         pass_on_error=True,
     ))
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a mock request that will raise an error.
     request = RequestContext(data={'key': None})
 
-    # Execute the feature using the feature context.
-    feature_context.cache.clear()
-    feature_context.execute_feature(feature.id, request)
+    # Execute the pre-loaded feature using the feature context.
+    feature_context.execute_feature(feature, request)
 
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
-
-    # Assert that the GetFeature event was invoked once for this feature id.
-    get_feature_evt.execute.assert_called_once_with(id=feature.id)
 
 # ** fixture: async_test_command
 @pytest.fixture
@@ -607,47 +560,44 @@ def async_services_context(async_test_command):
 
 # ** fixture: async_feature_context
 @pytest.fixture
-def async_feature_context(get_feature_evt, async_services_context):
+def async_feature_context(async_services_context):
     """Fixture to provide a FeatureContext wired with the async command."""
 
-    return FeatureContext(
-        get_feature_evt=get_feature_evt,
-        services=async_services_context
-    )
+    return FeatureContext(services=async_services_context)
 
-# ** test: feature_context_handle_command_async
+# ** test: feature_context_handle_feature_step_async
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async(async_feature_context, async_test_command):
     """Test handling an async command in the FeatureContext."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle the async command.
-    await async_feature_context.handle_command_async(async_test_command, request)
+    await async_feature_context.handle_feature_step_async(async_test_command, request)
     response = request.handle_response()
 
     # Assert that the response matches the expected output.
     assert response == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_async_with_sync_command
+# ** test: feature_context_handle_feature_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_with_sync_command(feature_context, test_command):
-    """Test that handle_command_async correctly dispatches a sync command."""
+async def test_feature_context_handle_feature_step_async_with_sync_command(feature_context, test_command):
+    """Test that handle_feature_step_async correctly dispatches a sync command."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle a sync command via the async handler.
-    await feature_context.handle_command_async(test_command, request)
+    await feature_context.handle_feature_step_async(test_command, request)
     response = request.handle_response()
 
     # Assert that the sync command executed correctly.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_async_with_error
+# ** test: feature_context_handle_feature_step_async_with_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_with_error(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async_with_error(async_feature_context, async_test_command):
     """Test handling an async command that raises an error."""
 
     # Create a request that will cause verify to fail.
@@ -655,27 +605,27 @@ async def test_feature_context_handle_command_async_with_error(async_feature_con
 
     # Attempt to handle the command and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        await async_feature_context.handle_command_async(async_test_command, request)
+        await async_feature_context.handle_feature_step_async(async_test_command, request)
 
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
 
-# ** test: feature_context_handle_command_async_pass_on_error
+# ** test: feature_context_handle_feature_step_async_pass_on_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_command_async_pass_on_error(async_feature_context, async_test_command):
+async def test_feature_context_handle_feature_step_async_pass_on_error(async_feature_context, async_test_command):
     """Test handling an async command with pass_on_error."""
 
     # Create a request that will cause verify to fail.
     request = RequestContext(data={'key': None})
 
     # Handle with pass_on_error=True.
-    await async_feature_context.handle_command_async(async_test_command, request, pass_on_error=True)
+    await async_feature_context.handle_feature_step_async(async_test_command, request, pass_on_error=True)
 
     # Assert that the request handled the error without raising.
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature_async_basic
 @pytest.mark.asyncio
-async def test_feature_context_execute_feature_async_basic(async_feature_context, get_feature_evt, feature):
+async def test_feature_context_execute_feature_async_basic(async_feature_context, feature):
     """Test execute_feature_async with a single async step."""
 
     # Add an async feature step.
@@ -684,21 +634,18 @@ async def test_feature_context_execute_feature_async_basic(async_feature_context
         service_id='async_test_command',
     ))
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Execute the feature asynchronously.
-    await async_feature_context.execute_feature_async(feature.id, request)
+    # Execute the pre-loaded feature asynchronously.
+    await async_feature_context.execute_feature_async(feature, request)
 
     # Assert the result.
     assert request.handle_response() == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_command_with_middleware
-def test_feature_context_handle_command_with_middleware(feature_context, test_command):
-    """Test that middleware is applied when provided to handle_command."""
+# ** test: feature_context_handle_feature_step_with_middleware
+def test_feature_context_handle_feature_step_with_middleware(feature_context, test_command):
+    """Test that middleware is applied when provided to handle_feature_step."""
 
     # Track execution order.
     order = []
@@ -715,7 +662,7 @@ def test_feature_context_handle_command_with_middleware(feature_context, test_co
     request = RequestContext(data={'key': 'value'})
 
     # Handle the command with middleware.
-    feature_context.handle_command(
+    feature_context.handle_feature_step(
         test_command,
         request,
         middleware=[TrackMiddleware()],
@@ -726,8 +673,7 @@ def test_feature_context_handle_command_with_middleware(feature_context, test_co
     assert request.handle_response() == {'status': 'success', 'data': {'key': 'value'}}
 
 # ** test: feature_context_execute_feature_with_feature_middleware
-def test_feature_context_execute_feature_with_feature_middleware(
-        feature_context, get_feature_evt, feature):
+def test_feature_context_execute_feature_with_feature_middleware(feature_context, feature):
     """Test execute_feature resolves and applies feature-level middleware."""
 
     # Track call count.
@@ -743,16 +689,6 @@ def test_feature_context_execute_feature_with_feature_middleware(
 
     # Wire up the DI context to return the middleware for the middleware service_id.
     mw_instance = CountMiddleware()
-    original_get_dep = feature_context.services.get_dependency.side_effect
-
-    def resolve(service_id, *flags):
-        if service_id == 'count_middleware':
-            return mw_instance
-        from unittest import mock
-        return mock.Mock()
-
-    feature_context.services.get_dependency.side_effect = resolve
-    feature_context.services.get_dependency.return_value = None
 
     # Add feature-level middleware and a step.
     feature.middleware = ['count_middleware']
@@ -761,7 +697,7 @@ def test_feature_context_execute_feature_with_feature_middleware(
         service_id='test_command',
     ))
 
-    # Manually register the test command resolution.
+    # Resolve the middleware and the test command per service_id.
     def resolve_full(service_id, *flags):
         if service_id == 'count_middleware':
             return mw_instance
@@ -774,11 +710,10 @@ def test_feature_context_execute_feature_with_feature_middleware(
 
     feature_context.services.get_dependency.side_effect = resolve_full
 
-    get_feature_evt.execute.return_value = feature
     request = RequestContext(data={'key': 'value'})
-    feature_context.cache.clear()
 
-    feature_context.execute_feature(feature.id, request)
+    # Execute the pre-loaded feature.
+    feature_context.execute_feature(feature, request)
 
     # Assert middleware was called once per step.
     assert call_counts['pre'] == 1
@@ -793,8 +728,7 @@ def test_feature_context_load_feature_middleware_empty(feature_context):
     assert feature_context.load_feature_middleware(None) == []
 
 # ** test: feature_context_load_feature_middleware_resolves_services
-def test_feature_context_load_feature_middleware_resolves_services(
-        feature_context, services_context):
+def test_feature_context_load_feature_middleware_resolves_services(feature_context, services_context):
     """Test that load_feature_middleware resolves service IDs from the DI context."""
 
     # Configure the DI context to return a sentinel value.
@@ -811,7 +745,7 @@ def test_feature_context_load_feature_middleware_resolves_services(
 
 # ** test: feature_context_execute_feature_async_mixed_chain
 @pytest.mark.asyncio
-async def test_feature_context_execute_feature_async_mixed_chain(get_feature_evt, feature):
+async def test_feature_context_execute_feature_async_mixed_chain(feature):
     """Test execute_feature_async with mixed sync and async steps."""
 
     # Create both sync and async commands.
@@ -835,7 +769,7 @@ async def test_feature_context_execute_feature_async_mixed_chain(get_feature_evt
     services.get_dependency.side_effect = resolve
 
     # Build the feature context.
-    ctx = FeatureContext(get_feature_evt=get_feature_evt, services=services)
+    ctx = FeatureContext(services=services)
 
     # Add a sync step followed by an async step.
     feature.steps.append(FeatureEvent(
@@ -849,19 +783,12 @@ async def test_feature_context_execute_feature_async_mixed_chain(get_feature_evt
         data_key='async_result',
     ))
 
-    # Set the feature as the GetFeature event's return value.
-    get_feature_evt.execute.return_value = feature
-
     # Create a request.
     request = RequestContext(data={"key": "mixed"})
 
-    # Clear the cache to avoid stale feature data from prior tests.
-    ctx.cache.clear()
-
-    # Execute the feature asynchronously (supports mixed chains).
-    await ctx.execute_feature_async(feature.id, request)
+    # Execute the pre-loaded feature asynchronously (supports mixed chains).
+    await ctx.execute_feature_async(feature, request)
 
     # Assert both steps executed correctly.
     assert request.data.get('sync_result') == {"sync": True, "key": "mixed"}
     assert request.data.get('async_result') == {"async": True, "key": "mixed"}
-

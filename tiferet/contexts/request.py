@@ -1,3 +1,5 @@
+"""Tiferet Request Contexts"""
+
 # *** imports
 
 # ** core
@@ -8,6 +10,10 @@ from uuid import uuid4
 
 # ** context: request_context
 class RequestContext(object):
+    '''
+    The request context carries the session, feature, headers, data, and result
+    for a single feature execution.
+    '''
 
     # * attribute: session_id
     session_id: str
