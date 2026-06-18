@@ -17,8 +17,8 @@ __all__ = [
     'ErrorMessageYamlObject',
     'FeatureAggregate',
     'FeatureYamlObject',
-    'FeatureEventAggregate',
-    'FeatureEventYamlObject',
+    'EventFeatureStepAggregate',
+    'EventFeatureStepYamlObject',
     'FormatterAggregate',
     'FormatterYamlObject',
     'HandlerAggregate',
@@ -55,8 +55,8 @@ from .error import (
 from .feature import (
     FeatureAggregate,
     FeatureYamlObject,
-    FeatureEventAggregate,
-    FeatureEventYamlObject,
+    EventFeatureStepAggregate,
+    EventFeatureStepYamlObject,
 )
 from .logging import (
     FormatterAggregate,

@@ -25,8 +25,8 @@ class FeatureStep(DomainObject):
     # * attribute: name
     name: str = Field(..., description='The name of the feature step.')
 
-# ** model: feature_event
-class FeatureEvent(FeatureStep):
+# ** model: event_feature_step
+class EventFeatureStep(FeatureStep):
     '''
     A feature event step that executes a domain event from the container.
     '''
@@ -87,7 +87,7 @@ class Feature(DomainObject):
     feature_key: str = Field(..., description='The key of the feature.')
 
     # * attribute: steps
-    steps: List[FeatureEvent] = Field(default_factory=list, description='The step workflow for the feature.')
+    steps: List[EventFeatureStep] = Field(default_factory=list, description='The step workflow for the feature.')
 
     # * attribute: middleware
     middleware: List[str] = Field(

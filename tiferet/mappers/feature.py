@@ -12,7 +12,7 @@ from pydantic import AliasChoices, Field
 from ..domain import (
     Feature,
     FeatureStep,
-    FeatureEvent,
+    EventFeatureStep,
 )
 from .settings import (
     Aggregate,
@@ -21,8 +21,8 @@ from .settings import (
 
 # *** mappers
 
-# ** mapper: feature_event_aggregate
-class FeatureEventAggregate(FeatureEvent, Aggregate):
+# ** mapper: event_feature_step_aggregate
+class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
     '''
     An aggregate representation of a feature event.
     '''
@@ -103,8 +103,8 @@ class FeatureEventAggregate(FeatureEvent, Aggregate):
         # All other attributes go through the standard existence check.
         super().set_attribute(attribute, value)
 
-# ** mapper: feature_event_yaml_object
-class FeatureEventYamlObject(FeatureEvent, TransferObject):
+# ** mapper: event_feature_step_yaml_object
+class EventFeatureStepYamlObject(EventFeatureStep, TransferObject):
     '''
     A YAML data representation of a feature event object.
     '''
@@ -130,34 +130,34 @@ class FeatureEventYamlObject(FeatureEvent, TransferObject):
     )
 
     # * method: map
-    def map(self, **overrides) -> FeatureEventAggregate:
+    def map(self, **overrides) -> EventFeatureStepAggregate:
         '''
         Maps the feature event data to a feature event aggregate.
 
         :param overrides: Additional keyword arguments.
         :type overrides: dict
         :return: A new feature event aggregate.
-        :rtype: FeatureEventAggregate
+        :rtype: EventFeatureStepAggregate
         '''
 
         # Map to the feature event aggregate.
-        return super().map(FeatureEventAggregate, **overrides)
+        return super().map(EventFeatureStepAggregate, **overrides)
 
     # * method: from_model
     @classmethod
-    def from_model(cls, feature_event: FeatureEvent, **overrides) -> 'FeatureEventYamlObject':
+    def from_model(cls, feature_event: EventFeatureStep, **overrides) -> 'EventFeatureStepYamlObject':
         '''
-        Creates a FeatureEventYamlObject from a FeatureEvent model.
+        Creates a EventFeatureStepYamlObject from a EventFeatureStep model.
 
         :param feature_event: The feature event model to copy from.
-        :type feature_event: FeatureEvent
+        :type feature_event: EventFeatureStep
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureEventYamlObject.
-        :rtype: FeatureEventYamlObject
+        :return: A new EventFeatureStepYamlObject.
+        :rtype: EventFeatureStepYamlObject
         '''
 
-        # Create a new FeatureEventYamlObject from the model.
+        # Create a new EventFeatureStepYamlObject from the model.
         return super().from_model(feature_event, **overrides)
 
 
@@ -178,7 +178,7 @@ class FeatureAggregate(Feature, Aggregate):
         condition: str | None = None,
         middleware: List[str] | None = None,
         position: int | None = None,
-    ) -> FeatureEvent:
+    ) -> EventFeatureStep:
         '''
         Add a feature event step using raw attributes.
 
@@ -198,12 +198,12 @@ class FeatureAggregate(Feature, Aggregate):
         :type middleware: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
-        :return: Created FeatureEvent instance.
-        :rtype: FeatureEvent
+        :return: Created EventFeatureStep instance.
+        :rtype: EventFeatureStep
         '''
 
         # Create the feature event from raw attributes.
-        step = FeatureEventAggregate(
+        step = EventFeatureStepAggregate(
             name=name,
             service_id=service_id,
             parameters=parameters or {},
@@ -351,7 +351,7 @@ class FeatureYamlObject(Feature, TransferObject):
     )
 
     # * attribute: steps
-    steps: List[FeatureEventYamlObject] = Field(
+    steps: List[EventFeatureStepYamlObject] = Field(
         default_factory=list,
         validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
         description='The step workflow for the feature.',
@@ -390,11 +390,11 @@ class FeatureYamlObject(Feature, TransferObject):
         '''
 
         # Create a new FeatureYamlObject from the model, converting
-        # the steps list into FeatureEventYamlObject instances.
+        # the steps list into EventFeatureStepYamlObject instances.
         return super().from_model(
             feature,
             steps=[
-                FeatureEventYamlObject.from_model(step)
+                EventFeatureStepYamlObject.from_model(step)
                 for step in feature.steps
             ],
             **overrides,

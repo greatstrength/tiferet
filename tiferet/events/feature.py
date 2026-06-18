@@ -13,10 +13,10 @@ from .settings import DomainEvent, a
 
 # *** events
 
-# ** event: add_feature
-class AddFeature(DomainEvent):
+# ** event: feature_event
+class FeatureEvent(DomainEvent):
     '''
-    Event to add a new feature configuration.
+    Base event providing the shared FeatureService dependency for feature domain events.
     '''
 
     # * attribute: feature_service
@@ -25,14 +25,20 @@ class AddFeature(DomainEvent):
     # * init
     def __init__(self, feature_service: FeatureService):
         '''
-        Initialize the AddFeature event.
+        Initialize the feature event with its shared service dependency.
 
-        :param feature_service: The feature service to use for managing feature configurations.
+        :param feature_service: The feature service shared across feature events.
         :type feature_service: FeatureService
         '''
 
         # Set the feature service dependency.
         self.feature_service = feature_service
+
+# ** event: add_feature
+class AddFeature(FeatureEvent):
+    '''
+    Event to add a new feature configuration.
+    '''
 
     # * method: execute
     @DomainEvent.parameters_required(['name', 'group_id'])
@@ -98,25 +104,10 @@ class AddFeature(DomainEvent):
         return feature
 
 # ** event: get_feature
-class GetFeature(DomainEvent):
+class GetFeature(FeatureEvent):
     '''
     Event to retrieve a feature by its identifier.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService):
-        '''
-        Initialize the GetFeature event.
-
-        :param feature_service: The feature service to use for retrieving features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -154,25 +145,10 @@ class GetFeature(DomainEvent):
         return feature
 
 # ** event: list_features
-class ListFeatures(DomainEvent):
+class ListFeatures(FeatureEvent):
     '''
     Event to list feature configurations.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService):
-        '''
-        Initialize the ListFeatures event.
-
-        :param feature_service: The feature service to use for listing features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     def execute(self, group_id: str | None = None, **kwargs) -> List[Feature]:
@@ -191,7 +167,7 @@ class ListFeatures(DomainEvent):
         return self.feature_service.list(group_id=group_id)
 
 # ** event: remove_feature
-class RemoveFeature(DomainEvent):
+class RemoveFeature(FeatureEvent):
     '''
     Event to remove an entire feature configuration by ID (idempotent).
 
@@ -199,21 +175,6 @@ class RemoveFeature(DomainEvent):
     ``FeatureService.delete`` implementation, which is expected to behave
     idempotently when the feature does not exist.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService):
-        '''
-        Initialize the RemoveFeature event.
-
-        :param feature_service: The feature service to use.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -237,29 +198,13 @@ class RemoveFeature(DomainEvent):
         return id
 
 # ** event: update_feature
-class UpdateFeature(DomainEvent):
+class UpdateFeature(FeatureEvent):
     '''
     Event to update basic metadata of an existing feature.
 
     Supports updating the ``name`` or ``description`` attributes using the
     Feature model helpers.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService) -> None:
-        '''
-        Initialize the UpdateFeature event.
-
-        :param feature_service: The feature service used to retrieve and
-            persist features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'attribute'])
@@ -325,25 +270,10 @@ class UpdateFeature(DomainEvent):
         return feature
 
 # ** event: add_feature_step
-class AddFeatureStep(DomainEvent):
+class AddFeatureStep(FeatureEvent):
     '''
     Event to add a step to an existing feature.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService):
-        '''
-        Initialize the AddFeatureStep event.
-
-        :param feature_service: The feature service to use.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'service_id'])
@@ -407,30 +337,14 @@ class AddFeatureStep(DomainEvent):
         return id
 
 # ** event: update_feature_step
-class UpdateFeatureStep(DomainEvent):
+class UpdateFeatureStep(FeatureEvent):
     '''
     Event to update an existing feature step within a feature workflow.
 
     This event supports updating the following attributes on a
-    ``FeatureEvent`` instance: ``name``, ``service_id``, ``data_key``,
+    ``EventFeatureStep`` instance: ``name``, ``service_id``, ``data_key``,
     ``pass_on_error``, and ``parameters``.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService) -> None:
-        '''
-        Initialize the UpdateFeatureStep event.
-
-        :param feature_service: The feature service used to retrieve and
-            persist features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'position', 'attribute'])
@@ -525,7 +439,7 @@ class UpdateFeatureStep(DomainEvent):
             position=position,
         )
 
-        # Apply the attribute update using the FeatureEvent helper.
+        # Apply the attribute update using the EventFeatureStep helper.
         step.set_attribute(attribute, value)
 
         # Persist the updated feature.
@@ -535,29 +449,13 @@ class UpdateFeatureStep(DomainEvent):
         return id
 
 # ** event: remove_feature_step
-class RemoveFeatureStep(DomainEvent):
+class RemoveFeatureStep(FeatureEvent):
     '''
     Event to remove a step from an existing feature by position.
 
     This event is idempotent: invalid positions result in silent success
     with no mutation to the feature's step list.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService) -> None:
-        '''
-        Initialize the RemoveFeatureStep event.
-
-        :param feature_service: The feature service to use for retrieving and
-            persisting features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'position'])
@@ -603,7 +501,7 @@ class RemoveFeatureStep(DomainEvent):
         return id
 
 # ** event: reorder_feature_step
-class ReorderFeatureStep(DomainEvent):
+class ReorderFeatureStep(FeatureEvent):
     '''
     Event to reorder an existing feature step within a feature workflow.
 
@@ -611,22 +509,6 @@ class ReorderFeatureStep(DomainEvent):
     which clamps the target position and behaves idempotently for invalid
     start positions.
     '''
-
-    # * attribute: feature_service
-    feature_service: FeatureService
-
-    # * init
-    def __init__(self, feature_service: FeatureService) -> None:
-        '''
-        Initialize the ReorderFeatureStep event.
-
-        :param feature_service: The feature service used to retrieve and
-            persist features.
-        :type feature_service: FeatureService
-        '''
-
-        # Set the feature service dependency.
-        self.feature_service = feature_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'start_position', 'end_position'])

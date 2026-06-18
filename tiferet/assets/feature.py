@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 
 # ** config: default_tiferet_cli_features
 # Each dict matches the Feature domain object constructor fields.
-# Steps use FeatureEvent field names: service_id, name, parameters, data_key.
+# Steps use EventFeatureStep field names: service_id, name, parameters, data_key.
 DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
 
     # * features: feature domain

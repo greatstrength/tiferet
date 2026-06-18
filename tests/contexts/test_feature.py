@@ -18,7 +18,7 @@ from tiferet.assets import TiferetError
 from tiferet.events import DomainEvent, AsyncDomainEvent
 from tiferet.domain import (
     Feature,
-    FeatureEvent,
+    EventFeatureStep,
 )
 
 # *** fixtures
@@ -150,7 +150,7 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
@@ -174,7 +174,7 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 
     feature_flags = ['feature_flag']
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=[],
@@ -189,7 +189,7 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
     """Test loading a feature step with only step flags."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag'],
@@ -204,7 +204,7 @@ def test_feature_context_load_feature_step_only_command_flags(feature_context, s
 def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
     """Test loading a feature step that includes flags for dependency resolution."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['flag1', 'flag2'],
@@ -220,7 +220,7 @@ def test_feature_context_load_feature_step_with_flags(feature_context, services_
 def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
     """Test loading a feature step when no flags are configured."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     )
@@ -241,7 +241,7 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
         'Feature command not found in services: non_existent_command',
     )
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Missing Command',
         service_id='non_existent_command',
         flags=['flagX'],
@@ -313,7 +313,7 @@ def test_feature_context_handle_feature_step_with_pass_on_error(feature_context,
 def test_feature_context_execute_feature(feature_context, feature):
 
     # Add a standard feature step with no data key or pass on error.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     ))
@@ -332,7 +332,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     """Test executing a feature with a request parameter in the FeatureContext."""
 
     # Add a feature step with a data key and request parameter.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         parameters=dict(
@@ -427,8 +427,8 @@ def test_feature_context_resolve_feature_steps_yields_steps(feature_context, fea
     """Test that resolve_feature_steps yields (cmd, feature_event, params) for each step."""
 
     # Add two steps to the feature.
-    step_a = FeatureEvent(name='Step A', service_id='test_command')
-    step_b = FeatureEvent(name='Step B', service_id='test_command')
+    step_a = EventFeatureStep(name='Step A', service_id='test_command')
+    step_b = EventFeatureStep(name='Step B', service_id='test_command')
     feature.steps.extend([step_a, step_b])
 
     # Create a request.
@@ -447,8 +447,8 @@ def test_feature_context_resolve_feature_steps_skips_false_condition(feature_con
     """Test that resolve_feature_steps skips steps with false conditions."""
 
     # Add a skipped step (false condition) and an unconditional step.
-    skipped = FeatureEvent(name='Skipped', service_id='test_command', condition='$r.x > 100')
-    executed = FeatureEvent(name='Executed', service_id='test_command')
+    skipped = EventFeatureStep(name='Skipped', service_id='test_command', condition='$r.x > 100')
+    executed = EventFeatureStep(name='Executed', service_id='test_command')
     feature.steps.extend([skipped, executed])
 
     # Create a request where x=5 (fails the condition).
@@ -464,7 +464,7 @@ def test_feature_context_resolve_feature_steps_yields_true_condition(feature_con
     """Test that resolve_feature_steps yields steps with true conditions."""
 
     # Add a step with a true condition.
-    step = FeatureEvent(name='Conditional', service_id='test_command', condition='$r.x > 0')
+    step = EventFeatureStep(name='Conditional', service_id='test_command', condition='$r.x > 0')
     feature.steps.append(step)
 
     # Create a request where x=5 (passes the condition).
@@ -480,7 +480,7 @@ def test_feature_context_resolve_feature_steps_parses_parameters(feature_context
     """Test that resolve_feature_steps parses request-backed parameters."""
 
     # Add a step with a request-backed parameter.
-    step = FeatureEvent(
+    step = EventFeatureStep(
         name='Parameterized',
         service_id='test_command',
         parameters={'param': '$r.key'},
@@ -511,7 +511,7 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
     """Test executing a feature with pass_on_error in the FeatureContext."""
 
     # Add a feature step with pass_on_error enabled.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         pass_on_error=True,
@@ -628,7 +628,7 @@ async def test_feature_context_execute_feature_async_basic(async_feature_context
     """Test execute_feature_async with a single async step."""
 
     # Add an async feature step.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Async Command',
         service_id='async_test_command',
     ))
@@ -691,7 +691,7 @@ def test_feature_context_execute_feature_with_feature_middleware(feature_context
 
     # Add feature-level middleware and a step.
     feature.middleware = ['count_middleware']
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     ))
@@ -771,12 +771,12 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     ctx = FeatureContext(get_dependency=services.get_dependency)
 
     # Add a sync step followed by an async step.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Sync Step',
         service_id='sync_step',
         data_key='sync_result',
     ))
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Async Step',
         service_id='async_step',
         data_key='async_result',

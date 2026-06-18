@@ -21,7 +21,7 @@ from ..events import (
     RaiseError,
     ParseParameter
 )
-from ..domain import Feature, FeatureEvent
+from ..domain import Feature, EventFeatureStep
 
 # *** contexts
 
@@ -74,14 +74,14 @@ class FeatureContext(BaseContext):
         self.context_data = context_data if context_data is not None else {}
 
     # * method: load_feature_step
-    def load_feature_step(self, feature_event: FeatureEvent, feature_flags: List[str] = None) -> DomainEvent:
+    def load_feature_step(self, feature_event: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
         '''
         Resolve a feature event step via the injected service-resolution
         handler using its service ID and any configured flags.
 
         :param feature_event: The feature event metadata describing the
             service configuration and flags.
-        :type feature_event: FeatureEvent
+        :type feature_event: EventFeatureStep
         :param feature_flags: Optional list of flags from the parent feature.
         :type feature_flags: List[str]
         :return: The resolved domain event.
@@ -273,7 +273,7 @@ class FeatureContext(BaseContext):
     def resolve_feature_steps(self,
             feature: Feature,
             request: RequestContext,
-        ) -> Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]:
+        ) -> Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]:
         '''
         Resolve and yield executable steps for a pre-loaded feature.
 
@@ -286,7 +286,7 @@ class FeatureContext(BaseContext):
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
         :return: A generator yielding (command, feature_event, params) tuples.
-        :rtype: Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]
+        :rtype: Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]
         '''
 
         # Iterate over the feature's configured steps.
