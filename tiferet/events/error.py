@@ -128,11 +128,12 @@ class GetError(DomainEvent):
         if error:
             return error
 
-        # If requested, check built-in defaults and return as error aggregate if found.
-        if include_defaults:
-            error_data = a.DEFAULT_ERRORS.get(id)
-            if error_data:
-                return ErrorAggregate(**error_data)
+        # Resolve the built-in default for this id when defaults are requested.
+        error_data = a.DEFAULT_ERRORS.get(id) if include_defaults else None
+
+        # Return the default as an error aggregate when one was found.
+        if error_data:
+            return ErrorAggregate(**error_data)
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
