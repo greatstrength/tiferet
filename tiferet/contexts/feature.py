@@ -342,6 +342,18 @@ class FeatureContext(BaseContext):
                 **kwargs
             )
 
+
+# ** context: async_feature_context
+class AsyncFeatureContext(FeatureContext):
+    '''
+    The async feature context extends :class:`FeatureContext` with
+    asynchronous step execution, awaiting coroutine-based domain events while
+    reusing the shared step-resolution, parameter-parsing, condition, and
+    middleware helpers inherited from the synchronous context. It is selected
+    by the application interface hub when a loaded ``Feature`` has ``is_async``
+    set to ``True``.
+    '''
+
     # * method: handle_feature_step_async
     async def handle_feature_step_async(self,
         command: DomainEvent,

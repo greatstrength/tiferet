@@ -95,6 +95,12 @@ class Feature(DomainObject):
         description='Ordered list of middleware service IDs applied to every step in this feature. Outermost wrapper first.',
     )
 
+    # * attribute: is_async
+    is_async: bool = Field(
+        default=False,
+        description='Whether the feature executes its steps asynchronously. Selects the AsyncFeatureContext when True.',
+    )
+
     # * attribute: log_params
     log_params: Dict[str, str] = Field(default_factory=dict, description='The parameters to log for the feature.')
 

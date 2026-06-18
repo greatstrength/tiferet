@@ -12,6 +12,7 @@ from unittest import mock
 # ** app
 from tiferet.contexts.feature import (
     FeatureContext,
+    AsyncFeatureContext,
     RequestContext,
 )
 from tiferet.assets import TiferetError
@@ -560,9 +561,9 @@ def async_services_context(async_test_command):
 # ** fixture: async_feature_context
 @pytest.fixture
 def async_feature_context(async_services_context):
-    """Fixture to provide a FeatureContext wired with the async command."""
+    """Fixture to provide an AsyncFeatureContext wired with the async command."""
 
-    return FeatureContext(get_dependency=async_services_context.get_dependency)
+    return AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
 
 # ** test: feature_context_handle_feature_step_async
 @pytest.mark.asyncio
@@ -581,14 +582,14 @@ async def test_feature_context_handle_feature_step_async(async_feature_context, 
 
 # ** test: feature_context_handle_feature_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async_with_sync_command(feature_context, test_command):
+async def test_feature_context_handle_feature_step_async_with_sync_command(async_feature_context, test_command):
     """Test that handle_feature_step_async correctly dispatches a sync command."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle a sync command via the async handler.
-    await feature_context.handle_feature_step_async(test_command, request)
+    await async_feature_context.handle_feature_step_async(test_command, request)
     response = request.handle_response()
 
     # Assert that the sync command executed correctly.
@@ -767,8 +768,8 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
         return async_cmd
     services.get_dependency.side_effect = resolve
 
-    # Build the feature context.
-    ctx = FeatureContext(get_dependency=services.get_dependency)
+    # Build the async feature context.
+    ctx = AsyncFeatureContext(get_dependency=services.get_dependency)
 
     # Add a sync step followed by an async step.
     feature.steps.append(EventFeatureStep(
@@ -791,3 +792,29 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     # Assert both steps executed correctly.
     assert request.data.get('sync_result') == {"sync": True, "key": "mixed"}
     assert request.data.get('async_result') == {"async": True, "key": "mixed"}
+
+# ** test: async_feature_context_subclasses_feature_context
+def test_async_feature_context_subclasses_feature_context():
+    """Test that AsyncFeatureContext inherits the synchronous FeatureContext helpers."""
+
+    # Assert the inheritance relationship.
+    assert issubclass(AsyncFeatureContext, FeatureContext)
+
+    # Assert the shared helpers and sync execution are inherited (not redefined).
+    shared = (
+        'load_feature_step',
+        'load_feature_middleware',
+        'handle_feature_step',
+        'parse_request_parameter',
+        'evaluate_condition',
+        'resolve_feature_steps',
+        'execute_feature',
+    )
+    for helper in shared:
+        assert getattr(AsyncFeatureContext, helper) is getattr(FeatureContext, helper)
+
+    # Assert the async methods live on AsyncFeatureContext, not on FeatureContext.
+    assert hasattr(AsyncFeatureContext, 'handle_feature_step_async')
+    assert hasattr(AsyncFeatureContext, 'execute_feature_async')
+    assert not hasattr(FeatureContext, 'handle_feature_step_async')
+    assert not hasattr(FeatureContext, 'execute_feature_async')
