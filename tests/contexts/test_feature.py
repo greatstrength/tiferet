@@ -11,7 +11,6 @@ from unittest import mock
 
 # ** app
 from tiferet.contexts.feature import (
-    DIContext,
     FeatureContext,
     RequestContext,
 )
@@ -29,13 +28,13 @@ from tiferet.domain import (
 def services_context(test_command):
     """Fixture to provide a mock DI context."""
 
-    # Create a mock DI context.
-    services_context = mock.Mock(spec=DIContext)
+    # Create a mock holder exposing a get_dependency resolution handler.
+    services_context = mock.Mock()
 
-    # Set the DI service to return the test command when requested.
+    # Set the handler to return the test command when requested.
     services_context.get_dependency.return_value = test_command
 
-    # Return the mock DI context.
+    # Return the mock holder.
     return services_context
 
 # ** fixture: feature_context
@@ -43,8 +42,8 @@ def services_context(test_command):
 def feature_context(services_context):
     """Fixture to provide an instance of FeatureContext."""
 
-    # Create an instance of FeatureContext with the mock DI context.
-    return FeatureContext(services=services_context)
+    # Create an instance of FeatureContext with the mock resolution handler.
+    return FeatureContext(get_dependency=services_context.get_dependency)
 
 # ** fixture: test_command
 @pytest.fixture
@@ -553,8 +552,8 @@ def async_test_command():
 def async_services_context(async_test_command):
     """Fixture to provide a mock DI context that returns the async test command."""
 
-    # Create a mock DI context.
-    ctx = mock.Mock(spec=DIContext)
+    # Create a mock holder exposing an async get_dependency handler.
+    ctx = mock.Mock()
     ctx.get_dependency.return_value = async_test_command
     return ctx
 
@@ -563,7 +562,7 @@ def async_services_context(async_test_command):
 def async_feature_context(async_services_context):
     """Fixture to provide a FeatureContext wired with the async command."""
 
-    return FeatureContext(services=async_services_context)
+    return FeatureContext(get_dependency=async_services_context.get_dependency)
 
 # ** test: feature_context_handle_feature_step_async
 @pytest.mark.asyncio
@@ -708,7 +707,7 @@ def test_feature_context_execute_feature_with_feature_middleware(feature_context
                 return {'status': 'success', 'data': {'key': key}}
         return TestEvent()
 
-    feature_context.services.get_dependency.side_effect = resolve_full
+    feature_context.get_dependency.side_effect = resolve_full
 
     request = RequestContext(data={'key': 'value'})
 
@@ -760,8 +759,8 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     sync_cmd = SyncStep()
     async_cmd = AsyncStep()
 
-    # Mock DI context to return the right command per service_id.
-    services = mock.Mock(spec=DIContext)
+    # Mock the resolution handler to return the right command per service_id.
+    services = mock.Mock()
     def resolve(service_id, *flags):
         if service_id == 'sync_step':
             return sync_cmd
@@ -769,7 +768,7 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     services.get_dependency.side_effect = resolve
 
     # Build the feature context.
-    ctx = FeatureContext(services=services)
+    ctx = FeatureContext(get_dependency=services.get_dependency)
 
     # Add a sync step followed by an async step.
     feature.steps.append(FeatureEvent(

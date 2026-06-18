@@ -98,7 +98,7 @@ def test_from_domain_explicit_subclass():
     cache = CacheContext()
 
     # Construct the feature context explicitly via from_domain.
-    context = FeatureContext.from_domain(feature, services=None, cache=cache)
+    context = FeatureContext.from_domain(feature, get_dependency=None, cache=cache)
 
     # Assert the context type, shared cache, and bound domain.
     assert isinstance(context, FeatureContext)

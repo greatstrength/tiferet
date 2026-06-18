@@ -1,15 +1,9 @@
 # *** exports
 
 __all__ = [
-    'ServiceProvider',
-    'DynamicServiceProvider',
-    'DependenciesServiceProvider',
+    'ServiceContainer',
+    'ServiceResolver',
 ]
 
 # ** app
-from .settings import ServiceProvider
-from .dynamic import DynamicServiceProvider
-
-# Backward-compatible alias: downstream consumers importing
-# DependenciesServiceProvider will receive DynamicServiceProvider.
-DependenciesServiceProvider = DynamicServiceProvider
+from .settings import ServiceContainer, ServiceResolver

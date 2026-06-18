@@ -11,10 +11,6 @@ from tiferet.domain.app import (
     AppInterface,
     AppServiceDependency,
 )
-from tiferet.di import (
-    ServiceProvider,
-    DynamicServiceProvider,
-)
 
 # *** fixtures
 
@@ -111,65 +107,6 @@ def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
     assert service is None
 
 
-# ** test: app_interface_get_service_type_mapping
-def test_app_interface_get_service_type_mapping(resolvable_app_dependency: AppServiceDependency) -> None:
-    '''
-    Test that get_service_type_mapping returns the correct service ID-to-type dict.
-
-    :param resolvable_app_dependency: An AppServiceDependency with a real module path.
-    :type resolvable_app_dependency: AppServiceDependency
-    '''
-
-    # Create an AppInterface with a resolvable service dependency.
-    interface = AppInterface(id='test',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        services=[resolvable_app_dependency],
-    )
-
-    # Get the service type mapping (now owned by the app interface context).
-    from tiferet.contexts.app import AppInterfaceContext
-    mapping = AppInterfaceContext.get_service_type_mapping(interface)
-
-    # Assert the mapping contains the expected keys.
-    assert 'interface_id' in mapping
-    assert 'logger_id' in mapping
-    assert 'resolvable_service' in mapping
-
-    # Assert the service types resolve correctly (the hub is built declaratively,
-    # so app_context is intentionally not part of the mapping).
-    assert mapping['resolvable_service'] is AppInterfaceContext
-    assert mapping['interface_id'] == 'test'
-
-    # Assert service parameters are included as injection constants.
-    assert mapping.get('param1') == 'value1'
-
-
-# ** test: app_interface_get_service_type_mapping_no_services
-def test_app_interface_get_service_type_mapping_no_services() -> None:
-    '''
-    Test that get_service_type_mapping works correctly with no service dependencies.
-    '''
-
-    # Create an AppInterface with no services.
-    interface = AppInterface(id='empty',
-        name='Empty App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        services=[],
-    )
-
-    # Get the service type mapping (now owned by the app interface context).
-    from tiferet.contexts.app import AppInterfaceContext
-    mapping = AppInterfaceContext.get_service_type_mapping(interface)
-
-    # Assert only the base keys are present (interface_id, logger_id).
-    assert 'interface_id' in mapping
-    assert 'logger_id' in mapping
-    assert len(mapping) == 2
-
-
 # ** test: app_service_dependency_get_service_type
 def test_app_service_dependency_get_service_type(resolvable_app_dependency: AppServiceDependency) -> None:
     '''
@@ -202,5 +139,5 @@ def test_app_interface_service_provider_defaults() -> None:
     )
 
     # Assert default provider module path and class name values.
-    assert interface.service_provider_path == 'tiferet.di.dynamic'
-    assert interface.service_provider_class_name == 'DynamicServiceProvider'
+    assert interface.service_provider_path == 'tiferet.di.settings'
+    assert interface.service_provider_class_name == 'ServiceContainer'

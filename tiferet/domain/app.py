@@ -94,13 +94,13 @@ class AppInterface(DomainObject):
 
     # * attribute: service_provider_path
     service_provider_path: str = Field(
-        default='tiferet.di.dynamic',
+        default='tiferet.di.settings',
         description='The module path for the service provider to use for this dependency.',
     )
 
     # * attribute: service_provider_class_name
     service_provider_class_name: str = Field(
-        default='DynamicServiceProvider',
+        default='ServiceContainer',
         description='The class name for the service provider to use for this dependency.',
     )
 

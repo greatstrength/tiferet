@@ -122,8 +122,8 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         app_interface,
         get_feature_evt=mock.Mock(),
         get_error_evt=mock.Mock(),
-        di_list_all_configs_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
     )
 
     # Inject the mock logging context via its lazy cache (still supported).

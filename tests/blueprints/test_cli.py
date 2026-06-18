@@ -76,19 +76,14 @@ def get_parent_args_evt():
 @pytest.fixture
 def mock_service_provider(list_commands_evt, get_parent_args_evt):
     '''
-    Fixture to create a mock service provider wired with CLI events.
+    Fixture to create a wiring registry populated with the CLI events.
     '''
 
-    # Map service IDs to the mocked events.
-    service_map = {
+    # Return a registry mapping service IDs to the mocked events.
+    return {
         'list_commands_evt': list_commands_evt,
         'get_parent_args_evt': get_parent_args_evt,
     }
-
-    # Build and return the mock provider.
-    provider = mock.Mock()
-    provider.get_service.side_effect = lambda sid: service_map[sid]
-    return provider
 
 # *** tests
 
@@ -227,7 +222,7 @@ def test_build_app_success(mock_service_provider, capsys):
 
     # Patch internal dependencies to isolate build_app.
     with mock.patch('tiferet.blueprints.cli.resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch('tiferet.blueprints.cli.create_service_provider', return_value=mock_service_provider), \
+         mock.patch('tiferet.blueprints.cli.wire_services', return_value=mock_service_provider), \
          mock.patch('tiferet.blueprints.cli.realize_interface', return_value=mock_context):
 
         # Invoke build_app.
@@ -274,7 +269,7 @@ def test_build_app_feature_error(mock_service_provider):
 
     # Patch internal dependencies to isolate build_app.
     with mock.patch('tiferet.blueprints.cli.resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch('tiferet.blueprints.cli.create_service_provider', return_value=mock_service_provider), \
+         mock.patch('tiferet.blueprints.cli.wire_services', return_value=mock_service_provider), \
          mock.patch('tiferet.blueprints.cli.realize_interface', return_value=mock_context):
 
         # Invoke build_app and expect SystemExit with code 1.

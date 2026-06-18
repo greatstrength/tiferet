@@ -12,7 +12,6 @@ from ..assets import TiferetAPIError
 from ..domain import AppServiceDependency
 from .. import assets as a
 from .main import (
-    create_service_provider,
     load_default_services,
     resolve_interface,
     realize_interface,
@@ -185,27 +184,19 @@ def build_tiferet_cli(
     merged_constants.update(app_interface.constants or {})
     merged_constants.update(bootstrap_constants)
 
-    # Re-seed the interface constants with the merged result so the constants
-    # re-registered during realization (AppInterface.get_service_type_mapping)
-    # also resolve to the consumer's app_config file rather than the seeded
-    # 'config.yml' placeholders.
+    # Re-seed the interface constants with the merged result so declarative
+    # wiring during realization resolves repositories against the consumer's
+    # app_config file rather than the seeded 'config.yml' placeholders.
     app_interface.set_constants(merged_constants)
 
-    # Build the service provider seeded with all service types and constants.
-    service_provider = create_service_provider(
-        type_map={dep.service_id: dep.get_service_type() for dep in all_services},
-        **merged_constants,
-    )
-
-    # Realize the app interface context, passing the pre-built provider so that
-    # all bootstrap constants are already wired before service construction, and
-    # seeding the bootstrap defaults directly onto the hub initializer so the
-    # bootstrap events resolve features, configurations, and commands that are
-    # not present in the consumer's config file.
+    # Realize the app interface context. The interface constants (re-seeded
+    # above with the consumer's app_config) drive declarative service wiring,
+    # and the bootstrap defaults are seeded onto the service resolver so the
+    # bootstrap features, configurations, and commands resolve even when they
+    # are not present in the consumer's config file.
     interface_context = realize_interface(
         app_interface,
         'tiferet_cli',
-        service_provider,
         default_features=a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
         default_commands=a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS,
         default_configurations=default_configuration_dicts,
