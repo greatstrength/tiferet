@@ -10,10 +10,51 @@ import sqlite3
 from .settings import DomainEvent, a
 from ..interfaces.sqlite import SqliteService
 
+# *** functions
+
+# ** function: _is_valid_identifier
+def _is_valid_identifier(name: str) -> bool:
+    '''
+    Validate that a name is a valid SQLite identifier.
+
+    :param name: The identifier to validate
+    :type name: str
+    :return: True if valid, False otherwise
+    :rtype: bool
+    '''
+
+    # Basic check: alphanumeric and underscore only, doesn't start with digit
+    if not name:
+        return False
+    if name[0].isdigit():
+        return False
+    return all(c.isalnum() or c == '_' for c in name)
+
 # *** events
 
+# ** event: sqlite_event
+class SqliteEvent(DomainEvent):
+    '''
+    Base event providing the shared SqliteService dependency for SQLite domain events.
+    '''
+
+    # * attribute: sqlite_service
+    sqlite_service: SqliteService
+
+    # * init
+    def __init__(self, sqlite_service: SqliteService):
+        '''
+        Initialize the SQLite event with its shared service dependency.
+
+        :param sqlite_service: The SQLite service shared across SQLite events.
+        :type sqlite_service: SqliteService
+        '''
+
+        # Set the SQLite service dependency.
+        self.sqlite_service = sqlite_service
+
 # ** event: mutate_sql
-class MutateSql(DomainEvent):
+class MutateSql(SqliteEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement and return operation metadata.
 
@@ -23,13 +64,6 @@ class MutateSql(DomainEvent):
             cursor = sql.execute(statement, parameters)
             return {"rowcount": cursor.rowcount, "lastrowid": cursor.lastrowid if ...}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['statement'])
@@ -72,20 +106,13 @@ class MutateSql(DomainEvent):
             )
 
 # ** event: query_sql
-class QuerySql(DomainEvent):
+class QuerySql(SqliteEvent):
     '''
     Execute a read-only SQL query and return results as list of dictionaries.
 
     Uses SqliteService convenience methods (fetch_all / fetch_one) which internally
     wrap execute + fetch. All calls MUST occur inside a 'with' block.
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['query'])
@@ -130,7 +157,7 @@ class QuerySql(DomainEvent):
             )
 
 # ** event: bulk_mutate_sql
-class BulkMutateSql(DomainEvent):
+class BulkMutateSql(SqliteEvent):
     '''
     Execute a single INSERT, UPDATE or DELETE statement across multiple parameter sets.
 
@@ -140,13 +167,6 @@ class BulkMutateSql(DomainEvent):
             cursor = sql.executemany(statement, parameters_list)
             return {"total_rowcount": cursor.rowcount, "lastrowids": ...}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['statement', 'parameters_list'])
@@ -198,7 +218,7 @@ class BulkMutateSql(DomainEvent):
             )
 
 # ** event: execute_script_sql
-class ExecuteScriptSql(DomainEvent):
+class ExecuteScriptSql(SqliteEvent):
     '''
     Execute a multi-statement SQL script (DDL + DML) in a single operation.
 
@@ -208,13 +228,6 @@ class ExecuteScriptSql(DomainEvent):
             sql.executescript(script)
             return {"success": True}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['script'])
@@ -244,7 +257,7 @@ class ExecuteScriptSql(DomainEvent):
             )
 
 # ** event: backup_sql
-class BackupSql(DomainEvent):
+class BackupSql(SqliteEvent):
     '''
     Perform an online backup of the current SQLite database to a target file.
 
@@ -254,13 +267,6 @@ class BackupSql(DomainEvent):
             sql.backup(target_path, pages=pages, progress=progress)
             return {"success": True, "message": None}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['target_path'])
@@ -296,7 +302,7 @@ class BackupSql(DomainEvent):
             )
 
 # ** event: create_table_sql
-class CreateTableSql(DomainEvent):
+class CreateTableSql(SqliteEvent):
     '''
     Event to create a table with specified columns and constraints.
 
@@ -306,13 +312,6 @@ class CreateTableSql(DomainEvent):
             sql.execute(generated_sql)
             return {"success": True}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['table_name', 'columns'])
@@ -340,7 +339,7 @@ class CreateTableSql(DomainEvent):
         '''
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
-            table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
+            table_name and isinstance(table_name, str) and _is_valid_identifier(table_name),
             a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
@@ -413,26 +412,8 @@ class CreateTableSql(DomainEvent):
                 original_error=str(e)
             )
 
-    # * method: _is_valid_identifier (static)
-    @staticmethod
-    def _is_valid_identifier(name: str) -> bool:
-        '''
-        Validate that a name is a valid SQLite identifier.
-
-        :param name: The identifier to validate
-        :type name: str
-        :return: True if valid, False otherwise
-        :rtype: bool
-        '''
-        # Basic check: alphanumeric and underscore only, doesn't start with digit
-        if not name:
-            return False
-        if name[0].isdigit():
-            return False
-        return all(c.isalnum() or c == '_' for c in name)
-
 # ** event: drop_table_sql
-class DropTableSql(DomainEvent):
+class DropTableSql(SqliteEvent):
     '''
     Event to drop a table safely with optional IF EXISTS clause.
 
@@ -442,13 +423,6 @@ class DropTableSql(DomainEvent):
             sql.execute(generated_sql)
             return {"success": True}
     '''
-
-    # * attribute: sqlite_service
-    sqlite_service: SqliteService
-
-    # * init
-    def __init__(self, sqlite_service: SqliteService):
-        self.sqlite_service = sqlite_service
 
     # * method: execute
     @DomainEvent.parameters_required(['table_name'])
@@ -470,7 +444,7 @@ class DropTableSql(DomainEvent):
         '''
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
-            table_name and isinstance(table_name, str) and self._is_valid_identifier(table_name),
+            table_name and isinstance(table_name, str) and _is_valid_identifier(table_name),
             a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
@@ -497,21 +471,3 @@ class DropTableSql(DomainEvent):
                 f'SQLite execution failed: {str(e)}',
                 original_error=str(e)
             )
-
-    # * method: _is_valid_identifier (static)
-    @staticmethod
-    def _is_valid_identifier(name: str) -> bool:
-        '''
-        Validate that a name is a valid SQLite identifier.
-
-        :param name: The identifier to validate
-        :type name: str
-        :return: True if valid, False otherwise
-        :rtype: bool
-        '''
-        # Basic check: alphanumeric and underscore only, doesn't start with digit
-        if not name:
-            return False
-        if name[0].isdigit():
-            return False
-        return all(c.isalnum() or c == '_' for c in name)
