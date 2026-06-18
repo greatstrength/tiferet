@@ -69,6 +69,7 @@ Immutable value object representing a complete feature workflow definition.
 | `group_id`     | `str`                           | Yes      | —       | The context group identifier for the feature.        |
 | `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
 | `steps`        | `List[FeatureEvent]`            | No       | `[]`    | The ordered step workflow for the feature.            |
+| `is_async`     | `bool`                          | No       | `False` | Whether the feature executes its steps asynchronously (selects `AsyncFeatureContext`). |
 | `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 
 #### Methods
@@ -94,6 +95,8 @@ The Feature domain objects participate in runtime workflow execution through the
 4. Each resolved domain event is executed with the merged request data and step parameters.
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
 6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
+
+When `feature.is_async` is `True`, the application interface hub selects the `AsyncFeatureContext` (a subclass of `FeatureContext`) and awaits each step via `execute_feature_async`; otherwise the synchronous `FeatureContext` is used. The public `run()` entry point remains synchronous in both cases.
 
 ## Configuration Mapping
 

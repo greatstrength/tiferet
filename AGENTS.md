@@ -49,7 +49,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
 2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, resolves the context's event/repo collaborators by name from the DI container, and constructs the `AppInterfaceContext` declaratively via `BaseContext.from_domain(app_interface, ...)` — the context graph itself is not DI-resolved.
 3. `AppInterfaceContext.run(feature_id, data={})` builds a logger, parses the request, loads the `Feature` domain object, executes it, and returns the response.
-4. The hub builds its sub-contexts (`DIContext`, `FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service from `DIContext` and executes it sequentially.
+4. The hub builds its sub-contexts (`DIContext`, `FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service from `DIContext` and executes it sequentially. When the loaded `Feature` has `is_async` set, the hub instead selects `AsyncFeatureContext` (a `FeatureContext` subclass) and drives `execute_feature_async` to completion via a `_run_coroutine` helper, keeping `run()` synchronous.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
 6. Results flow back through `RequestContext` and `handle_response()`.
 
@@ -330,7 +330,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/contexts/base.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext` (minimal declarative hub bound to the loaded `AppInterface`)
 - `tiferet/contexts/di.py` — `DIContext` (feature-level DI)
-- `tiferet/contexts/feature.py` — `FeatureContext` (feature execution engine)
+- `tiferet/contexts/feature.py` — `FeatureContext` (sync feature execution engine) and `AsyncFeatureContext` (async subclass selected when `Feature.is_async` is set)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
 - `tiferet/repos/settings.py` — `ConfigurationRepository` base class (format-agnostic config I/O)

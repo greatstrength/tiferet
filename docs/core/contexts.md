@@ -12,7 +12,7 @@ All contexts extend `BaseContext` (`tiferet/contexts/base.py`), which provides a
 Tiferet recognizes two broad categories:
 
 - **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
-- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `DIContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
+- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `AsyncFeatureContext`, `DIContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
 In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
 
@@ -90,6 +90,8 @@ class AppInterfaceContext(BaseContext):
 ```
 
 The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `DIContext` and `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`.
+
+When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
 ## Writing Contexts
 

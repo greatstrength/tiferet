@@ -12,7 +12,7 @@ Contexts form the runtime "body" of a Tiferet application. They encapsulate inte
 Tiferet distinguishes between two categories of contexts:
 
 - **High-level contexts** — extend `AppInterfaceContext` and expose the interface's runtime entry point (e.g., a CLI interface or a web API). They delegate to lower-level contexts for execution concerns.
-- **Low-level contexts** — single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `DIContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
+- **Low-level contexts** — single-purpose orchestrators that back the high-level context (e.g., `FeatureContext`, `AsyncFeatureContext`, `DIContext`, `RequestContext`, `ErrorContext`, `LoggingContext`, `CacheContext`).
 
 This guide covers cross-cutting strategies for using, extending, and composing contexts. For artifact-level structure and code style, see [docs/core/contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md).
 
@@ -24,6 +24,7 @@ Every context in `tiferet/contexts/` has a single, well-defined responsibility:
 | --- | --- |
 | `AppInterfaceContext` | Parse the incoming request, execute the feature, format the response, and handle errors at the interface boundary. |
 | `FeatureContext` | Load a feature, resolve each configured step from the DI container, parse parameters, and execute the steps sequentially against a `RequestContext`. |
+| `AsyncFeatureContext` | Subclass of `FeatureContext` that awaits coroutine-based steps via `execute_feature_async`; selected by `AppInterfaceContext` when a feature's `is_async` flag is set. |
 | `DIContext` | Build and cache feature-level service providers from `ServiceConfiguration` objects, resolving per-flag dependency types. |
 | `ErrorContext` | Format exceptions into structured, localized API responses using `ErrorService`. |
 | `LoggingContext` | Build loggers from configured formatters, handlers, and logger specs. |
@@ -132,6 +133,12 @@ features:
           name: Divide a by b
           condition: '$r.b != 0'
 ```
+
+### AsyncFeatureContext
+
+`AsyncFeatureContext` extends `FeatureContext` for features whose steps execute asynchronously. It adds `handle_feature_step_async` and `execute_feature_async`, which await coroutine-based domain events (and async middleware) while reusing the inherited step resolution, parameter parsing, condition evaluation, and middleware composition. The synchronous helpers are unchanged.
+
+Selection is driven by the `Feature.is_async` flag. `AppInterfaceContext.execute_feature` instantiates `AsyncFeatureContext` instead of `FeatureContext` when `is_async` is `True` and drives `execute_feature_async` to completion via an internal `_run_coroutine` helper — `asyncio.run` when no event loop is running, otherwise a short-lived worker thread — so the public `run()` entry point stays synchronous. Because `AsyncFeatureContext` does not declare its own `domain_type`, the `ContextMeta` registry still resolves `Feature` to the synchronous `FeatureContext`.
 
 ### DIContext
 
