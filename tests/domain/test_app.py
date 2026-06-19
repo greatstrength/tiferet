@@ -122,22 +122,3 @@ def test_app_service_dependency_get_service_type(resolvable_app_dependency: AppS
     # Assert the resolved type matches the expected class.
     from tiferet.contexts.app import AppInterfaceContext
     assert service_type is AppInterfaceContext
-
-
-# ** test: app_interface_service_provider_defaults
-def test_app_interface_service_provider_defaults() -> None:
-    '''
-    Test default service provider metadata values on AppInterface.
-    '''
-
-    # Create an AppInterface with minimal required data.
-    interface = AppInterface(id='test',
-        name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
-        services=[],
-    )
-
-    # Assert default provider module path and class name values.
-    assert interface.service_provider_path == 'tiferet.di.settings'
-    assert interface.service_provider_class_name == 'ServiceContainer'

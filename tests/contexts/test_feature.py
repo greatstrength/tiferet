@@ -255,6 +255,46 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
 
+# ** test: feature_context_load_feature_middleware
+def test_feature_context_load_feature_middleware(feature_context, services_context, test_command):
+    """Test resolving middleware service IDs to instances in order."""
+
+    # Resolve a list of middleware ids via the injected handler.
+    middleware = feature_context.load_feature_middleware(['mw_one', 'mw_two'])
+
+    # Assert each id resolved to the handler's return value, preserving order.
+    assert middleware == [test_command, test_command]
+    assert services_context.get_dependency.call_count == 2
+
+# ** test: feature_context_load_feature_middleware_empty
+def test_feature_context_load_feature_middleware_empty(feature_context, services_context):
+    """Test that an empty middleware list resolves to an empty list without resolution."""
+
+    # Resolve an empty middleware list.
+    middleware = feature_context.load_feature_middleware([])
+
+    # Assert no resolution occurred and the result is empty.
+    assert middleware == []
+    services_context.get_dependency.assert_not_called()
+
+# ** test: feature_context_load_feature_middleware_failed
+def test_feature_context_load_feature_middleware_failed(feature_context, services_context):
+    """Test that load_feature_middleware raises MIDDLEWARE_LOADING_FAILED on resolution failure."""
+
+    # Configure the resolution handler to fail for the middleware id.
+    services_context.get_dependency.side_effect = TiferetError(
+        'TEST_ERROR',
+        'Middleware not found in services: missing_mw',
+    )
+
+    # Assert the structured middleware-loading error is raised.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_context.load_feature_middleware(['missing_mw'])
+
+    assert exc_info.value.error_code == 'MIDDLEWARE_LOADING_FAILED'
+    assert exc_info.value.kwargs.get('service_id') == 'missing_mw'
+    assert 'Failed to load middleware: missing_mw' in str(exc_info.value)
+
 # ** test: feature_context_handle_feature_step
 def test_feature_context_handle_feature_step(feature_context, test_command):
     """Test handling a command in the FeatureContext."""

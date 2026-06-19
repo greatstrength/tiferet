@@ -13,6 +13,7 @@ from .cache import CacheContext
 from .request import RequestContext
 from ..assets.constants import (
     FEATURE_COMMAND_LOADING_FAILED_ID,
+    MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
     PARAMETER_NOT_FOUND_ID
 )
@@ -125,8 +126,24 @@ class FeatureContext(BaseContext):
         if not middleware_ids:
             return []
 
-        # Resolve each service ID via the injected handler.
-        return [self.get_dependency(mid_id) for mid_id in middleware_ids]
+        # Resolve each middleware service ID via the injected handler, raising a
+        # structured error if any resolution fails.
+        middleware = []
+        for mid_id in middleware_ids:
+            try:
+                middleware.append(self.get_dependency(mid_id))
+
+            # If the middleware cannot be loaded, raise an error.
+            except Exception as e:
+                RaiseError.execute(
+                    MIDDLEWARE_LOADING_FAILED_ID,
+                    f'Failed to load middleware: {mid_id}. Ensure the container is configured with the appropriate default settings/flags.',
+                    service_id=mid_id,
+                    exception=str(e)
+                )
+
+        # Return the resolved middleware instances.
+        return middleware
 
     # * method: handle_feature_step
     def handle_feature_step(self,

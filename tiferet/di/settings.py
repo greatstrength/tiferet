@@ -10,10 +10,120 @@ import inspect
 from dependency_injector import containers, providers
 
 # ** app
-from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..domain import ServiceConfiguration
-from ..events import RaiseError, ParseParameter
 from ..interfaces.di import DIService
+
+
+# *** functions
+
+# ** function: injectable_parameter_names
+def injectable_parameter_names(service_type: type) -> List[str]:
+    '''
+    Return the injectable constructor parameter names for a service type,
+    excluding ``self`` and variadic parameters.
+
+    :param service_type: The service class to inspect.
+    :type service_type: type
+    :return: The injectable constructor parameter names.
+    :rtype: List[str]
+    '''
+
+    # Inspect the constructor signature; treat uninspectable types as no-arg.
+    try:
+        sig = inspect.signature(service_type.__init__)
+    except (ValueError, TypeError):
+        return []
+
+    # Collect parameter names, skipping self and variadic parameters.
+    names: List[str] = []
+    for name, param in sig.parameters.items():
+        if name == 'self':
+            continue
+        if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        names.append(name)
+
+    # Return the injectable parameter names.
+    return names
+
+# ** function: normalize_flags
+def normalize_flags(*flags) -> List[str]:
+    '''
+    Normalize a mixed sequence of flag arguments into a flat list of strings.
+
+    Accepts individual strings, lists, tuples, or any combination thereof.
+
+    :param flags: The flags to normalize.
+    :type flags: str | list | tuple
+    :return: A flat list of flag strings.
+    :rtype: List[str]
+    '''
+
+    # Flatten the flags into a single list.
+    result: List[str] = []
+    for flag in flags:
+        if isinstance(flag, (list, tuple)):
+            result.extend(str(f) for f in flag)
+        else:
+            result.append(str(flag))
+
+    # Return the flattened list.
+    return result
+
+# ** function: create_cache_key
+def create_cache_key(flags: List[str] = None) -> str:
+    '''
+    Create a cache key for a service container from its flags.
+
+    :param flags: The feature or data flags to use.
+    :type flags: List[str] | None
+    :return: The cache key.
+    :rtype: str
+    '''
+
+    # Create the cache key from the flags.
+    return f"feature_services{'_' + '_'.join(flags) if flags else ''}"
+
+# ** function: merge_settings
+def merge_settings(
+        configs: List[ServiceConfiguration] = None,
+        constants: Dict[str, Any] = None,
+        default_config_index: Dict[str, ServiceConfiguration] = None,
+        default_constants: Dict[str, Any] = None,
+    ) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+    '''
+    Merge repository configurations and constants with bootstrap defaults.
+
+    Default-index entries are appended for any service ID not already present,
+    and default constants are merged beneath the repository constants.
+
+    :param configs: The repository service configurations.
+    :type configs: List[ServiceConfiguration] | None
+    :param constants: The repository constants.
+    :type constants: Dict[str, Any] | None
+    :param default_config_index: Typed default configuration index keyed by id.
+    :type default_config_index: Dict[str, ServiceConfiguration] | None
+    :param default_constants: Default constants merged at lower priority.
+    :type default_constants: Dict[str, Any] | None
+    :return: Merged list of service configurations and constants.
+    :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
+    '''
+
+    # Build the set of existing service IDs for deduplication.
+    existing_ids = {c.id for c in (configs or [])}
+
+    # Merge default-index entries for any service ID not already present.
+    default_configs = [
+        config
+        for config_id, config in (default_config_index or {}).items()
+        if config_id not in existing_ids
+    ]
+
+    # Merge constants: defaults are lower priority than repository constants.
+    merged_constants = {**(default_constants or {}), **(constants or {})}
+
+    # Return the merged configurations and constants.
+    return list(configs or []) + default_configs, merged_constants
 
 
 # *** classes
@@ -115,35 +225,11 @@ class ServiceContainer(object):
         :rtype: Any
         '''
 
-        # Attempt to retrieve and invoke the provider from the container.
-        try:
-            provider = self.container.providers.get(service_id)
-
-            # If no provider was found, raise an error.
-            if provider is None:
-                RaiseError.execute(
-                    'INVALID_DEPENDENCY_ERROR',
-                    f'Dependency {service_id} could not be resolved: not registered.',
-                    dependency_name=service_id,
-                    exception=f'No provider registered for {service_id}.',
-                )
-
-            # Invoke the provider to resolve the dependency.
-            return provider()
-
-        # Re-raise TiferetErrors without wrapping.
-        except Exception as e:
-            from ..assets.exceptions import TiferetError
-            if isinstance(e, TiferetError):
-                raise
-
-            # Wrap unexpected resolution errors in a structured error.
-            RaiseError.execute(
-                'INVALID_DEPENDENCY_ERROR',
-                f'Dependency {service_id} could not be resolved: {str(e)}',
-                dependency_name=service_id,
-                exception=str(e),
-            )
+        # Look up the provider and invoke it to resolve the dependency. A
+        # missing or failing provider raises a raw exception for the caller
+        # (which has event access) to convert into a structured error.
+        provider = self.container.providers.get(service_id)
+        return provider()
 
     # * method: remove_service
     def remove_service(self, service_id: str):
@@ -169,23 +255,10 @@ class ServiceContainer(object):
         :rtype: providers.Factory
         '''
 
-        # Inspect the constructor signature to identify injectable parameters.
-        try:
-            sig = inspect.signature(service_type.__init__)
-        except (ValueError, TypeError):
-            return providers.Factory(service_type)
-
-        # Build kwargs mapping from constructor parameter names to sibling providers.
+        # Wire each injectable constructor parameter to a sibling provider
+        # when one is registered, using the shared signature helper.
         kwargs = {}
-        for param_name, param in sig.parameters.items():
-
-            # Skip self and variadic parameters.
-            if param_name == 'self':
-                continue
-            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue
-
-            # Wire the parameter to a sibling provider if one exists.
+        for param_name in injectable_parameter_names(service_type):
             sibling = self.container.providers.get(param_name)
             if sibling is not None:
                 kwargs[param_name] = sibling
@@ -205,8 +278,8 @@ class ServiceResolver(object):
     # * attribute: di_service
     di_service: DIService
 
-    # * attribute: container_factory
-    container_factory: Callable
+    # * attribute: parse_parameter
+    parse_parameter: Callable
 
     # * attribute: default_config_index
     default_config_index: Dict[str, ServiceConfiguration]
@@ -217,7 +290,7 @@ class ServiceResolver(object):
     # * init
     def __init__(self,
             di_service: DIService,
-            container_factory: Callable = None,
+            parse_parameter: Callable = None,
             default_config_index: Dict[str, ServiceConfiguration] = None,
             default_di_constants: Dict[str, Any] = None,
         ):
@@ -226,8 +299,11 @@ class ServiceResolver(object):
 
         :param di_service: The DI service (repository) supplying service configurations and constants.
         :type di_service: DIService
-        :param container_factory: Optional factory for creating the internal service container.
-        :type container_factory: Callable | None
+        :param parse_parameter: Optional callable used to parse constant and parameter
+            values (e.g. ``$env.`` references); defaults to an identity function so
+            DI never imports the parameter-parsing event itself. The bootstrap event
+            injects the real ``ParseParameter.execute``.
+        :type parse_parameter: Callable | None
         :param default_config_index: Optional typed default service configuration index,
             keyed by id, merged beneath the repository's configurations.
         :type default_config_index: Dict[str, ServiceConfiguration] | None
@@ -239,8 +315,8 @@ class ServiceResolver(object):
         # Set the DI repository dependency.
         self.di_service = di_service
 
-        # Assign the container factory, defaulting to the built-in one.
-        self.container_factory = container_factory if container_factory else self.default_container
+        # Assign the parameter parser, defaulting to an identity function.
+        self.parse_parameter = parse_parameter if parse_parameter else (lambda v: v)
 
         # Store the typed bootstrap defaults, defaulting to empty containers.
         self.default_config_index = default_config_index if default_config_index is not None else {}
@@ -249,39 +325,13 @@ class ServiceResolver(object):
         # Initialize the per-flag service container cache.
         self._containers: Dict[str, ServiceContainer] = {}
 
-    # * method: default_container (static)
-    @staticmethod
-    def default_container(type_map: Dict[str, type] = None, **constants) -> ServiceContainer:
-        '''
-        Create the default service container for dependency resolution.
-
-        :param type_map: Mapping of service IDs to dependency types.
-        :type type_map: Dict[str, type]
-        :param constants: Constant values to register in the container.
-        :type constants: dict
-        :return: A configured service container.
-        :rtype: ServiceContainer
-        '''
-
-        # Create an empty container and register constants first
-        # so Factory providers can wire constructor parameters.
-        container = ServiceContainer()
-        container.add_constants(constants)
-
-        # Add service types after constants are available.
-        if type_map:
-            container.add_services(type_map)
-
-        # Return the configured container.
-        return container
-
     # * method: normalize_flags (static)
     @staticmethod
     def normalize_flags(*flags) -> List[str]:
         '''
         Normalize a mixed sequence of flag arguments into a flat list of strings.
 
-        Accepts individual strings, lists, tuples, or any combination thereof.
+        Delegates to the module-level :func:`normalize_flags` helper.
 
         :param flags: The flags to normalize.
         :type flags: str | list | tuple
@@ -289,21 +339,15 @@ class ServiceResolver(object):
         :rtype: List[str]
         '''
 
-        # Flatten the flags into a single list.
-        result: List[str] = []
-        for flag in flags:
-            if isinstance(flag, (list, tuple)):
-                result.extend(str(f) for f in flag)
-            else:
-                result.append(str(flag))
-
-        # Return the flattened list.
-        return result
+        # Delegate to the shared module-level helper.
+        return normalize_flags(*flags)
 
     # * method: create_cache_key
     def create_cache_key(self, flags: List[str] = None) -> str:
         '''
         Create a cache key for the service container.
+
+        Delegates to the module-level :func:`create_cache_key` helper.
 
         :param flags: The feature or data flags to use.
         :type flags: List[str] | None
@@ -311,8 +355,8 @@ class ServiceResolver(object):
         :rtype: str
         '''
 
-        # Create the cache key from the flags.
-        return f"feature_services{'_' + '_'.join(flags) if flags else ''}"
+        # Delegate to the shared module-level helper.
+        return create_cache_key(flags)
 
     # * method: list_all_settings
     def list_all_settings(self) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
@@ -328,21 +372,13 @@ class ServiceResolver(object):
         # Retrieve configurations and constants from the DI service.
         configs, constants = self.di_service.list_all()
 
-        # Build the set of existing service IDs for deduplication.
-        existing_ids = {c.id for c in (configs or [])}
-
-        # Merge default-index entries for any service ID not already present.
-        default_configs = [
-            config
-            for config_id, config in (self.default_config_index or {}).items()
-            if config_id not in existing_ids
-        ]
-
-        # Merge constants: defaults are lower priority than repository constants.
-        merged_constants = {**(self.default_di_constants or {}), **(constants or {})}
-
-        # Return the merged configurations and constants.
-        return list(configs or []) + default_configs, merged_constants
+        # Merge with the bootstrap defaults via the shared helper.
+        return merge_settings(
+            configs,
+            constants,
+            self.default_config_index,
+            self.default_di_constants,
+        )
 
     # * method: load_constants
     def load_constants(self,
@@ -368,8 +404,8 @@ class ServiceResolver(object):
         constants = constants if constants else {}
         flags = flags if flags else []
 
-        # Parse the top-level constants.
-        constants = {k: ParseParameter.execute(v) for k, v in constants.items()}
+        # Parse the top-level constants using the injected parser.
+        constants = {k: self.parse_parameter(v) for k, v in constants.items()}
 
         # Merge in per-configuration parameters (flagged or default).
         for config in configurations:
@@ -379,9 +415,9 @@ class ServiceResolver(object):
 
             # Use flagged parameters if available; otherwise use the default parameters.
             if dependency:
-                constants.update({k: ParseParameter.execute(v) for k, v in dependency.parameters.items()})
+                constants.update({k: self.parse_parameter(v) for k, v in dependency.parameters.items()})
             else:
-                constants.update({k: ParseParameter.execute(v) for k, v in config.parameters.items()})
+                constants.update({k: self.parse_parameter(v) for k, v in config.parameters.items()})
 
         # Return the merged constants dictionary.
         return constants
@@ -413,14 +449,11 @@ class ServiceResolver(object):
             # Get the dependency type based on the flags.
             dep_type = config.get_service_type(*flags)
 
-            # If no type is found, raise an error.
+            # Skip configurations that resolve to no type so they are simply not
+            # registered (best-case); an unresolved service then surfaces as a
+            # raw resolution error at the context that has event access.
             if not dep_type:
-                RaiseError.execute(
-                    DEPENDENCY_TYPE_NOT_FOUND_ID,
-                    f'No dependency type found for service configuration {config.id} with flags {flags}.',
-                    configuration_id=config.id,
-                    flags=flags,
-                )
+                continue
 
             # Add the resolved type to the service type mapping.
             type_map[config.id] = dep_type
@@ -466,11 +499,12 @@ class ServiceResolver(object):
             flags=flags,
         )
 
-        # Build the service container using the configured factory.
-        container = self.container_factory(
-            type_map=type_map,
-            **constants,
-        )
+        # Build the service container directly, registering constants first so
+        # Factory providers can wire their constructor parameters.
+        container = ServiceContainer()
+        container.add_constants(constants)
+        if type_map:
+            container.add_services(type_map)
 
         # Cache and return the container.
         self._containers[cache_key] = container

@@ -8,12 +8,11 @@ from typing import Any, Dict, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
-from ..di import ServiceResolver
+from ..di import injectable_parameter_names
 from .. import assets as a
 from ..domain import (
     AppInterface,
     AppServiceDependency,
-    ServiceConfiguration,
 )
 from ..events import (
     DomainEvent,
@@ -21,6 +20,7 @@ from ..events import (
     RaiseError,
 )
 from ..events.app import GetAppInterface
+from ..events.blueprint import CreateServiceResolver
 
 # *** constants
 
@@ -33,9 +33,9 @@ APP_CONTEXT_COLLABORATORS = (
     'logging_list_all_evt',
 )
 
-# *** blueprints
+# *** functions
 
-# ** blueprint: resolve_ctor_kwargs
+# ** function: resolve_ctor_kwargs
 def resolve_ctor_kwargs(service_type: type, registry: Dict[str, Any]) -> Dict[str, Any] | None:
     '''
     Resolve constructor keyword arguments for a service type from the registry.
@@ -57,26 +57,64 @@ def resolve_ctor_kwargs(service_type: type, registry: Dict[str, Any]) -> Dict[st
     except (ValueError, TypeError):
         return {}
 
-    # Match constructor parameters to registry entries, deferring on any
-    # missing required parameter.
+    # Match each injectable constructor parameter (sourced from the shared DI
+    # helper so the skip rules live in one place) to a registry entry,
+    # deferring on any missing required parameter.
     kwargs: Dict[str, Any] = {}
-    for name, param in sig.parameters.items():
-
-        # Skip self and variadic parameters.
-        if name == 'self':
-            continue
-        if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-            continue
+    for name in injectable_parameter_names(service_type):
 
         # Wire from the registry, or defer when a required value is absent.
         if name in registry:
             kwargs[name] = registry[name]
-        elif param.default is inspect.Parameter.empty:
+        elif sig.parameters[name].default is inspect.Parameter.empty:
             return None
 
     # Return the resolved constructor kwargs.
     return kwargs
 
+
+# ** function: build_wiring_constants
+def build_wiring_constants(app_interface: AppInterface) -> Dict[str, Any]:
+    '''
+    Build the wiring-registry seed constants from an app interface.
+
+    Combines the interface scalars (id, logger id) with the interface's
+    declared constants into a single name-to-value mapping used to seed
+    declarative service wiring.
+
+    :param app_interface: The resolved app interface definition.
+    :type app_interface: AppInterface
+    :return: The seed constants keyed by name.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Combine interface scalars with the interface's declared constants.
+    return {
+        'interface_id': app_interface.id,
+        'logger_id': getattr(app_interface, 'logger_id', None),
+        **(app_interface.constants or {}),
+    }
+
+
+# ** function: resolve_collaborators
+def resolve_collaborators(registry: Dict[str, Any]) -> Dict[str, Any]:
+    '''
+    Resolve the hub's event collaborators by name from a wiring registry.
+
+    :param registry: The name-to-value registry of constants and built services.
+    :type registry: Dict[str, Any]
+    :return: The resolved collaborators keyed by service id (missing ids map to None).
+    :rtype: Dict[str, Any]
+    '''
+
+    # Resolve each declared collaborator id from the registry.
+    return {
+        name: registry.get(name)
+        for name in APP_CONTEXT_COLLABORATORS
+    }
+
+
+# *** blueprints
 
 # ** blueprint: wire_services
 def wire_services(
@@ -139,27 +177,6 @@ def wire_services(
 
     # Return the populated registry.
     return registry
-
-
-# ** blueprint: build_config_index
-def build_config_index(default_configurations: List[Dict[str, Any]] = None) -> Dict[str, ServiceConfiguration]:
-    '''
-    Build a typed default service configuration index keyed by id.
-
-    :param default_configurations: Raw service configuration dicts, if any.
-    :type default_configurations: List[Dict[str, Any]] | None
-    :return: A mapping of configuration id to ServiceConfiguration.
-    :rtype: Dict[str, ServiceConfiguration]
-    '''
-
-    # Validate each raw configuration dict into a typed index keyed by id.
-    return {
-        config.id: config
-        for config in (
-            ServiceConfiguration.model_validate(data)
-            for data in (default_configurations or [])
-        )
-    }
 
 
 # ** blueprint: load_app_service
@@ -232,11 +249,7 @@ def load_app_instance(
     '''
 
     # Seed the wiring registry with interface scalars and constants.
-    constants: Dict[str, Any] = {
-        'interface_id': app_interface.id,
-        'logger_id': getattr(app_interface, 'logger_id', None),
-        **(app_interface.constants or {}),
-    }
+    constants = build_wiring_constants(app_interface)
 
     # Declaratively instantiate the interface's service dependencies.
     try:
@@ -249,19 +262,19 @@ def load_app_instance(
             exception=str(e),
         )
 
-    # Build the service resolver from the resolved DI repository, routing any
-    # bootstrap DI defaults (popped from context kwargs) into it.
-    resolver = ServiceResolver(
-        di_service=registry.get('di_service'),
-        default_config_index=build_config_index(context_kwargs.pop('default_configurations', None)),
-        default_di_constants=context_kwargs.pop('default_constants', None) or {},
+    # Compose the service resolver via the bootstrap event from the interface's
+    # DI repository dependency, routing any bootstrap DI defaults (popped from
+    # context kwargs) into it.
+    resolver = DomainEvent.handle(
+        CreateServiceResolver,
+        dependencies={},
+        app_interface=app_interface,
+        default_configurations=context_kwargs.pop('default_configurations', None),
+        default_constants=context_kwargs.pop('default_constants', None),
     )
 
     # Resolve the hub's event collaborators by name from the registry.
-    resolved = {
-        name: registry.get(name)
-        for name in APP_CONTEXT_COLLABORATORS
-    }
+    resolved = resolve_collaborators(registry)
 
     # Import the context class declared by the interface (supports custom contexts).
     context_cls = ImportDependency.execute(

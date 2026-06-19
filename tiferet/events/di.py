@@ -7,6 +7,7 @@ from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
 from .settings import DomainEvent, a
+from ..di import merge_settings
 from ..domain.di import ServiceConfiguration
 from ..interfaces.di import DIService
 from ..mappers.di import ServiceConfigurationAggregate
@@ -372,7 +373,8 @@ class SetServiceConstants(DIEvent):
 # ** event: list_all_settings
 class ListAllSettings(DIEvent):
     '''
-    A domain event to list all service configurations and constants.
+    A domain event to list all service configurations and constants, merging
+    execute-time bootstrap defaults beneath the repository values.
     '''
 
     # * method: execute
@@ -401,18 +403,11 @@ class ListAllSettings(DIEvent):
         # Retrieve configurations and constants from the DI service.
         configs, constants = self.di_service.list_all()
 
-        # Build the set of existing service IDs for deduplication.
-        existing_ids = {c.id for c in (configs or [])}
-
-        # Merge default-index entries for any service ID not already present.
-        default_configs = [
-            config
-            for config_id, config in (default_config_index or {}).items()
-            if config_id not in existing_ids
-        ]
-
-        # Merge constants: defaults are lower priority than repository constants.
-        merged_constants = {**(default_constants or {}), **(constants or {})}
-
-        # Return the merged configurations and constants.
-        return list(configs or []) + default_configs, merged_constants
+        # Merge with the execute-time bootstrap defaults via the shared helper,
+        # reusing the single merge implementation that backs the resolver.
+        return merge_settings(
+            configs,
+            constants,
+            default_config_index,
+            default_constants,
+        )

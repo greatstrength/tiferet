@@ -8,9 +8,7 @@ from unittest import mock
 from typing import Tuple, List, Dict
 
 # ** app
-from tiferet.assets.exceptions import TiferetError
-from tiferet.assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
-from tiferet.di.settings import ServiceContainer, ServiceResolver
+from tiferet.di.settings import ServiceContainer, ServiceResolver, merge_settings
 from tiferet.domain import ServiceConfiguration, FlaggedDependency
 from tiferet.interfaces.di import DIService
 
@@ -300,19 +298,17 @@ def test_container_add_constants_injected_into_service(empty_container: ServiceC
 # ** test: container_get_service_not_found
 def test_container_get_service_not_found(empty_container: ServiceContainer):
     '''
-    Test that get_service raises TiferetError for an unregistered service ID.
+    Test that get_service raises a raw error for an unregistered service ID
+    (best-case: a missing provider is not callable).
 
     :param empty_container: The empty container fixture.
     :type empty_container: ServiceContainer
     '''
 
-    # Attempt to resolve a service that was never registered.
-    with pytest.raises(TiferetError) as exc_info:
+    # Attempt to resolve a service that was never registered; the missing
+    # provider raises a raw error for the caller (with event access) to convert.
+    with pytest.raises(TypeError):
         empty_container.get_service('nonexistent_service')
-
-    # Assert the correct error code and dependency name.
-    assert exc_info.value.error_code == 'INVALID_DEPENDENCY_ERROR'
-    assert exc_info.value.kwargs.get('dependency_name') == 'nonexistent_service'
 
 
 # ** test: container_remove_service
@@ -327,9 +323,9 @@ def test_container_remove_service(populated_container: ServiceContainer):
     # Remove the registered service.
     populated_container.remove_service('simple_service')
 
-    # Assert it was removed and is no longer resolvable.
+    # Assert it was removed and is no longer resolvable (raw error, best-case).
     assert 'simple_service' not in populated_container.container.providers
-    with pytest.raises(TiferetError):
+    with pytest.raises(TypeError):
         populated_container.get_service('simple_service')
 
 
@@ -382,55 +378,6 @@ def test_resolver_create_cache_key(resolver: ServiceResolver):
     assert resolver.create_cache_key(flags=['test', 'test2']) == 'feature_services_test_test2'
 
 
-# ** test: resolver_default_container_factory
-def test_resolver_default_container_factory():
-    '''
-    Test the default ServiceResolver container factory.
-    '''
-
-    # Build a container with a type map and injected constants.
-    container = ServiceResolver.default_container(
-        type_map={'test_service': TestService},
-        test_config='factory_value',
-    )
-
-    # Assert the container type and service resolution behavior.
-    assert isinstance(container, ServiceContainer)
-    resolved_service = container.get_service('test_service')
-    assert resolved_service.test_config == 'factory_value'
-
-
-# ** test: resolver_custom_container_factory
-def test_resolver_custom_container_factory(di_service_mock):
-    '''
-    Test that ServiceResolver uses a custom container factory when injected.
-
-    :param di_service_mock: The mock DIService.
-    :type di_service_mock: mock.Mock
-    '''
-
-    # Create a custom factory mock and container return value.
-    container = ServiceContainer()
-    create_factory = mock.Mock(return_value=container)
-
-    # Create a resolver with the custom factory and build a container.
-    resolver = ServiceResolver(
-        di_service=di_service_mock,
-        container_factory=create_factory,
-    )
-    result = resolver.build_container()
-
-    # Assert the custom factory was called with the expected type map/constants.
-    create_factory.assert_called_once()
-    kwargs = create_factory.call_args.kwargs
-    assert kwargs['type_map']['test_service'].__qualname__ == TestService.__qualname__
-    assert kwargs['test_config'] == 'test_value'
-    assert kwargs['param_config'] == 'param_value'
-
-    # Assert the factory output container is used and returned.
-    assert result is container
-
-
 # ** test: resolver_build_container
 def test_resolver_build_container(resolver: ServiceResolver):
     '''
@@ -466,13 +413,14 @@ def test_resolver_build_container(resolver: ServiceResolver):
     assert resolver._containers.get('feature_services_test') is flagged_container
 
 
-# ** test: resolver_build_container_with_missing_dependency_type
-def test_resolver_build_container_with_missing_dependency_type(
+# ** test: resolver_build_container_skips_missing_dependency_type
+def test_resolver_build_container_skips_missing_dependency_type(
         resolver: ServiceResolver,
         di_service_mock,
         di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
     '''
-    Test building a container with a missing dependency type raises an error.
+    Test that a configuration resolving to no type is skipped (best-case),
+    leaving the service unregistered rather than raising a DI-specific error.
 
     :param resolver: The service resolver to test.
     :type resolver: ServiceResolver
@@ -487,14 +435,14 @@ def test_resolver_build_container_with_missing_dependency_type(
     configurations[0].class_name = None
     di_service_mock.list_all.return_value = (configurations, constants)
 
-    # Attempt to build the container and expect an error.
-    with pytest.raises(TiferetError) as exc_info:
-        resolver.build_container(flags=['missing_flag'])
+    # Build the container; the no-type configuration is simply skipped.
+    container = resolver.build_container(flags=['missing_flag'])
 
-    # Assert the correct error code and kwargs.
-    assert exc_info.value.error_code == DEPENDENCY_TYPE_NOT_FOUND_ID
-    assert exc_info.value.kwargs.get('configuration_id') == 'test_service'
-    assert exc_info.value.kwargs.get('flags') == ['missing_flag']
+    # Assert the unresolved service is not registered and resolving it raises
+    # a raw error for the caller to convert.
+    assert 'test_service' not in container.container.providers
+    with pytest.raises(TypeError):
+        container.get_service('test_service')
 
 
 # ** test: resolver_build_container_cached
@@ -642,3 +590,66 @@ def test_resolver_list_all_settings_merges_defaults(di_service_mock):
     assert 'default_only_service' in config_ids
     assert constants['test_config'] == 'test_value'
     assert constants['extra'] == 'extra_value'
+
+
+# ** test: merge_settings_merges_defaults
+def test_merge_settings_merges_defaults():
+    '''
+    Test that the merge_settings helper appends default configs for missing ids
+    and merges default constants beneath repository constants.
+    '''
+
+    # Define a repository configuration and a default-only configuration.
+    repo_config = ServiceConfiguration(id='repo_service', module_path='m', class_name='C')
+    default_config = ServiceConfiguration(id='default_only', module_path='m', class_name='C')
+
+    # Merge repository values with the bootstrap defaults.
+    configs, constants = merge_settings(
+        [repo_config],
+        {'shared': 'repo'},
+        {'default_only': default_config, 'repo_service': repo_config},
+        {'shared': 'default', 'extra': 'extra_value'},
+    )
+
+    # Assert the default-only config is appended and repo constants take priority.
+    config_ids = {c.id for c in configs}
+    assert config_ids == {'repo_service', 'default_only'}
+    assert constants['shared'] == 'repo'
+    assert constants['extra'] == 'extra_value'
+
+
+# ** test: resolver_parse_parameter_injection
+def test_resolver_parse_parameter_injection(di_service_mock):
+    '''
+    Test that an injected parse_parameter callable is applied to constants.
+
+    :param di_service_mock: The mock DIService.
+    :type di_service_mock: mock.Mock
+    '''
+
+    # Inject a custom parser that tags each parsed value.
+    resolver = ServiceResolver(
+        di_service=di_service_mock,
+        parse_parameter=lambda v: f'parsed:{v}',
+    )
+
+    # Load constants and assert the injected parser was applied.
+    constants = resolver.load_constants(constants={'test_config': 'value'})
+    assert constants['test_config'] == 'parsed:value'
+
+
+# ** test: resolver_parse_parameter_defaults_to_identity
+def test_resolver_parse_parameter_defaults_to_identity(di_service_mock):
+    '''
+    Test that the default parse_parameter is an identity function.
+
+    :param di_service_mock: The mock DIService.
+    :type di_service_mock: mock.Mock
+    '''
+
+    # Build a resolver without injecting a parser.
+    resolver = ServiceResolver(di_service=di_service_mock)
+
+    # Load constants and assert values pass through unchanged.
+    constants = resolver.load_constants(constants={'test_config': 'value'})
+    assert constants['test_config'] == 'value'
