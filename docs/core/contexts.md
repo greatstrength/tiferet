@@ -12,7 +12,7 @@ All contexts extend `BaseContext` (`tiferet/contexts/base.py`), which provides a
 Tiferet recognizes two broad categories:
 
 - **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
-- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `AsyncFeatureContext`, `DIContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
+- **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `AsyncFeatureContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
 In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
 
@@ -55,18 +55,18 @@ class AppInterfaceContext(BaseContext):
     domain_type = AppInterface
 
     # * init
-    def __init__(self, get_feature_evt, get_error_evt, di_list_all_configs_evt,
-                 logging_list_all_evt, create_service_provider=None, cache=None,
-                 default_features=None, default_commands=None,
-                 default_configurations=None, default_constants=None):
+    def __init__(self, get_feature_evt, get_error_evt, logging_list_all_evt,
+                 get_dependency, cache=None,
+                 default_features=None, default_commands=None):
         '''
         Initialize the hub. The loaded AppInterface is bound via from_domain as
         self.domain, supplying the interface id and logger id on demand.
         '''
         super().__init__(cache=cache)
         self.get_feature_evt = get_feature_evt
-        # ... store the remaining events, provider factory, and validated
-        # bootstrap defaults; sub-contexts are created lazily on first use ...
+        # ... store the remaining events and the injected get_dependency
+        # service-resolution handler, plus validated bootstrap defaults;
+        # sub-contexts are created lazily on first use ...
 
     # * method: run
     def run(self, feature_id, headers=None, data=None, **kwargs):
@@ -89,7 +89,7 @@ class AppInterfaceContext(BaseContext):
         return request.handle_response()
 ```
 
-The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `DIContext` and `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`.
+The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds — there is no `DIContext`.
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
@@ -146,8 +146,8 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         app_interface,
         get_feature_evt=mock.Mock(),
         get_error_evt=mock.Mock(),
-        di_list_all_configs_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
     )
     # Inject the mock logging context via its cache; feature and error contexts
     # are built on demand, so patch BaseContext.for_domain to return the mocks.
@@ -177,4 +177,4 @@ def test_app_interface_context_run_success(app_interface_context, logging_contex
 
 ## Conclusion
 
-Contexts define the runtime shape of Tiferet applications, orchestrating user interaction and internal services. Their structured design ensures consistency and extensibility. Developers can create new Contexts or extend existing ones by following artifact patterns and conventions. Explore `tiferet/contexts/` for source and `tiferet/contexts/tests/` for test examples.
+Contexts define the runtime shape of Tiferet applications, orchestrating user interaction and internal services. Their structured design ensures consistency and extensibility. Developers can create new Contexts or extend existing ones by following artifact patterns and conventions. Explore `tiferet/contexts/` for source and `tests/contexts/` for test examples.

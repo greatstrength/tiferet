@@ -67,8 +67,8 @@ The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer
 
 1. **`App('basic_calc', app_config='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
 2. **`resolve_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event, merging default services.
-3. **`realize_interface(app_interface, ...)`** iterates through `app_interface.services`, imports each class via `ImportDependency.execute()`, and collects them (along with parameters and constants) into a dependencies dict.
-4. The dependencies dict is passed to `create_service_provider`, which builds a DI container that instantiates the context class with all its wired services.
+3. **`load_app_instance(app_interface, ...)`** (invoked by `realize_interface`) calls `wire_services` to import each class in `app_interface.services` via `ImportDependency.execute()` and instantiate them (along with parameters and constants) into a name-to-value registry — no app-level DI container.
+4. A `ServiceResolver` is built from the resolved `di_service`, and the context class is constructed declaratively via `from_domain`, injecting `resolver.get_dependency` and the resolved event collaborators.
 5. The resulting `AppInterfaceContext` is returned, ready to execute features.
 
 ```python
@@ -128,7 +128,7 @@ Concrete implementations (e.g., `AppConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Dependency Injection:** `AppServiceDependency` entries reference service configurations that are resolved at runtime via `DIContext`.
+- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories (wired by `wire_services`); feature-step service configurations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
 - **Feature:** Once an interface is loaded and its context instantiated, features defined in the configuration are executed through the `FeatureContext`.
 - **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain.
 

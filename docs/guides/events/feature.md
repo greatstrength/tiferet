@@ -7,9 +7,9 @@
 
 ## Overview
 
-The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module depends on an injected `FeatureService` and operates on `Feature` domain objects through the `FeatureAggregate` mapper.
+The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper.
 
-Features are composed of ordered **steps** (`FeatureEvent` instances), each referencing a `service_id` that maps to a service configuration in the dependency injection container.
+Features are composed of ordered **steps** (`EventFeatureStep` instances), each referencing a `service_id` that maps to a service configuration in the dependency injection container.
 
 ## Events at a Glance
 
@@ -25,11 +25,14 @@ Features are composed of ordered **steps** (`FeatureEvent` instances), each refe
 | `RemoveFeatureStep` | Remove step | `id`, `position` | `str` (ID) |
 | `ReorderFeatureStep` | Reorder step | `id`, `start_position`, `end_position` | `str` (ID) |
 
-## Dependency
+## Base Event and Dependency
 
-All events inject a single dependency:
+All concrete events in this module extend a shared base event that owns the single injected dependency:
 
-- **`feature_service: FeatureService`** — the service interface for persisting and retrieving `Feature` objects.
+- **`FeatureEvent(DomainEvent)`** — the per-module base event (defined in `tiferet/events/feature.py`). It declares the `feature_service` attribute and the common constructor; concrete events extend it and define only their `execute` method (plus any `@DomainEvent.parameters_required` decorators).
+- **`feature_service: FeatureService`** — the service interface for persisting and retrieving `Feature` objects, injected via the base event.
+
+> **Note:** the base event `FeatureEvent` shares its name with the previous *domain object* `FeatureEvent`, which was renamed to `EventFeatureStep` in v2.0.0b10 to free the name. The base event is a `DomainEvent` subclass, not a feature step.
 
 ## Event Details
 
@@ -271,3 +274,8 @@ DomainEvent.handle(
 - **Parameter renames:** `commands` → `steps` in `AddFeature.execute()`.
 - **Artifact comments:** Updated from `# *** commands` / `# ** command:` to `# *** events` / `# ** event:`.
 - **Unused imports removed:** `Aggregate` and `FeatureEventAggregate` no longer imported.
+
+### v2.0.0b10 Changes
+
+- **Base event:** introduced `FeatureEvent(DomainEvent)` holding the shared `feature_service`. `AddFeature`, `GetFeature`, `ListFeatures`, `RemoveFeature`, `UpdateFeature`, `AddFeatureStep`, `UpdateFeatureStep`, `RemoveFeatureStep`, and `ReorderFeatureStep` now extend it and keep only their `execute` methods (and `@DomainEvent.parameters_required` decorators).
+- **Domain object rename:** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (mappers `FeatureEventAggregate`/`FeatureEventYamlObject` → `EventFeatureStepAggregate`/`EventFeatureStepYamlObject`) to free the `FeatureEvent` name for the new base event.

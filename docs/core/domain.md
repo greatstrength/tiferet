@@ -165,7 +165,7 @@ Domain objects are defined in `tiferet/domain/`:
 - `cli.py` – `CliCommand`, `CliArgument`.
 - `di.py` – `ServiceConfiguration`, `FlaggedDependency`.
 - `error.py` – `Error`, `ErrorMessage`.
-- `feature.py` – `Feature`, `FeatureStep`, `FeatureEvent`.
+- `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
 - `logging.py` – `Formatter`, `Handler`, `Logger`.
 - `__init__.py` – Public exports for all domain objects.
 
