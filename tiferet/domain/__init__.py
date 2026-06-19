@@ -14,7 +14,7 @@ __all__ = [
     'ErrorMessage',
     'Feature',
     'FeatureStep',
-    'FeatureEvent',
+    'EventFeatureStep',
     'Formatter',
     'Handler',
     'Logger',
@@ -41,7 +41,7 @@ from .error import (
 from .feature import (
     Feature,
     FeatureStep,
-    FeatureEvent,
+    EventFeatureStep,
 )
 from .logging import (
     Formatter,

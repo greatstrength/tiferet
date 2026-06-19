@@ -4,6 +4,7 @@
 
 # ** core
 import asyncio
+import functools
 from typing import Dict, Any
 
 # ** app
@@ -68,15 +69,85 @@ class DomainEvent(object):
         :type kwargs: dict
         '''
 
-        # Verify the expression.
-        try:
-            assert expression
-        except AssertionError:
+        # Raise a structured error when the expression is falsy.
+        if not expression:
             self.raise_error(
                 error_code,
                 message,
                 **kwargs
             )
+
+    # * method: _validate_required_parameters (static)
+    @staticmethod
+    def _validate_required_parameters(instance: Any, param_names: list, kwargs: dict):
+        '''
+        Validate that all required parameters are present and non-empty,
+        raising a single aggregated TiferetError when any are missing.
+
+        :param instance: The domain event instance being validated.
+        :type instance: Any
+        :param param_names: The list of required parameter names.
+        :type param_names: list
+        :param kwargs: The keyword arguments supplied to the decorated method.
+        :type kwargs: dict
+        '''
+
+        # Collect all missing or invalid parameters.
+        missing = []
+        for name in param_names:
+            if name not in kwargs:
+                missing.append(name)
+                continue
+
+            value = kwargs[name]
+
+            # None is invalid.
+            if value is None:
+                missing.append(name)
+                continue
+
+            # Empty or whitespace-only strings are invalid.
+            if isinstance(value, str) and not value.strip():
+                missing.append(name)
+                continue
+
+        # Raise a single error with all violations if any found.
+        if missing:
+            DomainEvent.raise_error(
+                a.const.COMMAND_PARAMETER_REQUIRED_ID,
+                message=f'Required parameters missing for {instance.__class__.__name__}.',
+                parameters=missing,
+                command=instance.__class__.__name__,
+            )
+
+    # * method: _wrap_with_validation (static)
+    @staticmethod
+    def _wrap_with_validation(param_names: list, method):
+        '''
+        Wrap a method with required-parameter validation, returning a sync or
+        async wrapper that matches the decorated method.
+
+        :param param_names: The list of required parameter names.
+        :type param_names: list
+        :param method: The method being decorated.
+        :type method: callable
+        :return: The validating wrapper function.
+        :rtype: callable
+        '''
+
+        # Emit an async wrapper when the decorated method is a coroutine function.
+        if asyncio.iscoroutinefunction(method):
+            async def async_wrapper(self, *args, **kwargs):
+                DomainEvent._validate_required_parameters(self, param_names, kwargs)
+                return await method(self, *args, **kwargs)
+            return async_wrapper
+
+        # Otherwise emit a synchronous wrapper.
+        def wrapper(self, *args, **kwargs):
+            DomainEvent._validate_required_parameters(self, param_names, kwargs)
+            return method(self, *args, **kwargs)
+
+        return wrapper
 
     # * method: parameters_required (static)
     @staticmethod
@@ -93,54 +164,46 @@ class DomainEvent(object):
         :rtype: callable
         '''
 
-        def decorator(method):
+        # Return a decorator bound to the required parameter names.
+        return functools.partial(DomainEvent._wrap_with_validation, param_names)
 
-            # Shared validation logic for both sync and async wrappers.
-            def _validate(self, **kwargs):
+    # * method: _run_base (static)
+    @staticmethod
+    def _run_base(event_handler: Any, kwargs: dict) -> Any:
+        '''
+        Execute the event handler with the given keyword arguments.
 
-                # Collect all missing or invalid parameters.
-                missing = []
-                for name in param_names:
-                    if name not in kwargs:
-                        missing.append(name)
-                        continue
+        :param event_handler: The instantiated domain event.
+        :type event_handler: Any
+        :param kwargs: The event keyword arguments.
+        :type kwargs: dict
+        :return: The result of executing the event.
+        :rtype: Any
+        '''
 
-                    value = kwargs[name]
+        # Execute the event handler.
+        return event_handler.execute(**kwargs)
 
-                    # None is invalid.
-                    if value is None:
-                        missing.append(name)
-                        continue
+    # * method: _run_middleware (static)
+    @staticmethod
+    def _run_middleware(mw: Any, event_handler: Any, kwargs: dict, next_fn: Any) -> Any:
+        '''
+        Invoke a single middleware callable around the next chain link.
 
-                    # Empty or whitespace-only strings are invalid.
-                    if isinstance(value, str) and not value.strip():
-                        missing.append(name)
-                        continue
+        :param mw: The middleware callable receiving (event, kwargs, next_fn).
+        :type mw: Any
+        :param event_handler: The instantiated domain event.
+        :type event_handler: Any
+        :param kwargs: The event keyword arguments.
+        :type kwargs: dict
+        :param next_fn: The next callable in the middleware chain.
+        :type next_fn: Any
+        :return: The result of the middleware invocation.
+        :rtype: Any
+        '''
 
-                # Raise a single error with all violations if any found.
-                if missing:
-                    DomainEvent.raise_error(
-                        a.const.COMMAND_PARAMETER_REQUIRED_ID,
-                        message=f'Required parameters missing for {self.__class__.__name__}.',
-                        parameters=missing,
-                        command=self.__class__.__name__,
-                    )
-
-            # Emit an async wrapper when the decorated method is a coroutine function.
-            if asyncio.iscoroutinefunction(method):
-                async def async_wrapper(self, *args, **kwargs):
-                    _validate(self, **kwargs)
-                    return await method(self, *args, **kwargs)
-                return async_wrapper
-
-            # Otherwise emit a synchronous wrapper.
-            def wrapper(self, *args, **kwargs):
-                _validate(self, **kwargs)
-                return method(self, *args, **kwargs)
-
-            return wrapper
-
-        return decorator
+        # Invoke the middleware with the next chain link.
+        return mw(event_handler, kwargs, next_fn)
 
     # * method: handle (static)
     @staticmethod
@@ -172,9 +235,8 @@ class DomainEvent(object):
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)
 
-        # Build the base execution callable.
-        def base():
-            return event_handler.execute(**kwargs)
+        # Build the base execution callable bound to the handler and kwargs.
+        base = functools.partial(DomainEvent._run_base, event_handler, kwargs)
 
         # Return immediately when no middleware is configured.
         if not middleware:
@@ -183,16 +245,52 @@ class DomainEvent(object):
         # Compose the middleware chain (outermost = first in list).
         chain = base
         for mw in reversed(middleware):
-            _next = chain
-            _mw = mw
-            def _make_wrapper(_mw, _next):
-                def wrapper():
-                    return _mw(event_handler, kwargs, _next)
-                return wrapper
-            chain = _make_wrapper(_mw, _next)
+            chain = functools.partial(DomainEvent._run_middleware, mw, event_handler, kwargs, chain)
 
         # Execute the composed chain.
         return chain()
+
+    # * method: _run_base_async (static)
+    @staticmethod
+    async def _run_base_async(event_handler: Any, kwargs: dict) -> Any:
+        '''
+        Await the async event handler with the given keyword arguments.
+
+        :param event_handler: The instantiated domain event.
+        :type event_handler: Any
+        :param kwargs: The event keyword arguments.
+        :type kwargs: dict
+        :return: The result of awaiting the event.
+        :rtype: Any
+        '''
+
+        # Await the async event handler.
+        return await event_handler.execute(**kwargs)
+
+    # * method: _run_middleware_async (static)
+    @staticmethod
+    async def _run_middleware_async(mw: Any, event_handler: Any, kwargs: dict, next_fn: Any) -> Any:
+        '''
+        Invoke a middleware callable, awaiting the result when it is a coroutine
+        (handles both async def functions and async def __call__ instances).
+
+        :param mw: The middleware callable receiving (event, kwargs, next_fn).
+        :type mw: Any
+        :param event_handler: The instantiated domain event.
+        :type event_handler: Any
+        :param kwargs: The event keyword arguments.
+        :type kwargs: dict
+        :param next_fn: The next callable in the async middleware chain.
+        :type next_fn: Any
+        :return: The result of the middleware invocation.
+        :rtype: Any
+        '''
+
+        # Invoke the middleware; await the result when it is a coroutine.
+        result = mw(event_handler, kwargs, next_fn)
+        if asyncio.iscoroutine(result):
+            return await result
+        return result
 
     # * method: handle_async (static)
     @staticmethod
@@ -226,9 +324,8 @@ class DomainEvent(object):
         # Instantiate the event with its dependencies.
         event_handler = event_cls(**dependencies)
 
-        # Build the base async execution callable.
-        async def base():
-            return await event_handler.execute(**kwargs)
+        # Build the base async execution callable bound to the handler and kwargs.
+        base = functools.partial(DomainEvent._run_base_async, event_handler, kwargs)
 
         # Return immediately when no middleware is configured.
         if not middleware:
@@ -237,18 +334,7 @@ class DomainEvent(object):
         # Compose the async middleware chain (outermost = first in list).
         chain = base
         for mw in reversed(middleware):
-            _next = chain
-            _mw = mw
-            def _make_async_wrapper(_mw, _next):
-                async def wrapper():
-                    # Call the middleware; await the result if it is a coroutine
-                    # (handles both async def functions and async def __call__ instances).
-                    result = _mw(event_handler, kwargs, _next)
-                    if asyncio.iscoroutine(result):
-                        return await result
-                    return result
-                return wrapper
-            chain = _make_async_wrapper(_mw, _next)
+            chain = functools.partial(DomainEvent._run_middleware_async, mw, event_handler, kwargs, chain)
 
         # Execute the composed async chain.
         return await chain()

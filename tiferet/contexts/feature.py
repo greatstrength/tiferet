@@ -5,15 +5,15 @@
 # ** core
 import asyncio
 import re
-from typing import Any, Generator, List, Tuple, Dict
+from typing import Any, Callable, Generator, List, Tuple, Dict
 
 # ** app
 from .base import BaseContext
-from .di import DIContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets.constants import (
     FEATURE_COMMAND_LOADING_FAILED_ID,
+    MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
     PARAMETER_NOT_FOUND_ID
 )
@@ -22,7 +22,7 @@ from ..events import (
     RaiseError,
     ParseParameter
 )
-from ..domain import Feature, FeatureEvent
+from ..domain import Feature, EventFeatureStep
 
 # *** contexts
 
@@ -30,16 +30,16 @@ from ..domain import Feature, FeatureEvent
 class FeatureContext(BaseContext):
     '''
     The feature context orchestrates feature step execution, resolving each
-    step's domain event from the DI context and applying any configured
-    middleware. It operates on pre-loaded ``Feature`` domain objects supplied
-    by the application interface hub.
+    step's domain event via the injected service-resolution handler and
+    applying any configured middleware. It operates on pre-loaded ``Feature``
+    domain objects supplied by the application interface hub.
     '''
 
     # * attribute: domain_type
     domain_type = Feature
 
-    # * attribute: services
-    services: DIContext
+    # * attribute: get_dependency
+    get_dependency: Callable
 
     # * attribute: cache
     cache: CacheContext
@@ -49,14 +49,15 @@ class FeatureContext(BaseContext):
 
     # * init
     def __init__(self,
-            services: DIContext,
+            get_dependency: Callable,
             cache: CacheContext = None,
             context_data: Dict[str, Any] = None):
         '''
         Initialize the feature context.
 
-        :param services: The DI context for dependency injection.
-        :type services: DIContext
+        :param get_dependency: The service-resolution handler used to resolve each
+            feature step's domain event and middleware by service id and flags.
+        :type get_dependency: Callable
         :param cache: The shared cache context to use for caching feature data.
         :type cache: CacheContext
         :param context_data: Lowest-priority context defaults merged into every
@@ -64,21 +65,24 @@ class FeatureContext(BaseContext):
         :type context_data: Dict[str, Any]
         '''
 
-        # Initialize shared services and cache via the base context.
-        super().__init__(services=services, cache=cache)
+        # Initialize the shared cache via the base context.
+        super().__init__(cache=cache)
+
+        # Store the injected service-resolution handler.
+        self.get_dependency = get_dependency
 
         # Store the context-level execution defaults.
         self.context_data = context_data if context_data is not None else {}
 
     # * method: load_feature_step
-    def load_feature_step(self, feature_event: FeatureEvent, feature_flags: List[str] = None) -> DomainEvent:
+    def load_feature_step(self, feature_event: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
         '''
-        Load a feature event step from the DI context using its service ID and
-        any configured flags.
+        Resolve a feature event step via the injected service-resolution
+        handler using its service ID and any configured flags.
 
         :param feature_event: The feature event metadata describing the
             service configuration and flags.
-        :type feature_event: FeatureEvent
+        :type feature_event: EventFeatureStep
         :param feature_flags: Optional list of flags from the parent feature.
         :type feature_flags: List[str]
         :return: The resolved domain event.
@@ -91,9 +95,9 @@ class FeatureContext(BaseContext):
         # Combine flags: feature-level (higher priority) first, then step-level.
         combined_flags = (feature_flags or []) + (feature_event.flags or [])
 
-        # Attempt to retrieve the event from the DI context using the combined flags.
+        # Attempt to resolve the event via the injected handler using the combined flags.
         try:
-            return self.services.get_dependency(
+            return self.get_dependency(
                 service_id,
                 *combined_flags,
             )
@@ -122,8 +126,24 @@ class FeatureContext(BaseContext):
         if not middleware_ids:
             return []
 
-        # Resolve each service ID from the DI context.
-        return [self.services.get_dependency(mid_id) for mid_id in middleware_ids]
+        # Resolve each middleware service ID via the injected handler, raising a
+        # structured error if any resolution fails.
+        middleware = []
+        for mid_id in middleware_ids:
+            try:
+                middleware.append(self.get_dependency(mid_id))
+
+            # If the middleware cannot be loaded, raise an error.
+            except Exception as e:
+                RaiseError.execute(
+                    MIDDLEWARE_LOADING_FAILED_ID,
+                    f'Failed to load middleware: {mid_id}. Ensure the container is configured with the appropriate default settings/flags.',
+                    service_id=mid_id,
+                    exception=str(e)
+                )
+
+        # Return the resolved middleware instances.
+        return middleware
 
     # * method: handle_feature_step
     def handle_feature_step(self,
@@ -270,7 +290,7 @@ class FeatureContext(BaseContext):
     def resolve_feature_steps(self,
             feature: Feature,
             request: RequestContext,
-        ) -> Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]:
+        ) -> Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]:
         '''
         Resolve and yield executable steps for a pre-loaded feature.
 
@@ -283,7 +303,7 @@ class FeatureContext(BaseContext):
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
         :return: A generator yielding (command, feature_event, params) tuples.
-        :rtype: Generator[Tuple[DomainEvent, FeatureEvent, Dict[str, str]], None, None]
+        :rtype: Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]
         '''
 
         # Iterate over the feature's configured steps.
@@ -335,10 +355,21 @@ class FeatureContext(BaseContext):
                 pass_on_error=step.pass_on_error,
                 middleware=combined_middleware,
                 **params,
-                services=self.services,
                 cache=self.cache,
                 **kwargs
             )
+
+
+# ** context: async_feature_context
+class AsyncFeatureContext(FeatureContext):
+    '''
+    The async feature context extends :class:`FeatureContext` with
+    asynchronous step execution, awaiting coroutine-based domain events while
+    reusing the shared step-resolution, parameter-parsing, condition, and
+    middleware helpers inherited from the synchronous context. It is selected
+    by the application interface hub when a loaded ``Feature`` has ``is_async``
+    set to ``True``.
+    '''
 
     # * method: handle_feature_step_async
     async def handle_feature_step_async(self,
@@ -446,7 +477,6 @@ class FeatureContext(BaseContext):
                 pass_on_error=step.pass_on_error,
                 middleware=combined_middleware,
                 **params,
-                services=self.services,
                 cache=self.cache,
                 **kwargs
             )

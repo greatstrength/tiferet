@@ -3,11 +3,12 @@
 # *** imports
 
 # ** core
+import inspect
 from typing import Any, Dict, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
-from ..di import ServiceProvider, DynamicServiceProvider
+from ..di import injectable_parameter_names
 from .. import assets as a
 from ..domain import (
     AppInterface,
@@ -19,50 +20,163 @@ from ..events import (
     RaiseError,
 )
 from ..events.app import GetAppInterface
+from ..events.blueprint import CreateServiceResolver
 
 # *** constants
 
 # ** constant: app_context_collaborators
-# Service IDs of the context collaborators resolved by name from the provider
-# when constructing the app interface context declaratively.
+# Service IDs of the hub's event collaborators resolved by name from the
+# declarative wiring registry when constructing the app interface context.
 APP_CONTEXT_COLLABORATORS = (
     'get_feature_evt',
     'get_error_evt',
-    'di_list_all_configs_evt',
     'logging_list_all_evt',
 )
 
+# *** functions
+
+# ** function: resolve_ctor_kwargs
+def resolve_ctor_kwargs(service_type: type, registry: Dict[str, Any]) -> Dict[str, Any] | None:
+    '''
+    Resolve constructor keyword arguments for a service type from the registry.
+
+    Returns the resolved kwargs, or ``None`` when a required constructor
+    parameter is not yet available so the caller can defer instantiation.
+
+    :param service_type: The service class to inspect.
+    :type service_type: type
+    :param registry: The name-to-value registry of constants and built services.
+    :type registry: Dict[str, Any]
+    :return: The resolved kwargs, or None when a required parameter is missing.
+    :rtype: Dict[str, Any] | None
+    '''
+
+    # Inspect the constructor signature; treat uninspectable types as no-arg.
+    try:
+        sig = inspect.signature(service_type.__init__)
+    except (ValueError, TypeError):
+        return {}
+
+    # Match each injectable constructor parameter (sourced from the shared DI
+    # helper so the skip rules live in one place) to a registry entry,
+    # deferring on any missing required parameter.
+    kwargs: Dict[str, Any] = {}
+    for name in injectable_parameter_names(service_type):
+
+        # Wire from the registry, or defer when a required value is absent.
+        if name in registry:
+            kwargs[name] = registry[name]
+        elif sig.parameters[name].default is inspect.Parameter.empty:
+            return None
+
+    # Return the resolved constructor kwargs.
+    return kwargs
+
+
+# ** function: build_wiring_constants
+def build_wiring_constants(app_interface: AppInterface) -> Dict[str, Any]:
+    '''
+    Build the wiring-registry seed constants from an app interface.
+
+    Combines the interface scalars (id, logger id) with the interface's
+    declared constants into a single name-to-value mapping used to seed
+    declarative service wiring.
+
+    :param app_interface: The resolved app interface definition.
+    :type app_interface: AppInterface
+    :return: The seed constants keyed by name.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Combine interface scalars with the interface's declared constants.
+    return {
+        'interface_id': app_interface.id,
+        'logger_id': getattr(app_interface, 'logger_id', None),
+        **(app_interface.constants or {}),
+    }
+
+
+# ** function: resolve_collaborators
+def resolve_collaborators(registry: Dict[str, Any]) -> Dict[str, Any]:
+    '''
+    Resolve the hub's event collaborators by name from a wiring registry.
+
+    :param registry: The name-to-value registry of constants and built services.
+    :type registry: Dict[str, Any]
+    :return: The resolved collaborators keyed by service id (missing ids map to None).
+    :rtype: Dict[str, Any]
+    '''
+
+    # Resolve each declared collaborator id from the registry.
+    return {
+        name: registry.get(name)
+        for name in APP_CONTEXT_COLLABORATORS
+    }
+
+
 # *** blueprints
 
-# ** blueprint: create_service_provider
-def create_service_provider(
-    provider_type: type = DynamicServiceProvider,
-    type_map: Dict[str, type] = None,
-    **constants
-) -> ServiceProvider:
+# ** blueprint: wire_services
+def wire_services(
+    services: List[AppServiceDependency],
+    constants: Dict[str, Any],
+) -> Dict[str, Any]:
     '''
-    Create a service provider from a type map and constants.
+    Declaratively instantiate service dependencies into a name-to-value registry.
 
-    :param provider_type: The concrete provider class to instantiate.
-    :type provider_type: type
-    :param type_map: A dictionary mapping service IDs to their types.
-    :type type_map: Dict[str, type]
-    :param constants: Constant parameters to register in the provider.
-    :type constants: dict
-    :return: The configured service provider instance.
-    :rtype: ServiceProvider
+    Seeds the registry with the provided constants and each dependency's
+    parameters, then iteratively instantiates services whose constructor
+    arguments are all resolvable, wiring events to the repositories they depend
+    on without an app-level DI container.
+
+    :param services: The service dependencies to instantiate.
+    :type services: List[AppServiceDependency]
+    :param constants: The seed constants (interface scalars, config values, etc.).
+    :type constants: Dict[str, Any]
+    :return: The registry of constants and instantiated services keyed by id.
+    :rtype: Dict[str, Any]
     '''
 
-    # Create the provider and register constants first so that
-    # Factory providers built during add_services can resolve them.
-    provider = provider_type()
-    if constants:
-        provider.add_constants(constants)
-    if type_map:
-        provider.add_services(type_map)
+    # Seed the registry with constants, then service parameters at lower priority.
+    registry: Dict[str, Any] = dict(constants)
+    for dep in services:
+        for key, value in (dep.parameters or {}).items():
+            registry.setdefault(key, value)
 
-    # Return the configured service provider.
-    return provider
+    # Iteratively instantiate services until none remain or no progress is made.
+    pending = list(services)
+    while pending:
+        still_pending: List[AppServiceDependency] = []
+        progressed = False
+
+        # Attempt to instantiate each pending dependency.
+        for dep in pending:
+            service_type = dep.get_service_type()
+            kwargs = resolve_ctor_kwargs(service_type, registry)
+
+            # Defer when constructor arguments are not yet fully resolvable.
+            if kwargs is None:
+                still_pending.append(dep)
+                continue
+
+            # Instantiate and register the service under its id.
+            registry[dep.service_id] = service_type(**kwargs)
+            progressed = True
+
+        # Fail when remaining services cannot be resolved.
+        if not progressed and still_pending:
+            RaiseError.execute(
+                a.const.APP_SERVICE_IMPORT_FAILED_ID,
+                exception='Unresolvable service dependencies: {}'.format(
+                    [dep.service_id for dep in still_pending]
+                ),
+            )
+
+        # Continue with the still-pending dependencies.
+        pending = still_pending
+
+    # Return the populated registry.
+    return registry
 
 
 # ** blueprint: load_app_service
@@ -113,21 +227,20 @@ def load_default_services() -> List[AppServiceDependency]:
 # ** blueprint: load_app_instance
 def load_app_instance(
     app_interface: AppInterface,
-    service_provider: ServiceProvider = None,
     **context_kwargs,
 ) -> Any:
     '''
     Declaratively construct the app interface context from a loaded interface.
 
-    The service provider resolves the context's collaborators (events and their
-    repositories) by name; the context graph itself is built declaratively via
-    ``from_domain`` rather than resolved from the DI container.
+    The interface's service dependencies (repositories and events) are wired
+    explicitly by importing each class and resolving its constructor arguments
+    from a name-to-value registry of interface scalars, constants, and
+    already-built services -- no app-level DI container is used. A
+    ``ServiceResolver`` is built from the resolved ``di_service`` and its
+    ``get_dependency`` handler is injected into the context.
 
     :param app_interface: The prepared app interface definition.
     :type app_interface: AppInterface
-    :param service_provider: The service provider to use for resolution.
-        When None, a fresh provider is created.
-    :type service_provider: ServiceProvider
     :param context_kwargs: Additional keyword arguments forwarded to the context
         constructor (e.g. bootstrap defaults).
     :type context_kwargs: dict
@@ -135,32 +248,33 @@ def load_app_instance(
     :rtype: Any
     '''
 
-    # Create a default service provider if none is given.
-    if service_provider is None:
-        service_provider = create_service_provider()
+    # Seed the wiring registry with interface scalars and constants.
+    constants = build_wiring_constants(app_interface)
 
-    # Build the app interface dependencies map (events, repos, constants).
+    # Declaratively instantiate the interface's service dependencies.
     try:
-        dependencies = AppInterfaceContext.get_service_type_mapping(app_interface)
+        registry = wire_services(app_interface.services, constants)
 
-    # Raise a structured error if dependency mapping fails.
+    # Raise a structured error if declarative wiring fails.
     except Exception as e:
         RaiseError.execute(
             a.const.APP_SERVICE_IMPORT_FAILED_ID,
             exception=str(e),
         )
 
-    # Register the create_service_provider callable for downstream contexts.
-    dependencies['create_service_provider'] = create_service_provider
+    # Compose the service resolver via the bootstrap event from the interface's
+    # DI repository dependency, routing any bootstrap DI defaults (popped from
+    # context kwargs) into it.
+    resolver = DomainEvent.handle(
+        CreateServiceResolver,
+        dependencies={},
+        app_interface=app_interface,
+        default_configurations=context_kwargs.pop('default_configurations', None),
+        default_constants=context_kwargs.pop('default_constants', None),
+    )
 
-    # Add dependencies to the service provider.
-    service_provider.add_services(dependencies)
-
-    # Resolve the context collaborators by name from the provider.
-    resolved = {
-        name: service_provider.get_service(name)
-        for name in APP_CONTEXT_COLLABORATORS
-    }
+    # Resolve the hub's event collaborators by name from the registry.
+    resolved = resolve_collaborators(registry)
 
     # Import the context class declared by the interface (supports custom contexts).
     context_cls = ImportDependency.execute(
@@ -168,10 +282,10 @@ def load_app_instance(
         app_interface.class_name,
     )
 
-    # Construct the context declaratively from the loaded interface.
+    # Construct the context declaratively, injecting the resolution handler.
     return context_cls.from_domain(
         app_interface,
-        create_service_provider=create_service_provider,
+        get_dependency=resolver.get_dependency,
         **resolved,
         **context_kwargs,
     )
@@ -230,7 +344,6 @@ def resolve_interface(
 def realize_interface(
     app_interface: AppInterface,
     interface_id: str,
-    service_provider: ServiceProvider = None,
     **context_kwargs,
 ) -> AppInterfaceContext:
     '''
@@ -240,8 +353,6 @@ def realize_interface(
     :type app_interface: AppInterface
     :param interface_id: The interface ID (used in error messages).
     :type interface_id: str
-    :param service_provider: Optional service provider; a fresh one is created if None.
-    :type service_provider: ServiceProvider
     :param context_kwargs: Additional keyword arguments forwarded to the context
         constructor (e.g. bootstrap defaults).
     :type context_kwargs: dict
@@ -250,7 +361,7 @@ def realize_interface(
     '''
 
     # Create the concrete app interface context.
-    app_interface_context = load_app_instance(app_interface, service_provider, **context_kwargs)
+    app_interface_context = load_app_instance(app_interface, **context_kwargs)
 
     # Verify that the resolved context is valid.
     if not isinstance(app_interface_context, AppInterfaceContext):

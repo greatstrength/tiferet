@@ -68,6 +68,51 @@ Key characteristics:
 - **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts.
 - **`@parameters_required`** provides declarative, aggregated parameter validation.
 
+## Per-Module Base Events
+
+As of v2.0.0b10, each single-service event module defines a **per-module base event** that owns the shared service injection, so concrete events no longer repeat the `# * attribute` / `# * init` boilerplate. The base event extends `DomainEvent`, declares the shared service attribute, and provides the common constructor; concrete events extend the base and define only their `execute` method (plus any `@DomainEvent.parameters_required` decorators).
+
+```python
+# ** event: error_event
+class ErrorEvent(DomainEvent):
+    '''
+    Base event providing the shared ErrorService dependency for error domain events.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        # Set the error service dependency.
+        self.error_service = error_service
+
+# ** event: get_error
+class GetError(ErrorEvent):
+    '''
+    Event to retrieve an Error domain object by its ID.
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id'])
+    def execute(self, id: str, **kwargs) -> Error:
+        ...
+```
+
+The single-service base events are:
+
+- `ErrorEvent` (`error_service`) — `tiferet/events/error.py`
+- `FeatureEvent` (`feature_service`) — `tiferet/events/feature.py`
+- `AppEvent` (`app_service`) — `tiferet/events/app.py`
+- `CliEvent` (`cli_service`) — `tiferet/events/cli.py`
+- `DIEvent` (`di_service`) — `tiferet/events/di.py`
+- `LoggingEvent` (`logging_service`) — `tiferet/events/logging.py`
+- `SqliteEvent` (`sqlite_service`) — `tiferet/events/sqlite.py`
+
+Static utility events in `tiferet/events/static.py` (`ParseParameter`, `ImportDependency`, `RaiseError`) take no injected service and do not use a base event.
+
+> **Naming note:** the `FeatureEvent` base event reuses a name that previously belonged to the feature *domain object*, which was renamed to `EventFeatureStep` in v2.0.0b10.
+
 ## Structured Code Design
 
 Domain events follow the standard Tiferet artifact comment structure:
@@ -86,54 +131,37 @@ Domain events follow the standard Tiferet artifact comment structure:
 ## Creating Domain Events
 
 ### 1. Define the Event Class
-- Extend `DomainEvent`.
-- Declare dependencies under `# * attribute`.
-- Implement `__init__` and `execute`.
+- Extend the module's base event (e.g., `ErrorEvent`, `FeatureEvent`) to inherit the shared service attribute and constructor. Extend `DomainEvent` directly only when defining a new base event or a service-less event.
+- When defining a base event, declare the shared dependency under `# * attribute` and provide the `# * init` constructor.
+- Implement `execute` on the concrete event.
 - Use `@DomainEvent.parameters_required` for declarative parameter validation.
 
 **Example** – `AddError`:
 ```python
 # *** imports
 
-# ** core
-from typing import List, Dict, Any
-
 # ** app
 from tiferet.events import DomainEvent, a
-from tiferet.contracts import ErrorService
-from tiferet.domain.error import Error
+from tiferet.events.error import ErrorEvent
+from tiferet.mappers import ErrorAggregate
+from tiferet.domain import Error
 
 # *** events
 
 # ** event: add_error
-class AddError(DomainEvent):
+class AddError(ErrorEvent):
     '''
     Event to add a new Error domain object to the repository.
     '''
 
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the AddError event.
-        '''
-        self.error_service = error_service
-
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'message'])
-    def execute(self, **kwargs) -> Error:
+    def execute(self, id: str, name: str, message: str, lang: str = 'en_US', **kwargs) -> Error:
         '''
         Add a new Error.
         '''
 
-        # Unpack parameters.
-        id = kwargs['id']
-        name = kwargs['name']
-        message = kwargs['message']
-
-        # Check existence.
+        # Check existence (error_service is inherited from ErrorEvent).
         self.verify(
             not self.error_service.exists(id),
             a.const.ERROR_ALREADY_EXISTS_ID,
@@ -141,8 +169,8 @@ class AddError(DomainEvent):
             id=id
         )
 
-        # Create and save.
-        new_error = Error.new(id=id, name=name, message=message)
+        # Create and save the new error aggregate.
+        new_error = ErrorAggregate(id=id, name=name, message=[{'lang': lang, 'text': message}])
         self.error_service.save(new_error)
 
         return new_error
@@ -383,14 +411,13 @@ Domain events are defined in `tiferet/events/`:
 
 - `settings.py` – `DomainEvent` base class, `@parameters_required` decorator.
 - `static.py` – Static utility events (`ParseParameter`, `ImportDependency`, `RaiseError`).
-- `app.py` – App interface management events.
-- `cli.py` – CLI command management events.
-- `container.py` – Container attribute management events.
-- `dependencies.py` – DI service configuration events.
-- `error.py` – Error management events.
-- `feature.py` – Feature workflow management events.
-- `logging.py` – Logging configuration events.
-- `sqlite.py` – SQLite management events.
+- `app.py` – `AppEvent` base + app interface management events.
+- `cli.py` – `CliEvent` base + CLI command management events.
+- `di.py` – `DIEvent` base + DI service configuration events.
+- `error.py` – `ErrorEvent` base + error management events.
+- `feature.py` – `FeatureEvent` base + feature workflow management events.
+- `logging.py` – `LoggingEvent` base + logging configuration events.
+- `sqlite.py` – `SqliteEvent` base + SQLite management events.
 - `__init__.py` – Public exports (`DomainEvent`, `TiferetError`, `a`).
 
 Tests live in `tiferet/events/tests/`:

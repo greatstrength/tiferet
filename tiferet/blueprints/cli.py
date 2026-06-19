@@ -9,13 +9,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # ** app
 from ..assets import TiferetAPIError
-from ..di import ServiceProvider
 from ..domain import CliArgument, CliCommand
 from .. import assets as a
 from ..events import DomainEvent
 from ..events.app import GetAppInterface
 from .main import (
-    create_service_provider,
+    wire_services,
     load_default_services,
     resolve_interface,
     realize_interface,
@@ -24,18 +23,18 @@ from .main import (
 # *** blueprints
 
 # ** blueprint: get_commands
-def get_commands(service_provider: ServiceProvider) -> Dict[str, List[CliCommand]]:
+def get_commands(registry: Dict[str, Any]) -> Dict[str, List[CliCommand]]:
     '''
     Retrieve the CLI commands grouped by their group_key.
 
-    :param service_provider: The service provider to resolve CLI events from.
-    :type service_provider: ServiceProvider
+    :param registry: The wiring registry of instantiated services keyed by id.
+    :type registry: Dict[str, Any]
     :return: A dictionary mapping group keys to lists of CLI commands.
     :rtype: Dict[str, List[CliCommand]]
     '''
 
     # Resolve the list CLI commands event and execute it.
-    list_commands_evt = service_provider.get_service('list_commands_evt')
+    list_commands_evt = registry['list_commands_evt']
     cli_commands = list_commands_evt.execute()
 
     # Group the commands by group_key.
@@ -51,18 +50,18 @@ def get_commands(service_provider: ServiceProvider) -> Dict[str, List[CliCommand
 
 
 # ** blueprint: get_parent_arguments
-def get_parent_arguments(service_provider: ServiceProvider) -> List:
+def get_parent_arguments(registry: Dict[str, Any]) -> List:
     '''
     Retrieve the parent-level CLI arguments.
 
-    :param service_provider: The service provider to resolve CLI events from.
-    :type service_provider: ServiceProvider
+    :param registry: The wiring registry of instantiated services keyed by id.
+    :type registry: Dict[str, Any]
     :return: A list of parent-level CLI arguments.
     :rtype: List
     '''
 
     # Resolve the parent arguments event and execute it.
-    get_parent_args_evt = service_provider.get_service('get_parent_args_evt')
+    get_parent_args_evt = registry['get_parent_args_evt']
     return get_parent_args_evt.execute()
 
 
@@ -262,16 +261,13 @@ def build_app(
         **parameters,
     }
 
-    # Build a service provider seeded with default service dependencies
-    # and the merged constants so CLI events can resolve.
-    service_provider = create_service_provider(
-        type_map={dep.service_id: dep.get_service_type() for dep in default_services},
-        **merged_constants,
-    )
+    # Declaratively wire the default service dependencies with the merged
+    # constants so the CLI events can resolve without an app-level container.
+    registry = wire_services(default_services, merged_constants)
 
     # Build the CLI parser from the resolved commands and parent arguments.
-    cli_commands = get_commands(service_provider)
-    parent_arguments = get_parent_arguments(service_provider)
+    cli_commands = get_commands(registry)
+    parent_arguments = get_parent_arguments(registry)
     parser = build_parser(cli_commands, parent_arguments)
 
     # Parse the CLI arguments.

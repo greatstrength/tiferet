@@ -809,3 +809,39 @@ class TestListAllSettings(DomainEventTestBase):
         # Assert the result matches the expected tuple.
         assert result == expected
         mock_dependencies['di_service'].list_all.assert_called_once()
+
+    # * method: test_merges_execute_time_defaults
+    def test_merges_execute_time_defaults(self, mock_dependencies, service_configuration_aggregate):
+        '''
+        Test that ListAllSettings merges execute-time defaults beneath repo values.
+        '''
+
+        # Configure the service to return one configuration and a constant.
+        mock_dependencies['di_service'].list_all.return_value = (
+            [service_configuration_aggregate],
+            {'shared': 'repo'},
+        )
+
+        # Build a default-only configuration absent from the repository.
+        default_only = ServiceConfiguration(
+            id='default_only',
+            module_path='tiferet.repos.example',
+            class_name='ExampleRepository',
+        )
+
+        # Execute with execute-time defaults supplied.
+        configs, constants = self.handle(
+            mock_dependencies,
+            default_config_index={
+                'default_only': default_only,
+                service_configuration_aggregate.id: service_configuration_aggregate,
+            },
+            default_constants={'shared': 'default', 'extra': 'extra_value'},
+        )
+
+        # Assert defaults are appended for missing ids and repo constants win.
+        config_ids = {c.id for c in configs}
+        assert service_configuration_aggregate.id in config_ids
+        assert 'default_only' in config_ids
+        assert constants['shared'] == 'repo'
+        assert constants['extra'] == 'extra_value'

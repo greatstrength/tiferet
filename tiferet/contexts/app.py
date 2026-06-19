@@ -3,8 +3,10 @@
 # *** imports
 
 # ** core
+import asyncio
+import threading
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Callable
 
 # ** app
 from ..assets import (
@@ -13,12 +15,11 @@ from ..assets import (
     ERROR_NOT_FOUND_ID,
     DEFAULT_ERRORS,
 )
-from ..domain import AppInterface, Feature, CliCommand, ServiceConfiguration, Error
+from ..domain import AppInterface, Feature, CliCommand, Error
 from ..events import DomainEvent
 from .base import BaseContext
 from .cache import CacheContext
-from .di import DIContext
-from .feature import FeatureContext
+from .feature import FeatureContext, AsyncFeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
@@ -42,27 +43,21 @@ class AppInterfaceContext(BaseContext):
     # * attribute: get_error_evt
     get_error_evt: DomainEvent
 
-    # * attribute: di_list_all_configs_evt
-    di_list_all_configs_evt: DomainEvent
-
     # * attribute: logging_list_all_evt
     logging_list_all_evt: DomainEvent
 
-    # * attribute: create_service_provider
-    create_service_provider: Any
+    # * attribute: get_dependency
+    get_dependency: Callable
 
     # * init
     def __init__(self,
             get_feature_evt: DomainEvent,
             get_error_evt: DomainEvent,
-            di_list_all_configs_evt: DomainEvent,
             logging_list_all_evt: DomainEvent,
-            create_service_provider: Any = None,
+            get_dependency: Callable,
             cache: CacheContext = None,
             default_features: List[Dict[str, Any]] = None,
             default_commands: List[Dict[str, Any]] = None,
-            default_configurations: List[Dict[str, Any]] = None,
-            default_constants: Dict[str, Any] = None,
         ):
         '''
         Initialize the application interface hub.
@@ -75,33 +70,26 @@ class AppInterfaceContext(BaseContext):
         :type get_feature_evt: DomainEvent
         :param get_error_evt: The event used to retrieve errors.
         :type get_error_evt: DomainEvent
-        :param di_list_all_configs_evt: The event used to list DI configurations.
-        :type di_list_all_configs_evt: DomainEvent
         :param logging_list_all_evt: The event used to list logging configurations.
         :type logging_list_all_evt: DomainEvent
-        :param create_service_provider: Optional factory for creating service providers.
-        :type create_service_provider: Any
+        :param get_dependency: The injected service-resolution handler used to resolve feature step events and middleware.
+        :type get_dependency: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
         :param default_features: Optional raw feature dicts for bootstrap fallback.
         :type default_features: List[Dict[str, Any]]
         :param default_commands: Optional raw CLI command dicts for bootstrap fallback.
         :type default_commands: List[Dict[str, Any]]
-        :param default_configurations: Optional raw service configuration dicts for bootstrap fallback.
-        :type default_configurations: List[Dict[str, Any]]
-        :param default_constants: Optional default DI constants for bootstrap fallback.
-        :type default_constants: Dict[str, Any]
         '''
 
         # Initialize the shared cache via the base context.
         super().__init__(cache=cache)
 
-        # Store the retrieval and configuration events plus the provider factory.
+        # Store the retrieval/configuration events and the service-resolution handler.
         self.get_feature_evt = get_feature_evt
         self.get_error_evt = get_error_evt
-        self.di_list_all_configs_evt = di_list_all_configs_evt
         self.logging_list_all_evt = logging_list_all_evt
-        self.create_service_provider = create_service_provider
+        self.get_dependency = get_dependency
 
         # Validate raw bootstrap feature dicts into a typed index keyed by id.
         self.default_feature_index = {
@@ -114,76 +102,9 @@ class AppInterfaceContext(BaseContext):
             CliCommand.model_validate(data) for data in (default_commands or [])
         ]
 
-        # Validate raw bootstrap configuration dicts into a typed index keyed by id.
-        self.default_config_index = {
-            config.id: config
-            for config in (ServiceConfiguration.model_validate(data) for data in (default_configurations or []))
-        }
-
-        # Copy the bootstrap DI constants, defaulting to an empty mapping.
-        self.default_di_constants = dict(default_constants) if default_constants else {}
-
-        # Initialize lazily-built sub-context caches for the shared DI and
-        # logging contexts. Feature and error contexts are built on demand.
-        self._services = None
+        # Initialize the lazily-built logging sub-context cache. The feature
+        # and error contexts are built on demand.
         self._logging = None
-
-    # * method: get_service_type_mapping (static)
-    @staticmethod
-    def get_service_type_mapping(app_interface: AppInterface) -> Dict[str, Any]:
-        '''
-        Build the dependency type mapping for an app interface.
-
-        Assembles the interface's scalars, constants, and service dependency
-        types (plus their parameters) into a single mapping consumed by the
-        service provider. The hub itself is constructed declaratively by the
-        blueprint, so it is intentionally not registered here.
-
-        :param app_interface: The loaded app interface definition.
-        :type app_interface: AppInterface
-        :return: A mapping of service IDs to their types and constant values.
-        :rtype: Dict[str, Any]
-        '''
-
-        # Register interface scalars first.
-        dependencies: Dict[str, Any] = {
-            'interface_id': app_interface.id,
-            'logger_id': getattr(app_interface, 'logger_id', None),
-        }
-
-        # Add the interface constants.
-        dependencies.update(app_interface.constants)
-
-        # Add each service dependency type and its parameters.
-        for dep in app_interface.services:
-            dependencies[dep.service_id] = dep.get_service_type()
-            for param, value in dep.parameters.items():
-                dependencies[param] = value
-
-        # Return the assembled dependency mapping.
-        return dependencies
-
-    # * method: _get_services
-    def _get_services(self) -> DIContext:
-        '''
-        Build (once) and return the shared DI context.
-
-        :return: The shared DI context.
-        :rtype: DIContext
-        '''
-
-        # Build the DI context on first access, wiring bootstrap defaults.
-        if self._services is None:
-            self._services = DIContext(
-                di_list_all_configs_evt=self.di_list_all_configs_evt,
-                cache=self.cache,
-                create_service_provider=self.create_service_provider,
-                default_config_index=self.default_config_index,
-                default_di_constants=self.default_di_constants,
-            )
-
-        # Return the shared DI context.
-        return self._services
 
     # * method: load_logging_context
     def load_logging_context(self) -> LoggingContext:
@@ -289,10 +210,60 @@ class AppInterfaceContext(BaseContext):
         # Return the request model object.
         return request
 
+    # * method: _run_coroutine (static)
+    @staticmethod
+    def _run_coroutine(coro: Any) -> Any:
+        '''
+        Drive a coroutine to completion from synchronous code.
+
+        Uses ``asyncio.run`` when no event loop is running. When called while a
+        loop is already running (e.g. inside an async host), the coroutine is
+        executed on a short-lived dedicated thread with its own event loop so
+        the synchronous ``run`` entrypoint never raises ``RuntimeError``.
+
+        :param coro: The coroutine to execute.
+        :type coro: Any
+        :return: The coroutine result.
+        :rtype: Any
+        '''
+
+        # Use asyncio.run directly when no event loop is currently running.
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+
+        # A loop is already running; execute the coroutine on a dedicated
+        # thread with its own event loop, capturing the result or error.
+        box: Dict[str, Any] = {}
+
+        def _runner():
+            try:
+                box['result'] = asyncio.run(coro)
+            except BaseException as error:  # re-raised on the calling thread
+                box['error'] = error
+
+        # Run the worker thread to completion.
+        thread = threading.Thread(target=_runner)
+        thread.start()
+        thread.join()
+
+        # Re-raise any error captured on the worker thread.
+        if 'error' in box:
+            raise box['error']
+
+        # Return the captured coroutine result.
+        return box.get('result')
+
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute the feature request.
+
+        Selects the synchronous :class:`FeatureContext` or the
+        :class:`AsyncFeatureContext` based on the loaded feature's ``is_async``
+        flag. Async features are driven to completion while keeping this
+        entrypoint synchronous.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -310,11 +281,24 @@ class AppInterfaceContext(BaseContext):
         # Load the feature domain object for execution.
         feature = self.load_feature_domain(feature_id)
 
-        # Build the feature context on demand (resolved via the registry) and
-        # execute the loaded feature through it.
+        # Build the async feature context and drive it to completion when the
+        # loaded feature is flagged async.
+        if feature.is_async:
+            async_context = AsyncFeatureContext(
+                get_dependency=self.get_dependency,
+                cache=self.cache,
+                context_data={'default_commands_list': self.default_commands_list},
+            )
+            self._run_coroutine(
+                async_context.execute_feature_async(feature, request, **kwargs)
+            )
+            return
+
+        # Otherwise build the synchronous feature context on demand (resolved
+        # via the registry) and execute the loaded feature through it.
         feature_context_cls = BaseContext.for_domain(Feature)
         feature_context = feature_context_cls(
-            services=self._get_services(),
+            get_dependency=self.get_dependency,
             cache=self.cache,
             context_data={'default_commands_list': self.default_commands_list},
         )

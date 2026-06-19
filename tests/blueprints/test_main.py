@@ -9,14 +9,12 @@ from unittest import mock
 # ** app
 from tiferet import assets as a
 from tiferet.assets import TiferetError
-from tiferet.di import DependenciesServiceProvider
 from tiferet.contexts.app import AppInterfaceContext
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.repos.app import AppConfigRepository
 from tiferet import App
 from tiferet.blueprints.main import (
     build_app,
-    create_service_provider,
     load_app_service,
     load_default_services,
     load_app_instance,
@@ -56,19 +54,6 @@ def test_app_alias_is_build_app():
 
     # Assert top-level App alias is build_app.
     assert App is build_app
-
-
-# ** test: create_service_provider_empty
-def test_create_service_provider_empty():
-    '''
-    Test that create_service_provider returns a valid provider with no arguments.
-    '''
-
-    # Create a provider with no type map or constants.
-    provider = create_service_provider()
-
-    # Assert the provider is a DependenciesServiceProvider.
-    assert isinstance(provider, DependenciesServiceProvider)
 
 
 # ** test: load_app_service_defaults

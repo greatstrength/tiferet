@@ -14,7 +14,7 @@ A blueprint is responsible for:
 - Loading the application service (repository)
 - Preparing default services and constants
 - Resolving interfaces via domain events
-- Wiring dependency injection
+- Declaratively wiring service dependencies and composing a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - Executing features through the resolved interface context
 
 The canonical example is `build_app` in `tiferet/blueprints/main.py`.
@@ -43,20 +43,19 @@ Blueprints are intentionally **thin** — they coordinate rather than implement 
 
 `build_app` follows a clear, composable pattern built from smaller blueprint functions:
 
-### 1. Service Provider Factory
+### 1. Declarative Service Wiring
 
-A standalone function allows downstream contexts to create providers consistently:
+`wire_services` instantiates the interface's service dependencies into a name-to-value registry without an app-level DI container, deferring any service whose constructor arguments are not yet resolvable and retrying until all are built:
 
 ```python
-def create_service_provider(
-    provider_type: type = DynamicServiceProvider,
-    type_map: Dict[str, type] = None,
-    **constants
-) -> ServiceProvider:
+def wire_services(
+    services: List[AppServiceDependency],
+    constants: Dict[str, Any],
+) -> Dict[str, Any]:
     ...
 ```
 
-This is registered in the DI container so contexts can create scoped providers.
+`load_app_instance` then composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and injects its `get_dependency` handler into the context.
 
 ### 2. Loading the App Service
 
@@ -165,12 +164,13 @@ Use framework constants and `RaiseError.execute()` for all failure paths.
 
 Blueprints should **not** contain domain logic — only orchestration, wiring, and delegation.
 
-### 4. Register `create_service_provider`
+### 4. Inject `get_dependency` into the Context
 
-Always register the function so contexts can create scoped providers:
+Compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine:
 
 ```python
-dependencies['create_service_provider'] = create_service_provider
+resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
+return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
 ```
 
 ## Related Documentation

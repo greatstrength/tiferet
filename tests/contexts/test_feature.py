@@ -11,15 +11,15 @@ from unittest import mock
 
 # ** app
 from tiferet.contexts.feature import (
-    DIContext,
     FeatureContext,
+    AsyncFeatureContext,
     RequestContext,
 )
 from tiferet.assets import TiferetError
 from tiferet.events import DomainEvent, AsyncDomainEvent
 from tiferet.domain import (
     Feature,
-    FeatureEvent,
+    EventFeatureStep,
 )
 
 # *** fixtures
@@ -29,13 +29,13 @@ from tiferet.domain import (
 def services_context(test_command):
     """Fixture to provide a mock DI context."""
 
-    # Create a mock DI context.
-    services_context = mock.Mock(spec=DIContext)
+    # Create a mock holder exposing a get_dependency resolution handler.
+    services_context = mock.Mock()
 
-    # Set the DI service to return the test command when requested.
+    # Set the handler to return the test command when requested.
     services_context.get_dependency.return_value = test_command
 
-    # Return the mock DI context.
+    # Return the mock holder.
     return services_context
 
 # ** fixture: feature_context
@@ -43,8 +43,8 @@ def services_context(test_command):
 def feature_context(services_context):
     """Fixture to provide an instance of FeatureContext."""
 
-    # Create an instance of FeatureContext with the mock DI context.
-    return FeatureContext(services=services_context)
+    # Create an instance of FeatureContext with the mock resolution handler.
+    return FeatureContext(get_dependency=services_context.get_dependency)
 
 # ** fixture: test_command
 @pytest.fixture
@@ -151,7 +151,7 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
@@ -175,7 +175,7 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 
     feature_flags = ['feature_flag']
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=[],
@@ -190,7 +190,7 @@ def test_feature_context_load_feature_step_only_feature_flags(feature_context, s
 def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
     """Test loading a feature step with only step flags."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag'],
@@ -205,7 +205,7 @@ def test_feature_context_load_feature_step_only_command_flags(feature_context, s
 def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
     """Test loading a feature step that includes flags for dependency resolution."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['flag1', 'flag2'],
@@ -221,7 +221,7 @@ def test_feature_context_load_feature_step_with_flags(feature_context, services_
 def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
     """Test loading a feature step when no flags are configured."""
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     )
@@ -242,7 +242,7 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
         'Feature command not found in services: non_existent_command',
     )
 
-    feature_event: FeatureEvent = FeatureEvent(
+    feature_event: EventFeatureStep = EventFeatureStep(
         name='Missing Command',
         service_id='non_existent_command',
         flags=['flagX'],
@@ -254,6 +254,46 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
     assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
+
+# ** test: feature_context_load_feature_middleware
+def test_feature_context_load_feature_middleware(feature_context, services_context, test_command):
+    """Test resolving middleware service IDs to instances in order."""
+
+    # Resolve a list of middleware ids via the injected handler.
+    middleware = feature_context.load_feature_middleware(['mw_one', 'mw_two'])
+
+    # Assert each id resolved to the handler's return value, preserving order.
+    assert middleware == [test_command, test_command]
+    assert services_context.get_dependency.call_count == 2
+
+# ** test: feature_context_load_feature_middleware_empty
+def test_feature_context_load_feature_middleware_empty(feature_context, services_context):
+    """Test that an empty middleware list resolves to an empty list without resolution."""
+
+    # Resolve an empty middleware list.
+    middleware = feature_context.load_feature_middleware([])
+
+    # Assert no resolution occurred and the result is empty.
+    assert middleware == []
+    services_context.get_dependency.assert_not_called()
+
+# ** test: feature_context_load_feature_middleware_failed
+def test_feature_context_load_feature_middleware_failed(feature_context, services_context):
+    """Test that load_feature_middleware raises MIDDLEWARE_LOADING_FAILED on resolution failure."""
+
+    # Configure the resolution handler to fail for the middleware id.
+    services_context.get_dependency.side_effect = TiferetError(
+        'TEST_ERROR',
+        'Middleware not found in services: missing_mw',
+    )
+
+    # Assert the structured middleware-loading error is raised.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_context.load_feature_middleware(['missing_mw'])
+
+    assert exc_info.value.error_code == 'MIDDLEWARE_LOADING_FAILED'
+    assert exc_info.value.kwargs.get('service_id') == 'missing_mw'
+    assert 'Failed to load middleware: missing_mw' in str(exc_info.value)
 
 # ** test: feature_context_handle_feature_step
 def test_feature_context_handle_feature_step(feature_context, test_command):
@@ -314,7 +354,7 @@ def test_feature_context_handle_feature_step_with_pass_on_error(feature_context,
 def test_feature_context_execute_feature(feature_context, feature):
 
     # Add a standard feature step with no data key or pass on error.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     ))
@@ -333,7 +373,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     """Test executing a feature with a request parameter in the FeatureContext."""
 
     # Add a feature step with a data key and request parameter.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         parameters=dict(
@@ -428,8 +468,8 @@ def test_feature_context_resolve_feature_steps_yields_steps(feature_context, fea
     """Test that resolve_feature_steps yields (cmd, feature_event, params) for each step."""
 
     # Add two steps to the feature.
-    step_a = FeatureEvent(name='Step A', service_id='test_command')
-    step_b = FeatureEvent(name='Step B', service_id='test_command')
+    step_a = EventFeatureStep(name='Step A', service_id='test_command')
+    step_b = EventFeatureStep(name='Step B', service_id='test_command')
     feature.steps.extend([step_a, step_b])
 
     # Create a request.
@@ -448,8 +488,8 @@ def test_feature_context_resolve_feature_steps_skips_false_condition(feature_con
     """Test that resolve_feature_steps skips steps with false conditions."""
 
     # Add a skipped step (false condition) and an unconditional step.
-    skipped = FeatureEvent(name='Skipped', service_id='test_command', condition='$r.x > 100')
-    executed = FeatureEvent(name='Executed', service_id='test_command')
+    skipped = EventFeatureStep(name='Skipped', service_id='test_command', condition='$r.x > 100')
+    executed = EventFeatureStep(name='Executed', service_id='test_command')
     feature.steps.extend([skipped, executed])
 
     # Create a request where x=5 (fails the condition).
@@ -465,7 +505,7 @@ def test_feature_context_resolve_feature_steps_yields_true_condition(feature_con
     """Test that resolve_feature_steps yields steps with true conditions."""
 
     # Add a step with a true condition.
-    step = FeatureEvent(name='Conditional', service_id='test_command', condition='$r.x > 0')
+    step = EventFeatureStep(name='Conditional', service_id='test_command', condition='$r.x > 0')
     feature.steps.append(step)
 
     # Create a request where x=5 (passes the condition).
@@ -481,7 +521,7 @@ def test_feature_context_resolve_feature_steps_parses_parameters(feature_context
     """Test that resolve_feature_steps parses request-backed parameters."""
 
     # Add a step with a request-backed parameter.
-    step = FeatureEvent(
+    step = EventFeatureStep(
         name='Parameterized',
         service_id='test_command',
         parameters={'param': '$r.key'},
@@ -512,7 +552,7 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
     """Test executing a feature with pass_on_error in the FeatureContext."""
 
     # Add a feature step with pass_on_error enabled.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         pass_on_error=True,
@@ -553,17 +593,17 @@ def async_test_command():
 def async_services_context(async_test_command):
     """Fixture to provide a mock DI context that returns the async test command."""
 
-    # Create a mock DI context.
-    ctx = mock.Mock(spec=DIContext)
+    # Create a mock holder exposing an async get_dependency handler.
+    ctx = mock.Mock()
     ctx.get_dependency.return_value = async_test_command
     return ctx
 
 # ** fixture: async_feature_context
 @pytest.fixture
 def async_feature_context(async_services_context):
-    """Fixture to provide a FeatureContext wired with the async command."""
+    """Fixture to provide an AsyncFeatureContext wired with the async command."""
 
-    return FeatureContext(services=async_services_context)
+    return AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
 
 # ** test: feature_context_handle_feature_step_async
 @pytest.mark.asyncio
@@ -582,14 +622,14 @@ async def test_feature_context_handle_feature_step_async(async_feature_context, 
 
 # ** test: feature_context_handle_feature_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async_with_sync_command(feature_context, test_command):
+async def test_feature_context_handle_feature_step_async_with_sync_command(async_feature_context, test_command):
     """Test that handle_feature_step_async correctly dispatches a sync command."""
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
     # Handle a sync command via the async handler.
-    await feature_context.handle_feature_step_async(test_command, request)
+    await async_feature_context.handle_feature_step_async(test_command, request)
     response = request.handle_response()
 
     # Assert that the sync command executed correctly.
@@ -629,7 +669,7 @@ async def test_feature_context_execute_feature_async_basic(async_feature_context
     """Test execute_feature_async with a single async step."""
 
     # Add an async feature step.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Async Command',
         service_id='async_test_command',
     ))
@@ -692,7 +732,7 @@ def test_feature_context_execute_feature_with_feature_middleware(feature_context
 
     # Add feature-level middleware and a step.
     feature.middleware = ['count_middleware']
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     ))
@@ -708,7 +748,7 @@ def test_feature_context_execute_feature_with_feature_middleware(feature_context
                 return {'status': 'success', 'data': {'key': key}}
         return TestEvent()
 
-    feature_context.services.get_dependency.side_effect = resolve_full
+    feature_context.get_dependency.side_effect = resolve_full
 
     request = RequestContext(data={'key': 'value'})
 
@@ -760,24 +800,24 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     sync_cmd = SyncStep()
     async_cmd = AsyncStep()
 
-    # Mock DI context to return the right command per service_id.
-    services = mock.Mock(spec=DIContext)
+    # Mock the resolution handler to return the right command per service_id.
+    services = mock.Mock()
     def resolve(service_id, *flags):
         if service_id == 'sync_step':
             return sync_cmd
         return async_cmd
     services.get_dependency.side_effect = resolve
 
-    # Build the feature context.
-    ctx = FeatureContext(services=services)
+    # Build the async feature context.
+    ctx = AsyncFeatureContext(get_dependency=services.get_dependency)
 
     # Add a sync step followed by an async step.
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Sync Step',
         service_id='sync_step',
         data_key='sync_result',
     ))
-    feature.steps.append(FeatureEvent(
+    feature.steps.append(EventFeatureStep(
         name='Async Step',
         service_id='async_step',
         data_key='async_result',
@@ -792,3 +832,29 @@ async def test_feature_context_execute_feature_async_mixed_chain(feature):
     # Assert both steps executed correctly.
     assert request.data.get('sync_result') == {"sync": True, "key": "mixed"}
     assert request.data.get('async_result') == {"async": True, "key": "mixed"}
+
+# ** test: async_feature_context_subclasses_feature_context
+def test_async_feature_context_subclasses_feature_context():
+    """Test that AsyncFeatureContext inherits the synchronous FeatureContext helpers."""
+
+    # Assert the inheritance relationship.
+    assert issubclass(AsyncFeatureContext, FeatureContext)
+
+    # Assert the shared helpers and sync execution are inherited (not redefined).
+    shared = (
+        'load_feature_step',
+        'load_feature_middleware',
+        'handle_feature_step',
+        'parse_request_parameter',
+        'evaluate_condition',
+        'resolve_feature_steps',
+        'execute_feature',
+    )
+    for helper in shared:
+        assert getattr(AsyncFeatureContext, helper) is getattr(FeatureContext, helper)
+
+    # Assert the async methods live on AsyncFeatureContext, not on FeatureContext.
+    assert hasattr(AsyncFeatureContext, 'handle_feature_step_async')
+    assert hasattr(AsyncFeatureContext, 'execute_feature_async')
+    assert not hasattr(FeatureContext, 'handle_feature_step_async')
+    assert not hasattr(FeatureContext, 'execute_feature_async')

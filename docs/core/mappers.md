@@ -170,7 +170,7 @@ class FeatureYamlObject(Feature, TransferObject):
     }
 
     # * attribute: steps
-    steps: List[FeatureEventYamlObject] = Field(
+    steps: List[EventFeatureStepYamlObject] = Field(
         default_factory=list,
         validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
         description='The step workflow for the feature.',
@@ -192,7 +192,7 @@ class FeatureYamlObject(Feature, TransferObject):
         return super().from_model(
             feature,
             steps=[
-                FeatureEventYamlObject.from_model(step)
+                EventFeatureStepYamlObject.from_model(step)
                 for step in feature.steps
             ],
             **overrides,
@@ -429,7 +429,7 @@ Mappers are defined in `tiferet/mappers/`:
 - `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandYamlObject`.
 - `di.py` — `ServiceConfigurationAggregate`, `ServiceConfigurationYamlObject`.
 - `error.py` — `ErrorAggregate`, `ErrorYamlObject`, `ErrorMessageYamlObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureYamlObject`, `FeatureEventAggregate`, `FeatureEventYamlObject`.
+- `feature.py` — `FeatureAggregate`, `FeatureYamlObject`, `EventFeatureStepAggregate`, `EventFeatureStepYamlObject`.
 - `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their YamlObject counterparts.
 - `__init__.py` — Public exports.
 

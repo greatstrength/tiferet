@@ -9,7 +9,7 @@ import pytest
 from tiferet.assets import TiferetError
 from tiferet.contexts.base import BaseContext, ContextMeta
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.feature import FeatureContext
+from tiferet.contexts.feature import FeatureContext, AsyncFeatureContext
 from tiferet.contexts.error import ErrorContext
 from tiferet.contexts.app import AppInterfaceContext
 from tiferet.domain import Feature, Error, AppInterface
@@ -35,6 +35,20 @@ def test_base_context_not_registered():
 
     # Assert no registry entry maps to BaseContext.
     assert BaseContext not in ContextMeta.registry.values()
+
+# ** test: async_feature_context_not_registered
+def test_async_feature_context_not_registered():
+    '''
+    Test that AsyncFeatureContext inherits domain_type without clobbering the
+    Feature registry entry, leaving FeatureContext as the resolved context.
+    '''
+
+    # Assert Feature still resolves to the synchronous FeatureContext.
+    assert ContextMeta.registry.get(Feature) is FeatureContext
+    assert BaseContext.for_domain(Feature) is FeatureContext
+
+    # Assert the async subclass is not registered for any domain type.
+    assert AsyncFeatureContext not in ContextMeta.registry.values()
 
 # ** test: for_domain_success
 def test_for_domain_success():
@@ -98,7 +112,7 @@ def test_from_domain_explicit_subclass():
     cache = CacheContext()
 
     # Construct the feature context explicitly via from_domain.
-    context = FeatureContext.from_domain(feature, services=None, cache=cache)
+    context = FeatureContext.from_domain(feature, get_dependency=None, cache=cache)
 
     # Assert the context type, shared cache, and bound domain.
     assert isinstance(context, FeatureContext)

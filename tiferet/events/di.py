@@ -7,16 +7,17 @@ from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
 from .settings import DomainEvent, a
+from ..di import merge_settings
 from ..domain.di import ServiceConfiguration
 from ..interfaces.di import DIService
 from ..mappers.di import ServiceConfigurationAggregate
 
 # *** events
 
-# ** event: add_service_configuration
-class AddServiceConfiguration(DomainEvent):
+# ** event: di_event
+class DIEvent(DomainEvent):
     '''
-    A domain event to add a new service configuration.
+    Base event providing the shared DIService dependency for DI domain events.
     '''
 
     # * attribute: di_service
@@ -25,14 +26,20 @@ class AddServiceConfiguration(DomainEvent):
     # * init
     def __init__(self, di_service: DIService):
         '''
-        Initialize the AddServiceConfiguration event.
+        Initialize the DI event with its shared service dependency.
 
-        :param di_service: The DI service.
+        :param di_service: The DI service shared across DI events.
         :type di_service: DIService
         '''
 
-        # Set the event attributes.
+        # Set the DI service dependency.
         self.di_service = di_service
+
+# ** event: add_service_configuration
+class AddServiceConfiguration(DIEvent):
+    '''
+    A domain event to add a new service configuration.
+    '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -95,26 +102,11 @@ class AddServiceConfiguration(DomainEvent):
         return configuration
 
 # ** event: set_default_service_configuration
-class SetDefaultServiceConfiguration(DomainEvent):
+class SetDefaultServiceConfiguration(DIEvent):
     '''
     A domain event to set or update the default service configuration for an
     existing service configuration.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the SetDefaultServiceConfiguration event.
-
-        :param di_service: The DI service.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     def execute(
@@ -181,26 +173,11 @@ class SetDefaultServiceConfiguration(DomainEvent):
         return configuration
 
 # ** event: set_service_dependency
-class SetServiceDependency(DomainEvent):
+class SetServiceDependency(DIEvent):
     '''
     A domain event to set or update a flagged dependency on an existing
     service configuration.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the SetServiceDependency event.
-
-        :param di_service: The DI service.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     @DomainEvent.parameters_required(['flag'])
@@ -267,26 +244,11 @@ class SetServiceDependency(DomainEvent):
 
 
 # ** event: remove_service_dependency
-class RemoveServiceDependency(DomainEvent):
+class RemoveServiceDependency(DIEvent):
     '''
     A domain event to remove a flagged dependency from an existing service
     configuration.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the RemoveServiceDependency event.
-
-        :param di_service: The DI service.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     @DomainEvent.parameters_required(['flag'])
@@ -335,25 +297,10 @@ class RemoveServiceDependency(DomainEvent):
         return id
 
 # ** event: remove_service_configuration
-class RemoveServiceConfiguration(DomainEvent):
+class RemoveServiceConfiguration(DIEvent):
     '''
     A domain event to remove a service configuration by ID.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the RemoveServiceConfiguration event.
-
-        :param di_service: The DI service.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -377,25 +324,10 @@ class RemoveServiceConfiguration(DomainEvent):
 
 
 # ** event: set_service_constants
-class SetServiceConstants(DomainEvent):
+class SetServiceConstants(DIEvent):
     '''
     A domain event to set or clear service-level constants.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the SetServiceConstants event.
-
-        :param di_service: The DI service to use.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     def execute(
@@ -439,25 +371,11 @@ class SetServiceConstants(DomainEvent):
 
 
 # ** event: list_all_settings
-class ListAllSettings(DomainEvent):
+class ListAllSettings(DIEvent):
     '''
-    A domain event to list all service configurations and constants.
+    A domain event to list all service configurations and constants, merging
+    execute-time bootstrap defaults beneath the repository values.
     '''
-
-    # * attribute: di_service
-    di_service: DIService
-
-    # * init
-    def __init__(self, di_service: DIService):
-        '''
-        Initialize the ListAllSettings event.
-
-        :param di_service: The DI service.
-        :type di_service: DIService
-        '''
-
-        # Set the event attributes.
-        self.di_service = di_service
 
     # * method: execute
     def execute(
@@ -485,18 +403,11 @@ class ListAllSettings(DomainEvent):
         # Retrieve configurations and constants from the DI service.
         configs, constants = self.di_service.list_all()
 
-        # Build the set of existing service IDs for deduplication.
-        existing_ids = {c.id for c in (configs or [])}
-
-        # Merge default-index entries for any service ID not already present.
-        default_configs = [
-            config
-            for config_id, config in (default_config_index or {}).items()
-            if config_id not in existing_ids
-        ]
-
-        # Merge constants: defaults are lower priority than repository constants.
-        merged_constants = {**(default_constants or {}), **(constants or {})}
-
-        # Return the merged configurations and constants.
-        return list(configs or []) + default_configs, merged_constants
+        # Merge with the execute-time bootstrap defaults via the shared helper,
+        # reusing the single merge implementation that backs the resolver.
+        return merge_settings(
+            configs,
+            constants,
+            default_config_index,
+            default_constants,
+        )
