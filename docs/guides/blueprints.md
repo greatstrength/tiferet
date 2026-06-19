@@ -14,7 +14,7 @@ A blueprint is responsible for:
 - Loading the application service (repository)
 - Preparing default services and constants
 - Resolving interfaces via domain events
-- Declaratively wiring service dependencies and building a `ServiceResolver`
+- Declaratively wiring service dependencies and composing a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - Executing features through the resolved interface context
 
 The canonical example is `build_app` in `tiferet/blueprints/main.py`.
@@ -55,7 +55,7 @@ def wire_services(
     ...
 ```
 
-`load_app_instance` then builds a `ServiceResolver` from the resolved `di_service` and injects its `get_dependency` handler into the context.
+`load_app_instance` then composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and injects its `get_dependency` handler into the context.
 
 ### 2. Loading the App Service
 
@@ -166,10 +166,10 @@ Blueprints should **not** contain domain logic — only orchestration, wiring, a
 
 ### 4. Inject `get_dependency` into the Context
 
-Build a `ServiceResolver` from the resolved `di_service` and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine:
+Compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine:
 
 ```python
-resolver = ServiceResolver(di_service=registry.get('di_service'), ...)
+resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
 return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
 ```
 

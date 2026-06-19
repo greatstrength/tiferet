@@ -47,7 +47,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 ### Runtime Flow
 
 1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
-2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, declaratively wires the interface's service dependencies into a name-to-value registry (`wire_services`), builds a `ServiceResolver` from the resolved `di_service`, resolves the hub's event collaborators by name from the registry, and constructs the `AppInterfaceContext` via `BaseContext.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved.
+2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, declaratively wires the interface's service dependencies into a name-to-value registry (`wire_services`), composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, resolves the hub's event collaborators by name from the registry, and constructs the `AppInterfaceContext` via `BaseContext.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved.
 3. `AppInterfaceContext.run(feature_id, data={})` builds a logger, parses the request, loads the `Feature` domain object, executes it, and returns the response.
 4. The hub builds its sub-contexts (`FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service via the injected `get_dependency` handler (from `ServiceResolver`) and executes it sequentially. When the loaded `Feature` has `is_async` set, the hub instead selects `AsyncFeatureContext` (a `FeatureContext` subclass) and drives `execute_feature_async` to completion via a `_run_coroutine` helper, keeping `run()` synchronous.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
@@ -57,16 +57,20 @@ A working calculator application is provided in `examples/basic_calculator/`.
 
 Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate application bootstrapping and execution. They replace the previous class-based `AppBuilder`/`CliBuilder` pattern from v2.0.0b2.
 
-- `build_app(interface_id, ...)` is defined in `tiferet/blueprints/main.py` and exported as `App` from `tiferet/__init__.py`. It resolves the interface definition, builds the DI container, and returns a fully wired `AppInterfaceContext`.
+- `build_app(interface_id, ...)` is defined in `tiferet/blueprints/main.py` and exported as `App` from `tiferet/__init__.py`. It resolves the interface definition, composes the DI `ServiceResolver`, and returns a fully wired `AppInterfaceContext`.
 - `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It extends the app blueprint with argparse-based CLI parsing.
 
-**Key blueprint functions in `main.py`:**
+**Pure helpers in `main.py` (`# *** functions`):** side-effect-free transforms grouped above the blueprints.
+- `resolve_ctor_kwargs(service_type, registry)` — Matches a service type's injectable constructor parameters (via the shared `injectable_parameter_names`) to registry entries, returning resolved kwargs or `None` to defer instantiation.
+- `build_wiring_constants(app_interface)` — Builds the wiring-registry seed constants (interface scalars + declared constants).
+- `resolve_collaborators(registry)` — Resolves the hub's event collaborators by name from the registry.
+
+**Key blueprint functions in `main.py` (`# *** blueprints`):**
 - `wire_services(services, constants)` — Declaratively instantiates the interface's service dependencies into a name-to-value registry (no app-level DI container), deferring services whose constructor args are not yet resolvable.
-- `build_config_index(default_configurations)` — Builds a typed default `ServiceConfiguration` index keyed by id for bootstrap merging.
 - `load_app_service(module_path, class_name, **parameters)` — Imports and constructs the application service.
 - `load_default_services()` — Loads default app service dependencies from `assets.blueprints`.
 - `resolve_interface(interface_id, ...)` — Loads the app service and resolves the interface definition via `GetAppInterface`.
-- `load_app_instance(app_interface, **context_kwargs)` — Builds a `ServiceResolver` from the resolved `di_service`, resolves the hub's event collaborators, and constructs the `AppInterfaceContext` via `from_domain`, injecting `resolver.get_dependency`.
+- `load_app_instance(app_interface, **context_kwargs)` — Composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, resolves the hub's event collaborators, and constructs the `AppInterfaceContext` via `from_domain`, injecting `resolver.get_dependency`.
 - `realize_interface(app_interface, interface_id, **context_kwargs)` — Builds (via `load_app_instance`) and validates the concrete `AppInterfaceContext`; forwards `**context_kwargs` (e.g. bootstrap defaults) to the context constructor.
 - `build_app(interface_id, ...)` — Resolves and realizes the interface in a single call.
 
@@ -84,10 +88,12 @@ CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has be
 
 As of v2.0.0b10, DI is provided by two classes in `tiferet/di/settings.py` (the previous `ServiceProvider` ABC, `DynamicServiceProvider`, `DependenciesServiceProvider` alias, and the feature-level `DIContext` have all been removed):
 
-- **`ServiceContainer`** — the low-level engine, backed by `dependency-injector`'s `DynamicContainer`. Registers class types as `Factory` providers and scalars/callables as `Object` providers, and resolves instances via `get_service`. `build_factory(service_type)` inspects the constructor signature and wires each parameter to a sibling provider.
-- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` as a direct dependency, reads service configurations and constants (merging bootstrap defaults), assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` per flag set. Its bound `get_dependency(configuration_id, *flags)` method is injected into `AppInterfaceContext` and forwarded to each `FeatureContext` to resolve feature-step events and middleware.
+- **`ServiceContainer`** — the low-level engine, backed by `dependency-injector`'s `DynamicContainer`. Registers class types as `Factory` providers and scalars/callables as `Object` providers, and resolves instances via `get_service`. `build_factory(service_type)` wires each constructor parameter to a sibling provider via the shared `injectable_parameter_names` helper.
+- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies, reads service configurations and constants (merging bootstrap defaults via `merge_settings`), assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` per flag set. Its bound `get_dependency(configuration_id, *flags)` method is injected into `AppInterfaceContext` and forwarded to each `FeatureContext` to resolve feature-step events and middleware.
 
-Interface wiring is declarative: `wire_services` instantiates the interface's events and repositories into a name-to-value registry (no app-level container), and `load_app_instance` builds the `ServiceResolver` and injects `resolver.get_dependency`.
+The DI layer is **event-free and asset-free** (it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`); it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as the injected `parse_parameter` callable. `tiferet/di/settings.py` also exposes pure `# *** functions` — `injectable_parameter_names`, `normalize_flags`, `create_cache_key`, and `merge_settings` — exported from `tiferet/di/__init__.py`.
+
+Interface wiring is declarative: `wire_services` instantiates the interface's events and repositories into a name-to-value registry (no app-level container), and `load_app_instance` composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`) and injects `resolver.get_dependency`.
 
 ## Structured Code Style
 
@@ -159,6 +165,10 @@ Domain events are the primary operational units. Key patterns:
 ### Static Events
 
 `ParseParameter`, `ImportDependency`, `RaiseError` in `events/static.py` are utility events called with static `.execute()` methods.
+
+### Bootstrap Events
+
+`CreateServiceResolver` in `events/blueprint.py` is a bootstrap domain event that composes a fully wired `ServiceResolver` from an `AppInterface`: it locates the `di_service` dependency, constructs the DI repository, builds the typed default-config index, and injects `ParseParameter.execute` so the DI layer never imports the parameter parser itself. It is invoked by `load_app_instance` via `DomainEvent.handle`.
 
 ### Testing Events
 
@@ -342,11 +352,12 @@ The top-level `tiferet/__init__.py` exports:
 
 The v2.0.0b10 cycle reworks dependency injection, introduces per-module base domain events, and splits async feature execution. Key changes:
 
-- **DI redesign** — The `ServiceProvider` ABC, `DynamicServiceProvider`, the `DependenciesServiceProvider` alias, and the feature-level `DIContext` (`tiferet/contexts/di.py`) have been removed. DI now lives in `tiferet/di/settings.py` as `ServiceContainer` (the `dependency-injector`-backed engine) and `ServiceResolver` (the application's single public provider, which takes `DIService` directly and caches a `ServiceContainer` per flag set). `AppInterfaceContext` and `FeatureContext` consume an injected `get_dependency` callable. The blueprint wires the interface declaratively via `wire_services` (no app-level container) and builds the `ServiceResolver` in `load_app_instance`. The `create_service_provider` blueprint factory was removed.
+- **DI redesign** — The `ServiceProvider` ABC, `DynamicServiceProvider`, the `DependenciesServiceProvider` alias, and the feature-level `DIContext` (`tiferet/contexts/di.py`) have been removed. DI now lives in `tiferet/di/settings.py` as `ServiceContainer` (the `dependency-injector`-backed engine) and `ServiceResolver` (the application's single public provider, which takes `DIService` directly and caches a `ServiceContainer` per flag set). `AppInterfaceContext` and `FeatureContext` consume an injected `get_dependency` callable. The blueprint wires the interface declaratively via `wire_services` (no app-level container) and composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event in `load_app_instance`. The `create_service_provider` blueprint factory was removed.
 - **Per-module base events** — Each single-service event module defines a base event holding the shared service: `ErrorEvent`, `FeatureEvent`, `AppEvent`, `CliEvent`, `DIEvent`, `LoggingEvent`, `SqliteEvent`. Concrete events extend the base and keep only their `execute` (and `@DomainEvent.parameters_required`). Static events (`events/static.py`) are unchanged.
 - **Domain object rename** — The feature step domain object `FeatureEvent` was renamed to `EventFeatureStep` (mappers `FeatureEventAggregate`/`FeatureEventYamlObject` → `EventFeatureStepAggregate`/`EventFeatureStepYamlObject`) to free the `FeatureEvent` name for the new base event.
 - **Async feature split** — Async step execution moved into `AsyncFeatureContext(FeatureContext)`; a `Feature.is_async` flag selects it, and the hub drives it via `_run_coroutine` while keeping `run()` synchronous.
 - **Code style** — A new `# *** functions` module preamble section documents side-effect-free module-level functions (e.g., the SQLite identifier helper in `events/sqlite.py`).
+- **Event-free DI + resolver composition event** — `tiferet/di/settings.py` is now event-free and asset-free: `ServiceContainer.get_service` and `ServiceResolver.build_type_map` assume best-case inputs and let raw exceptions surface; the `container_factory`/`default_container` indirection was removed in favor of an injected `parse_parameter` callable (default identity). The defaults-merge and signature/flag/cache helpers were extracted as pure `# *** functions` (`merge_settings`, `injectable_parameter_names`, `normalize_flags`, `create_cache_key`) and exported from `tiferet/di/__init__.py`. `ServiceResolver` construction moved into the new `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`); the blueprint's `build_config_index` helper was removed and `main.py` gained a `# *** functions` section (`resolve_ctor_kwargs`, `build_wiring_constants`, `resolve_collaborators`). `FeatureContext.load_feature_middleware` now raises a new `MIDDLEWARE_LOADING_FAILED` error, and the dead `AppInterface.service_provider_path` / `service_provider_class_name` fields were removed. `ListAllSettings` (wired as `di_list_all_configs_evt`) is retained and refactored to delegate to `merge_settings`.
 
 ### v2.0.0b9: Declarative Context Architecture (Minimal Hub)
 

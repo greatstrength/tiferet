@@ -17,7 +17,7 @@ Blueprints sit at the highest level of the application graph:
 - They load the application service (typically a repository)
 - They prepare default services and constants from `assets.blueprints`
 - They resolve interfaces via domain events (`GetAppInterface`)
-- They declaratively wire service dependencies into a name-to-value registry (no app-level DI container) and build a `ServiceResolver`
+- They declaratively wire service dependencies into a name-to-value registry (no app-level DI container) and compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - They delegate feature execution to the resolved `AppInterfaceContext`
 
 This design keeps application code simple while maintaining full extensibility and testability.
@@ -53,6 +53,8 @@ Blueprints follow Tiferet's standard artifact comment structure.
 
 Blueprints are organized under the `# *** blueprints` top-level comment, with individual blueprints under `# ** blueprint: <snake_case_name>`. Each blueprint function uses standard RST docstrings and code snippet conventions.
 
+Side-effect-free helpers (pure input→output transforms with no I/O, instantiation, or error raising) belong in a `# *** functions` section above `# *** blueprints`, with individual helpers under `# ** function: <snake_case_name>`. In `tiferet/blueprints/main.py` these are `resolve_ctor_kwargs`, `build_wiring_constants`, and `resolve_collaborators` — small pure helpers consumed by the orchestration functions below them. Reserve `# *** blueprints` for the orchestration entry points reused by other blueprints or clients (e.g. `wire_services`, `resolve_interface`, `load_app_instance`, `build_app`).
+
 **Spacing rules:**
 
 - One empty line between `# *** blueprints` and first `# ** blueprint`
@@ -70,7 +72,7 @@ Blueprints are organized under the `# *** blueprints` top-level comment, with in
    - `load_default_services` — load default service dependencies
    - `resolve_interface` — resolve the interface definition
    - `wire_services` — declaratively instantiate service dependencies into a name-to-value registry
-   - `load_app_instance` — build the `ServiceResolver` and construct the context, injecting `get_dependency`
+   - `load_app_instance` — compose the `ServiceResolver` via the `CreateServiceResolver` bootstrap event and construct the context, injecting `get_dependency`
    - `realize_interface` — build and validate the interface context
    - `build_app` — high-level entry point
 
@@ -96,10 +98,10 @@ app_interface = DomainEvent.handle(
 ```
 
 **Declarative service wiring**  
-`wire_services` instantiates the interface's dependencies into a name-to-value registry, and `load_app_instance` builds a `ServiceResolver` from the resolved `di_service`, injecting its `get_dependency` handler into the context:
+`wire_services` instantiates the interface's dependencies into a name-to-value registry, and `load_app_instance` composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, injecting its `get_dependency` handler into the context:
 
 ```python
-resolver = ServiceResolver(di_service=registry.get('di_service'), ...)
+resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
 return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
 ```
 

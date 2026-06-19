@@ -147,7 +147,7 @@ Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py
 2. Build (or retrieve from cache) a per-flag `ServiceContainer` via `build_container`.
 3. Resolve and return the service from the container by `configuration_id`.
 
-`build_container` lists all `ServiceConfiguration` objects and constants (merging bootstrap defaults via `list_all_settings`), parses constants and per-configuration parameters (`load_constants`), resolves each configuration to a concrete type (`build_type_map`), and constructs a `ServiceContainer` through the resolver's `container_factory`. The blueprint builds the `ServiceResolver` from the resolved `di_service` in `load_app_instance` (`tiferet/blueprints/main.py`).
+`build_container` lists all `ServiceConfiguration` objects and constants (merging bootstrap defaults via `list_all_settings`), parses constants and per-configuration parameters (`load_constants`), resolves each configuration to a concrete type (`build_type_map`), and constructs a `ServiceContainer` directly (registering constants before service types). The blueprint composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event in `load_app_instance` (`tiferet/blueprints/main.py`).
 
 ### RequestContext
 
