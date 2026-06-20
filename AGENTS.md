@@ -19,7 +19,7 @@ The v2.0 codebase is a clean, single-layer architecture. All legacy packages hav
 tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/           # build_app, build_cli and top-level runtime orchestration
-├── contexts/             # Runtime orchestration: BaseContext registry + AppInterfaceContext hub (Feature, Error, Logging)
+├── contexts/             # Runtime orchestration: BaseContext registry + AppInterfaceContext hub (Feature, Error, Logging) + CliContext
 ├── di/                   # DI: ServiceContainer engine + ServiceResolver provider
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
@@ -58,12 +58,12 @@ A working calculator application is provided in `examples/basic_calculator/`.
 Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate application bootstrapping and execution. They replace the previous class-based `AppBuilder`/`CliBuilder` pattern from v2.0.0b2.
 
 - `build_app(interface_id, ...)` is defined in `tiferet/blueprints/main.py` and exported as `App` from `tiferet/__init__.py`. It resolves the interface definition, composes the DI `ServiceResolver`, and returns a fully wired `AppInterfaceContext`.
-- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It extends the app blueprint with argparse-based CLI parsing.
+- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It is a thin entrypoint that resolves and realizes a CLI interface (which must point at `CliContext`) and delegates `argv` parsing and feature dispatch to `CliContext.run_cli`.
 
 **Pure helpers in `main.py` (`# *** functions`):** side-effect-free transforms grouped above the blueprints.
 - `resolve_ctor_kwargs(service_type, registry)` — Matches a service type's injectable constructor parameters (via the shared `injectable_parameter_names`) to registry entries, returning resolved kwargs or `None` to defer instantiation.
 - `build_wiring_constants(app_interface)` — Builds the wiring-registry seed constants (interface scalars + declared constants).
-- `resolve_collaborators(registry)` — Resolves the hub's event collaborators by name from the registry.
+- `resolve_collaborators(context_cls, registry)` — Resolves a context class's event collaborators by name from the registry, inspecting the context class's own injectable constructor parameters (so a `CliContext` also receives `list_commands_evt`/`get_parent_args_evt`) while skipping the explicitly-supplied `get_dependency`/`cache` and any bootstrap `default_*` kwargs.
 
 **Key blueprint functions in `main.py` (`# *** blueprints`):**
 - `wire_services(services, constants)` — Declaratively instantiates the interface's service dependencies into a name-to-value registry (no app-level DI container), deferring services whose constructor args are not yet resolvable.
@@ -74,15 +74,10 @@ Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate a
 - `realize_interface(app_interface, interface_id, **context_kwargs)` — Builds (via `load_app_instance`) and validates the concrete `AppInterfaceContext`; forwards `**context_kwargs` (e.g. bootstrap defaults) to the context constructor.
 - `build_app(interface_id, ...)` — Resolves and realizes the interface in a single call.
 
-**CLI blueprint functions in `cli.py`:**
-- `get_commands(service_provider)` — Resolves and groups `CliCommand` objects by `group_key`.
-- `get_parent_arguments(service_provider)` — Resolves parent-level CLI arguments.
-- `build_parser(cli_commands, parent_arguments)` — Composes the root `argparse.ArgumentParser`.
-- `parse_argv(parser, argv)` — Parses CLI arguments; exits 2 on failure.
-- `derive_feature_request(parsed)` — Derives `feature_id` and `headers` from parsed arguments.
-- `build_app(interface_id, argv, ...)` — Full CLI build: resolve interface, build parser, parse argv, dispatch feature. Exits 1 on `TiferetAPIError`.
+**CLI blueprint function in `cli.py`:**
+- `build_app(interface_id, argv, ...)` — Thin CLI entrypoint: resolves the interface, realizes the context (a `CliContext`), and delegates to `cli_context.run_cli(argv)`. Exported as `build_cli` / `CLI`.
 
-CLI interfaces resolve to the default `AppInterfaceContext`; `CliContext` has been retired.
+CLI parsing is owned by `CliContext` (`tiferet/contexts/cli.py`): the side-effect-free module-level helpers `group_commands_by_key`, `build_parser`, and `derive_feature_request`, plus the `get_commands` / `parse_cli_request` / `run_cli` methods. Per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`. Consumer CLI interfaces opt in by pointing their config at `tiferet.contexts.cli` / `CliContext`.
 
 ### Dependency Injection
 
@@ -340,6 +335,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/base.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext` (minimal declarative hub bound to the loaded `AppInterface`)
+- `tiferet/contexts/cli.py` — `CliContext` (CLI high-level context: argparse parsing helpers + `get_commands`/`parse_cli_request`/`run_cli`)
 - `tiferet/contexts/feature.py` — `FeatureContext` (sync feature execution engine) and `AsyncFeatureContext` (async subclass selected when `Feature.is_async` is set)
 - `tiferet/assets/constants.py` — Error codes and `DEFAULT_SERVICES` configuration
 - `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
@@ -347,6 +343,16 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### v2.0.0b11: CliContext Reincorporation
+
+The v2.0.0b11 cycle reincorporates `CliContext` as a high-level context and slims both CLI blueprints to thin entrypoints. Key changes:
+
+- **`CliContext`** (`tiferet/contexts/cli.py`) — Extends `AppInterfaceContext` with command-line concerns: `get_commands`, `parse_cli_request`, and `run_cli`, orchestrating the side-effect-free module-level helpers `group_commands_by_key`, `build_parser`, and `derive_feature_request`. It intentionally omits `domain_type`, so the `ContextMeta` registry still maps `AppInterface` to `AppInterfaceContext`; the CLI context is selected via the interface's `module_path`/`class_name`.
+- **Generalized collaborator wiring** — `resolve_collaborators(context_cls, registry)` now inspects the realized context class's injectable constructor parameters (skipping `get_dependency`/`cache` and `default_*`), so a `CliContext` receives `list_commands_evt`/`get_parent_args_evt` while the generic `AppInterfaceContext` still resolves only its original three. `load_app_instance` imports the context class before resolving collaborators.
+- **Slim CLI blueprints** — `tiferet/blueprints/cli.py` (`build_cli`/`CLI`) reduces to resolve → realize → `cli_context.run_cli(argv)`; the old `get_commands`/`get_parent_arguments`/`build_argument_kwargs`/`build_parser`/`parse_argv`/`derive_feature_request` helpers were removed (the shared logic lives in `tiferet/contexts/cli.py`). `tiferet/blueprints/tiferet_cli.py` drops `_build_tiferet_command_map` and the mapper import, seeds bootstrap commands via `default_commands`, and decodes JSON args after `parse_cli_request` before `run`.
+- **Built-in CLI interface** — `DEFAULT_TIFERET_CLI_INTERFACE` (`tiferet/assets/app.py`) now points at `tiferet.contexts.cli` / `CliContext`. Consumer CLI interfaces must likewise opt in.
+- **`CliArgument.to_argparse_kwargs()`** — Per-argument argparse translation moved onto the `CliArgument` domain model (co-located with `get_type()`), replacing the module-level `build_argument_kwargs`.
 
 ### v2.0.0b10: DI Redesign, Per-Module Base Events, and Async Feature Split
 

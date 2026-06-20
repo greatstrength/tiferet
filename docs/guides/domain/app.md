@@ -91,6 +91,8 @@ interfaces:
   basic_calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
+    module_path: tiferet.contexts.cli
+    class_name: CliContext
     attrs:
       cli_repo:
         module_path: tiferet.repos.cli
@@ -99,7 +101,7 @@ interfaces:
           cli_config: config.yml
 ```
 
-CLI interfaces no longer require `module_path`/`class_name` overrides — they use the default `AppInterfaceContext` with argparse wiring handled by the `build_cli` blueprint.
+CLI interfaces declare `module_path: tiferet.contexts.cli` / `class_name: CliContext` to opt into the CLI context; the `build_cli` blueprint realizes that context and delegates argv parsing to `CliContext.run_cli`.
 
 ## Domain Events
 

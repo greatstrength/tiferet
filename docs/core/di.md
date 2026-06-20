@@ -182,7 +182,7 @@ The `build_app` blueprint (`tiferet/blueprints/main.py`) wires the interface dec
 
 1. `wire_services(services, constants)` seeds a name-to-value registry with interface scalars and constants (via the pure `build_wiring_constants`), then iteratively instantiates each `AppServiceDependency` whose constructor arguments are all resolvable (via the pure `resolve_ctor_kwargs`), wiring events to the repositories they depend on.
 2. `load_app_instance` composes the `ServiceResolver` by handling the `CreateServiceResolver` bootstrap event, which locates the interface's `di_service` dependency, constructs the DI repository, injects `ParseParameter.execute`, and routes bootstrap DI defaults (`default_configurations`, `default_constants`) into it.
-3. The hub's event collaborators (`get_feature_evt`, `get_error_evt`, `logging_list_all_evt`) are resolved by name from the registry (via the pure `resolve_collaborators`), and the context is constructed via `from_domain`, injecting `resolver.get_dependency`.
+3. The context class's event collaborators are resolved by name from the registry (via the pure `resolve_collaborators`, which inspects the imported context class's own injectable constructor parameters — so a `CliContext` also receives `list_commands_evt`/`get_parent_args_evt` — while skipping the explicitly-supplied `get_dependency`/`cache` and any bootstrap `default_*` kwargs), and the context is constructed via `from_domain`, injecting `resolver.get_dependency`.
 
 ```python
 # tiferet/blueprints/main.py (excerpt)

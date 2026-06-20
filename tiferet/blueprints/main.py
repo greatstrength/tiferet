@@ -22,17 +22,6 @@ from ..events import (
 from ..events.app import GetAppInterface
 from ..events.blueprint import CreateServiceResolver
 
-# *** constants
-
-# ** constant: app_context_collaborators
-# Service IDs of the hub's event collaborators resolved by name from the
-# declarative wiring registry when constructing the app interface context.
-APP_CONTEXT_COLLABORATORS = (
-    'get_feature_evt',
-    'get_error_evt',
-    'logging_list_all_evt',
-)
-
 # *** functions
 
 # ** function: resolve_ctor_kwargs
@@ -97,20 +86,37 @@ def build_wiring_constants(app_interface: AppInterface) -> Dict[str, Any]:
 
 
 # ** function: resolve_collaborators
-def resolve_collaborators(registry: Dict[str, Any]) -> Dict[str, Any]:
+def resolve_collaborators(context_cls: type, registry: Dict[str, Any]) -> Dict[str, Any]:
     '''
-    Resolve the hub's event collaborators by name from a wiring registry.
+    Resolve a context class's event collaborators by name from a wiring registry.
 
+    Inspects the context class's own injectable constructor parameters and
+    pulls each matching id from the registry, skipping the arguments that
+    ``load_app_instance`` supplies explicitly (``get_dependency``, ``cache``)
+    and the bootstrap ``default_*`` kwargs forwarded via ``context_kwargs``.
+    This injects the CLI events for a ``CliContext`` and supports any custom
+    context's collaborators without hard-coding collaborator names, while the
+    generic ``AppInterfaceContext`` still resolves only its original three.
+
+    :param context_cls: The context class whose collaborators are resolved.
+    :type context_cls: type
     :param registry: The name-to-value registry of constants and built services.
     :type registry: Dict[str, Any]
-    :return: The resolved collaborators keyed by service id (missing ids map to None).
+    :return: The resolved collaborators keyed by constructor parameter name.
     :rtype: Dict[str, Any]
     '''
 
-    # Resolve each declared collaborator id from the registry.
+    # Arguments supplied explicitly during construction are never collaborators.
+    reserved = {'get_dependency', 'cache'}
+
+    # Match each injectable constructor parameter to a registry entry, skipping
+    # the explicitly-supplied args and the bootstrap default_* kwargs.
     return {
-        name: registry.get(name)
-        for name in APP_CONTEXT_COLLABORATORS
+        name: registry[name]
+        for name in injectable_parameter_names(context_cls)
+        if name not in reserved
+        and not name.startswith('default_')
+        and name in registry
     }
 
 
@@ -273,14 +279,14 @@ def load_app_instance(
         default_constants=context_kwargs.pop('default_constants', None),
     )
 
-    # Resolve the hub's event collaborators by name from the registry.
-    resolved = resolve_collaborators(registry)
-
     # Import the context class declared by the interface (supports custom contexts).
     context_cls = ImportDependency.execute(
         app_interface.module_path,
         app_interface.class_name,
     )
+
+    # Resolve the context class's event collaborators by name from the registry.
+    resolved = resolve_collaborators(context_cls, registry)
 
     # Construct the context declaratively, injecting the resolution handler.
     return context_cls.from_domain(

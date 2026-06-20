@@ -16,38 +16,8 @@ from .main import (
     resolve_interface,
     realize_interface,
 )
-from .cli import (
-    build_parser,
-    parse_argv,
-    derive_feature_request,
-)
 
 # *** blueprints
-
-# ** blueprint: _build_tiferet_command_map
-def _build_tiferet_command_map() -> Dict[str, List]:
-    '''
-    Build a CLI command map directly from ``DEFAULT_TIFERET_CLI_COMMANDS``,
-    bypassing the CLI config repository.
-
-    :return: A dict mapping group keys to lists of ``CliCommandAggregate`` instances.
-    :rtype: Dict[str, List]
-    '''
-
-    from ..mappers import CliCommandAggregate
-
-    # Build the command map from the bootstrap command dicts.
-    command_map: Dict[str, List] = {}
-    for cmd_data in a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS:
-        cmd = CliCommandAggregate(**cmd_data)
-        if cmd.group_key not in command_map:
-            command_map[cmd.group_key] = [cmd]
-        else:
-            command_map[cmd.group_key].append(cmd)
-
-    # Return the grouped command map.
-    return command_map
-
 
 # ** blueprint: _decode_json_arguments
 def _decode_json_arguments(parsed: Dict[str, Any]) -> Dict[str, Any]:
@@ -97,6 +67,10 @@ def build_tiferet_cli(
     All CRUD operations performed by domain events target the consumer's
     ``app_config`` file.  The CLI commands and feature workflows are bootstrapped
     from framework asset modules — they are never loaded from the config file.
+    The built-in ``tiferet_cli`` interface resolves to :class:`CliContext`, so
+    parser construction, request parsing, exit-code handling, and dispatch are
+    owned by the context; this blueprint only seeds bootstrap defaults and
+    decodes the management CLI's JSON-valued arguments.
 
     :param app_config: Required path to the consumer's configuration file.
         All domain events that read or write configuration data use this path.
@@ -107,19 +81,6 @@ def build_tiferet_cli(
     :return: The response from the feature execution.
     :rtype: Any
     '''
-
-    # Build the CLI command map directly from bootstrap defaults, bypassing
-    # the CLI config repository entirely for parser construction.
-    cli_command_map = _build_tiferet_command_map()
-
-    # Build the argparse parser from the bootstrapped command map.
-    parser = build_parser(cli_command_map, [])
-
-    # Parse CLI arguments from argv (or sys.argv[1:] when None).
-    parsed = parse_argv(parser, argv)
-
-    # Derive the feature ID and request headers from the parsed arguments.
-    feature_id, headers = derive_feature_request(parsed)
 
     # Resolve the interface definition, using the built-in tiferet_cli
     # defaults when the consumer's config file does not define the interface.
@@ -189,12 +150,12 @@ def build_tiferet_cli(
     # app_config file rather than the seeded 'config.yml' placeholders.
     app_interface.set_constants(merged_constants)
 
-    # Realize the app interface context. The interface constants (re-seeded
+    # Realize the built-in CLI context. The interface constants (re-seeded
     # above with the consumer's app_config) drive declarative service wiring,
-    # and the bootstrap defaults are seeded onto the service resolver so the
-    # bootstrap features, configurations, and commands resolve even when they
-    # are not present in the consumer's config file.
-    interface_context = realize_interface(
+    # and the bootstrap defaults are seeded onto the context and service
+    # resolver so the bootstrap commands, features, and configurations resolve
+    # even when they are not present in the consumer's config file.
+    cli_context = realize_interface(
         app_interface,
         'tiferet_cli',
         default_features=a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
@@ -203,18 +164,23 @@ def build_tiferet_cli(
         default_constants=bootstrap_constants,
     )
 
-    # Decode JSON-valued CLI arguments before dispatching to the feature.
-    parsed = _decode_json_arguments(parsed)
+    # Parse the CLI request through the context. The parser is built from the
+    # seeded bootstrap commands (CliContext.get_commands() falls back to the
+    # default command list); argparse exits with code 2 on invalid arguments.
+    request = cli_context.parse_cli_request(argv)
 
-    # Execute the feature via the interface context; on API error, exit 1.
+    # Decode the management CLI's JSON-valued arguments before dispatch,
+    # keeping the JSON concern in this blueprint rather than in CliContext.
+    request.data = _decode_json_arguments(request.data)
+
+    # Execute the feature via the context; on a TiferetAPIError, print the
+    # message to stderr and exit with code 1.
     try:
-        response = interface_context.run(
-            feature_id=feature_id,
-            headers=headers,
-            data=parsed,
+        response = cli_context.run(
+            feature_id=request.feature_id,
+            headers=request.headers,
+            data=request.data,
         )
-
-    # On a TiferetAPIError, print the message to stderr and exit with code 1.
     except TiferetAPIError as e:
         print(e, file=sys.stderr)
         sys.exit(1)

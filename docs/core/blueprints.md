@@ -27,7 +27,7 @@ This design keeps application code simple while maintaining full extensibility a
 Tiferet currently defines two blueprints:
 
 - **App blueprint**: `build_app` — used for general script and custom interfaces. Exposed globally as `App`.
-- **CLI blueprint**: `build_cli` — extends the app blueprint with argparse-based CLI build-time translation of `sys.argv` into a feature invocation. Exposed globally as `CLI`.
+- **CLI blueprint**: `build_cli` — a thin entrypoint that resolves and realizes a CLI interface (which must point at `CliContext`) and delegates `sys.argv` translation and feature dispatch to `CliContext.run_cli`. Exposed globally as `CLI`.
 
 Future specialized blueprints may include:
 
@@ -36,14 +36,13 @@ Future specialized blueprints may include:
 
 ### CLI Blueprint Build Procedure
 
-The CLI blueprint (`build_cli`) keeps all build-time CLI parsing in the blueprint and delegates runtime execution to the `AppInterfaceContext`. Its flow follows these steps:
+The CLI blueprint (`build_cli`) is a thin entrypoint; argparse parsing and request derivation live in the reincorporated `CliContext` (`tiferet/contexts/cli.py`). Its flow follows these steps:
 
 1. **Resolve the interface** via `resolve_interface(interface_id)`.
-2. **Build the argparse parser** by composing `get_commands()` (resolves `list_commands_evt` and groups returned commands by `group_key`), `get_parent_arguments()` (resolves `get_parent_args_evt`), and `build_parser(cli_commands, parent_arguments)`.
-3. **Parse arguments** with `parse_argv(parser, argv)`; on failure, print to stderr and `sys.exit(2)`.
-4. **Dispatch the feature** by deriving `feature_id` and `headers` via `derive_feature_request(parsed)`, then calling `interface_context.run(feature_id=feature_id, headers=headers, data=parsed)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+2. **Realize the context** via `realize_interface(...)`. The interface must point at `tiferet.contexts.cli` / `CliContext`, so the realized context is a `CliContext`.
+3. **Delegate to the context** by calling `cli_context.run_cli(argv)`, which builds the parser from the interface's CLI commands and parent arguments, parses `argv` (argparse exits `2` on failure), derives `feature_id`/`headers`, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
 
-Because the default `AppInterfaceContext` is sufficient for CLI interfaces, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
 
 ## Structured Code Design of Blueprints
 

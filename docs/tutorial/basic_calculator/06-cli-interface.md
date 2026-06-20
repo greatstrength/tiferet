@@ -117,19 +117,15 @@ interfaces:
 **calc_cli.py**
 
 ```python
-from tiferet import App
-
-app = App().load_app_service(app_config="config.yml")
-
-# Load the CLI interface we defined in config.yml
-cli = app.load_interface("calc_cli")
+from tiferet import CLI
 
 if __name__ == "__main__":
-    cli.run()
+    # Realize the calc_cli interface (CliContext) and dispatch sys.argv.
+    CLI("calc_cli", app_config="config.yml")
 ```
 
 That's it — super short!  
-`app.load_interface("calc_cli")` pulls in `CliContext` from root `config.yml`, which also contains the CLI command definitions.
+`CLI("calc_cli", ...)` realizes the `CliContext` declared by `calc_cli` in root `config.yml` (which also holds the CLI command definitions) and delegates `sys.argv` parsing and feature dispatch to `CliContext.run_cli`.
 
 ### 6.4 Run and play with it
 

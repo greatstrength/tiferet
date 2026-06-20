@@ -10,6 +10,7 @@ from unittest import mock
 from tiferet import assets as a
 from tiferet.assets import TiferetError
 from tiferet.contexts.app import AppInterfaceContext
+from tiferet.contexts.cli import CliContext
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.repos.app import AppConfigRepository
 from tiferet import App
@@ -18,6 +19,7 @@ from tiferet.blueprints.main import (
     load_app_service,
     load_default_services,
     load_app_instance,
+    resolve_collaborators,
 )
 
 # *** fixtures
@@ -98,6 +100,99 @@ def test_load_app_instance_success(app_interface_aggregate):
 
     # Assert the result is an AppInterfaceContext.
     assert isinstance(result, AppInterfaceContext)
+
+
+# ** test: load_app_instance_injects_cli_collaborators
+def test_load_app_instance_injects_cli_collaborators():
+    '''
+    Test that realizing a CliContext interface injects the CLI event
+    collaborators that are not part of the generic hub's fixed set.
+    '''
+
+    # Build a CLI interface aggregate pointing at the reincorporated CliContext.
+    cli_interface = AppInterfaceAggregate(
+        id='test_cli',
+        name='Test CLI',
+        module_path='tiferet.contexts.cli',
+        class_name='CliContext',
+        description='Test CLI interface',
+        flags=['test'],
+        services=load_default_services(),
+        constants=a.bps.DEFAULT_CONSTANTS,
+    )
+
+    # Realize the interface context from the aggregate.
+    result = load_app_instance(cli_interface)
+
+    # Assert a CliContext is realized with the CLI collaborators injected.
+    assert isinstance(result, CliContext)
+    assert result.list_commands_evt is not None
+    assert result.get_parent_args_evt is not None
+
+
+# ** test: resolve_collaborators_generic_unchanged
+def test_resolve_collaborators_generic_unchanged():
+    '''
+    Test that the generic AppInterfaceContext resolves only its original three
+    collaborators, excluding reserved args, default_* kwargs, and unrelated ids.
+    '''
+
+    # Build a registry with the hub events plus reserved/default/unrelated ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+        'unrelated': 'x',
+    }
+
+    # Resolve collaborators for the generic hub.
+    resolved = resolve_collaborators(AppInterfaceContext, registry)
+
+    # Assert only the original three collaborators are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+    }
+
+
+# ** test: resolve_collaborators_cli_adds_cli_events
+def test_resolve_collaborators_cli_adds_cli_events():
+    '''
+    Test that the CliContext additionally resolves its CLI event collaborators
+    while still excluding reserved args and default_* kwargs.
+    '''
+
+    # Build a registry with hub and CLI events plus reserved/default ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+    }
+
+    # Resolve collaborators for the CLI context.
+    resolved = resolve_collaborators(CliContext, registry)
+
+    # Assert the hub events plus the two CLI events are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+        'list_commands_evt',
+        'get_parent_args_evt',
+    }
 
 
 # ** test: build_app_success

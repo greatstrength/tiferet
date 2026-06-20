@@ -23,6 +23,7 @@ Every context in `tiferet/contexts/` has a single, well-defined responsibility:
 | Context | Responsibility |
 | --- | --- |
 | `AppInterfaceContext` | Parse the incoming request, execute the feature, format the response, and handle errors at the interface boundary. |
+| `CliContext` | Extend `AppInterfaceContext` with CLI concerns: build an argparse parser from configured commands/arguments, parse `argv` into a request (`parse_cli_request`), and dispatch via the inherited `run` (`run_cli`). |
 | `FeatureContext` | Resolve each configured step via the injected `get_dependency` handler, parse parameters, and execute the steps sequentially against a `RequestContext` (operating on a pre-loaded `Feature`). |
 | `AsyncFeatureContext` | Subclass of `FeatureContext` that awaits coroutine-based steps via `execute_feature_async`; selected by `AppInterfaceContext` when a feature's `is_async` flag is set. |
 | `ErrorContext` | Format exceptions into structured, localized API responses using `ErrorService`. |
@@ -90,11 +91,11 @@ class FlaskApiContext(AppInterfaceContext):
 
 Override only the methods you need. Always call `super()` for shared behavior (e.g., adding `interface_id` to headers).
 
-### CLI Interfaces Without Custom Contexts
+### CLI Interfaces and CliContext
 
-In v2.0+, CLI interfaces are handled by the `build_cli` blueprint rather than a `CliContext`. All argparse wiring lives in the blueprint; the CLI interface runs against the default `AppInterfaceContext`. As a result, CLI interface definitions no longer require `module_path`/`class_name` overrides.
+CLI interfaces are handled by `CliContext` (`tiferet/contexts/cli.py`), a high-level context that extends `AppInterfaceContext` with command-line concerns. It retrieves CLI commands (`list_commands_evt`) and parent arguments (`get_parent_args_evt`), builds an argparse parser, parses `argv` into a `RequestContext` (`parse_cli_request`), and dispatches through the inherited `run` pipeline (`run_cli`). Stateless parsing helpers — `group_commands_by_key`, `build_parser`, and `derive_feature_request` — live as side-effect-free module-level functions, and per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`.
 
-If a CLI interface needs custom request parsing beyond argparse, the preferred pattern is to extend the `build_cli` blueprint — not to reintroduce a dedicated CLI context.
+A consumer CLI interface opts in by pointing its config at `module_path: tiferet.contexts.cli` / `class_name: CliContext`. The `build_cli` blueprint is a thin entrypoint that realizes the interface and calls `cli_context.run_cli(argv)`. `CliContext` is selected explicitly through the interface config; it intentionally omits `domain_type`, so the `ContextMeta` registry keeps mapping `AppInterface` to `AppInterfaceContext`.
 
 ## Low-Level Context Lifecycles
 
