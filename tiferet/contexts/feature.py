@@ -325,6 +325,34 @@ class FeatureContext(BaseContext):
             # Yield the resolved step.
             yield cmd, feature_event, params
 
+    # * method: validate_request
+    def validate_request(self, feature: Feature, request: RequestContext) -> None:
+        '''
+        Validate and coerce request data against the feature's request schema
+        before any step executes.
+
+        When the feature declares no ``params_schema`` the request is left
+        unchanged; otherwise the coerced result replaces ``request.data`` so all
+        downstream steps receive validated, type-coerced inputs. A schema
+        failure raises a single ``REQUEST_VALIDATION_FAILED`` error before any
+        step runs.
+
+        :param feature: The pre-loaded feature domain object.
+        :type feature: Feature
+        :param request: The request context whose data is validated in place.
+        :type request: RequestContext
+        '''
+
+        # Skip validation when the feature declares no request schema.
+        if feature.params_schema is None:
+            return
+
+        # Validate and coerce the request data, assigning the merged result back.
+        request.data = feature.params_schema.validate(
+            request.data,
+            feature_id=feature.id,
+        )
+
     # * method: execute_feature
     def execute_feature(self, feature: Feature, request: RequestContext, **kwargs):
         '''
@@ -337,6 +365,10 @@ class FeatureContext(BaseContext):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
+
+        # Validate and coerce request data against the feature schema first,
+        # failing fast before any step executes.
+        self.validate_request(feature, request)
 
         # Resolve feature-level middleware once for all steps.
         feature_middleware = self.load_feature_middleware(feature.middleware)
@@ -459,6 +491,10 @@ class AsyncFeatureContext(FeatureContext):
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
+
+        # Validate and coerce request data against the feature schema first,
+        # failing fast before any step executes.
+        self.validate_request(feature, request)
 
         # Resolve feature-level middleware once for all steps.
         feature_middleware = self.load_feature_middleware(feature.middleware)

@@ -18,6 +18,14 @@ from typing import Any, Dict, List
 # ** config: default_tiferet_cli_features
 # Each dict matches the Feature domain object constructor fields.
 # Steps use EventFeatureStep field names: service_id, name, parameters, data_key.
+# ``params_schema`` declares the feature-level request validation schema
+# (RFP #838) for each feature, mapping the underlying event's expected request
+# parameters to declared types and defaults. It uses the ergonomic keyed form:
+# the shorthand ``name: type`` for required parameters and the expanded form
+# ``name: {type, required, default}`` for optional parameters. Framework
+# context parameters (e.g. default_* fallbacks), free-form ``value`` arguments,
+# and comma-separated list arguments (handlers, name_or_flags) are intentionally
+# omitted so existing request behavior is preserved.
 DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
 
     # * features: feature domain
@@ -27,6 +35,15 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add',
         'name': 'Add Feature',
         'description': 'Add a new feature configuration.',
+        'params_schema': {
+            'name': 'str',
+            'group_id': 'str',
+            'feature_key': {'type': 'str', 'required': False},
+            'id': {'type': 'str', 'required': False},
+            'description': {'type': 'str', 'required': False},
+            'steps': {'type': 'list', 'required': False},
+            'log_params': {'type': 'dict', 'required': False},
+        },
         'steps': [{'service_id': 'add_feature_evt', 'name': 'Add feature'}],
     },
     {
@@ -35,6 +52,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'get',
         'name': 'Get Feature',
         'description': 'Retrieve a feature by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'get_feature_evt', 'name': 'Get feature'}],
     },
     {
@@ -43,6 +63,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'list',
         'name': 'List Features',
         'description': 'List all features, optionally filtered by group.',
+        'params_schema': {
+            'group_id': {'type': 'str', 'required': False},
+        },
         'steps': [{'service_id': 'list_features_evt', 'name': 'List features'}],
     },
     {
@@ -51,6 +74,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove',
         'name': 'Remove Feature',
         'description': 'Remove a feature configuration by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_feature_evt', 'name': 'Remove feature'}],
     },
     {
@@ -59,6 +85,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'update',
         'name': 'Update Feature',
         'description': 'Update a feature attribute (name or description).',
+        'params_schema': {
+            'id': 'str',
+            'attribute': 'str',
+        },
         'steps': [{'service_id': 'update_feature_evt', 'name': 'Update feature'}],
     },
     {
@@ -67,6 +97,15 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_step',
         'name': 'Add Feature Step',
         'description': 'Add a step to an existing feature workflow.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'service_id': 'str',
+            'parameters': {'type': 'dict', 'required': False},
+            'data_key': {'type': 'str', 'required': False},
+            'pass_on_error': {'type': 'bool', 'required': False, 'default': False},
+            'position': {'type': 'int', 'required': False},
+        },
         'steps': [{'service_id': 'add_feature_step_evt', 'name': 'Add feature step'}],
     },
     {
@@ -75,6 +114,11 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'update_step',
         'name': 'Update Feature Step',
         'description': 'Update an attribute on a feature step.',
+        'params_schema': {
+            'id': 'str',
+            'position': 'int',
+            'attribute': 'str',
+        },
         'steps': [{'service_id': 'update_feature_step_evt', 'name': 'Update feature step'}],
     },
     {
@@ -83,6 +127,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_step',
         'name': 'Remove Feature Step',
         'description': 'Remove a step from a feature by position.',
+        'params_schema': {
+            'id': 'str',
+            'position': 'int',
+        },
         'steps': [{'service_id': 'remove_feature_step_evt', 'name': 'Remove feature step'}],
     },
     {
@@ -91,6 +139,11 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'reorder_step',
         'name': 'Reorder Feature Step',
         'description': 'Move a feature step from one position to another.',
+        'params_schema': {
+            'id': 'str',
+            'start_position': 'int',
+            'end_position': 'int',
+        },
         'steps': [{'service_id': 'reorder_feature_step_evt', 'name': 'Reorder feature step'}],
     },
 
@@ -101,6 +154,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add',
         'name': 'Add Error',
         'description': 'Add a new error definition.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'message': 'str',
+            'lang': {'type': 'str', 'required': False, 'default': 'en_US'},
+            'additional_messages': {'type': 'list', 'required': False, 'default': []},
+        },
         'steps': [{'service_id': 'add_error_evt', 'name': 'Add error'}],
     },
     {
@@ -109,6 +169,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'get',
         'name': 'Get Error',
         'description': 'Retrieve an error by ID.',
+        'params_schema': {
+            'id': 'str',
+            'include_defaults': {'type': 'bool', 'required': False, 'default': False},
+        },
         'steps': [{'service_id': 'get_error_evt', 'name': 'Get error'}],
     },
     {
@@ -117,6 +181,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'list',
         'name': 'List Errors',
         'description': 'List all error definitions.',
+        'params_schema': {
+            'include_defaults': {'type': 'bool', 'required': False, 'default': False},
+        },
         'steps': [{'service_id': 'list_errors_evt', 'name': 'List errors'}],
     },
     {
@@ -125,6 +192,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'rename',
         'name': 'Rename Error',
         'description': 'Rename an existing error.',
+        'params_schema': {
+            'id': 'str',
+            'new_name': 'str',
+        },
         'steps': [{'service_id': 'rename_error_evt', 'name': 'Rename error'}],
     },
     {
@@ -133,6 +204,11 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_message',
         'name': 'Set Error Message',
         'description': 'Set or update an error message for a language.',
+        'params_schema': {
+            'id': 'str',
+            'message': 'str',
+            'lang': {'type': 'str', 'required': False, 'default': 'en_US'},
+        },
         'steps': [{'service_id': 'set_error_message_evt', 'name': 'Set error message'}],
     },
     {
@@ -141,6 +217,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_message',
         'name': 'Remove Error Message',
         'description': 'Remove an error message by language.',
+        'params_schema': {
+            'id': 'str',
+            'lang': {'type': 'str', 'required': False, 'default': 'en_US'},
+        },
         'steps': [{'service_id': 'remove_error_message_evt', 'name': 'Remove error message'}],
     },
     {
@@ -149,6 +229,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove',
         'name': 'Remove Error',
         'description': 'Remove an error definition by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_error_evt', 'name': 'Remove error'}],
     },
 
@@ -159,6 +242,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add',
         'name': 'Add Service Configuration',
         'description': 'Add a new service configuration.',
+        'params_schema': {
+            'id': 'str',
+            'module_path': {'type': 'str', 'required': False},
+            'class_name': {'type': 'str', 'required': False},
+            'parameters': {'type': 'dict', 'required': False, 'default': {}},
+            'flagged_dependencies': {'type': 'list', 'required': False, 'default': []},
+        },
         'steps': [{'service_id': 'add_service_configuration_evt', 'name': 'Add service configuration'}],
     },
     {
@@ -175,6 +265,12 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_default',
         'name': 'Set Default Service Configuration',
         'description': 'Set or update the default type for a service configuration.',
+        'params_schema': {
+            'id': 'str',
+            'module_path': {'type': 'str', 'required': False},
+            'class_name': {'type': 'str', 'required': False},
+            'parameters': {'type': 'dict', 'required': False},
+        },
         'steps': [{'service_id': 'set_default_service_configuration_evt', 'name': 'Set default service configuration'}],
     },
     {
@@ -183,6 +279,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_dependency',
         'name': 'Set Service Dependency',
         'description': 'Set or update a flagged dependency on a service configuration.',
+        'params_schema': {
+            'id': 'str',
+            'flag': 'str',
+            'module_path': 'str',
+            'class_name': 'str',
+            'parameters': {'type': 'dict', 'required': False, 'default': {}},
+        },
         'steps': [{'service_id': 'set_di_service_dependency_evt', 'name': 'Set service dependency'}],
     },
     {
@@ -191,6 +294,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_dependency',
         'name': 'Remove Service Dependency',
         'description': 'Remove a flagged dependency from a service configuration.',
+        'params_schema': {
+            'id': 'str',
+            'flag': 'str',
+        },
         'steps': [{'service_id': 'remove_di_service_dependency_evt', 'name': 'Remove service dependency'}],
     },
     {
@@ -199,6 +306,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove',
         'name': 'Remove Service Configuration',
         'description': 'Remove a service configuration by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_service_configuration_evt', 'name': 'Remove service configuration'}],
     },
     {
@@ -207,6 +317,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_constants',
         'name': 'Set Service Constants',
         'description': 'Set or clear service-level constants.',
+        'params_schema': {
+            'constants': {'type': 'dict', 'required': False, 'default': {}},
+        },
         'steps': [{'service_id': 'set_service_constants_evt', 'name': 'Set service constants'}],
     },
 
@@ -217,6 +330,17 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add',
         'name': 'Add App Interface',
         'description': 'Add a new application interface configuration.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'module_path': 'str',
+            'class_name': 'str',
+            'description': {'type': 'str', 'required': False},
+            'logger_id': {'type': 'str', 'required': False, 'default': 'default'},
+            'flags': {'type': 'list', 'required': False, 'default': ['default']},
+            'services': {'type': 'list', 'required': False, 'default': []},
+            'constants': {'type': 'dict', 'required': False, 'default': {}},
+        },
         'steps': [{'service_id': 'add_app_interface_evt', 'name': 'Add app interface'}],
     },
     {
@@ -225,6 +349,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'get',
         'name': 'Get App Interface',
         'description': 'Retrieve an app interface by ID.',
+        'params_schema': {
+            'interface_id': 'str',
+        },
         'steps': [{'service_id': 'get_app_interface_evt', 'name': 'Get app interface'}],
     },
     {
@@ -241,6 +368,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'update',
         'name': 'Update App Interface',
         'description': 'Update a scalar attribute on an app interface.',
+        'params_schema': {
+            'id': 'str',
+            'attribute': 'str',
+        },
         'steps': [{'service_id': 'update_app_interface_evt', 'name': 'Update app interface'}],
     },
     {
@@ -249,6 +380,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_constants',
         'name': 'Set App Constants',
         'description': 'Set or clear constants on an app interface.',
+        'params_schema': {
+            'id': 'str',
+            'constants': {'type': 'dict', 'required': False},
+        },
         'steps': [{'service_id': 'set_app_constants_evt', 'name': 'Set app constants'}],
     },
     {
@@ -257,6 +392,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'set_service',
         'name': 'Set App Service Dependency',
         'description': 'Set or update a service dependency on an app interface.',
+        'params_schema': {
+            'id': 'str',
+            'service_id': 'str',
+            'module_path': 'str',
+            'class_name': 'str',
+            'parameters': {'type': 'dict', 'required': False},
+        },
         'steps': [{'service_id': 'set_app_service_dependency_evt', 'name': 'Set app service dependency'}],
     },
     {
@@ -265,6 +407,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_service',
         'name': 'Remove App Service Dependency',
         'description': 'Remove a service dependency from an app interface.',
+        'params_schema': {
+            'id': 'str',
+            'service_id': 'str',
+        },
         'steps': [{'service_id': 'remove_app_service_dependency_evt', 'name': 'Remove app service dependency'}],
     },
     {
@@ -273,6 +419,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove',
         'name': 'Remove App Interface',
         'description': 'Remove an app interface by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_app_interface_evt', 'name': 'Remove app interface'}],
     },
 
@@ -283,6 +432,14 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_command',
         'name': 'Add CLI Command',
         'description': 'Add a new CLI command definition.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'key': 'str',
+            'group_key': 'str',
+            'description': {'type': 'str', 'required': False},
+            'arguments': {'type': 'list', 'required': False, 'default': []},
+        },
         'steps': [{'service_id': 'add_cli_command_evt', 'name': 'Add CLI command'}],
     },
     {
@@ -299,6 +456,10 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_argument',
         'name': 'Add CLI Argument',
         'description': 'Add an argument to an existing CLI command.',
+        'params_schema': {
+            'command_id': 'str',
+            'description': {'type': 'str', 'required': False},
+        },
         'steps': [{'service_id': 'add_cli_argument_evt', 'name': 'Add CLI argument'}],
     },
 
@@ -309,6 +470,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_formatter',
         'name': 'Add Formatter',
         'description': 'Add a new logging formatter configuration.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'format': 'str',
+            'description': {'type': 'str', 'required': False},
+            'datefmt': {'type': 'str', 'required': False},
+        },
         'steps': [{'service_id': 'add_formatter_evt', 'name': 'Add formatter'}],
     },
     {
@@ -317,6 +485,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_formatter',
         'name': 'Remove Formatter',
         'description': 'Remove a logging formatter by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_formatter_evt', 'name': 'Remove formatter'}],
     },
     {
@@ -325,6 +496,17 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_handler',
         'name': 'Add Handler',
         'description': 'Add a new logging handler configuration.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'module_path': 'str',
+            'class_name': 'str',
+            'level': 'str',
+            'formatter': 'str',
+            'description': {'type': 'str', 'required': False},
+            'stream': {'type': 'str', 'required': False},
+            'filename': {'type': 'str', 'required': False},
+        },
         'steps': [{'service_id': 'add_handler_evt', 'name': 'Add handler'}],
     },
     {
@@ -333,6 +515,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_handler',
         'name': 'Remove Handler',
         'description': 'Remove a logging handler by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_handler_evt', 'name': 'Remove handler'}],
     },
     {
@@ -341,6 +526,13 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'add_logger',
         'name': 'Add Logger',
         'description': 'Add a new logger configuration.',
+        'params_schema': {
+            'id': 'str',
+            'name': 'str',
+            'level': 'str',
+            'description': {'type': 'str', 'required': False},
+            'propagate': {'type': 'bool', 'required': False, 'default': True},
+        },
         'steps': [{'service_id': 'add_logger_evt', 'name': 'Add logger'}],
     },
     {
@@ -349,6 +541,9 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'feature_key': 'remove_logger',
         'name': 'Remove Logger',
         'description': 'Remove a logger by ID.',
+        'params_schema': {
+            'id': 'str',
+        },
         'steps': [{'service_id': 'remove_logger_evt', 'name': 'Remove logger'}],
     },
     {

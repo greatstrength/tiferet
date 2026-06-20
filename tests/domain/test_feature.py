@@ -10,7 +10,10 @@ from tiferet.domain.feature import (
     Feature,
     FeatureStep,
     EventFeatureStep,
+    ParameterSpecification,
+    RequestSpecification,
 )
+from tiferet.assets import TiferetError
 
 # *** fixtures
 
@@ -310,3 +313,181 @@ def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
 
     # Assert invalid type returns None.
     assert feature.get_step('invalid') is None
+
+# ** test: parameter_specification_get_type_mapping
+def test_parameter_specification_get_type_mapping() -> None:
+    '''
+    Test that ParameterSpecification.get_type maps declared type strings to Python types.
+    '''
+
+    # Assert each supported type string maps to its Python type.
+    assert ParameterSpecification(name='a', type='str').get_type() is str
+    assert ParameterSpecification(name='a', type='int').get_type() is int
+    assert ParameterSpecification(name='a', type='float').get_type() is float
+    assert ParameterSpecification(name='a', type='bool').get_type() is bool
+    assert ParameterSpecification(name='a', type='list').get_type() is list
+    assert ParameterSpecification(name='a', type='dict').get_type() is dict
+
+# ** test: parameter_specification_field_definition_required
+def test_parameter_specification_field_definition_required() -> None:
+    '''
+    Test that a required parameter produces a required field definition.
+    '''
+
+    # Build the field definition for a required parameter.
+    annotation, field = ParameterSpecification(name='a', type='int').field_definition()
+
+    # Assert the annotation and requiredness.
+    assert annotation is int
+    assert field.is_required()
+
+# ** test: parameter_specification_field_definition_optional_with_default
+def test_parameter_specification_field_definition_optional_with_default() -> None:
+    '''
+    Test that an optional parameter with a default is not required and carries the default.
+    '''
+
+    # Build the field definition for an optional parameter with a default.
+    spec = ParameterSpecification(name='b', type='float', required=False, default=1.0)
+    _annotation, field = spec.field_definition()
+
+    # Assert the field is optional with the configured default.
+    assert not field.is_required()
+    assert field.default == 1.0
+
+# ** test: request_specification_normalizes_shorthand
+def test_request_specification_normalizes_shorthand() -> None:
+    '''
+    Test that the shorthand keyed form expands to a required parameter.
+    '''
+
+    # Normalize a shorthand keyed mapping.
+    spec = RequestSpecification.model_validate({'a': 'int'})
+
+    # Assert the expanded parameter is required.
+    assert len(spec.parameters) == 1
+    assert spec.parameters[0].name == 'a'
+    assert spec.parameters[0].type == 'int'
+    assert spec.parameters[0].required is True
+
+# ** test: request_specification_normalizes_expanded
+def test_request_specification_normalizes_expanded() -> None:
+    '''
+    Test that the expanded keyed form preserves constraints and defaults.
+    '''
+
+    # Normalize an expanded keyed mapping.
+    spec = RequestSpecification.model_validate(
+        {'b': {'type': 'float', 'required': False, 'default': 1.0, 'minimum': 0}}
+    )
+    param = spec.parameters[0]
+
+    # Assert the parameter constraints are preserved.
+    assert param.name == 'b'
+    assert param.type == 'float'
+    assert param.required is False
+    assert param.default == 1.0
+    assert param.minimum == 0.0
+
+# ** test: request_specification_validate_coerces_and_preserves_extra
+def test_request_specification_validate_coerces_and_preserves_extra() -> None:
+    '''
+    Test that validate coerces typed fields, applies defaults, and preserves extra keys.
+    '''
+
+    # Validate a payload against a schema with a defaulted optional field.
+    spec = RequestSpecification.model_validate(
+        {'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}}
+    )
+    result = spec.validate({'a': '5', 'extra': 'keep'})
+
+    # Assert coercion, default application, and extra-key preservation.
+    assert result['a'] == 5
+    assert isinstance(result['a'], int)
+    assert result['b'] == 1.0
+    assert result['extra'] == 'keep'
+
+# ** test: request_specification_validate_missing_required_raises
+def test_request_specification_validate_missing_required_raises() -> None:
+    '''
+    Test that missing required parameters raise a single REQUEST_VALIDATION_FAILED error.
+    '''
+
+    # Validate an empty payload against a required schema.
+    spec = RequestSpecification.model_validate({'a': 'int'})
+    with pytest.raises(TiferetError) as exc_info:
+        spec.validate({}, feature_id='calc.add')
+
+    # Assert the structured validation error with one violation.
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert exc_info.value.kwargs.get('feature_id') == 'calc.add'
+    assert len(exc_info.value.kwargs.get('violations')) == 1
+
+# ** test: request_specification_validate_aggregates_multiple_errors
+def test_request_specification_validate_aggregates_multiple_errors() -> None:
+    '''
+    Test that multiple validation failures are aggregated into one error.
+    '''
+
+    # Validate a payload that fails two fields.
+    spec = RequestSpecification.model_validate({'a': 'int', 'b': 'int'})
+    with pytest.raises(TiferetError) as exc_info:
+        spec.validate({'a': 'x', 'b': 'y'}, feature_id='calc.add')
+
+    # Assert both violations are aggregated.
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert len(exc_info.value.kwargs.get('violations')) == 2
+
+# ** test: request_specification_validate_choices
+def test_request_specification_validate_choices() -> None:
+    '''
+    Test that choices restrict values via a Literal annotation.
+    '''
+
+    # Validate a payload constrained by choices.
+    spec = RequestSpecification.model_validate(
+        {'mode': {'type': 'str', 'choices': ['add', 'sub']}}
+    )
+
+    # Assert a valid choice passes and an invalid choice fails.
+    assert spec.validate({'mode': 'add'})['mode'] == 'add'
+    with pytest.raises(TiferetError):
+        spec.validate({'mode': 'bad'})
+
+# ** test: request_specification_is_satisfied_by
+def test_request_specification_is_satisfied_by() -> None:
+    '''
+    Test the convenience is_satisfied_by predicate.
+    '''
+
+    # Build a simple required schema.
+    spec = RequestSpecification.model_validate({'a': 'int'})
+
+    # Assert satisfied and unsatisfied payloads.
+    assert spec.is_satisfied_by({'a': 3}) is True
+    assert spec.is_satisfied_by({}) is False
+
+# ** test: feature_params_schema_defaults_to_none
+def test_feature_params_schema_defaults_to_none() -> None:
+    '''
+    Test that Feature.params_schema defaults to None.
+    '''
+
+    # Create a Feature without a params schema.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert the schema defaults to None.
+    assert feature.params_schema is None
+
+# ** test: feature_params_schema_construction
+def test_feature_params_schema_construction() -> None:
+    '''
+    Test that Feature.params_schema is built from keyed config.
+    '''
+
+    # Create a Feature with a keyed params schema.
+    feature = Feature(id='calc.add', name='Add', params_schema={'a': 'int', 'b': 'int'})
+
+    # Assert the schema parsed into a RequestSpecification.
+    assert isinstance(feature.params_schema, RequestSpecification)
+    assert [p.name for p in feature.params_schema.parameters] == ['a', 'b']

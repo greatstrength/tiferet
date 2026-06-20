@@ -28,6 +28,9 @@ features:
     add:
       name: Add Number
       description: Adds one number to another
+      params_schema:
+        a: int
+        b: int
       commands:
         - service_id: add_number_event
           name: Add `a` and `b`
@@ -46,6 +49,11 @@ features:
     divide:
       name: Divide Number
       description: Divides one number by another
+      params_schema:
+        a: int
+        b:
+          type: float
+          description: The denominator; must be non-zero.
       commands:
         - service_id: divide_number_event
           name: Divide `a` by `b`
