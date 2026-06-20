@@ -103,7 +103,7 @@ def build_app(interface_id, ...) -> AppInterfaceContext:
 
 ## The build_cli Blueprint
 
-The CLI blueprint extends the app blueprint with argparse-based CLI parsing. All argparse wiring lives in the blueprint; runtime execution is delegated to `AppInterfaceContext.run`.
+The CLI blueprint is a thin entrypoint. Argparse parsing and request derivation are owned by the reincorporated `CliContext` (`tiferet/contexts/cli.py`); the blueprint only resolves, realizes, and delegates.
 
 ### Usage
 
@@ -119,11 +119,10 @@ if __name__ == '__main__':
 `build_cli(interface_id, argv=None, ...)` follows these steps:
 
 1. Resolve the interface via `resolve_interface(interface_id, ...)`.
-2. Build the argparse parser by composing `get_commands()`, `get_parent_arguments()`, and `build_parser(cli_commands, parent_arguments)`.
-3. Parse arguments with `parse_argv(parser, argv)`; on failure, print to stderr and `sys.exit(2)`.
-4. Derive `feature_id` and `headers` via `derive_feature_request(parsed)` and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+2. Realize the interface context via `realize_interface(...)`. Because the interface points at `CliContext`, the realized context exposes `run_cli`.
+3. Delegate to `cli_context.run_cli(argv)`, which builds the parser, parses `argv` (exiting `2` on failure), derives the feature request, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
 
-Because the CLI blueprint uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
 
 ## When to Create a New Blueprint
 

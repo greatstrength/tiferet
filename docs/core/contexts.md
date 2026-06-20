@@ -11,7 +11,7 @@ All contexts extend `BaseContext` (`tiferet/contexts/base.py`), which provides a
 
 Tiferet recognizes two broad categories:
 
-- **High-Level Contexts**: Handle user interactions (e.g., `FlaskApiContext` for web APIs). They typically extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces use `AppInterfaceContext` directly, with argparse wiring handled by the `build_cli` blueprint.
+- **High-Level Contexts**: Handle user interactions (e.g., `CliContext` for command-line interfaces, `FlaskApiContext` for web APIs). They extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces point at `CliContext`, which owns argparse parsing; the `build_cli` blueprint is a thin entrypoint that delegates to `CliContext.run_cli`.
 - **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `AsyncFeatureContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
 In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
