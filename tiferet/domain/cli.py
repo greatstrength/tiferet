@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, List, Literal
+from typing import Any, Dict, List, Literal
 
 # ** infra
 from pydantic import Field, model_validator
@@ -97,6 +97,43 @@ class CliArgument(DomainObject):
         # If the type is not recognized, return str as a default.
         else:
             return str
+
+    # * method: to_argparse_kwargs
+    def to_argparse_kwargs(self) -> Dict[str, Any]:
+        '''
+        Build the ``argparse.add_argument`` keyword arguments for this argument.
+
+        Trivial fields are produced by a pydantic ``model_dump`` (excluding the
+        positional ``name_or_flags`` and the bespoke ``description`` / ``type``
+        fields), and ``help`` is mapped from ``description``. Value-consuming
+        actions (the default, ``store``, ``append``) receive a resolved ``type``
+        callable and retain ``nargs`` / ``choices``; flag and const actions such
+        as ``store_true`` reject those keywords, so they are omitted to keep
+        parser construction valid.
+
+        :return: The keyword arguments for ``add_argument``.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Dump the trivial fields, excluding those with bespoke translation.
+        kwargs = self.model_dump(
+            exclude_none=True,
+            exclude={'name_or_flags', 'description', 'type'},
+        )
+
+        # argparse expects 'help' rather than 'description'.
+        kwargs['help'] = self.description
+
+        # Value-consuming actions accept a resolved type and retain nargs/choices;
+        # flag and const actions reject those keywords, so drop them.
+        if self.action in (None, 'store', 'append'):
+            kwargs['type'] = self.get_type()
+        else:
+            kwargs.pop('nargs', None)
+            kwargs.pop('choices', None)
+
+        # Return the assembled keyword arguments.
+        return kwargs
 
 # ** model: cli_command
 class CliCommand(DomainObject):

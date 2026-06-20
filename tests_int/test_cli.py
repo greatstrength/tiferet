@@ -116,7 +116,9 @@ TEST_CALC_CONFIG = {
         },
         'test_calc_cli': {
             'name': 'Integration Test - Basic Calculator CLI',
-            'description': 'CLI interface for testing calculator features via CliBuilder.',
+            'description': 'CLI interface for testing calculator features via the CLI blueprint.',
+            'module_path': 'tiferet.contexts.cli',
+            'class_name': 'CliContext',
             'constants': {
                 'feature_config': None,
                 'error_config': None,

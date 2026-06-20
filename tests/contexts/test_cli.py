@@ -12,7 +12,6 @@ from tiferet.domain import CliArgument, CliCommand
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.cli import (
     CliContext,
-    build_argument_kwargs,
     build_parser,
     derive_feature_request,
     group_commands_by_key,
@@ -163,56 +162,6 @@ def test_get_commands_passes_default_commands_list(app_interface):
         default_commands_list=context.default_commands_list,
     )
     assert result == {}
-
-# ** test: build_argument_kwargs_value_action
-def test_build_argument_kwargs_value_action():
-    '''
-    Test that value-consuming arguments include type, nargs, and choices.
-    '''
-
-    # Build a value-consuming argument.
-    argument = CliArgument(
-        name_or_flags=['a'],
-        description='First operand.',
-        type='int',
-        nargs='?',
-        choices=['1', '2'],
-        default='1',
-    )
-
-    # Build the argparse keyword arguments.
-    kwargs = build_argument_kwargs(argument)
-
-    # Assert value keywords are present and flag-only keywords are absent.
-    assert kwargs['type'] is int
-    assert kwargs['nargs'] == '?'
-    assert kwargs['choices'] == ['1', '2']
-    assert kwargs['default'] == '1'
-    assert 'action' not in kwargs
-    assert 'required' not in kwargs
-
-# ** test: build_argument_kwargs_flag_action
-def test_build_argument_kwargs_flag_action():
-    '''
-    Test that flag actions omit value-only keywords.
-    '''
-
-    # Build a flag argument.
-    argument = CliArgument(
-        name_or_flags=['--verbose'],
-        description='Enable verbose output.',
-        action='store_true',
-    )
-
-    # Build the argparse keyword arguments.
-    kwargs = build_argument_kwargs(argument)
-
-    # Assert the action is present and value-only keywords are omitted.
-    assert kwargs['action'] == 'store_true'
-    assert 'type' not in kwargs
-    assert 'nargs' not in kwargs
-    assert 'choices' not in kwargs
-    assert 'default' not in kwargs
 
 # ** test: build_parser_parses_command_arguments
 def test_build_parser_parses_command_arguments():

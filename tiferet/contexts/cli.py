@@ -37,48 +37,6 @@ def group_commands_by_key(cli_commands: List[CliCommand]) -> Dict[str, List[CliC
     return command_map
 
 
-# ** function: build_argument_kwargs
-def build_argument_kwargs(argument: CliArgument) -> Dict[str, Any]:
-    '''
-    Build the ``argparse.add_argument`` keyword arguments for a CLI argument.
-
-    Value-only keywords (``type``, ``nargs``, ``choices``) are included only
-    for value-consuming actions (``store``, ``append``, or the default).
-    Flag and const actions such as ``store_true`` reject those keywords, so
-    they are omitted to keep parser construction valid.
-
-    :param argument: The CLI argument definition.
-    :type argument: CliArgument
-    :return: The keyword arguments for ``add_argument``.
-    :rtype: Dict[str, Any]
-    '''
-
-    # Start with keywords accepted by every argparse action.
-    kwargs: Dict[str, Any] = dict(help=argument.description)
-
-    # Include the action only when explicitly configured.
-    if argument.action is not None:
-        kwargs['action'] = argument.action
-
-    # Value-consuming actions accept type, nargs, and choices.
-    if argument.action in (None, 'store', 'append'):
-        kwargs['type'] = argument.get_type()
-        kwargs['nargs'] = argument.nargs
-        kwargs['choices'] = argument.choices
-
-    # Include an explicit default only when configured so flag actions keep
-    # their argparse-native defaults (e.g. store_true defaults to False).
-    if argument.default is not None:
-        kwargs['default'] = argument.default
-
-    # Required is only meaningful for optional (flagged) arguments.
-    if argument.required is not None:
-        kwargs['required'] = argument.required
-
-    # Return the assembled keyword arguments.
-    return kwargs
-
-
 # ** function: build_parser
 def build_parser(
         commands: Dict[str, List[CliCommand]],
@@ -118,7 +76,7 @@ def build_parser(
             for argument in cli_command.arguments:
                 cli_command_parser.add_argument(
                     *argument.name_or_flags,
-                    **build_argument_kwargs(argument),
+                    **argument.to_argparse_kwargs(),
                 )
 
             # Add parent arguments that don't collide with command arguments.
@@ -126,7 +84,7 @@ def build_parser(
                 if not cli_command.has_argument(argument.name_or_flags):
                     cli_command_parser.add_argument(
                         *argument.name_or_flags,
-                        **build_argument_kwargs(argument),
+                        **argument.to_argparse_kwargs(),
                     )
 
     # Return the configured parser.
@@ -176,10 +134,10 @@ class CliContext(AppInterfaceContext):
     derives a feature request from the parsed arguments, and dispatches the
     request through the inherited run pipeline.
 
-    Stateless parsing helpers (command grouping, argument-kwarg assembly,
-    parser construction, and request derivation) live as side-effect-free
-    module-level functions; the context methods orchestrate them with the
-    injected event collaborators.
+    Stateless parsing helpers (command grouping, parser construction, and
+    request derivation) live as side-effect-free module-level functions, and
+    per-argument argparse translation lives on ``CliArgument.to_argparse_kwargs``;
+    the context methods orchestrate them with the injected event collaborators.
 
     It intentionally omits ``domain_type`` so the ``ContextMeta`` registry
     keeps mapping ``AppInterface`` to :class:`AppInterfaceContext`; the CLI

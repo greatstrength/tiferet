@@ -20,6 +20,6 @@ DEFAULT_TIFERET_CLI_INTERFACE = {
     'id': 'tiferet_cli',
     'name': 'Tiferet CLI',
     'description': 'Built-in CLI for managing Tiferet application configurations',
-    'module_path': 'tiferet.contexts.app',
-    'class_name': 'AppInterfaceContext',
+    'module_path': 'tiferet.contexts.cli',
+    'class_name': 'CliContext',
 }
