@@ -6,7 +6,7 @@
 from typing import Any, ClassVar, Dict, List
 
 # ** infra
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_serializer
 
 # ** app
 from ..domain import (
@@ -356,6 +356,60 @@ class FeatureYamlObject(Feature, TransferObject):
         validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
         description='The step workflow for the feature.',
     )
+
+    # * method: serialize_params_schema
+    @field_serializer('params_schema')
+    def serialize_params_schema(self, value: Any, _info: Any) -> Any:
+        '''
+        Serialize ``params_schema`` into the ergonomic keyed mapping used in
+        configuration files, emitting shorthand ``name: type`` when a parameter
+        has no extra constraints and the expanded mapping otherwise.
+
+        :param value: The request specification to serialize.
+        :type value: Any
+        :param _info: The pydantic serialization info (unused).
+        :type _info: Any
+        :return: The keyed parameter mapping, or None when unset.
+        :rtype: Any
+        '''
+
+        # Emit nothing when no schema is configured.
+        if value is None:
+            return None
+
+        # Build a keyed mapping of parameter name to its specification.
+        result: Dict[str, Any] = {}
+        for param in value.parameters:
+
+            # Collect non-default constraint fields beyond name and type.
+            extras: Dict[str, Any] = {}
+            if param.default is not None:
+                extras['default'] = param.default
+            if not param.required:
+                extras['required'] = param.required
+            if param.description is not None:
+                extras['description'] = param.description
+            if param.minimum is not None:
+                extras['minimum'] = param.minimum
+            if param.maximum is not None:
+                extras['maximum'] = param.maximum
+            if param.min_length is not None:
+                extras['min_length'] = param.min_length
+            if param.max_length is not None:
+                extras['max_length'] = param.max_length
+            if param.pattern is not None:
+                extras['pattern'] = param.pattern
+            if param.choices is not None:
+                extras['choices'] = param.choices
+
+            # Use shorthand when only the type is meaningful, else the expanded form.
+            if not extras:
+                result[param.name] = param.type
+            else:
+                result[param.name] = {'type': param.type, **extras}
+
+        # Return the keyed parameter mapping.
+        return result
 
     # * method: map
     def map(self, **overrides) -> FeatureAggregate:

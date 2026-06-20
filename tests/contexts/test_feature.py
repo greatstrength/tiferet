@@ -858,3 +858,146 @@ def test_async_feature_context_subclasses_feature_context():
     assert hasattr(AsyncFeatureContext, 'execute_feature_async')
     assert not hasattr(FeatureContext, 'handle_feature_step_async')
     assert not hasattr(FeatureContext, 'execute_feature_async')
+
+# ** test: feature_context_validate_request_no_schema_is_noop
+def test_feature_context_validate_request_no_schema_is_noop(feature_context, feature):
+    """Test that validate_request leaves data unchanged when no schema is set."""
+
+    # Create a request with raw string data.
+    request = RequestContext(data={'a': '5'})
+
+    # Validate against a schema-less feature.
+    feature_context.validate_request(feature, request)
+
+    # Assert the data is unchanged.
+    assert request.data == {'a': '5'}
+
+# ** test: feature_context_execute_feature_validates_and_coerces
+def test_feature_context_execute_feature_validates_and_coerces(feature_context, services_context):
+    """Test that execute_feature coerces request data before steps run."""
+
+    # Capture the kwargs the command receives.
+    captured = {}
+
+    class CaptureEvent(DomainEvent):
+        def execute(self, a=None, b=None, **kwargs):
+            captured['a'] = a
+            captured['b'] = b
+            return {'a': a, 'b': b}
+
+    # Resolve the capturing command for the step.
+    services_context.get_dependency.return_value = CaptureEvent()
+
+    # Build a feature with a params schema and a single step.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int', 'b': 'float'},
+        steps=[EventFeatureStep(name='cap', service_id='cap')],
+    )
+    request = RequestContext(data={'a': '5', 'b': '2'})
+
+    # Execute the feature.
+    feature_context.execute_feature(feature, request)
+
+    # Assert request data was coerced and the command received coerced values.
+    assert request.data['a'] == 5
+    assert request.data['b'] == 2.0
+    assert captured['a'] == 5
+    assert captured['b'] == 2.0
+
+# ** test: feature_context_execute_feature_invalid_request_fails_fast
+def test_feature_context_execute_feature_invalid_request_fails_fast(feature_context, services_context):
+    """Test that invalid request data fails before any step executes."""
+
+    # Track command executions.
+    calls = {'count': 0}
+
+    class CountEvent(DomainEvent):
+        def execute(self, **kwargs):
+            calls['count'] += 1
+            return None
+
+    # Resolve the counting command for the step.
+    services_context.get_dependency.return_value = CountEvent()
+
+    # Build a feature whose schema rejects the request.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int'},
+        steps=[EventFeatureStep(name='cap', service_id='cap')],
+    )
+    request = RequestContext(data={'a': 'notint'})
+
+    # Assert the validation error is raised and no command ran.
+    with pytest.raises(TiferetError) as exc_info:
+        feature_context.execute_feature(feature, request)
+
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert calls['count'] == 0
+
+# ** test: async_feature_context_execute_feature_async_validates
+@pytest.mark.asyncio
+async def test_async_feature_context_execute_feature_async_validates(async_services_context):
+    """Test that execute_feature_async coerces request data before steps run."""
+
+    # Capture the kwargs the command receives.
+    captured = {}
+
+    class CaptureEvent(DomainEvent):
+        def execute(self, a=None, **kwargs):
+            captured['a'] = a
+            return a
+
+    # Resolve the capturing command and build an async context.
+    async_services_context.get_dependency.return_value = CaptureEvent()
+    ctx = AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
+
+    # Build a feature with a params schema and a single step.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int'},
+        steps=[EventFeatureStep(name='cap', service_id='cap')],
+    )
+    request = RequestContext(data={'a': '7'})
+
+    # Execute the feature asynchronously.
+    await ctx.execute_feature_async(feature, request)
+
+    # Assert coercion happened before the step ran.
+    assert request.data['a'] == 7
+    assert captured['a'] == 7
+
+# ** test: async_feature_context_execute_feature_async_invalid_fails_fast
+@pytest.mark.asyncio
+async def test_async_feature_context_execute_feature_async_invalid_fails_fast(async_services_context):
+    """Test that invalid request data fails before any async step executes."""
+
+    # Track command executions.
+    calls = {'count': 0}
+
+    class CountEvent(DomainEvent):
+        def execute(self, **kwargs):
+            calls['count'] += 1
+
+    # Resolve the counting command and build an async context.
+    async_services_context.get_dependency.return_value = CountEvent()
+    ctx = AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
+
+    # Build a feature whose schema rejects the request.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int'},
+        steps=[EventFeatureStep(name='cap', service_id='cap')],
+    )
+    request = RequestContext(data={'a': 'bad'})
+
+    # Assert the validation error is raised and no command ran.
+    with pytest.raises(TiferetError) as exc_info:
+        await ctx.execute_feature_async(feature, request)
+
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert calls['count'] == 0

@@ -529,3 +529,78 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         # Verify the middleware is attached to the step.
         assert step.middleware == ['timing_middleware']
         assert agg.steps[0].middleware == ['timing_middleware']
+
+
+# *** params_schema tests
+
+# ** test: feature_yaml_object_maps_params_schema
+def test_feature_yaml_object_maps_params_schema():
+    '''
+    Test that FeatureYamlObject maps a keyed params_schema into the aggregate.
+    '''
+
+    # Create a YAML object with a keyed params_schema and map it.
+    yaml_obj = FeatureYamlObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    ))
+    aggregate = yaml_obj.map()
+
+    # Verify the params_schema mapped onto the aggregate with constraints intact.
+    params = {p.name: p for p in aggregate.params_schema.parameters}
+    assert params['a'].type == 'int'
+    assert params['a'].required is True
+    assert params['b'].type == 'float'
+    assert params['b'].required is False
+    assert params['b'].default == 1.0
+
+# ** test: feature_yaml_object_serializes_params_schema_keyed
+def test_feature_yaml_object_serializes_params_schema_keyed():
+    '''
+    Test that params_schema serializes to the ergonomic keyed mapping.
+    '''
+
+    # Build an aggregate carrying a params_schema.
+    aggregate = FeatureYamlObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    )).map()
+
+    # Serialize the aggregate back to data form.
+    data = FeatureYamlObject.from_model(aggregate).to_primitive('to_data')
+
+    # Verify shorthand and expanded keyed forms.
+    assert data['params_schema']['a'] == 'int'
+    assert data['params_schema']['b']['type'] == 'float'
+    assert data['params_schema']['b']['default'] == 1.0
+    assert data['params_schema']['b']['required'] is False
+
+# ** test: feature_yaml_object_params_schema_round_trip
+def test_feature_yaml_object_params_schema_round_trip():
+    '''
+    Test that params_schema is preserved through a map/from_model round-trip.
+    '''
+
+    # Map then reverse-map the feature.
+    aggregate = FeatureYamlObject.model_validate(dict(
+        id='calc.add',
+        name='Add Number',
+        group_id='calc',
+        feature_key='add',
+        steps=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+    )).map()
+    aggregate2 = FeatureYamlObject.from_model(aggregate).map()
+
+    # Verify the params survive the round-trip.
+    params = {p.name: (p.type, p.required, p.default) for p in aggregate2.params_schema.parameters}
+    assert params['a'] == ('int', True, None)
+    assert params['b'] == ('float', False, 1.0)

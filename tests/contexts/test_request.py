@@ -5,7 +5,8 @@ import pytest
 
 # ** app
 from pydantic import Field
-from tiferet.domain import DomainObject
+from tiferet.domain import DomainObject, Request
+from tiferet.contexts.base import BaseContext
 from tiferet.contexts.request import *
 
 # *** fixtures
@@ -197,3 +198,55 @@ def test_request_context_set_result_with_data_key(request_context):
     # Check that the result has been updated correctly in the data dictionary.
     assert request_context.result == None
     assert request_context.data[data_key] == new_result
+
+# ** test: request_context_binds_request_domain
+def test_request_context_binds_request_domain(request_context):
+    """Test that RequestContext binds a Request domain object."""
+
+    # Assert the bound domain is a Request.
+    assert isinstance(request_context.domain, Request)
+
+# ** test: request_context_proxies_read_through
+def test_request_context_proxies_read_through(request_context):
+    """Test that proxy properties read through to the bound Request."""
+
+    # Assert each proxy property reflects the bound request.
+    assert request_context.data == request_context.domain.data
+    assert request_context.headers == request_context.domain.headers
+    assert request_context.feature_id == request_context.domain.feature_id
+    assert request_context.session_id == request_context.domain.session_id
+
+# ** test: request_context_proxies_write_through
+def test_request_context_proxies_write_through(request_context):
+    """Test that proxy property assignment writes through to the bound Request."""
+
+    # Reassigning data writes through to the bound request.
+    request_context.data = {'new': 'data'}
+    assert request_context.domain.data == {'new': 'data'}
+
+    # In-place mutation persists on the bound request.
+    request_context.data['more'] = 'value'
+    assert request_context.domain.data['more'] == 'value'
+
+    # Headers and feature_id also write through.
+    request_context.headers = {'x': 'y'}
+    assert request_context.domain.headers == {'x': 'y'}
+    request_context.feature_id = 'g.f2'
+    assert request_context.domain.feature_id == 'g.f2'
+
+# ** test: request_context_registered_for_request_domain
+def test_request_context_registered_for_request_domain():
+    """Test that the context registry resolves Request to RequestContext."""
+
+    # Assert the registry maps Request to RequestContext.
+    assert BaseContext.for_domain(Request) is RequestContext
+
+# ** test: request_context_session_id_auto_generated
+def test_request_context_session_id_auto_generated():
+    """Test that a session id is generated when not supplied."""
+
+    # Create a request context without a session id.
+    rc = RequestContext(data={})
+
+    # Assert a session id was generated.
+    assert rc.session_id
