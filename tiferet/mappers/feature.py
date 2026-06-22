@@ -103,10 +103,10 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
         # All other attributes go through the standard existence check.
         super().set_attribute(attribute, value)
 
-# ** mapper: event_feature_step_yaml_object
-class EventFeatureStepYamlObject(EventFeatureStep, TransferObject):
+# ** mapper: event_feature_step_config_object
+class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
     '''
-    A YAML data representation of a feature event object.
+    A configuration data representation of a feature event object.
     '''
 
     # * attribute: _ROLES
@@ -145,19 +145,19 @@ class EventFeatureStepYamlObject(EventFeatureStep, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, feature_event: EventFeatureStep, **overrides) -> 'EventFeatureStepYamlObject':
+    def from_model(cls, feature_event: EventFeatureStep, **overrides) -> 'EventFeatureStepConfigObject':
         '''
-        Creates a EventFeatureStepYamlObject from a EventFeatureStep model.
+        Creates a EventFeatureStepConfigObject from a EventFeatureStep model.
 
         :param feature_event: The feature event model to copy from.
         :type feature_event: EventFeatureStep
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new EventFeatureStepYamlObject.
-        :rtype: EventFeatureStepYamlObject
+        :return: A new EventFeatureStepConfigObject.
+        :rtype: EventFeatureStepConfigObject
         '''
 
-        # Create a new EventFeatureStepYamlObject from the model.
+        # Create a new EventFeatureStepConfigObject from the model.
         return super().from_model(feature_event, **overrides)
 
 
@@ -329,10 +329,10 @@ class FeatureAggregate(Feature, Aggregate):
         self.description = description
 
 
-# ** mapper: feature_yaml_object
-class FeatureYamlObject(Feature, TransferObject):
+# ** mapper: feature_config_object
+class FeatureConfigObject(Feature, TransferObject):
     '''
-    A YAML data representation of a feature object.
+    A configuration data representation of a feature object.
     '''
 
     # * attribute: _ROLES
@@ -351,7 +351,7 @@ class FeatureYamlObject(Feature, TransferObject):
     )
 
     # * attribute: steps
-    steps: List[EventFeatureStepYamlObject] = Field(
+    steps: List[EventFeatureStepConfigObject] = Field(
         default_factory=list,
         validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
         description='The step workflow for the feature.',
@@ -431,24 +431,24 @@ class FeatureYamlObject(Feature, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, feature: Feature, **overrides) -> 'FeatureYamlObject':
+    def from_model(cls, feature: Feature, **overrides) -> 'FeatureConfigObject':
         '''
-        Creates a FeatureYamlObject from a Feature model.
+        Creates a FeatureConfigObject from a Feature model.
 
         :param feature: The feature model to copy from.
         :type feature: Feature
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new FeatureYamlObject.
-        :rtype: FeatureYamlObject
+        :return: A new FeatureConfigObject.
+        :rtype: FeatureConfigObject
         '''
 
-        # Create a new FeatureYamlObject from the model, converting
-        # the steps list into EventFeatureStepYamlObject instances.
+        # Create a new FeatureConfigObject from the model, converting
+        # the steps list into EventFeatureStepConfigObject instances.
         return super().from_model(
             feature,
             steps=[
-                EventFeatureStepYamlObject.from_model(step)
+                EventFeatureStepConfigObject.from_model(step)
                 for step in feature.steps
             ],
             **overrides,

@@ -22,10 +22,10 @@ class FormatterAggregate(Formatter, Aggregate):
 
     pass
 
-# ** mapper: formatter_yaml_object
-class FormatterYamlObject(Formatter, TransferObject):
+# ** mapper: formatter_config_object
+class FormatterConfigObject(Formatter, TransferObject):
     '''
-    A YAML data representation of a logging formatter configuration.
+    A configuration data representation of a logging formatter configuration.
     '''
 
     # * attribute: _ROLES
@@ -56,16 +56,16 @@ class FormatterYamlObject(Formatter, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, formatter: Formatter, **overrides) -> 'FormatterYamlObject':
+    def from_model(cls, formatter: Formatter, **overrides) -> 'FormatterConfigObject':
         '''
-        Create a FormatterYamlObject from a Formatter model.
+        Create a FormatterConfigObject from a Formatter model.
 
         :param formatter: The formatter model to copy from.
         :type formatter: Formatter
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new FormatterYamlObject instance.
-        :rtype: FormatterYamlObject
+        :return: A new FormatterConfigObject instance.
+        :rtype: FormatterConfigObject
         '''
 
         # Delegate to the base mapper.
@@ -79,10 +79,10 @@ class HandlerAggregate(Handler, Aggregate):
 
     pass
 
-# ** mapper: handler_yaml_object
-class HandlerYamlObject(Handler, TransferObject):
+# ** mapper: handler_config_object
+class HandlerConfigObject(Handler, TransferObject):
     '''
-    A YAML data representation of a logging handler configuration.
+    A configuration data representation of a logging handler configuration.
     '''
 
     # * attribute: _ROLES
@@ -113,16 +113,16 @@ class HandlerYamlObject(Handler, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, handler: Handler, **overrides) -> 'HandlerYamlObject':
+    def from_model(cls, handler: Handler, **overrides) -> 'HandlerConfigObject':
         '''
-        Create a HandlerYamlObject from a Handler model.
+        Create a HandlerConfigObject from a Handler model.
 
         :param handler: The handler model to copy from.
         :type handler: Handler
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new HandlerYamlObject instance.
-        :rtype: HandlerYamlObject
+        :return: A new HandlerConfigObject instance.
+        :rtype: HandlerConfigObject
         '''
 
         # Delegate to the base mapper.
@@ -136,10 +136,10 @@ class LoggerAggregate(Logger, Aggregate):
 
     pass
 
-# ** mapper: logger_yaml_object
-class LoggerYamlObject(Logger, TransferObject):
+# ** mapper: logger_config_object
+class LoggerConfigObject(Logger, TransferObject):
     '''
-    A YAML data representation of a logger configuration.
+    A configuration data representation of a logger configuration.
     '''
 
     # * attribute: _ROLES
@@ -170,25 +170,25 @@ class LoggerYamlObject(Logger, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, logger: Logger, **overrides) -> 'LoggerYamlObject':
+    def from_model(cls, logger: Logger, **overrides) -> 'LoggerConfigObject':
         '''
-        Create a LoggerYamlObject from a Logger model.
+        Create a LoggerConfigObject from a Logger model.
 
         :param logger: The logger model to copy from.
         :type logger: Logger
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new LoggerYamlObject instance.
-        :rtype: LoggerYamlObject
+        :return: A new LoggerConfigObject instance.
+        :rtype: LoggerConfigObject
         '''
 
         # Delegate to the base mapper.
         return super().from_model(logger, **overrides)
 
-# ** mapper: logging_settings_yaml_object
-class LoggingSettingsYamlObject(TransferObject):
+# ** mapper: logging_settings_config_object
+class LoggingSettingsConfigObject(TransferObject):
     '''
-    A YAML data representation of the overall logging configuration.
+    A configuration data representation of the overall logging configuration.
     '''
 
     # * attribute: _ROLES
@@ -204,37 +204,37 @@ class LoggingSettingsYamlObject(TransferObject):
     )
 
     # * attribute: formatters
-    formatters: Dict[str, FormatterYamlObject] = Field(
+    formatters: Dict[str, FormatterConfigObject] = Field(
         default_factory=dict,
         description='Dictionary of formatter configurations, keyed by id.',
     )
 
     # * attribute: handlers
-    handlers: Dict[str, HandlerYamlObject] = Field(
+    handlers: Dict[str, HandlerConfigObject] = Field(
         default_factory=dict,
         description='Dictionary of handler configurations, keyed by id.',
     )
 
     # * attribute: loggers
-    loggers: Dict[str, LoggerYamlObject] = Field(
+    loggers: Dict[str, LoggerConfigObject] = Field(
         default_factory=dict,
         description='Dictionary of logger configurations, keyed by id.',
     )
 
     # * method: from_data
     @classmethod
-    def from_data(cls, **data) -> 'LoggingSettingsYamlObject':
+    def from_data(cls, **data) -> 'LoggingSettingsConfigObject':
         '''
-        Initialize a new LoggingSettingsYamlObject from a raw data dictionary,
-        injecting each section's keys as ``id`` on the contained YAML objects.
+        Initialize a new LoggingSettingsConfigObject from a raw data dictionary,
+        injecting each section's keys as ``id`` on the contained config objects.
 
         :param data: The raw data to construct the settings from.
         :type data: dict
-        :return: A new LoggingSettingsYamlObject instance.
-        :rtype: LoggingSettingsYamlObject
+        :return: A new LoggingSettingsConfigObject instance.
+        :rtype: LoggingSettingsConfigObject
         '''
 
-        # Construct each section's YAML objects, threading the dict key as id.
+        # Construct each section's config objects, threading the dict key as id.
         return cls.model_validate({
             'formatters': {
                 key: {**(formatter_data or {}), 'id': key}

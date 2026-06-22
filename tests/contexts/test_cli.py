@@ -131,16 +131,17 @@ def test_get_commands_groups_by_group_key(cli_context):
     assert [c.key for c in commands['calc']] == ['add', 'subtract']
     assert [c.key for c in commands['sys']] == ['boot']
 
-# ** test: get_commands_passes_default_commands_list
-def test_get_commands_passes_default_commands_list(app_interface):
+# ** test: get_commands_falls_back_to_default_commands
+def test_get_commands_falls_back_to_default_commands(app_interface):
     '''
-    Test that get_commands forwards the context's default command list to the event.
+    Test that get_commands falls back to the context's bootstrap default command
+    list when the repository (event) returns no commands.
 
     :param app_interface: The bound app interface.
     :type app_interface: AppInterfaceAggregate
     '''
 
-    # Build a CLI context seeded with bootstrap default commands.
+    # Build a CLI context seeded with an id-keyed bootstrap default command.
     list_commands_evt = mock.Mock()
     list_commands_evt.execute.return_value = []
     context = CliContext.from_domain(
@@ -151,17 +152,17 @@ def test_get_commands_passes_default_commands_list(app_interface):
         get_dependency=mock.Mock(),
         list_commands_evt=list_commands_evt,
         get_parent_args_evt=mock.Mock(),
-        default_commands=[{'name': 'Boot', 'key': 'boot', 'group_key': 'sys'}],
+        default_commands={'sys.boot': {'name': 'Boot', 'key': 'boot', 'group_key': 'sys'}},
     )
 
-    # Retrieve the commands.
+    # Retrieve the commands; the empty event result falls back to the defaults.
     result = context.get_commands()
 
-    # Assert the event was called with the context's default command list.
-    list_commands_evt.execute.assert_called_once_with(
-        default_commands_list=context.default_commands_list,
-    )
-    assert result == {}
+    # Assert the event was called with no default arguments and the bootstrap
+    # default command was used as the fallback.
+    list_commands_evt.execute.assert_called_once_with()
+    assert set(result.keys()) == {'sys'}
+    assert [c.key for c in result['sys']] == ['boot']
 
 # ** test: build_parser_parses_command_arguments
 def test_build_parser_parses_command_arguments():

@@ -7,9 +7,9 @@ from tiferet.domain import EventFeatureStep
 from tiferet.events import a
 from tiferet.mappers.feature import (
     EventFeatureStepAggregate,
-    EventFeatureStepYamlObject,
+    EventFeatureStepConfigObject,
     FeatureAggregate,
-    FeatureYamlObject,
+    FeatureConfigObject,
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -312,13 +312,13 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.description is None
 
 
-# ** class: TestFeatureYamlObject
-class TestFeatureYamlObject(TransferObjectTestBase):
+# ** class: TestFeatureConfigObject
+class TestFeatureConfigObject(TransferObjectTestBase):
     '''
-    Tests for FeatureYamlObject mapping, round-trip, and nested EventFeatureStepYamlObject.
+    Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
 
-    transfer_cls = FeatureYamlObject
+    transfer_cls = FeatureConfigObject
     aggregate_cls = FeatureAggregate
 
     # YAML-format sample data (steps with params alias and service_id).
@@ -374,7 +374,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
             steps=steps,
         )
 
-    # *** child mapper: EventFeatureStepYamlObject
+    # *** child mapper: EventFeatureStepConfigObject
 
     # ** constant: feature_event_sample_data
     feature_event_sample_data = {
@@ -389,11 +389,11 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_map_basic
     def test_feature_event_yaml_map_basic(self):
         '''
-        Test mapping a EventFeatureStepYamlObject to a EventFeatureStepAggregate.
+        Test mapping a EventFeatureStepConfigObject to a EventFeatureStepAggregate.
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = EventFeatureStepYamlObject.model_validate(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(
             self.feature_event_sample_data,
         )
         event = yaml_obj.map()
@@ -413,7 +413,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = EventFeatureStepYamlObject.model_validate(dict(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
             name='Alias Event',
             service_id='alias_handler',
             params={'alias_key': 'value'},
@@ -426,11 +426,11 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_map_with_condition
     def test_feature_event_yaml_map_with_condition(self):
         '''
-        Test mapping a EventFeatureStepYamlObject with a condition field.
+        Test mapping a EventFeatureStepConfigObject with a condition field.
         '''
 
         # Create a YAML object with a condition and map it.
-        yaml_obj = EventFeatureStepYamlObject.model_validate(dict(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
             name='Conditional Event',
             service_id='conditional_handler',
             condition='$r.b != 0',
@@ -444,7 +444,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_from_model
     def test_feature_event_yaml_from_model(self):
         '''
-        Test that EventFeatureStepYamlObject can be created from a EventFeatureStep model.
+        Test that EventFeatureStepConfigObject can be created from a EventFeatureStep model.
         '''
 
         # Create a EventFeatureStep model via direct constructor.
@@ -457,10 +457,10 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         )
 
         # Create a YAML object from the model.
-        yaml_obj = EventFeatureStepYamlObject.from_model(model)
+        yaml_obj = EventFeatureStepConfigObject.from_model(model)
 
         # Verify the YAML object has the correct values.
-        assert isinstance(yaml_obj, EventFeatureStepYamlObject)
+        assert isinstance(yaml_obj, EventFeatureStepConfigObject)
         assert yaml_obj.name == model.name
         assert yaml_obj.service_id == model.service_id
         assert yaml_obj.parameters == model.parameters
@@ -468,11 +468,11 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_middleware_round_trip
     def test_feature_event_yaml_middleware_round_trip(self):
         '''
-        Test that middleware is preserved through EventFeatureStepYamlObject map/from_model round-trip.
+        Test that middleware is preserved through EventFeatureStepConfigObject map/from_model round-trip.
         '''
 
         # Create a YAML object with middleware and map to aggregate.
-        yaml_obj = EventFeatureStepYamlObject.model_validate(dict(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
             name='Middleware Event',
             service_id='mw_handler',
             middleware=['timing_middleware', 'audit_middleware'],
@@ -482,19 +482,19 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         # Verify the middleware list is preserved on the aggregate.
         assert event.middleware == ['timing_middleware', 'audit_middleware']
 
-        # Round-trip: aggregate -> YamlObject -> re-map.
-        yaml_obj2 = EventFeatureStepYamlObject.from_model(event)
+        # Round-trip: aggregate -> ConfigObject -> re-map.
+        yaml_obj2 = EventFeatureStepConfigObject.from_model(event)
         event2 = yaml_obj2.map()
         assert event2.middleware == ['timing_middleware', 'audit_middleware']
 
     # ** test: feature_yaml_middleware_round_trip
     def test_feature_yaml_middleware_round_trip(self):
         '''
-        Test that feature-level middleware is preserved through FeatureYamlObject round-trip.
+        Test that feature-level middleware is preserved through FeatureConfigObject round-trip.
         '''
 
         # Create a YAML object with feature-level middleware.
-        yaml_obj = FeatureYamlObject.model_validate(dict(
+        yaml_obj = FeatureConfigObject.model_validate(dict(
             id='calc.add',
             name='Add Number',
             group_id='calc',
@@ -507,8 +507,8 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         # Verify feature-level middleware on the aggregate.
         assert aggregate.middleware == ['timing_middleware']
 
-        # Round-trip: aggregate -> YamlObject -> re-map.
-        yaml_obj2 = FeatureYamlObject.from_model(aggregate)
+        # Round-trip: aggregate -> ConfigObject -> re-map.
+        yaml_obj2 = FeatureConfigObject.from_model(aggregate)
         aggregate2 = yaml_obj2.map()
         assert aggregate2.middleware == ['timing_middleware']
 
@@ -533,14 +533,14 @@ class TestFeatureYamlObject(TransferObjectTestBase):
 
 # *** params_schema tests
 
-# ** test: feature_yaml_object_maps_params_schema
-def test_feature_yaml_object_maps_params_schema():
+# ** test: feature_config_object_maps_params_schema
+def test_feature_config_object_maps_params_schema():
     '''
-    Test that FeatureYamlObject maps a keyed params_schema into the aggregate.
+    Test that FeatureConfigObject maps a keyed params_schema into the aggregate.
     '''
 
     # Create a YAML object with a keyed params_schema and map it.
-    yaml_obj = FeatureYamlObject.model_validate(dict(
+    yaml_obj = FeatureConfigObject.model_validate(dict(
         id='calc.add',
         name='Add Number',
         group_id='calc',
@@ -558,14 +558,14 @@ def test_feature_yaml_object_maps_params_schema():
     assert params['b'].required is False
     assert params['b'].default == 1.0
 
-# ** test: feature_yaml_object_serializes_params_schema_keyed
-def test_feature_yaml_object_serializes_params_schema_keyed():
+# ** test: feature_config_object_serializes_params_schema_keyed
+def test_feature_config_object_serializes_params_schema_keyed():
     '''
     Test that params_schema serializes to the ergonomic keyed mapping.
     '''
 
     # Build an aggregate carrying a params_schema.
-    aggregate = FeatureYamlObject.model_validate(dict(
+    aggregate = FeatureConfigObject.model_validate(dict(
         id='calc.add',
         name='Add Number',
         group_id='calc',
@@ -575,7 +575,7 @@ def test_feature_yaml_object_serializes_params_schema_keyed():
     )).map()
 
     # Serialize the aggregate back to data form.
-    data = FeatureYamlObject.from_model(aggregate).to_primitive('to_data')
+    data = FeatureConfigObject.from_model(aggregate).to_primitive('to_data')
 
     # Verify shorthand and expanded keyed forms.
     assert data['params_schema']['a'] == 'int'
@@ -583,14 +583,14 @@ def test_feature_yaml_object_serializes_params_schema_keyed():
     assert data['params_schema']['b']['default'] == 1.0
     assert data['params_schema']['b']['required'] is False
 
-# ** test: feature_yaml_object_params_schema_round_trip
-def test_feature_yaml_object_params_schema_round_trip():
+# ** test: feature_config_object_params_schema_round_trip
+def test_feature_config_object_params_schema_round_trip():
     '''
     Test that params_schema is preserved through a map/from_model round-trip.
     '''
 
     # Map then reverse-map the feature.
-    aggregate = FeatureYamlObject.model_validate(dict(
+    aggregate = FeatureConfigObject.model_validate(dict(
         id='calc.add',
         name='Add Number',
         group_id='calc',
@@ -598,7 +598,7 @@ def test_feature_yaml_object_params_schema_round_trip():
         steps=[],
         params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
     )).map()
-    aggregate2 = FeatureYamlObject.from_model(aggregate).map()
+    aggregate2 = FeatureConfigObject.from_model(aggregate).map()
 
     # Verify the params survive the round-trip.
     params = {p.name: (p.type, p.required, p.default) for p in aggregate2.params_schema.parameters}

@@ -9,7 +9,7 @@ from typing import List
 from ..interfaces import AppService
 from ..mappers import (
     AppInterfaceAggregate,
-    AppInterfaceYamlObject,
+    AppInterfaceConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -75,7 +75,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
             return None
 
         # Map the data to an AppInterfaceAggregate and return it.
-        return AppInterfaceYamlObject.model_validate(
+        return AppInterfaceConfigObject.model_validate(
             {**interface_data, 'id': id}
         ).map()
 
@@ -95,7 +95,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
 
         # Map each interface entry to an AppInterfaceAggregate.
         return [
-            AppInterfaceYamlObject.model_validate(
+            AppInterfaceConfigObject.model_validate(
                 {**interface_data, 'id': interface_id}
             ).map()
             for interface_id, interface_data in interfaces_data.items()
@@ -113,7 +113,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Convert the app interface model to configuration data.
-        interface_data = AppInterfaceYamlObject.from_model(interface)
+        interface_data = AppInterfaceConfigObject.from_model(interface)
 
         # Load the full configuration file.
         full_data = self._load()

@@ -11,7 +11,7 @@ import pytest, yaml
 # ** app
 from tiferet.mappers import (
     CliArgumentAggregate,
-    CliCommandYamlObject,
+    CliCommandConfigObject,
 )
 from tiferet.repos.cli import CliConfigRepository
 
@@ -226,7 +226,7 @@ def test_int_cli_config_repo_save(
     new_cmd_id = 'calc.multiply'
 
     # Create new CLI command config data and map to an aggregate.
-    cmd = CliCommandYamlObject.model_validate(dict(
+    cmd = CliCommandConfigObject.model_validate(dict(
         id=new_cmd_id,
         name='Multiply Number Command',
         description='Multiplies two numbers.',

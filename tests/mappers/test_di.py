@@ -7,9 +7,9 @@ from tiferet.domain import FlaggedDependency
 from tiferet.events import a
 from tiferet.mappers.di import (
     FlaggedDependencyAggregate,
-    FlaggedDependencyYamlObject,
-    ServiceConfigurationAggregate,
-    ServiceConfigurationYamlObject,
+    FlaggedDependencyConfigObject,
+    ServiceRegistrationAggregate,
+    ServiceRegistrationConfigObject,
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -151,13 +151,13 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
         }
 
 
-# ** class: TestServiceConfigurationAggregate
-class TestServiceConfigurationAggregate(AggregateTestBase):
+# ** class: TestServiceRegistrationAggregate
+class TestServiceRegistrationAggregate(AggregateTestBase):
     '''
-    Tests for ServiceConfigurationAggregate construction, set_attribute, and domain-specific mutations.
+    Tests for ServiceRegistrationAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    aggregate_cls = ServiceConfigurationAggregate
+    aggregate_cls = ServiceRegistrationAggregate
 
     sample_data = SVC_CONFIG_AGGREGATE_SAMPLE_DATA
 
@@ -175,13 +175,13 @@ class TestServiceConfigurationAggregate(AggregateTestBase):
     ]
 
     # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> ServiceConfigurationAggregate:
+    def make_aggregate(self, data: dict = None) -> ServiceRegistrationAggregate:
         '''
-        Construct a ServiceConfigurationAggregate via the Pydantic constructor.
+        Construct a ServiceRegistrationAggregate via the Pydantic constructor.
         '''
 
         # Build the aggregate from the resolved sample data.
-        return ServiceConfigurationAggregate(
+        return ServiceRegistrationAggregate(
             **(data if data is not None else self.sample_data).copy()
         )
 
@@ -307,14 +307,14 @@ class TestServiceConfigurationAggregate(AggregateTestBase):
         assert len(aggregate.dependencies) == initial_count
 
 
-# ** class: TestServiceConfigurationYamlObject
-class TestServiceConfigurationYamlObject(TransferObjectTestBase):
+# ** class: TestServiceRegistrationConfigObject
+class TestServiceRegistrationConfigObject(TransferObjectTestBase):
     '''
-    Tests for ServiceConfigurationYamlObject mapping, round-trip, and nested FlaggedDependencyYamlObject.
+    Tests for ServiceRegistrationConfigObject mapping, round-trip, and nested FlaggedDependencyConfigObject.
     '''
 
-    transfer_cls = ServiceConfigurationYamlObject
-    aggregate_cls = ServiceConfigurationAggregate
+    transfer_cls = ServiceRegistrationConfigObject
+    aggregate_cls = ServiceRegistrationAggregate
 
     # YAML-format sample data (dependencies as dict keyed by flag).
     sample_data = {
@@ -366,13 +366,13 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     field_normalizers = SVC_CONFIG_FIELD_NORMALIZERS
 
     # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> ServiceConfigurationAggregate:
+    def make_aggregate(self, data: dict = None) -> ServiceRegistrationAggregate:
         '''
-        Construct a ServiceConfigurationAggregate via the Pydantic constructor.
+        Construct a ServiceRegistrationAggregate via the Pydantic constructor.
         '''
 
         # Build the aggregate from the resolved aggregate sample data.
-        return ServiceConfigurationAggregate(
+        return ServiceRegistrationAggregate(
             **(data if data is not None else self.aggregate_sample_data).copy()
         )
 
@@ -381,11 +381,11 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # ** test: to_primitive_to_data_yaml
     def test_to_primitive_to_data_yaml(self):
         '''
-        Test that ServiceConfigurationYamlObject serializes correctly to YAML primitive format.
+        Test that ServiceRegistrationConfigObject serializes correctly to YAML primitive format.
         '''
 
         # Create a YAML object from sample data.
-        yaml_obj = ServiceConfigurationYamlObject.model_validate(self.sample_data)
+        yaml_obj = ServiceRegistrationConfigObject.model_validate(self.sample_data)
 
         # Serialize to primitive format for YAML.
         primitive = yaml_obj.to_primitive(role='to_data')
@@ -421,7 +421,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object.
-        yaml_obj = ServiceConfigurationYamlObject.model_validate(self.sample_data)
+        yaml_obj = ServiceRegistrationConfigObject.model_validate(self.sample_data)
         primitive = yaml_obj.to_primitive('to_model')
 
         # Verify excluded fields.
@@ -438,8 +438,8 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         that dependencies are still serialized under ``deps``.
         '''
 
-        # Create a ServiceConfigurationYamlObject using the legacy 'flags' alias.
-        data_object = ServiceConfigurationYamlObject.model_validate(dict(
+        # Create a ServiceRegistrationConfigObject using the legacy 'flags' alias.
+        data_object = ServiceRegistrationConfigObject.model_validate(dict(
             id='test_repo_flags',
             module_path='tests.repos.test',
             class_name='DefaultTestRepoProxy',
@@ -456,9 +456,9 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         ))
 
         # The alias should populate the dependencies mapping keyed by flag.
-        assert isinstance(data_object, ServiceConfigurationYamlObject)
+        assert isinstance(data_object, ServiceRegistrationConfigObject)
         assert 'flag1' in data_object.dependencies
-        assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyYamlObject)
+        assert isinstance(data_object.dependencies['flag1'], FlaggedDependencyConfigObject)
 
         # When serializing to data, dependencies should still be emitted as 'deps'.
         primitive = data_object.to_primitive(role='to_data')
@@ -482,18 +482,18 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         )
 
         # Convert to YAML object.
-        data_object = ServiceConfigurationYamlObject.from_model(aggregate)
+        data_object = ServiceRegistrationConfigObject.from_model(aggregate)
 
         # Verify the YAML object has all three dependencies.
-        assert isinstance(data_object, ServiceConfigurationYamlObject)
+        assert isinstance(data_object, ServiceRegistrationConfigObject)
         assert data_object.id == 'test_repo'
         assert len(data_object.dependencies) == 3
 
-        # All dependencies should be FlaggedDependencyYamlObject instances.
+        # All dependencies should be FlaggedDependencyConfigObject instances.
         for dep in data_object.dependencies.values():
-            assert isinstance(dep, FlaggedDependencyYamlObject)
+            assert isinstance(dep, FlaggedDependencyConfigObject)
 
-    # *** child mapper: FlaggedDependencyYamlObject
+    # *** child mapper: FlaggedDependencyConfigObject
 
     # ** constant: flagged_dep_sample_data
     flagged_dep_sample_data = {
@@ -506,11 +506,11 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # ** test: flagged_dependency_yaml_map_basic
     def test_flagged_dependency_yaml_map_basic(self):
         '''
-        Test mapping a FlaggedDependencyYamlObject to a FlaggedDependency.
+        Test mapping a FlaggedDependencyConfigObject to a FlaggedDependency.
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = FlaggedDependencyYamlObject.model_validate(self.flagged_dep_sample_data)
+        yaml_obj = FlaggedDependencyConfigObject.model_validate(self.flagged_dep_sample_data)
         dep = yaml_obj.map()
 
         # Verify the mapped entity.
@@ -527,7 +527,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = FlaggedDependencyYamlObject.model_validate(dict(
+        yaml_obj = FlaggedDependencyConfigObject.model_validate(dict(
             module_path='alias.test.mod',
             class_name='AliasImpl',
             flag='aliased',
@@ -541,7 +541,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # ** test: flagged_dependency_yaml_from_model
     def test_flagged_dependency_yaml_from_model(self):
         '''
-        Test that FlaggedDependencyYamlObject can be created from a FlaggedDependency model.
+        Test that FlaggedDependencyConfigObject can be created from a FlaggedDependency model.
         '''
 
         # Create a FlaggedDependency model.
@@ -552,10 +552,10 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         )
 
         # Create a YAML object from the model.
-        yaml_obj = FlaggedDependencyYamlObject.from_model(model)
+        yaml_obj = FlaggedDependencyConfigObject.from_model(model)
 
         # Verify the YAML object has the correct values.
-        assert isinstance(yaml_obj, FlaggedDependencyYamlObject)
+        assert isinstance(yaml_obj, FlaggedDependencyConfigObject)
         assert yaml_obj.module_path == model.module_path
         assert yaml_obj.class_name == model.class_name
         assert yaml_obj.flag == model.flag
@@ -568,7 +568,7 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object.
-        yaml_obj = FlaggedDependencyYamlObject.model_validate(self.flagged_dep_sample_data)
+        yaml_obj = FlaggedDependencyConfigObject.model_validate(self.flagged_dep_sample_data)
 
         # Serialize with to_data role.
         primitive = yaml_obj.to_primitive('to_data')
@@ -581,11 +581,11 @@ class TestServiceConfigurationYamlObject(TransferObjectTestBase):
     # ** test: flagged_dependency_yaml_round_trip_via_parent
     def test_flagged_dependency_yaml_round_trip_via_parent(self, aggregate):
         '''
-        Test that dependencies are preserved through the parent ServiceConfigurationYamlObject round-trip.
+        Test that dependencies are preserved through the parent ServiceRegistrationConfigObject round-trip.
         '''
 
         # Convert aggregate to YAML object and back.
-        yaml_top = ServiceConfigurationYamlObject.from_model(aggregate)
+        yaml_top = ServiceRegistrationConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
         # Verify dependencies list preserved using nested helper.

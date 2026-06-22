@@ -11,7 +11,7 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
-from tiferet.domain import Feature, Error
+from tiferet.domain import Feature, CliCommand, Error
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.app import (
     BaseContext,
@@ -20,6 +20,8 @@ from tiferet.contexts.app import (
     LoggingContext,
     RequestContext,
     AppInterfaceContext,
+    build_feature_index,
+    build_command_list,
 )
 
 # *** fixtures
@@ -162,6 +164,62 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 
 # *** tests
+
+# ** test: build_feature_index_materializes_typed_features
+def test_build_feature_index_materializes_typed_features():
+    '''
+    Test that build_feature_index materializes an id-keyed mapping into typed
+    Feature objects keyed by id.
+    '''
+
+    # Materialize a small id-keyed feature mapping (records minus id).
+    index = build_feature_index({
+        'group.add': {'group_id': 'group', 'feature_key': 'add', 'name': 'Add'},
+    })
+
+    # Assert the record is materialized into a typed Feature keyed by id.
+    assert set(index.keys()) == {'group.add'}
+    assert isinstance(index['group.add'], Feature)
+    assert index['group.add'].id == 'group.add'
+    assert index['group.add'].name == 'Add'
+
+# ** test: build_feature_index_empty
+def test_build_feature_index_empty():
+    '''
+    Test that build_feature_index returns an empty index for None or empty input.
+    '''
+
+    # Assert both None and empty mappings yield an empty index.
+    assert build_feature_index() == {}
+    assert build_feature_index({}) == {}
+
+# ** test: build_command_list_materializes_typed_commands
+def test_build_command_list_materializes_typed_commands():
+    '''
+    Test that build_command_list materializes an id-keyed mapping into a list of
+    typed CliCommand objects with ids drawn from the keys.
+    '''
+
+    # Materialize a small id-keyed command mapping (records minus id).
+    commands = build_command_list({
+        'sys.boot': {'name': 'Boot', 'key': 'boot', 'group_key': 'sys'},
+    })
+
+    # Assert the record is materialized into a typed CliCommand keyed by id.
+    assert len(commands) == 1
+    assert isinstance(commands[0], CliCommand)
+    assert commands[0].id == 'sys.boot'
+    assert commands[0].key == 'boot'
+
+# ** test: build_command_list_empty
+def test_build_command_list_empty():
+    '''
+    Test that build_command_list returns an empty list for None or empty input.
+    '''
+
+    # Assert both None and empty mappings yield an empty list.
+    assert build_command_list() == []
+    assert build_command_list({}) == []
 
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):

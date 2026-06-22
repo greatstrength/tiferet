@@ -7,10 +7,9 @@ from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
 from .settings import DomainEvent, a
-from ..di import merge_settings
-from ..domain.di import ServiceConfiguration
+from ..domain.di import ServiceRegistration
 from ..interfaces.di import DIService
-from ..mappers.di import ServiceConfigurationAggregate
+from ..mappers.di import ServiceRegistrationAggregate
 
 # *** events
 
@@ -35,10 +34,10 @@ class DIEvent(DomainEvent):
         # Set the DI service dependency.
         self.di_service = di_service
 
-# ** event: add_service_configuration
-class AddServiceConfiguration(DIEvent):
+# ** event: add_service_registration
+class AddServiceRegistration(DIEvent):
     '''
-    A domain event to add a new service configuration.
+    A domain event to add a new service registration.
     '''
 
     # * method: execute
@@ -51,9 +50,9 @@ class AddServiceConfiguration(DIEvent):
         parameters: Optional[Dict[str, Any]] = {},
         flagged_dependencies: Optional[List[Dict[str, Any]]] = [],
         **kwargs,
-    ) -> ServiceConfiguration:
+    ) -> ServiceRegistration:
         '''
-        Add a new service configuration.
+        Add a new service registration.
 
         :param id: Required unique identifier.
         :type id: str
@@ -61,18 +60,18 @@ class AddServiceConfiguration(DIEvent):
         :type module_path: str | None
         :param class_name: Optional default class name.
         :type class_name: str | None
-        :param parameters: Optional configuration parameters (default {}).
+        :param parameters: Optional registration parameters (default {}).
         :type parameters: Dict[str, Any] | None
         :param flagged_dependencies: Optional list of flagged dependencies (default []).
         :type flagged_dependencies: List[Dict[str, Any]] | None
-        :return: Created ServiceConfiguration model.
-        :rtype: ServiceConfiguration
+        :return: Created ServiceRegistration model.
+        :rtype: ServiceRegistration
         '''
 
-        # Check for existing configuration id.
+        # Check for existing registration id.
         self.verify(
-            not self.di_service.configuration_exists(id),
-            a.const.CONFIGURATION_ALREADY_EXISTS_ID,
+            not self.di_service.registration_exists(id),
+            a.const.SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
             id=id,
         )
 
@@ -81,15 +80,15 @@ class AddServiceConfiguration(DIEvent):
         has_deps = bool(flagged_dependencies)
         self.verify(
             has_default or has_deps,
-            a.const.INVALID_SERVICE_CONFIGURATION_ID,
+            a.const.INVALID_SERVICE_REGISTRATION_ID,
         )
 
         # Coerce optional list/dict args that argparse may pass as None.
         parameters = parameters or {}
         flagged_dependencies = flagged_dependencies or []
 
-        # Create service configuration aggregate from dependency dicts.
-        configuration = ServiceConfigurationAggregate(
+        # Create service registration aggregate from dependency dicts.
+        registration = ServiceRegistrationAggregate(
             id=id,
             module_path=module_path,
             class_name=class_name,
@@ -97,15 +96,15 @@ class AddServiceConfiguration(DIEvent):
             dependencies=flagged_dependencies,
         )
 
-        # Save the new configuration and return it.
-        self.di_service.save_configuration(configuration)
-        return configuration
+        # Save the new registration and return it.
+        self.di_service.save_registration(registration)
+        return registration
 
-# ** event: set_default_service_configuration
-class SetDefaultServiceConfiguration(DIEvent):
+# ** event: set_default_service_registration
+class SetDefaultServiceRegistration(DIEvent):
     '''
-    A domain event to set or update the default service configuration for an
-    existing service configuration.
+    A domain event to set or update the default service registration for an
+    existing service registration.
     '''
 
     # * method: execute
@@ -116,31 +115,31 @@ class SetDefaultServiceConfiguration(DIEvent):
         class_name: Optional[str] = None,
         parameters: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> ServiceConfiguration:
+    ) -> ServiceRegistration:
         '''
         Set or update the default module/class and parameters for an
-        existing service configuration.
+        existing service registration.
 
-        :param id: The unique service configuration identifier.
+        :param id: The unique service registration identifier.
         :type id: str
         :param module_path: Optional default module path.
         :type module_path: str | None
         :param class_name: Optional default class name.
         :type class_name: str | None
-        :param parameters: Optional configuration parameters. When None,
+        :param parameters: Optional registration parameters. When None,
             existing parameters are cleared.
         :type parameters: Dict[str, Any] | None
-        :return: The updated service configuration.
-        :rtype: ServiceConfiguration
+        :return: The updated service registration.
+        :rtype: ServiceRegistration
         '''
 
-        # Retrieve the existing configuration.
-        configuration = self.di_service.get_configuration(id)
+        # Retrieve the existing registration.
+        registration = self.di_service.get_registration(id)
 
-        # Verify that the configuration exists.
+        # Verify that the registration exists.
         self.verify(
-            configuration is not None,
-            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            registration is not None,
+            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -149,11 +148,11 @@ class SetDefaultServiceConfiguration(DIEvent):
         if module_path is not None or class_name is not None:
             self.verify(
                 module_path is not None and class_name is not None,
-                a.const.INVALID_SERVICE_CONFIGURATION_ID,
+                a.const.INVALID_SERVICE_REGISTRATION_ID,
             )
 
             # Update both type and parameters via the model helper.
-            configuration.set_default_type(
+            registration.set_default_type(
                 module_path,
                 class_name,
                 parameters,
@@ -162,21 +161,21 @@ class SetDefaultServiceConfiguration(DIEvent):
             # Only parameters are being updated (or cleared). Keep the
             # existing module_path and class_name but delegate parameter
             # handling/cleanup to the model helper.
-            configuration.set_default_type(
-                configuration.module_path,
-                configuration.class_name,
+            registration.set_default_type(
+                registration.module_path,
+                registration.class_name,
                 parameters,
             )
 
-        # Persist the updated configuration and return it.
-        self.di_service.save_configuration(configuration)
-        return configuration
+        # Persist the updated registration and return it.
+        self.di_service.save_registration(registration)
+        return registration
 
 # ** event: set_service_dependency
 class SetServiceDependency(DIEvent):
     '''
     A domain event to set or update a flagged dependency on an existing
-    service configuration.
+    service registration.
     '''
 
     # * method: execute
@@ -192,9 +191,9 @@ class SetServiceDependency(DIEvent):
     ) -> str:
         '''
         Set or update a flagged dependency for the given service
-        configuration.
+        registration.
 
-        :param id: The service configuration identifier.
+        :param id: The service registration identifier.
         :type id: str
         :param flag: The flag that identifies the dependency.
         :type flag: str
@@ -204,7 +203,7 @@ class SetServiceDependency(DIEvent):
         :type class_name: str
         :param parameters: Parameters for the dependency.
         :type parameters: Dict[str, Any]
-        :return: The service configuration id.
+        :return: The service registration id.
         :rtype: str
         '''
 
@@ -215,13 +214,13 @@ class SetServiceDependency(DIEvent):
             a.const.INVALID_FLAGGED_DEPENDENCY_ID,
         )
 
-        # Retrieve the existing configuration.
-        configuration = self.di_service.get_configuration(id)
+        # Retrieve the existing registration.
+        registration = self.di_service.get_registration(id)
 
-        # Verify that the configuration exists.
+        # Verify that the registration exists.
         self.verify(
-            configuration is not None,
-            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            registration is not None,
+            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -229,15 +228,15 @@ class SetServiceDependency(DIEvent):
         parameters = parameters or {}
 
         # Delegate to the model to set/update the flagged dependency.
-        configuration.set_dependency(
+        registration.set_dependency(
             flag=flag,
             module_path=module_path,
             class_name=class_name,
             parameters=parameters,
         )
 
-        # Persist the updated configuration.
-        self.di_service.save_configuration(configuration)
+        # Persist the updated registration.
+        self.di_service.save_registration(registration)
 
         # Return the id for convenience/confirmation.
         return id
@@ -247,7 +246,7 @@ class SetServiceDependency(DIEvent):
 class RemoveServiceDependency(DIEvent):
     '''
     A domain event to remove a flagged dependency from an existing service
-    configuration.
+    registration.
     '''
 
     # * method: execute
@@ -259,65 +258,65 @@ class RemoveServiceDependency(DIEvent):
         **kwargs,
     ) -> str:
         '''
-        Remove a flagged dependency from the given service configuration.
+        Remove a flagged dependency from the given service registration.
 
-        :param id: The service configuration identifier.
+        :param id: The service registration identifier.
         :type id: str
         :param flag: The flag that identifies the dependency to remove.
         :type flag: str
-        :return: The service configuration id.
+        :return: The service registration id.
         :rtype: str
         '''
 
-        # Retrieve the existing configuration.
-        configuration = self.di_service.get_configuration(id)
+        # Retrieve the existing registration.
+        registration = self.di_service.get_registration(id)
 
-        # Verify that the configuration exists.
+        # Verify that the registration exists.
         self.verify(
-            configuration is not None,
-            a.const.SERVICE_CONFIGURATION_NOT_FOUND_ID,
+            registration is not None,
+            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
         # Remove the dependency by flag (idempotent at the model level).
-        configuration.remove_dependency(flag)
+        registration.remove_dependency(flag)
 
         # Post-removal validation: ensure a remaining type source.
-        has_default = bool(configuration.module_path and configuration.class_name)
-        has_deps = bool(configuration.dependencies)
+        has_default = bool(registration.module_path and registration.class_name)
+        has_deps = bool(registration.dependencies)
         self.verify(
             has_default or has_deps,
-            a.const.INVALID_SERVICE_CONFIGURATION_ID,
+            a.const.INVALID_SERVICE_REGISTRATION_ID,
         )
 
-        # Persist the updated configuration.
-        self.di_service.save_configuration(configuration)
+        # Persist the updated registration.
+        self.di_service.save_registration(registration)
 
         # Return the id for convenience/confirmation.
         return id
 
-# ** event: remove_service_configuration
-class RemoveServiceConfiguration(DIEvent):
+# ** event: remove_service_registration
+class RemoveServiceRegistration(DIEvent):
     '''
-    A domain event to remove a service configuration by ID.
+    A domain event to remove a service registration by ID.
     '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
-        Remove a service configuration.
+        Remove a service registration.
 
-        :param id: The unique identifier of the configuration to remove.
+        :param id: The unique identifier of the registration to remove.
         :type id: str
         :param kwargs: Additional context.
         :type kwargs: dict
-        :return: The removed configuration ID.
+        :return: The removed registration ID.
         :rtype: str
         '''
 
         # Delete (idempotent; underlying service handles non-existent IDs).
-        self.di_service.delete_configuration(id)
+        self.di_service.delete_registration(id)
 
         # Return id for confirmation.
         return id
@@ -373,41 +372,20 @@ class SetServiceConstants(DIEvent):
 # ** event: list_all_settings
 class ListAllSettings(DIEvent):
     '''
-    A domain event to list all service configurations and constants, merging
-    execute-time bootstrap defaults beneath the repository values.
+    A domain event to list all service registrations and constants from the
+    DI service.
     '''
 
     # * method: execute
-    def execute(
-            self,
-            default_config_index: Dict[str, ServiceConfiguration] = {},
-            default_constants: Dict[str, Any] = {},
-            **kwargs,
-        ) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+    def execute(self, **kwargs) -> Tuple[List[ServiceRegistration], Dict[str, Any]]:
         '''
-        Execute the list all settings event, merging execute-time defaults for any
-        service configurations or constants not present in the repository.
+        List all service registrations and constants from the DI service.
 
-        :param default_config_index: Optional mapping of service id to ServiceConfiguration
-            used as a fallback for any service ID not present in the repository.
-        :type default_config_index: Dict[str, ServiceConfiguration]
-        :param default_constants: Optional mapping of constants merged as lower-priority
-            fallbacks beneath the repository's constants.
-        :type default_constants: Dict[str, Any]
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: Merged list of service configurations and constants.
-        :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
+        :return: List of service registrations and constants.
+        :rtype: Tuple[List[ServiceRegistration], Dict[str, Any]]
         '''
 
-        # Retrieve configurations and constants from the DI service.
-        configs, constants = self.di_service.list_all()
-
-        # Merge with the execute-time bootstrap defaults via the shared helper,
-        # reusing the single merge implementation that backs the resolver.
-        return merge_settings(
-            configs,
-            constants,
-            default_config_index,
-            default_constants,
-        )
+        # Retrieve and return registrations and constants from the DI service.
+        return self.di_service.list_all()

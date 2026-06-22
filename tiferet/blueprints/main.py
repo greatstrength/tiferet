@@ -19,7 +19,11 @@ from ..events import (
     ImportDependency,
     RaiseError,
 )
-from ..events.app import GetAppInterface
+from ..events.app import (
+    GetAppInterface,
+    resolve_default_interface,
+    apply_interface_defaults,
+)
 from ..events.blueprint import CreateServiceResolver
 
 # *** functions
@@ -332,12 +336,23 @@ def resolve_interface(
     # Load the default app service dependencies.
     default_services = load_default_services()
 
-    # Get the app interface via the event, passing any provided interface defaults.
-    app_interface = DomainEvent.handle(
-        GetAppInterface,
-        dependencies=dict(app_service=app_service),
-        interface_id=interface_id,
-        default_interfaces=default_interfaces,
+    # Retrieve the interface via the event, falling back to the bootstrap default
+    # interface definitions (built by the event-layer factory) when the
+    # consumer's config does not define it.
+    try:
+        app_interface = DomainEvent.handle(
+            GetAppInterface,
+            dependencies=dict(app_service=app_service),
+            interface_id=interface_id,
+        )
+    except a.TiferetError:
+        app_interface = resolve_default_interface(interface_id, default_interfaces)
+        if app_interface is None:
+            raise
+
+    # Merge the framework default services and constants via the event-layer factory.
+    app_interface = apply_interface_defaults(
+        app_interface,
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )

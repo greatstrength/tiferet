@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Tuple
 # ** app
 from ..interfaces import DIService
 from ..mappers import (
-    ServiceConfigurationAggregate,
-    ServiceConfigurationYamlObject,
+    ServiceRegistrationAggregate,
+    ServiceRegistrationConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -35,14 +35,14 @@ class DIConfigRepository(DIService, ConfigurationRepository):
         # Initialize the configuration repository base.
         ConfigurationRepository.__init__(self, config_file=di_config, encoding=encoding)
 
-    # * method: configuration_exists
-    def configuration_exists(self, id: str) -> bool:
+    # * method: registration_exists
+    def registration_exists(self, id: str) -> bool:
         '''
-        Check if a service configuration exists by ID.
+        Check if a service registration exists by ID.
 
-        :param id: The service configuration identifier.
+        :param id: The service registration identifier.
         :type id: str
-        :return: True if the service configuration exists, otherwise False.
+        :return: True if the service registration exists, otherwise False.
         :rtype: bool
         '''
 
@@ -51,65 +51,65 @@ class DIConfigRepository(DIService, ConfigurationRepository):
             start_node=lambda data: data.get('services', {})
         )
 
-        # Return whether the configuration id exists in the mapping.
+        # Return whether the registration id exists in the mapping.
         return id in services_data
 
-    # * method: get_configuration
-    def get_configuration(self, configuration_id: str, flag: str = None) -> ServiceConfigurationAggregate | None:
+    # * method: get_registration
+    def get_registration(self, registration_id: str, flag: str = None) -> ServiceRegistrationAggregate | None:
         '''
-        Retrieve a service configuration by ID, optionally filtered by flag.
+        Retrieve a service registration by ID, optionally filtered by flag.
 
-        :param configuration_id: The service configuration identifier.
-        :type configuration_id: str
-        :param flag: Optional flag to filter the configuration.
+        :param registration_id: The service registration identifier.
+        :type registration_id: str
+        :param flag: Optional flag to filter the registration.
         :type flag: str
-        :return: The service configuration aggregate or None if not found.
-        :rtype: ServiceConfigurationAggregate | None
+        :return: The service registration aggregate or None if not found.
+        :rtype: ServiceRegistrationAggregate | None
         '''
 
-        # Load the specific service configuration data from the configuration file.
+        # Load the specific service registration data from the configuration file.
         config_data = self._load(
-            start_node=lambda data: data.get('services', {}).get(configuration_id)
+            start_node=lambda data: data.get('services', {}).get(registration_id)
         )
 
         # If no data is found, return None.
         if not config_data:
             return None
 
-        # Map the data to a ServiceConfigurationAggregate.
-        configuration = ServiceConfigurationYamlObject.model_validate(
-            {**config_data, 'id': configuration_id}
+        # Map the data to a ServiceRegistrationAggregate.
+        registration = ServiceRegistrationConfigObject.model_validate(
+            {**config_data, 'id': registration_id}
         ).map()
 
-        # If a flag is provided, filter the configuration by flag.
+        # If a flag is provided, filter the registration by flag.
         if flag:
-            dependency = configuration.get_dependency(flag)
+            dependency = registration.get_dependency(flag)
             if dependency:
-                configuration.module_path = dependency.module_path
-                configuration.class_name = dependency.class_name
+                registration.module_path = dependency.module_path
+                registration.class_name = dependency.class_name
                 if dependency.parameters:
-                    merged = dict(configuration.parameters or {})
+                    merged = dict(registration.parameters or {})
                     merged.update(dependency.parameters)
-                    configuration.parameters = merged
+                    registration.parameters = merged
 
-        # Return the configuration.
-        return configuration
+        # Return the registration.
+        return registration
 
     # * method: list_all
-    def list_all(self) -> Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]:
+    def list_all(self) -> Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]:
         '''
         List all service configurations and constants.
 
-        :return: A tuple containing a list of service configuration aggregates and a dictionary of constants.
-        :rtype: Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]
+        :return: A tuple containing a list of service registration aggregates and a dictionary of constants.
+        :rtype: Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]
         '''
 
         # Load the full configuration file.
         full_data = self._load()
 
-        # Map each service entry to a ServiceConfigurationAggregate.
+        # Map each service entry to a ServiceRegistrationAggregate.
         configurations = [
-            ServiceConfigurationYamlObject.model_validate(
+            ServiceRegistrationConfigObject.model_validate(
                 {**config_data, 'id': config_id}
             ).map()
             for config_id, config_data in full_data.get('services', {}).items()
@@ -121,36 +121,36 @@ class DIConfigRepository(DIService, ConfigurationRepository):
         # Return the configurations and constants.
         return configurations, constants
 
-    # * method: save_configuration
-    def save_configuration(self, configuration: ServiceConfigurationAggregate) -> None:
+    # * method: save_registration
+    def save_registration(self, registration: ServiceRegistrationAggregate) -> None:
         '''
-        Save or update a service configuration.
+        Save or update a service registration.
 
-        :param configuration: The service configuration aggregate to save.
-        :type configuration: ServiceConfigurationAggregate
+        :param registration: The service registration aggregate to save.
+        :type registration: ServiceRegistrationAggregate
         :return: None
         :rtype: None
         '''
 
-        # Convert the service configuration model to configuration data.
-        config_data = ServiceConfigurationYamlObject.from_model(configuration)
+        # Convert the service registration model to configuration data.
+        config_data = ServiceRegistrationConfigObject.from_model(registration)
 
         # Load the full configuration file.
         full_data = self._load()
 
-        # Update or insert the service configuration entry.
-        full_data.setdefault('services', {})[configuration.id] = config_data.to_primitive(self.default_role)
+        # Update or insert the service registration entry.
+        full_data.setdefault('services', {})[registration.id] = config_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
         self._save(data=full_data)
 
-    # * method: delete_configuration
-    def delete_configuration(self, configuration_id: str) -> None:
+    # * method: delete_registration
+    def delete_registration(self, registration_id: str) -> None:
         '''
-        Delete a service configuration by ID. This operation is idempotent.
+        Delete a service registration by ID. This operation is idempotent.
 
-        :param configuration_id: The service configuration identifier.
-        :type configuration_id: str
+        :param registration_id: The service registration identifier.
+        :type registration_id: str
         :return: None
         :rtype: None
         '''
@@ -158,8 +158,8 @@ class DIConfigRepository(DIService, ConfigurationRepository):
         # Load the full configuration file.
         full_data = self._load()
 
-        # Remove the service configuration entry if it exists (idempotent).
-        full_data.get('services', {}).pop(configuration_id, None)
+        # Remove the service registration entry if it exists (idempotent).
+        full_data.get('services', {}).pop(registration_id, None)
 
         # Persist the updated configuration file.
         self._save(data=full_data)

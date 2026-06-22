@@ -9,7 +9,7 @@ import pytest
 from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.events.blueprint import CreateServiceResolver
 from tiferet.di import ServiceResolver
-from tiferet.domain import AppInterface, AppServiceDependency, ServiceConfiguration
+from tiferet.domain import AppInterface, AppServiceDependency, ServiceRegistration
 
 # *** classes
 
@@ -34,7 +34,7 @@ class FakeDIRepo:
 
         # Return a configuration resolving to the Widget test class.
         return (
-            [ServiceConfiguration(
+            [ServiceRegistration(
                 id='widget',
                 module_path='tests.events.test_blueprint',
                 class_name='Widget',

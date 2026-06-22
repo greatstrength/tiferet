@@ -15,10 +15,10 @@ from typing import Any, Dict, List
 
 # *** configs
 
-# ** config: default_tiferet_cli_commands
+# ** config: default_tiferet_cli_command_list
 # Each dict matches the CliCommand domain object constructor fields.
 # Arguments use CliArgument field names: name_or_flags, description, type, default, required, nargs, choices, action.
-DEFAULT_TIFERET_CLI_COMMANDS: List[Dict[str, Any]] = [
+_DEFAULT_TIFERET_CLI_COMMAND_LIST: List[Dict[str, Any]] = [
 
     # * commands: feature domain
 
@@ -513,3 +513,12 @@ DEFAULT_TIFERET_CLI_COMMANDS: List[Dict[str, Any]] = [
         'arguments': [],
     },
 ]
+
+# ** config: default_tiferet_cli_commands
+# Id-keyed mapping mirroring YAML shape: the key is the command id and the
+# value is the record minus id. The bootstrap builder in the orchestration
+# layer materializes each record into a typed CliCommand object.
+DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
+    entry['id']: {key: value for key, value in entry.items() if key != 'id'}
+    for entry in _DEFAULT_TIFERET_CLI_COMMAND_LIST
+}

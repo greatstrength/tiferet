@@ -9,7 +9,7 @@ from typing import Tuple, List, Dict
 
 # ** app
 from tiferet.di.settings import ServiceContainer, ServiceResolver, merge_settings
-from tiferet.domain import ServiceConfiguration, FlaggedDependency
+from tiferet.domain import ServiceRegistration, FlaggedDependency
 from tiferet.interfaces.di import DIService
 
 
@@ -95,17 +95,17 @@ def populated_container() -> ServiceContainer:
 
 # ** fixture: di_service_content
 @pytest.fixture
-def di_service_content() -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
+def di_service_content() -> Tuple[List[ServiceRegistration], Dict[str, str]]:
     '''
     Fixture to provide content for the DI service.
 
     :return: A tuple of service configurations and constants.
-    :rtype: Tuple[List[ServiceConfiguration], Dict[str, str]]
+    :rtype: Tuple[List[ServiceRegistration], Dict[str, str]]
     '''
 
     # Create a list of service configurations.
     configurations = [
-        ServiceConfiguration(
+        ServiceRegistration(
             id='test_service',
             module_path='tests.di.test_settings',
             class_name='TestService',
@@ -136,12 +136,12 @@ def di_service_content() -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
 
 # ** fixture: di_service_mock
 @pytest.fixture
-def di_service_mock(di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
+def di_service_mock(di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]):
     '''
     Fixture to create a mock DIService whose ``list_all`` returns the content.
 
     :param di_service_content: The content for the DI service.
-    :type di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]
+    :type di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]
     :return: A mock DIService.
     :rtype: DIService
     '''
@@ -417,7 +417,7 @@ def test_resolver_build_container(resolver: ServiceResolver):
 def test_resolver_build_container_skips_missing_dependency_type(
         resolver: ServiceResolver,
         di_service_mock,
-        di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
+        di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]):
     '''
     Test that a configuration resolving to no type is skipped (best-case),
     leaving the service unregistered rather than raising a DI-specific error.
@@ -426,7 +426,7 @@ def test_resolver_build_container_skips_missing_dependency_type(
     :type resolver: ServiceResolver
     :param di_service_mock: The mock DIService.
     :param di_service_content: The content for the DI service.
-    :type di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]
+    :type di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]
     '''
 
     # Update the configuration to have no module_path and class_name.
@@ -525,14 +525,14 @@ def test_resolver_normalize_flags():
 # ** test: resolver_load_constants_with_flagged_dependencies
 def test_resolver_load_constants_with_flagged_dependencies(
         resolver: ServiceResolver,
-        di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]):
+        di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]):
     '''
     Test the load_constants method with and without flags.
 
     :param resolver: The service resolver to test.
     :type resolver: ServiceResolver
     :param di_service_content: The content for the DI service.
-    :type di_service_content: Tuple[List[ServiceConfiguration], Dict[str, str]]
+    :type di_service_content: Tuple[List[ServiceRegistration], Dict[str, str]]
     '''
 
     # Unpack the service content.
@@ -570,7 +570,7 @@ def test_resolver_list_all_settings_merges_defaults(di_service_mock):
     '''
 
     # Repository returns only the test_service configuration and a constant.
-    default_config = ServiceConfiguration(
+    default_config = ServiceRegistration(
         id='default_only_service',
         module_path='tests.di.test_settings',
         class_name='TestService',
@@ -600,8 +600,8 @@ def test_merge_settings_merges_defaults():
     '''
 
     # Define a repository configuration and a default-only configuration.
-    repo_config = ServiceConfiguration(id='repo_service', module_path='m', class_name='C')
-    default_config = ServiceConfiguration(id='default_only', module_path='m', class_name='C')
+    repo_config = ServiceRegistration(id='repo_service', module_path='m', class_name='C')
+    default_config = ServiceRegistration(id='default_only', module_path='m', class_name='C')
 
     # Merge repository values with the bootstrap defaults.
     configs, constants = merge_settings(

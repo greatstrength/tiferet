@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 from ..interfaces import FeatureService
 from ..mappers import (
     FeatureAggregate,
-    FeatureYamlObject,
+    FeatureConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -92,7 +92,7 @@ class FeatureConfigRepository(FeatureService, ConfigurationRepository):
             return None
 
         # Map the feature data to a FeatureAggregate and return it.
-        return FeatureYamlObject.model_validate(
+        return FeatureConfigObject.model_validate(
             {**feature_data, 'id': f'{group_id}.{feature_key}'}
         ).map()
 
@@ -112,14 +112,14 @@ class FeatureConfigRepository(FeatureService, ConfigurationRepository):
             start_node=lambda data: data.get('features', {})
         )
 
-        # Initialize the list of FeatureYamlObject objects.
-        features: List[FeatureYamlObject] = []
+        # Initialize the list of FeatureConfigObject objects.
+        features: List[FeatureConfigObject] = []
 
         # If a specific group is requested, limit to that group.
         if group_id:
             group_features = groups_data.get(group_id, {})
             for feature_key, feature_data in group_features.items():
-                features.append(FeatureYamlObject.model_validate(
+                features.append(FeatureConfigObject.model_validate(
                     {**feature_data, 'id': f'{group_id}.{feature_key}'}
                 ))
 
@@ -127,11 +127,11 @@ class FeatureConfigRepository(FeatureService, ConfigurationRepository):
         else:
             for group, group_features in groups_data.items():
                 for feature_key, feature_data in group_features.items():
-                    features.append(FeatureYamlObject.model_validate(
+                    features.append(FeatureConfigObject.model_validate(
                         {**feature_data, 'id': f'{group}.{feature_key}'}
                     ))
 
-        # Map all FeatureYamlObject instances to FeatureAggregates and return them.
+        # Map all FeatureConfigObject instances to FeatureAggregates and return them.
         return [feature.map() for feature in features]
 
     # * method: save
@@ -145,8 +145,8 @@ class FeatureConfigRepository(FeatureService, ConfigurationRepository):
         :rtype: None
         '''
 
-        # Convert the feature model to a FeatureYamlObject.
-        feature_data = FeatureYamlObject.from_model(feature)
+        # Convert the feature model to a FeatureConfigObject.
+        feature_data = FeatureConfigObject.from_model(feature)
 
         # Split the feature id for nested update.
         group_id, feature_key = feature.id.split('.', 1)

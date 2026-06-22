@@ -6,7 +6,7 @@
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import FormatterYamlObject, HandlerYamlObject, LoggerYamlObject
+from tiferet.mappers import FormatterConfigObject, HandlerConfigObject, LoggerConfigObject
 from tiferet.repos.logging import LoggingConfigRepository
 
 # *** constants
@@ -148,7 +148,7 @@ def test_int_logging_config_repo_save_formatter(
     NEW_FORMATTER_ID = 'new_test_formatter'
 
     # Create new formatter.
-    formatter = FormatterYamlObject.model_validate(dict(
+    formatter = FormatterConfigObject.model_validate(dict(
         id=NEW_FORMATTER_ID,
         name='New Test Formatter',
         description='A new test formatter',
@@ -186,7 +186,7 @@ def test_int_logging_config_repo_save_handler(
     NEW_HANDLER_ID = 'new_test_handler'
 
     # Create new handler.
-    handler = HandlerYamlObject.model_validate(dict(
+    handler = HandlerConfigObject.model_validate(dict(
         id=NEW_HANDLER_ID,
         name='New Test Handler',
         description='A new test handler',
@@ -228,7 +228,7 @@ def test_int_logging_config_repo_save_logger(
     NEW_LOGGER_ID = 'new_test_logger'
 
     # Create new logger.
-    logger = LoggerYamlObject.model_validate(dict(
+    logger = LoggerConfigObject.model_validate(dict(
         id=NEW_LOGGER_ID,
         name='New Test Logger',
         description='A new test logger',

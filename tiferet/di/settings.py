@@ -10,7 +10,7 @@ import inspect
 from dependency_injector import containers, providers
 
 # ** app
-from ..domain import ServiceConfiguration
+from ..domain import ServiceRegistration
 from ..interfaces.di import DIService
 
 
@@ -86,11 +86,11 @@ def create_cache_key(flags: List[str] = None) -> str:
 
 # ** function: merge_settings
 def merge_settings(
-        configs: List[ServiceConfiguration] = None,
+        configs: List[ServiceRegistration] = None,
         constants: Dict[str, Any] = None,
-        default_config_index: Dict[str, ServiceConfiguration] = None,
+        default_config_index: Dict[str, ServiceRegistration] = None,
         default_constants: Dict[str, Any] = None,
-    ) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+    ) -> Tuple[List[ServiceRegistration], Dict[str, Any]]:
     '''
     Merge repository configurations and constants with bootstrap defaults.
 
@@ -98,15 +98,15 @@ def merge_settings(
     and default constants are merged beneath the repository constants.
 
     :param configs: The repository service configurations.
-    :type configs: List[ServiceConfiguration] | None
+    :type configs: List[ServiceRegistration] | None
     :param constants: The repository constants.
     :type constants: Dict[str, Any] | None
     :param default_config_index: Typed default configuration index keyed by id.
-    :type default_config_index: Dict[str, ServiceConfiguration] | None
+    :type default_config_index: Dict[str, ServiceRegistration] | None
     :param default_constants: Default constants merged at lower priority.
     :type default_constants: Dict[str, Any] | None
     :return: Merged list of service configurations and constants.
-    :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
+    :rtype: Tuple[List[ServiceRegistration], Dict[str, Any]]
     '''
 
     # Build the set of existing service IDs for deduplication.
@@ -282,7 +282,7 @@ class ServiceResolver(object):
     parse_parameter: Callable
 
     # * attribute: default_config_index
-    default_config_index: Dict[str, ServiceConfiguration]
+    default_config_index: Dict[str, ServiceRegistration]
 
     # * attribute: default_di_constants
     default_di_constants: Dict[str, Any]
@@ -291,7 +291,7 @@ class ServiceResolver(object):
     def __init__(self,
             di_service: DIService,
             parse_parameter: Callable = None,
-            default_config_index: Dict[str, ServiceConfiguration] = None,
+            default_config_index: Dict[str, ServiceRegistration] = None,
             default_di_constants: Dict[str, Any] = None,
         ):
         '''
@@ -306,7 +306,7 @@ class ServiceResolver(object):
         :type parse_parameter: Callable | None
         :param default_config_index: Optional typed default service configuration index,
             keyed by id, merged beneath the repository's configurations.
-        :type default_config_index: Dict[str, ServiceConfiguration] | None
+        :type default_config_index: Dict[str, ServiceRegistration] | None
         :param default_di_constants: Optional default constants merged beneath the
             repository's constants at lower priority.
         :type default_di_constants: Dict[str, Any] | None
@@ -359,14 +359,14 @@ class ServiceResolver(object):
         return create_cache_key(flags)
 
     # * method: list_all_settings
-    def list_all_settings(self) -> Tuple[List[ServiceConfiguration], Dict[str, Any]]:
+    def list_all_settings(self) -> Tuple[List[ServiceRegistration], Dict[str, Any]]:
         '''
         List all service configurations and constants from the DI service,
         merging the bootstrap defaults for any service ID or constant not
         present in the repository.
 
         :return: Merged list of service configurations and constants.
-        :rtype: Tuple[List[ServiceConfiguration], Dict[str, Any]]
+        :rtype: Tuple[List[ServiceRegistration], Dict[str, Any]]
         '''
 
         # Retrieve configurations and constants from the DI service.
@@ -382,7 +382,7 @@ class ServiceResolver(object):
 
     # * method: load_constants
     def load_constants(self,
-            configurations: List[ServiceConfiguration] = None,
+            configurations: List[ServiceRegistration] = None,
             constants: Dict[str, Any] = None,
             flags: List[str] = None,
         ) -> Dict[str, Any]:
@@ -390,7 +390,7 @@ class ServiceResolver(object):
         Build the constants dict by parsing top-level constants and per-configuration parameters.
 
         :param configurations: The list of service configurations.
-        :type configurations: List[ServiceConfiguration] | None
+        :type configurations: List[ServiceRegistration] | None
         :param constants: The top-level constants dictionary.
         :type constants: Dict[str, Any] | None
         :param flags: The feature or data flags to use.
@@ -424,14 +424,14 @@ class ServiceResolver(object):
 
     # * method: build_type_map
     def build_type_map(self,
-            configurations: List[ServiceConfiguration] = None,
+            configurations: List[ServiceRegistration] = None,
             flags: List[str] = None,
         ) -> Dict[str, type]:
         '''
         Resolve the service type for each configuration based on the provided flags.
 
         :param configurations: The list of service configurations.
-        :type configurations: List[ServiceConfiguration] | None
+        :type configurations: List[ServiceRegistration] | None
         :param flags: The feature or data flags to use.
         :type flags: List[str] | None
         :return: A mapping of service configuration IDs to their resolved types.
@@ -511,14 +511,14 @@ class ServiceResolver(object):
         return container
 
     # * method: get_dependency
-    def get_dependency(self, configuration_id: str, *flags) -> Any:
+    def get_dependency(self, registration_id: str, *flags) -> Any:
         '''
-        Get a resolved service by its configuration ID.
+        Get a resolved service by its registration ID.
 
         Accepts flags as individual strings, lists, or tuples in any combination.
 
-        :param configuration_id: The service configuration identifier.
-        :type configuration_id: str
+        :param registration_id: The service registration identifier.
+        :type registration_id: str
         :param flags: The feature or data flags to use.
         :type flags: str | list | tuple
         :return: The resolved service instance.
@@ -532,4 +532,4 @@ class ServiceResolver(object):
         container = self.build_container(normalized)
 
         # Return the resolved service from the container.
-        return container.get_service(configuration_id)
+        return container.get_service(registration_id)

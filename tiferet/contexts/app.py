@@ -24,6 +24,44 @@ from .error import ErrorContext
 from .logging import LoggingContext
 from .request import RequestContext
 
+# *** functions
+
+# ** function: build_feature_index
+def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:
+    '''
+    Materialize an id-keyed feature mapping into a typed Feature index.
+
+    :param features: Id-keyed mapping of feature records (each value is the
+        record minus its id).
+    :type features: Dict[str, Dict[str, Any]] | None
+    :return: A mapping of feature id to typed Feature objects.
+    :rtype: Dict[str, Feature]
+    '''
+
+    # Feed each record into the Feature domain object, keyed by its id.
+    return {
+        feature_id: Feature.model_validate({**(record or {}), 'id': feature_id})
+        for feature_id, record in (features or {}).items()
+    }
+
+# ** function: build_command_list
+def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCommand]:
+    '''
+    Materialize an id-keyed command mapping into a typed CliCommand list.
+
+    :param commands: Id-keyed mapping of command records (each value is the
+        record minus its id).
+    :type commands: Dict[str, Dict[str, Any]] | None
+    :return: A list of typed CliCommand objects.
+    :rtype: List[CliCommand]
+    '''
+
+    # Feed each record into the CliCommand domain object, keyed by its id.
+    return [
+        CliCommand.model_validate({**(record or {}), 'id': command_id})
+        for command_id, record in (commands or {}).items()
+    ]
+
 # *** contexts
 
 # ** context: app_interface_context
@@ -56,8 +94,8 @@ class AppInterfaceContext(BaseContext):
             logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
             cache: CacheContext = None,
-            default_features: List[Dict[str, Any]] = None,
-            default_commands: List[Dict[str, Any]] = None,
+            default_features: Dict[str, Dict[str, Any]] = None,
+            default_commands: Dict[str, Dict[str, Any]] = None,
         ):
         '''
         Initialize the application interface hub.
@@ -76,10 +114,10 @@ class AppInterfaceContext(BaseContext):
         :type get_dependency: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
-        :param default_features: Optional raw feature dicts for bootstrap fallback.
-        :type default_features: List[Dict[str, Any]]
-        :param default_commands: Optional raw CLI command dicts for bootstrap fallback.
-        :type default_commands: List[Dict[str, Any]]
+        :param default_features: Optional id-keyed feature records for bootstrap fallback.
+        :type default_features: Dict[str, Dict[str, Any]]
+        :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
+        :type default_commands: Dict[str, Dict[str, Any]]
         '''
 
         # Initialize the shared cache via the base context.
@@ -91,16 +129,9 @@ class AppInterfaceContext(BaseContext):
         self.logging_list_all_evt = logging_list_all_evt
         self.get_dependency = get_dependency
 
-        # Validate raw bootstrap feature dicts into a typed index keyed by id.
-        self.default_feature_index = {
-            feature.id: feature
-            for feature in (Feature.model_validate(data) for data in (default_features or []))
-        }
-
-        # Validate raw bootstrap command dicts into a typed list.
-        self.default_commands_list = [
-            CliCommand.model_validate(data) for data in (default_commands or [])
-        ]
+        # Materialize the id-keyed bootstrap defaults into typed domain objects.
+        self.default_feature_index = build_feature_index(default_features)
+        self.default_commands_list = build_command_list(default_commands)
 
         # Initialize the lazily-built logging sub-context cache. The feature
         # and error contexts are built on demand.
@@ -141,12 +172,15 @@ class AppInterfaceContext(BaseContext):
         # Try the shared cache first.
         feature = self.cache.get(feature_id)
 
-        # Retrieve via the get-feature event and cache the result when absent.
+        # Retrieve via the get-feature event, falling back to the bootstrap
+        # default index when the repository does not contain the feature.
         if not feature:
-            feature = self.get_feature_evt.execute(
-                id=feature_id,
-                default_feature_index=self.default_feature_index,
-            )
+            try:
+                feature = self.get_feature_evt.execute(id=feature_id)
+            except TiferetError:
+                feature = self.default_feature_index.get(feature_id)
+                if feature is None:
+                    raise
             self.cache.set(feature_id, feature)
 
         # Return the loaded feature.
@@ -287,7 +321,6 @@ class AppInterfaceContext(BaseContext):
             async_context = AsyncFeatureContext(
                 get_dependency=self.get_dependency,
                 cache=self.cache,
-                context_data={'default_commands_list': self.default_commands_list},
             )
             self._run_coroutine(
                 async_context.execute_feature_async(feature, request, **kwargs)
@@ -300,7 +333,6 @@ class AppInterfaceContext(BaseContext):
         feature_context = feature_context_cls(
             get_dependency=self.get_dependency,
             cache=self.cache,
-            context_data={'default_commands_list': self.default_commands_list},
         )
         feature_context.execute_feature(feature, request, **kwargs)
 

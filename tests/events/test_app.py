@@ -9,6 +9,8 @@ from unittest import mock
 # ** app
 from tiferet.events.app import (
     GetAppInterface,
+    resolve_default_interface,
+    apply_interface_defaults,
     AddAppInterface,
     ListAppInterfaces,
     UpdateAppInterface,
@@ -206,119 +208,95 @@ class TestGetAppInterface(ServiceEventTestBase):
         # Assert that the returned interface matches the expected app interface.
         assert result == app_interface
 
-    # * method: test_merges_missing_default_services_only
-    def test_merges_missing_default_services_only(self, mock_dependencies, app_interface):
-        '''
-        Test that default services are merged only when service_id is missing.
-        '''
 
-        # Configure the service mock to return the app interface.
-        mock_dependencies['app_service'].get.return_value = app_interface
+# ** test: resolve_default_interface_match
+def test_resolve_default_interface_match():
+    '''
+    Test that resolve_default_interface builds an aggregate from a matching default.
+    '''
 
-        # Create default services with one duplicate and one missing service_id.
-        default_services = [
-            AppServiceDependency(
-                service_id='test_service',
-                module_path='ignored.module',
-                class_name='IgnoredClass',
-                parameters={'ignored': 'value'},
-            ),
-            AppServiceDependency(
-                service_id='new_service',
-                module_path='new.module',
-                class_name='NewClass',
-                parameters={'new': 'value'},
-            ),
-        ]
+    # Resolve a default interface whose id matches.
+    interface = resolve_default_interface(
+        'tiferet_cli',
+        [{'id': 'tiferet_cli', 'name': 'Tiferet CLI', 'module_path': 'tiferet.contexts.cli', 'class_name': 'CliContext'}],
+    )
 
-        # Execute the event with default services.
-        result = self.handle(
-            mock_dependencies,
-            default_services=default_services,
-        )
+    # Assert a mutable aggregate is built from the matching default.
+    assert isinstance(interface, AppInterfaceAggregate)
+    assert interface.id == 'tiferet_cli'
 
-        # Assert the existing dependency remains and only the missing dependency is added.
-        assert result.get_service('test_service').module_path == 'test_module_path'
-        assert result.get_service('new_service').module_path == 'new.module'
-        assert len(result.services) == 2
+# ** test: resolve_default_interface_no_match
+def test_resolve_default_interface_no_match():
+    '''
+    Test that resolve_default_interface returns None when no default matches.
+    '''
 
-    # * method: test_merges_missing_default_constants_only
-    def test_merges_missing_default_constants_only(self, mock_dependencies, app_interface):
-        '''
-        Test that default constants are merged without overwriting existing values.
-        '''
+    # Assert no match yields None for both empty and non-matching defaults.
+    assert resolve_default_interface('missing', []) is None
+    assert resolve_default_interface(
+        'missing',
+        [{'id': 'other', 'name': 'Other', 'module_path': 'm', 'class_name': 'C'}],
+    ) is None
 
-        # Configure the service mock to return the app interface.
-        mock_dependencies['app_service'].get.return_value = app_interface
+# ** test: apply_interface_defaults_merges_missing_only
+def test_apply_interface_defaults_merges_missing_only(app_interface):
+    '''
+    Test that apply_interface_defaults adds only missing services and constants.
+    '''
 
-        # Seed interface constants with an existing key that should be preserved.
-        app_interface.constants = {
-            'di_config': 'custom.yml',
-            'custom_key': 'custom_value',
-        }
+    # Seed an existing constant that must be preserved.
+    app_interface.constants = {'di_config': 'custom.yml'}
 
-        # Execute the event with default constants.
-        result = self.handle(
-            mock_dependencies,
-            default_constants={
-                'di_config': 'config.yml',
-                'feature_config': 'config.yml',
-            },
-        )
+    # Apply defaults with one duplicate and one missing service plus constants.
+    result = apply_interface_defaults(
+        app_interface,
+        default_services=[
+            AppServiceDependency(service_id='test_service', module_path='ignored', class_name='Ignored'),
+            AppServiceDependency(service_id='new_service', module_path='new.module', class_name='NewClass'),
+        ],
+        default_constants={'di_config': 'config.yml', 'feature_config': 'config.yml'},
+    )
 
-        # Assert existing keys are preserved and missing keys are added.
-        assert result.constants['di_config'] == 'custom.yml'
-        assert result.constants['feature_config'] == 'config.yml'
-        assert result.constants['custom_key'] == 'custom_value'
+    # Assert existing entries are preserved and only missing ones are added.
+    assert isinstance(result, AppInterfaceAggregate)
+    assert result.get_service('test_service').module_path == 'test_module_path'
+    assert result.get_service('new_service').module_path == 'new.module'
+    assert result.constants['di_config'] == 'custom.yml'
+    assert result.constants['feature_config'] == 'config.yml'
 
-    # * method: test_converts_to_aggregate_and_merges_services_and_constants
-    def test_converts_to_aggregate_and_merges_services_and_constants(self, mock_dependencies):
-        '''
-        Test aggregate conversion before applying default services and constants.
-        '''
+# ** test: apply_interface_defaults_converts_domain_to_aggregate
+def test_apply_interface_defaults_converts_domain_to_aggregate():
+    '''
+    Test that a plain AppInterface domain object is converted to a mutable aggregate.
+    '''
 
-        # Configure the service mock to return a plain AppInterface domain object.
-        domain_interface = AppInterface(
-            id='test.interface',
-            name='Test Interface',
-            module_path='tiferet.contexts.app',
-            class_name='AppContext',
-            services=[
-                AppServiceDependency(
-                    service_id='existing_service',
-                    module_path='existing.module',
-                    class_name='ExistingClass',
-                    parameters={},
-                ),
-            ],
-            constants={'di_config': 'custom.yml'},
-        )
-        mock_dependencies['app_service'].get.return_value = domain_interface
+    # Build a plain (immutable) AppInterface domain object.
+    domain_interface = AppInterface(
+        id='test.interface',
+        name='Test Interface',
+        module_path='tiferet.contexts.app',
+        class_name='AppContext',
+        services=[
+            AppServiceDependency(service_id='existing_service', module_path='existing.module', class_name='ExistingClass'),
+        ],
+        constants={'di_config': 'custom.yml'},
+    )
 
-        # Execute the event with both defaults provided.
-        result = self.handle(
-            mock_dependencies,
-            interface_id='test.interface',
-            default_services=[
-                AppServiceDependency(
-                    service_id='new_service',
-                    module_path='new.module',
-                    class_name='NewClass',
-                    parameters={'key': 'value'},
-                ),
-            ],
-            default_constants={
-                'di_config': 'config.yml',
-                'feature_config': 'config.yml',
-            },
-        )
+    # Apply defaults, which must first convert to an aggregate.
+    result = apply_interface_defaults(
+        domain_interface,
+        default_services=[
+            AppServiceDependency(service_id='new_service', module_path='new.module', class_name='NewClass'),
+        ],
+        default_constants={'feature_config': 'config.yml'},
+    )
 
-        # Assert conversion to aggregate and correct merge behavior.
-        assert isinstance(result, AppInterfaceAggregate)
-        assert result.get_service('existing_service') is not None
-        assert result.get_service('new_service') is not None
-        assert result.constants['di_config'] == 'custom.yml'
-        assert result.constants['feature_config'] == 'config.yml'
+    # Assert conversion and correct merge behavior.
+    assert isinstance(result, AppInterfaceAggregate)
+    assert result.get_service('existing_service') is not None
+    assert result.get_service('new_service') is not None
+    assert result.constants['di_config'] == 'custom.yml'
+    assert result.constants['feature_config'] == 'config.yml'
 
 
 # ** test: TestListAppInterfaces

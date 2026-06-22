@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import AppInterfaceYamlObject
+from tiferet.mappers import AppInterfaceConfigObject
 from tiferet.repos.app import AppConfigRepository
 
 
@@ -180,7 +180,7 @@ def test_int_app_config_repo_save(
     new_app_id = 'new.app'
 
     # Create new app interface config data and map to an aggregate.
-    app = AppInterfaceYamlObject.model_validate(dict(
+    app = AppInterfaceConfigObject.model_validate(dict(
         id=new_app_id,
         name='New App',
         description='A new test app interface.',

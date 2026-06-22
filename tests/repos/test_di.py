@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import ServiceConfigurationYamlObject
+from tiferet.mappers import ServiceRegistrationConfigObject
 from tiferet.repos.di import DIConfigRepository
 
 
@@ -91,36 +91,36 @@ def di_config_repo(di_config_file: str) -> DIConfigRepository:
 
 # *** tests
 
-# ** test_int: di_config_repo_configuration_exists
-def test_int_di_config_repo_configuration_exists(
+# ** test_int: di_config_repo_registration_exists
+def test_int_di_config_repo_registration_exists(
         di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the configuration_exists method of the DIConfigRepository.
+    Test the registration_exists method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIConfigRepository
     '''
 
     # Check if the service configurations exist.
-    assert di_config_repo.configuration_exists(DI_SERVICE_ID)
-    assert di_config_repo.configuration_exists(ANOTHER_SERVICE_ID)
-    assert not di_config_repo.configuration_exists('missing_service')
+    assert di_config_repo.registration_exists(DI_SERVICE_ID)
+    assert di_config_repo.registration_exists(ANOTHER_SERVICE_ID)
+    assert not di_config_repo.registration_exists('missing_service')
 
-# ** test_int: di_config_repo_get_configuration
-def test_int_di_config_repo_get_configuration(
+# ** test_int: di_config_repo_get_registration
+def test_int_di_config_repo_get_registration(
         di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the get_configuration method of the DIConfigRepository.
+    Test the get_registration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIConfigRepository
     '''
 
     # Get service configurations by id.
-    config = di_config_repo.get_configuration(DI_SERVICE_ID)
-    another_config = di_config_repo.get_configuration(ANOTHER_SERVICE_ID)
+    config = di_config_repo.get_registration(DI_SERVICE_ID)
+    another_config = di_config_repo.get_registration(ANOTHER_SERVICE_ID)
 
     # Check the first service configuration.
     assert config
@@ -139,19 +139,19 @@ def test_int_di_config_repo_get_configuration(
     assert another_config.module_path == 'tiferet.services.another'
     assert another_config.class_name == 'AnotherServiceImpl'
 
-# ** test_int: di_config_repo_get_configuration_not_found
-def test_int_di_config_repo_get_configuration_not_found(
+# ** test_int: di_config_repo_get_registration_not_found
+def test_int_di_config_repo_get_registration_not_found(
         di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the get_configuration method of the DIConfigRepository for a non-existent configuration.
+    Test the get_registration method of the DIConfigRepository for a non-existent configuration.
 
     :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIConfigRepository
     '''
 
     # Attempt to get a non-existent service configuration.
-    config = di_config_repo.get_configuration('missing_service')
+    config = di_config_repo.get_registration('missing_service')
 
     # Check that the configuration is None.
     assert not config
@@ -181,12 +181,12 @@ def test_int_di_config_repo_list_all(
     assert constants
     assert constants.get('sample_const') == 'sample_value'
 
-# ** test_int: di_config_repo_save_configuration
-def test_int_di_config_repo_save_configuration(
+# ** test_int: di_config_repo_save_registration
+def test_int_di_config_repo_save_registration(
         di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the save_configuration method of the DIConfigRepository.
+    Test the save_registration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIConfigRepository
@@ -196,7 +196,7 @@ def test_int_di_config_repo_save_configuration(
     new_service_id = 'new_service'
 
     # Create new service configuration data and map to an aggregate.
-    config = ServiceConfigurationYamlObject.model_validate(dict(
+    config = ServiceRegistrationConfigObject.model_validate(dict(
         id=new_service_id,
         name='New Service',
         module_path='tiferet.services.new',
@@ -204,10 +204,10 @@ def test_int_di_config_repo_save_configuration(
     )).map()
 
     # Save the new service configuration.
-    di_config_repo.save_configuration(config)
+    di_config_repo.save_registration(config)
 
     # Reload the service configuration to verify it was saved.
-    new_config = di_config_repo.get_configuration(new_service_id)
+    new_config = di_config_repo.get_registration(new_service_id)
 
     # Check the new service configuration.
     assert new_config
@@ -216,28 +216,28 @@ def test_int_di_config_repo_save_configuration(
     assert new_config.module_path == 'tiferet.services.new'
     assert new_config.class_name == 'NewServiceImpl'
 
-# ** test_int: di_config_repo_delete_configuration
-def test_int_di_config_repo_delete_configuration(
+# ** test_int: di_config_repo_delete_registration
+def test_int_di_config_repo_delete_registration(
         di_config_repo: DIConfigRepository,
     ) -> None:
     '''
-    Test the delete_configuration method of the DIConfigRepository.
+    Test the delete_registration method of the DIConfigRepository.
 
     :param di_config_repo: The DI configuration repository.
     :type di_config_repo: DIConfigRepository
     '''
 
     # Delete an existing service configuration.
-    di_config_repo.delete_configuration(ANOTHER_SERVICE_ID)
+    di_config_repo.delete_registration(ANOTHER_SERVICE_ID)
 
     # Attempt to get the deleted service configuration.
-    deleted_config = di_config_repo.get_configuration(ANOTHER_SERVICE_ID)
+    deleted_config = di_config_repo.get_registration(ANOTHER_SERVICE_ID)
 
     # Check that the service configuration is None.
     assert not deleted_config
 
     # Ensure that deleting a non-existent service configuration is idempotent.
-    di_config_repo.delete_configuration('missing_service')
+    di_config_repo.delete_registration('missing_service')
 
 # ** test_int: di_config_repo_save_constants
 def test_int_di_config_repo_save_constants(

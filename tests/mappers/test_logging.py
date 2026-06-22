@@ -7,12 +7,12 @@ from tiferet.events import a
 from tiferet.mappers.settings import TransferObject
 from tiferet.mappers.logging import (
     FormatterAggregate,
-    FormatterYamlObject,
+    FormatterConfigObject,
     HandlerAggregate,
-    HandlerYamlObject,
+    HandlerConfigObject,
     LoggerAggregate,
-    LoggerYamlObject,
-    LoggingSettingsYamlObject,
+    LoggerConfigObject,
+    LoggingSettingsConfigObject,
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -250,13 +250,13 @@ class TestLoggerAggregate(AggregateTestBase):
         assert logger.level == 'WARNING'
 
 
-# ** class: TestFormatterYamlObject
-class TestFormatterYamlObject(TransferObjectTestBase):
+# ** class: TestFormatterConfigObject
+class TestFormatterConfigObject(TransferObjectTestBase):
     '''
-    Tests for FormatterYamlObject mapping and round-trip.
+    Tests for FormatterConfigObject mapping and round-trip.
     '''
 
-    transfer_cls = FormatterYamlObject
+    transfer_cls = FormatterConfigObject
     aggregate_cls = FormatterAggregate
 
     sample_data = FORMATTER_AGGREGATE_SAMPLE_DATA
@@ -275,13 +275,13 @@ class TestFormatterYamlObject(TransferObjectTestBase):
         return FormatterAggregate(**(data or self.aggregate_sample_data))
 
 
-# ** class: TestHandlerYamlObject
-class TestHandlerYamlObject(TransferObjectTestBase):
+# ** class: TestHandlerConfigObject
+class TestHandlerConfigObject(TransferObjectTestBase):
     '''
-    Tests for HandlerYamlObject mapping and round-trip.
+    Tests for HandlerConfigObject mapping and round-trip.
     '''
 
-    transfer_cls = HandlerYamlObject
+    transfer_cls = HandlerConfigObject
     aggregate_cls = HandlerAggregate
 
     sample_data = HANDLER_AGGREGATE_SAMPLE_DATA
@@ -300,13 +300,13 @@ class TestHandlerYamlObject(TransferObjectTestBase):
         return HandlerAggregate(**(data or self.aggregate_sample_data))
 
 
-# ** class: TestLoggerYamlObject
-class TestLoggerYamlObject(TransferObjectTestBase):
+# ** class: TestLoggerConfigObject
+class TestLoggerConfigObject(TransferObjectTestBase):
     '''
-    Tests for LoggerYamlObject mapping and round-trip.
+    Tests for LoggerConfigObject mapping and round-trip.
     '''
 
-    transfer_cls = LoggerYamlObject
+    transfer_cls = LoggerConfigObject
     aggregate_cls = LoggerAggregate
 
     sample_data = LOGGER_AGGREGATE_SAMPLE_DATA
@@ -330,11 +330,11 @@ class TestLoggerYamlObject(TransferObjectTestBase):
 # ** test: logging_settings_from_data_success
 def test_logging_settings_from_data_success():
     '''
-    Test LoggingSettingsYamlObject.from_data() with full YAML data and id injection.
+    Test LoggingSettingsConfigObject.from_data() with full YAML data and id injection.
     '''
 
     # Create a logging settings YAML object with full data.
-    settings = LoggingSettingsYamlObject.from_data(
+    settings = LoggingSettingsConfigObject.from_data(
         formatters={
             'simple': {
                 'name': 'Simple Formatter',
@@ -364,21 +364,21 @@ def test_logging_settings_from_data_success():
     # Assert formatters were created with id injection.
     assert 'simple' in settings.formatters
     formatter = settings.formatters['simple']
-    assert isinstance(formatter, FormatterYamlObject)
+    assert isinstance(formatter, FormatterConfigObject)
     assert formatter.id == 'simple'
     assert formatter.name == 'Simple Formatter'
 
     # Assert handlers were created with id injection.
     assert 'console' in settings.handlers
     handler = settings.handlers['console']
-    assert isinstance(handler, HandlerYamlObject)
+    assert isinstance(handler, HandlerConfigObject)
     assert handler.id == 'console'
     assert handler.name == 'Console Handler'
 
     # Assert loggers were created with id injection.
     assert 'app' in settings.loggers
     logger = settings.loggers['app']
-    assert isinstance(logger, LoggerYamlObject)
+    assert isinstance(logger, LoggerConfigObject)
     assert logger.id == 'app'
     assert logger.name == 'App Logger'
 
@@ -386,11 +386,11 @@ def test_logging_settings_from_data_success():
 # ** test: logging_settings_from_data_empty
 def test_logging_settings_from_data_empty():
     '''
-    Test LoggingSettingsYamlObject.from_data() with empty dicts.
+    Test LoggingSettingsConfigObject.from_data() with empty dicts.
     '''
 
     # Create a logging settings YAML object with empty data.
-    settings = LoggingSettingsYamlObject.from_data(
+    settings = LoggingSettingsConfigObject.from_data(
         formatters={},
         handlers={},
         loggers={},

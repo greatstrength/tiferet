@@ -212,3 +212,63 @@ class Logger(DomainObject):
             'handlers': self.handlers,
             'propagate': self.propagate,
         }
+
+# ** model: logging_settings
+class LoggingSettings(DomainObject):
+    '''
+    A runtime value object bundling formatter, handler, and logger
+    configurations and owning the ``logging.config.dictConfig`` assembly.
+    The bundle is logger-agnostic; the final ``getLogger`` call (and its
+    ``logger_id``) remains the responsibility of the logging context.
+    '''
+
+    # * attribute: formatters
+    formatters: List[Formatter] = Field(
+        default_factory=list,
+        description='The formatter configurations.',
+    )
+
+    # * attribute: handlers
+    handlers: List[Handler] = Field(
+        default_factory=list,
+        description='The handler configurations.',
+    )
+
+    # * attribute: loggers
+    loggers: List[Logger] = Field(
+        default_factory=list,
+        description='The logger configurations.',
+    )
+
+    # * attribute: version
+    version: int = Field(
+        default=1,
+        description='The logging configuration schema version.',
+    )
+
+    # * attribute: disable_existing_loggers
+    disable_existing_loggers: bool = Field(
+        default=False,
+        description='Whether to disable existing loggers on configuration.',
+    )
+
+    # * method: format_config
+    def format_config(self) -> Dict[str, Any]:
+        '''
+        Assemble a dictionary suitable for ``logging.config.dictConfig`` from
+        the bundled formatter, handler, and logger configurations.
+
+        :return: The assembled logging configuration dictionary.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Assemble the whole-system logging configuration, drawing the root
+        # entry from the logger flagged is_root.
+        return dict(
+            version=self.version,
+            disable_existing_loggers=self.disable_existing_loggers,
+            formatters={formatter.id: formatter.format_config() for formatter in self.formatters},
+            handlers={handler.id: handler.format_config() for handler in self.handlers},
+            loggers={logger.id: logger.format_config() for logger in self.loggers if not logger.is_root},
+            root=next((logger.format_config() for logger in self.loggers if logger.is_root), None),
+        )
