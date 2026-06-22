@@ -62,6 +62,36 @@ def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCo
         for command_id, record in (commands or {}).items()
     ]
 
+# ** function: resolve_default_interface
+def resolve_default_interface(
+    interface_id: str,
+    default_interfaces: List[Dict[str, Any]],
+) -> AppInterface | None:
+    '''
+    Construct an app interface from the bootstrap default interface definitions,
+    or return ``None`` when no default matches the requested id.
+
+    Materializes a default interface definition into a typed ``AppInterface``,
+    mirroring ``build_feature_index`` / ``build_command_list`` for the bootstrap
+    interface fallback consumed by the blueprint during interface resolution.
+
+    :param interface_id: The interface ID to look up.
+    :type interface_id: str
+    :param default_interfaces: Interface definition dicts, each with an ``id`` key.
+    :type default_interfaces: List[Dict[str, Any]]
+    :return: The matching app interface, or None.
+    :rtype: AppInterface | None
+    '''
+
+    # Find the first default whose id matches the requested interface_id.
+    matching = next(
+        (definition for definition in (default_interfaces or []) if definition.get('id') == interface_id),
+        None,
+    )
+
+    # Construct and return the interface, or None when no default matches.
+    return AppInterface(**matching) if matching else None
+
 # *** contexts
 
 # ** context: app_interface_context

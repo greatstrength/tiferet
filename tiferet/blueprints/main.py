@@ -7,7 +7,10 @@ import inspect
 from typing import Any, Dict, List
 
 # ** app
-from ..contexts.app import AppInterfaceContext
+from ..contexts.app import (
+    AppInterfaceContext,
+    resolve_default_interface,
+)
 from ..di import injectable_parameter_names
 from .. import assets as a
 from ..domain import (
@@ -19,11 +22,7 @@ from ..events import (
     ImportDependency,
     RaiseError,
 )
-from ..events.app import (
-    GetAppInterface,
-    resolve_default_interface,
-    apply_interface_defaults,
-)
+from ..events.app import GetAppInterface
 from ..events.blueprint import CreateServiceResolver
 
 # *** functions
@@ -337,8 +336,8 @@ def resolve_interface(
     default_services = load_default_services()
 
     # Retrieve the interface via the event, falling back to the bootstrap default
-    # interface definitions (built by the event-layer factory) when the
-    # consumer's config does not define it.
+    # interface definitions (materialized by the context bootstrap helper) when
+    # the consumer's config does not define it.
     try:
         app_interface = DomainEvent.handle(
             GetAppInterface,
@@ -350,9 +349,8 @@ def resolve_interface(
         if app_interface is None:
             raise
 
-    # Merge the framework default services and constants via the event-layer factory.
-    app_interface = apply_interface_defaults(
-        app_interface,
+    # Merge the framework default services and constants via the domain model.
+    app_interface = app_interface.apply_defaults(
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )

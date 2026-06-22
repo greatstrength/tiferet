@@ -5,94 +5,9 @@ from typing import Any, Dict, List
 
 # ** app
 from .settings import DomainEvent, a
-from ..domain import AppInterface, AppServiceDependency
+from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
-
-# *** functions
-
-# ** function: resolve_default_interface
-def resolve_default_interface(
-    interface_id: str,
-    default_interfaces: List[Dict[str, Any]],
-) -> AppInterfaceAggregate | None:
-    '''
-    Construct an app interface aggregate from the bootstrap default interface
-    definitions, or return ``None`` when no default matches the requested id.
-
-    Exposed as an event-layer factory so the blueprint can obtain a default
-    interface object without importing domain or mapper types directly.
-
-    :param interface_id: The interface ID to look up.
-    :type interface_id: str
-    :param default_interfaces: Interface definition dicts, each with an ``id`` key.
-    :type default_interfaces: List[Dict[str, Any]]
-    :return: The matching interface aggregate, or None.
-    :rtype: AppInterfaceAggregate | None
-    '''
-
-    # Find the first default whose id matches the requested interface_id.
-    matching = next(
-        (d for d in (default_interfaces or []) if d.get('id') == interface_id),
-        None,
-    )
-
-    # Construct and return the aggregate, or None when no default matches.
-    return AppInterfaceAggregate(**matching) if matching else None
-
-# ** function: apply_interface_defaults
-def apply_interface_defaults(
-    app_interface: AppInterface,
-    default_services: List[AppServiceDependency] = None,
-    default_constants: Dict[str, str] = None,
-) -> AppInterfaceAggregate:
-    '''
-    Merge framework default services and constants into an app interface.
-
-    Default services are added for any ``service_id`` not already present, and
-    default constants are added only for keys the interface does not define.
-    Exposed as an event-layer factory so the blueprint can apply defaults
-    without importing domain or mapper types directly.
-
-    :param app_interface: The resolved app interface definition.
-    :type app_interface: AppInterface
-    :param default_services: Default service dependencies to merge.
-    :type default_services: List[AppServiceDependency] | None
-    :param default_constants: Default constants to merge for missing keys.
-    :type default_constants: Dict[str, str] | None
-    :return: The mutable interface aggregate with defaults applied.
-    :rtype: AppInterfaceAggregate
-    '''
-
-    # Ensure a mutable aggregate before applying service/constant merges.
-    if not isinstance(app_interface, AppInterfaceAggregate):
-        app_interface = AppInterfaceAggregate(**app_interface.model_dump())
-
-    # Add any default service whose service_id is not already present.
-    if default_services:
-        existing_ids = {dep.service_id for dep in app_interface.services}
-        for dep in default_services:
-            if dep.service_id not in existing_ids:
-                app_interface.add_service(
-                    service_id=dep.service_id,
-                    module_path=dep.module_path,
-                    class_name=dep.class_name,
-                    parameters=dep.parameters,
-                )
-                existing_ids.add(dep.service_id)
-
-    # Add default constants only for keys the interface does not already define.
-    if default_constants:
-        missing_constants = {
-            key: value
-            for key, value in default_constants.items()
-            if key not in app_interface.constants
-        }
-        if missing_constants:
-            app_interface.set_constants(missing_constants)
-
-    # Return the interface aggregate with defaults applied.
-    return app_interface
 
 # *** events
 

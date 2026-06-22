@@ -11,7 +11,7 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
-from tiferet.domain import Feature, CliCommand, Error
+from tiferet.domain import AppInterface, Feature, CliCommand, Error
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.app import (
     BaseContext,
@@ -22,6 +22,7 @@ from tiferet.contexts.app import (
     AppInterfaceContext,
     build_feature_index,
     build_command_list,
+    resolve_default_interface,
 )
 
 # *** fixtures
@@ -220,6 +221,36 @@ def test_build_command_list_empty():
     # Assert both None and empty mappings yield an empty list.
     assert build_command_list() == []
     assert build_command_list({}) == []
+
+# ** test: resolve_default_interface_match
+def test_resolve_default_interface_match():
+    '''
+    Test that resolve_default_interface builds an interface from a matching default.
+    '''
+
+    # Resolve a default interface whose id matches.
+    interface = resolve_default_interface(
+        'tiferet_cli',
+        [{'id': 'tiferet_cli', 'name': 'Tiferet CLI', 'module_path': 'tiferet.contexts.cli', 'class_name': 'CliContext'}],
+    )
+
+    # Assert an interface is built from the matching default.
+    assert isinstance(interface, AppInterface)
+    assert interface.id == 'tiferet_cli'
+    assert interface.name == 'Tiferet CLI'
+
+# ** test: resolve_default_interface_no_match
+def test_resolve_default_interface_no_match():
+    '''
+    Test that resolve_default_interface returns None when no default matches.
+    '''
+
+    # Assert no match yields None for both empty and non-matching defaults.
+    assert resolve_default_interface('missing', []) is None
+    assert resolve_default_interface(
+        'missing',
+        [{'id': 'other', 'name': 'Other', 'module_path': 'm', 'class_name': 'C'}],
+    ) is None
 
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):
