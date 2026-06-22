@@ -74,7 +74,7 @@ result = DomainEvent.handle(
 
 ### GetAppInterface
 
-Retrieves an `AppInterface` by ID from the app service. It is a repo-only read; bootstrap fallback and default merging live in the blueprint via the event-layer factories documented under *Default Service Merging* below.
+Retrieves an `AppInterface` by ID from the app service. It is a repo-only read; bootstrap fallback and default merging live in the blueprint via the helpers documented under *Default Service Merging* below.
 
 **Required:** `interface_id`
 
@@ -260,12 +260,12 @@ Both `RemoveServiceDependency` and `RemoveAppInterface` are idempotent — they 
 
 ### Default Service Merging
 
-The bootstrap blueprint injects framework-level defaults (error repository, feature repository, etc.) that the user doesn't need to declare explicitly. As of v2.0.0b13 this no longer lives on `GetAppInterface` (now a repo-only read); instead the module exposes two event-layer factory functions consumed by `resolve_interface`:
+The bootstrap blueprint injects framework-level defaults (error repository, feature repository, etc.) that the user doesn't need to declare explicitly. As of v2.0.0b13 this no longer lives on `GetAppInterface` (now a repo-only read), and it is **not** an event-layer concern — the default application moved to the domain model and the app context, consumed by `resolve_interface`:
 
-- **`resolve_default_interface(interface_id, default_interfaces)`** — builds an `AppInterfaceAggregate` from the bootstrap default interface definitions when the consumer's config does not define the interface.
-- **`apply_interface_defaults(app_interface, default_services, default_constants)`** — merges default services (for any missing `service_id`) and default constants (for missing keys) into the interface.
+- **`AppInterface.apply_defaults(default_services, default_constants)`** (`tiferet/domain/app.py`) — returns a new interface with default services (for any missing `service_id`) and default constants (for missing keys) merged in; non-mutating.
+- **`resolve_default_interface(interface_id, default_interfaces)`** (`tiferet/contexts/app.py`) — materializes a matching bootstrap default definition into a typed `AppInterface` when the consumer's config does not define the interface, beside `build_feature_index` / `build_command_list`.
 
-These live in `events/app.py` so the blueprint can construct and merge interfaces without importing domain or mapper types directly.
+Neither imports the `AppInterfaceAggregate`; the merge is a non-mutating domain derivation and the fallback is a context bootstrap helper.
 
 ## Related Documentation
 

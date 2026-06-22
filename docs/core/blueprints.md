@@ -85,11 +85,10 @@ app = App('basic_calc', app_config='config.yml')
 ```
 
 **Default configuration injection**  
-Blueprints inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via the event-layer `apply_interface_defaults` factory after the repo-only `GetAppInterface` read (with `resolve_default_interface` providing the bootstrap interface fallback):
+Blueprints inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via the `AppInterface.apply_defaults` domain method after the repo-only `GetAppInterface` read (with the context helper `resolve_default_interface` providing the bootstrap interface fallback):
 
 ```python
-app_interface = apply_interface_defaults(
-    app_interface,
+app_interface = app_interface.apply_defaults(
     default_services=default_services,
     default_constants=a.bps.DEFAULT_CONSTANTS,
 )
@@ -108,7 +107,7 @@ return context_cls.from_domain(app_interface, get_dependency=resolver.get_depend
 Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 
 - Correct loading of the app service
-- Delegation to `GetAppInterface` (repo-only) with defaults merged via `apply_interface_defaults`
+- Delegation to `GetAppInterface` (repo-only) with defaults merged via `AppInterface.apply_defaults`
 - Validation of the resolved `AppInterfaceContext`
 - High-level `build_app()` behavior
 
