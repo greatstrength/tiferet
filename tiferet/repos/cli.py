@@ -10,7 +10,7 @@ from ..interfaces import CliService
 from ..mappers import (
     CliArgumentAggregate,
     CliCommandAggregate,
-    CliCommandYamlObject,
+    CliCommandConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -74,7 +74,7 @@ class CliConfigRepository(CliService, ConfigurationRepository):
             return None
 
         # Map the data to a CliCommandAggregate and return it.
-        return CliCommandYamlObject.model_validate(
+        return CliCommandConfigObject.model_validate(
             {**cmd_data, 'id': id}
         ).map()
 
@@ -96,7 +96,7 @@ class CliConfigRepository(CliService, ConfigurationRepository):
         result = []
         for group_key, commands in cmds_data.items():
             for command_key, command_data in commands.items():
-                cmd = CliCommandYamlObject.model_validate(
+                cmd = CliCommandConfigObject.model_validate(
                     {**command_data, 'id': f'{group_key}.{command_key}'}
                 ).map()
                 result.append(cmd)
@@ -116,7 +116,7 @@ class CliConfigRepository(CliService, ConfigurationRepository):
         '''
 
         # Convert the CLI command model to configuration data.
-        cmd_data = CliCommandYamlObject.from_model(command)
+        cmd_data = CliCommandConfigObject.from_model(command)
 
         # Split the composite ID into group_key and command_key.
         group_key, command_key = command.id.split('.', 1)

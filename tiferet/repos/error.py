@@ -9,7 +9,7 @@ from typing import List
 from ..interfaces import ErrorService
 from ..mappers import (
     ErrorAggregate,
-    ErrorYamlObject,
+    ErrorConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -75,7 +75,7 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
             return None
 
         # Map the data to an ErrorAggregate and return it.
-        return ErrorYamlObject.model_validate(
+        return ErrorConfigObject.model_validate(
             {**error_data, 'id': id}
         ).map()
 
@@ -95,7 +95,7 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
 
         # Map each error entry to an ErrorAggregate.
         return [
-            ErrorYamlObject.model_validate(
+            ErrorConfigObject.model_validate(
                 {**error_data, 'id': error_id}
             ).map()
             for error_id, error_data in errors_data.items()
@@ -113,7 +113,7 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
         '''
 
         # Convert the error model to configuration data.
-        error_data = ErrorYamlObject.from_model(error)
+        error_data = ErrorConfigObject.from_model(error)
 
         # Load the full configuration file.
         full_data = self._load()

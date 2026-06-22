@@ -15,6 +15,7 @@ from ..domain import (
     Formatter,
     Handler,
     Logger,
+    LoggingSettings,
 )
 from ..events import DomainEvent, RaiseError, a
 
@@ -52,40 +53,6 @@ class LoggingContext(BaseContext):
         # Bind the list all handler and store the logger ID.
         self.list_all_handler = logging_list_all_evt.execute
         self.logger_id = logger_id
-
-    # * method: format_config
-    def format_config(self,
-                      formatters: List[Formatter],
-                      handlers: List[Handler],
-                      loggers: List[Logger],
-                      version: int = 1,
-                      disable_existing_loggers: bool = False) -> Dict[str, Any]:
-        '''
-        Format logging configurations into a dictionary suitable for logging.config.dictConfig.
-
-        :param formatters: List of formatter entities.
-        :type formatters: List[Formatter]
-        :param handlers: List of handler entities.
-        :type handlers: List[Handler]
-        :param loggers: List of logger entities.
-        :type loggers: List[Logger]
-        :param version: Logging configuration version (default 1).
-        :type version: int
-        :param disable_existing_loggers: Whether to disable existing loggers (default False).
-        :type disable_existing_loggers: bool
-        :return: Dictionary configuration for logging.config.dictConfig.
-        :rtype: Dict[str, Any]
-        '''
-
-        # Return the formatted configuration dictionary.
-        return dict(
-            version=version,
-            disable_existing_loggers=disable_existing_loggers,
-            formatters={formatter.id: formatter.format_config() for formatter in formatters},
-            handlers={handler.id: handler.format_config() for handler in handlers},
-            loggers={logger.id: logger.format_config() for logger in loggers if not logger.is_root},
-            root=next((logger.format_config() for logger in loggers if logger.is_root), None)
-        )
 
     # * method: create_logger
     def create_logger(self, logger_id: str, logging_config: Dict[str, Any]) -> logging.Logger:
@@ -136,30 +103,17 @@ class LoggingContext(BaseContext):
         # List all formatter, handler, and logger configurations.
         formatters, handlers, loggers = self.list_all_handler()
 
-        # Set the default configurations if not provided.
-        if not formatters:
-            formatters = [Formatter(
-                **data
-            ) for data in DEFAULT_FORMATTERS]
-        if not handlers:
-            handlers = [Handler(
-                **data
-            ) for data in DEFAULT_HANDLERS]
-        if not loggers:
-            loggers = [Logger(
-                **data
-            ) for data in DEFAULT_LOGGERS]
-
-        # Format the configurations into a dictionary.
-        config = self.format_config(
-            formatters=formatters,
-            handlers=handlers,
-            loggers=loggers
+        # Build the runtime logging settings value object, applying the built-in
+        # defaults as the fallback for any section the repository does not provide.
+        settings = LoggingSettings(
+            formatters=formatters or [Formatter(**data) for data in DEFAULT_FORMATTERS],
+            handlers=handlers or [Handler(**data) for data in DEFAULT_HANDLERS],
+            loggers=loggers or [Logger(**data) for data in DEFAULT_LOGGERS],
         )
 
-        # Create the logger using the create_logger method.
+        # Assemble the dictConfig via the value object and create the logger.
         return self.create_logger(
             logger_id=self.logger_id,
-            logging_config=config
+            logging_config=settings.format_config(),
         )
 

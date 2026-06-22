@@ -9,7 +9,7 @@ import pytest
 from tiferet.domain.settings import DomainObject
 from tiferet.domain.di import (
     FlaggedDependency,
-    ServiceConfiguration,
+    ServiceRegistration,
 )
 
 # *** classes
@@ -74,61 +74,61 @@ def flagged_dependency_to_add() -> FlaggedDependency:
         parameters={'test_param': 'test_value', 'param': 'value2'},
     )
 
-# ** fixture: service_configuration
+# ** fixture: service_registration
 @pytest.fixture
-def service_configuration(flagged_dependency: FlaggedDependency) -> ServiceConfiguration:
+def service_registration(flagged_dependency: FlaggedDependency) -> ServiceRegistration:
     '''
-    Fixture for a ServiceConfiguration with a default type and one flagged override.
+    Fixture for a ServiceRegistration with a default type and one flagged override.
 
     :param flagged_dependency: The FlaggedDependency fixture.
     :type flagged_dependency: FlaggedDependency
-    :return: The ServiceConfiguration instance.
-    :rtype: ServiceConfiguration
+    :return: The ServiceRegistration instance.
+    :rtype: ServiceRegistration
     '''
 
-    # Create and return a new ServiceConfiguration.
-    return ServiceConfiguration(id='test_service',
+    # Create and return a new ServiceRegistration.
+    return ServiceRegistration(id='test_service',
         module_path='tests.domain.test_di',
         class_name='TestDependency',
         dependencies=[flagged_dependency],
     )
 
-# ** fixture: service_configuration_no_default_type
+# ** fixture: service_registration_no_default_type
 @pytest.fixture
-def service_configuration_no_default_type(flagged_dependency: FlaggedDependency) -> ServiceConfiguration:
+def service_registration_no_default_type(flagged_dependency: FlaggedDependency) -> ServiceRegistration:
     '''
-    Fixture for a ServiceConfiguration with no default type, only flagged overrides.
+    Fixture for a ServiceRegistration with no default type, only flagged overrides.
 
     :param flagged_dependency: The FlaggedDependency fixture.
     :type flagged_dependency: FlaggedDependency
-    :return: The ServiceConfiguration instance.
-    :rtype: ServiceConfiguration
+    :return: The ServiceRegistration instance.
+    :rtype: ServiceRegistration
     '''
 
-    # Create and return a new ServiceConfiguration without default type.
-    return ServiceConfiguration(id='test_service_no_default',
+    # Create and return a new ServiceRegistration without default type.
+    return ServiceRegistration(id='test_service_no_default',
         dependencies=[flagged_dependency],
     )
 
-# ** fixture: service_configuration_multiple_deps
+# ** fixture: service_registration_multiple_deps
 @pytest.fixture
-def service_configuration_multiple_deps(
+def service_registration_multiple_deps(
         flagged_dependency: FlaggedDependency,
         flagged_dependency_to_add: FlaggedDependency,
-    ) -> ServiceConfiguration:
+    ) -> ServiceRegistration:
     '''
-    Fixture for a ServiceConfiguration with a default type and two flagged overrides.
+    Fixture for a ServiceRegistration with a default type and two flagged overrides.
 
     :param flagged_dependency: The FlaggedDependency fixture (test_alpha).
     :type flagged_dependency: FlaggedDependency
     :param flagged_dependency_to_add: The FlaggedDependency fixture (test_beta).
     :type flagged_dependency_to_add: FlaggedDependency
-    :return: The ServiceConfiguration instance.
-    :rtype: ServiceConfiguration
+    :return: The ServiceRegistration instance.
+    :rtype: ServiceRegistration
     '''
 
-    # Create and return a new ServiceConfiguration with multiple dependencies.
-    return ServiceConfiguration(id='test_service_multi',
+    # Create and return a new ServiceRegistration with multiple dependencies.
+    return ServiceRegistration(id='test_service_multi',
         module_path='tests.domain.test_di',
         class_name='TestDependency',
         dependencies=[flagged_dependency, flagged_dependency_to_add],
@@ -136,17 +136,17 @@ def service_configuration_multiple_deps(
 
 # *** tests
 
-# ** test: service_configuration_get_dependency
-def test_service_configuration_get_dependency(service_configuration: ServiceConfiguration) -> None:
+# ** test: service_registration_get_dependency
+def test_service_registration_get_dependency(service_registration: ServiceRegistration) -> None:
     '''
     Test successful retrieval of a flagged dependency by flag.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Retrieve the flagged dependency by flag.
-    dep = service_configuration.get_dependency('test_alpha')
+    dep = service_registration.get_dependency('test_alpha')
 
     # Assert the flagged dependency fields match.
     assert dep.flag == 'test_alpha'
@@ -154,186 +154,186 @@ def test_service_configuration_get_dependency(service_configuration: ServiceConf
     assert dep.class_name == 'TestDependencyAlpha'
     assert dep.parameters == {'test_param': 'test_value', 'param': 'value1'}
 
-# ** test: service_configuration_get_dependency_invalid
-def test_service_configuration_get_dependency_invalid(service_configuration: ServiceConfiguration) -> None:
+# ** test: service_registration_get_dependency_invalid
+def test_service_registration_get_dependency_invalid(service_registration: ServiceRegistration) -> None:
     '''
     Test that get_dependency returns None for an unknown flag.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Attempt to retrieve a non-existent flagged dependency.
-    dep = service_configuration.get_dependency('invalid')
+    dep = service_registration.get_dependency('invalid')
 
     # Assert None is returned.
     assert dep is None
 
-# ** test: service_configuration_get_service_type_default
-def test_service_configuration_get_service_type_default(
-        service_configuration: ServiceConfiguration,
+# ** test: service_registration_get_service_type_default
+def test_service_registration_get_service_type_default(
+        service_registration: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type returns the default type when no flags match.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Resolve with no flags — should return the default TestDependency.
-    resolved = service_configuration.get_service_type()
+    resolved = service_registration.get_service_type()
 
     # Assert the default type is returned.
     assert resolved.__qualname__ == TestDependency.__qualname__
 
 
-# ** test: service_configuration_get_service_type_flagged
-def test_service_configuration_get_service_type_flagged(
-        service_configuration: ServiceConfiguration,
+# ** test: service_registration_get_service_type_flagged
+def test_service_registration_get_service_type_flagged(
+        service_registration: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type resolves the flagged dependency type when a matching flag is provided.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Resolve with the test_alpha flag — should return TestDependencyAlpha.
-    resolved = service_configuration.get_service_type('test_alpha')
+    resolved = service_registration.get_service_type('test_alpha')
 
     # Assert the flagged type takes priority over the default.
     assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
 
-# ** test: service_configuration_get_service_type_no_match
-def test_service_configuration_get_service_type_no_match(
-        service_configuration_no_default_type: ServiceConfiguration,
+# ** test: service_registration_get_service_type_no_match
+def test_service_registration_get_service_type_no_match(
+        service_registration_no_default_type: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type returns None when no flag matches and there is no default.
 
-    :param service_configuration_no_default_type: ServiceConfiguration with no default type.
-    :type service_configuration_no_default_type: ServiceConfiguration
+    :param service_registration_no_default_type: ServiceRegistration with no default type.
+    :type service_registration_no_default_type: ServiceRegistration
     '''
 
     # Resolve with an unknown flag and no default — should return None.
-    resolved = service_configuration_no_default_type.get_service_type('unknown_flag')
+    resolved = service_registration_no_default_type.get_service_type('unknown_flag')
 
     # Assert None is returned.
     assert resolved is None
 
 
-# ** test: service_configuration_get_service_type_flag_priority
-def test_service_configuration_get_service_type_flag_priority(
-        service_configuration_multiple_deps: ServiceConfiguration,
+# ** test: service_registration_get_service_type_flag_priority
+def test_service_registration_get_service_type_flag_priority(
+        service_registration_multiple_deps: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type respects flag priority order — first matching flag wins.
 
-    :param service_configuration_multiple_deps: ServiceConfiguration with two flagged overrides.
-    :type service_configuration_multiple_deps: ServiceConfiguration
+    :param service_registration_multiple_deps: ServiceRegistration with two flagged overrides.
+    :type service_registration_multiple_deps: ServiceRegistration
     '''
 
     # test_alpha first — should resolve alpha.
-    resolved = service_configuration_multiple_deps.get_service_type('test_alpha', 'test_beta')
+    resolved = service_registration_multiple_deps.get_service_type('test_alpha', 'test_beta')
     assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
     # test_beta first — should resolve beta.
-    resolved = service_configuration_multiple_deps.get_service_type('test_beta', 'test_alpha')
+    resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
     assert resolved.__qualname__ == TestDependencyBeta.__qualname__
 
 
-# ** test: service_configuration_get_dependency_multiple_flags
-def test_service_configuration_get_dependency_multiple_flags(
-        service_configuration_multiple_deps: ServiceConfiguration,
+# ** test: service_registration_get_dependency_multiple_flags
+def test_service_registration_get_dependency_multiple_flags(
+        service_registration_multiple_deps: ServiceRegistration,
     ) -> None:
     '''
     Test priority order: first matching flag in the argument tuple wins.
 
-    :param service_configuration_multiple_deps: The ServiceConfiguration fixture with multiple dependencies.
-    :type service_configuration_multiple_deps: ServiceConfiguration
+    :param service_registration_multiple_deps: The ServiceRegistration fixture with multiple dependencies.
+    :type service_registration_multiple_deps: ServiceRegistration
     '''
 
     # Retrieve with test_alpha first — should return alpha.
-    dep_alpha_first = service_configuration_multiple_deps.get_dependency('test_alpha', 'test_beta')
+    dep_alpha_first = service_registration_multiple_deps.get_dependency('test_alpha', 'test_beta')
     assert dep_alpha_first.flag == 'test_alpha'
     assert dep_alpha_first.class_name == 'TestDependencyAlpha'
 
     # Retrieve with test_beta first — should return beta.
-    dep_beta_first = service_configuration_multiple_deps.get_dependency('test_beta', 'test_alpha')
+    dep_beta_first = service_registration_multiple_deps.get_dependency('test_beta', 'test_alpha')
     assert dep_beta_first.flag == 'test_beta'
     assert dep_beta_first.class_name == 'TestDependencyBeta'
 
 
-# ** test: service_configuration_get_service_type_default
-def test_service_configuration_get_service_type_default(
-        service_configuration: ServiceConfiguration,
+# ** test: service_registration_get_service_type_default
+def test_service_registration_get_service_type_default(
+        service_registration: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type returns the default type when no flags match.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Resolve with no flags — should return the default TestDependency.
-    resolved = service_configuration.get_service_type()
+    resolved = service_registration.get_service_type()
 
     # Assert the default type is returned.
     assert resolved.__qualname__ == TestDependency.__qualname__
 
 
-# ** test: service_configuration_get_service_type_flagged
-def test_service_configuration_get_service_type_flagged(
-        service_configuration: ServiceConfiguration,
+# ** test: service_registration_get_service_type_flagged
+def test_service_registration_get_service_type_flagged(
+        service_registration: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type resolves the flagged dependency type when a matching flag is provided.
 
-    :param service_configuration: The ServiceConfiguration fixture.
-    :type service_configuration: ServiceConfiguration
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
     '''
 
     # Resolve with the test_alpha flag — should return TestDependencyAlpha.
-    resolved = service_configuration.get_service_type('test_alpha')
+    resolved = service_registration.get_service_type('test_alpha')
 
     # Assert the flagged type takes priority over the default.
     assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
 
-# ** test: service_configuration_get_service_type_no_match
-def test_service_configuration_get_service_type_no_match(
-        service_configuration_no_default_type: ServiceConfiguration,
+# ** test: service_registration_get_service_type_no_match
+def test_service_registration_get_service_type_no_match(
+        service_registration_no_default_type: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type returns None when no flag matches and there is no default.
 
-    :param service_configuration_no_default_type: ServiceConfiguration with no default type.
-    :type service_configuration_no_default_type: ServiceConfiguration
+    :param service_registration_no_default_type: ServiceRegistration with no default type.
+    :type service_registration_no_default_type: ServiceRegistration
     '''
 
     # Resolve with an unknown flag and no default — should return None.
-    resolved = service_configuration_no_default_type.get_service_type('unknown_flag')
+    resolved = service_registration_no_default_type.get_service_type('unknown_flag')
 
     # Assert None is returned.
     assert resolved is None
 
 
-# ** test: service_configuration_get_service_type_flag_priority
-def test_service_configuration_get_service_type_flag_priority(
-        service_configuration_multiple_deps: ServiceConfiguration,
+# ** test: service_registration_get_service_type_flag_priority
+def test_service_registration_get_service_type_flag_priority(
+        service_registration_multiple_deps: ServiceRegistration,
     ) -> None:
     '''
     Test that get_service_type respects flag priority order — first matching flag wins.
 
-    :param service_configuration_multiple_deps: ServiceConfiguration with two flagged overrides.
-    :type service_configuration_multiple_deps: ServiceConfiguration
+    :param service_registration_multiple_deps: ServiceRegistration with two flagged overrides.
+    :type service_registration_multiple_deps: ServiceRegistration
     '''
 
     # test_alpha first — should resolve alpha.
-    resolved = service_configuration_multiple_deps.get_service_type('test_alpha', 'test_beta')
+    resolved = service_registration_multiple_deps.get_service_type('test_alpha', 'test_beta')
     assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
     # test_beta first — should resolve beta.
-    resolved = service_configuration_multiple_deps.get_service_type('test_beta', 'test_alpha')
+    resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
     assert resolved.__qualname__ == TestDependencyBeta.__qualname__

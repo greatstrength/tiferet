@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import FeatureYamlObject
+from tiferet.mappers import FeatureConfigObject
 from tiferet.repos.feature import FeatureConfigRepository
 
 
@@ -236,7 +236,7 @@ def test_int_feature_config_repo_save(
     new_feature_id = 'new_group.new_feature'
 
     # Create new feature config data and map to a model.
-    feature = FeatureYamlObject.model_validate(dict(
+    feature = FeatureConfigObject.model_validate(dict(
         id=new_feature_id,
         name='New Feature',
         description='A new test feature.',
@@ -295,7 +295,7 @@ def test_int_feature_config_repo_params_schema_round_trip(
 
     # Create a feature carrying a params_schema and save it.
     schema_feature_id = 'schema_group.schema_feature'
-    feature = FeatureYamlObject.model_validate(dict(
+    feature = FeatureConfigObject.model_validate(dict(
         id=schema_feature_id,
         name='Schema Feature',
         description='A feature with a request schema.',

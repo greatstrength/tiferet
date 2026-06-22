@@ -11,13 +11,13 @@ from typing import (
 # ** app
 from ..interfaces import LoggingService
 from ..mappers import (
-    LoggingSettingsYamlObject,
+    LoggingSettingsConfigObject,
     FormatterAggregate,
-    FormatterYamlObject,
+    FormatterConfigObject,
     HandlerAggregate,
-    HandlerYamlObject,
+    HandlerConfigObject,
     LoggerAggregate,
-    LoggerYamlObject,
+    LoggerConfigObject,
 )
 from .settings import ConfigurationRepository
 
@@ -54,7 +54,7 @@ class LoggingConfigRepository(LoggingService, ConfigurationRepository):
 
         # Load the logging settings data from the yaml configuration file.
         data = self._load(
-            data_factory=lambda d: LoggingSettingsYamlObject.from_data(**d),
+            data_factory=lambda d: LoggingSettingsConfigObject.from_data(**d),
             start_node=lambda d: d.get('logging', {})
         )
 
@@ -75,7 +75,7 @@ class LoggingConfigRepository(LoggingService, ConfigurationRepository):
         '''
 
         # Create formatter data object from the model.
-        formatter_data = FormatterYamlObject.from_model(formatter)
+        formatter_data = FormatterConfigObject.from_model(formatter)
 
         # Load the full configuration file.
         full_data = self._load()
@@ -96,7 +96,7 @@ class LoggingConfigRepository(LoggingService, ConfigurationRepository):
         '''
 
         # Create handler data object from the model.
-        handler_data = HandlerYamlObject.from_model(handler)
+        handler_data = HandlerConfigObject.from_model(handler)
 
         # Load the full configuration file.
         full_data = self._load()
@@ -117,7 +117,7 @@ class LoggingConfigRepository(LoggingService, ConfigurationRepository):
         '''
 
         # Create logger data object from the model.
-        logger_data = LoggerYamlObject.from_model(logger)
+        logger_data = LoggerConfigObject.from_model(logger)
 
         # Load the full configuration file.
         full_data = self._load()

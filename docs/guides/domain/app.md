@@ -130,7 +130,7 @@ Concrete implementations (e.g., `AppConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories (wired by `wire_services`); feature-step service configurations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
+- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories (wired by `wire_services`); feature-step service registrations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
 - **Feature:** Once an interface is loaded and its context instantiated, features defined in the configuration are executed through the `FeatureContext`.
 - **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain.
 

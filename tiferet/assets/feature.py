@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 
 # *** configs
 
-# ** config: default_tiferet_cli_features
+# ** config: default_tiferet_cli_feature_list
 # Each dict matches the Feature domain object constructor fields.
 # Steps use EventFeatureStep field names: service_id, name, parameters, data_key.
 # ``params_schema`` declares the feature-level request validation schema
@@ -26,7 +26,7 @@ from typing import Any, Dict, List
 # context parameters (e.g. default_* fallbacks), free-form ``value`` arguments,
 # and comma-separated list arguments (handlers, name_or_flags) are intentionally
 # omitted so existing request behavior is preserved.
-DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
+_DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
 
     # * features: feature domain
     {
@@ -249,7 +249,7 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
             'parameters': {'type': 'dict', 'required': False, 'default': {}},
             'flagged_dependencies': {'type': 'list', 'required': False, 'default': []},
         },
-        'steps': [{'service_id': 'add_service_configuration_evt', 'name': 'Add service configuration'}],
+        'steps': [{'service_id': 'add_service_registration_evt', 'name': 'Add service configuration'}],
     },
     {
         'id': 'service.list',
@@ -271,7 +271,7 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
             'class_name': {'type': 'str', 'required': False},
             'parameters': {'type': 'dict', 'required': False},
         },
-        'steps': [{'service_id': 'set_default_service_configuration_evt', 'name': 'Set default service configuration'}],
+        'steps': [{'service_id': 'set_default_service_registration_evt', 'name': 'Set default service configuration'}],
     },
     {
         'id': 'service.set_dependency',
@@ -309,7 +309,7 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'params_schema': {
             'id': 'str',
         },
-        'steps': [{'service_id': 'remove_service_configuration_evt', 'name': 'Remove service configuration'}],
+        'steps': [{'service_id': 'remove_service_registration_evt', 'name': 'Remove service configuration'}],
     },
     {
         'id': 'service.set_constants',
@@ -555,3 +555,12 @@ DEFAULT_TIFERET_CLI_FEATURES: List[Dict[str, Any]] = [
         'steps': [{'service_id': 'logging_list_all_evt', 'name': 'List all logging configs'}],
     },
 ]
+
+# ** config: default_tiferet_cli_features
+# Id-keyed mapping mirroring YAML shape: the key is the feature id and the
+# value is the record minus id. The bootstrap builder in the orchestration
+# layer materializes each record into a typed Feature object.
+DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
+    entry['id']: {key: value for key, value in entry.items() if key != 'id'}
+    for entry in _DEFAULT_TIFERET_CLI_FEATURE_LIST
+}

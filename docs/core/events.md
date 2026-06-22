@@ -413,7 +413,7 @@ Domain events are defined in `tiferet/events/`:
 - `static.py` – Static utility events (`ParseParameter`, `ImportDependency`, `RaiseError`).
 - `app.py` – `AppEvent` base + app interface management events.
 - `cli.py` – `CliEvent` base + CLI command management events.
-- `di.py` – `DIEvent` base + DI service configuration events.
+- `di.py` – `DIEvent` base + DI service registration events.
 - `error.py` – `ErrorEvent` base + error management events.
 - `feature.py` – `FeatureEvent` base + feature workflow management events.
 - `logging.py` – `LoggingEvent` base + logging configuration events.

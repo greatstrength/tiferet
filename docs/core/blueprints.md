@@ -85,12 +85,10 @@ app = App('basic_calc', app_config='config.yml')
 ```
 
 **Default configuration injection**  
-Blueprints automatically inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via `GetAppInterface`:
+Blueprints inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via the `AppInterface.apply_defaults` domain method after the repo-only `GetAppInterface` read (with the context helper `resolve_default_interface` providing the bootstrap interface fallback):
 
 ```python
-app_interface = DomainEvent.handle(
-    GetAppInterface,
-    ...,
+app_interface = app_interface.apply_defaults(
     default_services=default_services,
     default_constants=a.bps.DEFAULT_CONSTANTS,
 )
@@ -109,7 +107,7 @@ return context_cls.from_domain(app_interface, get_dependency=resolver.get_depend
 Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 
 - Correct loading of the app service
-- Delegation to `GetAppInterface` with defaults injected
+- Delegation to `GetAppInterface` (repo-only) with defaults merged via `AppInterface.apply_defaults`
 - Validation of the resolved `AppInterfaceContext`
 - High-level `build_app()` behavior
 
@@ -131,5 +129,5 @@ Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `te
 - [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
 - [docs/core/di.md](../core/di.md) — dependency injection and service provider design
 - [docs/core/events.md](../core/events.md) — domain event design and usage
-- [docs/guides/domain/app.md](../guides/domain/app.md) — application interface and service configuration guide
+- [docs/guides/domain/app.md](../guides/domain/app.md) — application interface and service registration guide
 - [docs/core/code_style.md](../core/code_style.md) — artifact comments and formatting

@@ -7,7 +7,7 @@
 
 Repositories are the concrete data-access layer in the Tiferet framework. Every repository implements a Service interface from `tiferet/interfaces/` and encapsulates the interaction between a data utility (e.g., `Yaml`) and the domain's transfer objects and aggregates.
 
-Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service configuration (`container.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. Consuming code depends only on the abstract Service interface, never on a concrete repository class.
+Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`container.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. Consuming code depends only on the abstract Service interface, never on a concrete repository class.
 
 ### Role in Runtime
 - **Service implementations**: Repositories are the concrete classes that satisfy the Service interfaces injected into domain events and contexts.
@@ -20,7 +20,7 @@ Repositories are **never exported** from `tiferet/repos/__init__.py`. They are r
 class ErrorConfigRepository(ErrorService):
     # Implements ErrorService interface
     # Uses Yaml utility for file I/O
-    # Uses ErrorYamlObject for serialization
+    # Uses ErrorConfigObject for serialization
     # Returns ErrorAggregate instances
 ```
 
@@ -52,7 +52,7 @@ from typing import List
 from ..interfaces import ErrorService
 from ..mappers import (
     ErrorAggregate,
-    ErrorYamlObject,
+    ErrorConfigObject,
 )
 from ..utils import Yaml
 
@@ -144,7 +144,7 @@ from typing import List
 from ..interfaces import ErrorService           # Service interface
 from ..mappers import (                          # Transfer objects and aggregates
     ErrorAggregate,
-    ErrorYamlObject,
+    ErrorConfigObject,
 )
 from ..utils import Yaml                         # Data utility
 ```
@@ -177,7 +177,7 @@ error_data = Yaml(self.config_file, encoding=self.encoding).load(
 Mapping from raw YAML data to domain aggregates uses `model_validate` on the concrete TransferObject class with the YAML dictionary key injected as the `id`:
 
 ```python
-return ErrorYamlObject.model_validate(
+return ErrorConfigObject.model_validate(
     {**error_data, 'id': id}
 ).map()
 ```
@@ -191,7 +191,7 @@ Save methods follow a three-step sequence:
 
 ```python
 # Convert the error model to configuration data.
-error_data = ErrorYamlObject.from_model(error)
+error_data = ErrorConfigObject.from_model(error)
 
 # Load the full configuration file.
 full_data = Yaml(self.config_file, encoding=self.encoding).load()
@@ -253,7 +253,7 @@ from typing import List
 from ..interfaces.calculator import CalculatorService
 from ..mappers.calculator import (
     CalculatorResultAggregate,
-    CalculatorResultYamlObject,
+    CalculatorResultConfigObject,
 )
 from ..utils import Yaml
 
@@ -333,8 +333,8 @@ Create tests in `tiferet/repos/tests/test_<domain>.py` using `tmp_path` fixtures
 ### Best Practices
 - Use artifact comments consistently (`# *** repos`, `# ** repo:`, `# *`).
 - Follow the three-attribute foundation for all YAML-backed repos.
-- Use `YamlObject.model_validate({**data, 'id': id}).map()` for reads.
-- Use `YamlObject.from_model(aggregate)` classmethod for writes, then `to_primitive(self.default_role)` to serialize.
+- Use `ConfigObject.model_validate({**data, 'id': id}).map()` for reads.
+- Use `ConfigObject.from_model(aggregate)` classmethod for writes, then `to_primitive(self.default_role)` to serialize.
 - Make delete operations idempotent.
 - Use `setdefault` for safe section updates on save.
 - Use `start_node` lambdas for all read operations.

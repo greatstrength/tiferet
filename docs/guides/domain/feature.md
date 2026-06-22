@@ -15,7 +15,7 @@ All domain objects in this module are **immutable value objects**: they carry no
 
 > **Rename note (v2.0a2):** `FeatureCommand` was renamed to `FeatureEvent` to align with the `Command` → `DomainEvent` transition. The polymorphic `FeatureStep` base class is new in v2.0a2.
 >
-> **Rename note (v2.0.0b10):** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (mappers `FeatureEventAggregate`/`FeatureEventYamlObject` → `EventFeatureStepAggregate`/`EventFeatureStepYamlObject`) to free the `FeatureEvent` name for the new per-module base domain event (`FeatureEvent(DomainEvent)` in `tiferet/events/feature.py`).
+> **Rename note (v2.0.0b10):** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (current mappers `EventFeatureStepAggregate`/`EventFeatureStepConfigObject`) to free the `FeatureEvent` name for the new per-module base domain event (`FeatureEvent(DomainEvent)` in `tiferet/events/feature.py`).
 
 ## Domain Objects
 
@@ -36,7 +36,7 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
-| `service_id`     | `str`                   | Yes      | —       | The service configuration ID for the feature event.                |
+| `service_id`     | `str`                   | Yes      | —       | The service registration ID for the feature event.                |
 | `flags`          | `List[str]`             | No       | `[]`    | Feature flags that activate this event.                            |
 | `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
 | `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
@@ -153,7 +153,7 @@ Concrete implementations (e.g., `FeatureConfigRepository`) satisfy this interfac
 ## Relationships to Other Domains
 
 - **App:** `FeatureContext` is loaded as part of the application interface bootstrap, receiving `FeatureService` and container resolution via dependency injection.
-- **DI:** `EventFeatureStep.service_id` references a `ServiceConfiguration` entry (in the `services` section of the configuration), resolved at runtime via the injected `get_dependency` handler.
+- **DI:** `EventFeatureStep.service_id` references a `ServiceRegistration` entry (in the `services` section of the configuration), resolved at runtime via the injected `get_dependency` handler.
 - **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
 - **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
 

@@ -11,8 +11,8 @@ from tiferet.assets import TiferetError, const
 from tiferet.mappers.settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from tiferet.mappers.app import (
     AppInterfaceAggregate,
-    AppInterfaceYamlObject,
-    AppServiceDependencyYamlObject,
+    AppInterfaceConfigObject,
+    AppServiceDependencyConfigObject,
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -296,13 +296,13 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
 
-# ** class: TestAppInterfaceYamlObject
-class TestAppInterfaceYamlObject(TransferObjectTestBase):
+# ** class: TestAppInterfaceConfigObject
+class TestAppInterfaceConfigObject(TransferObjectTestBase):
     '''
-    Tests for AppInterfaceYamlObject mapping, round-trip, and nested AppServiceDependencyYamlObject.
+    Tests for AppInterfaceConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
 
-    transfer_cls = AppInterfaceYamlObject
+    transfer_cls = AppInterfaceConfigObject
     aggregate_cls = AppInterfaceAggregate
 
     # YAML-format sample data (services as dict keyed by service_id).
@@ -351,7 +351,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
             **(data if data is not None else self.aggregate_sample_data)
         )
 
-    # *** child mapper: AppServiceDependencyYamlObject
+    # *** child mapper: AppServiceDependencyConfigObject
 
     # ** constant: dependency_sample_data
     dependency_sample_data = {
@@ -363,11 +363,11 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_map_basic
     def test_app_service_dependency_yaml_map_basic(self):
         '''
-        Test mapping an AppServiceDependencyYamlObject to an AppServiceDependency.
+        Test mapping an AppServiceDependencyConfigObject to an AppServiceDependency.
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = AppServiceDependencyYamlObject.model_validate(
+        yaml_obj = AppServiceDependencyConfigObject.model_validate(
             self.dependency_sample_data,
         )
         dep = yaml_obj.map(service_id='injected_svc')
@@ -386,7 +386,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
+        yaml_obj = AppServiceDependencyConfigObject.model_validate(dict(
             module_path='alias.test.mod',
             class_name='AliasImpl',
             params={'alias_key': 'value'},
@@ -403,7 +403,7 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object with fields that should be excluded.
-        yaml_obj = AppServiceDependencyYamlObject.model_validate(dict(
+        yaml_obj = AppServiceDependencyConfigObject.model_validate(dict(
             module_path='ex.test.mod',
             class_name='ExcludeTest',
             parameters={'secret': 'dontleak'},
@@ -420,11 +420,11 @@ class TestAppInterfaceYamlObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_round_trip_via_parent
     def test_app_service_dependency_yaml_round_trip_via_parent(self, aggregate):
         '''
-        Test that services are preserved through the parent AppInterfaceYamlObject round-trip.
+        Test that services are preserved through the parent AppInterfaceConfigObject round-trip.
         '''
 
         # Convert aggregate to YAML object and back.
-        yaml_top = AppInterfaceYamlObject.from_model(aggregate)
+        yaml_top = AppInterfaceConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
         # Use nested helper to verify services list preserved.

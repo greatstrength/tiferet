@@ -7,7 +7,10 @@ import inspect
 from typing import Any, Dict, List
 
 # ** app
-from ..contexts.app import AppInterfaceContext
+from ..contexts.app import (
+    AppInterfaceContext,
+    resolve_default_interface,
+)
 from ..di import injectable_parameter_names
 from .. import assets as a
 from ..domain import (
@@ -332,12 +335,22 @@ def resolve_interface(
     # Load the default app service dependencies.
     default_services = load_default_services()
 
-    # Get the app interface via the event, passing any provided interface defaults.
-    app_interface = DomainEvent.handle(
-        GetAppInterface,
-        dependencies=dict(app_service=app_service),
-        interface_id=interface_id,
-        default_interfaces=default_interfaces,
+    # Retrieve the interface via the event, falling back to the bootstrap default
+    # interface definitions (materialized by the context bootstrap helper) when
+    # the consumer's config does not define it.
+    try:
+        app_interface = DomainEvent.handle(
+            GetAppInterface,
+            dependencies=dict(app_service=app_service),
+            interface_id=interface_id,
+        )
+    except a.TiferetError:
+        app_interface = resolve_default_interface(interface_id, default_interfaces)
+        if app_interface is None:
+            raise
+
+    # Merge the framework default services and constants via the domain model.
+    app_interface = app_interface.apply_defaults(
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )

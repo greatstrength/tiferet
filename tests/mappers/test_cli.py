@@ -5,7 +5,7 @@
 # ** app
 from tiferet.domain import CliArgument, CliCommand, DomainObject
 from tiferet.events import a
-from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandYamlObject
+from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
@@ -211,13 +211,13 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert aggregate.arguments[0].type == 'int'
 
 
-# ** class: TestCliCommandYamlObject
-class TestCliCommandYamlObject(TransferObjectTestBase):
+# ** class: TestCliCommandConfigObject
+class TestCliCommandConfigObject(TransferObjectTestBase):
     '''
-    Tests for CliCommandYamlObject mapping, round-trip, and CLI-specific serialization.
+    Tests for CliCommandConfigObject mapping, round-trip, and CLI-specific serialization.
     '''
 
-    transfer_cls = CliCommandYamlObject
+    transfer_cls = CliCommandConfigObject
 
     aggregate_cls = CliCommandAggregate
 
@@ -255,7 +255,7 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object using the 'args' alias.
-        yaml_obj = CliCommandYamlObject.model_validate(dict(
+        yaml_obj = CliCommandConfigObject.model_validate(dict(
             **self.sample_data,
         ))
 
@@ -273,7 +273,7 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize to primitive.
-        yaml_obj = CliCommandYamlObject.model_validate(dict(
+        yaml_obj = CliCommandConfigObject.model_validate(dict(
             **self.sample_data,
         ))
         primitive = yaml_obj.to_primitive('to_data')
@@ -296,7 +296,7 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize with to_model role.
-        yaml_obj = CliCommandYamlObject.model_validate(dict(
+        yaml_obj = CliCommandConfigObject.model_validate(dict(
             **self.sample_data,
         ))
         primitive = yaml_obj.to_primitive('to_model')
@@ -327,11 +327,11 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
             ],
         )
 
-        # Create a CliCommandYamlObject from the model.
-        yaml_obj = CliCommandYamlObject.from_model(cli_command)
+        # Create a CliCommandConfigObject from the model.
+        yaml_obj = CliCommandConfigObject.from_model(cli_command)
 
         # Assert the YAML object is valid.
-        assert isinstance(yaml_obj, CliCommandYamlObject)
+        assert isinstance(yaml_obj, CliCommandConfigObject)
         assert yaml_obj.id == 'calc.subtract'
         assert yaml_obj.name == 'Subtract Number Command'
         assert yaml_obj.key == 'subtract'
@@ -347,7 +347,7 @@ class TestCliCommandYamlObject(TransferObjectTestBase):
         '''
 
         # Convert aggregate to YAML object and back.
-        yaml_obj = CliCommandYamlObject.from_model(aggregate)
+        yaml_obj = CliCommandConfigObject.from_model(aggregate)
         round_tripped = yaml_obj.map()
 
         # Assert argument count matches.

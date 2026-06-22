@@ -42,11 +42,11 @@ DEFAULT_TIFERET_CLI_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] 
     ('remove_error_evt', 'tiferet.events.error', 'RemoveError', None),
 
     # * services: di (service configuration) domain events
-    ('add_service_configuration_evt', 'tiferet.events.di', 'AddServiceConfiguration', None),
-    ('set_default_service_configuration_evt', 'tiferet.events.di', 'SetDefaultServiceConfiguration', None),
+    ('add_service_registration_evt', 'tiferet.events.di', 'AddServiceRegistration', None),
+    ('set_default_service_registration_evt', 'tiferet.events.di', 'SetDefaultServiceRegistration', None),
     ('set_di_service_dependency_evt', 'tiferet.events.di', 'SetServiceDependency', None),
     ('remove_di_service_dependency_evt', 'tiferet.events.di', 'RemoveServiceDependency', None),
-    ('remove_service_configuration_evt', 'tiferet.events.di', 'RemoveServiceConfiguration', None),
+    ('remove_service_registration_evt', 'tiferet.events.di', 'RemoveServiceRegistration', None),
     ('set_service_constants_evt', 'tiferet.events.di', 'SetServiceConstants', None),
 
     # * services: app interface domain events

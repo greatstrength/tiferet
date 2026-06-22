@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 # ** app
 from .settings import DomainEvent, a
-from ..domain import AppInterface, AppServiceDependency
+from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
 
@@ -116,61 +116,14 @@ class GetAppInterface(AppEvent):
     A domain event to retrieve an app interface using the ``AppService`` abstraction.
     '''
 
-    # * method: get_from_defaults
-    def get_from_defaults(
-            self,
-            interface_id: str,
-            default_interfaces: List[Dict[str, Any]],
-        ) -> AppInterfaceAggregate | None:
-        '''
-        Search the provided default interface definitions for a matching id
-        and return a constructed ``AppInterfaceAggregate``, or ``None`` when
-        no match is found.
-
-        :param interface_id: The interface ID to look up.
-        :type interface_id: str
-        :param default_interfaces: List of interface definition dicts, each
-            containing at minimum an ``id`` key.
-        :type default_interfaces: List[Dict[str, Any]]
-        :return: The matching aggregate, or ``None``.
-        :rtype: AppInterfaceAggregate | None
-        '''
-
-        # Find the first dict whose id matches the requested interface_id.
-        matching = next(
-            (d for d in default_interfaces if d.get('id') == interface_id),
-            None,
-        )
-
-        # Construct and return the aggregate, or None if no match found.
-        return AppInterfaceAggregate(**matching) if matching else None
-
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
-    def execute(
-            self,
-            interface_id: str,
-            default_interfaces: List[Dict[str, Any]] = [],
-            default_services: List[AppServiceDependency] | None = None,
-            default_constants: Dict[str, str] | None = None,
-            **kwargs,
-        ) -> AppInterface:
+    def execute(self, interface_id: str, **kwargs) -> AppInterface:
         '''
-        Execute the event to load the application interface.
+        Retrieve an application interface by ID from the app service.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
-        :param default_interfaces: A list of interface definition dicts used as a
-            fallback when the interface is not found in the repository. The first
-            dict whose ``id`` matches ``interface_id`` is used. Defaults to an
-            empty list (no fallback).
-        :type default_interfaces: List[Dict[str, Any]]
-        :param default_services: A list of AppServiceDependency objects to merge
-            into the interface for any service_id not already present.
-        :type default_services: List[AppServiceDependency] | None
-        :param default_constants: A mapping of default constants to merge into the
-            interface for any key not already present.
-        :type default_constants: Dict[str, str] | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The loaded application interface.
@@ -178,54 +131,16 @@ class GetAppInterface(AppEvent):
         :raises TiferetError: If the interface cannot be found.
         '''
 
-        # Retrieve from the repository, falling back to defaults when absent.
-        interface = (
-            self.app_service.get(interface_id)
-            or self.get_from_defaults(interface_id, default_interfaces)
-        )
+        # Retrieve the interface from the app service.
+        interface = self.app_service.get(interface_id)
 
-        # Raise an error if the interface is still not found.
+        # Raise an error if the interface is not found.
         if not interface:
             self.raise_error(
                 a.const.APP_INTERFACE_NOT_FOUND_ID,
                 f'App interface with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
-
-        # Ensure the interface is mutable before applying service/constant merges.
-        if not isinstance(interface, AppInterfaceAggregate):
-            interface = AppInterfaceAggregate(**interface.model_dump())
-
-        # Merge default services into the interface for any service_id not already present.
-        if default_services:
-
-            # Build a set of existing service_ids for lookup.
-            existing_ids = {dep.service_id for dep in interface.services}
-
-            # Add any default service whose service_id is not already present.
-            for dep in default_services:
-                if dep.service_id not in existing_ids:
-                    interface.add_service(
-                        service_id=dep.service_id,
-                        module_path=dep.module_path,
-                        class_name=dep.class_name,
-                        parameters=dep.parameters,
-                    )
-                    existing_ids.add(dep.service_id)
-
-        # Merge default constants only for keys that do not already exist.
-        if default_constants:
-
-            # Create a set of missing constants that are not already defined.
-            missing_constants = {
-                key: value
-                for key, value in default_constants.items()
-                if key not in interface.constants
-            }
-
-            # Apply only missing constants, preserving user-defined constants.
-            if missing_constants:
-                interface.set_constants(missing_constants)
 
         # Return the loaded application interface.
         return interface

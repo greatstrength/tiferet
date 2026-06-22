@@ -77,10 +77,10 @@ class ErrorAggregate(Error, Aggregate):
         self.message = [msg for msg in self.message if msg.lang != lang]
 
 
-# ** mapper: error_message_yaml_object
-class ErrorMessageYamlObject(ErrorMessage, TransferObject):
+# ** mapper: error_message_config_object
+class ErrorMessageConfigObject(ErrorMessage, TransferObject):
     '''
-    A YAML data representation of an error message object.
+    A configuration data representation of an error message object.
     '''
 
     # * attribute: _ROLES
@@ -104,10 +104,10 @@ class ErrorMessageYamlObject(ErrorMessage, TransferObject):
         return super().map(ErrorMessage, **overrides)
 
 
-# ** mapper: error_yaml_object
-class ErrorYamlObject(Error, TransferObject):
+# ** mapper: error_config_object
+class ErrorConfigObject(Error, TransferObject):
     '''
-    A YAML data representation of an error object.
+    A configuration data representation of an error object.
     '''
 
     # * attribute: _ROLES
@@ -117,7 +117,7 @@ class ErrorYamlObject(Error, TransferObject):
     }
 
     # * attribute: message
-    message: List[ErrorMessageYamlObject] = Field(
+    message: List[ErrorMessageConfigObject] = Field(
         default_factory=list,
         description='The error messages.',
     )
@@ -142,24 +142,24 @@ class ErrorYamlObject(Error, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, error: Error, **overrides) -> 'ErrorYamlObject':
+    def from_model(cls, error: Error, **overrides) -> 'ErrorConfigObject':
         '''
-        Creates an ErrorYamlObject from an Error model.
+        Creates an ErrorConfigObject from an Error model.
 
         :param error: The error model to copy from.
         :type error: Error
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new ErrorYamlObject.
-        :rtype: ErrorYamlObject
+        :return: A new ErrorConfigObject.
+        :rtype: ErrorConfigObject
         '''
 
-        # Create a new ErrorYamlObject from the model, converting
-        # the message list into ErrorMessageYamlObject instances.
+        # Create a new ErrorConfigObject from the model, converting
+        # the message list into ErrorMessageConfigObject instances.
         return super().from_model(
             error,
             message=[
-                ErrorMessageYamlObject.from_model(msg)
+                ErrorMessageConfigObject.from_model(msg)
                 for msg in error.message
             ],
             **overrides,

@@ -7,7 +7,7 @@ __all__ = [
     'AppInterface',
     'AppServiceDependency',
     'FlaggedDependency',
-    'ServiceConfiguration',
+    'ServiceRegistration',
     'CliArgument',
     'CliCommand',
     'Error',
@@ -21,6 +21,7 @@ __all__ = [
     'Formatter',
     'Handler',
     'Logger',
+    'LoggingSettings',
 ]
 
 # ** app
@@ -31,7 +32,7 @@ from .app import (
 )
 from .di import (
     FlaggedDependency,
-    ServiceConfiguration,
+    ServiceRegistration,
 )
 from .cli import (
     CliArgument,
@@ -55,4 +56,5 @@ from .logging import (
     Formatter,
     Handler,
     Logger,
+    LoggingSettings,
 )

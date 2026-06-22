@@ -41,23 +41,18 @@ class ListCliCommands(CliEvent):
     '''
 
     # * method: execute
-    def execute(self, default_commands_list: List[CliCommand] = [], **kwargs) -> List[CliCommand]:
+    def execute(self, **kwargs) -> List[CliCommand]:
         '''
-        List all CLI commands, falling back to a provided default command list
-        when the repository returns no results.
+        List all CLI commands from the CLI service.
 
-        :param default_commands_list: Optional list of CLI commands used as an
-            execute-time fallback when the repository returns no commands.
-        :type default_commands_list: List[CliCommand]
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
         :return: List of CLI commands.
         :rtype: List[CliCommand]
         '''
 
-        # Retrieve commands from the service; fall back to the provided defaults if empty.
-        commands = self.cli_service.list()
-        return commands or list(default_commands_list or [])
+        # Retrieve and return all commands from the CLI service.
+        return self.cli_service.list()
 
 
 # ** event: get_parent_arguments

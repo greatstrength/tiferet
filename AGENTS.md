@@ -84,7 +84,7 @@ CLI parsing is owned by `CliContext` (`tiferet/contexts/cli.py`): the side-effec
 As of v2.0.0b10, DI is provided by two classes in `tiferet/di/settings.py` (the previous `ServiceProvider` ABC, `DynamicServiceProvider`, `DependenciesServiceProvider` alias, and the feature-level `DIContext` have all been removed):
 
 - **`ServiceContainer`** — the low-level engine, backed by `dependency-injector`'s `DynamicContainer`. Registers class types as `Factory` providers and scalars/callables as `Object` providers, and resolves instances via `get_service`. `build_factory(service_type)` wires each constructor parameter to a sibling provider via the shared `injectable_parameter_names` helper.
-- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies, reads service configurations and constants (merging bootstrap defaults via `merge_settings`), assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` per flag set. Its bound `get_dependency(configuration_id, *flags)` method is injected into `AppInterfaceContext` and forwarded to each `FeatureContext` to resolve feature-step events and middleware.
+- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies, reads service registrations and constants (merging bootstrap defaults via `merge_settings`), assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` per flag set. Its bound `get_dependency(registration_id, *flags)` method is injected into `AppInterfaceContext` and forwarded to each `FeatureContext` to resolve feature-step events and middleware.
 
 The DI layer is **event-free and asset-free** (it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`); it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as the injected `parse_parameter` callable. `tiferet/di/settings.py` also exposes pure `# *** functions` — `injectable_parameter_names`, `normalize_flags`, `create_cache_key`, and `merge_settings` — exported from `tiferet/di/__init__.py`.
 
@@ -193,10 +193,10 @@ result = DomainEvent.handle(
 
 - `domain/app.py` — `AppInterface`, `AppServiceDependency`
 - `domain/cli.py` — `CliCommand`, `CliArgument`
-- `domain/di.py` — `ServiceConfiguration`, `FlaggedDependency`
+- `domain/di.py` — `ServiceRegistration`, `FlaggedDependency`
 - `domain/error.py` — `Error`, `ErrorMessage`
 - `domain/feature.py` — `Feature`, `FeatureStep`, `EventFeatureStep`
-- `domain/logging.py` — `Formatter`, `Handler`, `Logger`
+- `domain/logging.py` — `Formatter`, `Handler`, `Logger`, `LoggingSettings`
 
 ## Interfaces (Services)
 
@@ -214,8 +214,8 @@ Split into two classes:
 
 ### Naming Convention
 
-- `<Domain>Aggregate` (e.g., `FeatureAggregate`, `ErrorAggregate`, `ServiceConfigurationAggregate`)
-- `<Domain>YamlObject` (e.g., `FeatureYamlObject`, `ErrorYamlObject`, `ServiceConfigurationYamlObject`)
+- `<Domain>Aggregate` (e.g., `FeatureAggregate`, `ErrorAggregate`, `ServiceRegistrationAggregate`)
+- `<Domain>ConfigObject` (e.g., `FeatureConfigObject`, `ErrorConfigObject`, `ServiceRegistrationConfigObject`)
 
 ## Repositories
 
@@ -256,7 +256,7 @@ New error constants added in the b2→b3 cycle:
 Applications are configured in a consolidated root `config.yml` file:
 
 - `interfaces` — Interface definitions (name, module_path, class_name, service dependencies)
-- `services` — Feature-level DI service configurations (module_path, class_name, parameters, flagged dependencies)
+- `services` — Feature-level DI service registrations (module_path, class_name, parameters, flagged dependencies)
 - `features` — Feature workflows (commands with service_id, parameters, data mapping, optional `condition` expressions for conditional step execution, and optional `middleware` lists at feature or step level)
 - `errors` — Error definitions with multilingual messages
 - `cli` — CLI command definitions with arguments
@@ -343,6 +343,15 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### v2.0.0b13: Bootstrap/Default Configuration Finalization
+
+The v2.0.0b13 cycle finalizes the bootstrap/default configuration architecture and applies a behavior-preserving naming refactor. Key changes:
+
+- **`ServiceConfiguration` → `ServiceRegistration`** — The DI domain concept (`domain/di.py`) is renamed to `ServiceRegistration` (it models a DI registration). Mappers become `ServiceRegistrationAggregate`/`ServiceRegistrationConfigObject`; `DIService`/`DIConfigRepository` methods become `registration_exists`, `get_registration`, `save_registration`, `delete_registration` (param `registration_id`); the resolver's `get_dependency(registration_id, *flags)` param is renamed to match; events become `AddServiceRegistration`/`SetDefaultServiceRegistration`/`RemoveServiceRegistration`; error constants become `INVALID_SERVICE_REGISTRATION`, `SERVICE_REGISTRATION_NOT_FOUND`, `SERVICE_REGISTRATION_ALREADY_EXISTS`; bootstrap service ids become `add_service_registration_evt`/`set_default_service_registration_evt`/`remove_service_registration_evt`. `ListAllSettings`, `SetServiceDependency`, `RemoveServiceDependency`, `SetServiceConstants`, the `di_list_all_configs_evt` id, and the persisted `services:` config section are unchanged.
+- **`*YamlObject` → `*ConfigObject`** — All transfer objects are renamed from the `*YamlObject` suffix to `*ConfigObject` (configs load as YAML or JSON by registered extension, completing the b7 `*ConfigRepository` direction): e.g., `FeatureYamlObject` → `FeatureConfigObject`, `ErrorYamlObject` → `ErrorConfigObject`, `ServiceRegistrationConfigObject`, `LoggingSettingsYamlObject` → `LoggingSettingsConfigObject`, plus the non-exported child objects. The `# ** mapper: *_yaml_object` artifact comments become `*_config_object` and "YAML data representation" docstrings become "configuration data representation".
+- **Default configuration hoisting** — The listing/lookup events are now repo-only: `GetFeature`, `ListCliCommands`, `ListAllSettings`, and `GetAppInterface` no longer accept `default_*` params (and `GetAppInterface.get_from_defaults` is removed). Bootstrap defaults are id-keyed asset mappings (`assets/feature.py` `DEFAULT_TIFERET_CLI_FEATURES` and `assets/cli_commands.py` `DEFAULT_TIFERET_CLI_COMMANDS` are now `Dict[str, dict]`) materialized by the pure builders `build_feature_index` / `build_command_list` in `contexts/app.py`. The fallback/merge moves to the orchestration layer: `AppInterfaceContext.load_feature_domain` falls back to the default feature index, `CliContext.get_commands` falls back to the default command list, and the blueprint's `resolve_interface` applies the interface fallback via the context helper `resolve_default_interface` (`contexts/app.py`, beside `build_feature_index` / `build_command_list`) and the service/constant merge via the non-mutating `AppInterface.apply_defaults` domain method (`domain/app.py`); neither imports the `AppInterfaceAggregate`. Consumer-facing `cli list-commands` / `service list` now return repo-only results.
+- **`LoggingSettings` value object** — A runtime value object (`domain/logging.py`, exported from `domain/__init__.py`) bundles `formatters`/`handlers`/`loggers` plus `version`/`disable_existing_loggers` and owns the `format_config()` dictConfig assembly (including the `root` entry drawn from the `is_root` logger). `LoggingContext.build_logger` now constructs a `LoggingSettings` from the `ListAllLoggingConfigs` lists (applying the built-in defaults as the per-section fallback) and calls `settings.format_config()` then `create_logger`; the context's inline `format_config` method is removed. The `logging_list_all_evt` collaborator and `logger_id` handling are unchanged, the value object is runtime-only (no Aggregate/TransferObject), and `logger_id` stays out of it.
 
 ### v2.0.0b11: CliContext Reincorporation
 

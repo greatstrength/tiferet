@@ -155,10 +155,10 @@ class CliCommandAggregate(CliCommand, Aggregate):
         # Apply the update; validate_assignment=True triggers field validation.
         setattr(self, attribute, value)
 
-# ** mapper: cli_command_yaml_object
-class CliCommandYamlObject(CliCommand, TransferObject):
+# ** mapper: cli_command_config_object
+class CliCommandConfigObject(CliCommand, TransferObject):
     '''
-    A YAML data representation of a CLI command object.
+    A configuration data representation of a CLI command object.
     '''
 
     # * attribute: _ROLES
@@ -196,16 +196,16 @@ class CliCommandYamlObject(CliCommand, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, cli_command: CliCommand, **overrides) -> 'CliCommandYamlObject':
+    def from_model(cls, cli_command: CliCommand, **overrides) -> 'CliCommandConfigObject':
         '''
-        Creates a CliCommandYamlObject from a CliCommand model.
+        Creates a CliCommandConfigObject from a CliCommand model.
 
         :param cli_command: The CLI command model to copy from.
         :type cli_command: CliCommand
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new CliCommandYamlObject instance.
-        :rtype: CliCommandYamlObject
+        :return: A new CliCommandConfigObject instance.
+        :rtype: CliCommandConfigObject
         '''
 
         # Delegate to the base mapper.

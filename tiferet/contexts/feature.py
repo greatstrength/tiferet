@@ -61,7 +61,7 @@ class FeatureContext(BaseContext):
         :param cache: The shared cache context to use for caching feature data.
         :type cache: CacheContext
         :param context_data: Lowest-priority context defaults merged into every
-            command execution (e.g. bootstrap ``default_commands_list``).
+            command execution.
         :type context_data: Dict[str, Any]
         '''
 

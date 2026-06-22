@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 # ** app
 from .settings import DomainEvent, a
 from .static import ParseParameter
-from ..domain import AppInterface, ServiceConfiguration
+from ..domain import AppInterface, ServiceRegistration
 from ..di import ServiceResolver, injectable_parameter_names
 
 # *** events
@@ -73,7 +73,7 @@ class CreateServiceResolver(DomainEvent):
         default_config_index = {
             config.id: config
             for config in (
-                ServiceConfiguration.model_validate(data)
+                ServiceRegistration.model_validate(data)
                 for data in (default_configurations or [])
             )
         }

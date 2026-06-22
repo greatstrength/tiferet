@@ -6,26 +6,26 @@ __all__ = [
     'Aggregate',
     'TransferObject',
     'AppInterfaceAggregate',
-    'AppInterfaceYamlObject',
-    'ServiceConfigurationAggregate',
-    'ServiceConfigurationYamlObject',
+    'AppInterfaceConfigObject',
+    'ServiceRegistrationAggregate',
+    'ServiceRegistrationConfigObject',
     'CliArgumentAggregate',
     'CliCommandAggregate',
-    'CliCommandYamlObject',
+    'CliCommandConfigObject',
     'ErrorAggregate',
-    'ErrorYamlObject',
-    'ErrorMessageYamlObject',
+    'ErrorConfigObject',
+    'ErrorMessageConfigObject',
     'FeatureAggregate',
-    'FeatureYamlObject',
+    'FeatureConfigObject',
     'EventFeatureStepAggregate',
-    'EventFeatureStepYamlObject',
+    'EventFeatureStepConfigObject',
     'FormatterAggregate',
-    'FormatterYamlObject',
+    'FormatterConfigObject',
     'HandlerAggregate',
-    'HandlerYamlObject',
+    'HandlerConfigObject',
     'LoggerAggregate',
-    'LoggerYamlObject',
-    'LoggingSettingsYamlObject',
+    'LoggerConfigObject',
+    'LoggingSettingsConfigObject',
 ]
 
 # ** app
@@ -36,34 +36,34 @@ from .settings import (
 
 from .app import (
     AppInterfaceAggregate,
-    AppInterfaceYamlObject,
+    AppInterfaceConfigObject,
 )
 from .di import (
-    ServiceConfigurationAggregate,
-    ServiceConfigurationYamlObject,
+    ServiceRegistrationAggregate,
+    ServiceRegistrationConfigObject,
 )
 from .cli import (
     CliArgumentAggregate,
     CliCommandAggregate,
-    CliCommandYamlObject,
+    CliCommandConfigObject,
 )
 from .error import (
     ErrorAggregate,
-    ErrorYamlObject,
-    ErrorMessageYamlObject,
+    ErrorConfigObject,
+    ErrorMessageConfigObject,
 )
 from .feature import (
     FeatureAggregate,
-    FeatureYamlObject,
+    FeatureConfigObject,
     EventFeatureStepAggregate,
-    EventFeatureStepYamlObject,
+    EventFeatureStepConfigObject,
 )
 from .logging import (
     FormatterAggregate,
-    FormatterYamlObject,
+    FormatterConfigObject,
     HandlerAggregate,
-    HandlerYamlObject,
+    HandlerConfigObject,
     LoggerAggregate,
-    LoggerYamlObject,
-    LoggingSettingsYamlObject,
+    LoggerConfigObject,
+    LoggingSettingsConfigObject,
 )

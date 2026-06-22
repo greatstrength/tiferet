@@ -236,10 +236,10 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         setattr(self, attribute, value)
 
 
-# ** mapper: app_service_dependency_yaml_object
-class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
+# ** mapper: app_service_dependency_config_object
+class AppServiceDependencyConfigObject(AppServiceDependency, TransferObject):
     '''
-    A YAML data representation of an app service dependency object.
+    A configuration data representation of an app service dependency object.
     '''
 
     # * attribute: _ROLES
@@ -285,26 +285,26 @@ class AppServiceDependencyYamlObject(AppServiceDependency, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, dependency: AppServiceDependency, **overrides) -> 'AppServiceDependencyYamlObject':
+    def from_model(cls, dependency: AppServiceDependency, **overrides) -> 'AppServiceDependencyConfigObject':
         '''
-        Creates an AppServiceDependencyYamlObject from an AppServiceDependency model.
+        Creates an AppServiceDependencyConfigObject from an AppServiceDependency model.
 
         :param dependency: The app service dependency model.
         :type dependency: AppServiceDependency
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppServiceDependencyYamlObject.
-        :rtype: AppServiceDependencyYamlObject
+        :return: A new AppServiceDependencyConfigObject.
+        :rtype: AppServiceDependencyConfigObject
         '''
 
-        # Create a new AppServiceDependencyYamlObject from the model.
+        # Create a new AppServiceDependencyConfigObject from the model.
         return super().from_model(dependency, **overrides)
 
 
-# ** mapper: app_interface_yaml_object
-class AppInterfaceYamlObject(AppInterface, TransferObject):
+# ** mapper: app_interface_config_object
+class AppInterfaceConfigObject(AppInterface, TransferObject):
     '''
-    A YAML data representation of an app interface settings object.
+    A configuration data representation of an app interface settings object.
     '''
 
     # * attribute: _ROLES
@@ -330,7 +330,7 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
     )
 
     # * attribute: services
-    services: Dict[str, AppServiceDependencyYamlObject] = Field(
+    services: Dict[str, AppServiceDependencyConfigObject] = Field(
         default_factory=dict,
         serialization_alias='attrs',
         validation_alias=AliasChoices('attrs', 'services', 'dependencies', 'attributes'),
@@ -368,24 +368,24 @@ class AppInterfaceYamlObject(AppInterface, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, app_interface: AppInterface, **overrides) -> 'AppInterfaceYamlObject':
+    def from_model(cls, app_interface: AppInterface, **overrides) -> 'AppInterfaceConfigObject':
         '''
-        Creates an AppInterfaceYamlObject from an AppInterface model.
+        Creates an AppInterfaceConfigObject from an AppInterface model.
 
         :param app_interface: The app interface model.
         :type app_interface: AppInterface
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppInterfaceYamlObject.
-        :rtype: AppInterfaceYamlObject
+        :return: A new AppInterfaceConfigObject.
+        :rtype: AppInterfaceConfigObject
         '''
 
-        # Create a new AppInterfaceYamlObject from the model, converting
+        # Create a new AppInterfaceConfigObject from the model, converting
         # the services list into a dictionary keyed by service_id.
         return super().from_model(
             app_interface,
             services={
-                dep.service_id: AppServiceDependencyYamlObject.from_model(dep)
+                dep.service_id: AppServiceDependencyConfigObject.from_model(dep)
                 for dep in app_interface.services
             },
             **overrides,

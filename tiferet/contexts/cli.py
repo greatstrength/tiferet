@@ -160,8 +160,8 @@ class CliContext(AppInterfaceContext):
             list_commands_evt: DomainEvent,
             get_parent_args_evt: DomainEvent,
             cache: CacheContext = None,
-            default_features: List[Dict[str, Any]] = None,
-            default_commands: List[Dict[str, Any]] = None,
+            default_features: Dict[str, Dict[str, Any]] = None,
+            default_commands: Dict[str, Dict[str, Any]] = None,
         ):
         '''
         Initialize the CLI context.
@@ -181,10 +181,10 @@ class CliContext(AppInterfaceContext):
         :type get_parent_args_evt: DomainEvent
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
-        :param default_features: Optional raw feature dicts for bootstrap fallback.
-        :type default_features: List[Dict[str, Any]]
-        :param default_commands: Optional raw CLI command dicts for bootstrap fallback.
-        :type default_commands: List[Dict[str, Any]]
+        :param default_features: Optional id-keyed feature records for bootstrap fallback.
+        :type default_features: Dict[str, Dict[str, Any]]
+        :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
+        :type default_commands: Dict[str, Dict[str, Any]]
         '''
 
         # Initialize the base application interface hub.
@@ -211,10 +211,9 @@ class CliContext(AppInterfaceContext):
         :rtype: Dict[str, List[CliCommand]]
         '''
 
-        # Retrieve the commands via the event, passing the bootstrap defaults.
-        cli_commands = self.list_commands_evt.execute(
-            default_commands_list=self.default_commands_list,
-        )
+        # Retrieve commands via the event, falling back to the bootstrap default
+        # command list when the repository returns no commands.
+        cli_commands = self.list_commands_evt.execute() or self.default_commands_list
 
         # Group the commands by their group key.
         return group_commands_by_key(cli_commands)
