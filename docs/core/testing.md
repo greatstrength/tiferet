@@ -128,11 +128,11 @@ Base class for testing TransferObject components. Provides `test_map`, `test_fro
 **Example:**
 
 ```python
-from tiferet.mappers.error import ErrorAggregate, ErrorYamlObject
+from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
 from tiferet.testing import TransferObjectTestBase
 
-class TestErrorYamlObject(TransferObjectTestBase):
-    transfer_cls = ErrorYamlObject
+class TestErrorConfigObject(TransferObjectTestBase):
+    transfer_cls = ErrorConfigObject
     aggregate_cls = ErrorAggregate
     sample_data = ERROR_SAMPLE_DATA
     aggregate_sample_data = ERROR_SAMPLE_DATA
@@ -140,7 +140,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
 
     # Domain-specific tests beyond the harness:
     def test_map_messages(self):
-        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
         mapped = yaml_obj.map()
         assert len(mapped.message) == 1
 ```
@@ -290,9 +290,9 @@ class TestSomeAggregate(AggregateTestBase):
 
     # Domain-specific mutation tests go here.
 
-# ** class: TestSomeYamlObject
-class TestSomeYamlObject(TransferObjectTestBase):
-    transfer_cls = SomeYamlObject
+# ** class: TestSomeConfigObject
+class TestSomeConfigObject(TransferObjectTestBase):
+    transfer_cls = SomeConfigObject
     aggregate_cls = SomeAggregate
     sample_data = { ... }  # YAML-format
     aggregate_sample_data = SAMPLE_DATA

@@ -75,18 +75,28 @@ def load_default_services() -> List[AppServiceDependency]:
     ]
 ```
 
-Constants are passed via `default_constants=a.bps.DEFAULT_CONSTANTS` to `GetAppInterface`.
+Default services and constants are merged into the interface by the event-layer `apply_interface_defaults` factory (see step 4).
 
 ### 4. Interface Resolution Flow
 
+`resolve_interface` reads the interface via the repo-only `GetAppInterface` event, falls back to the bootstrap default interface definitions through the `resolve_default_interface` factory when the consumer's config omits it, then merges framework default services and constants via `apply_interface_defaults`. Both factories live in `events/app.py`, so the blueprint never imports domain or mapper types directly.
+
 ```python
-def resolve_interface(interface_id, ...) -> tuple:
+def resolve_interface(interface_id, ..., default_interfaces=[]) -> tuple:
     app_service = load_app_service(...)
     default_services = load_default_services()
-    app_interface = DomainEvent.handle(
-        GetAppInterface,
-        dependencies={'app_service': app_service},
-        interface_id=interface_id,
+    try:
+        app_interface = DomainEvent.handle(
+            GetAppInterface,
+            dependencies={'app_service': app_service},
+            interface_id=interface_id,
+        )
+    except a.TiferetError:
+        app_interface = resolve_default_interface(interface_id, default_interfaces)
+        if app_interface is None:
+            raise
+    app_interface = apply_interface_defaults(
+        app_interface,
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )

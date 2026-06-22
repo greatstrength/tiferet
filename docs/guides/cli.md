@@ -1,7 +1,7 @@
 # Tiferet Built-in CLI
 
 Tiferet ships a built-in command-line interface for managing a Tiferet
-application's configuration file (features, errors, service configurations, app
+application's configuration file (features, errors, service registrations, app
 interfaces, CLI commands, and logging). It is installed as the `tiferet` console
 script and is implemented by the `build_tiferet_cli` blueprint
 (`tiferet/blueprints/tiferet_cli.py`, exported as `TiferetCLI`).
@@ -52,7 +52,7 @@ The built-in CLI exposes these command groups:
 
 - `feature` — manage feature workflows and their steps.
 - `error` — manage error definitions and localized messages.
-- `service` — manage feature-level DI service configurations.
+- `service` — manage feature-level DI service registrations.
 - `app` — manage application interface definitions and their service dependencies.
 - `cli` — manage CLI command definitions and arguments.
 - `logging` — manage logging formatters, handlers, and loggers.
@@ -70,7 +70,7 @@ strings on the command line and decoded before the feature executes:
 - `--services`
 - `--flagged-dependencies`
 
-Example — add a service configuration with parameters:
+Example — add a service registration with parameters:
 
 ```bash
 tiferet --config app/config.yml service add my_svc \

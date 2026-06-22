@@ -139,7 +139,7 @@ Concrete implementations (e.g., `ErrorConfigRepository`) satisfy this interface.
 
 - **All Domains:** Every domain event uses `verify()` and `raise_error()` to raise `TiferetError`, which is resolved to an `Error` for formatting.
 - **App:** `ErrorContext` is loaded as part of the application interface bootstrap, receiving `ErrorService` via dependency injection.
-- **DI:** `ErrorService` is wired through the DI container (`ServiceConfiguration` entries in the `services` section of the configuration).
+- **DI:** `ErrorService` is wired through the DI container (`ServiceRegistration` entries in the `services` section of the configuration).
 
 ## Instantiation
 

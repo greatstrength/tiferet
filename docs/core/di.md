@@ -9,9 +9,9 @@ The `tiferet/di/` package provides the dependency-injection layer for the Tifere
 
 - **`injectable_parameter_names`, `normalize_flags`, `create_cache_key`, `merge_settings`** — pure module-level helpers shared by the DI classes, the blueprint wiring (`tiferet/blueprints/main.py`), and the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`).
 - **`ServiceContainer`** — the low-level dependency-injection engine. It registers service types and constants and instantiates services with their constructor parameters wired to sibling registrations, backed by `dependency_injector`'s `DynamicContainer`.
-- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies (in the spirit of a domain event), reads service configurations and constants, assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` engine per flag set.
+- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies (in the spirit of a domain event), reads service registrations and constants, assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` engine per flag set.
 
-The DI layer is deliberately **event-free and asset-free**: `tiferet/di/settings.py` imports only the standard library, `dependency_injector`, `..domain` (`ServiceConfiguration`), and `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access (the feature context and the bootstrap event layer). Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports `ParseParameter` itself.
+The DI layer is deliberately **event-free and asset-free**: `tiferet/di/settings.py` imports only the standard library, `dependency_injector`, `..domain` (`ServiceRegistration`), and `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access (the feature context and the bootstrap event layer). Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports `ParseParameter` itself.
 
 There is no longer a separate "app-level" vs. "feature-level" DI split. The previous `ServiceProvider` ABC, `DynamicServiceProvider`, the `DependenciesServiceProvider` alias, and the `DIContext` feature-level context have all been retired. DI assembly now lives entirely in `ServiceResolver`, and the contexts that need to resolve services (`AppInterfaceContext`, `FeatureContext`) consume an injected `get_dependency` callable rather than holding a provider or container directly.
 
@@ -108,7 +108,7 @@ class ServiceContainer(object):
 
 ## The ServiceResolver
 
-`ServiceResolver` is the application's single public provider and the only DI class the rest of the framework collaborates with. It takes a `DIService` and a `parse_parameter` callable as direct constructor dependencies (in the spirit of a domain event), reads the service configurations and constants, assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` engine per flag set.
+`ServiceResolver` is the application's single public provider and the only DI class the rest of the framework collaborates with. It takes a `DIService` and a `parse_parameter` callable as direct constructor dependencies (in the spirit of a domain event), reads the service registrations and constants, assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` engine per flag set.
 
 ```python
 # ** class: service_resolver
@@ -124,7 +124,7 @@ class ServiceResolver(object):
     parse_parameter: Callable
 
     # * attribute: default_config_index
-    default_config_index: Dict[str, ServiceConfiguration]
+    default_config_index: Dict[str, ServiceRegistration]
 
     # * attribute: default_di_constants
     default_di_constants: Dict[str, Any]
@@ -133,7 +133,7 @@ class ServiceResolver(object):
     def __init__(self,
             di_service: DIService,
             parse_parameter: Callable = None,
-            default_config_index: Dict[str, ServiceConfiguration] = None,
+            default_config_index: Dict[str, ServiceRegistration] = None,
             default_di_constants: Dict[str, Any] = None,
         ):
         self.di_service = di_service
@@ -151,15 +151,15 @@ class ServiceResolver(object):
 - **`create_cache_key(flags)`** — Derives the per-flag cache key (e.g. `feature_services_<flag>...`). Delegates to the module-level `create_cache_key` helper.
 - **`list_all_settings()`** — Calls `di_service.list_all()` for repository configurations and constants, then delegates to the module-level `merge_settings` helper to append `default_config_index` entries for any service ID not present and merge `default_di_constants` beneath the repository constants (defaults are lower priority).
 - **`load_constants(configurations, constants, flags)`** — Parses top-level constants and per-configuration parameters (honoring flagged dependencies) via the injected `parse_parameter` callable.
-- **`build_type_map(configurations, flags)`** — Resolves each configuration to a concrete type via `ServiceConfiguration.get_service_type(*flags)`, skipping any configuration that resolves to no type (so it is simply not registered); an unresolved service then surfaces as a raw resolution error at the consuming context.
+- **`build_type_map(configurations, flags)`** — Resolves each configuration to a concrete type via `ServiceRegistration.get_service_type(*flags)`, skipping any configuration that resolves to no type (so it is simply not registered); an unresolved service then surfaces as a raw resolution error at the consuming context.
 - **`build_container(flags)`** — Builds (and caches per flag set) a `ServiceContainer` directly by combining `list_all_settings`, `load_constants`, and `build_type_map` (registering constants before service types).
-- **`get_dependency(configuration_id, *flags)`** — The public resolution entry point: normalizes flags, builds/retrieves the per-flag container, and returns the resolved service. This bound method is the `get_dependency` callable injected into the contexts.
+- **`get_dependency(registration_id, *flags)`** — The public resolution entry point: normalizes flags, builds/retrieves the per-flag container, and returns the resolved service. This bound method is the `get_dependency` callable injected into the contexts.
 
 ### Bootstrap Default Merging
 
 `ServiceResolver` preserves the bootstrap `default_*` merge behavior. The `CreateServiceResolver` bootstrap event routes any bootstrap DI defaults into the resolver:
 
-- `default_config_index` — a typed `Dict[str, ServiceConfiguration]` keyed by id, merged beneath the repository's configurations (only for IDs not already present).
+- `default_config_index` — a typed `Dict[str, ServiceRegistration]` keyed by id, merged beneath the repository's configurations (only for IDs not already present).
 - `default_di_constants` — constants merged beneath the repository's constants at lower priority.
 
 ## How Contexts Consume DI
@@ -174,7 +174,7 @@ The contexts do not hold a container or provider. Instead, the resolver's bound 
 return self.get_dependency(service_id, *combined_flags)
 ```
 
-This keeps the contexts decoupled from the DI engine: any callable with the `get_dependency(configuration_id, *flags)` signature can be injected, which simplifies testing (a `mock.Mock()` suffices).
+This keeps the contexts decoupled from the DI engine: any callable with the `get_dependency(registration_id, *flags)` signature can be injected, which simplifies testing (a `mock.Mock()` suffices).
 
 ## Blueprint Wiring
 

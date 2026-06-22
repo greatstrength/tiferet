@@ -74,15 +74,9 @@ result = DomainEvent.handle(
 
 ### GetAppInterface
 
-Retrieves an `AppInterface` by ID. Optionally merges default services into the result for any `service_id` not already present on the interface.
+Retrieves an `AppInterface` by ID from the app service. It is a repo-only read; bootstrap fallback and default merging live in the blueprint via the event-layer factories documented under *Default Service Merging* below.
 
 **Required:** `interface_id`
-
-**Optional parameters:**
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `default_services` | `List[AppServiceDependency]` | `[]` | Default service dependencies to merge if their `service_id` is missing |
 
 **Returns:** The loaded `AppInterface` instance.
 
@@ -91,14 +85,13 @@ Retrieves an `AppInterface` by ID. Optionally merges default services into the r
 **Behavior:**
 1. Retrieves the interface via `app_service.get(interface_id)`.
 2. Raises a structured error if `None`.
-3. If `default_services` is provided, iterates them and adds any whose `service_id` is not already present on the interface.
+3. Returns the loaded interface.
 
 ```python
 interface = DomainEvent.handle(
     GetAppInterface,
     dependencies={'app_service': app_service},
     interface_id='my_app',
-    default_services=[default_error_repo, default_feature_repo],
 )
 ```
 
@@ -267,7 +260,12 @@ Both `RemoveServiceDependency` and `RemoveAppInterface` are idempotent — they 
 
 ### Default Service Merging
 
-`GetAppInterface` supports a `default_services` list that is merged into the loaded interface. This is used by `AppManagerContext` to inject framework-level defaults (error repository, feature repository, etc.) that the user doesn't need to declare explicitly.
+The bootstrap blueprint injects framework-level defaults (error repository, feature repository, etc.) that the user doesn't need to declare explicitly. As of v2.0.0b13 this no longer lives on `GetAppInterface` (now a repo-only read); instead the module exposes two event-layer factory functions consumed by `resolve_interface`:
+
+- **`resolve_default_interface(interface_id, default_interfaces)`** — builds an `AppInterfaceAggregate` from the bootstrap default interface definitions when the consumer's config does not define the interface.
+- **`apply_interface_defaults(app_interface, default_services, default_constants)`** — merges default services (for any missing `service_id`) and default constants (for missing keys) into the interface.
+
+These live in `events/app.py` so the blueprint can construct and merge interfaces without importing domain or mapper types directly.
 
 ## Related Documentation
 

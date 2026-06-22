@@ -142,13 +142,13 @@ Selection is driven by the `Feature.is_async` flag. `AppInterfaceContext.execute
 
 ### Service Resolution (ServiceResolver)
 
-Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py`), whose bound `get_dependency(configuration_id, *flags)` method is injected into the hub and forwarded to each `FeatureContext`. There is no `DIContext`. `ServiceResolver.get_dependency` performs:
+Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py`), whose bound `get_dependency(registration_id, *flags)` method is injected into the hub and forwarded to each `FeatureContext`. There is no `DIContext`. `ServiceResolver.get_dependency` performs:
 
 1. Normalize the flags into a flat list.
 2. Build (or retrieve from cache) a per-flag `ServiceContainer` via `build_container`.
-3. Resolve and return the service from the container by `configuration_id`.
+3. Resolve and return the service from the container by `registration_id`.
 
-`build_container` lists all `ServiceConfiguration` objects and constants (merging bootstrap defaults via `list_all_settings`), parses constants and per-configuration parameters (`load_constants`), resolves each configuration to a concrete type (`build_type_map`), and constructs a `ServiceContainer` directly (registering constants before service types). The blueprint composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event in `load_app_instance` (`tiferet/blueprints/main.py`).
+`build_container` lists all `ServiceRegistration` objects and constants (merging bootstrap defaults via `list_all_settings`), parses constants and per-configuration parameters (`load_constants`), resolves each configuration to a concrete type (`build_type_map`), and constructs a `ServiceContainer` directly (registering constants before service types). The blueprint composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event in `load_app_instance` (`tiferet/blueprints/main.py`).
 
 ### RequestContext
 
@@ -157,7 +157,7 @@ Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py
 ### ErrorContext and LoggingContext
 
 - `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object (error retrieval is owned by the hub's `load_error_domain`). `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
-- `LoggingContext.build_logger` composes formatters, handlers, and loggers defined in configuration into a ready-to-use logger instance.
+- `LoggingContext.build_logger` wraps the configured formatters, handlers, and loggers in a `LoggingSettings` value object (which owns the `dictConfig` assembly) and creates a ready-to-use logger instance.
 
 The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.
 

@@ -1,4 +1,4 @@
-# Domain – Logging: Formatter, Handler, and Logger
+# Domain – Logging: Formatter, Handler, Logger, and LoggingSettings
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -21,7 +21,7 @@ The Logging domain follows a three-model composition pattern:
 2. **Handler** defines where log messages are sent (console, file), at what level, and references a `Formatter` by ID.
 3. **Logger** defines a named logger with a level, a list of `Handler` IDs, and propagation behavior.
 
-At runtime, `LoggingContext` assembles these into a `dictConfig`-compatible dictionary by calling `format_config()` on each domain object and composing the results into the standard Python `logging.config.dictConfig` structure.
+At runtime, the `LoggingSettings` value object bundles the formatters, handlers, and loggers and owns the assembly: its `format_config()` calls `format_config()` on each bundled domain object and composes the results into the standard Python `logging.config.dictConfig` structure. `LoggingContext.build_logger` builds the `LoggingSettings` (applying the built-in defaults as the per-section fallback) and passes its assembled config to `create_logger`.
 
 ```
 Logger → [handler_id, ...] → Handler → formatter_id → Formatter
@@ -113,6 +113,31 @@ logger.format_config()
 # {'level': 'DEBUG', 'handlers': ['console'], 'propagate': True}
 ```
 
+### LoggingSettings
+
+Runtime value object that bundles the formatter, handler, and logger configurations and owns the whole-system `dictConfig` assembly. It is runtime-only — there is no Aggregate or TransferObject counterpart — and is intentionally logger-agnostic (the final `getLogger` call and its `logger_id` stay with `LoggingContext`).
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `formatters` | `List[Formatter]` | No | `[]` | The formatter configurations. |
+| `handlers` | `List[Handler]` | No | `[]` | The handler configurations. |
+| `loggers` | `List[Logger]` | No | `[]` | The logger configurations. |
+| `version` | `int` | No | `1` | The dictConfig schema version. |
+| `disable_existing_loggers` | `bool` | No | `False` | Whether to disable existing loggers on configuration. |
+
+#### Methods
+
+**`format_config() -> Dict[str, Any]`**
+
+Assembles a `logging.config.dictConfig`-compatible dictionary, keying `formatters`/`handlers`/`loggers` by id and drawing the `root` entry from the logger flagged `is_root`:
+
+```python
+settings = LoggingSettings(formatters=[fmt], handlers=[hdlr], loggers=[root_logger])
+settings.format_config()
+# {'version': 1, 'disable_existing_loggers': False, 'formatters': {...},
+#  'handlers': {...}, 'loggers': {...}, 'root': {...}}
+```
+
 ## Built-In Defaults
 
 Tiferet provides built-in logging defaults in `assets/logging.py`. These define a standard console formatter, stream handler, and root logger that are used when no application-specific logging configuration is provided.
@@ -123,8 +148,8 @@ The Logging domain objects participate in runtime configuration through the foll
 
 1. `LoggingContext.build_logger()` is called during application interface initialization.
 2. `LoggingService` loads all `Formatter`, `Handler`, and `Logger` domain objects from `logging.yml`.
-3. `LoggingContext` calls `format_config()` on each domain object to produce `dictConfig`-compatible entries.
-4. The results are assembled into a complete `dictConfig` dictionary with `formatters`, `handlers`, and `loggers` sections.
+3. `LoggingContext.build_logger` wraps the loaded formatters, handlers, and loggers in a `LoggingSettings` value object (applying the built-in defaults as the per-section fallback).
+4. `LoggingSettings.format_config()` assembles a complete `dictConfig` dictionary with `formatters`, `handlers`, `loggers`, and `root` sections.
 5. `logging.config.dictConfig(config)` is called to configure the Python logging system.
 6. The configured logger is available for use throughout the application.
 

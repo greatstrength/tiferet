@@ -9,7 +9,7 @@
 
 The feature event module provides the full CRUD surface for `Feature` domain objects — the configuration-driven workflow definitions that power Tiferet's feature execution engine. Every event in this module extends the shared `FeatureEvent` base event (which holds the injected `FeatureService`) and operates on `Feature` domain objects through the `FeatureAggregate` mapper.
 
-Features are composed of ordered **steps** (`EventFeatureStep` instances), each referencing a `service_id` that maps to a service configuration in the dependency injection container.
+Features are composed of ordered **steps** (`EventFeatureStep` instances), each referencing a `service_id` that maps to a service registration in the dependency injection container.
 
 ## Events at a Glance
 
@@ -161,7 +161,7 @@ DomainEvent.handle(
 
 ### AddFeatureStep
 
-Adds a step to an existing feature's workflow. Steps reference a `service_id` that maps to a service configuration in the DI container.
+Adds a step to an existing feature's workflow. Steps reference a `service_id` that maps to a service registration in the DI container.
 
 **Required:** `id`, `name`, `service_id`
 
@@ -278,4 +278,4 @@ DomainEvent.handle(
 ### v2.0.0b10 Changes
 
 - **Base event:** introduced `FeatureEvent(DomainEvent)` holding the shared `feature_service`. `AddFeature`, `GetFeature`, `ListFeatures`, `RemoveFeature`, `UpdateFeature`, `AddFeatureStep`, `UpdateFeatureStep`, `RemoveFeatureStep`, and `ReorderFeatureStep` now extend it and keep only their `execute` methods (and `@DomainEvent.parameters_required` decorators).
-- **Domain object rename:** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (mappers `FeatureEventAggregate`/`FeatureEventYamlObject` → `EventFeatureStepAggregate`/`EventFeatureStepYamlObject`) to free the `FeatureEvent` name for the new base event.
+- **Domain object rename:** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (current mappers `EventFeatureStepAggregate`/`EventFeatureStepConfigObject`) to free the `FeatureEvent` name for the new base event.

@@ -29,7 +29,7 @@ The naming convention is `<Domain>ConfigRepository`. Other utility-backed implem
 
 ## No Package Exports
 
-Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service configuration (`container.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. This keeps the dependency graph clean — consuming code depends only on the abstract Service interface, never on a concrete repository.
+Repositories are **never exported** from `tiferet/repos/__init__.py`. They are resolved at runtime through the DI service registration (`container.yml` or equivalent), which specifies the `module_path` and `class_name` for each concrete implementation. This keeps the dependency graph clean — consuming code depends only on the abstract Service interface, never on a concrete repository.
 
 ## Three-Attribute Foundation
 
@@ -79,7 +79,7 @@ For complex loading that needs to construct multiple transfer objects in a singl
 ```python
 def data_factory(data):
     attrs = [
-        ServiceConfigurationYamlObject.model_validate({**attr_data, 'id': id})
+        ServiceRegistrationConfigObject.model_validate({**attr_data, 'id': id})
         for id, attr_data in data.get('services', {}).items()
     ] if data.get('services') else []
     consts = data.get('const', {}) if data.get('const') else {}
@@ -97,7 +97,7 @@ Use `data_factory` when the YAML file contains **multiple sibling sections** tha
 YAML configuration files store entries as dictionaries keyed by identifier. The ID is not stored inside the value — it is derived from the key and injected during mapping:
 
 ```python
-return ErrorYamlObject.model_validate(
+return ErrorConfigObject.model_validate(
     {**error_data, 'id': id}   # Key becomes the domain object's ID.
 ).map()
 ```
@@ -116,7 +116,7 @@ Every save method follows the same three-step sequence:
 
 ```python
 # Serialize.
-error_data = ErrorYamlObject.from_model(error)
+error_data = ErrorConfigObject.from_model(error)
 
 # Load full file.
 full_data = Yaml(self.config_file, encoding=self.encoding).load()
@@ -193,7 +193,7 @@ Some YAML files contain **multiple parallel sections** that represent different 
 The repository's `list_all` returns a tuple of section results:
 
 ```python
-def list_all(self) -> Tuple[List[ServiceConfiguration], Dict[str, str]]:
+def list_all(self) -> Tuple[List[ServiceRegistration], Dict[str, str]]:
     # data_factory returns (services_list, constants_dict)
 ```
 
@@ -201,11 +201,11 @@ Each section is parsed independently within the `data_factory`.
 
 ### Composite transfer object (logging)
 
-The logging repository uses `LoggingSettingsYamlObject` — a transfer object that composes `FormatterYamlObject`, `HandlerYamlObject`, and `LoggerYamlObject` into a single object representing the entire file:
+The logging repository uses `LoggingSettingsConfigObject` — a transfer object that composes `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject` into a single object representing the entire file:
 
 ```python
 data = Yaml(self.config_file, encoding=self.encoding).load(
-    data_factory=lambda d: LoggingSettingsYamlObject.hydrate(**d),
+    data_factory=lambda d: LoggingSettingsConfigObject.hydrate(**d),
     start_node=lambda d: d.get('logging', {})
 )
 return (
