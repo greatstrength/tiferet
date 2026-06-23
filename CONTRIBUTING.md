@@ -80,6 +80,19 @@ Upon completion of a story or issue, a **Collaboration Report** is published as 
 See the full report format guide:
 **[docs/collab/collab_report.md](docs/collab/collab_report.md)**
 
+## Working with AI Agents
+
+Warp/AI agents contributing to Tiferet follow the same conventions described above and in the [`docs/collab/`](docs/collab/) stream guides. The most common workflows are also packaged as reusable agent **skills** so they're applied consistently across all Tiferet-family repositories:
+
+- **`tiferet-create-milestone`** — create or format a GitHub milestone (title and description conventions).
+- **`tiferet-author-trd`** — author a TRD in the standard structure ([tech_requirements.md](docs/collab/tech_requirements.md)).
+- **`tiferet-collab-report`** — generate a Collaboration Report once an issue is confirmed complete ([collab_report.md](docs/collab/collab_report.md)).
+- **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
+
+A ready-to-apply **global agent rule** is preserved at [docs/collab/agent_rule.md](docs/collab/agent_rule.md) — copy it into your agent's global/user rules to apply these standards across every Tiferet repo.
+
+These skills and any AI rules treat `docs/collab/` and the [code style guides](docs/core/) as the **single source of truth** — they reference these documents rather than copying them, so the docs stay authoritative. The skills' canonical copies live in [docs/collab/agents/skills/](docs/collab/agents/skills/); follow that folder's README to copy them into `~/.agents/skills/` (global) or a repo's `.agents/skills/` (project) so your agent auto-discovers them.
+
 ## Code Style
 
 Tiferet enforces a structured code style across all modules. The essentials:

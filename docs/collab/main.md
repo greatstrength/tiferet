@@ -11,10 +11,16 @@ The Main stream is the primary contribution path for feature releases. Work is o
 
 ### Naming
 
-Milestone titles use the version number only — no semantic subtitle:
+Milestone titles **normally** use the version number only — no semantic subtitle:
 
 - Format: `v<version>`
 - Examples: `v2.0.0b3`, `v1.9.0`, `v2.1.0`
+
+**Exception — domain-scoped v2 milestones:** The current v2 parity milestones (see Scope below) use a **descriptive title with no version**, because they track an architectural area of the `v2.0.0` line rather than a single incremental alpha/beta pre-release:
+
+- Format: `<Descriptive Title>` (no version prefix)
+- Example: `Core DDD Parity I – Domain Infrastructure (Domain, Mappers, Interfaces, Utils)`
+- If a version is needed at all, use `v2.0.0` only — no alpha (`aN`) or beta (`bN`) suffix.
 
 ### Description
 
