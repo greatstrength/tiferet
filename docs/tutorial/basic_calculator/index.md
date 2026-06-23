@@ -10,28 +10,26 @@ By the time we're done, you'll have:
 - A reusable utility class for number verification (in `app/utils/`)
 - Everything wired together through simple YAML configuration files
 - Two ways to use it: a quick script for testing and a proper command-line interface
+- Persist your most recently executed formulas to a file
+- Save and re-evaluate named, variablized formulas
 
 And best of all — each step is small, satisfying, and shows real progress.
 
 ### What we'll build (final project layout)
 
 ```
-basic-calculator/
-├── basic_calc.py               # quick script runner for testing
-├── calc_cli.py                 # full-featured command-line calculator
+basic_calculator/
+├── basic_calc.py          # quick script runner for testing
+├── calc_cli.py            # full-featured command-line calculator
+├── config.yml             # consolidated configuration
+├── formulas.yml           # saved formulas store (Step 8)
+├── history.json           # recent calculations, generated at runtime (Step 7)
 └── app/
-    ├── configs/                # where all the YAML magic lives
-    │   ├── app.yml
-    │   ├── container.yml
-    │   ├── error.yml
-    │   ├── feature.yml
-    │   └── cli.yml             # only needed for the CLI
-    ├── events/
-    │   ├── __init__.py
-    │   └── calc.py             # our arithmetic domain events
-    └── utils/
-        ├── __init__.py
-        └── calc.py             # reusable validation helpers
+    ├── domain/            # Formula domain model (Step 8)
+    ├── events/            # arithmetic, history, and formula events
+    ├── interfaces/        # FormulaService contract (Step 8)
+    ├── mappers/           # Formula aggregate + config object (Step 8)
+    └── repos/             # FormulaConfigRepository (Step 8)
 ```
 
 ### The step-by-step path
@@ -53,6 +51,12 @@ basic-calculator/
 
 6. **[CLI Interface & Commands](06-cli-interface.md)**  
    Add the command-line polish so you can type `calc add 19 23` like a pro.
+
+7. **[Persisting Recent Formulas](07-persisting-recent-formulas.md)**  
+   Use the file loader to remember the most recently executed calculations.
+
+8. **[Saving & Variablizing Formulas](08-saving-and-variablizing-formulas.md)**  
+   Save reusable, named formulas with a domain model and repository, then evaluate them.
 
 This tutorial is designed to feel like we're building together — short steps, quick wins, and no walls of text.
 
