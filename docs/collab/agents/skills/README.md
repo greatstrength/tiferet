@@ -7,6 +7,7 @@ Canonical, version-controlled copies of the reusable agent **skills** for Tifere
 - **`tiferet-author-trd`** — author a Technical Requirements Document.
 - **`tiferet-collab-report`** — generate a Collaboration Report when an issue is confirmed complete.
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop.
+- **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments.
 
 Each is a directory with a `SKILL.md` (YAML frontmatter + instructions). The skills are thin wrappers that reference `docs/collab/` and `docs/core/` as the source of truth — they don't copy that content, so the docs stay authoritative.
 
@@ -31,7 +32,7 @@ cp -R docs/collab/agents/skills/tiferet-* .agents/skills/
 Other tools work the same way with their own folder names (`.claude/skills/`, `.warp/skills/`, `.codex/skills/`, etc.) — copy into whichever your agent uses.
 
 ## Verify
-Start an agent and ask "what skills do I have?", or invoke one directly such as `/tiferet-create-milestone`. The four `tiferet-*` skills should appear.
+Start an agent and ask "what skills do I have?", or invoke one directly such as `/tiferet-create-milestone`. The five `tiferet-*` skills should appear.
 
 ## Keep in sync
 These repo copies are canonical. When they change here, re-run the copy command above to refresh your active install. Pair the skills with the global rule template in [../../agent_rule.md](../../agent_rule.md).
