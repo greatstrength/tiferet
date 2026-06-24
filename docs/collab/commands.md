@@ -91,6 +91,40 @@ gh project item-edit \
 - In Review: `4cc61d42`
 - Done: `98236657`
 
+## Project Field Updates
+
+**Tool availability:** **`gh` CLI only** — no MCP equivalent. See [project_fields.md](project_fields.md) for the semantics of each field (Priority, Size, Estimate/points, dates) and the cross-project strategy.
+
+**Project #2 (Tiferet Framework) node id:** `PVT_kwDOCKXjws4A7Y85`
+
+**Field IDs and single-select options** for project #2:
+
+- Status: `PVTSSF_lADOCKXjws4A7Y85zgvs_j4` — Backlog `f75ad846`, Ready `08afe404`, In progress `47fc9ee4`, In review `4cc61d42`, Done `98236657`
+- Priority: `PVTSSF_lADOCKXjws4A7Y85zgvs_no` — P0 `79628723`, P1 `0a877460`, P2 `da944a9c`
+- Size: `PVTSSF_lADOCKXjws4A7Y85zgvs_ns` — XS `eff732af`, S `9592a5a3`, M `9728cbdc`, L `c53df028`, XL `7b141a16`
+- Estimate (number / story points): `PVTF_lADOCKXjws4A7Y85zgvs_nw`
+- Start date: `PVTF_lADOCKXjws4A7Y85zgvs_n4`
+- End date: `PVTF_lADOCKXjws4A7Y85zgvs_n8`
+
+```bash
+# Resolve the project item id for an issue (item-add is idempotent — returns the existing id)
+gh project item-add 2 --owner greatstrength --url <issue-url> --format json --jq '.id'
+
+# Set a single-select field (Status / Priority / Size)
+gh project item-edit --project-id PVT_kwDOCKXjws4A7Y85 --id <item-id> \
+  --field-id <field-id> --single-select-option-id <option-id>
+
+# Set the numeric Estimate (story points)
+gh project item-edit --project-id PVT_kwDOCKXjws4A7Y85 --id <item-id> \
+  --field-id PVTF_lADOCKXjws4A7Y85zgvs_nw --number 5
+
+# Set a date field (Start date / End date)
+gh project item-edit --project-id PVT_kwDOCKXjws4A7Y85 --id <item-id> \
+  --field-id PVTF_lADOCKXjws4A7Y85zgvs_n4 --date 2026-06-23
+```
+
+Field and option IDs are unique per GitHub Project. For any other Tiferet project, resolve them with `gh project field-list <number> --owner <org> --format json` and record them here.
+
 ## Release Publishing
 
 **Tool availability:** **`gh` CLI only**.
