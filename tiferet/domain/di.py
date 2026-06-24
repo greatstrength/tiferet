@@ -77,7 +77,7 @@ class ServiceRegistration(DomainObject):
     # * attribute: parameters
     parameters: Dict[str, str] = Field(
         default_factory=dict,
-        description='The default configuration parameters.',
+        description='The default registration parameters.',
     )
 
     # * attribute: dependencies

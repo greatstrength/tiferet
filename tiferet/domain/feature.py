@@ -1,4 +1,4 @@
-"""Tiferet Domain Feature"""
+"""Tiferet Feature Domain Models"""
 
 # *** imports
 
@@ -24,7 +24,6 @@ class FeatureStep(DomainObject):
 
     # * attribute: name
     name: str = Field(..., description='The name of the feature step.')
-
 
 # ** model: event_feature_step
 class EventFeatureStep(FeatureStep):
@@ -55,7 +54,6 @@ class EventFeatureStep(FeatureStep):
         default=None,
         description='Optional boolean expression evaluated against request data. Step executes only when the expression resolves to True. When None, the step always executes.',
     )
-
 
 # ** model: feature
 class Feature(DomainObject):
