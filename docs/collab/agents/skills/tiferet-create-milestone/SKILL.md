@@ -54,7 +54,7 @@ TRD issues:
 - Major releases: domain-scoped milestones (one per architectural area) are appropriate — that is exactly the descriptive-title case above.
 
 ## Project assignment
-Each issue/TRD in a milestone is assigned to the **Tiferet Framework** project (#2) on GitHub.
+Each issue/TRD in a milestone is assigned to the **Tiferet Framework** project (#2) on GitHub, and triaged with **Priority**, **Size**, and **Estimate** plus an initial **Status** (Backlog or Ready) — see [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md) for the field strategy and status workflow.
 
 ## How to create it
 Milestone management is **`gh` CLI only** (no MCP equivalent). Write the description to a file first so backticks and multi-line content survive shell escaping, then read it with `-F field=@file`:
