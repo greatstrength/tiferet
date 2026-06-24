@@ -19,7 +19,7 @@ Applies to all Tiferet-family repositories (greatstrength/tiferet, and any tifer
 
 Source of truth (read when relevant): start at CONTRIBUTING.md, which indexes docs/collab/ (stream guides) and docs/core/ (code style). Inside the tiferet repo use those local paths; from any other repo use the GitHub URLs under https://github.com/greatstrength/tiferet/blob/main/.
 
-For these workflows, use the matching skill (each carries the detailed conventions): tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop).
+For these workflows, use the matching skill (each carries the detailed conventions): tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop), tiferet-pr-code-review (PR review against a source of truth).
 
 Always: tie work to a GitHub issue; write a TRD before non-trivial changes; follow the structured code style (artifact comments, RST docstrings, spacing); keep functional vs docs/config commits separate; add a Co-Authored-By line when an AI agent collaborates; never commit or merge unless asked.
 ```
@@ -32,5 +32,6 @@ The workflows named in the rule are packaged as agent skills, with canonical cop
 - `tiferet-author-trd`
 - `tiferet-collab-report`
 - `tiferet-milestone-session`
+- `tiferet-pr-code-review`
 
 See the **Working with AI Agents** section of [CONTRIBUTING.md](../../CONTRIBUTING.md) for the overview.
