@@ -44,22 +44,22 @@ class FlaggedDependency(DomainObject):
         description='The container dependency parameters.',
     )
 
-# ** model: service_configuration
-class ServiceConfiguration(DomainObject):
+# ** model: service_registration
+class ServiceRegistration(DomainObject):
     '''
-    A service configuration that defines dependency injection behavior.
+    A service registration that defines dependency injection behavior.
     '''
 
     # * attribute: id
     id: str = Field(
         ...,
-        description='The unique identifier for the service configuration.',
+        description='The unique identifier for the service registration.',
     )
 
     # * attribute: name
     name: str | None = Field(
         default=None,
-        description='The name of the service configuration.',
+        description='The name of the service registration.',
     )
 
     # * attribute: module_path
@@ -116,11 +116,11 @@ class ServiceConfiguration(DomainObject):
         Gets the service type based on the provided flags.
 
         Checks flagged dependencies first (in flag priority order), then
-        falls back to the configuration's default module_path/class_name.
+        falls back to the registration's default module_path/class_name.
 
         :param flags: The flags for the flagged dependency.
         :type flags: Tuple[str, ...]
-        :return: The type of the service configuration, or None.
+        :return: The type of the service registration, or None.
         :rtype: type | None
         '''
 

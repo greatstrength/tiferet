@@ -10,7 +10,7 @@ from .app import (
 )
 from .di import (
     FlaggedDependency,
-    ServiceConfiguration,
+    ServiceRegistration,
 )
 from .cli import (
     CliArgument,
@@ -23,7 +23,7 @@ from .error import (
 from .feature import (
     Feature,
     FeatureStep,
-    FeatureEvent,
+    EventFeatureStep,
 )
 from .logging import (
     Formatter,
