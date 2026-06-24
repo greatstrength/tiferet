@@ -6,10 +6,10 @@
 import pytest
 
 # ** app
-from ..feature import (
+from tiferet.domain.feature import (
     Feature,
     FeatureStep,
-    FeatureEvent,
+    EventFeatureStep,
 )
 
 # *** fixtures
@@ -39,11 +39,11 @@ def feature() -> Feature:
 # ** test: feature_step_type_defaults_to_event
 def test_feature_step_type_defaults_to_event() -> None:
     '''
-    Test that FeatureEvent defaults type to 'event' and preserves it through round-trip serialization.
+    Test that EventFeatureStep defaults type to 'event' and preserves it through round-trip serialization.
     '''
 
-    # Create a FeatureEvent with minimal required fields.
-    event = FeatureEvent(
+    # Create an EventFeatureStep with minimal required fields.
+    event = EventFeatureStep(
         name='Test Event',
         service_id='test_event_service',
     )
@@ -53,19 +53,19 @@ def test_feature_step_type_defaults_to_event() -> None:
 
     # Serialize via model_dump() and reload.
     primitive = event.model_dump()
-    reloaded = FeatureEvent(**primitive)
+    reloaded = EventFeatureStep(**primitive)
 
     # Assert type is preserved through round-trip.
     assert reloaded.type == 'event'
 
-# ** test: feature_event_flags_creation_and_round_trip
-def test_feature_event_flags_creation_and_round_trip() -> None:
+# ** test: event_feature_step_flags_creation_and_round_trip
+def test_event_feature_step_flags_creation_and_round_trip() -> None:
     '''
-    Test that FeatureEvent flags are set correctly and preserved through round-trip serialization.
+    Test that EventFeatureStep flags are set correctly and preserved through round-trip serialization.
     '''
 
-    # Create a FeatureEvent with flags.
-    event = FeatureEvent(
+    # Create an EventFeatureStep with flags.
+    event = EventFeatureStep(
         name='Flagged Event',
         service_id='flagged_event_service',
         flags=['flag1', 'flag2'],
@@ -76,7 +76,7 @@ def test_feature_event_flags_creation_and_round_trip() -> None:
 
     # Serialize via model_dump() and reload.
     primitive = event.model_dump()
-    reloaded = FeatureEvent(**primitive)
+    reloaded = EventFeatureStep(**primitive)
 
     # Assert flags are preserved through round-trip.
     assert reloaded.flags == ['flag1', 'flag2']
@@ -133,14 +133,14 @@ def test_feature_derive_keys_explicit_description_preserved() -> None:
     # Assert the explicit description is preserved.
     assert feature.description == 'Custom description'
 
-# ** test: feature_event_condition_defaults_to_none
-def test_feature_event_condition_defaults_to_none() -> None:
+# ** test: event_feature_step_condition_defaults_to_none
+def test_event_feature_step_condition_defaults_to_none() -> None:
     '''
-    Test that FeatureEvent condition defaults to None when not provided.
+    Test that EventFeatureStep condition defaults to None when not provided.
     '''
 
-    # Create a FeatureEvent without condition.
-    event = FeatureEvent(
+    # Create an EventFeatureStep without condition.
+    event = EventFeatureStep(
         name='Test Event',
         service_id='test_event_service',
     )
@@ -148,14 +148,14 @@ def test_feature_event_condition_defaults_to_none() -> None:
     # Assert condition defaults to None.
     assert event.condition is None
 
-# ** test: feature_event_condition_preserves_value
-def test_feature_event_condition_preserves_value() -> None:
+# ** test: event_feature_step_condition_preserves_value
+def test_event_feature_step_condition_preserves_value() -> None:
     '''
-    Test that FeatureEvent condition is preserved through construction and round-trip.
+    Test that EventFeatureStep condition is preserved through construction and round-trip.
     '''
 
-    # Create a FeatureEvent with a condition.
-    event = FeatureEvent(
+    # Create an EventFeatureStep with a condition.
+    event = EventFeatureStep(
         name='Conditional Event',
         service_id='conditional_event_service',
         condition='$r.x > 0',
@@ -166,7 +166,7 @@ def test_feature_event_condition_preserves_value() -> None:
 
     # Serialize via model_dump() and reload.
     primitive = event.model_dump()
-    reloaded = FeatureEvent(**primitive)
+    reloaded = EventFeatureStep(**primitive)
 
     # Assert condition is preserved through round-trip.
     assert reloaded.condition == '$r.x > 0'
@@ -180,12 +180,12 @@ def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     :type feature: Feature
     '''
 
-    # Create two FeatureEvent steps.
-    step_0 = FeatureEvent(
+    # Create two EventFeatureStep steps.
+    step_0 = EventFeatureStep(
         name='Step Zero',
         service_id='step_zero_service',
     )
-    step_1 = FeatureEvent(
+    step_1 = EventFeatureStep(
         name='Step One',
         service_id='step_one_service',
     )

@@ -1,4 +1,4 @@
-"""Tiferet Domain Feature"""
+"""Tiferet Feature Domain Models"""
 
 # *** imports
 
@@ -25,37 +25,35 @@ class FeatureStep(DomainObject):
     # * attribute: name
     name: str = Field(..., description='The name of the feature step.')
 
-
-# ** model: feature_event
-class FeatureEvent(FeatureStep):
+# ** model: event_feature_step
+class EventFeatureStep(FeatureStep):
     '''
-    A feature event step that executes a domain event from the container.
+    An event feature step that executes a domain event from the container.
     '''
 
     # * attribute: service_id
-    service_id: str = Field(..., description='The service configuration ID for the feature event.')
+    service_id: str = Field(..., description='The service registration ID for the event feature step.')
 
     # * attribute: flags
-    flags: List[str] = Field(default_factory=list, description='List of feature flags that activate this event.')
+    flags: List[str] = Field(default_factory=list, description='List of feature flags that activate this event feature step.')
 
     # * attribute: parameters
-    parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the feature event.')
+    parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
     # * attribute: return_to_data (obsolete)
-    return_to_data: bool = Field(default=False, description='Whether to return the feature event result to the feature data context.')
+    return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
 
     # * attribute: data_key
-    data_key: str | None = Field(default=None, description='The data key to store the feature event result in if Return to Data is True.')
+    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in if Return to Data is True.')
 
     # * attribute: pass_on_error
-    pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the feature event fails.')
+    pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')
 
     # * attribute: condition
     condition: str | None = Field(
         default=None,
         description='Optional boolean expression evaluated against request data. Step executes only when the expression resolves to True. When None, the step always executes.',
     )
-
 
 # ** model: feature
 class Feature(DomainObject):
@@ -82,7 +80,7 @@ class Feature(DomainObject):
     feature_key: str = Field(..., description='The key of the feature.')
 
     # * attribute: steps
-    steps: List[FeatureEvent] = Field(default_factory=list, description='The step workflow for the feature.')
+    steps: List[EventFeatureStep] = Field(default_factory=list, description='The step workflow for the feature.')
 
     # * attribute: log_params
     log_params: Dict[str, str] = Field(default_factory=dict, description='The parameters to log for the feature.')
