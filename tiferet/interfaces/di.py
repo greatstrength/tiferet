@@ -20,7 +20,7 @@ from .settings import Service
 # ** interface: di_service
 class DIService(Service):
     '''
-    Service interface for managing service configurations and constants.
+    Service interface for managing service registrations and constants.
     '''
 
     # * method: registration_exists
@@ -57,7 +57,7 @@ class DIService(Service):
     @abstractmethod
     def list_all(self) -> Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]:
         '''
-        List all service configurations and constants.
+        List all service registrations and constants.
 
         :return: A tuple containing a list of service registration aggregates and a dictionary of constants.
         :rtype: Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]

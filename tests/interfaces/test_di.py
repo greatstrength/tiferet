@@ -5,9 +5,6 @@
 # ** core
 import inspect
 
-# ** infra
-import pytest
-
 # ** app
 from tiferet.interfaces.di import DIService
 from tiferet.mappers.di import ServiceRegistrationAggregate
