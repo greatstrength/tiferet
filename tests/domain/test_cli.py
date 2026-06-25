@@ -6,8 +6,8 @@
 import pytest
 
 # ** app
-from ..settings import DomainObject
-from ..cli import (
+from tiferet.domain.settings import DomainObject
+from tiferet.domain.cli import (
     CliArgument,
     CliCommand,
 )
@@ -111,6 +111,58 @@ def test_cli_argument_get_type_default_str() -> None:
     # Assert the default type is str.
     assert arg.type == 'str'
     assert arg.get_type() is str
+
+# ** test: cli_argument_to_argparse_kwargs_value_action
+def test_cli_argument_to_argparse_kwargs_value_action() -> None:
+    '''
+    Test that value-consuming arguments include resolved type, nargs, and choices.
+    '''
+
+    # Build a value-consuming argument.
+    argument = CliArgument(
+        name_or_flags=['a'],
+        description='First operand.',
+        type='int',
+        nargs='?',
+        choices=['1', '2'],
+        default='1',
+    )
+
+    # Build the argparse keyword arguments.
+    kwargs = argument.to_argparse_kwargs()
+
+    # Assert value keywords are present and flag-only keywords are absent.
+    assert kwargs['type'] is int
+    assert kwargs['nargs'] == '?'
+    assert kwargs['choices'] == ['1', '2']
+    assert kwargs['default'] == '1'
+    assert kwargs['help'] == 'First operand.'
+    assert 'action' not in kwargs
+    assert 'required' not in kwargs
+
+# ** test: cli_argument_to_argparse_kwargs_flag_action
+def test_cli_argument_to_argparse_kwargs_flag_action() -> None:
+    '''
+    Test that flag actions omit value-only keywords.
+    '''
+
+    # Build a flag argument.
+    argument = CliArgument(
+        name_or_flags=['--verbose'],
+        description='Enable verbose output.',
+        action='store_true',
+    )
+
+    # Build the argparse keyword arguments.
+    kwargs = argument.to_argparse_kwargs()
+
+    # Assert the action and help are present and value-only keywords are omitted.
+    assert kwargs['action'] == 'store_true'
+    assert kwargs['help'] == 'Enable verbose output.'
+    assert 'type' not in kwargs
+    assert 'nargs' not in kwargs
+    assert 'choices' not in kwargs
+    assert 'default' not in kwargs
 
 # ** test: cli_command_new
 def test_cli_command_new(cli_command: CliCommand) -> None:

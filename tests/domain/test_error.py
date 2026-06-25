@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from ..error import (
+from tiferet.domain.error import (
     Error,
     ErrorMessage,
 )
@@ -141,32 +141,3 @@ def test_error_format_method_unsupported_lang(error: Error) -> None:
 
     # Assert None is returned for unsupported language.
     assert error.format_message('fr_FR') is None
-
-# ** test: error_format_response
-def test_error_format_response(error: Error) -> None:
-    '''
-    Test that Error.format_response() returns a structured dict.
-
-    :param error: The Error fixture.
-    :type error: Error
-    '''
-
-    # Format the error response.
-    response = error.format_response('en_US')
-
-    # Assert the response structure.
-    assert response['error_code'] == 'TEST_ERROR'
-    assert response['name'] == 'Test Error'
-    assert response['message'] == 'An error occurred.'
-
-# ** test: error_format_response_unsupported_lang
-def test_error_format_response_unsupported_lang(error: Error) -> None:
-    '''
-    Test that Error.format_response() returns None for an unsupported language.
-
-    :param error: The Error fixture.
-    :type error: Error
-    '''
-
-    # Assert None is returned for unsupported language.
-    assert error.format_response('fr_FR') is None

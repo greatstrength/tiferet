@@ -10,7 +10,6 @@ from typing import Dict, List
 from pydantic import Field
 
 # ** app
-from ..di import ServiceProvider
 from .settings import DomainObject
 
 # *** models
@@ -57,7 +56,6 @@ class AppServiceDependency(DomainObject):
         # Import and return the service class type.
         return getattr(import_module(self.module_path), self.class_name)
 
-
 # ** model: app_interface
 class AppInterface(DomainObject):
     '''
@@ -92,18 +90,6 @@ class AppInterface(DomainObject):
     class_name: str = Field(
         ...,
         description='The class name for the application instance context.',
-    )
-
-    # * attribute: service_provider_path
-    service_provider_path: str = Field(
-        default='tiferet.di.dynamic',
-        description='The module path for the service provider to use for this dependency.',
-    )
-
-    # * attribute: service_provider_class_name
-    service_provider_class_name: str = Field(
-        default='DynamicServiceProvider',
-        description='The class name for the service provider to use for this dependency.',
     )
 
     # * attribute: logger_id
@@ -144,56 +130,37 @@ class AppInterface(DomainObject):
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
 
-    # * method: get_service_type_mapping
-    def get_service_type_mapping(self) -> Dict[str, type]:
+    # * method: apply_defaults
+    def apply_defaults(self,
+            default_services: List[AppServiceDependency] = None,
+            default_constants: Dict[str, str] = None,
+        ) -> 'AppInterface':
         '''
-        Get a mapping of service IDs to their corresponding types.
+        Return a new app interface with framework default services and constants applied.
 
-        :return: A dictionary mapping service IDs to their types.
-        :rtype: Dict[str, type]
-        '''
+        Default services are added for any ``service_id`` not already present, and
+        default constants are added only for keys the interface does not already
+        define (existing values win). This is a non-mutating derivation: the
+        current interface is left unchanged and a new instance is returned.
 
-        # Register scalars and constants first.
-        dependencies: Dict[str, type] = dict(
-            interface_id=self.id,
-            logger_id=getattr(self, 'logger_id', None),
-        )
-
-        # Add the constants from the app interface to the dependencies.
-        dependencies.update(self.constants)
-
-        # Add the remaining app context service dependencies and parameters.
-        for dep in self.services:
-            dependencies[dep.service_id] = dep.get_service_type()
-            for param, value in dep.parameters.items():
-                dependencies[param] = value
-
-        # Register app_context last so all its dependencies are available.
-        dependencies['app_context'] = getattr(
-            import_module(self.module_path),
-            self.class_name,
-        )
-
-        # Return the assembled dependencies mapping.
-        return dependencies
-
-    # * method: create_service_provider
-    def create_service_provider(self) -> ServiceProvider:
-        '''
-        Create a service provider for this app interface.
-
-        :return: A configured service provider instance.
-        :rtype: ServiceProvider
+        :param default_services: Default service dependencies to merge.
+        :type default_services: List[AppServiceDependency] | None
+        :param default_constants: Default constants to merge for missing keys.
+        :type default_constants: Dict[str, str] | None
+        :return: A new app interface with the defaults applied.
+        :rtype: AppInterface
         '''
 
-        # Build the service type mapping for this interface.
-        type_map = self.get_service_type_mapping()
+        # Append any default service whose service_id is not already present.
+        services = list(self.services)
+        existing_ids = {dep.service_id for dep in services}
+        for dep in (default_services or []):
+            if dep.service_id not in existing_ids:
+                services.append(dep)
+                existing_ids.add(dep.service_id)
 
-        # Resolve the configured service provider class.
-        provider_class = getattr(
-            import_module(self.service_provider_path),
-            self.service_provider_class_name,
-        )
+        # Merge default constants only for keys not already defined (existing win).
+        constants = {**(default_constants or {}), **(self.constants or {})}
 
-        # Create and return the configured service provider instance.
-        return provider_class(services=type_map)
+        # Return a new interface with the merged services and constants.
+        return self.model_copy(update=dict(services=services, constants=constants))
