@@ -6,11 +6,12 @@
 import pytest
 
 # ** app
-from ..settings import DomainObject
-from ..logging import (
+from tiferet.domain.settings import DomainObject
+from tiferet.domain.logging import (
     Formatter,
     Handler,
     Logger,
+    LoggingSettings,
 )
 
 # *** fixtures
@@ -218,3 +219,68 @@ def test_logger_format_config_empty_handlers(logger_empty_handlers: Logger) -> N
     assert config['handlers'] == []
     assert config['propagate'] is False
     assert config['level'] == 'WARNING'
+
+# ** test: logging_settings_format_config_assembles_sections
+def test_logging_settings_format_config_assembles_sections(formatter, handler, logger_empty_handlers) -> None:
+    '''
+    Test that LoggingSettings.format_config() assembles formatters, handlers, and
+    the root entry (from the is_root logger) into a dictConfig dictionary.
+
+    :param formatter: The Formatter fixture.
+    :type formatter: Formatter
+    :param handler: The Handler fixture.
+    :type handler: Handler
+    :param logger_empty_handlers: The root Logger fixture.
+    :type logger_empty_handlers: Logger
+    '''
+
+    # Assemble the configuration from the bundled value object.
+    config = LoggingSettings(
+        formatters=[formatter],
+        handlers=[handler],
+        loggers=[logger_empty_handlers],
+    ).format_config()
+
+    # Assert top-level shape and section membership.
+    assert config['version'] == 1
+    assert config['disable_existing_loggers'] is False
+    assert config['formatters']['simple'] == formatter.format_config()
+    assert config['handlers']['console'] == handler.format_config()
+    assert config['root'] == logger_empty_handlers.format_config()
+
+    # Assert the root logger is excluded from the keyed loggers section.
+    assert 'root' not in config['loggers']
+
+# ** test: logging_settings_format_config_non_root_logger
+def test_logging_settings_format_config_non_root_logger(logger) -> None:
+    '''
+    Test that LoggingSettings.format_config() keys non-root loggers under loggers
+    and leaves the root entry None.
+
+    :param logger: The non-root Logger fixture.
+    :type logger: Logger
+    '''
+
+    # Assemble the configuration with a single non-root logger.
+    config = LoggingSettings(loggers=[logger]).format_config()
+
+    # Assert the non-root logger is keyed under loggers and root is None.
+    assert config['loggers']['app'] == logger.format_config()
+    assert config['root'] is None
+
+# ** test: logging_settings_format_config_defaults
+def test_logging_settings_format_config_defaults() -> None:
+    '''
+    Test that LoggingSettings defaults to empty sections, version 1, and a None root.
+    '''
+
+    # Assemble the configuration from an empty value object.
+    config = LoggingSettings().format_config()
+
+    # Assert empty sections and default scalars.
+    assert config['version'] == 1
+    assert config['disable_existing_loggers'] is False
+    assert config['formatters'] == {}
+    assert config['handlers'] == {}
+    assert config['loggers'] == {}
+    assert config['root'] is None

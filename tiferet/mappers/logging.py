@@ -230,7 +230,7 @@ class LoggingSettingsConfigObject(TransferObject):
     def from_data(cls, **data) -> 'LoggingSettingsConfigObject':
         '''
         Initialize a new LoggingSettingsConfigObject from a raw data dictionary,
-        injecting each section's keys as ``id`` on the contained YAML objects.
+        injecting each section's keys as ``id`` on the contained config objects.
 
         :param data: The raw data to construct the settings from.
         :type data: dict
@@ -238,7 +238,7 @@ class LoggingSettingsConfigObject(TransferObject):
         :rtype: LoggingSettingsConfigObject
         '''
 
-        # Construct each section's YAML objects, threading the dict key as id.
+        # Construct each section's config objects, threading the dict key as id.
         return cls.model_validate({
             'formatters': {
                 key: {**(formatter_data or {}), 'id': key}
