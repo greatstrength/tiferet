@@ -24,7 +24,7 @@ from .settings import (
 # ** mapper: event_feature_step_aggregate
 class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
     '''
-    An aggregate representation of a feature event.
+    An aggregate representation of an event feature step.
     '''
 
     # * method: set_pass_on_error
@@ -71,7 +71,7 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Set an attribute on the feature command, with special handling for
+        Set an attribute on the event feature step, with special handling for
         ``parameters`` and ``pass_on_error``.
 
         :param attribute: The attribute name to set.
@@ -99,7 +99,7 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
 # ** mapper: event_feature_step_config_object
 class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
     '''
-    A configuration data representation of a feature event object.
+    A configuration data representation of an event feature step object.
     '''
 
     # * attribute: _ROLES
@@ -113,31 +113,31 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
         default_factory=dict,
         serialization_alias='params',
         validation_alias=AliasChoices('params', 'parameters'),
-        description='The parameters for the feature event.',
+        description='The parameters for the event feature step.',
     )
 
     # * method: map
     def map(self, **overrides) -> EventFeatureStepAggregate:
         '''
-        Maps the feature event data to a feature event aggregate.
+        Maps the event feature step data to an event feature step aggregate.
 
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new feature event aggregate.
+        :return: A new event feature step aggregate.
         :rtype: EventFeatureStepAggregate
         '''
 
-        # Map to the feature event aggregate.
+        # Map to the event feature step aggregate.
         return super().map(EventFeatureStepAggregate, **overrides)
 
     # * method: from_model
     @classmethod
-    def from_model(cls, feature_event: EventFeatureStep, **overrides) -> 'EventFeatureStepConfigObject':
+    def from_model(cls, event_feature_step: EventFeatureStep, **overrides) -> 'EventFeatureStepConfigObject':
         '''
         Creates a EventFeatureStepConfigObject from a EventFeatureStep model.
 
-        :param feature_event: The feature event model.
-        :type feature_event: EventFeatureStep
+        :param event_feature_step: The event feature step model.
+        :type event_feature_step: EventFeatureStep
         :param overrides: Additional keyword arguments.
         :type overrides: dict
         :return: A new EventFeatureStepConfigObject.
@@ -145,7 +145,7 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
         '''
 
         # Create a new EventFeatureStepConfigObject from the model.
-        return super().from_model(feature_event, **overrides)
+        return super().from_model(event_feature_step, **overrides)
 
 
 # ** mapper: feature_aggregate
@@ -166,7 +166,7 @@ class FeatureAggregate(Feature, Aggregate):
         position: int | None = None,
     ) -> EventFeatureStep:
         '''
-        Add a feature event step using raw attributes.
+        Add an event feature step using raw attributes.
 
         :param name: Step name.
         :type name: str
@@ -186,7 +186,7 @@ class FeatureAggregate(Feature, Aggregate):
         :rtype: EventFeatureStep
         '''
 
-        # Create the feature event from raw attributes.
+        # Create the event feature step from raw attributes.
         step = EventFeatureStepAggregate(
             name=name,
             service_id=service_id,
