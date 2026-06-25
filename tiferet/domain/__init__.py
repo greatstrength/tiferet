@@ -34,6 +34,7 @@ from .logging import (
     Formatter,
     Handler,
     Logger,
+    LoggingSettings,
 )
 
 # *** exports
@@ -57,4 +58,5 @@ __all__ = [
     'Formatter',
     'Handler',
     'Logger',
+    'LoggingSettings',
 ]
