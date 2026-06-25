@@ -101,15 +101,16 @@ class CliArgument(DomainObject):
     # * method: to_argparse_kwargs
     def to_argparse_kwargs(self) -> Dict[str, Any]:
         '''
-        Build the ``argparse.add_argument`` keyword arguments for this argument.
+        Express this CLI argument in the form an argparse parser expects.
 
-        Trivial fields are produced by a pydantic ``model_dump`` (excluding the
-        positional ``name_or_flags`` and the bespoke ``description`` / ``type``
-        fields), and ``help`` is mapped from ``description``. Value-consuming
-        actions (the default, ``store``, ``append``) receive a resolved ``type``
-        callable and retain ``nargs`` / ``choices``; flag and const actions such
-        as ``store_true`` reject those keywords, so they are omitted to keep
-        parser construction valid.
+        A ``CliArgument`` is the domain's declarative description of one command
+        input; this adapts that description so the argument can be registered on
+        an argparse parser. The human-readable ``description`` is surfaced as the
+        argument's ``help`` text, and its declared type is resolved to a concrete
+        type. Because an argument that captures a value means something different
+        from a simple on/off flag, value-bearing arguments keep their type,
+        allowed count (``nargs``), and permitted ``choices``, while flag-style
+        arguments leave those value-only details out.
 
         :return: The keyword arguments for ``add_argument``.
         :rtype: Dict[str, Any]
