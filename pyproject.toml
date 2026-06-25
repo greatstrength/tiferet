@@ -11,7 +11,8 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.6",
     "pyyaml>=6.0.1",
-    "dependency-injector>=4.49.0"
+    "dependency-injector>=4.49.0",
+    "tomli>=2.0; python_version < '3.11'"
 ]
 
 [project.urls]
@@ -19,10 +20,14 @@ Homepage = "https://github.com/greatstrength/tiferet"
 Repository = "https://github.com/greatstrength/tiferet"
 Download = "https://github.com/greatstrength/tiferet"
 
+[project.scripts]
+tiferet = "tiferet.blueprints.tiferet_cli:main"
+
 [project.optional-dependencies]
 test = [
     "pytest>=8.3.3",
-    "pytest_env>=1.1.5"
+    "pytest_env>=1.1.5",
+    "pytest-asyncio>=0.23.0"
 ]
 
 [build-system]
@@ -48,3 +53,6 @@ include = [
 
 [tool.setuptools.dynamic]
 version = { attr = "tiferet.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "tests_int"]
