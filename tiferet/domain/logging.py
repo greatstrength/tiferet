@@ -216,10 +216,8 @@ class Logger(DomainObject):
 # ** model: logging_settings
 class LoggingSettings(DomainObject):
     '''
-    A runtime value object bundling formatter, handler, and logger
-    configurations and owning the ``logging.config.dictConfig`` assembly.
-    The bundle is logger-agnostic; the final ``getLogger`` call (and its
-    ``logger_id``) remains the responsibility of the logging context.
+    A value object representing the overall logging configuration, bundling
+    the formatter, handler, and logger configurations.
     '''
 
     # * attribute: formatters
@@ -264,11 +262,11 @@ class LoggingSettings(DomainObject):
 
         # Assemble the whole-system logging configuration, drawing the root
         # entry from the logger flagged is_root.
-        return dict(
-            version=self.version,
-            disable_existing_loggers=self.disable_existing_loggers,
-            formatters={formatter.id: formatter.format_config() for formatter in self.formatters},
-            handlers={handler.id: handler.format_config() for handler in self.handlers},
-            loggers={logger.id: logger.format_config() for logger in self.loggers if not logger.is_root},
-            root=next((logger.format_config() for logger in self.loggers if logger.is_root), None),
-        )
+        return {
+            'version': self.version,
+            'disable_existing_loggers': self.disable_existing_loggers,
+            'formatters': {formatter.id: formatter.format_config() for formatter in self.formatters},
+            'handlers': {handler.id: handler.format_config() for handler in self.handlers},
+            'loggers': {logger.id: logger.format_config() for logger in self.loggers if not logger.is_root},
+            'root': next((logger.format_config() for logger in self.loggers if logger.is_root), None),
+        }
