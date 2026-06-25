@@ -175,6 +175,10 @@ CSV_INVALID_WRITE_MODE_ID       = 'CSV_INVALID_WRITE_MODE'
 CSV_FIELDNAMES_REQUIRED_ID      = 'CSV_FIELDNAMES_REQUIRED'
 CSV_DICT_NO_HEADER_ID           = 'CSV_DICT_NO_HEADER'
 
+TOML_FILE_NOT_FOUND_ID          = 'TOML_FILE_NOT_FOUND'
+TOML_FILE_LOAD_ERROR_ID         = 'TOML_FILE_LOAD_ERROR'
+INVALID_TOML_FILE_ID            = 'INVALID_TOML_FILE'
+
 # ** constant: default_errors
 DEFAULT_ERRORS = {
 
@@ -863,6 +867,33 @@ DEFAULT_ERRORS = {
         'name': 'CSV Dict Reader Without Header',
         'message': [
             {'lang': 'en_US', 'text': 'Dict reader expects header row; file appears to lack one or was not read correctly.'}
+        ]
+    },
+
+    # * error: TOML_FILE_NOT_FOUND
+    TOML_FILE_NOT_FOUND_ID: {
+        'id': TOML_FILE_NOT_FOUND_ID,
+        'name': 'TOML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified TOML file could not be found at {path}.'}
+        ]
+    },
+
+    # * error: TOML_FILE_LOAD_ERROR
+    TOML_FILE_LOAD_ERROR_ID: {
+        'id': TOML_FILE_LOAD_ERROR_ID,
+        'name': 'TOML Load Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to parse TOML file: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_TOML_FILE
+    INVALID_TOML_FILE_ID: {
+        'id': INVALID_TOML_FILE_ID,
+        'name': 'Invalid TOML File',
+        'message': [
+            {'lang': 'en_US', 'text': 'File is not a valid TOML file: {path}.'}
         ]
     },
 }
