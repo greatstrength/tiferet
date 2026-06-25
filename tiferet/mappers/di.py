@@ -9,7 +9,7 @@ from typing import Any, ClassVar, Dict
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import FlaggedDependency, ServiceConfiguration
+from ..domain import FlaggedDependency, ServiceRegistration
 from .settings import Aggregate, TransferObject
 
 # *** mappers
@@ -43,10 +43,10 @@ class FlaggedDependencyAggregate(FlaggedDependency, Aggregate):
         merged.update(parameters)
         self.parameters = {k: v for k, v in merged.items() if v is not None}
 
-# ** mapper: flagged_dependency_yaml_object
-class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
+# ** mapper: flagged_dependency_config_object
+class FlaggedDependencyConfigObject(FlaggedDependency, TransferObject):
     '''
-    A YAML data representation of a flagged dependency object.
+    A configuration data representation of a flagged dependency object.
     '''
 
     # * attribute: _ROLES
@@ -60,7 +60,7 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
         default=None,
         description=(
             'The flag for the dependency. Optional in YAML data because the '
-            'flag is typically the dict key in the parent ServiceConfiguration.'
+            'flag is typically the dict key in the parent ServiceRegistration.'
         ),
     )
 
@@ -95,25 +95,25 @@ class FlaggedDependencyYamlObject(FlaggedDependency, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, flagged_dependency: FlaggedDependency, **overrides) -> 'FlaggedDependencyYamlObject':
+    def from_model(cls, flagged_dependency: FlaggedDependency, **overrides) -> 'FlaggedDependencyConfigObject':
         '''
-        Creates a FlaggedDependencyYamlObject from a FlaggedDependency model.
+        Creates a FlaggedDependencyConfigObject from a FlaggedDependency model.
 
         :param flagged_dependency: The flagged dependency model to copy from.
         :type flagged_dependency: FlaggedDependency
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new FlaggedDependencyYamlObject instance.
-        :rtype: FlaggedDependencyYamlObject
+        :return: A new FlaggedDependencyConfigObject instance.
+        :rtype: FlaggedDependencyConfigObject
         '''
 
         # Delegate to the base mapper.
         return super().from_model(flagged_dependency, **overrides)
 
-# ** mapper: service_configuration_aggregate
-class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
+# ** mapper: service_registration_aggregate
+class ServiceRegistrationAggregate(ServiceRegistration, Aggregate):
     '''
-    An aggregate representation of a service configuration.
+    An aggregate representation of a service registration.
     '''
 
     # * method: set_default_type
@@ -124,7 +124,7 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
         parameters: Dict[str, Any] | None = None,
     ) -> None:
         '''
-        Update the default type and parameters for this service configuration.
+        Update the default type and parameters for this service registration.
 
         :param module_path: New module path (or None to clear).
         :type module_path: str | None
@@ -216,10 +216,10 @@ class ServiceConfigurationAggregate(ServiceConfiguration, Aggregate):
             if dependency.flag != flag
         ]
 
-# ** mapper: service_configuration_yaml_object
-class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
+# ** mapper: service_registration_config_object
+class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
     '''
-    A YAML data representation of a service configuration object.
+    A configuration data representation of a service registration object.
     '''
 
     # * attribute: _ROLES
@@ -229,7 +229,7 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
     }
 
     # * attribute: dependencies
-    dependencies: Dict[str, FlaggedDependencyYamlObject] = Field(
+    dependencies: Dict[str, FlaggedDependencyConfigObject] = Field(
         default_factory=dict,
         serialization_alias='deps',
         validation_alias=AliasChoices('deps', 'dependencies', 'flags'),
@@ -241,23 +241,23 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
         default_factory=dict,
         serialization_alias='params',
         validation_alias=AliasChoices('params', 'parameters'),
-        description='The default parameters for the service configuration.',
+        description='The default parameters for the service registration.',
     )
 
     # * method: map
-    def map(self, **overrides) -> ServiceConfigurationAggregate:
+    def map(self, **overrides) -> ServiceRegistrationAggregate:
         '''
-        Maps the service configuration data to a service configuration aggregate.
+        Maps the service registration data to a service registration aggregate.
 
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new ServiceConfigurationAggregate instance.
-        :rtype: ServiceConfigurationAggregate
+        :return: A new ServiceRegistrationAggregate instance.
+        :rtype: ServiceRegistrationAggregate
         '''
 
         # Convert dict-keyed YAML deps into a flag-tagged list of FlaggedDependency.
         return super().map(
-            ServiceConfigurationAggregate,
+            ServiceRegistrationAggregate,
             dependencies=[dep.map(flag=flag) for flag, dep in self.dependencies.items()],
             parameters=self.parameters,
             **overrides,
@@ -265,24 +265,24 @@ class ServiceConfigurationYamlObject(ServiceConfiguration, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, service_configuration: ServiceConfiguration, **overrides) -> 'ServiceConfigurationYamlObject':
+    def from_model(cls, service_registration: ServiceRegistration, **overrides) -> 'ServiceRegistrationConfigObject':
         '''
-        Creates a ServiceConfigurationYamlObject from a ServiceConfiguration model.
+        Creates a ServiceRegistrationConfigObject from a ServiceRegistration model.
 
-        :param service_configuration: The service configuration model to copy from.
-        :type service_configuration: ServiceConfiguration
+        :param service_registration: The service registration model to copy from.
+        :type service_registration: ServiceRegistration
         :param overrides: Additional field overrides.
         :type overrides: dict
-        :return: A new ServiceConfigurationYamlObject instance.
-        :rtype: ServiceConfigurationYamlObject
+        :return: A new ServiceRegistrationConfigObject instance.
+        :rtype: ServiceRegistrationConfigObject
         '''
 
         # Convert the dependencies list into a dictionary keyed by flag.
         return super().from_model(
-            service_configuration,
+            service_registration,
             dependencies={
-                dep.flag: FlaggedDependencyYamlObject.from_model(dep)
-                for dep in service_configuration.dependencies
+                dep.flag: FlaggedDependencyConfigObject.from_model(dep)
+                for dep in service_registration.dependencies
             },
             **overrides,
         )

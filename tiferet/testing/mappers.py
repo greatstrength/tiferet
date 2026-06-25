@@ -1,4 +1,4 @@
-"""Tiferet Mapper Test Settings"""
+"""Tiferet Mapper Test Harness"""
 
 # *** imports
 
@@ -6,8 +6,8 @@
 import pytest
 
 # ** app
-from ...assets import TiferetError
-from ..settings import Aggregate, TransferObject
+from tiferet.assets import TiferetError
+from tiferet.mappers import Aggregate, TransferObject
 
 # *** classes
 

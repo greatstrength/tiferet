@@ -2,6 +2,32 @@
 
 # *** exports
 
+__all__ = [
+    'Aggregate',
+    'TransferObject',
+    'AppInterfaceAggregate',
+    'AppInterfaceConfigObject',
+    'ServiceRegistrationAggregate',
+    'ServiceRegistrationConfigObject',
+    'CliArgumentAggregate',
+    'CliCommandAggregate',
+    'CliCommandConfigObject',
+    'ErrorAggregate',
+    'ErrorConfigObject',
+    'ErrorMessageConfigObject',
+    'FeatureAggregate',
+    'FeatureConfigObject',
+    'EventFeatureStepAggregate',
+    'EventFeatureStepConfigObject',
+    'FormatterAggregate',
+    'FormatterConfigObject',
+    'HandlerAggregate',
+    'HandlerConfigObject',
+    'LoggerAggregate',
+    'LoggerConfigObject',
+    'LoggingSettingsConfigObject',
+]
+
 # ** app
 from .settings import (
     Aggregate,
@@ -10,34 +36,34 @@ from .settings import (
 
 from .app import (
     AppInterfaceAggregate,
-    AppInterfaceYamlObject,
+    AppInterfaceConfigObject,
 )
 from .di import (
-    ServiceConfigurationAggregate,
-    ServiceConfigurationYamlObject,
+    ServiceRegistrationAggregate,
+    ServiceRegistrationConfigObject,
 )
 from .cli import (
     CliArgumentAggregate,
     CliCommandAggregate,
-    CliCommandYamlObject,
+    CliCommandConfigObject,
 )
 from .error import (
     ErrorAggregate,
-    ErrorYamlObject,
-    ErrorMessageYamlObject,
+    ErrorConfigObject,
+    ErrorMessageConfigObject,
 )
 from .feature import (
     FeatureAggregate,
-    FeatureYamlObject,
-    FeatureEventAggregate,
-    FeatureEventYamlObject,
+    FeatureConfigObject,
+    EventFeatureStepAggregate,
+    EventFeatureStepConfigObject,
 )
 from .logging import (
     FormatterAggregate,
-    FormatterYamlObject,
+    FormatterConfigObject,
     HandlerAggregate,
-    HandlerYamlObject,
+    HandlerConfigObject,
     LoggerAggregate,
-    LoggerYamlObject,
-    LoggingSettingsYamlObject,
+    LoggerConfigObject,
+    LoggingSettingsConfigObject,
 )
