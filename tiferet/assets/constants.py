@@ -52,6 +52,9 @@ REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
 # ** constant: parameter_not_found_id
 PARAMETER_NOT_FOUND_ID = 'PARAMETER_NOT_FOUND'
 
+# ** constant: request_validation_failed_id
+REQUEST_VALIDATION_FAILED_ID = 'REQUEST_VALIDATION_FAILED'
+
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
@@ -326,6 +329,15 @@ DEFAULT_ERRORS = {
         'name': 'Parameter Not Found',
         'message': [
             {'lang': 'en_US', 'text': 'Parameter {parameter} not found in request data.'}
+        ]
+    },
+
+    # * error: REQUEST_VALIDATION_FAILED
+    REQUEST_VALIDATION_FAILED_ID: {
+        'id': REQUEST_VALIDATION_FAILED_ID,
+        'name': 'Request Validation Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Request validation failed for feature {feature_id}: {violations}.'}
         ]
     },
 

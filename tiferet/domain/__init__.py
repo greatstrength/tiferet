@@ -24,6 +24,11 @@ from .feature import (
     Feature,
     FeatureStep,
     EventFeatureStep,
+    ParameterSpecification,
+    RequestSpecification,
+)
+from .request import (
+    Request,
 )
 from .logging import (
     Formatter,
@@ -46,6 +51,9 @@ __all__ = [
     'Feature',
     'FeatureStep',
     'EventFeatureStep',
+    'ParameterSpecification',
+    'RequestSpecification',
+    'Request',
     'Formatter',
     'Handler',
     'Logger',
