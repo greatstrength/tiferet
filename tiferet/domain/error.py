@@ -1,4 +1,4 @@
-"""Tiferet Domain Error"""
+"""Tiferet Error Domain Models"""
 
 # *** imports
 
@@ -42,7 +42,6 @@ class ErrorMessage(DomainObject):
 
         # Format the error message text and return it.
         return self.text.format(**kwargs)
-
 
 # ** model: error
 class Error(DomainObject):
@@ -108,31 +107,3 @@ class Error(DomainObject):
 
             # Format the error message text.
             return msg.format(**kwargs)
-
-    # * method: format_response
-    def format_response(self, lang: str = 'en_US', **kwargs) -> Any:
-        '''
-        Formats the error response for the specified language.
-
-        :param lang: The language of the error message text.
-        :type lang: str
-        :param kwargs: Additional format arguments for the error message text.
-        :type kwargs: dict
-        :return: The formatted error response.
-        :rtype: dict
-        '''
-
-        # Format the error message text.
-        error_message = self.format_message(lang, **kwargs)
-
-        # If the error message is not found, return no response.
-        if not error_message:
-            return None
-
-        # Return the formatted error response.
-        return dict(
-            error_code=self.id,
-            name=self.name,
-            message=error_message,
-            **kwargs,
-        )

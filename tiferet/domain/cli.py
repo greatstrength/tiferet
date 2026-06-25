@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, List, Literal
+from typing import Any, Dict, List, Literal
 
 # ** infra
 from pydantic import Field, model_validator
@@ -97,6 +97,44 @@ class CliArgument(DomainObject):
         # If the type is not recognized, return str as a default.
         else:
             return str
+
+    # * method: to_argparse_kwargs
+    def to_argparse_kwargs(self) -> Dict[str, Any]:
+        '''
+        Express this CLI argument in the form an argparse parser expects.
+
+        A ``CliArgument`` is the domain's declarative description of one command
+        input; this adapts that description so the argument can be registered on
+        an argparse parser. The human-readable ``description`` is surfaced as the
+        argument's ``help`` text, and its declared type is resolved to a concrete
+        type. Because an argument that captures a value means something different
+        from a simple on/off flag, value-bearing arguments keep their type,
+        allowed count (``nargs``), and permitted ``choices``, while flag-style
+        arguments leave those value-only details out.
+
+        :return: The keyword arguments for ``add_argument``.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Dump the trivial fields, excluding those with bespoke translation.
+        kwargs = self.model_dump(
+            exclude_none=True,
+            exclude={'name_or_flags', 'description', 'type'},
+        )
+
+        # argparse expects 'help' rather than 'description'.
+        kwargs['help'] = self.description
+
+        # Value-consuming actions accept a resolved type and retain nargs/choices;
+        # flag and const actions reject those keywords, so drop them.
+        if self.action in (None, 'store', 'append'):
+            kwargs['type'] = self.get_type()
+        else:
+            kwargs.pop('nargs', None)
+            kwargs.pop('choices', None)
+
+        # Return the assembled keyword arguments.
+        return kwargs
 
 # ** model: cli_command
 class CliCommand(DomainObject):
