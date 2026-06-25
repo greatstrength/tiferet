@@ -3,17 +3,17 @@
 # *** imports
 
 # ** app
-from ...domain import (
+from tiferet.domain import (
     Error,
     ErrorMessage,
 )
-from ...events import a
-from ..error import (
+from tiferet.events import a
+from tiferet.mappers.error import (
     ErrorAggregate,
-    ErrorYamlObject,
-    ErrorMessageYamlObject,
+    ErrorConfigObject,
+    ErrorMessageConfigObject,
 )
-from .settings import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants
@@ -140,13 +140,13 @@ class TestErrorAggregate(AggregateTestBase):
         assert len(aggregate.message) == initial_count
 
 
-# ** class: TestErrorYamlObject
-class TestErrorYamlObject(TransferObjectTestBase):
+# ** class: TestErrorConfigObject
+class TestErrorConfigObject(TransferObjectTestBase):
     '''
-    Tests for ErrorYamlObject mapping, round-trip, and nested ErrorMessageYamlObject.
+    Tests for ErrorConfigObject mapping, round-trip, and nested ErrorMessageConfigObject.
     '''
 
-    transfer_cls = ErrorYamlObject
+    transfer_cls = ErrorConfigObject
     aggregate_cls = ErrorAggregate
 
     sample_data = ERROR_SAMPLE_DATA
@@ -160,11 +160,11 @@ class TestErrorYamlObject(TransferObjectTestBase):
     # ** test: from_data
     def test_from_data(self):
         '''
-        Test that model_validate() initializes scalar fields and nested ErrorMessageYamlObject instances.
+        Test that model_validate() initializes scalar fields and nested ErrorMessageConfigObject instances.
         '''
 
         # Create a YAML object from sample data.
-        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
 
         # Assert scalar fields.
         assert yaml_obj.name == 'TEST_ERROR'
@@ -172,7 +172,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
 
         # Assert nested messages.
         assert len(yaml_obj.message) == 1
-        assert isinstance(yaml_obj.message[0], ErrorMessageYamlObject)
+        assert isinstance(yaml_obj.message[0], ErrorMessageConfigObject)
         assert yaml_obj.message[0].lang == 'en'
         assert yaml_obj.message[0].text == 'Test error message.'
 
@@ -183,7 +183,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
         '''
 
         # Create a YAML object and serialize.
-        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
         primitive = yaml_obj.to_primitive('to_data.yaml')
 
         # Assert id is excluded.
@@ -204,7 +204,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object and map.
-        yaml_obj = ErrorYamlObject.model_validate(self.sample_data)
+        yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
         mapped = yaml_obj.map()
 
         # Assert messages are ErrorMessage instances.
@@ -216,18 +216,18 @@ class TestErrorYamlObject(TransferObjectTestBase):
     # ** test: from_model_messages
     def test_from_model_messages(self, aggregate):
         '''
-        Test that from_model() converts messages to ErrorMessageYamlObject instances.
+        Test that from_model() converts messages to ErrorMessageConfigObject instances.
 
         :param aggregate: The error aggregate fixture.
         :type aggregate: ErrorAggregate
         '''
 
         # Convert aggregate to YAML object.
-        yaml_obj = ErrorYamlObject.from_model(aggregate)
+        yaml_obj = ErrorConfigObject.from_model(aggregate)
 
-        # Assert messages are ErrorMessageYamlObject instances.
+        # Assert messages are ErrorMessageConfigObject instances.
         assert len(yaml_obj.message) == 1
-        assert all(isinstance(msg, ErrorMessageYamlObject) for msg in yaml_obj.message)
+        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
     # ** test: round_trip_messages
     def test_round_trip_messages(self, aggregate):
@@ -239,7 +239,7 @@ class TestErrorYamlObject(TransferObjectTestBase):
         '''
 
         # Round-trip: aggregate -> YAML object -> aggregate.
-        yaml_obj = ErrorYamlObject.from_model(aggregate)
+        yaml_obj = ErrorConfigObject.from_model(aggregate)
         round_tripped = yaml_obj.map()
 
         # Assert message content preserved.
@@ -265,14 +265,14 @@ class TestErrorYamlObject(TransferObjectTestBase):
         )
 
         # Convert to YAML object.
-        yaml_obj = ErrorYamlObject.from_model(error)
+        yaml_obj = ErrorConfigObject.from_model(error)
 
         # Assert the YAML object is valid.
-        assert isinstance(yaml_obj, ErrorYamlObject)
+        assert isinstance(yaml_obj, ErrorConfigObject)
         assert yaml_obj.id == 'test_error'
         assert yaml_obj.name == 'Test Error'
         assert len(yaml_obj.message) == 2
-        assert all(isinstance(msg, ErrorMessageYamlObject) for msg in yaml_obj.message)
+        assert all(isinstance(msg, ErrorMessageConfigObject) for msg in yaml_obj.message)
 
 
 # *** standalone tests
@@ -280,11 +280,11 @@ class TestErrorYamlObject(TransferObjectTestBase):
 # ** test: error_message_yaml_object_map
 def test_error_message_yaml_object_map():
     '''
-    Test that ErrorMessageYamlObject maps to an ErrorMessage domain object.
+    Test that ErrorMessageConfigObject maps to an ErrorMessage domain object.
     '''
 
     # Create from data and map.
-    yaml_obj = ErrorMessageYamlObject.model_validate(
+    yaml_obj = ErrorMessageConfigObject.model_validate(
         dict(lang='en', text='Test message'),
     )
     msg = yaml_obj.map()
@@ -298,7 +298,7 @@ def test_error_message_yaml_object_map():
 # ** test: error_message_yaml_object_from_model
 def test_error_message_yaml_object_from_model():
     '''
-    Test that ErrorMessageYamlObject can be created from an ErrorMessage domain object.
+    Test that ErrorMessageConfigObject can be created from an ErrorMessage domain object.
     '''
 
     # Create an ErrorMessage via direct constructor.
@@ -308,9 +308,9 @@ def test_error_message_yaml_object_from_model():
     )
 
     # Convert to YAML object.
-    yaml_obj = ErrorMessageYamlObject.from_model(model)
+    yaml_obj = ErrorMessageConfigObject.from_model(model)
 
     # Assert the YAML object fields.
-    assert isinstance(yaml_obj, ErrorMessageYamlObject)
+    assert isinstance(yaml_obj, ErrorMessageConfigObject)
     assert yaml_obj.lang == 'es'
     assert yaml_obj.text == 'Mensaje de prueba'

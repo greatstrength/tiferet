@@ -3,15 +3,15 @@
 # *** imports
 
 # ** app
-from ...domain import FeatureEvent
-from ...events import a
-from ..feature import (
-    FeatureEventAggregate,
-    FeatureEventYamlObject,
+from tiferet.domain import EventFeatureStep
+from tiferet.events import a
+from tiferet.mappers.feature import (
+    EventFeatureStepAggregate,
+    EventFeatureStepConfigObject,
     FeatureAggregate,
-    FeatureYamlObject,
+    FeatureConfigObject,
 )
-from .settings import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants
@@ -81,13 +81,13 @@ FEATURE_FIELD_NORMALIZERS = {
 
 # *** classes
 
-# ** class: TestFeatureEventAggregate
-class TestFeatureEventAggregate(AggregateTestBase):
+# ** class: TestEventFeatureStepAggregate
+class TestEventFeatureStepAggregate(AggregateTestBase):
     '''
-    Tests for FeatureEventAggregate construction, set_attribute, and domain-specific mutations.
+    Tests for EventFeatureStepAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    aggregate_cls = FeatureEventAggregate
+    aggregate_cls = EventFeatureStepAggregate
 
     sample_data = FEATURE_EVENT_AGGREGATE_SAMPLE_DATA
 
@@ -312,13 +312,13 @@ class TestFeatureAggregate(AggregateTestBase):
         assert aggregate.description is None
 
 
-# ** class: TestFeatureYamlObject
-class TestFeatureYamlObject(TransferObjectTestBase):
+# ** class: TestFeatureConfigObject
+class TestFeatureConfigObject(TransferObjectTestBase):
     '''
-    Tests for FeatureYamlObject mapping, round-trip, and nested FeatureEventYamlObject.
+    Tests for FeatureConfigObject mapping, round-trip, and nested EventFeatureStepConfigObject.
     '''
 
-    transfer_cls = FeatureYamlObject
+    transfer_cls = FeatureConfigObject
     aggregate_cls = FeatureAggregate
 
     # YAML-format sample data (steps with params alias and service_id).
@@ -362,9 +362,9 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         # Create an aggregate using the direct constructor.
         data = data or self.aggregate_sample_data
 
-        # Build steps as FeatureEventAggregate instances.
+        # Build steps as EventFeatureStepAggregate instances.
         steps = [
-            FeatureEventAggregate(**step)
+            EventFeatureStepAggregate(**step)
             for step in data.get('steps', [])
         ]
 
@@ -374,7 +374,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
             steps=steps,
         )
 
-    # *** child mapper: FeatureEventYamlObject
+    # *** child mapper: EventFeatureStepConfigObject
 
     # ** constant: feature_event_sample_data
     feature_event_sample_data = {
@@ -389,17 +389,17 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_map_basic
     def test_feature_event_yaml_map_basic(self):
         '''
-        Test mapping a FeatureEventYamlObject to a FeatureEventAggregate.
+        Test mapping a EventFeatureStepConfigObject to a EventFeatureStepAggregate.
         '''
 
         # Create a YAML object and map it.
-        yaml_obj = FeatureEventYamlObject.model_validate(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(
             self.feature_event_sample_data,
         )
         event = yaml_obj.map()
 
         # Verify the mapped entity.
-        assert isinstance(event, FeatureEventAggregate)
+        assert isinstance(event, EventFeatureStepAggregate)
         assert event.name == 'Test Event'
         assert event.service_id == 'test_event_handler'
         assert event.parameters == {'key': 'value'}
@@ -413,7 +413,7 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         '''
 
         # Create YAML object using the 'params' alias.
-        yaml_obj = FeatureEventYamlObject.model_validate(dict(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
             name='Alias Event',
             service_id='alias_handler',
             params={'alias_key': 'value'},
@@ -426,11 +426,11 @@ class TestFeatureYamlObject(TransferObjectTestBase):
     # ** test: feature_event_yaml_map_with_condition
     def test_feature_event_yaml_map_with_condition(self):
         '''
-        Test mapping a FeatureEventYamlObject with a condition field.
+        Test mapping a EventFeatureStepConfigObject with a condition field.
         '''
 
         # Create a YAML object with a condition and map it.
-        yaml_obj = FeatureEventYamlObject.model_validate(dict(
+        yaml_obj = EventFeatureStepConfigObject.model_validate(dict(
             name='Conditional Event',
             service_id='conditional_handler',
             condition='$r.b != 0',
@@ -438,17 +438,17 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         event = yaml_obj.map()
 
         # Verify the condition is preserved.
-        assert isinstance(event, FeatureEventAggregate)
+        assert isinstance(event, EventFeatureStepAggregate)
         assert event.condition == '$r.b != 0'
 
     # ** test: feature_event_yaml_from_model
     def test_feature_event_yaml_from_model(self):
         '''
-        Test that FeatureEventYamlObject can be created from a FeatureEvent model.
+        Test that EventFeatureStepConfigObject can be created from a EventFeatureStep model.
         '''
 
-        # Create a FeatureEvent model via direct constructor.
-        model = FeatureEvent(
+        # Create a EventFeatureStep model via direct constructor.
+        model = EventFeatureStep(
             name='Test Event',
             service_id='test_event_handler',
             parameters={'key': 'value'},
@@ -457,10 +457,10 @@ class TestFeatureYamlObject(TransferObjectTestBase):
         )
 
         # Create a YAML object from the model.
-        yaml_obj = FeatureEventYamlObject.from_model(model)
+        yaml_obj = EventFeatureStepConfigObject.from_model(model)
 
         # Verify the YAML object has the correct values.
-        assert isinstance(yaml_obj, FeatureEventYamlObject)
+        assert isinstance(yaml_obj, EventFeatureStepConfigObject)
         assert yaml_obj.name == model.name
         assert yaml_obj.service_id == model.service_id
         assert yaml_obj.parameters == model.parameters

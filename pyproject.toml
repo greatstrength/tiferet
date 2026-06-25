@@ -42,6 +42,7 @@ include = [
     "tiferet.interfaces",
     "tiferet.mappers",
     "tiferet.repos",
+    "tiferet.testing",
     "tiferet.utils",
 ]
 
