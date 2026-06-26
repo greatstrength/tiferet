@@ -11,9 +11,9 @@ import sqlite3
 import pytest
 
 # ** app
-from ..sqlite import SqliteClient
-from ...events import a
-from ...events.settings import TiferetError
+from tiferet.utils.sqlite import SqliteClient
+from tiferet.events import a
+from tiferet.events.settings import TiferetError
 
 # *** fixtures
 

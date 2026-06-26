@@ -7,9 +7,9 @@ import pytest
 from pydantic import Field, ValidationError
 
 # ** app
-from ...domain import DomainObject
-from ..settings import Aggregate, TransferObject
-from ...assets import TiferetError
+from tiferet.domain import DomainObject
+from tiferet.mappers.settings import Aggregate, TransferObject
+from tiferet.assets import TiferetError
 
 # *** fixtures
 

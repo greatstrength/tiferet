@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 # ** app
-from ..yaml import YamlLoader
-from ...events import a
-from ...events.settings import TiferetError
+from tiferet.utils.yaml import YamlLoader
+from tiferet.events import a
+from tiferet.events.settings import TiferetError
 
 # *** fixtures
 

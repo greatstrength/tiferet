@@ -10,9 +10,9 @@ from pathlib import Path
 import pytest
 
 # ** app
-from ..json import JsonLoader
-from ...events import a
-from ...events.settings import TiferetError
+from tiferet.utils.json import JsonLoader
+from tiferet.events import a
+from tiferet.events.settings import TiferetError
 
 # *** fixtures
 

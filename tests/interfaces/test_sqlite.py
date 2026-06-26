@@ -10,7 +10,7 @@ from typing import Any, Callable, Iterable, Optional
 import pytest
 
 # ** app
-from ..sqlite import SqliteService
+from tiferet.interfaces.sqlite import SqliteService
 
 # *** tests
 
