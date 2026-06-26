@@ -7,7 +7,7 @@ import pytest
 from pydantic import Field, ValidationError
 
 # ** app
-from ..settings import DomainObject
+from tiferet.domain.settings import DomainObject
 
 # *** fixtures
 

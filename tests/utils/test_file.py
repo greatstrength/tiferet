@@ -6,9 +6,9 @@
 import pytest
 
 # ** app
-from ..file import FileLoader
-from ...events import a
-from ...events.settings import TiferetError
+from tiferet.utils.file import FileLoader
+from tiferet.events import a
+from tiferet.events.settings import TiferetError
 
 # *** fixtures
 

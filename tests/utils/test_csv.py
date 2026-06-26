@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 # ** app
-from ..csv import CsvLoader, CsvDictLoader
-from ...events import a
-from ...events.settings import TiferetError
+from tiferet.utils.csv import CsvLoader, CsvDictLoader
+from tiferet.events import a
+from tiferet.events.settings import TiferetError
 
 # *** fixtures
 
