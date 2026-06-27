@@ -62,6 +62,12 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
   - **Doc stream:** the latest released version.
 - **Related Code Style Documentation** (section 8) is mandatory: always include `code_style.md`; include a component guide only when the story modifies that component. Link to `https://github.com/greatstrength/tiferet/blob/main/docs/core/<file>` — available guides: `code_style.md`, `domain.md`, `events.md`, `mappers.md`, `interfaces.md`, `contexts.md`, `repos.md`, `utils.md`.
 
+## Artifact-based requirements
+Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# * method:` / `# ** <component>:` labels / `# *** <section>` headers per the structured code style — not prose or "copy from X". In §3 give each module an artifact-action summary; in §4 enumerate the named artifacts, using a `From (current)` → `To (target)` delta table for renames/migrations with an Add/Update/Remove legend (factor the shared pattern once, list per-module exceptions). In §5 assert target artifacts exist and retired ones are gone. Make cross-layer prerequisites, artifact-label corrections, and behavioral shifts explicit.
+
+## Migration / parity stories (branch-agnostic)
+For parity/migration work sourced from a prototype branch, keep the dev-facing TRD **branch-agnostic and in the target ubiquitous language**. Do not tell the implementation agent to read, diff, or copy a prototype/source branch — extract the terminology and artifacts into the TRD. Record not-yet-met cross-layer dependencies in §7 Prerequisites with their status in `main`. The prototype source-of-truth comparison belongs to the separate `tiferet-pr-code-review` skill, not authoring or implementation.
+
 ## Branch naming (by stream)
 - **Main:** `<issue-number>-<lowercase-hyphenated-title>`, from and targeting `main`.
 - **RFP:** `v<major>.<minor>.<patch>b<next_beta>-<context>`, from and targeting the prototype branch (e.g. `v2.0-proto`).

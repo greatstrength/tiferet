@@ -69,6 +69,26 @@ Every TRD must follow this exact structure:
 - **Refactors**: Highlight before/after, removed files, and migration steps.
 - **New Errors**: Add to constants with ID, name, and message.
 
+## Artifact-Based Requirements
+
+TRDs specify work as **artifacts to add, update, or remove** — never as prose narratives or "copy from X" instructions. An *artifact* is any unit named by the structured code style's artifact comments: a module, class, attribute, `# * method:`, mid-level `# ** <component>:` label, or top-level `# *** <section>` (see [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)).
+
+- **Components Affected (§3):** give each affected module an *artifact action* summary (Add / Update / Remove), not a vague "Changes" blurb.
+- **Detailed Requirements (§4):** enumerate the specific artifacts per module. For renames, refactors, and migrations, use a delta table with `From (current)` and `To (target)` columns and lead with an **Add / Update / Remove** legend. Factor a shared pattern once and list per-module exceptions to keep the document lean.
+- **Acceptance Criteria (§5):** assert that target artifacts exist *and* that retired ones are gone (e.g., "no `*YamlObject` references remain under `tiferet/repos/`").
+- **Surface what a copy hides:** cross-layer prerequisites (e.g., a mapper role-key rename), artifact-label corrections, and behavioral shifts each become an explicit requirement or prerequisite — not an implicit side effect.
+
+The goal: an implementation agent can satisfy the TRD by acting on named artifacts, and a reviewer can verify each one independently.
+
+## Migration and Parity Stories (implementation-source-agnostic)
+
+When a story moves work toward a prototype or other source branch (e.g., a parity milestone), the **dev-facing TRD must be branch-agnostic and written in the target ubiquitous language**. Extract the domain terminology and artifacts from the source and specify them directly.
+
+- **Do not** instruct the implementation agent to read, diff, or copy from a prototype/source branch — the TRD is the single source the dev side operates from.
+- Name target artifacts explicitly (classes, methods, parameters, mappers, roles, error codes) so no branch lookup is required.
+- Record not-yet-satisfied cross-layer dependencies in **Prerequisites (§7)** with their current status in `main`.
+- The prototype/source-of-truth branch is reserved for the **review/reconciliation** step, handled separately by the [`tiferet-pr-code-review`](agents/skills/tiferet-pr-code-review/SKILL.md) skill — not the authoring or implementation step.
+
 ## Review Checklist
 Before finalizing:
 - [ ] All sections present.
@@ -76,6 +96,8 @@ Before finalizing:
 - [ ] Code blocks have language hint.
 - [ ] Acceptance criteria are verifiable.
 - [ ] No placeholder text or unresolved comments.
+- [ ] Requirements are expressed as artifacts to add/update/remove (not prose or "copy from X").
+- [ ] For parity/migration stories, the TRD is branch-agnostic — no prototype/source-branch instructions for the implementation agent.
 
 These instructions ensure all TRDs remain uniform, readable, and actionable across the Tiferet codebase. Follow them strictly for every new document.
 
@@ -139,7 +161,7 @@ When a TRD includes branch/PR work, Acceptance Criteria should reference:
 
 - Commit hygiene: separate functional code changes from documentation/config/packaging in distinct, atomic commits. Title commits by scope (e.g., "Interfaces – base class" vs "Docs/Packaging").
 - Versioning & tagging (when the story includes a release): specify the target version, branch, and bump type. Acceptance Criteria should include: (1) version bump commit, (2) annotated tag pushed, (3) published release with notes following the previous release style.
-- Source-of-truth references: when instructing to "retrofit from …", include the exact branch and path (and optionally the commit SHA) that contains the source document.
+- Source-of-truth references: keep dev/implementation TRDs **branch-agnostic** — do not embed "retrofit from <branch>" instructions for the implementation agent. Extract the needed terminology and artifacts into the TRD itself (see *Migration and Parity Stories* above). Branch/path/SHA references to a prototype source of truth belong to the review/reconciliation step (the [`tiferet-pr-code-review`](agents/skills/tiferet-pr-code-review/SKILL.md) skill), not authoring or implementation.
 - Reporting: upon completion, publish a Collaboration Report as a comment on the originating issue; include links to the PR, tag, and release.
 - Tooling fallback: if first-choice automation (e.g., MCP tools) is unavailable, specify the approved fallback (e.g., `gh` CLI) and prerequisites (authenticated session).
-- Cross-branch artifacts: if the referenced source does not exist locally on the working branch, it is acceptable to retrieve it via `git show <branch>:<path>` or include the minimal excerpts inline within the TRD.
+- Cross-branch research: a TRD author may inspect a source branch via `git show <branch>:<path>` while drafting, but the finished TRD must stand alone — inline the extracted terminology/artifacts so the implementation agent never needs the branch.
