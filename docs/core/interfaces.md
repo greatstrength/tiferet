@@ -6,17 +6,17 @@ This document focuses exclusively on **Services** as the vertical contracts.
 
 ## What is a Service?
 
-A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.settings.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as injectable interfaces that:
+A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.settings.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
 
 - Abstract data access (CRUD operations, existence checks, listing)
 - Manage configuration persistence (loading/saving structured data from YAML/JSON/etc.)
 - Provide middleware and utility behavior (file handling, context management, validation, caching)
 - Coordinate domain logic while hiding infrastructure details
 
-**Commands** and **domain events** depend on injected Service instances to perform persistence, retrieval, or orchestration (e.g., `error_service.save(error)`, `configuration_service.load(...)`). Services encapsulate the infrastructure details, allowing commands and events to remain pure domain logic.
+**Commands** and **domain events** depend on Service instances to perform persistence, retrieval, or orchestration (e.g., `error_service.save(error)`, `configuration_service.load(...)`). Services encapsulate the infrastructure details, allowing commands and events to remain pure domain logic.
 
 ### Role in Runtime
-- **Commands** and **domain events** are the primary consumers of Services, receiving them via dependency injection (constructor).
+- **Commands** and **domain events** are the primary consumers of Services.
 - Commands and events use Services to delegate vertical concerns (data access, configuration, file I/O, etc.).
 - Concrete implementations (YAML-backed repositories, middleware classes) satisfy the Service interfaces while hiding implementation details.
 - **Factories** (e.g., `ConfigurationFileRepository`) resolve the correct concrete Service at runtime based on context (file type, etc.).
@@ -24,7 +24,7 @@ A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.s
 ### Key Characteristics of Services as Vertical Contracts
 - **Vertical abstraction**: They cross the domain ↔ infrastructure boundary, hiding how data is stored, files are managed, or middleware is applied.
 - **Unified interface**: All vertical concerns (previously handled by repositories, configuration loaders, middleware, utilities) converge under `Service`.
-- **Dependency injection**: Services are injected into commands and events via containers or initializers, making implementations swappable.
+- **Swappable implementations**: Consumers depend only on the Service contract, so concrete implementations can be substituted without changing domain logic.
 - **Extensibility**: New concerns (e.g., authentication, logging, rate limiting) can be added as new Service interfaces or layered inside existing ones.
 
 In the error domain, `ErrorService` is the vertical contract that all error-related commands depend on. In configuration handling, `ConfigurationService` abstracts YAML/JSON loading and saving, with concrete middleware implementations satisfying the interface.
@@ -156,7 +156,7 @@ class FileService(Service):
    - Use factories (e.g., `ConfigurationFileRepository.open_config()`) to resolve concrete implementations dynamically.
 
 3. **Use in Commands and Domain Events**
-   - Inject the Service via constructor (e.g., `error_service: ErrorService`).
+   - Declare the Service as a constructor dependency (e.g., `error_service: ErrorService`).
    - Depend only on the interface for all vertical operations.
 
 ## Migration from Contracts
@@ -188,12 +188,12 @@ New service interfaces should be created in `tiferet.interfaces` from the start.
 - Define methods with clear RST docstrings, type hints, and domain intent.
 - Use `@abstractmethod` to enforce implementation.
 - Keep services focused but composable (layer via inheritance or decoration).
-- Inject Services into commands and events — never hard-code concrete classes.
+- Depend on Service contracts in commands and events — never hard-code concrete classes.
 - Maintain one empty line between sections, comments, and code blocks.
 
 ## MiddlewareService
 
-`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware. Middleware instances are resolved from the DI container by `service_id` and composed into an ordered chain that wraps event execution.
+`MiddlewareService` (`tiferet/interfaces/middleware.py`) is the abstract contract for domain event middleware — a cross-cutting concern that wraps the execution of a domain event. Middleware is composed into an ordered chain, where each one may run logic before and after delegating to the next, letting concerns such as validation, logging, or timing layer around an event without changing the event itself.
 
 ```python
 # *** interfaces
@@ -219,7 +219,7 @@ class MiddlewareService(Service):
         raise NotImplementedError()
 ```
 
-For async middleware, implement `async def __call__` and `await next_fn()`. The concrete class is exported from `tiferet.interfaces` as `MiddlewareService`.
+For async middleware, implement `async def __call__` and `await next_fn()`. The interface is exported from `tiferet.interfaces` as `MiddlewareService`.
 
 ## Conclusion
 
