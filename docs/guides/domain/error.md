@@ -63,14 +63,9 @@ assert error.error_code == 'INVALID_INPUT'
 
 Finds the first `ErrorMessage` matching the given `lang` and formats it. Returns `None` if no message matches the language.
 
-**`format_response(lang='en_US', **kwargs) -> dict`**
+**Response formatting (moved to `ErrorContext`)**
 
-Returns a structured error response dict with `error_code`, `name`, `message`, and any additional kwargs. Returns `None` if the language is not supported.
-
-```python
-response = error.format_response('en_US', value='abc')
-# {'error_code': 'invalid_input', 'name': 'Invalid Input', 'message': 'Value abc is invalid', 'value': 'abc'}
-```
+`Error` no longer defines `format_response`. Structured response assembly lives in `ErrorContext.format_response(error, exception, lang='en_US')`, which calls `Error.format_message` and adds `error_code`, `name`, and any exception kwargs. Keeping response shaping in the context layer lets interface-specific contexts (e.g. Flask, FastAPI) override it polymorphically, while `Error.format_message` and `ErrorMessage.format` remain on the domain objects.
 
 ## Error Formatting Flow
 
@@ -78,10 +73,9 @@ The error formatting flow in Tiferet follows this path:
 
 1. A domain event calls `self.verify(expression, error_code, ...)` or `self.raise_error(error_code, ...)`.
 2. A `TiferetError` is raised with the `error_code` and contextual kwargs.
-3. The application context catches the error and delegates to `ErrorContext.handle_error()`.
-4. `ErrorContext` retrieves the `Error` domain object via `ErrorService.get(error_code)`.
-5. `Error.format_response(lang, **kwargs)` produces the structured error response.
-6. The response is returned to the caller (API response, CLI output, etc.).
+3. `AppInterfaceContext.handle_error()` catches the error and loads the `Error` domain object via the hub's `load_error_domain` (backed by `GetError`/`ErrorService`).
+4. `ErrorContext.format_response(error, exception, lang)` produces the structured error response from the loaded `Error`.
+5. The response is wrapped in `TiferetAPIError` and returned to the caller (API response, CLI output, etc.).
 
 ## Built-In Defaults
 
@@ -145,7 +139,7 @@ Concrete implementations (e.g., `ErrorYamlRepository`) satisfy this interface.
 
 - **All Domains:** Every domain event uses `verify()` and `raise_error()` to raise `TiferetError`, which is resolved to an `Error` for formatting.
 - **App:** `ErrorContext` is loaded as part of the application interface bootstrap, receiving `ErrorService` via dependency injection.
-- **DI:** `ErrorService` is wired through the DI container (`ServiceConfiguration` entries in the `services` section of the configuration).
+- **DI:** `ErrorService` is wired through the DI container (`ServiceRegistration` entries in the `services` section of the configuration).
 
 ## Instantiation
 

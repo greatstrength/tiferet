@@ -44,6 +44,18 @@ arg = CliArgument(name_or_flags=['--count'], type='int')
 assert arg.get_type() is int
 ```
 
+**`to_argparse_kwargs() -> Dict[str, Any]`**
+
+Builds the keyword arguments for `argparse.add_argument()` from the argument's fields. Trivial fields come from a pydantic `model_dump(exclude_none=True, ...)` and `description` is mapped to `help`. Value-consuming actions (the default, `store`, `append`) receive a resolved `type` callable (via `get_type()`) and retain `nargs`/`choices`, while flag and const actions (e.g. `store_true`) omit those keywords so parser construction stays valid. `name_or_flags` is excluded because it is passed positionally to `add_argument`.
+
+```python
+arg = CliArgument(name_or_flags=['a'], description='First operand.', type='int')
+arg.to_argparse_kwargs()  # {'help': 'First operand.', 'type': int}
+
+flag = CliArgument(name_or_flags=['--verbose'], description='Verbose.', action='store_true')
+flag.to_argparse_kwargs()  # {'action': 'store_true', 'help': 'Verbose.'}
+```
+
 ### CliCommand
 
 Represents a CLI command with a composite identifier.
