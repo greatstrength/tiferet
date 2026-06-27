@@ -16,7 +16,7 @@ Domain objects serve a **dual role**:
 
 2. **Structural Foundation for the Mappers Layer**  
    - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
-   - TransferObjects extend domain objects with serialization roles (e.g., `ErrorYamlObject(Error, TransferObject)`).
+   - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
    - Define the field shape mirrored in YAML/JSON configuration files.
    - Enable reliable round-trip mapping between persistent configuration and runtime models.
 
@@ -26,22 +26,22 @@ This duality ensures a single source of truth for domain structure and behavior,
 
 - **Runtime Use** (`ErrorContext`):
   ```python
-  error = self.get_error_handler(error_code, include_defaults=True)
-  formatted = error.format_response(lang=lang, **exception.kwargs)
+  # The hub loads the Error; the context formats the response from it.
+  error_message = error.format_message(lang, **getattr(exception, 'kwargs', {}))
   ```
-  The `Error` domain object is retrieved via command and actively formats responses.
+  The `Error` domain object is retrieved via the hub's `load_error_domain` and used by `ErrorContext.format_response` to assemble the structured response.
 
-- **Mapper Layer Use** (`ErrorAggregate`, `ErrorYamlObject`):
+- **Mapper Layer Use** (`ErrorAggregate`, `ErrorConfigObject`):
   ```python
   class ErrorAggregate(Error, Aggregate):
       # Inherits fields/validation from Error
       # Adds mutation methods (rename, set_message, remove_message)
 
-  class ErrorYamlObject(Error, TransferObject):
+  class ErrorConfigObject(Error, TransferObject):
       # Inherits fields/validation from Error
       # Adds serialization roles and mapping logic
   ```
-  Configuration (`error.yml`) maps through `ErrorYamlObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
+  Configuration (`error.yml`) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
 
 ## The DomainObject Base Class
 
@@ -154,7 +154,7 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 - `# *** tests`
 - `# ** test: <name>`
 
-**Example** – Error domain object tests cover constructor instantiation, `format_message`, `format_response`, and multilingual support.
+**Example** – Error domain object tests cover constructor instantiation, `format_message`, and multilingual support (structured response assembly is tested in `ErrorContext`).
 
 ## Package Layout
 
@@ -163,9 +163,9 @@ Domain objects are defined in `tiferet/domain/`:
 - `settings.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`).
 - `app.py` – `AppInterface`, `AppServiceDependency`.
 - `cli.py` – `CliCommand`, `CliArgument`.
-- `di.py` – `ServiceConfiguration`, `FlaggedDependency`.
+- `di.py` – `ServiceRegistration`, `FlaggedDependency`.
 - `error.py` – `Error`, `ErrorMessage`.
-- `feature.py` – `Feature`, `FeatureStep`, `FeatureEvent`.
+- `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
 - `logging.py` – `Formatter`, `Handler`, `Logger`.
 - `__init__.py` – Public exports for all domain objects.
 

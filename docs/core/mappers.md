@@ -17,7 +17,7 @@ The mappers layer (`tiferet.mappers`) provides the bridge between persistent con
    - Extends `DomainObject` with a lenient `ConfigDict` (`extra='ignore'`, `validate_assignment=False`).
    - Manages role-based serialization via a `_ROLES` ClassVar mapping role names to `model_dump` kwargs.
    - Provides `to_primitive(role)`, `map(target)`, and `from_model` classmethod for mapping and transformation.
-   - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorYamlObject(Error, TransferObject)`).
+   - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
 
 Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`) with a clearer separation of mutation (Aggregate) and serialization (TransferObject) concerns.
 
@@ -30,9 +30,9 @@ Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`
       # Adds mutation methods (rename, set_message, remove_message)
   ```
 
-- **TransferObject Use** (`ErrorYamlObject`):
+- **TransferObject Use** (`ErrorConfigObject`):
   ```python
-  class ErrorYamlObject(Error, TransferObject):
+  class ErrorConfigObject(Error, TransferObject):
       # Inherits fields/validation from Error
       # Adds serialization roles and mapping logic
   ```
@@ -82,9 +82,9 @@ Key characteristics:
 Transfer objects use a `_ROLES` ClassVar to control which fields are serialized for different contexts. Each role maps to a dict of `model_dump` kwargs:
 
 ```python
-class ErrorYamlObject(Error, TransferObject):
+class ErrorConfigObject(Error, TransferObject):
     '''
-    A YAML data representation of an error object.
+    A configuration data representation of an error object.
     '''
 
     # * attribute: _ROLES
@@ -152,10 +152,10 @@ class FeatureAggregate(Feature, Aggregate):
 - Override `map()` to specify the target aggregate and handle nested mapping.
 - Override `from_model()` as a `@classmethod` to handle nested conversions.
 
-**Example** – `FeatureYamlObject`:
+**Example** – `FeatureConfigObject`:
 ```python
-# ** mapper: feature_yaml_object
-class FeatureYamlObject(Feature, TransferObject):
+# ** mapper: feature_config_object
+class FeatureConfigObject(Feature, TransferObject):
     '''
     YAML transfer object for the Feature domain object.
     '''
@@ -170,7 +170,7 @@ class FeatureYamlObject(Feature, TransferObject):
     }
 
     # * attribute: steps
-    steps: List[FeatureEventYamlObject] = Field(
+    steps: List[EventFeatureStepConfigObject] = Field(
         default_factory=list,
         validation_alias=AliasChoices('handlers', 'functions', 'commands', 'steps'),
         description='The step workflow for the feature.',
@@ -187,12 +187,12 @@ class FeatureYamlObject(Feature, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, feature: Feature, **overrides) -> 'FeatureYamlObject':
-        '''Creates a FeatureYamlObject from a Feature model.'''
+    def from_model(cls, feature: Feature, **overrides) -> 'FeatureConfigObject':
+        '''Creates a FeatureConfigObject from a Feature model.'''
         return super().from_model(
             feature,
             steps=[
-                FeatureEventYamlObject.from_model(step)
+                EventFeatureStepConfigObject.from_model(step)
                 for step in feature.steps
             ],
             **overrides,
@@ -299,7 +299,7 @@ import pytest
 
 # ** app
 from ..settings import TransferObject
-from ..<domain> import SomeAggregate, SomeYamlObject
+from ..<domain> import SomeAggregate, SomeConfigObject
 from .settings import AggregateTestBase, TransferObjectTestBase
 
 
@@ -354,11 +354,11 @@ class TestSomeAggregate(AggregateTestBase):
         assert aggregate.name == 'New Name'
 
 
-# ** class: TestSomeYamlObject
-class TestSomeYamlObject(TransferObjectTestBase):
-    '''Tests for SomeYamlObject.'''
+# ** class: TestSomeConfigObject
+class TestSomeConfigObject(TransferObjectTestBase):
+    '''Tests for SomeConfigObject.'''
 
-    transfer_cls = SomeYamlObject
+    transfer_cls = SomeConfigObject
     aggregate_cls = SomeAggregate
     sample_data = { ... }  # YAML-format
     aggregate_sample_data = AGGREGATE_SAMPLE_DATA
@@ -372,7 +372,7 @@ class TestSomeYamlObject(TransferObjectTestBase):
             **(data if data is not None else self.aggregate_sample_data)
         )
 
-    # *** child mapper: ChildYamlObject
+    # *** child mapper: ChildConfigObject
 
     # ** test: child_yaml_map_basic
     def test_child_yaml_map_basic(self):
@@ -405,10 +405,10 @@ FIELD_NORMALIZERS = {
 ```
 
 #### Child Mapper Tests
-When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyYamlObject` inside `AppInterfaceYamlObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
+When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppInterfaceConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
 
 #### Standalone Tests
-Small leaf-level mappers without mutation logic (e.g., `ErrorMessageYamlObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
+Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
 
 ### Migration Status
 
@@ -425,12 +425,12 @@ The following use the legacy standalone style and are candidates for migration:
 Mappers are defined in `tiferet/mappers/`:
 
 - `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppInterfaceAggregate`, `AppInterfaceYamlObject`.
-- `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandYamlObject`.
-- `di.py` — `ServiceConfigurationAggregate`, `ServiceConfigurationYamlObject`.
-- `error.py` — `ErrorAggregate`, `ErrorYamlObject`, `ErrorMessageYamlObject`.
-- `feature.py` — `FeatureAggregate`, `FeatureYamlObject`, `FeatureEventAggregate`, `FeatureEventYamlObject`.
-- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their YamlObject counterparts.
+- `app.py` — `AppInterfaceAggregate`, `AppInterfaceConfigObject`.
+- `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
+- `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
+- `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
+- `feature.py` — `FeatureAggregate`, `FeatureConfigObject`, `EventFeatureStepAggregate`, `EventFeatureStepConfigObject`.
+- `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
 - `__init__.py` — Public exports.
 
 Tests live in `tiferet/mappers/tests/`.
