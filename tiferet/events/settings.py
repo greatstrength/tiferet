@@ -321,6 +321,10 @@ class DomainEvent(object):
         Handle a domain event asynchronously via the instantiate-execute
         pattern, optionally composing an ordered async middleware chain.
 
+        Async middleware must ``await next_fn()``; synchronous middleware may
+        call ``next_fn()`` but will receive a coroutine it cannot inspect
+        directly.
+
         :param event_cls: The domain event class to handle.
         :type event_cls: type
         :param dependencies: The event dependencies.
@@ -355,6 +359,10 @@ class DomainEvent(object):
 class AsyncDomainEvent(DomainEvent):
     '''
     A base class for an asynchronous domain event object.
+
+    Extends ``DomainEvent`` with an async ``execute``. Inherits ``verify``,
+    ``raise_error`` and ``parameters_required`` unchanged - the synchronous
+    exception-raisers operate correctly in an async context.
     '''
 
     # * method: execute
