@@ -657,3 +657,35 @@ async def test_handle_async_multiple_middleware_outermost_first():
     # Outermost-first ordering.
     assert result == 'result'
     assert calls == ['outer:pre', 'inner:pre', 'execute', 'inner:post', 'outer:post']
+
+# ** test: test_handle_async_passthrough_sync_middleware
+@pytest.mark.asyncio
+async def test_handle_async_passthrough_sync_middleware():
+    '''
+    Test that pass-through synchronous middleware composes under handle_async.
+
+    A sync middleware that returns ``next_fn()`` without awaiting it composes
+    correctly because the async runner awaits the returned coroutine; only
+    sync middleware that inspects or transforms the result cannot do so.
+    '''
+
+    # Track the execution order.
+    calls = []
+
+    # Define an async event.
+    class AsyncEvent(AsyncDomainEvent):
+        async def execute(self, **kwargs):
+            calls.append('execute')
+            return 'result'
+
+    # Define a synchronous pass-through middleware returning next_fn() directly.
+    def middleware(event, kwargs, next_fn):
+        calls.append('pre')
+        return next_fn()
+
+    # Handle with the synchronous pass-through middleware.
+    result = await DomainEvent.handle_async(AsyncEvent, middleware=[middleware])
+
+    # The async runner awaits the returned coroutine, so the value passes through.
+    assert result == 'result', 'Pass-through sync middleware should compose under handle_async'
+    assert calls == ['pre', 'execute'], 'Sync pass-through middleware should run before execute'
