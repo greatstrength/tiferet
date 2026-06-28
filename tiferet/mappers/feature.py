@@ -105,7 +105,7 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'type'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'type'}},
+        'to_data': {'by_alias': True, 'exclude': {'type'}},
     }
 
     # * attribute: parameters
@@ -321,7 +321,7 @@ class FeatureConfigObject(Feature, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'steps'}},
-        'to_data.yaml': {
+        'to_data': {
             'by_alias': True,
             'exclude': {'feature_key', 'group_id', 'id'},
         },

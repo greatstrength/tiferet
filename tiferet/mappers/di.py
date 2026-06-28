@@ -52,7 +52,7 @@ class FlaggedDependencyConfigObject(FlaggedDependency, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'flag'}},
+        'to_data': {'by_alias': True, 'exclude': {'flag'}},
     }
 
     # * attribute: flag
@@ -225,7 +225,7 @@ class ServiceRegistrationConfigObject(ServiceRegistration, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'dependencies', 'parameters'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 
     # * attribute: dependencies

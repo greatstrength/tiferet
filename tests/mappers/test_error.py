@@ -176,15 +176,15 @@ class TestErrorConfigObject(TransferObjectTestBase):
         assert yaml_obj.message[0].lang == 'en'
         assert yaml_obj.message[0].text == 'Test error message.'
 
-    # ** test: to_primitive_to_data_yaml
-    def test_to_primitive_to_data_yaml(self):
+    # ** test: to_primitive_to_data
+    def test_to_primitive_to_data(self):
         '''
-        Test that to_primitive('to_data.yaml') excludes id and serializes messages correctly.
+        Test that to_primitive('to_data') excludes id and serializes messages correctly.
         '''
 
         # Create a YAML object and serialize.
         yaml_obj = ErrorConfigObject.model_validate(self.sample_data)
-        primitive = yaml_obj.to_primitive('to_data.yaml')
+        primitive = yaml_obj.to_primitive('to_data')
 
         # Assert id is excluded.
         assert isinstance(primitive, dict)
