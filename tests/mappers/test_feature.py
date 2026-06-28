@@ -510,7 +510,7 @@ def test_feature_config_object_serializes_params_schema_keyed():
     )).map()
 
     # Serialize the aggregate back to data form.
-    data = FeatureConfigObject.from_model(aggregate).to_primitive('to_data.yaml')
+    data = FeatureConfigObject.from_model(aggregate).to_primitive('to_data')
 
     # Verify shorthand and expanded keyed forms.
     assert data['params_schema']['a'] == 'int'

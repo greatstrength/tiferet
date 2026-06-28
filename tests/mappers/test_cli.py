@@ -269,14 +269,14 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
     # ** test: to_primitive_excludes_id_and_inlines_args
     def test_to_primitive_excludes_id_and_inlines_args(self):
         '''
-        Test that to_primitive('to_data.yaml') excludes 'id' and includes 'args' with full argument dicts.
+        Test that to_primitive('to_data') excludes 'id' and includes 'args' with full argument dicts.
         '''
 
         # Create a YAML object and serialize to primitive.
         yaml_obj = CliCommandConfigObject.model_validate(dict(
             **self.sample_data,
         ))
-        primitive = yaml_obj.to_primitive('to_data.yaml')
+        primitive = yaml_obj.to_primitive('to_data')
 
         # Assert 'id' is excluded and 'args' is present with full dicts.
         assert isinstance(primitive, dict)
