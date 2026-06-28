@@ -9,8 +9,8 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from ...mappers import ErrorYamlObject
-from ..error import ErrorYamlRepository
+from tiferet.mappers import ErrorConfigObject
+from tiferet.repos.error import ErrorConfigRepository
 
 
 # *** constants
@@ -77,30 +77,30 @@ def error_yaml_file(tmp_path) -> str:
 
 # ** fixture: error_config_repo
 @pytest.fixture
-def error_config_repo(error_yaml_file: str) -> ErrorYamlRepository:
+def error_config_repo(error_yaml_file: str) -> ErrorConfigRepository:
     '''
     Fixture to create an instance of the Error Configuration Repository.
 
     :param error_yaml_file: The error YAML configuration file path.
     :type error_yaml_file: str
-    :return: An instance of ErrorYamlRepository.
-    :rtype: ErrorYamlRepository
+    :return: An instance of ErrorConfigRepository.
+    :rtype: ErrorConfigRepository
     '''
 
-    # Create and return the ErrorYamlRepository instance.
-    return ErrorYamlRepository(error_yaml_file)
+    # Create and return the ErrorConfigRepository instance.
+    return ErrorConfigRepository(error_yaml_file)
 
 # *** tests
 
 # ** test_int: error_config_repo_exists
 def test_int_error_config_repo_exists(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the exists method of the ErrorYamlRepository.
+    Test the exists method of the ErrorConfigRepository.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # Check if the errors exist.
@@ -110,13 +110,13 @@ def test_int_error_config_repo_exists(
 
 # ** test_int: error_config_repo_get
 def test_int_error_config_repo_get(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the get method of the ErrorYamlRepository.
+    Test the get method of the ErrorConfigRepository.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # Get errors by id.
@@ -145,13 +145,13 @@ def test_int_error_config_repo_get(
 
 # ** test_int: error_config_repo_get_not_found
 def test_int_error_config_repo_get_not_found(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the get method of the ErrorYamlRepository for a non-existent error.
+    Test the get method of the ErrorConfigRepository for a non-existent error.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # Attempt to get a non-existent error.
@@ -162,13 +162,13 @@ def test_int_error_config_repo_get_not_found(
 
 # ** test_int: error_config_repo_list
 def test_int_error_config_repo_list(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the list method of the ErrorYamlRepository for all errors.
+    Test the list method of the ErrorConfigRepository for all errors.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # List all errors.
@@ -183,20 +183,20 @@ def test_int_error_config_repo_list(
 
 # ** test_int: error_config_repo_save
 def test_int_error_config_repo_save(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the save method of the ErrorYamlRepository.
+    Test the save method of the ErrorConfigRepository.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # Create constant for new test error.
     new_error_id = 'NEW_ERROR_CODE'
 
     # Create new error config data and map to an aggregate.
-    error = ErrorYamlObject.model_validate(dict(
+    error = ErrorConfigObject.model_validate(dict(
         id=new_error_id,
         name='New Error',
         message=[
@@ -229,13 +229,13 @@ def test_int_error_config_repo_save(
 
 # ** test_int: error_config_repo_delete
 def test_int_error_config_repo_delete(
-        error_config_repo: ErrorYamlRepository,
+        error_config_repo: ErrorConfigRepository,
     ) -> None:
     '''
-    Test the delete method of the ErrorYamlRepository.
+    Test the delete method of the ErrorConfigRepository.
 
     :param error_config_repo: The error configuration repository.
-    :type error_config_repo: ErrorYamlRepository
+    :type error_config_repo: ErrorConfigRepository
     '''
 
     # Delete an existing error.

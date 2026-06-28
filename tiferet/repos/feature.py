@@ -1,4 +1,4 @@
-"""Tiferet Feature YAML Repository"""
+"""Tiferet Feature Configuration Repository"""
 
 # *** imports
 
@@ -9,42 +9,31 @@ from typing import Any, Dict, List
 from ..interfaces import FeatureService
 from ..mappers import (
     FeatureAggregate,
-    FeatureYamlObject,
+    FeatureConfigObject,
 )
-from ..utils import Yaml
+from .settings import ConfigurationRepository
 
 # *** repos
 
-# ** repo: feature_yaml_repository
-class FeatureYamlRepository(FeatureService):
+# ** repo: feature_config_repository
+class FeatureConfigRepository(FeatureService, ConfigurationRepository):
     '''
-    The feature YAML repository.
+    The feature configuration repository.
     '''
-
-    # * attribute: yaml_file
-    yaml_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
 
     # * init
-    def __init__(self, feature_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, feature_config: str, encoding: str = 'utf-8') -> None:
         '''
-        Initialize the feature YAML repository.
+        Initialize the feature configuration repository.
 
-        :param feature_yaml_file: The YAML configuration file path.
-        :type feature_yaml_file: str
+        :param feature_config: The configuration file path.
+        :type feature_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
-        # Set the repository attributes.
-        self.yaml_file = feature_yaml_file
-        self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        # Initialize the configuration repository base.
+        ConfigurationRepository.__init__(self, config_file=feature_config, encoding=encoding)
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -61,10 +50,7 @@ class FeatureYamlRepository(FeatureService):
         group_id, feature_key = id.split('.', 1)
 
         # Load the group-specific feature data from the configuration file.
-        group_data: Dict[str, Any] = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        group_data: Dict[str, Any] = self._load(
             start_node=lambda data: data.get('features', {}).get(group_id, None)
         )
 
@@ -90,10 +76,7 @@ class FeatureYamlRepository(FeatureService):
         group_id, feature_key = id.split('.', 1)
 
         # Load the group-specific feature data from the configuration file.
-        group_data: Dict[str, Any] = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        group_data: Dict[str, Any] = self._load(
             start_node=lambda data: data.get('features', {}).get(group_id, None)
         )
 
@@ -109,7 +92,7 @@ class FeatureYamlRepository(FeatureService):
             return None
 
         # Map the feature data to a FeatureAggregate and return it.
-        return FeatureYamlObject.model_validate(
+        return FeatureConfigObject.model_validate(
             {**feature_data, 'id': f'{group_id}.{feature_key}'}
         ).map()
 
@@ -125,21 +108,18 @@ class FeatureYamlRepository(FeatureService):
         '''
 
         # Load all groups and feature definitions from the configuration file.
-        groups_data: Dict[str, Dict[str, Any]] = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        groups_data: Dict[str, Dict[str, Any]] = self._load(
             start_node=lambda data: data.get('features', {})
         )
 
-        # Initialize the list of FeatureYamlObject objects.
-        features: List[FeatureYamlObject] = []
+        # Initialize the list of FeatureConfigObject objects.
+        features: List[FeatureConfigObject] = []
 
         # If a specific group is requested, limit to that group.
         if group_id:
             group_features = groups_data.get(group_id, {})
             for feature_key, feature_data in group_features.items():
-                features.append(FeatureYamlObject.model_validate(
+                features.append(FeatureConfigObject.model_validate(
                     {**feature_data, 'id': f'{group_id}.{feature_key}'}
                 ))
 
@@ -147,11 +127,11 @@ class FeatureYamlRepository(FeatureService):
         else:
             for group, group_features in groups_data.items():
                 for feature_key, feature_data in group_features.items():
-                    features.append(FeatureYamlObject.model_validate(
+                    features.append(FeatureConfigObject.model_validate(
                         {**feature_data, 'id': f'{group}.{feature_key}'}
                     ))
 
-        # Map all FeatureYamlObject instances to FeatureAggregates and return them.
+        # Map all FeatureConfigObject instances to FeatureAggregates and return them.
         return [feature.map() for feature in features]
 
     # * method: save
@@ -165,27 +145,20 @@ class FeatureYamlRepository(FeatureService):
         :rtype: None
         '''
 
-        # Convert the feature model to a FeatureYamlObject.
-        feature_data = FeatureYamlObject.from_model(feature)
+        # Convert the feature model to a FeatureConfigObject.
+        feature_data = FeatureConfigObject.from_model(feature)
 
         # Split the feature id for nested update.
         group_id, feature_key = feature.id.split('.', 1)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update or insert the feature entry using nested setdefault.
         full_data.setdefault('features', {}).setdefault(group_id, {})[feature_key] = feature_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -199,10 +172,7 @@ class FeatureYamlRepository(FeatureService):
         '''
 
         # Load all features data from the configuration file.
-        features_data: Dict[str, Dict[str, Any]] = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        features_data: Dict[str, Dict[str, Any]] = self._load(
             start_node=lambda data: data.get('features', {})
         )
 
@@ -222,17 +192,10 @@ class FeatureYamlRepository(FeatureService):
             features_data[group_id] = group_data
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update the features section.
         full_data['features'] = features_data
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(full_data)

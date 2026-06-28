@@ -1,4 +1,4 @@
-"""Tiferet CLI YAML Repository"""
+"""Tiferet CLI Configuration Repository"""
 
 # *** imports
 
@@ -10,42 +10,31 @@ from ..interfaces import CliService
 from ..mappers import (
     CliArgumentAggregate,
     CliCommandAggregate,
-    CliCommandYamlObject,
+    CliCommandConfigObject,
 )
-from ..utils import Yaml
+from .settings import ConfigurationRepository
 
 # *** repos
 
-# ** repo: cli_yaml_repository
-class CliYamlRepository(CliService):
+# ** repo: cli_config_repository
+class CliConfigRepository(CliService, ConfigurationRepository):
     '''
-    The CLI YAML repository.
+    The CLI configuration repository.
     '''
-
-    # * attribute: yaml_file
-    yaml_file: str
-
-    # * attribute: encoding
-    encoding: str
-
-    # * attribute: default_role
-    default_role: str
 
     # * init
-    def __init__(self, cli_yaml_file: str, encoding: str = 'utf-8') -> None:
+    def __init__(self, cli_config: str, encoding: str = 'utf-8') -> None:
         '''
-        Initialize the CLI YAML repository.
+        Initialize the CLI configuration repository.
 
-        :param cli_yaml_file: The YAML configuration file path.
-        :type cli_yaml_file: str
+        :param cli_config: The configuration file path.
+        :type cli_config: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
         '''
 
-        # Set the repository attributes.
-        self.yaml_file = cli_yaml_file
-        self.encoding = encoding
-        self.default_role = 'to_data.yaml'
+        # Initialize the configuration repository base.
+        ConfigurationRepository.__init__(self, config_file=cli_config, encoding=encoding)
 
     # * method: exists
     def exists(self, id: str) -> bool:
@@ -76,10 +65,7 @@ class CliYamlRepository(CliService):
         group_key, command_key = id.split('.', 1)
 
         # Load the specific command data from the configuration file.
-        cmd_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        cmd_data = self._load(
             start_node=lambda data: data.get('cli', {}).get('cmds', {}).get(group_key, {}).get(command_key)
         )
 
@@ -88,7 +74,7 @@ class CliYamlRepository(CliService):
             return None
 
         # Map the data to a CliCommandAggregate and return it.
-        return CliCommandYamlObject.model_validate(
+        return CliCommandConfigObject.model_validate(
             {**cmd_data, 'id': id}
         ).map()
 
@@ -102,10 +88,7 @@ class CliYamlRepository(CliService):
         '''
 
         # Load all command groups from the configuration file.
-        cmds_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        cmds_data = self._load(
             start_node=lambda data: data.get('cli', {}).get('cmds', {})
         )
 
@@ -113,7 +96,7 @@ class CliYamlRepository(CliService):
         result = []
         for group_key, commands in cmds_data.items():
             for command_key, command_data in commands.items():
-                cmd = CliCommandYamlObject.model_validate(
+                cmd = CliCommandConfigObject.model_validate(
                     {**command_data, 'id': f'{group_key}.{command_key}'}
                 ).map()
                 result.append(cmd)
@@ -133,26 +116,19 @@ class CliYamlRepository(CliService):
         '''
 
         # Convert the CLI command model to configuration data.
-        cmd_data = CliCommandYamlObject.from_model(command)
+        cmd_data = CliCommandConfigObject.from_model(command)
 
         # Split the composite ID into group_key and command_key.
         group_key, command_key = command.id.split('.', 1)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Update or insert the command entry under the appropriate group.
         full_data.setdefault('cli', {}).setdefault('cmds', {}).setdefault(group_key, {})[command_key] = cmd_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(full_data)
 
     # * method: delete
     def delete(self, id: str) -> None:
@@ -169,20 +145,13 @@ class CliYamlRepository(CliService):
         group_key, command_key = id.split('.', 1)
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Remove the command entry if it exists (idempotent).
         full_data.get('cli', {}).get('cmds', {}).get(group_key, {}).pop(command_key, None)
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(full_data)
 
     # * method: get_parent_arguments
     def get_parent_arguments(self) -> List[CliArgumentAggregate]:
@@ -194,10 +163,7 @@ class CliYamlRepository(CliService):
         '''
 
         # Load parent arguments from the configuration file.
-        parent_args_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load(
+        parent_args_data = self._load(
             start_node=lambda data: data.get('cli', {}).get('parent_args', []),
             data_factory=lambda args: [
                 CliArgumentAggregate(**arg)
@@ -220,10 +186,7 @@ class CliYamlRepository(CliService):
         '''
 
         # Load the full configuration file.
-        full_data = Yaml(
-            self.yaml_file,
-            encoding=self.encoding,
-        ).load()
+        full_data = self._load()
 
         # Set the parent_args section to the serialized argument list.
         full_data.setdefault('cli', {})['parent_args'] = [
@@ -232,8 +195,4 @@ class CliYamlRepository(CliService):
         ]
 
         # Persist the updated configuration file.
-        Yaml(
-            self.yaml_file,
-            mode='w',
-            encoding=self.encoding,
-        ).save(data=full_data)
+        self._save(full_data)
