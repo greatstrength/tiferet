@@ -36,7 +36,7 @@ DI_DATA: Dict[str, Dict] = {
                     'module_path': 'tiferet.repos.di',
                     'class_name': 'DIConfigRepository',
                     'params': {
-                        'di_yaml_file': 'app/configs/di.yml',
+                        'di_config': 'app/configs/di.yml',
                     },
                 },
             },

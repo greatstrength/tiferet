@@ -30,7 +30,7 @@ class LoggingConfigRepository(LoggingService, ConfigurationRepository):
     '''
 
     # * init
-    def __init__(self, logging_config: str, encoding: str = 'utf-8'):
+    def __init__(self, logging_config: str, encoding: str = 'utf-8') -> None:
         '''
         Initialize the logging configuration repository.
 

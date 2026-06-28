@@ -13,7 +13,7 @@ from ..events import RaiseError, a
 # *** classes
 
 # ** class: configuration_repository
-class ConfigurationRepository(object):
+class ConfigurationRepository:
     '''
     A format-agnostic base for configuration repositories.
 
@@ -41,8 +41,6 @@ class ConfigurationRepository(object):
         :type config_file: str
         :param encoding: The file encoding (default is 'utf-8').
         :type encoding: str
-        :return: None
-        :rtype: None
         '''
 
         # Set the configuration repository attributes.
