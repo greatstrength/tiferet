@@ -13,10 +13,10 @@ from ..mappers import CliCommandAggregate
 
 # *** events
 
-# ** event: list_cli_commands
-class ListCliCommands(DomainEvent):
+# ** event: cli_event
+class CliEvent(DomainEvent):
     '''
-    A domain event to list all CLI commands.
+    Base event providing the shared CliService dependency for CLI domain events.
     '''
 
     # * attribute: cli_service
@@ -25,14 +25,20 @@ class ListCliCommands(DomainEvent):
     # * init
     def __init__(self, cli_service: CliService):
         '''
-        Initialize the ListCliCommands event.
+        Initialize the CLI event with its shared service dependency.
 
-        :param cli_service: The CLI service.
+        :param cli_service: The CLI service shared across CLI events.
         :type cli_service: CliService
         '''
 
         # Set the CLI service dependency.
         self.cli_service = cli_service
+
+# ** event: list_cli_commands
+class ListCliCommands(CliEvent):
+    '''
+    A domain event to list all CLI commands.
+    '''
 
     # * method: execute
     def execute(self, **kwargs) -> List[CliCommand]:
@@ -48,27 +54,11 @@ class ListCliCommands(DomainEvent):
         # Delegate to the CLI service.
         return self.cli_service.list()
 
-
 # ** event: get_parent_arguments
-class GetParentArguments(DomainEvent):
+class GetParentArguments(CliEvent):
     '''
     A domain event to retrieve parent-level CLI arguments.
     '''
-
-    # * attribute: cli_service
-    cli_service: CliService
-
-    # * init
-    def __init__(self, cli_service: CliService):
-        '''
-        Initialize the GetParentArguments event.
-
-        :param cli_service: The CLI service.
-        :type cli_service: CliService
-        '''
-
-        # Set the CLI service dependency.
-        self.cli_service = cli_service
 
     # * method: execute
     def execute(self, **kwargs) -> List:
@@ -85,25 +75,10 @@ class GetParentArguments(DomainEvent):
         return self.cli_service.get_parent_arguments()
 
 # ** event: add_cli_command
-class AddCliCommand(DomainEvent):
+class AddCliCommand(CliEvent):
     '''
     A domain event to add a new CLI command.
     '''
-
-    # * attribute: cli_service
-    cli_service: CliService
-
-    # * init
-    def __init__(self, cli_service: CliService):
-        '''
-        Initialize the AddCliCommand event.
-
-        :param cli_service: The CLI service.
-        :type cli_service: CliService
-        '''
-
-        # Set the CLI service dependency.
-        self.cli_service = cli_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -143,6 +118,9 @@ class AddCliCommand(DomainEvent):
             id=id,
         )
 
+        # Coerce arguments that argparse may pass as None to an empty list.
+        arguments = arguments or []
+
         # Create CLI command aggregate.
         command = CliCommandAggregate(
             id=id,
@@ -157,27 +135,11 @@ class AddCliCommand(DomainEvent):
         self.cli_service.save(command)
         return command
 
-
 # ** event: add_cli_argument
-class AddCliArgument(DomainEvent):
+class AddCliArgument(CliEvent):
     '''
     A domain event to add an argument to an existing CLI command.
     '''
-
-    # * attribute: cli_service
-    cli_service: CliService
-
-    # * init
-    def __init__(self, cli_service: CliService):
-        '''
-        Initialize the AddCliArgument event.
-
-        :param cli_service: The CLI service.
-        :type cli_service: CliService
-        '''
-
-        # Set the CLI service dependency.
-        self.cli_service = cli_service
 
     # * method: execute
     @DomainEvent.parameters_required(['command_id'])
