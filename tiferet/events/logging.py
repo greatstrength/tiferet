@@ -11,13 +11,12 @@ from ..interfaces import LoggingService
 from ..mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from .settings import DomainEvent, a
 
-
 # *** events
 
-# ** event: list_all_logging_configs
-class ListAllLoggingConfigs(DomainEvent):
+# ** event: logging_event
+class LoggingEvent(DomainEvent):
     '''
-    Event to list all logging configurations (formatters, handlers, loggers).
+    Base event providing the shared LoggingService dependency for logging domain events.
     '''
 
     # * attribute: logging_service
@@ -26,14 +25,20 @@ class ListAllLoggingConfigs(DomainEvent):
     # * init
     def __init__(self, logging_service: LoggingService):
         '''
-        Initialize the ListAllLoggingConfigs event.
+        Initialize the logging event with its shared service dependency.
 
-        :param logging_service: The logging service to use.
+        :param logging_service: The logging service shared across logging events.
         :type logging_service: LoggingService
         '''
 
         # Set the logging service dependency.
         self.logging_service = logging_service
+
+# ** event: list_all_logging_configs
+class ListAllLoggingConfigs(LoggingEvent):
+    '''
+    Event to list all logging configurations (formatters, handlers, loggers).
+    '''
 
     # * method: execute
     def execute(self, **kwargs) -> Tuple[List[Formatter], List[Handler], List[Logger]]:
@@ -49,27 +54,11 @@ class ListAllLoggingConfigs(DomainEvent):
         # Delegate to the logging service.
         return self.logging_service.list_all()
 
-
 # ** event: add_formatter
-class AddFormatter(DomainEvent):
+class AddFormatter(LoggingEvent):
     '''
     Event to add a new logging formatter configuration.
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the AddFormatter event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'format'])
@@ -117,27 +106,11 @@ class AddFormatter(DomainEvent):
         # Return the created formatter.
         return formatter
 
-
 # ** event: remove_formatter
-class RemoveFormatter(DomainEvent):
+class RemoveFormatter(LoggingEvent):
     '''
     Event to remove a formatter configuration by ID (idempotent).
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the RemoveFormatter event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -159,27 +132,11 @@ class RemoveFormatter(DomainEvent):
         # Return the formatter ID.
         return id
 
-
 # ** event: add_handler
-class AddHandler(DomainEvent):
+class AddHandler(LoggingEvent):
     '''
     Event to add a new logging handler configuration.
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the AddHandler event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name', 'level', 'formatter'])
@@ -243,27 +200,11 @@ class AddHandler(DomainEvent):
         # Return the created handler.
         return handler
 
-
 # ** event: remove_handler
-class RemoveHandler(DomainEvent):
+class RemoveHandler(LoggingEvent):
     '''
     Event to remove a handler configuration by ID (idempotent).
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the RemoveHandler event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -285,27 +226,11 @@ class RemoveHandler(DomainEvent):
         # Return the handler ID.
         return id
 
-
 # ** event: add_logger
-class AddLogger(DomainEvent):
+class AddLogger(LoggingEvent):
     '''
     Event to add a new logger configuration.
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the AddLogger event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'level', 'handlers'])
@@ -357,27 +282,11 @@ class AddLogger(DomainEvent):
         # Return the created logger.
         return logger
 
-
 # ** event: remove_logger
-class RemoveLogger(DomainEvent):
+class RemoveLogger(LoggingEvent):
     '''
     Event to remove a logger configuration by ID (idempotent).
     '''
-
-    # * attribute: logging_service
-    logging_service: LoggingService
-
-    # * init
-    def __init__(self, logging_service: LoggingService):
-        '''
-        Initialize the RemoveLogger event.
-
-        :param logging_service: The logging service to use.
-        :type logging_service: LoggingService
-        '''
-
-        # Set the logging service dependency.
-        self.logging_service = logging_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])

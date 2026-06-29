@@ -10,7 +10,9 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..sqlite import (
+from tiferet.events.sqlite import (
+    SqliteEvent,
+    is_valid_identifier,
     QuerySql,
     MutateSql,
     BulkMutateSql,
@@ -19,9 +21,9 @@ from ..sqlite import (
     CreateTableSql,
     DropTableSql,
 )
-from ..settings import DomainEvent, a, TiferetError
-from ...interfaces import SqliteService
-from .settings import DomainEventTestBase
+from tiferet.events.settings import DomainEvent, a, TiferetError
+from tiferet.interfaces import SqliteService
+from tiferet.testing import DomainEventTestBase
 
 
 # *** classes
@@ -56,6 +58,101 @@ class SqliteEventTestBase(DomainEventTestBase):
 
 
 # *** tests
+
+# ** class: TestSqliteEvent
+class TestSqliteEvent:
+    '''
+    Tests for the SqliteEvent base event shared by all SQLite events.
+    '''
+
+    # * method: test_base_extends_domain_event
+    def test_base_extends_domain_event(self):
+        '''
+        Test that SqliteEvent extends DomainEvent.
+        '''
+
+        # Assert the base event extends DomainEvent.
+        assert issubclass(SqliteEvent, DomainEvent)
+
+    # * method: test_concrete_events_extend_base
+    def test_concrete_events_extend_base(self):
+        '''
+        Test that every concrete SQLite event extends SqliteEvent.
+        '''
+
+        # Assert each concrete event extends the module base.
+        for event_cls in (
+            MutateSql,
+            QuerySql,
+            BulkMutateSql,
+            ExecuteScriptSql,
+            BackupSql,
+            CreateTableSql,
+            DropTableSql,
+        ):
+            assert issubclass(event_cls, SqliteEvent)
+
+    # * method: test_service_injection
+    def test_service_injection(self):
+        '''
+        Test that constructing a SQLite event wires the shared service attribute.
+        '''
+
+        # Create a mock SQLite service.
+        service = mock.Mock(spec=SqliteService)
+
+        # Assert the base and a concrete event both expose the injected service.
+        assert SqliteEvent(sqlite_service=service).sqlite_service is service
+        assert MutateSql(sqlite_service=service).sqlite_service is service
+
+
+# ** class: TestIsValidIdentifier
+class TestIsValidIdentifier:
+    '''
+    Tests for the module-level is_valid_identifier helper.
+    '''
+
+    # * method: test_valid_identifiers
+    def test_valid_identifiers(self):
+        '''
+        Test that valid identifiers are accepted.
+        '''
+
+        # Assert alphanumeric/underscore names (not leading with a digit) are valid.
+        assert is_valid_identifier('users') is True
+        assert is_valid_identifier('user_table') is True
+        assert is_valid_identifier('_private') is True
+        assert is_valid_identifier('table1') is True
+
+    # * method: test_rejects_empty
+    def test_rejects_empty(self):
+        '''
+        Test that an empty name is rejected.
+        '''
+
+        # Assert an empty string is invalid.
+        assert is_valid_identifier('') is False
+
+    # * method: test_rejects_leading_digit
+    def test_rejects_leading_digit(self):
+        '''
+        Test that a leading-digit name is rejected.
+        '''
+
+        # Assert a name starting with a digit is invalid.
+        assert is_valid_identifier('1table') is False
+
+    # * method: test_rejects_non_alphanumeric
+    def test_rejects_non_alphanumeric(self):
+        '''
+        Test that names with non-alphanumeric characters are rejected.
+        '''
+
+        # Assert names with spaces or punctuation are invalid.
+        assert is_valid_identifier('invalid table') is False
+        assert is_valid_identifier('table-name') is False
+        assert is_valid_identifier('table;drop') is False
+
 
 # ** test: TestQuerySql
 class TestQuerySql(SqliteEventTestBase):
