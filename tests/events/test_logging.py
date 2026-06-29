@@ -7,7 +7,8 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..logging import (
+from tiferet.events.logging import (
+    LoggingEvent,
     ListAllLoggingConfigs,
     AddFormatter,
     RemoveFormatter,
@@ -16,11 +17,11 @@ from ..logging import (
     AddLogger,
     RemoveLogger,
 )
-from ..settings import DomainEvent, a
-from ...domain import Formatter, Handler, Logger
-from ...interfaces import LoggingService
-from ...mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
-from .settings import DomainEventTestBase
+from tiferet.events.settings import DomainEvent, a
+from tiferet.domain import Formatter, Handler, Logger
+from tiferet.interfaces import LoggingService
+from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
+from tiferet.testing import DomainEventTestBase
 
 
 # *** fixtures
@@ -89,6 +90,53 @@ def sample_logger() -> Logger:
 
 
 # *** tests
+
+# ** test: TestLoggingEvent
+class TestLoggingEvent:
+    '''
+    Tests for the LoggingEvent base event shared by all logging events.
+    '''
+
+    # * method: test_base_extends_domain_event
+    def test_base_extends_domain_event(self):
+        '''
+        Test that LoggingEvent extends DomainEvent.
+        '''
+
+        # Assert the base event extends DomainEvent.
+        assert issubclass(LoggingEvent, DomainEvent)
+
+    # * method: test_concrete_events_extend_base
+    def test_concrete_events_extend_base(self):
+        '''
+        Test that every concrete logging event extends LoggingEvent.
+        '''
+
+        # Assert each concrete event extends the module base.
+        for event_cls in (
+            ListAllLoggingConfigs,
+            AddFormatter,
+            RemoveFormatter,
+            AddHandler,
+            RemoveHandler,
+            AddLogger,
+            RemoveLogger,
+        ):
+            assert issubclass(event_cls, LoggingEvent)
+
+    # * method: test_service_injection
+    def test_service_injection(self):
+        '''
+        Test that constructing a logging event wires the shared service attribute.
+        '''
+
+        # Create a mock logging service.
+        service = mock.Mock(spec=LoggingService)
+
+        # Assert the base and a concrete event both expose the injected service.
+        assert LoggingEvent(logging_service=service).logging_service is service
+        assert AddFormatter(logging_service=service).logging_service is service
+
 
 # ** test: TestListAllLoggingConfigs
 class TestListAllLoggingConfigs(DomainEventTestBase):

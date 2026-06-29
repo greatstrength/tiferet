@@ -10,7 +10,8 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..error import (
+from tiferet.events.error import (
+    ErrorEvent,
     AddError,
     GetError,
     ListErrors,
@@ -19,11 +20,11 @@ from ..error import (
     RemoveErrorMessage,
     RemoveError,
 )
-from ..settings import DomainEvent, TiferetError, a
-from ...domain import Error
-from ...interfaces import ErrorService
-from ...mappers import ErrorAggregate
-from .settings import DomainEventTestBase, ServiceEventTestBase
+from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.domain import Error
+from tiferet.interfaces import ErrorService
+from tiferet.mappers import ErrorAggregate
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 
@@ -63,6 +64,53 @@ def default_errors() -> List[Error]:
     ]
 
 # *** tests
+
+# ** test: TestErrorEvent
+class TestErrorEvent:
+    '''
+    Tests for the ErrorEvent base event shared by all error events.
+    '''
+
+    # * method: test_base_extends_domain_event
+    def test_base_extends_domain_event(self):
+        '''
+        Test that ErrorEvent extends DomainEvent.
+        '''
+
+        # Assert the base event extends DomainEvent.
+        assert issubclass(ErrorEvent, DomainEvent)
+
+    # * method: test_concrete_events_extend_base
+    def test_concrete_events_extend_base(self):
+        '''
+        Test that every concrete error event extends ErrorEvent.
+        '''
+
+        # Assert each concrete event extends the module base.
+        for event_cls in (
+            AddError,
+            GetError,
+            ListErrors,
+            RenameError,
+            SetErrorMessage,
+            RemoveErrorMessage,
+            RemoveError,
+        ):
+            assert issubclass(event_cls, ErrorEvent)
+
+    # * method: test_service_injection
+    def test_service_injection(self):
+        '''
+        Test that constructing an error event wires the shared service attribute.
+        '''
+
+        # Create a mock error service.
+        service = mock.Mock(spec=ErrorService)
+
+        # Assert the base and a concrete event both expose the injected service.
+        assert ErrorEvent(error_service=service).error_service is service
+        assert AddError(error_service=service).error_service is service
+
 
 # ** test: TestAddError
 class TestAddError(DomainEventTestBase):

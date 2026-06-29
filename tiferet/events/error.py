@@ -17,10 +17,10 @@ from ..mappers import ErrorAggregate
 
 # *** events
 
-# ** event: add_error
-class AddError(DomainEvent):
+# ** event: error_event
+class ErrorEvent(DomainEvent):
     '''
-    Event to add a new Error domain object to the repository.
+    Base event providing the shared ErrorService dependency for error domain events.
     '''
 
     # * attribute: error_service
@@ -29,14 +29,20 @@ class AddError(DomainEvent):
     # * init
     def __init__(self, error_service: ErrorService):
         '''
-        Initialize the AddError event.
+        Initialize the error event with its shared service dependency.
 
-        :param error_service: The error service to use.
+        :param error_service: The error service shared across error events.
         :type error_service: ErrorService
         '''
 
         # Set the error service dependency.
         self.error_service = error_service
+
+# ** event: add_error
+class AddError(ErrorEvent):
+    '''
+    Event to add a new Error domain object to the repository.
+    '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'message'])
@@ -86,25 +92,10 @@ class AddError(DomainEvent):
         return new_error
 
 # ** event: get_error
-class GetError(DomainEvent):
+class GetError(ErrorEvent):
     '''
     Event to retrieve an Error domain object by its ID.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the GetError event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, include_defaults: bool = False, **kwargs) -> Error:
@@ -142,25 +133,10 @@ class GetError(DomainEvent):
         )
 
 # ** event: list_errors
-class ListErrors(DomainEvent):
+class ListErrors(ErrorEvent):
     '''
     Event to list all Error domain objects.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the ListErrors event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     def execute(self, include_defaults: bool = False, **kwargs) -> List[Error]:
@@ -188,25 +164,10 @@ class ListErrors(DomainEvent):
         return list(errors.values())
 
 # ** event: rename_error
-class RenameError(DomainEvent):
+class RenameError(ErrorEvent):
     '''
     Event to rename an existing Error domain object.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the RenameError event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['new_name'])
@@ -245,25 +206,10 @@ class RenameError(DomainEvent):
         return error
 
 # ** event: set_error_message
-class SetErrorMessage(DomainEvent):
+class SetErrorMessage(ErrorEvent):
     '''
     Event to set the message of an existing Error domain object.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the SetErrorMessage event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['message'])
@@ -304,25 +250,10 @@ class SetErrorMessage(DomainEvent):
         return id
 
 # ** event: remove_error_message
-class RemoveErrorMessage(DomainEvent):
+class RemoveErrorMessage(ErrorEvent):
     '''
     Event to remove a message from an existing Error domain object.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the RemoveErrorMessage event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     def execute(self, id: str, lang: str = 'en_US', **kwargs) -> str:
@@ -366,25 +297,10 @@ class RemoveErrorMessage(DomainEvent):
         return id
 
 # ** event: remove_error
-class RemoveError(DomainEvent):
+class RemoveError(ErrorEvent):
     '''
     Event to remove an existing Error domain object by its ID.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the RemoveError event.
-
-        :param error_service: The error service to use.
-        :type error_service: ErrorService
-        '''
-
-        # Set the error service dependency.
-        self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
