@@ -7,17 +7,18 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..cli import (
+from tiferet.events.cli import (
+    CliEvent,
     AddCliCommand,
     AddCliArgument,
     ListCliCommands,
     GetParentArguments,
 )
-from ..settings import DomainEvent, a
-from ...domain import CliCommand, CliArgument
-from ...interfaces import CliService
-from ...mappers import CliCommandAggregate
-from .settings import DomainEventTestBase, ServiceEventTestBase
+from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.domain import CliCommand, CliArgument
+from tiferet.interfaces import CliService
+from tiferet.mappers import CliCommandAggregate
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 
@@ -42,6 +43,50 @@ def cli_command():
     )
 
 # *** tests
+
+# ** class: TestCliEvent
+class TestCliEvent:
+    '''
+    Tests for the CliEvent base event shared by all CLI events.
+    '''
+
+    # * method: test_base_extends_domain_event
+    def test_base_extends_domain_event(self):
+        '''
+        Test that CliEvent extends DomainEvent.
+        '''
+
+        # Assert the base event extends DomainEvent.
+        assert issubclass(CliEvent, DomainEvent)
+
+    # * method: test_concrete_events_extend_base
+    def test_concrete_events_extend_base(self):
+        '''
+        Test that every concrete CLI event extends CliEvent.
+        '''
+
+        # Assert each concrete event extends the module base.
+        for event_cls in (
+            ListCliCommands,
+            GetParentArguments,
+            AddCliCommand,
+            AddCliArgument,
+        ):
+            assert issubclass(event_cls, CliEvent)
+
+    # * method: test_service_injection
+    def test_service_injection(self):
+        '''
+        Test that constructing a CLI event wires the shared service attribute.
+        '''
+
+        # Create a mock CLI service.
+        service = mock.Mock(spec=CliService)
+
+        # Assert the base and a concrete event both expose the injected service.
+        assert CliEvent(cli_service=service).cli_service is service
+        assert AddCliCommand(cli_service=service).cli_service is service
+
 
 # ** test: TestAddCliCommand
 class TestAddCliCommand(DomainEventTestBase):
@@ -145,6 +190,20 @@ class TestAddCliCommand(DomainEventTestBase):
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.const.CLI_COMMAND_ALREADY_EXISTS_ID
+
+    # * method: test_none_arguments_coerced
+    def test_none_arguments_coerced(self, mock_dependencies):
+        '''
+        Test that None arguments are coerced to an empty list.
+        '''
+
+        # Execute with arguments explicitly set to None (as argparse may pass).
+        result = self.handle(mock_dependencies, arguments=None)
+
+        # Assert the command was created with an empty argument list.
+        assert isinstance(result, CliCommand)
+        assert result.arguments == []
+        mock_dependencies['cli_service'].save.assert_called_once_with(result)
 
 
 # ** test: TestAddCliArgument

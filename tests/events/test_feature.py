@@ -10,7 +10,8 @@ import pytest
 from unittest import mock
 
 # ** app
-from ..feature import (
+from tiferet.events.feature import (
+    FeatureEvent,
     AddFeature,
     GetFeature,
     ListFeatures,
@@ -21,11 +22,11 @@ from ..feature import (
     RemoveFeatureStep,
     ReorderFeatureStep,
 )
-from ..settings import DomainEvent, TiferetError, a
-from ...domain import Feature
-from ...interfaces import FeatureService
-from ...mappers import FeatureAggregate
-from .settings import DomainEventTestBase, ServiceEventTestBase
+from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.domain import Feature
+from tiferet.interfaces import FeatureService
+from tiferet.mappers import FeatureAggregate
+from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
 
@@ -50,6 +51,55 @@ def sample_feature() -> Feature:
 
 
 # *** tests
+
+# ** class: TestFeatureEvent
+class TestFeatureEvent:
+    '''
+    Tests for the FeatureEvent base event shared by all feature events.
+    '''
+
+    # * method: test_base_extends_domain_event
+    def test_base_extends_domain_event(self):
+        '''
+        Test that FeatureEvent extends DomainEvent.
+        '''
+
+        # Assert the base event extends DomainEvent.
+        assert issubclass(FeatureEvent, DomainEvent)
+
+    # * method: test_concrete_events_extend_base
+    def test_concrete_events_extend_base(self):
+        '''
+        Test that every concrete feature event extends FeatureEvent.
+        '''
+
+        # Assert each concrete event extends the module base.
+        for event_cls in (
+            AddFeature,
+            GetFeature,
+            ListFeatures,
+            RemoveFeature,
+            UpdateFeature,
+            AddFeatureStep,
+            UpdateFeatureStep,
+            RemoveFeatureStep,
+            ReorderFeatureStep,
+        ):
+            assert issubclass(event_cls, FeatureEvent)
+
+    # * method: test_service_injection
+    def test_service_injection(self):
+        '''
+        Test that constructing a feature event wires the shared service attribute.
+        '''
+
+        # Create a mock feature service.
+        service = mock.Mock(spec=FeatureService)
+
+        # Assert the base and a concrete event both expose the injected service.
+        assert FeatureEvent(feature_service=service).feature_service is service
+        assert AddFeature(feature_service=service).feature_service is service
+
 
 # ** test: TestAddFeature
 class TestAddFeature(DomainEventTestBase):
@@ -156,6 +206,24 @@ class TestAddFeature(DomainEventTestBase):
         mock_dependencies['feature_service'].exists.assert_called_once()
         mock_dependencies['feature_service'].save.assert_not_called()
 
+    # * method: test_contextual_kwargs_not_forwarded
+    def test_contextual_kwargs_not_forwarded(self, mock_dependencies):
+        '''
+        Test that contextual pipeline kwargs are not forwarded into FeatureAggregate.
+
+        FeatureAggregate forbids unknown fields, so a clean creation confirms
+        the extra kwargs are dropped rather than forwarded.
+        '''
+
+        # Execute with extra contextual kwargs that are not Feature fields.
+        result = self.handle(mock_dependencies, request=object(), logger=object())
+
+        # Assert the feature was created without error and ignored the extra kwargs.
+        assert isinstance(result, Feature)
+        assert result.name == 'New Feature'
+        assert not hasattr(result, 'request')
+        mock_dependencies['feature_service'].save.assert_called_once_with(result)
+
 
 # ** test: TestGetFeature
 class TestGetFeature(ServiceEventTestBase):
@@ -205,6 +273,44 @@ class TestGetFeature(ServiceEventTestBase):
         # Assert the feature is returned.
         assert result is sample_feature
         mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
+
+    # * method: test_fallback_to_default_index
+    def test_fallback_to_default_index(self, mock_dependencies, sample_feature):
+        '''
+        Test that a repository miss falls back to a matching default_feature_index entry.
+        '''
+
+        # Configure the service to miss so the fallback index is consulted.
+        mock_dependencies['feature_service'].get.return_value = None
+
+        # Execute with a default index containing the requested feature.
+        result = self.handle(
+            mock_dependencies,
+            default_feature_index={'group.sample_feature': sample_feature},
+        )
+
+        # Assert the default feature is returned.
+        assert result is sample_feature
+        mock_dependencies['feature_service'].get.assert_called_once_with('group.sample_feature')
+
+    # * method: test_miss_with_nonmatching_index
+    def test_miss_with_nonmatching_index(self, mock_dependencies):
+        '''
+        Test that a repository miss with no matching default raises FEATURE_NOT_FOUND.
+        '''
+
+        # Configure the service to miss.
+        mock_dependencies['feature_service'].get.return_value = None
+
+        # Execute with a default index that does not contain the requested feature.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(
+                mock_dependencies,
+                default_feature_index={'other.feature': mock.Mock()},
+            )
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.FEATURE_NOT_FOUND_ID
 
 
 # ** test: TestListFeatures
