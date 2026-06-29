@@ -65,7 +65,7 @@ def default_errors() -> List[Error]:
 
 # *** tests
 
-# ** test: TestErrorEvent
+# ** class: TestErrorEvent
 class TestErrorEvent:
     '''
     Tests for the ErrorEvent base event shared by all error events.

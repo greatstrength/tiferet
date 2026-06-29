@@ -12,7 +12,7 @@ from unittest import mock
 # ** app
 from tiferet.events.sqlite import (
     SqliteEvent,
-    _is_valid_identifier,
+    is_valid_identifier,
     QuerySql,
     MutateSql,
     BulkMutateSql,
@@ -59,7 +59,7 @@ class SqliteEventTestBase(DomainEventTestBase):
 
 # *** tests
 
-# ** test: TestSqliteEvent
+# ** class: TestSqliteEvent
 class TestSqliteEvent:
     '''
     Tests for the SqliteEvent base event shared by all SQLite events.
@@ -106,10 +106,10 @@ class TestSqliteEvent:
         assert MutateSql(sqlite_service=service).sqlite_service is service
 
 
-# ** test: TestIsValidIdentifier
+# ** class: TestIsValidIdentifier
 class TestIsValidIdentifier:
     '''
-    Tests for the module-level _is_valid_identifier helper.
+    Tests for the module-level is_valid_identifier helper.
     '''
 
     # * method: test_valid_identifiers
@@ -119,10 +119,10 @@ class TestIsValidIdentifier:
         '''
 
         # Assert alphanumeric/underscore names (not leading with a digit) are valid.
-        assert _is_valid_identifier('users') is True
-        assert _is_valid_identifier('user_table') is True
-        assert _is_valid_identifier('_private') is True
-        assert _is_valid_identifier('table1') is True
+        assert is_valid_identifier('users') is True
+        assert is_valid_identifier('user_table') is True
+        assert is_valid_identifier('_private') is True
+        assert is_valid_identifier('table1') is True
 
     # * method: test_rejects_empty
     def test_rejects_empty(self):
@@ -131,7 +131,7 @@ class TestIsValidIdentifier:
         '''
 
         # Assert an empty string is invalid.
-        assert _is_valid_identifier('') is False
+        assert is_valid_identifier('') is False
 
     # * method: test_rejects_leading_digit
     def test_rejects_leading_digit(self):
@@ -140,7 +140,7 @@ class TestIsValidIdentifier:
         '''
 
         # Assert a name starting with a digit is invalid.
-        assert _is_valid_identifier('1table') is False
+        assert is_valid_identifier('1table') is False
 
     # * method: test_rejects_non_alphanumeric
     def test_rejects_non_alphanumeric(self):
@@ -149,9 +149,9 @@ class TestIsValidIdentifier:
         '''
 
         # Assert names with spaces or punctuation are invalid.
-        assert _is_valid_identifier('invalid table') is False
-        assert _is_valid_identifier('table-name') is False
-        assert _is_valid_identifier('table;drop') is False
+        assert is_valid_identifier('invalid table') is False
+        assert is_valid_identifier('table-name') is False
+        assert is_valid_identifier('table;drop') is False
 
 
 # ** test: TestQuerySql

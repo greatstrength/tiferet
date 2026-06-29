@@ -91,7 +91,7 @@ def sample_logger() -> Logger:
 
 # *** tests
 
-# ** test: TestLoggingEvent
+# ** class: TestLoggingEvent
 class TestLoggingEvent:
     '''
     Tests for the LoggingEvent base event shared by all logging events.

@@ -12,8 +12,8 @@ from ..interfaces.sqlite import SqliteService
 
 # *** functions
 
-# ** function: _is_valid_identifier
-def _is_valid_identifier(name: str) -> bool:
+# ** function: is_valid_identifier
+def is_valid_identifier(name: str) -> bool:
     '''
     Validate that a name is a valid SQLite identifier.
 
@@ -339,7 +339,7 @@ class CreateTableSql(SqliteEvent):
         '''
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
-            table_name and isinstance(table_name, str) and _is_valid_identifier(table_name),
+            table_name and isinstance(table_name, str) and is_valid_identifier(table_name),
             a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
@@ -444,7 +444,7 @@ class DropTableSql(SqliteEvent):
         '''
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
-            table_name and isinstance(table_name, str) and _is_valid_identifier(table_name),
+            table_name and isinstance(table_name, str) and is_valid_identifier(table_name),
             a.const.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',

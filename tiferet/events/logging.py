@@ -11,7 +11,6 @@ from ..interfaces import LoggingService
 from ..mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
 from .settings import DomainEvent, a
 
-
 # *** events
 
 # ** event: logging_event
@@ -35,7 +34,6 @@ class LoggingEvent(DomainEvent):
         # Set the logging service dependency.
         self.logging_service = logging_service
 
-
 # ** event: list_all_logging_configs
 class ListAllLoggingConfigs(LoggingEvent):
     '''
@@ -55,7 +53,6 @@ class ListAllLoggingConfigs(LoggingEvent):
 
         # Delegate to the logging service.
         return self.logging_service.list_all()
-
 
 # ** event: add_formatter
 class AddFormatter(LoggingEvent):
@@ -109,7 +106,6 @@ class AddFormatter(LoggingEvent):
         # Return the created formatter.
         return formatter
 
-
 # ** event: remove_formatter
 class RemoveFormatter(LoggingEvent):
     '''
@@ -135,7 +131,6 @@ class RemoveFormatter(LoggingEvent):
 
         # Return the formatter ID.
         return id
-
 
 # ** event: add_handler
 class AddHandler(LoggingEvent):
@@ -205,7 +200,6 @@ class AddHandler(LoggingEvent):
         # Return the created handler.
         return handler
 
-
 # ** event: remove_handler
 class RemoveHandler(LoggingEvent):
     '''
@@ -231,7 +225,6 @@ class RemoveHandler(LoggingEvent):
 
         # Return the handler ID.
         return id
-
 
 # ** event: add_logger
 class AddLogger(LoggingEvent):
@@ -288,7 +281,6 @@ class AddLogger(LoggingEvent):
 
         # Return the created logger.
         return logger
-
 
 # ** event: remove_logger
 class RemoveLogger(LoggingEvent):

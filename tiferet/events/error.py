@@ -156,7 +156,7 @@ class ListErrors(ErrorEvent):
             return self.error_service.list()
 
         # If defaults are included, merge repository and default errors.
-        errors = {id: ErrorAggregate(**data) for id, data in a.const.DEFAULT_ERRORS.items()}
+        errors = {id: ErrorAggregate(**data) for id, data in a.DEFAULT_ERRORS.items()}
         repo_errors = self.error_service.list()
         errors.update({error.id: error for error in repo_errors})
 
