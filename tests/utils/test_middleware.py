@@ -2,8 +2,11 @@
 
 # *** imports
 
-# ** infra
+# ** core
 import logging
+import re
+
+# ** infra
 import pytest
 
 # ** app
@@ -52,6 +55,9 @@ def test_middleware_conformance():
     assert isinstance(timing_mw, MiddlewareService)
 
     # Assert the default logger_id resolves a logger named 'root'.
+    # NOTE: logging.getLogger('root') returns a named logger called 'root' — a child of
+    # the true process root logger (logging.getLogger() with no name), not the root
+    # logger itself; records still propagate to the root handlers.
     assert logging_mw.logger.name == 'root'
     assert timing_mw.logger.name == 'root'
 
@@ -69,6 +75,31 @@ def test_middleware_resolves_named_logger():
     # Assert the resolved loggers carry the requested name.
     assert logging_mw.logger.name == 'tiferet.test'
     assert timing_mw.logger.name == 'tiferet.test'
+
+
+# ** test: middleware_forwards_nonempty_kwargs
+def test_middleware_forwards_nonempty_kwargs(sample_event: object):
+    '''
+    Test that both utilities return the chain result unchanged and leave a non-empty kwargs dict intact.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build both utilities and a next_fn returning a sentinel result.
+    logging_mw = LoggingMiddleware()
+    timing_mw = TimingMiddleware()
+    next_fn = lambda: 'result'
+
+    # Provide a non-empty kwargs dict that the middleware must forward without inspecting or mutating.
+    kwargs = {'a': 1}
+
+    # Assert both utilities return the chain result unchanged.
+    assert logging_mw(sample_event, kwargs, next_fn) == 'result'
+    assert timing_mw(sample_event, kwargs, next_fn) == 'result'
+
+    # Assert the kwargs dict was neither consumed nor mutated.
+    assert kwargs == {'a': 1}
 
 
 # ** test: logging_middleware_success
@@ -167,7 +198,7 @@ def test_timing_middleware_success(sample_event: object, caplog):
         if r.levelno == logging.DEBUG and 'SampleEvent' in r.getMessage()
     ]
     assert len(timing_records) == 1
-    assert 'completed in' in timing_records[0].getMessage()
+    assert re.search(r'completed in \d+\.\d{2}ms', timing_records[0].getMessage())
 
 
 # ** test: timing_middleware_failure
@@ -200,4 +231,4 @@ def test_timing_middleware_failure(sample_event: object, caplog):
         if r.levelno == logging.DEBUG and 'SampleEvent' in r.getMessage()
     ]
     assert len(timing_records) == 1
-    assert 'raised after' in timing_records[0].getMessage()
+    assert re.search(r'raised after \d+\.\d{2}ms', timing_records[0].getMessage())
