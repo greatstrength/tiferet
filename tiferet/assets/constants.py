@@ -34,6 +34,9 @@ IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 # ** constant: feature_command_loading_failed_id
 FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 
+# ** constant: middleware_loading_failed_id
+MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
+
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 
@@ -275,6 +278,15 @@ DEFAULT_ERRORS = {
         'name': 'Feature Command Loading Failed',
         'message': [
             {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {attribute_id}. Error: {exception}.'}
+        ]
+    },
+
+    # * error: MIDDLEWARE_LOADING_FAILED
+    MIDDLEWARE_LOADING_FAILED_ID: {
+        'id': MIDDLEWARE_LOADING_FAILED_ID,
+        'name': 'Middleware Loading Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to load middleware: {service_id}. Error: {exception}.'}
         ]
     },
 
