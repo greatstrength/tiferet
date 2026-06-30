@@ -11,6 +11,13 @@ from ..domain.di import ServiceRegistration
 from ..interfaces.di import DIService
 from ..mappers.di import ServiceRegistrationAggregate
 
+# *** constants
+
+# ** constant: omitted
+# Sentinel used to distinguish an omitted ``constants`` argument from an
+# explicit ``None`` (which clears all constants) in SetServiceConstants.
+_OMITTED: Any = object()
+
 # *** events
 
 # ** event: di_event
@@ -47,8 +54,8 @@ class AddServiceRegistration(DIEvent):
         id: str,
         module_path: Optional[str] = None,
         class_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = {},
-        flagged_dependencies: Optional[List[Dict[str, Any]]] = [],
+        parameters: Optional[Dict[str, Any]] = None,
+        flagged_dependencies: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> ServiceRegistration:
         '''
@@ -60,9 +67,9 @@ class AddServiceRegistration(DIEvent):
         :type module_path: str | None
         :param class_name: Optional default class name.
         :type class_name: str | None
-        :param parameters: Optional registration parameters (default {}).
+        :param parameters: Optional registration parameters.
         :type parameters: Dict[str, Any] | None
-        :param flagged_dependencies: Optional list of flagged dependencies (default []).
+        :param flagged_dependencies: Optional list of flagged dependencies.
         :type flagged_dependencies: List[Dict[str, Any]] | None
         :return: Created ServiceRegistration model.
         :rtype: ServiceRegistration
@@ -186,7 +193,7 @@ class SetServiceDependency(DIEvent):
         flag: str,
         module_path: str,
         class_name: str,
-        parameters: Dict[str, Any] = {},
+        parameters: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> str:
         '''
@@ -201,8 +208,8 @@ class SetServiceDependency(DIEvent):
         :type module_path: str
         :param class_name: The class name for the dependency.
         :type class_name: str
-        :param parameters: Parameters for the dependency.
-        :type parameters: Dict[str, Any]
+        :param parameters: Optional parameters for the dependency.
+        :type parameters: Dict[str, Any] | None
         :return: The service registration id.
         :rtype: str
         '''
@@ -329,20 +336,26 @@ class SetServiceConstants(DIEvent):
     # * method: execute
     def execute(
         self,
-        constants: Optional[Dict[str, Any]] = {},
+        constants: Optional[Dict[str, Any]] = _OMITTED,
         **kwargs,
     ) -> Dict[str, Any]:
         '''
         Set service constants.
 
         :param constants: New constants dictionary, or None to clear all.
-            Keys with None value are removed using pop-style semantics.
+            Keys with a None value are removed using pop-style semantics.
+            When omitted, existing constants are left unchanged.
         :type constants: Dict[str, Any] | None
         :param kwargs: Additional context.
         :type kwargs: dict
         :return: The updated constants dictionary.
         :rtype: Dict[str, Any]
         '''
+
+        # Treat an omitted argument as an empty update, preserving the prior
+        # no-op-on-omit behavior without relying on a mutable default.
+        if constants is _OMITTED:
+            constants = {}
 
         # Retrieve current constants from the DI service.
         _, current_constants = self.di_service.list_all()

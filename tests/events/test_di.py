@@ -822,6 +822,24 @@ class TestSetServiceConstants(DomainEventTestBase):
         assert result == {'existing': 'old'}
         mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
 
+    # * method: test_omitted_is_noop
+    def test_omitted_is_noop(self, mock_dependencies):
+        '''
+        Test that omitting the constants argument preserves existing
+        constants (the sentinel default is a no-op on omit, distinct from
+        an explicit None which clears all).
+        '''
+
+        # Execute without passing the constants argument at all.
+        result = DomainEvent.handle(
+            SetServiceConstants,
+            dependencies=mock_dependencies,
+        )
+
+        # Assert existing constants are returned and persisted unchanged.
+        assert result == {'existing': 'old'}
+        mock_dependencies['di_service'].save_constants.assert_called_once_with({'existing': 'old'})
+
 
 # ** test: TestListAllSettings
 class TestListAllSettings(DomainEventTestBase):
