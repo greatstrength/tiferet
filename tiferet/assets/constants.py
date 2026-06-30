@@ -121,20 +121,20 @@ CLI_COMMAND_NOT_FOUND_ID = 'CLI_COMMAND_NOT_FOUND'
 # ** constant: cli_command_already_exists_id
 CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
 
-# ** constant: invalid_service_configuration_id
-INVALID_SERVICE_CONFIGURATION_ID = 'INVALID_SERVICE_CONFIGURATION'
+# ** constant: invalid_service_registration_id
+INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
 
 # ** constant: attribute_already_exists_id
 ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
 
-# ** constant: service_configuration_not_found_id
-SERVICE_CONFIGURATION_NOT_FOUND_ID = 'SERVICE_CONFIGURATION_NOT_FOUND'
+# ** constant: service_registration_not_found_id
+SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
 # ** constant: invalid_flagged_dependency_id
 INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
-# ** constant: configuration_already_exists_id
-CONFIGURATION_ALREADY_EXISTS_ID = 'CONFIGURATION_ALREADY_EXISTS'
+# ** constant: service_registration_already_exists_id
+SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 
 # ** constant: invalid_dependency_error_id
 INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
@@ -522,15 +522,15 @@ DEFAULT_ERRORS = {
         ]
     },
 
-    # * error: INVALID_SERVICE_CONFIGURATION
-    INVALID_SERVICE_CONFIGURATION_ID: {
-        'id': INVALID_SERVICE_CONFIGURATION_ID,
-        'name': 'Invalid Service Configuration',
+    # * error: INVALID_SERVICE_REGISTRATION
+    INVALID_SERVICE_REGISTRATION_ID: {
+        'id': INVALID_SERVICE_REGISTRATION_ID,
+        'name': 'Invalid Service Registration',
         'message': [
             {
                 'lang': 'en_US',
                 'text': (
-                    'A container attribute must define either a default type '
+                    'A service registration must define either a default type '
                     '(module_path/class_name) or at least one flagged dependency.'
                 ),
             }
@@ -549,14 +549,14 @@ DEFAULT_ERRORS = {
         ],
     },
 
-    # * error: SERVICE_CONFIGURATION_NOT_FOUND
-    SERVICE_CONFIGURATION_NOT_FOUND_ID: {
-        'id': SERVICE_CONFIGURATION_NOT_FOUND_ID,
-        'name': 'Service Configuration Not Found',
+    # * error: SERVICE_REGISTRATION_NOT_FOUND
+    SERVICE_REGISTRATION_NOT_FOUND_ID: {
+        'id': SERVICE_REGISTRATION_NOT_FOUND_ID,
+        'name': 'Service Registration Not Found',
         'message': [
             {
                 'lang': 'en_US',
-                'text': 'Container attribute with ID {id} not found.',
+                'text': 'Service registration with ID {id} not found.',
             }
         ],
     },
@@ -573,14 +573,14 @@ DEFAULT_ERRORS = {
         ],
     },
 
-    # * error: CONFIGURATION_ALREADY_EXISTS
-    CONFIGURATION_ALREADY_EXISTS_ID: {
-        'id': CONFIGURATION_ALREADY_EXISTS_ID,
-        'name': 'Configuration Already Exists',
+    # * error: SERVICE_REGISTRATION_ALREADY_EXISTS
+    SERVICE_REGISTRATION_ALREADY_EXISTS_ID: {
+        'id': SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
+        'name': 'Service Registration Already Exists',
         'message': [
             {
                 'lang': 'en_US',
-                'text': 'A service configuration with ID {id} already exists.',
+                'text': 'A service registration with ID {id} already exists.',
             }
         ],
     },
