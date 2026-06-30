@@ -5,16 +5,16 @@ from typing import List, Dict, Any
 
 # ** app
 from .settings import DomainEvent, a
-from ..domain import AppInterface, AppServiceDependency
+from ..domain import AppInterface
 from ..interfaces import AppService
 from ..mappers import AppInterfaceAggregate
 
 # *** events
 
-# ** event: add_app_interface
-class AddAppInterface(DomainEvent):
+# ** event: app_event
+class AppEvent(DomainEvent):
     '''
-    A domain event to add a new application interface configuration via the AppService.
+    Base event providing the shared AppService dependency for app domain events.
     '''
 
     # * attribute: app_service
@@ -23,13 +23,20 @@ class AddAppInterface(DomainEvent):
     # * init
     def __init__(self, app_service: AppService):
         '''
-        Initialize the AddAppInterface event.
+        Initialize the app event with its shared service dependency.
 
-        :param app_service: The application service used to persist app interfaces.
+        :param app_service: The app service shared across app events.
         :type app_service: AppService
         '''
 
+        # Set the app service dependency.
         self.app_service = app_service
+
+# ** event: add_app_interface
+class AddAppInterface(AppEvent):
+    '''
+    A domain event to add a new application interface configuration via the AppService.
+    '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name'])
@@ -75,6 +82,12 @@ class AddAppInterface(DomainEvent):
         :rtype: AppInterface
         '''
 
+        # Coerce optional arguments that argparse may pass as None to their defaults.
+        logger_id = logger_id or 'default'
+        flags = flags or ['default']
+        services = services or []
+        constants = constants or {}
+
         # Collect the app interface data.
         app_interface_data = {
             'id': id,
@@ -98,46 +111,19 @@ class AddAppInterface(DomainEvent):
         return interface
 
 # ** event: get_app_interface
-class GetAppInterface(DomainEvent):
+class GetAppInterface(AppEvent):
     '''
     A domain event to retrieve an app interface using the ``AppService`` abstraction.
     '''
 
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the GetAppInterface event.
-
-        :param app_service: The app service used to retrieve interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
-
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
-    def execute(
-            self,
-            interface_id: str,
-            default_services: List[AppServiceDependency] | None = None,
-            default_constants: Dict[str, str] | None = None,
-            **kwargs,
-        ) -> AppInterface:
+    def execute(self, interface_id: str, **kwargs) -> AppInterface:
         '''
         Execute the event to load the application interface.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
-        :param default_services: A list of AppServiceDependency objects to merge
-            into the interface for any service_id not already present.
-        :type default_services: List[AppServiceDependency] | None
-        :param default_constants: A mapping of default constants to merge into the
-            interface for any key not already present.
-        :type default_constants: Dict[str, str] | None
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The loaded application interface.
@@ -156,64 +142,14 @@ class GetAppInterface(DomainEvent):
                 interface_id=interface_id,
             )
 
-        # Ensure the interface is mutable before applying service/constant merges.
-        if not isinstance(interface, AppInterfaceAggregate):
-            interface = AppInterfaceAggregate(**interface.model_dump())
-
-        # Merge default services into the interface for any service_id not already present.
-        if default_services:
-
-            # Build a set of existing service_ids for lookup.
-            existing_ids = {dep.service_id for dep in interface.services}
-
-            # Add any default service whose service_id is not already present.
-            for dep in default_services:
-                if dep.service_id not in existing_ids:
-                    interface.add_service(
-                        service_id=dep.service_id,
-                        module_path=dep.module_path,
-                        class_name=dep.class_name,
-                        parameters=dep.parameters,
-                    )
-                    existing_ids.add(dep.service_id)
-
-        # Merge default constants only for keys that do not already exist.
-        if default_constants:
-
-            # Create a set of missing constants that are not already defined.
-            missing_constants = {
-                key: value
-                for key, value in default_constants.items()
-                if key not in interface.constants
-            }
-
-            # Apply only missing constants, preserving user-defined constants.
-            if missing_constants:
-                interface.set_constants(missing_constants)
-
         # Return the loaded application interface.
         return interface
 
 # ** event: update_app_interface
-class UpdateAppInterface(DomainEvent):
+class UpdateAppInterface(AppEvent):
     '''
     A domain event to update scalar attributes of an existing app interface.
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the UpdateAppInterface command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'attribute'])
@@ -254,25 +190,10 @@ class UpdateAppInterface(DomainEvent):
         return id
 
 # ** event: set_app_constants
-class SetAppConstants(DomainEvent):
+class SetAppConstants(AppEvent):
     '''
     A domain event to set or clear constants on an app interface.
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the SetAppConstants command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
@@ -316,25 +237,10 @@ class SetAppConstants(DomainEvent):
         return id
 
 # ** event: list_app_interfaces
-class ListAppInterfaces(DomainEvent):
+class ListAppInterfaces(AppEvent):
     '''
     A domain event to list all configured app interfaces.
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the ListAppInterfaces command.
-
-        :param app_service: The app service to use.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     def execute(self, **kwargs) -> List[AppInterface]:
@@ -350,27 +256,11 @@ class ListAppInterfaces(DomainEvent):
         # Delegate to the app service to retrieve all interfaces.
         return self.app_service.list()
 
-
 # ** event: set_service_dependency
-class SetServiceDependency(DomainEvent):
+class SetServiceDependency(AppEvent):
     '''
     A domain event to set or update a service dependency on an app interface.
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the SetServiceDependency command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'service_id', 'module_path', 'class_name'])
@@ -428,25 +318,10 @@ class SetServiceDependency(DomainEvent):
         return id
 
 # ** event: remove_service_dependency
-class RemoveServiceDependency(DomainEvent):
+class RemoveServiceDependency(AppEvent):
     '''
     A domain event to remove a service dependency from an app interface (idempotent).
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the RemoveServiceDependency command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'service_id'])
@@ -485,25 +360,10 @@ class RemoveServiceDependency(DomainEvent):
         return id
 
 # ** event: remove_app_interface
-class RemoveAppInterface(DomainEvent):
+class RemoveAppInterface(AppEvent):
     '''
     A domain event to remove an entire app interface configuration by ID (idempotent).
     '''
-
-    # * attribute: app_service
-    app_service: AppService
-
-    # * init
-    def __init__(self, app_service: AppService) -> None:
-        '''
-        Initialize the RemoveAppInterface command.
-
-        :param app_service: The app service used to manage app interfaces.
-        :type app_service: AppService
-        '''
-
-        # Set the app service dependency.
-        self.app_service = app_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
