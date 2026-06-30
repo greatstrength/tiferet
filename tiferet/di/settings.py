@@ -1,3 +1,5 @@
+"""Tiferet DI Settings"""
+
 # *** imports
 
 # ** core
@@ -63,17 +65,17 @@ def normalize_flags(*flags) -> List[str]:
     :rtype: List[str]
     '''
 
-    # Flatten one level of lists/tuples into a single flag list.
+    # Flatten one level of lists/tuples into a single flag list, stringifying every flag.
     normalized = []
     for flag in flags:
 
-        # Expand nested list/tuple flag groups.
+        # Expand nested list/tuple flag groups, coercing each member to a string.
         if isinstance(flag, (list, tuple)):
-            normalized.extend(flag)
+            normalized.extend(str(f) for f in flag)
 
-        # Append non-empty scalar flags.
-        elif flag is not None:
-            normalized.append(flag)
+        # Append scalar flags coerced to strings.
+        else:
+            normalized.append(str(flag))
 
     # Return the flattened flag list.
     return normalized
@@ -361,9 +363,6 @@ class ServiceResolver(object):
     # * attribute: default_di_constants
     default_di_constants: Dict[str, Any]
 
-    # * attribute: container_cache
-    container_cache: Dict[str, ServiceContainer]
-
     # * init
     def __init__(self,
             di_service: DIService,
@@ -391,11 +390,11 @@ class ServiceResolver(object):
         self.parse_parameter = parse_parameter if parse_parameter else lambda value: value
 
         # Coerce optional default collections to empty dicts.
-        self.default_config_index = default_config_index if default_config_index else {}
-        self.default_di_constants = default_di_constants if default_di_constants else {}
+        self.default_config_index = default_config_index if default_config_index is not None else {}
+        self.default_di_constants = default_di_constants if default_di_constants is not None else {}
 
         # Initialize the per-flag container cache.
-        self.container_cache = {}
+        self._containers: Dict[str, ServiceContainer] = {}
 
     # * method: normalize_flags (static)
     @staticmethod
@@ -545,8 +544,9 @@ class ServiceResolver(object):
 
         # Return the cached container for the flag key if present.
         cache_key = self.create_cache_key(flags)
-        if cache_key in self.container_cache:
-            return self.container_cache[cache_key]
+        cached_container = self._containers.get(cache_key)
+        if cached_container:
+            return cached_container
 
         # Load and merge the registrations and constants.
         configurations, constants = self.list_all_settings()
@@ -564,10 +564,11 @@ class ServiceResolver(object):
         # Construct the container, registering constants then services.
         container = ServiceContainer()
         container.add_constants(constants)
-        container.add_services(type_map)
+        if type_map:
+            container.add_services(type_map)
 
         # Cache and return the container.
-        self.container_cache[cache_key] = container
+        self._containers[cache_key] = container
         return container
 
     # * method: get_dependency

@@ -4,6 +4,7 @@
 
 # ** infra
 import pytest
+from unittest import mock
 
 # ** app
 from tiferet.assets.exceptions import TiferetError
@@ -74,108 +75,27 @@ class ConfigurableService:
         self.config_value = config_value
 
 
-# ** class: fake_di_service
-class FakeDIService(DIService):
-    '''A fake DIService returning preconfigured registrations and constants.'''
-
-    # * init
-    def __init__(self, registrations=None, constants=None):
-        '''
-        Initialize the fake DI service.
-
-        :param registrations: The service registrations to return from list_all.
-        :type registrations: list | None
-        :param constants: The constants to return from list_all.
-        :type constants: dict | None
-        '''
-
-        # Store the preconfigured registrations and constants.
-        self._registrations = registrations if registrations else []
-        self._constants = constants if constants else {}
-
-    # * method: list_all
-    def list_all(self):
-        '''
-        Return the preconfigured registrations and constants.
-
-        :return: The registrations and constants tuple.
-        :rtype: tuple
-        '''
-
-        # Return shallow copies so callers cannot mutate the stored state.
-        return list(self._registrations), dict(self._constants)
-
-    # * method: registration_exists
-    def registration_exists(self, id):
-        '''
-        Check whether a registration exists by ID.
-
-        :param id: The registration identifier.
-        :type id: str
-        :return: True when the registration exists.
-        :rtype: bool
-        '''
-
-        # Match the id against the stored registrations.
-        return any(registration.id == id for registration in self._registrations)
-
-    # * method: get_registration
-    def get_registration(self, registration_id, flag=None):
-        '''
-        Return the registration matching the id, if any.
-
-        :param registration_id: The registration identifier.
-        :type registration_id: str
-        :param flag: Optional flag (unused by the fake).
-        :type flag: str | None
-        :return: The matching registration or None.
-        :rtype: ServiceRegistration | None
-        '''
-
-        # Return the first registration matching the id.
-        return next(
-            (registration for registration in self._registrations if registration.id == registration_id),
-            None,
-        )
-
-    # * method: save_registration
-    def save_registration(self, registration):
-        '''
-        No-op for the fake.
-
-        :param registration: The registration to save.
-        :type registration: ServiceRegistration
-        '''
-
-        # The fake does not persist registrations.
-        pass
-
-    # * method: delete_registration
-    def delete_registration(self, registration_id):
-        '''
-        No-op for the fake.
-
-        :param registration_id: The registration identifier.
-        :type registration_id: str
-        '''
-
-        # The fake does not persist registrations.
-        pass
-
-    # * method: save_constants
-    def save_constants(self, constants=None):
-        '''
-        No-op for the fake.
-
-        :param constants: The constants to save.
-        :type constants: dict | None
-        '''
-
-        # The fake does not persist constants.
-        pass
-
-
 # *** fixtures
+
+# ** fixture: make_di_service
+@pytest.fixture
+def make_di_service():
+    '''
+    Fixture returning a factory that builds a mock DIService.
+
+    :return: A factory that produces a mock DIService with a stubbed list_all.
+    :rtype: Callable
+    '''
+
+    # Build a factory returning a spec'd mock DIService with list_all stubbed.
+    def _make(registrations=None, constants=None) -> DIService:
+        di_service = mock.Mock(spec=DIService)
+        di_service.list_all.return_value = (list(registrations or []), dict(constants or {}))
+        return di_service
+
+    # Return the factory.
+    return _make
+
 
 # ** fixture: resolver_registrations
 @pytest.fixture
@@ -222,18 +142,20 @@ def resolver_registrations() -> list:
 
 # ** fixture: resolver
 @pytest.fixture
-def resolver(resolver_registrations: list) -> ServiceResolver:
+def resolver(resolver_registrations: list, make_di_service) -> ServiceResolver:
     '''
-    Fixture providing a ServiceResolver backed by a fake DI service.
+    Fixture providing a ServiceResolver backed by a mock DI service.
 
     :param resolver_registrations: The registration set fixture.
     :type resolver_registrations: list
+    :param make_di_service: The mock DI service factory fixture.
+    :type make_di_service: Callable
     :return: A configured ServiceResolver.
     :rtype: ServiceResolver
     '''
 
-    # Build a resolver with a fake DI service and identity parameter parsing.
-    return ServiceResolver(FakeDIService(registrations=resolver_registrations))
+    # Build a resolver with a mock DI service and identity parameter parsing.
+    return ServiceResolver(make_di_service(registrations=resolver_registrations))
 
 
 # ** fixture: flagged_param_registration
@@ -313,6 +235,26 @@ def test_normalize_flags_empty():
 
     # Assert no flags produces an empty list.
     assert normalize_flags() == []
+
+
+# ** test: normalize_flags_coerces_non_string
+def test_normalize_flags_coerces_non_string():
+    '''
+    Test that normalize_flags coerces non-string scalars and nested members to strings.
+    '''
+
+    # Assert scalar and nested non-string flags are stringified per the List[str] contract.
+    assert normalize_flags(1, [2, 3], (4,)) == ['1', '2', '3', '4']
+
+
+# ** test: normalize_flags_coerces_none
+def test_normalize_flags_coerces_none():
+    '''
+    Test that normalize_flags coerces None consistently whether scalar or nested.
+    '''
+
+    # Assert both a scalar None and a None nested in a list become the string 'None'.
+    assert normalize_flags(None, [None]) == ['None', 'None']
 
 
 # ** test: create_cache_key_no_flags
@@ -744,14 +686,17 @@ def test_service_resolver_load_constants_flagged(
 
 
 # ** test: service_resolver_list_all_settings_merges_defaults
-def test_service_resolver_list_all_settings_merges_defaults():
+def test_service_resolver_list_all_settings_merges_defaults(make_di_service):
     '''
     Test that list_all_settings merges bootstrap defaults beneath repository settings.
+
+    :param make_di_service: The mock DI service factory fixture.
+    :type make_di_service: Callable
     '''
 
-    # Arrange a fake DI service with one repository registration and constants.
+    # Arrange a mock DI service with one repository registration and constants.
     repo_registration = ServiceRegistration(id='repo_svc', module_path=MODULE_PATH, class_name='SimpleService')
-    fake = FakeDIService(
+    fake = make_di_service(
         registrations=[repo_registration],
         constants={'shared': 'repo', 'repo_only': 'repo'},
     )
@@ -782,13 +727,16 @@ def test_service_resolver_list_all_settings_merges_defaults():
 
 
 # ** test: service_resolver_parse_parameter_identity_default
-def test_service_resolver_parse_parameter_identity_default():
+def test_service_resolver_parse_parameter_identity_default(make_di_service):
     '''
     Test that the default parse_parameter leaves constant values unchanged.
+
+    :param make_di_service: The mock DI service factory fixture.
+    :type make_di_service: Callable
     '''
 
     # Build a resolver with the identity default parser.
-    identity_resolver = ServiceResolver(FakeDIService())
+    identity_resolver = ServiceResolver(make_di_service())
 
     # Assert constant values pass through unchanged.
     result = identity_resolver.load_constants(constants={'key': 'value'})
@@ -796,14 +744,17 @@ def test_service_resolver_parse_parameter_identity_default():
 
 
 # ** test: service_resolver_parse_parameter_injection
-def test_service_resolver_parse_parameter_injection():
+def test_service_resolver_parse_parameter_injection(make_di_service):
     '''
     Test that an injected parse_parameter transforms constant values.
+
+    :param make_di_service: The mock DI service factory fixture.
+    :type make_di_service: Callable
     '''
 
     # Build a resolver with an injected transforming parser.
     parsing_resolver = ServiceResolver(
-        FakeDIService(),
+        make_di_service(),
         parse_parameter=lambda value: f'parsed:{value}',
     )
 
