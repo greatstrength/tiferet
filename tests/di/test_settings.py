@@ -19,12 +19,10 @@ from tiferet.di.settings import (
     merge_settings,
 )
 
-
 # *** constants
 
 # ** constant: module_path
 MODULE_PATH = 'tests.di.test_settings'
-
 
 # *** classes
 
@@ -33,7 +31,6 @@ class SimpleService:
     '''A dependency-free service used for testing.'''
 
     pass
-
 
 # ** class: dependent_service
 class DependentService:
@@ -54,7 +51,6 @@ class DependentService:
         # Assign the injected dependency.
         self.simple_service = simple_service
 
-
 # ** class: configurable_service
 class ConfigurableService:
     '''A service with a scalar constructor parameter, used to test constant injection.'''
@@ -73,7 +69,6 @@ class ConfigurableService:
 
         # Assign the injected constant.
         self.config_value = config_value
-
 
 # *** fixtures
 
@@ -95,7 +90,6 @@ def make_di_service():
 
     # Return the factory.
     return _make
-
 
 # ** fixture: resolver_registrations
 @pytest.fixture
@@ -139,7 +133,6 @@ def resolver_registrations() -> list:
         ),
     ]
 
-
 # ** fixture: resolver
 @pytest.fixture
 def resolver(resolver_registrations: list, make_di_service) -> ServiceResolver:
@@ -156,7 +149,6 @@ def resolver(resolver_registrations: list, make_di_service) -> ServiceResolver:
 
     # Build a resolver with a mock DI service and identity parameter parsing.
     return ServiceResolver(make_di_service(registrations=resolver_registrations))
-
 
 # ** fixture: flagged_param_registration
 @pytest.fixture
@@ -184,7 +176,6 @@ def flagged_param_registration() -> ServiceRegistration:
         ],
     )
 
-
 # *** tests
 
 # ** test: injectable_parameter_names_no_args
@@ -196,7 +187,6 @@ def test_injectable_parameter_names_no_args():
     # Assert a service with no constructor parameters returns an empty list.
     assert injectable_parameter_names(SimpleService) == []
 
-
 # ** test: injectable_parameter_names_with_dependency
 def test_injectable_parameter_names_with_dependency():
     '''
@@ -205,7 +195,6 @@ def test_injectable_parameter_names_with_dependency():
 
     # Assert the injected dependency parameter is identified.
     assert injectable_parameter_names(DependentService) == ['simple_service']
-
 
 # ** test: injectable_parameter_names_scalar
 def test_injectable_parameter_names_scalar():
@@ -216,7 +205,6 @@ def test_injectable_parameter_names_scalar():
     # Assert the scalar parameter is identified.
     assert injectable_parameter_names(ConfigurableService) == ['config_value']
 
-
 # ** test: normalize_flags_mixed
 def test_normalize_flags_mixed():
     '''
@@ -225,7 +213,6 @@ def test_normalize_flags_mixed():
 
     # Assert mixed flag inputs are flattened into a single list.
     assert normalize_flags('a', ['b', 'c'], ('d', 'e')) == ['a', 'b', 'c', 'd', 'e']
-
 
 # ** test: normalize_flags_empty
 def test_normalize_flags_empty():
@@ -236,7 +223,6 @@ def test_normalize_flags_empty():
     # Assert no flags produces an empty list.
     assert normalize_flags() == []
 
-
 # ** test: normalize_flags_coerces_non_string
 def test_normalize_flags_coerces_non_string():
     '''
@@ -246,7 +232,6 @@ def test_normalize_flags_coerces_non_string():
     # Assert scalar and nested non-string flags are stringified per the List[str] contract.
     assert normalize_flags(1, [2, 3], (4,)) == ['1', '2', '3', '4']
 
-
 # ** test: normalize_flags_coerces_none
 def test_normalize_flags_coerces_none():
     '''
@@ -255,7 +240,6 @@ def test_normalize_flags_coerces_none():
 
     # Assert both a scalar None and a None nested in a list become the string 'None'.
     assert normalize_flags(None, [None]) == ['None', 'None']
-
 
 # ** test: create_cache_key_no_flags
 def test_create_cache_key_no_flags():
@@ -267,7 +251,6 @@ def test_create_cache_key_no_flags():
     assert create_cache_key() == 'feature_services'
     assert create_cache_key([]) == 'feature_services'
 
-
 # ** test: create_cache_key_with_flags
 def test_create_cache_key_with_flags():
     '''
@@ -276,7 +259,6 @@ def test_create_cache_key_with_flags():
 
     # Assert flags are appended to the cache key.
     assert create_cache_key(['a', 'b']) == 'feature_services_a_b'
-
 
 # ** test: merge_settings_appends_and_prioritizes
 def test_merge_settings_appends_and_prioritizes():
@@ -311,7 +293,6 @@ def test_merge_settings_appends_and_prioritizes():
     # Assert repository constants win and default-only constants are merged in.
     assert merged_constants == {'shared': 'repo', 'repo_only': 'repo', 'default_only': 'default'}
 
-
 # ** test: service_container_init_empty
 def test_service_container_init_empty():
     '''
@@ -322,7 +303,6 @@ def test_service_container_init_empty():
     container = ServiceContainer()
     assert len(container.container.providers) == 0
 
-
 # ** test: service_container_init_with_services
 def test_service_container_init_with_services():
     '''
@@ -332,7 +312,6 @@ def test_service_container_init_with_services():
     # Assert the initial service is registered.
     container = ServiceContainer(services={'simple_service': SimpleService})
     assert 'simple_service' in container.container.providers
-
 
 # ** test: service_container_add_service
 def test_service_container_add_service():
@@ -347,7 +326,6 @@ def test_service_container_add_service():
     # Assert it was registered and resolves to the expected type.
     assert 'simple_service' in container.container.providers
     assert isinstance(container.get_service('simple_service'), SimpleService)
-
 
 # ** test: service_container_add_service_new_instance_per_call
 def test_service_container_add_service_new_instance_per_call():
@@ -364,7 +342,6 @@ def test_service_container_add_service_new_instance_per_call():
     assert isinstance(instance_a, SimpleService)
     assert isinstance(instance_b, SimpleService)
     assert instance_a is not instance_b
-
 
 # ** test: service_container_add_services
 def test_service_container_add_services():
@@ -383,7 +360,6 @@ def test_service_container_add_services():
     assert isinstance(container.get_service('simple_service'), SimpleService)
     assert isinstance(container.get_service('dependent_service'), DependentService)
 
-
 # ** test: service_container_add_constants
 def test_service_container_add_constants():
     '''
@@ -396,7 +372,6 @@ def test_service_container_add_constants():
 
     # Assert the constant resolves to the original value.
     assert container.get_service('config_value') == 'test_config'
-
 
 # ** test: service_container_add_constants_injected_into_service
 def test_service_container_add_constants_injected_into_service():
@@ -413,7 +388,6 @@ def test_service_container_add_constants_injected_into_service():
     service = container.get_service('configurable_service')
     assert isinstance(service, ConfigurableService)
     assert service.config_value == 'test_config'
-
 
 # ** test: service_container_add_services_two_pass
 def test_service_container_add_services_two_pass():
@@ -434,7 +408,6 @@ def test_service_container_add_services_two_pass():
     assert isinstance(service, ConfigurableService)
     assert service.config_value == 'test_config'
 
-
 # ** test: service_container_get_service_not_found
 def test_service_container_get_service_not_found():
     '''
@@ -448,7 +421,6 @@ def test_service_container_get_service_not_found():
 
     # Assert the engine raised a raw error, not a structured TiferetError.
     assert not isinstance(exc_info.value, TiferetError)
-
 
 # ** test: service_container_remove_service
 def test_service_container_remove_service():
@@ -465,7 +437,6 @@ def test_service_container_remove_service():
     with pytest.raises(Exception):
         container.get_service('simple_service')
 
-
 # ** test: service_container_remove_service_nonexistent
 def test_service_container_remove_service_nonexistent():
     '''
@@ -478,7 +449,6 @@ def test_service_container_remove_service_nonexistent():
 
     # Assert the container is still empty.
     assert len(container.container.providers) == 0
-
 
 # ** test: service_container_cascading_dependency_injection
 def test_service_container_cascading_dependency_injection():
@@ -496,7 +466,6 @@ def test_service_container_cascading_dependency_injection():
     assert isinstance(service, DependentService)
     assert isinstance(service.simple_service, SimpleService)
 
-
 # ** test: service_resolver_create_cache_key
 def test_service_resolver_create_cache_key(resolver: ServiceResolver):
     '''
@@ -510,7 +479,6 @@ def test_service_resolver_create_cache_key(resolver: ServiceResolver):
     assert resolver.create_cache_key() == 'feature_services'
     assert resolver.create_cache_key(['a', 'b']) == 'feature_services_a_b'
 
-
 # ** test: service_resolver_normalize_flags
 def test_service_resolver_normalize_flags():
     '''
@@ -519,7 +487,6 @@ def test_service_resolver_normalize_flags():
 
     # Assert mixed flag inputs are flattened.
     assert ServiceResolver.normalize_flags('a', ['b', 'c'], ('d',)) == ['a', 'b', 'c', 'd']
-
 
 # ** test: service_resolver_build_container_default
 def test_service_resolver_build_container_default(resolver: ServiceResolver):
@@ -542,7 +509,6 @@ def test_service_resolver_build_container_default(resolver: ServiceResolver):
     assert isinstance(configurable, ConfigurableService)
     assert configurable.config_value == 'default_value'
 
-
 # ** test: service_resolver_build_container_flagged
 def test_service_resolver_build_container_flagged(resolver: ServiceResolver):
     '''
@@ -560,7 +526,6 @@ def test_service_resolver_build_container_flagged(resolver: ServiceResolver):
     assert isinstance(service, DependentService)
     assert isinstance(service.simple_service, SimpleService)
 
-
 # ** test: service_resolver_build_container_cached
 def test_service_resolver_build_container_cached(resolver: ServiceResolver):
     '''
@@ -577,7 +542,6 @@ def test_service_resolver_build_container_cached(resolver: ServiceResolver):
     # Assert the same cached instance is returned.
     assert first is second
 
-
 # ** test: service_resolver_build_container_skips_no_type
 def test_service_resolver_build_container_skips_no_type(resolver: ServiceResolver):
     '''
@@ -593,7 +557,6 @@ def test_service_resolver_build_container_skips_no_type(resolver: ServiceResolve
     # Assert the no-type registration was skipped.
     assert 'no_type_service' not in container.container.providers
 
-
 # ** test: service_resolver_get_dependency_default
 def test_service_resolver_get_dependency_default(resolver: ServiceResolver):
     '''
@@ -605,7 +568,6 @@ def test_service_resolver_get_dependency_default(resolver: ServiceResolver):
 
     # Assert the default resolution returns the expected type.
     assert isinstance(resolver.get_dependency('simple_service'), SimpleService)
-
 
 # ** test: service_resolver_get_dependency_varargs_flag
 def test_service_resolver_get_dependency_varargs_flag(resolver: ServiceResolver):
@@ -620,7 +582,6 @@ def test_service_resolver_get_dependency_varargs_flag(resolver: ServiceResolver)
     service = resolver.get_dependency('flagged_service', 'alt')
     assert isinstance(service, DependentService)
 
-
 # ** test: service_resolver_get_dependency_list_flag
 def test_service_resolver_get_dependency_list_flag(resolver: ServiceResolver):
     '''
@@ -633,7 +594,6 @@ def test_service_resolver_get_dependency_list_flag(resolver: ServiceResolver):
     # Assert the list flag form resolves the flagged type.
     service = resolver.get_dependency('flagged_service', ['alt'])
     assert isinstance(service, DependentService)
-
 
 # ** test: service_resolver_load_constants_default
 def test_service_resolver_load_constants_default(
@@ -659,7 +619,6 @@ def test_service_resolver_load_constants_default(
     # Assert the top-level constant and default parameter are present.
     assert result == {'top': 'value', 'config_value': 'default_value'}
 
-
 # ** test: service_resolver_load_constants_flagged
 def test_service_resolver_load_constants_flagged(
         resolver: ServiceResolver,
@@ -683,7 +642,6 @@ def test_service_resolver_load_constants_flagged(
 
     # Assert the flagged parameter overrides the default.
     assert result == {'top': 'value', 'config_value': 'alt_value'}
-
 
 # ** test: service_resolver_list_all_settings_merges_defaults
 def test_service_resolver_list_all_settings_merges_defaults(make_di_service):
@@ -725,7 +683,6 @@ def test_service_resolver_list_all_settings_merges_defaults(make_di_service):
     assert constants['repo_only'] == 'repo'
     assert constants['default_only'] == 'default'
 
-
 # ** test: service_resolver_parse_parameter_identity_default
 def test_service_resolver_parse_parameter_identity_default(make_di_service):
     '''
@@ -741,7 +698,6 @@ def test_service_resolver_parse_parameter_identity_default(make_di_service):
     # Assert constant values pass through unchanged.
     result = identity_resolver.load_constants(constants={'key': 'value'})
     assert result == {'key': 'value'}
-
 
 # ** test: service_resolver_parse_parameter_injection
 def test_service_resolver_parse_parameter_injection(make_di_service):
