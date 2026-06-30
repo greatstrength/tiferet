@@ -18,7 +18,7 @@ from tiferet.events.app import (
     RemoveServiceDependency,
     RemoveAppInterface,
 )
-from tiferet.events.settings import TiferetError, DomainEvent, a
+from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.domain import (
     AppInterface,
     AppServiceDependency,

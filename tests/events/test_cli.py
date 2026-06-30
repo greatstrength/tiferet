@@ -185,7 +185,7 @@ class TestAddCliCommand(DomainEventTestBase):
         mock_dependencies['cli_service'].exists.return_value = True
 
         # Execute and expect a CLI_COMMAND_ALREADY_EXISTS error.
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies)
 
         # Assert the correct error code.
