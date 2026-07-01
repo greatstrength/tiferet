@@ -68,6 +68,63 @@ Key characteristics:
 - **`handle(EventClass, dependencies, **kwargs)`** is the standard invocation pattern in tests and contexts.
 - **`@parameters_required`** provides declarative, aggregated parameter validation.
 
+## Per-Module Base Events
+
+Each event module that shares a single injected service defines a **base event** that owns that service's dependency injection. Concrete events extend the base event and drop the `# * attribute` / `# * init` boilerplate, declaring only their `execute` method.
+
+```python
+# tiferet/events/error.py
+
+# *** events
+
+# ** event: error_event
+class ErrorEvent(DomainEvent):
+    '''
+    Base event providing the shared ErrorService dependency for error domain events.
+    '''
+
+    # * attribute: error_service
+    error_service: ErrorService
+
+    # * init
+    def __init__(self, error_service: ErrorService):
+        '''
+        Initialize the error event with its shared service dependency.
+        '''
+
+        # Set the error service dependency.
+        self.error_service = error_service
+
+# ** event: get_error
+class GetError(ErrorEvent):
+    '''
+    Event to retrieve an Error domain object by its ID.
+    '''
+
+    # * method: execute
+    def execute(self, id: str, **kwargs) -> Error:
+        '''
+        Retrieve an Error by its ID.
+        '''
+
+        # Retrieve the error via the inherited service.
+        return self.error_service.get(id)
+```
+
+The framework defines seven base events, one per single-service event module:
+
+- `ErrorEvent` (`error_service`) — `tiferet/events/error.py`
+- `FeatureEvent` (`feature_service`) — `tiferet/events/feature.py`
+- `AppEvent` (`app_service`) — `tiferet/events/app.py`
+- `CliEvent` (`cli_service`) — `tiferet/events/cli.py`
+- `DIEvent` (`di_service`) — `tiferet/events/di.py`
+- `LoggingEvent` (`logging_service`) — `tiferet/events/logging.py`
+- `SqliteEvent` (`sqlite_service`) — `tiferet/events/sqlite.py`
+
+The static utility events (`ParseParameter`, `ImportDependency`, `RaiseError` in `tiferet/events/static.py`) take no injected service and therefore use no base event.
+
+> **Naming note:** The `FeatureEvent` base event reuses the name freed by the `FeatureEvent` → `EventFeatureStep` domain-object rename. The former `FeatureEvent` domain object (a feature workflow step) is now `EventFeatureStep`; the name `FeatureEvent` now denotes the feature module's base event.
+
 ## Structured Code Design
 
 Domain events follow the standard Tiferet artifact comment structure:
@@ -86,65 +143,54 @@ Domain events follow the standard Tiferet artifact comment structure:
 ## Creating Domain Events
 
 ### 1. Define the Event Class
-- Extend `DomainEvent`.
-- Declare dependencies under `# * attribute`.
-- Implement `__init__` and `execute`.
+- Extend the module's base event (e.g., `ErrorEvent`) to inherit the shared service, or `DomainEvent` directly for events with no shared service.
+- Implement `execute`; the base event supplies the `# * attribute` dependency and `# * init` (see [Per-Module Base Events](#per-module-base-events)).
 - Use `@DomainEvent.parameters_required` for declarative parameter validation.
 
-**Example** – `AddError`:
+**Example** – `AddError` (extends the `ErrorEvent` base event):
 ```python
 # *** imports
 
-# ** core
-from typing import List, Dict, Any
-
 # ** app
-from tiferet.events import DomainEvent, a
-from tiferet.contracts import ErrorService
-from tiferet.domain.error import Error
+from .settings import DomainEvent, a
+from ..domain import Error
+from ..mappers import ErrorAggregate
 
 # *** events
 
 # ** event: add_error
-class AddError(DomainEvent):
+class AddError(ErrorEvent):
     '''
     Event to add a new Error domain object to the repository.
+
+    Extends the ErrorEvent base event (see "Per-Module Base Events"),
+    which injects the shared error_service; only execute is defined here.
     '''
-
-    # * attribute: error_service
-    error_service: ErrorService
-
-    # * init
-    def __init__(self, error_service: ErrorService):
-        '''
-        Initialize the AddError event.
-        '''
-        self.error_service = error_service
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'name', 'message'])
-    def execute(self, **kwargs) -> Error:
+    def execute(self, id: str, name: str, message: str, **kwargs) -> Error:
         '''
         Add a new Error.
         '''
 
-        # Unpack parameters.
-        id = kwargs['id']
-        name = kwargs['name']
-        message = kwargs['message']
-
-        # Check existence.
+        # Check existence via the inherited service.
         self.verify(
             not self.error_service.exists(id),
             a.const.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
-            id=id
+            id=id,
         )
 
-        # Create and save.
-        new_error = Error.new(id=id, name=name, message=message)
+        # Create and save the error aggregate.
+        new_error = ErrorAggregate(
+            id=id,
+            name=name,
+            message=[{'lang': 'en_US', 'text': message}],
+        )
         self.error_service.save(new_error)
 
+        # Return the new error.
         return new_error
 ```
 
@@ -307,6 +353,51 @@ def test_add_error_success(mock_error_service):
 - Verify service calls and return values.
 - Use `DomainEvent.handle` for consistent instantiation and execution.
 - Override `mock_dependencies` when tests need a pre-configured aggregate.
+
+## Middleware Support
+
+`DomainEvent.handle()` and `DomainEvent.handle_async()` accept an optional `middleware` list that wraps event execution with cross-cutting concerns (logging, timing, tracing, retries) without modifying the event itself.
+
+Each middleware is a callable following the `(event, kwargs, next_fn)` convention:
+- `event` — the instantiated domain event.
+- `kwargs` — the merged execution keyword arguments.
+- `next_fn` — a zero-argument callable that invokes the remainder of the chain (the next middleware, or the event's `execute` when none remain).
+
+Middleware is composed **outermost-first**: the first entry in the list is the outermost wrapper (first to run on entry, last to run on exit).
+
+**Sync example** — compose the chain programmatically via `handle`:
+```python
+result = DomainEvent.handle(
+    GetError,
+    dependencies={'error_service': error_service},
+    middleware=[LoggingMiddleware('root'), TimingMiddleware('root')],
+    id='ERR_001',
+)
+```
+
+A synchronous middleware calls `next_fn()` directly and returns its result:
+```python
+class LoggingMiddleware(MiddlewareService):
+
+    # * method: __call__
+    def __call__(self, event, kwargs, next_fn):
+        result = next_fn()
+        return result
+```
+
+**Async example** — `handle_async` composes the same chain for `AsyncDomainEvent` subclasses; async middleware must `await next_fn()`:
+```python
+class AsyncAuditMiddleware(MiddlewareService):
+
+    # * method: __call__
+    async def __call__(self, event, kwargs, next_fn):
+        result = await next_fn()
+        return result
+```
+
+**Configuration-driven middleware.** Beyond programmatic use, middleware can be declared in `config.yml` and resolved from the DI container by `FeatureContext` during `execute_feature` / `execute_feature_async`. Feature-level middleware wraps every step in the feature; step-level middleware applies to a single command.
+
+For built-in middleware, the `MiddlewareService` interface, ordering, `config.yml` registration, and testing, see the [Middleware guide](../guides/middleware.md).
 
 ## Package Layout
 

@@ -1,4 +1,4 @@
-# Events – DI Service Configuration Management
+# Events – DI Service Registration Management
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
@@ -7,33 +7,33 @@
 
 ## Overview
 
-The DI event module provides the full CRUD surface for `ServiceConfiguration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event in this module depends on an injected `DIService` and operates on `ServiceConfiguration` domain objects through the `ServiceConfigurationAggregate` mapper.
+The DI event module provides the full CRUD surface for `ServiceRegistration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event in this module depends on an injected `DIService` and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper.
 
-These events are the forward-compatible successors to the container events in `tiferet/events/container.py`, using DI-specific terminology (`ServiceConfiguration`, `DIService`, `configuration_exists`, etc.) instead of container-centric naming (`ContainerAttribute`, `ContainerService`, `attribute_exists`).
+These events are the forward-compatible successors to the container events in `tiferet/events/container.py`, using DI-specific terminology (`ServiceRegistration`, `DIService`, `registration_exists`, etc.) instead of container-centric naming (`ContainerAttribute`, `ContainerService`, `attribute_exists`).
 
 ## Events at a Glance
 
 | Event | Operation | Required Parameters | Returns |
 |---|---|---|---|
-| `AddServiceConfiguration` | Create | `id` | `ServiceConfiguration` |
-| `SetDefaultServiceConfiguration` | Update (default type) | *(none — `id` is positional)* | `ServiceConfiguration` |
+| `AddServiceRegistration` | Create | `id` | `ServiceRegistration` |
+| `SetDefaultServiceRegistration` | Update (default type) | *(none — `id` is positional)* | `ServiceRegistration` |
 | `SetServiceDependency` | Update (flagged dep) | `flag` | `str` (ID) |
 | `RemoveServiceDependency` | Delete (flagged dep) | `flag` | `str` (ID) |
-| `RemoveServiceConfiguration` | Delete | `id` | `str` (ID) |
+| `RemoveServiceRegistration` | Delete | `id` | `str` (ID) |
 | `SetServiceConstants` | Update (constants) | *(none)* | `Dict[str, Any]` |
-| `ListAllSettings` | Read (all) | *(none)* | `Tuple[List[ServiceConfiguration], Dict]` |
+| `ListAllSettings` | Read (all) | *(none)* | `Tuple[List[ServiceRegistration], Dict]` |
 
 ## Dependency
 
 All events inject a single dependency:
 
-- **`di_service: DIService`** — the service interface for persisting and retrieving `ServiceConfiguration` objects and constants.
+- **`di_service: DIService`** — the service interface for persisting and retrieving `ServiceRegistration` objects and constants.
 
 ## Event Details
 
-### AddServiceConfiguration
+### AddServiceRegistration
 
-Creates a new `ServiceConfiguration` and persists it via `DIService.save_configuration()`. A configuration must define at least one type source: either a default type (`module_path` + `class_name`) or one or more flagged dependencies.
+Creates a new `ServiceRegistration` and persists it via `DIService.save_registration()`. A registration must define at least one type source: either a default type (`module_path` + `class_name`) or one or more flagged dependencies.
 
 **Required:** `id`
 
@@ -43,35 +43,35 @@ Creates a new `ServiceConfiguration` and persists it via `DIService.save_configu
 |---|---|---|---|
 | `module_path` | `str \| None` | `None` | Default module path for the service class |
 | `class_name` | `str \| None` | `None` | Default class name for the service class |
-| `parameters` | `Dict[str, Any]` | `{}` | Default configuration parameters |
-|| `flagged_dependencies` | `List[Dict[str, Any]]` | `[]` | List of flagged dependency dicts (each with `flag`, `module_path`, `class_name`, optional `parameters`) |
+| `parameters` | `Dict[str, Any]` | `{}` | Default registration parameters |
+| `flagged_dependencies` | `List[Dict[str, Any]]` | `[]` | List of flagged dependency dicts (each with `flag`, `module_path`, `class_name`, optional `parameters`) |
 
-**Returns:** The created `ServiceConfiguration` instance.
+**Returns:** The created `ServiceRegistration` instance.
 
 **Errors:**
-- `CONFIGURATION_ALREADY_EXISTS` if a configuration with the given ID already exists.
-- `INVALID_SERVICE_CONFIGURATION` if neither a default type nor dependencies are provided.
+- `SERVICE_REGISTRATION_ALREADY_EXISTS` if a registration with the given ID already exists.
+- `INVALID_SERVICE_REGISTRATION` if neither a default type nor dependencies are provided.
 
 **Behavior:**
-1. Verifies the ID does not already exist via `di_service.configuration_exists(id)`.
+1. Verifies the ID does not already exist via `di_service.registration_exists(id)`.
 2. Validates that at least one type source is provided.
-3. Creates a `ServiceConfigurationAggregate` via its `new()` factory.
-4. Saves via `di_service.save_configuration(configuration)`.
+3. Creates a `ServiceRegistrationAggregate` via its constructor.
+4. Saves via `di_service.save_registration(registration)`.
 
 ```python
 result = DomainEvent.handle(
-    AddServiceConfiguration,
+    AddServiceRegistration,
     dependencies={'di_service': di_service},
     id='error_repo',
     module_path='myapp.repos.error',
-    class_name='ErrorYamlRepository',
-    parameters={'error_yaml_file': 'app/configs/error.yml'},
+    class_name='ErrorConfigRepository',
+    parameters={'error_config': 'app/configs/error.yml'},
 )
 ```
 
-### SetDefaultServiceConfiguration
+### SetDefaultServiceRegistration
 
-Sets or updates the default module/class and parameters for an existing service configuration.
+Sets or updates the default module/class and parameters for an existing service registration.
 
 **Required:** `id` (positional)
 
@@ -83,11 +83,11 @@ Sets or updates the default module/class and parameters for an existing service 
 | `class_name` | `str \| None` | `None` | New default class name |
 | `parameters` | `Dict[str, Any] \| None` | `None` | New parameters. `None` clears all parameters. |
 
-**Returns:** The updated `ServiceConfiguration` instance.
+**Returns:** The updated `ServiceRegistration` instance.
 
 **Errors:**
-- `SERVICE_CONFIGURATION_NOT_FOUND` if the configuration does not exist.
-- `INVALID_SERVICE_CONFIGURATION` if only one of `module_path` or `class_name` is provided (both must be provided for an atomic type update).
+- `SERVICE_REGISTRATION_NOT_FOUND` if the registration does not exist.
+- `INVALID_SERVICE_REGISTRATION` if only one of `module_path` or `class_name` is provided (both must be provided for an atomic type update).
 
 **Behavior:**
 - If both `module_path` and `class_name` are provided, updates the default type and parameters.
@@ -96,18 +96,18 @@ Sets or updates the default module/class and parameters for an existing service 
 
 ```python
 DomainEvent.handle(
-    SetDefaultServiceConfiguration,
+    SetDefaultServiceRegistration,
     dependencies={'di_service': di_service},
     id='error_repo',
-    module_path='myapp.repos.error_v2',
-    class_name='ErrorJsonRepository',
-    parameters={'error_json_file': 'app/configs/error.json'},
+    module_path='myapp.repos.error',
+    class_name='ErrorConfigRepository',
+    parameters={'error_config': 'app/configs/error.json'},
 )
 ```
 
 ### SetServiceDependency
 
-Adds or updates a flagged dependency on an existing service configuration. Uses PUT semantics — if the flag already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
+Adds or updates a flagged dependency on an existing service registration. Uses PUT semantics — if the flag already exists, the dependency is updated in place with parameter merge-and-prune; if it does not exist, a new dependency is created.
 
 **Required:** `flag`
 
@@ -115,16 +115,16 @@ Adds or updates a flagged dependency on an existing service configuration. Uses 
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | `str` | — | The service configuration identifier |
+| `id` | `str` | — | The service registration identifier |
 | `module_path` | `str` | — | The module path for the dependency |
 | `class_name` | `str` | — | The class name for the dependency |
 | `parameters` | `Dict[str, Any]` | `{}` | Parameters for the dependency. Keys with `None` values are pruned during merge. |
 
-**Returns:** `str` — the service configuration ID.
+**Returns:** `str` — the service registration ID.
 
 **Errors:**
 - `INVALID_FLAGGED_DEPENDENCY` if either `module_path` or `class_name` is empty.
-- `SERVICE_CONFIGURATION_NOT_FOUND` if the configuration does not exist.
+- `SERVICE_REGISTRATION_NOT_FOUND` if the registration does not exist.
 
 ```python
 DomainEvent.handle(
@@ -133,14 +133,14 @@ DomainEvent.handle(
     id='error_repo',
     flag='json',
     module_path='myapp.repos.error',
-    class_name='ErrorJsonRepository',
-    parameters={'error_json_file': 'app/configs/error.json'},
+    class_name='ErrorConfigRepository',
+    parameters={'error_config': 'app/configs/error.json'},
 )
 ```
 
 ### RemoveServiceDependency
 
-Removes a flagged dependency from an existing service configuration by flag. The removal is **idempotent** at the model level — removing a non-existent flag does not raise an error. However, post-removal validation ensures at least one type source remains.
+Removes a flagged dependency from an existing service registration by flag. The removal is **idempotent** at the model level — removing a non-existent flag does not raise an error. However, post-removal validation ensures at least one type source remains.
 
 **Required:** `flag`
 
@@ -148,13 +148,13 @@ Removes a flagged dependency from an existing service configuration by flag. The
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | `str` | — | The service configuration identifier |
+| `id` | `str` | — | The service registration identifier |
 
-**Returns:** `str` — the service configuration ID.
+**Returns:** `str` — the service registration ID.
 
 **Errors:**
-- `SERVICE_CONFIGURATION_NOT_FOUND` if the configuration does not exist.
-- `INVALID_SERVICE_CONFIGURATION` if removing the dependency would leave no type source (no default type and no remaining dependencies).
+- `SERVICE_REGISTRATION_NOT_FOUND` if the registration does not exist.
+- `INVALID_SERVICE_REGISTRATION` if removing the dependency would leave no type source (no default type and no remaining dependencies).
 
 ```python
 DomainEvent.handle(
@@ -165,17 +165,17 @@ DomainEvent.handle(
 )
 ```
 
-### RemoveServiceConfiguration
+### RemoveServiceRegistration
 
-Deletes an entire service configuration by ID. The operation is **idempotent** — the underlying service handles non-existent IDs gracefully.
+Deletes an entire service registration by ID. The operation is **idempotent** — the underlying service handles non-existent IDs gracefully.
 
 **Required:** `id`
 
-**Returns:** `str` — the removed configuration ID.
+**Returns:** `str` — the removed registration ID.
 
 ```python
 DomainEvent.handle(
-    RemoveServiceConfiguration,
+    RemoveServiceRegistration,
     dependencies={'di_service': di_service},
     id='error_repo',
 )
@@ -183,7 +183,7 @@ DomainEvent.handle(
 
 ### SetServiceConstants
 
-Sets, merges, or clears service-level constants. Constants are global key-value pairs stored alongside service configurations.
+Sets, merges, or clears service-level constants. Constants are global key-value pairs stored alongside service registrations.
 
 **Optional parameters:**
 
@@ -217,12 +217,12 @@ DomainEvent.handle(
 
 ### ListAllSettings
 
-Lists all service configurations and constants. No required parameters.
+Lists all service registrations and constants. No required parameters.
 
-**Returns:** `Tuple[List[ServiceConfiguration], Dict[str, Any]]` — the list of configurations and the constants dictionary.
+**Returns:** `Tuple[List[ServiceRegistration], Dict[str, Any]]` — the list of registrations and the constants dictionary.
 
 ```python
-configurations, constants = DomainEvent.handle(
+registrations, constants = DomainEvent.handle(
     ListAllSettings,
     dependencies={'di_service': di_service},
 )
@@ -232,20 +232,20 @@ configurations, constants = DomainEvent.handle(
 
 ### Retrieve → Verify → Mutate → Save
 
-Most mutation events (`SetDefaultServiceConfiguration`, `SetServiceDependency`, `RemoveServiceDependency`) follow a four-step pattern:
+Most mutation events (`SetDefaultServiceRegistration`, `SetServiceDependency`, `RemoveServiceDependency`) follow a four-step pattern:
 
-1. **Retrieve** the configuration via `di_service.get_configuration(id)`.
+1. **Retrieve** the registration via `di_service.get_registration(id)`.
 2. **Verify** it exists using `self.verify()`.
 3. **Mutate** the aggregate via its domain methods (`set_default_type`, `set_dependency`, `remove_dependency`).
-4. **Save** the updated aggregate via `di_service.save_configuration(configuration)`.
+4. **Save** the updated aggregate via `di_service.save_registration(registration)`.
 
 ### Type Source Invariant
 
-A service configuration must always have at least one type source — either a default type (`module_path` + `class_name`) or at least one flagged dependency. This invariant is enforced during creation (`AddServiceConfiguration`) and after dependency removal (`RemoveServiceDependency`).
+A service registration must always have at least one type source — either a default type (`module_path` + `class_name`) or at least one flagged dependency. This invariant is enforced during creation (`AddServiceRegistration`) and after dependency removal (`RemoveServiceDependency`).
 
 ### Idempotent Deletes
 
-Both `RemoveServiceDependency` (at the model level) and `RemoveServiceConfiguration` are idempotent — they succeed silently if the target does not exist.
+Both `RemoveServiceDependency` (at the model level) and `RemoveServiceRegistration` are idempotent — they succeed silently if the target does not exist.
 
 ### Container vs DI Events
 
@@ -254,12 +254,12 @@ The DI events mirror the container events but use forward-compatible DI terminol
 | Container (legacy) | DI (forward) |
 |---|---|
 | `ContainerService` | `DIService` |
-| `ContainerAttribute` | `ServiceConfiguration` |
-| `attribute_exists()` | `configuration_exists()` |
-| `get_attribute()` | `get_configuration()` |
-| `save_attribute()` | `save_configuration()` |
-| `delete_attribute()` | `delete_configuration()` |
-| `ATTRIBUTE_ALREADY_EXISTS` | `CONFIGURATION_ALREADY_EXISTS` |
+| `ContainerAttribute` | `ServiceRegistration` |
+| `attribute_exists()` | `registration_exists()` |
+| `get_attribute()` | `get_registration()` |
+| `save_attribute()` | `save_registration()` |
+| `delete_attribute()` | `delete_registration()` |
+| `ATTRIBUTE_ALREADY_EXISTS` | `SERVICE_REGISTRATION_ALREADY_EXISTS` |
 
 ## Related Documentation
 
