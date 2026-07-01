@@ -329,6 +329,7 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 
 The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
+- **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** – Assets layer conventions (imports, constants, functions, standalone classes, exports).
 - **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
 - **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
 - **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
