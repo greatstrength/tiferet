@@ -53,8 +53,8 @@ class CreateServiceResolver(DomainEvent):
         # event layer, which has assets access.
         self.verify(
             dependency is not None,
-            a.const.APP_SERVICE_IMPORT_FAILED_ID,
-            exception='No di_service dependency configured for the interface.',
+            a.const.DI_SERVICE_NOT_CONFIGURED_ID,
+            interface_id=app_interface.id,
         )
 
         # Resolve the DI repository type from the dependency.
@@ -66,7 +66,9 @@ class CreateServiceResolver(DomainEvent):
         merged = {**(app_interface.constants or {}), **(dependency.parameters or {})}
         ctor_kwargs = {key: value for key, value in merged.items() if key in injectable}
 
-        # Construct the DI repository.
+        # Construct the DI repository. These constructor kwargs are literal
+        # configuration values (e.g. di_config paths) passed verbatim, not routed
+        # through ParseParameter; env-style references are not expected here.
         di_service = di_repo_type(**ctor_kwargs)
 
         # Build the typed default service configuration index keyed by id.
