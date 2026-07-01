@@ -46,6 +46,9 @@ APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 # ** constant: app_service_not_loaded_id
 APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
 
+# ** constant: di_service_not_configured_id
+DI_SERVICE_NOT_CONFIGURED_ID = 'DI_SERVICE_NOT_CONFIGURED'
+
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
 
@@ -314,6 +317,15 @@ DEFAULT_ERRORS = {
         'name': 'App Service Not Loaded',
         'message': [
             {'lang': 'en_US', 'text': 'App service must be loaded before loading interface {interface_id}.'}
+        ]
+    },
+
+    # * error: DI_SERVICE_NOT_CONFIGURED
+    DI_SERVICE_NOT_CONFIGURED_ID: {
+        'id': DI_SERVICE_NOT_CONFIGURED_ID,
+        'name': 'DI Service Not Configured',
+        'message': [
+            {'lang': 'en_US', 'text': 'No di_service dependency is configured for interface {interface_id}.'}
         ]
     },
 
