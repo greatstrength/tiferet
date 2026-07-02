@@ -30,26 +30,26 @@ class FeatureStep(DomainObject):
 # ** model: event_feature_step
 class EventFeatureStep(FeatureStep):
     '''
-    A feature event step that executes a domain event from the container.
+    An event feature step that executes a domain event from the container.
     '''
 
     # * attribute: service_id
-    service_id: str = Field(..., description='The service configuration ID for the feature event.')
+    service_id: str = Field(..., description='The service registration ID for the event feature step.')
 
     # * attribute: flags
-    flags: List[str] = Field(default_factory=list, description='List of feature flags that activate this event.')
+    flags: List[str] = Field(default_factory=list, description='List of feature flags that activate this event feature step.')
 
     # * attribute: parameters
-    parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the feature event.')
+    parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
     # * attribute: return_to_data (obsolete)
-    return_to_data: bool = Field(default=False, description='Whether to return the feature event result to the feature data context.')
+    return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
 
     # * attribute: data_key
-    data_key: str | None = Field(default=None, description='The data key to store the feature event result in if Return to Data is True.')
+    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in if Return to Data is True.')
 
     # * attribute: pass_on_error
-    pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the feature event fails.')
+    pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')
 
     # * attribute: condition
     condition: str | None = Field(
@@ -367,50 +367,6 @@ class Feature(DomainObject):
     @model_validator(mode='before')
     @classmethod
     def derive_keys(cls, data: Any) -> Any:
-        '''
-        Derive ``id``, ``group_id``, ``feature_key``, and ``description`` from
-        whichever inputs are provided so callers may supply any consistent subset.
-
-        :param data: The raw input data passed to the model.
-        :type data: Any
-        :return: The (possibly augmented) input data.
-        :rtype: Any
-        '''
-
-        # Only mutate dict-shaped inputs; pass other shapes through unchanged.
-        if not isinstance(data, dict):
-            return data
-        data = dict(data)
-
-        # Derive group_id and feature_key from id when id is dotted.
-        if (
-            data.get('id')
-            and '.' in str(data['id'])
-            and (not data.get('group_id') or not data.get('feature_key'))
-        ):
-            group_id, feature_key = str(data['id']).split('.', 1)
-            data.setdefault('group_id', group_id)
-            data.setdefault('feature_key', feature_key)
-
-        # Derive feature_key from name (snake-case) when missing.
-        if data.get('name') and not data.get('feature_key'):
-            data['feature_key'] = str(data['name']).lower().replace(' ', '_')
-
-        # Derive id from group_id and feature_key when missing.
-        if not data.get('id') and data.get('group_id') and data.get('feature_key'):
-            data['id'] = f"{data['group_id']}.{data['feature_key']}"
-
-        # Default description to name when missing.
-        if data.get('name') and not data.get('description'):
-            data['description'] = data['name']
-
-        # Return the (possibly augmented) input data.
-        return data
-
-    # * method: _derive_keys (validator)
-    @model_validator(mode='before')
-    @classmethod
-    def _derive_keys(cls, data: Any) -> Any:
         '''
         Derive ``id``, ``group_id``, ``feature_key``, and ``description`` from
         whichever inputs are provided so callers may supply any consistent subset.

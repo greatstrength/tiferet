@@ -1,28 +1,6 @@
 """Tiferet Domain Exports"""
 
-# *** exports
-
-__all__ = [
-    'DomainObject',
-    'AppInterface',
-    'AppServiceDependency',
-    'FlaggedDependency',
-    'ServiceRegistration',
-    'CliArgument',
-    'CliCommand',
-    'Error',
-    'ErrorMessage',
-    'Feature',
-    'FeatureStep',
-    'EventFeatureStep',
-    'ParameterSpecification',
-    'RequestSpecification',
-    'Request',
-    'Formatter',
-    'Handler',
-    'Logger',
-    'LoggingSettings',
-]
+# *** imports
 
 # ** app
 from .settings import DomainObject
@@ -58,3 +36,27 @@ from .logging import (
     Logger,
     LoggingSettings,
 )
+
+# *** exports
+
+__all__ = [
+    'DomainObject',
+    'AppInterface',
+    'AppServiceDependency',
+    'FlaggedDependency',
+    'ServiceRegistration',
+    'CliArgument',
+    'CliCommand',
+    'Error',
+    'ErrorMessage',
+    'Feature',
+    'FeatureStep',
+    'EventFeatureStep',
+    'ParameterSpecification',
+    'RequestSpecification',
+    'Request',
+    'Formatter',
+    'Handler',
+    'Logger',
+    'LoggingSettings',
+]
