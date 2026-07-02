@@ -166,5 +166,11 @@ test.py
 # VS Code
 .vscode/
 
+# TRD local copies
+.trd/
+
+# Tiferet local artifacts (temporary, do not commit)
+.eloha/
+
 # pytest
 pytest.ini

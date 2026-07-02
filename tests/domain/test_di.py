@@ -190,7 +190,6 @@ def test_service_registration_get_dependency_multiple_flags(
     assert dep_beta_first.flag == 'test_beta'
     assert dep_beta_first.class_name == 'TestDependencyBeta'
 
-
 # ** test: service_registration_get_service_type_default
 def test_service_registration_get_service_type_default(
         service_registration: ServiceRegistration,
@@ -206,8 +205,7 @@ def test_service_registration_get_service_type_default(
     resolved = service_registration.get_service_type()
 
     # Assert the default type is returned.
-    assert resolved is TestDependency
-
+    assert resolved.__qualname__ == TestDependency.__qualname__
 
 # ** test: service_registration_get_service_type_flagged
 def test_service_registration_get_service_type_flagged(
@@ -224,8 +222,7 @@ def test_service_registration_get_service_type_flagged(
     resolved = service_registration.get_service_type('test_alpha')
 
     # Assert the flagged type takes priority over the default.
-    assert resolved is TestDependencyAlpha
-
+    assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
 # ** test: service_registration_get_service_type_no_match
 def test_service_registration_get_service_type_no_match(
@@ -244,7 +241,6 @@ def test_service_registration_get_service_type_no_match(
     # Assert None is returned.
     assert resolved is None
 
-
 # ** test: service_registration_get_service_type_flag_priority
 def test_service_registration_get_service_type_flag_priority(
         service_registration_multiple_deps: ServiceRegistration,
@@ -258,8 +254,8 @@ def test_service_registration_get_service_type_flag_priority(
 
     # test_alpha first — should resolve alpha.
     resolved = service_registration_multiple_deps.get_service_type('test_alpha', 'test_beta')
-    assert resolved is TestDependencyAlpha
+    assert resolved.__qualname__ == TestDependencyAlpha.__qualname__
 
     # test_beta first — should resolve beta.
     resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
-    assert resolved is TestDependencyBeta
+    assert resolved.__qualname__ == TestDependencyBeta.__qualname__

@@ -73,9 +73,6 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         '''
         Remove and return a service dependency by its service_id (idempotent).
 
-        If a service dependency with the given service_id exists, it is removed.
-        If no matching service dependency exists, no action is taken (silent success).
-
         :param service_id: The service_id of the service dependency to remove.
         :type service_id: str | None
         :param attribute_id: Deprecated alias for service_id.
@@ -96,7 +93,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
                 self.services = services
                 return removed
 
-        # If no service dependency matches, return None without modifying the list.
+        # Return None when no match was found (idempotent).
         return None
 
     # * method: set_service
@@ -111,14 +108,6 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
     ) -> None:
         '''
         Set or update a service dependency by service_id (PUT semantics).
-
-        If a service dependency with the given service_id exists:
-          - Update module_path and class_name.
-          - Merge parameters (favor new values; remove keys with None value).
-          - Clear parameters if parameters is None.
-
-        If no service dependency exists:
-          - Create new AppServiceDependency and append to services.
 
         :param service_id: The service dependency identifier.
         :type service_id: str | None
@@ -138,10 +127,10 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         if service_id is None and attribute_id is not None:
             service_id = attribute_id
 
-        # Find the existing service dependency by service_id.
+        # Find the existing dependency by service_id.
         dep = self.get_service(service_id)
 
-        # If the service dependency exists, update its type fields and merge parameters.
+        # Update in place when an existing dependency is found.
         if dep is not None:
             dep.module_path = module_path
             dep.class_name = class_name
@@ -150,7 +139,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
             if parameters is None:
                 dep.parameters = {}
 
-            # Otherwise merge and then remove keys whose value is None.
+            # Otherwise merge and remove None-valued keys.
             else:
                 merged = dict(dep.parameters or {})
                 merged.update(parameters)
@@ -159,6 +148,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
                     for key, value in merged.items()
                     if value is not None
                 }
+            return
 
             # Return early after in-place update.
             return
@@ -177,7 +167,8 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         '''
         Update the constants dictionary.
 
-        :param constants: New constants to merge, or None to clear all. Keys with None value are removed.
+        :param constants: New constants to merge, or None to clear all.
+            Keys with ``None`` values are removed.
         :type constants: Dict[str, Any] | None
         :return: None
         :rtype: None
@@ -274,9 +265,9 @@ class AppServiceDependencyConfigObject(AppServiceDependency, TransferObject):
     # * method: map
     def map(self, service_id: str, **overrides) -> AppServiceDependency:
         '''
-        Maps the app service dependency data to an app service dependency object.
+        Map the app service dependency data to a runtime AppServiceDependency.
 
-        :param service_id: The id for the app service dependency.
+        :param service_id: The id to assign to the dependency.
         :type service_id: str
         :param overrides: Additional keyword arguments.
         :type overrides: dict
@@ -357,7 +348,7 @@ class AppInterfaceConfigObject(AppInterface, TransferObject):
     # * method: map
     def map(self, **overrides) -> AppInterfaceAggregate:
         '''
-        Maps the app interface data to an app interface aggregate.
+        Map the app interface data to an app interface aggregate.
 
         :param overrides: Additional keyword arguments.
         :type overrides: dict

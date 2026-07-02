@@ -228,7 +228,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Execute the query.
         self.execute(query, parameters)
 
-        # Fetch and return the next row.
+        # Fetch and return the first row.
         return self.cursor.fetchone()
 
     # * method: fetch_all

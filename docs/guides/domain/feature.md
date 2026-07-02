@@ -32,7 +32,7 @@ Currently the only supported `type` value is `'event'`, constrained via `Literal
 
 ### EventFeatureStep
 
-Concrete step type that extends `FeatureStep`. Represents the execution of a domain event resolved from the DI container.
+Concrete step type that extends `FeatureStep`. Represents the execution of a domain event resolved via the injected service-resolution handler.
 
 | Attribute        | Type                    | Required | Default | Description                                                        |
 |------------------|-------------------------|----------|---------|--------------------------------------------------------------------|
@@ -43,6 +43,7 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 | `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in.                                   |
 | `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
 | `condition`      | `str \| None`           | No       | `None`  | Boolean expression evaluated against request data before execution. If `False`, the step is silently skipped. |
+| `middleware`     | `List[str]`             | No       | `[]`    | Ordered middleware service IDs applied to this step.               |
 
 Inherits `type` (defaults to `'event'`) and `name` from `FeatureStep`.
 
@@ -70,6 +71,7 @@ Immutable value object representing a complete feature workflow definition.
 | `group_id`     | `str`                           | Yes      | —       | The context group identifier for the feature.        |
 | `feature_key`  | `str`                           | Yes      | —       | The key of the feature.                              |
 | `steps`        | `List[EventFeatureStep]`        | No       | `[]`    | The ordered step workflow for the feature.            |
+| `is_async`     | `bool`                          | No       | `False` | Whether the feature executes its steps asynchronously (selects `AsyncFeatureContext`). |
 | `log_params`   | `Dict[str, str]`                | No       | `{}`    | Parameters to log for the feature.                   |
 
 #### Methods
@@ -91,10 +93,12 @@ The Feature domain objects participate in runtime workflow execution through the
 
 1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
 2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
-3. `FeatureContext` iterates over `feature.steps`, resolving each `EventFeatureStep.service_id` from the DI container.
+3. `FeatureContext` iterates over `feature.steps`, resolving each `EventFeatureStep.service_id` via the injected `get_dependency` handler.
 4. Each resolved domain event is executed with the merged request data and step parameters.
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
 6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
+
+When `feature.is_async` is `True`, the application interface hub selects the `AsyncFeatureContext` (a subclass of `FeatureContext`) and awaits each step via `execute_feature_async`; otherwise the synchronous `FeatureContext` is used. The public `run()` entry point remains synchronous in both cases.
 
 ## Configuration Mapping
 
@@ -144,12 +148,12 @@ These events depend on the `FeatureService` interface for persistence operations
 - `save(feature) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `FeatureYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `FeatureConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
 - **App:** `FeatureContext` is loaded as part of the application interface bootstrap, receiving `FeatureService` and container resolution via dependency injection.
-- **DI:** `EventFeatureStep.service_id` references a `ServiceRegistration` entry in the `services` section of the configuration, which is resolved at runtime by the DI container.
+- **DI:** `EventFeatureStep.service_id` references a `ServiceRegistration` entry (in the `services` section of the configuration), resolved at runtime via the injected `get_dependency` handler.
 - **Error:** Domain events use `verify()` and `raise_error()` to raise `TiferetError` when features are not found or parameters are invalid. These are resolved to `Error` domain objects for formatted responses.
 - **CLI:** CLI commands map to features via `group_key` and `key`, enabling command-line execution of feature workflows.
 

@@ -67,19 +67,19 @@ Flags flow into the DI container from multiple sources:
 2. **`Feature.flags`** — feature-level flag overrides defined in `feature.yml`.
 3. **`EventFeatureStep.flags`** — step-level flag overrides within a feature workflow.
 
-At resolution time, `DIContext` merges these flag sources and calls `ServiceRegistration.get_dependency(*merged_flags)` to select the correct concrete implementation for each service.
+At resolution time, the feature context combines these flag sources and `ServiceResolver` calls `ServiceRegistration.get_dependency(*merged_flags)` (and `get_service_type(*merged_flags)`) to select the correct concrete implementation for each service.
 
 ## Runtime Role
 
 The DI domain objects participate in the service resolution flow:
 
-1. **`DIContext`** loads all `ServiceRegistration` entries from the `services` section of the configuration file via `DIService`.
-2. **`build_service_provider()`** iterates each `ServiceRegistration`, resolving concrete types:
-   - If a matching `FlaggedDependency` is found via `get_dependency(*flags)`, its `module_path` and `class_name` are used.
+1. **`ServiceResolver`** loads all `ServiceRegistration` entries (and constants) from the `services` section of the configuration file via `DIService.list_all()`, merging any bootstrap defaults.
+2. **`ServiceResolver.build_type_map()`** iterates each `ServiceRegistration`, resolving concrete types via `get_service_type(*flags)`:
+   - If a matching `FlaggedDependency` is found, its `module_path` and `class_name` are used.
    - Otherwise, the default `module_path` and `class_name` on `ServiceRegistration` are used.
-3. **`get_configuration_type()`** calls `ImportDependency.execute()` to dynamically import the resolved class.
-4. The resolved types and their parameters are wired into the DI service provider.
-5. Domain events and contexts receive fully constructed service instances via constructor injection.
+3. The resolved type is dynamically imported (via `ImportDependency`) and registered in a per-flag `ServiceContainer`.
+4. The resolved types and their parameters are wired into the `ServiceContainer` as `Factory`/`Object` providers.
+5. Domain events and contexts receive fully constructed service instances via the resolver's `get_dependency` handler and constructor injection.
 
 ## Configuration Mapping
 
@@ -89,9 +89,9 @@ Service configurations are defined in the `services` section of the configuratio
 services:
   error_service:
     module_path: tiferet.repos.error
-    class_name: ErrorYamlRepository
+    class_name: ErrorConfigRepository
     params:
-      error_yaml_file: config.yml
+      error_config: config.yml
     deps:
       - flag: sqlite
         module_path: tiferet.repos.error_sqlite
@@ -101,9 +101,9 @@ services:
 
   feature_service:
     module_path: tiferet.repos.feature
-    class_name: FeatureYamlRepository
+    class_name: FeatureConfigRepository
     params:
-      feature_yaml_file: config.yml
+      feature_config: config.yml
 ```
 
 ## Domain Events
@@ -113,9 +113,9 @@ The following domain events interact with `ServiceRegistration` and `FlaggedDepe
 | Event                       | Description                                              |
 |-----------------------------|----------------------------------------------------------|
 | `ListAllSettings`           | Lists all `ServiceRegistration` entries.                |
-| `AddServiceConfiguration`   | Creates and persists a new `ServiceRegistration`.        |
-| `UpdateServiceConfiguration`| Modifies an existing `ServiceRegistration` via aggregate.|
-| `DeleteServiceConfiguration`| Removes a `ServiceRegistration` by ID.                   |
+| `AddServiceRegistration`   | Creates and persists a new `ServiceRegistration`.        |
+| `UpdateServiceRegistration`| Modifies an existing `ServiceRegistration` via aggregate.|
+| `DeleteServiceRegistration`| Removes a `ServiceRegistration` by ID.                   |
 
 These events depend on the `DIService` interface for persistence operations.
 
@@ -124,13 +124,13 @@ These events depend on the `DIService` interface for persistence operations.
 **`DIService`** (`tiferet/interfaces/di.py`) defines the abstract contract for DI configuration persistence:
 
 - `registration_exists(id: str) -> bool`
-- `get_registration(registration_id: str, flag: str = None) -> ServiceRegistration`
+- `get_registration(id: str) -> ServiceRegistration`
 - `list_all() -> Tuple[List[ServiceRegistration], Dict[str, str]]`
-- `save_registration(registration) -> None`
-- `delete_registration(registration_id: str) -> None`
+- `save_registration(service_registration) -> None`
+- `delete_registration(id: str) -> None`
 - `save_constants(constants: Dict[str, Any]) -> None`
 
-Concrete implementations (e.g., `DIYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `DIConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
@@ -155,7 +155,7 @@ dep = FlaggedDependency(
 config = ServiceRegistration(
     id='error_service',
     module_path='tiferet.repos.error',
-    class_name='ErrorYamlRepository',
+    class_name='ErrorConfigRepository',
     parameters={'error_config_file': 'app/configs/error.yml'},
     dependencies=[dep],
 )

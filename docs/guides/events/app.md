@@ -74,7 +74,7 @@ result = DomainEvent.handle(
 
 ### GetAppInterface
 
-Retrieves an `AppInterface` by ID from the app service. It is a repository-only read — it returns the stored interface unchanged and does not merge any defaults.
+Retrieves an `AppInterface` by ID from the app service. It is a repo-only read; bootstrap fallback and default merging live in the blueprint via the helpers documented under *Default Service Merging* below.
 
 **Required:** `interface_id`
 
@@ -260,12 +260,12 @@ Both `RemoveServiceDependency` and `RemoveAppInterface` are idempotent — they 
 
 ### Default Service Merging
 
-Bootstrap default merging is no longer a concern of `GetAppInterface`; the event is a plain repository read. Framework-level defaults (error repository, feature repository, etc.) are applied outside the event by two dedicated helpers:
+The bootstrap blueprint injects framework-level defaults (error repository, feature repository, etc.) that the user doesn't need to declare explicitly. As of v2.0.0b13 this no longer lives on `GetAppInterface` (now a repo-only read), and it is **not** an event-layer concern — the default application moved to the domain model and the app context, consumed by `resolve_interface`:
 
-- **`AppInterface.apply_defaults(default_services, default_constants)`** (`tiferet/domain/app.py`) — a non-mutating domain helper that returns a new interface with default services added for any missing `service_id` and default constants added for any missing key (existing values win).
-- **`resolve_default_interface(interface_id, default_interfaces)`** (`tiferet/contexts/app.py`) — the context bootstrap helper that resolves an interface and applies its defaults during startup.
+- **`AppInterface.apply_defaults(default_services, default_constants)`** (`tiferet/domain/app.py`) — returns a new interface with default services (for any missing `service_id`) and default constants (for missing keys) merged in; non-mutating.
+- **`resolve_default_interface(interface_id, default_interfaces)`** (`tiferet/contexts/app.py`) — materializes a matching bootstrap default definition into a typed `AppInterface` when the consumer's config does not define the interface, beside `build_feature_index` / `build_command_list`.
 
-Neither helper re-wraps `AppInterfaceAggregate`.
+Neither imports the `AppInterfaceAggregate`; the merge is a non-mutating domain derivation and the fallback is a context bootstrap helper.
 
 ## Related Documentation
 

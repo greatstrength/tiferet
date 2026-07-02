@@ -112,7 +112,8 @@ class GetFeature(FeatureEvent):
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, default_feature_index: Dict[str, Feature] = {}, **kwargs) -> Feature:
         '''
-        Retrieve a feature by ID.
+        Retrieve a feature by ID, falling back to a provided default feature
+        index when the repository does not contain the requested feature.
 
         :param id: The feature identifier.
         :type id: str

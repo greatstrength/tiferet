@@ -277,8 +277,8 @@ class TestErrorConfigObject(TransferObjectTestBase):
 
 # *** standalone tests
 
-# ** test: error_message_yaml_object_map
-def test_error_message_yaml_object_map():
+# ** test: error_message_config_object_map
+def test_error_message_config_object_map():
     '''
     Test that ErrorMessageConfigObject maps to an ErrorMessage domain object.
     '''
@@ -295,8 +295,8 @@ def test_error_message_yaml_object_map():
     assert msg.text == 'Test message'
 
 
-# ** test: error_message_yaml_object_from_model
-def test_error_message_yaml_object_from_model():
+# ** test: error_message_config_object_from_model
+def test_error_message_config_object_from_model():
     '''
     Test that ErrorMessageConfigObject can be created from an ErrorMessage domain object.
     '''

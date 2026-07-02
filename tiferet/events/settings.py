@@ -234,6 +234,11 @@ class DomainEvent(object):
         Handle a domain event instance via the instantiate-execute pattern,
         optionally composing an ordered synchronous middleware chain.
 
+        When ``middleware`` is provided, the event execution is wrapped in an
+        ordered middleware chain.  Each middleware callable receives
+        ``(event, kwargs, next_fn)`` and must call ``next_fn()`` to continue.
+        The first entry in the list is the outermost wrapper.
+
         :param event_cls: The domain event class to handle.
         :type event_cls: type
         :param dependencies: The event dependencies.

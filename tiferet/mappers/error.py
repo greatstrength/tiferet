@@ -53,7 +53,7 @@ class ErrorAggregate(Error, Aggregate):
         :rtype: None
         '''
 
-        # Check if the message already exists for the language.
+        # Update existing message in place if a matching language is found.
         for msg in self.message:
             if msg.lang == lang:
                 msg.text = text
@@ -146,7 +146,7 @@ class ErrorConfigObject(Error, TransferObject):
         '''
         Creates an ErrorConfigObject from an Error model.
 
-        :param error: The error model.
+        :param error: The error model to copy from.
         :type error: Error
         :param overrides: Additional keyword arguments.
         :type overrides: dict

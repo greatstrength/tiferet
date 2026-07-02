@@ -1,7 +1,7 @@
 from tiferet import App, TiferetError
 
 # Initialize the Tiferet application with the basic_calc interface.
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 
 # Define test cases for calculator features.
 test_cases = [
@@ -25,3 +25,23 @@ for feature_id, data, format_str in test_cases:
             print(format_str.format(a, result))
     except TiferetError as e:
         print(f'Error: {e.message}')
+
+# Show the most recently executed calculations (persisted via the file loader).
+print('\nRecent calculations:')
+print(app.run('calc.history', data={}))
+
+# Save, list, and evaluate a variablized formula (persisted via the repository).
+print('\nFormulas:')
+try:
+    saved = app.run('formula.save', data=dict(
+        name='Rectangle Area',
+        expression='width * height',
+    ))
+    print(f'Saved {saved.display()}')
+
+    print(app.run('formula.list', data={}))
+
+    area = app.run('formula.eval', data=dict(id='rectangle_area', values=dict(width=3, height=4)))
+    print(f'rectangle_area(width=3, height=4) = {area}')
+except TiferetError as e:
+    print(f'Error: {e.message}')

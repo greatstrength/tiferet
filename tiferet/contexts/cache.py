@@ -15,15 +15,15 @@ class CacheContext(object):
     _cache = Dict[str, Any]
 
     # * method: init
-    def __init__(self, cache: Dict[str, Any] = {}):
+    def __init__(self, cache: Dict[str, Any] = None):
         '''
         Initialize the cache context.
         :param cache: An optional initial cache dictionary.
         :type cache: dict
         '''
 
-        # Initialize the cache with the provided dictionary.
-        self._cache = cache
+        # Initialize the cache with the provided dictionary or a fresh empty dict.
+        self._cache = cache if cache is not None else {}
 
     # * method: get
     def get(self, key: str) -> Any:

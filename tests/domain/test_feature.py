@@ -174,6 +174,114 @@ def test_event_feature_step_condition_preserves_value() -> None:
     # Assert condition is preserved through round-trip.
     assert reloaded.condition == '$r.x > 0'
 
+# ** test: feature_event_middleware_defaults_to_empty
+def test_feature_event_middleware_defaults_to_empty() -> None:
+    '''
+    Test that EventFeatureStep middleware defaults to an empty list.
+    '''
+
+    # Create a EventFeatureStep without middleware.
+    event = EventFeatureStep(
+        name='Test Event',
+        service_id='test_event_service',
+    )
+
+    # Assert middleware defaults to empty list.
+    assert event.middleware == []
+
+# ** test: feature_event_middleware_preserves_value
+def test_feature_event_middleware_preserves_value() -> None:
+    '''
+    Test that EventFeatureStep middleware is preserved through construction and round-trip.
+    '''
+
+    # Create a EventFeatureStep with middleware.
+    event = EventFeatureStep(
+        name='Middleware Event',
+        service_id='middleware_event_service',
+        middleware=['timing_middleware', 'audit_middleware'],
+    )
+
+    # Assert middleware is set correctly.
+    assert event.middleware == ['timing_middleware', 'audit_middleware']
+
+    # Serialize via model_dump() and reload.
+    primitive = event.model_dump()
+    reloaded = EventFeatureStep(**primitive)
+
+    # Assert middleware is preserved through round-trip.
+    assert reloaded.middleware == ['timing_middleware', 'audit_middleware']
+
+# ** test: feature_middleware_defaults_to_empty
+def test_feature_middleware_defaults_to_empty() -> None:
+    '''
+    Test that Feature middleware defaults to an empty list.
+    '''
+
+    # Create a Feature without middleware.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert middleware defaults to empty list.
+    assert feature.middleware == []
+
+# ** test: feature_middleware_preserves_value
+def test_feature_middleware_preserves_value() -> None:
+    '''
+    Test that Feature middleware is preserved through construction and round-trip.
+    '''
+
+    # Create a Feature with middleware.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        middleware=['timing_middleware'],
+    )
+
+    # Assert middleware is set correctly.
+    assert feature.middleware == ['timing_middleware']
+
+    # Serialize via model_dump() and reload.
+    primitive = feature.model_dump()
+    reloaded = Feature(**primitive)
+
+    # Assert middleware is preserved through round-trip.
+    assert reloaded.middleware == ['timing_middleware']
+
+# ** test: feature_is_async_defaults_to_false
+def test_feature_is_async_defaults_to_false() -> None:
+    '''
+    Test that Feature is_async defaults to False.
+    '''
+
+    # Create a Feature without is_async.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert is_async defaults to False.
+    assert feature.is_async is False
+
+# ** test: feature_is_async_preserves_value
+def test_feature_is_async_preserves_value() -> None:
+    '''
+    Test that Feature is_async is preserved through construction and round-trip.
+    '''
+
+    # Create an async Feature.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        is_async=True,
+    )
+
+    # Assert is_async is set correctly.
+    assert feature.is_async is True
+
+    # Serialize via model_dump() and reload.
+    primitive = feature.model_dump()
+    reloaded = Feature(**primitive)
+
+    # Assert is_async is preserved through round-trip.
+    assert reloaded.is_async is True
+
 # ** test: feature_get_step_valid_and_invalid_indices
 def test_feature_get_step_valid_and_invalid_indices(feature: Feature) -> None:
     '''

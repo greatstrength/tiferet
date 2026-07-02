@@ -95,6 +95,10 @@ class EventFeatureStepAggregate(EventFeatureStep, Aggregate):
         # Delegate to the base Aggregate for all other attributes.
         super().set_attribute(attribute, value)
 
+        # Pass-on-error has bespoke string-coercion semantics.
+        if attribute == 'pass_on_error':
+            self.set_pass_on_error(value)
+            return
 
 # ** mapper: event_feature_step_config_object
 class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
@@ -114,6 +118,12 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
         serialization_alias='params',
         validation_alias=AliasChoices('params', 'parameters'),
         description='The parameters for the event feature step.',
+    )
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs for this step.',
     )
 
     # * method: map
@@ -163,6 +173,7 @@ class FeatureAggregate(Feature, Aggregate):
         data_key: str | None = None,
         pass_on_error: bool = False,
         condition: str | None = None,
+        middleware: List[str] | None = None,
         position: int | None = None,
     ) -> EventFeatureStep:
         '''
@@ -180,6 +191,8 @@ class FeatureAggregate(Feature, Aggregate):
         :type pass_on_error: bool
         :param condition: Optional boolean expression for conditional execution.
         :type condition: str | None
+        :param middleware: Optional ordered list of middleware service IDs.
+        :type middleware: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created EventFeatureStep instance.
@@ -194,6 +207,7 @@ class FeatureAggregate(Feature, Aggregate):
             data_key=data_key,
             pass_on_error=pass_on_error,
             condition=condition,
+            middleware=middleware or [],
         )
 
         # Copy steps to a local list, insert or append, then reassign.
@@ -327,6 +341,12 @@ class FeatureConfigObject(Feature, TransferObject):
         },
     }
 
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of feature-level middleware service IDs.',
+    )
+
     # * attribute: steps
     steps: List[EventFeatureStepConfigObject] = Field(
         default_factory=list,
@@ -412,7 +432,7 @@ class FeatureConfigObject(Feature, TransferObject):
         '''
         Creates a FeatureConfigObject from a Feature model.
 
-        :param feature: The feature model.
+        :param feature: The feature model to copy from.
         :type feature: Feature
         :param overrides: Additional keyword arguments.
         :type overrides: dict

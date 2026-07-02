@@ -311,7 +311,7 @@ class TestCliCommandConfigObject(TransferObjectTestBase):
     # ** test: from_model_via_domain_factory
     def test_from_model_via_domain_factory(self):
         '''
-        Test that from_model() from CliCommand.new() produces a valid YAML object with correct id derivation.
+        Test that from_model() from CliCommand() produces a valid YAML object with correct id derivation.
         '''
 
         # Create a CliCommand domain object using the factory method.
