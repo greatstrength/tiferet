@@ -36,7 +36,7 @@ def app_dependency() -> AppServiceDependency:
 def resolvable_app_dependency() -> AppServiceDependency:
     '''
     Fixture for an AppServiceDependency with a real module path,
-    used for testing get_service_type_mapping().
+    used for testing get_service_type().
 
     :return: The AppServiceDependency instance.
     :rtype: AppServiceDependency

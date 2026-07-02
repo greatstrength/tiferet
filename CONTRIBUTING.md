@@ -73,6 +73,13 @@ Key points:
 - Keep PRs focused — one logical change per PR.
 - After submitting, provide the PR URL to the user.
 
+### Reviewing a Pull Request
+
+When a PR is meant to bring a branch toward parity with a prototype **source of truth**, an agent can review it by comparing each changed file against that reference and posting only the **actionable** discrepancies — line-specific items as inline comments, and structural or whole-file changes in the PR-level comment.
+
+See the full guide:
+**[docs/collab/code_review.md](docs/collab/code_review.md)**
+
 ### Collaboration Report
 
 Upon completion of a story or issue, a **Collaboration Report** is published as a comment on the originating GitHub issue. This report documents the implementation, deviations from the TRD, git state, and a log of key decisions made during development.
@@ -88,6 +95,7 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 - **`tiferet-author-trd`** — author a TRD in the standard structure ([tech_requirements.md](docs/collab/tech_requirements.md)).
 - **`tiferet-collab-report`** — generate a Collaboration Report once an issue is confirmed complete ([collab_report.md](docs/collab/collab_report.md)).
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
+- **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
 
 A ready-to-apply **global agent rule** is preserved at [docs/collab/agent_rule.md](docs/collab/agent_rule.md) — copy it into your agent's global/user rules to apply these standards across every Tiferet repo.
 

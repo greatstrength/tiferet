@@ -45,7 +45,7 @@ def test_feature_step_type_defaults_to_event() -> None:
     Test that EventFeatureStep defaults type to 'event' and preserves it through round-trip serialization.
     '''
 
-    # Create a EventFeatureStep with minimal required fields.
+    # Create an EventFeatureStep with minimal required fields.
     event = EventFeatureStep(
         name='Test Event',
         service_id='test_event_service',
@@ -61,13 +61,13 @@ def test_feature_step_type_defaults_to_event() -> None:
     # Assert type is preserved through round-trip.
     assert reloaded.type == 'event'
 
-# ** test: feature_event_flags_creation_and_round_trip
-def test_feature_event_flags_creation_and_round_trip() -> None:
+# ** test: event_feature_step_flags_creation_and_round_trip
+def test_event_feature_step_flags_creation_and_round_trip() -> None:
     '''
     Test that EventFeatureStep flags are set correctly and preserved through round-trip serialization.
     '''
 
-    # Create a EventFeatureStep with flags.
+    # Create an EventFeatureStep with flags.
     event = EventFeatureStep(
         name='Flagged Event',
         service_id='flagged_event_service',
@@ -136,13 +136,13 @@ def test_feature_derive_keys_explicit_description_preserved() -> None:
     # Assert the explicit description is preserved.
     assert feature.description == 'Custom description'
 
-# ** test: feature_event_condition_defaults_to_none
-def test_feature_event_condition_defaults_to_none() -> None:
+# ** test: event_feature_step_condition_defaults_to_none
+def test_event_feature_step_condition_defaults_to_none() -> None:
     '''
     Test that EventFeatureStep condition defaults to None when not provided.
     '''
 
-    # Create a EventFeatureStep without condition.
+    # Create an EventFeatureStep without condition.
     event = EventFeatureStep(
         name='Test Event',
         service_id='test_event_service',
@@ -151,13 +151,13 @@ def test_feature_event_condition_defaults_to_none() -> None:
     # Assert condition defaults to None.
     assert event.condition is None
 
-# ** test: feature_event_condition_preserves_value
-def test_feature_event_condition_preserves_value() -> None:
+# ** test: event_feature_step_condition_preserves_value
+def test_event_feature_step_condition_preserves_value() -> None:
     '''
     Test that EventFeatureStep condition is preserved through construction and round-trip.
     '''
 
-    # Create a EventFeatureStep with a condition.
+    # Create an EventFeatureStep with a condition.
     event = EventFeatureStep(
         name='Conditional Event',
         service_id='conditional_event_service',
