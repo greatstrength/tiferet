@@ -50,7 +50,7 @@ These are the files people will actually use. Let's look at them now so you know
 ```python
 from tiferet import App, TiferetError
 
-app = App().load_app_service(app_yaml_file="config.yml")
+app = App().load_app_service(app_config="config.yml")
 
 # Some fun test cases
 tests = [
@@ -97,7 +97,7 @@ Error: Invalid number: 'hello'
 ```python
 from tiferet import App
 
-app = App().load_app_service(app_yaml_file="config.yml")
+app = App().load_app_service(app_config="config.yml")
 cli = app.load_interface("calc_cli")   # reads the CLI settings from root config.yml
 
 if __name__ == "__main__":
