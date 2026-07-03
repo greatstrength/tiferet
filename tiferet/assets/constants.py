@@ -1,6 +1,4 @@
-"""Tiferet Connstants (Assets)"""
-
-# *** imports
+"""Tiferet Constants (Assets)"""
 
 # *** constants
 
@@ -43,9 +41,6 @@ MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 
-# ** constant: app_service_import_failed_id
-APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
-
 # ** constant: app_service_not_loaded_id
 APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
 
@@ -54,6 +49,9 @@ DI_SERVICE_NOT_CONFIGURED_ID = 'DI_SERVICE_NOT_CONFIGURED'
 
 # ** constant: dependency_type_not_found_id
 DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
+
+# ** constant: context_not_found_id
+CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
 
 # ** constant: request_not_found_id
 REQUEST_NOT_FOUND_ID = 'REQUEST_NOT_FOUND'
@@ -70,26 +68,8 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_already_exists_id
 FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
 
-# ** constant: feature_name_required_id
-FEATURE_NAME_REQUIRED_ID = 'FEATURE_NAME_REQUIRED'
-
-# ** constant: invalid_feature_attribute_id
-INVALID_FEATURE_ATTRIBUTE_ID = 'INVALID_FEATURE_ATTRIBUTE'
-
-# ** constant: invalid_model_attribute_id
-INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
-
-# ** constant: invalid_app_interface_type_id
-INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
-
-# ** constant: context_not_found_id
-CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
-
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
-
-# ** constant: invalid_feature_command_attribute_id
-INVALID_FEATURE_COMMAND_ATTRIBUTE_ID = 'INVALID_FEATURE_COMMAND_ATTRIBUTE'
 
 # ** constant: logging_config_failed_id
 LOGGING_CONFIG_FAILED_ID = 'LOGGING_CONFIG_FAILED'
@@ -133,35 +113,11 @@ YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
 # ** constant: yaml_file_save_error_id
 YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 
-# ** constant: unsupported_yaml_file_type_id
+# ** constant: unsupported_config_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
-
-# ** constant: csv_invalid_mode_id
-CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
-
-# ** constant: csv_handle_not_initialized_id
-CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
-
-# ** constant: csv_invalid_read_mode_id
-CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
-
-# ** constant: csv_invalid_write_mode_id
-CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
-
-# ** constant: csv_fieldnames_required_id
-CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
-
-# ** constant: csv_dict_no_header_id
-CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
 
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
-
-# ** constant: cli_command_not_found_id
-CLI_COMMAND_NOT_FOUND_ID = 'CLI_COMMAND_NOT_FOUND'
-
-# ** constant: cli_command_already_exists_id
-CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
 
 # ** constant: invalid_service_registration_id
 INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
@@ -177,9 +133,6 @@ INVALID_FLAGGED_DEPENDENCY_ID = 'INVALID_FLAGGED_DEPENDENCY'
 
 # ** constant: service_registration_already_exists_id
 SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
-
-# ** constant: invalid_dependency_error_id
-INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
@@ -202,888 +155,68 @@ SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
 # ** constant: sqlite_backup_failed_id
 SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
 
-# ** constant: SQLITE_CONN_NOT_INITIALIZED_id
+# ** constant: sqlite_conn_not_initialized_id
 SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
 
-# ** constants: utils_errors
+# ** constant: invalid_dependency_error_id
+INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 
-YAML_FILE_NOT_FOUND_ID          = 'YAML_FILE_NOT_FOUND'
-YAML_FILE_LOAD_ERROR_ID         = 'YAML_FILE_LOAD_ERROR'
-YAML_FILE_SAVE_ERROR_ID         = 'YAML_FILE_SAVE_ERROR'
+# ** constant: app_error_id
+APP_ERROR_ID = 'APP_ERROR'
 
-JSON_FILE_NOT_FOUND_ID          = 'JSON_FILE_NOT_FOUND'
-JSON_FILE_LOAD_ERROR_ID         = 'JSON_FILE_LOAD_ERROR'
-JSON_FILE_SAVE_ERROR_ID         = 'JSON_FILE_SAVE_ERROR'
-INVALID_JSON_PATH_ID            = 'INVALID_JSON_PATH'
+# ** constant: config_file_not_found_id
+CONFIG_FILE_NOT_FOUND_ID = 'CONFIG_FILE_NOT_FOUND'
 
-TOML_FILE_NOT_FOUND_ID          = 'TOML_FILE_NOT_FOUND'
-TOML_FILE_LOAD_ERROR_ID         = 'TOML_FILE_LOAD_ERROR'
-INVALID_TOML_FILE_ID            = 'INVALID_TOML_FILE'
+# ** constant: app_config_loading_failed_id
+APP_CONFIG_LOADING_FAILED_ID = 'APP_CONFIG_LOADING_FAILED'
 
-CSV_INVALID_MODE_ID             = 'CSV_INVALID_MODE'
-CSV_HANDLE_NOT_INITIALIZED_ID   = 'CSV_HANDLE_NOT_INITIALIZED'
-CSV_INVALID_READ_MODE_ID        = 'CSV_INVALID_READ_MODE'
-CSV_INVALID_WRITE_MODE_ID       = 'CSV_INVALID_WRITE_MODE'
-CSV_FIELDNAMES_REQUIRED_ID      = 'CSV_FIELDNAMES_REQUIRED'
-CSV_DICT_NO_HEADER_ID           = 'CSV_DICT_NO_HEADER'
+# ** constant: container_config_loading_failed_id
+CONTAINER_CONFIG_LOADING_FAILED_ID = 'CONTAINER_CONFIG_LOADING_FAILED'
 
-TOML_FILE_NOT_FOUND_ID          = 'TOML_FILE_NOT_FOUND'
-TOML_FILE_LOAD_ERROR_ID         = 'TOML_FILE_LOAD_ERROR'
-INVALID_TOML_FILE_ID            = 'INVALID_TOML_FILE'
+# ** constant: feature_config_loading_failed_id
+FEATURE_CONFIG_LOADING_FAILED_ID = 'FEATURE_CONFIG_LOADING_FAILED'
 
-# ** constant: default_errors
-DEFAULT_ERRORS = {
+# ** constant: error_config_loading_failed_id
+ERROR_CONFIG_LOADING_FAILED_ID = 'ERROR_CONFIG_LOADING_FAILED'
 
-    # * error: COMMAND_PARAMETER_REQUIRED
-    COMMAND_PARAMETER_REQUIRED_ID: {
-        'id': COMMAND_PARAMETER_REQUIRED_ID,
-        'name': 'Command Parameter Required',
-        'message': [
-            {'lang': 'en_US', 'text': 'The required parameter {parameter} for command {command} is missing.'}
-        ]
-    },
+# ** constant: cli_config_loading_failed_id
+CLI_CONFIG_LOADING_FAILED_ID = 'CLI_CONFIG_LOADING_FAILED'
 
-    # * error: ERROR_NOT_FOUND
-    ERROR_NOT_FOUND_ID: {
-        'id': ERROR_NOT_FOUND_ID,
-        'name': 'Error Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Error not found: {id}.'}
-        ]
-    },
+# ** constant: cli_command_not_found_id
+CLI_COMMAND_NOT_FOUND_ID = 'CLI_COMMAND_NOT_FOUND'
 
-    # * error: ERROR_ALREADY_EXISTS
-    ERROR_ALREADY_EXISTS_ID: {
-        'id': ERROR_ALREADY_EXISTS_ID,
-        'name': 'Error Already Exists',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error with ID {id} already exists.'}
-        ]
-    },
+# ** constant: cli_command_already_exists_id
+CLI_COMMAND_ALREADY_EXISTS_ID = 'CLI_COMMAND_ALREADY_EXISTS'
 
-    # * error: FEATURE_NAME_REQUIRED
-    FEATURE_NAME_REQUIRED_ID: {
-        'id': FEATURE_NAME_REQUIRED_ID,
-        'name': 'Feature Name Required',
-        'message': [
-            {'lang': 'en_US', 'text': 'A feature name is required when updating the name attribute.'}
-        ]
-    },
+# ** constant: json_file_not_found_id
+JSON_FILE_NOT_FOUND_ID = 'JSON_FILE_NOT_FOUND'
 
-    # * error: INVALID_FEATURE_ATTRIBUTE
-    INVALID_FEATURE_ATTRIBUTE_ID: {
-        'id': INVALID_FEATURE_ATTRIBUTE_ID,
-        'name': 'Invalid Feature Attribute',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid feature attribute: {attribute}. Supported attributes are name and description.'}
-        ]
-    },
+# ** constant: invalid_json_path_id
+INVALID_JSON_PATH_ID = 'INVALID_JSON_PATH'
 
-    # * error: INVALID_FEATURE_COMMAND_ATTRIBUTE
-    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: {
-        'id': INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
-        'name': 'Invalid Feature Command Attribute',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Invalid feature command attribute: {attribute}. Supported attributes are name, attribute_id, data_key, pass_on_error, and parameters.',
-            }
-        ],
-    },
+# ** constant: toml_file_not_found_id
+TOML_FILE_NOT_FOUND_ID = 'TOML_FILE_NOT_FOUND'
 
-    # * error: NO_ERROR_MESSAGES
-    NO_ERROR_MESSAGES_ID: {
-        'id': NO_ERROR_MESSAGES_ID,
-        'name': 'No Error Messages',
-        'message': [
-            {'lang': 'en_US', 'text': 'No error messages are defined for error ID {id}.'}
-        ]
-    },
+# ** constant: toml_file_load_error_id
+TOML_FILE_LOAD_ERROR_ID = 'TOML_FILE_LOAD_ERROR'
 
-    # * error: PARAMETER_PARSING_FAILED
-    PARAMETER_PARSING_FAILED_ID: {
-        'id': PARAMETER_PARSING_FAILED_ID,
-        'name': 'Parameter Parsing Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to parse parameter: {parameter}. Error: {exception}.'}
-        ]
-    },
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
-    # * error: IMPORT_DEPENDENCY_FAILED
-    IMPORT_DEPENDENCY_FAILED_ID: {
-        'id': IMPORT_DEPENDENCY_FAILED_ID,
-        'name': 'Import Dependency Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to import {class_name} from {module_path}. Error: {exception}.'}
-        ]
-    },
+# ** constant: csv_invalid_mode_id
+CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
 
-    # * error: APP_SERVICE_IMPORT_FAILED
-    APP_SERVICE_IMPORT_FAILED_ID: {
-        'id': APP_SERVICE_IMPORT_FAILED_ID,
-        'name': 'App Service Import Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
-        ]
-    },
+# ** constant: csv_handle_not_initialized_id
+CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
 
-    # * error: FEATURE_COMMAND_LOADING_FAILED
-    FEATURE_COMMAND_LOADING_FAILED_ID: {
-        'id': FEATURE_COMMAND_LOADING_FAILED_ID,
-        'name': 'Feature Command Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {service_id}. Error: {exception}.'}
-        ]
-    },
+# ** constant: csv_invalid_read_mode_id
+CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
 
-    # * error: MIDDLEWARE_LOADING_FAILED
-    MIDDLEWARE_LOADING_FAILED_ID: {
-        'id': MIDDLEWARE_LOADING_FAILED_ID,
-        'name': 'Middleware Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to load middleware: {service_id}. Error: {exception}.'}
-        ]
-    },
+# ** constant: csv_invalid_write_mode_id
+CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
 
-    # * error: MIDDLEWARE_LOADING_FAILED
-    MIDDLEWARE_LOADING_FAILED_ID: {
-        'id': MIDDLEWARE_LOADING_FAILED_ID,
-        'name': 'Middleware Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to load middleware: {service_id}. Error: {exception}.'}
-        ]
-    },
+# ** constant: csv_fieldnames_required_id
+CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
 
-    # * error: APP_REPOSITORY_IMPORT_FAILED
-    APP_REPOSITORY_IMPORT_FAILED_ID: {
-        'id': APP_REPOSITORY_IMPORT_FAILED_ID,
-        'name': 'App Repository Import Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to import app repository: {exception}.'}
-        ]
-    },
-
-    # * error: APP_SERVICE_IMPORT_FAILED
-    APP_SERVICE_IMPORT_FAILED_ID: {
-        'id': APP_SERVICE_IMPORT_FAILED_ID,
-        'name': 'App Service Import Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
-        ]
-    },
-
-    # * error: APP_SERVICE_NOT_LOADED
-    APP_SERVICE_NOT_LOADED_ID: {
-        'id': APP_SERVICE_NOT_LOADED_ID,
-        'name': 'App Service Not Loaded',
-        'message': [
-            {'lang': 'en_US', 'text': 'App service must be loaded before loading interface {interface_id}.'}
-        ]
-    },
-
-    # * error: DI_SERVICE_NOT_CONFIGURED
-    DI_SERVICE_NOT_CONFIGURED_ID: {
-        'id': DI_SERVICE_NOT_CONFIGURED_ID,
-        'name': 'DI Service Not Configured',
-        'message': [
-            {'lang': 'en_US', 'text': 'No di_service dependency is configured for interface {interface_id}.'}
-        ]
-    },
-
-    # * error: DEPENDENCY_TYPE_NOT_FOUND
-    DEPENDENCY_TYPE_NOT_FOUND_ID: {
-        'id': DEPENDENCY_TYPE_NOT_FOUND_ID,
-        'name': 'Dependency Type Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'No dependency type found for configuration {configuration_id} with flags {flags}.'}
-        ]
-    },
-
-    # * error: CONTEXT_NOT_FOUND
-    CONTEXT_NOT_FOUND_ID: {
-        'id': CONTEXT_NOT_FOUND_ID,
-        'name': 'Context Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'No context registered for domain type: {domain_type}.'}
-        ]
-    },
-
-    # * error: REQUEST_NOT_FOUND
-    REQUEST_NOT_FOUND_ID: {
-        'id': REQUEST_NOT_FOUND_ID,
-        'name': 'Request Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Request data is not available for parameter parsing.'}
-        ]
-    },
-
-    # * error: PARAMETER_NOT_FOUND
-    PARAMETER_NOT_FOUND_ID: {
-        'id': PARAMETER_NOT_FOUND_ID,
-        'name': 'Parameter Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Parameter {parameter} not found in request data.'}
-        ]
-    },
-
-    # * error: REQUEST_VALIDATION_FAILED
-    REQUEST_VALIDATION_FAILED_ID: {
-        'id': REQUEST_VALIDATION_FAILED_ID,
-        'name': 'Request Validation Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Request validation failed for feature {feature_id}: {violations}.'}
-        ]
-    },
-
-    # * error: FEATURE_NOT_FOUND
-    FEATURE_NOT_FOUND_ID: {
-        'id': FEATURE_NOT_FOUND_ID,
-        'name': 'Feature Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Feature not found: {feature_id}.'}
-        ]
-    },
-
-    # * error: FEATURE_ALREADY_EXISTS
-    FEATURE_ALREADY_EXISTS_ID: {
-        'id': FEATURE_ALREADY_EXISTS_ID,
-        'name': 'Feature Already Exists',
-        'message': [
-            {'lang': 'en_US', 'text': 'Feature with ID {id} already exists.'}
-        ]
-    },
-
-    # * error: FEATURE_NAME_REQUIRED
-    FEATURE_NAME_REQUIRED_ID: {
-        'id': FEATURE_NAME_REQUIRED_ID,
-        'name': 'Feature Name Required',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'A feature name is required when updating the name attribute.',
-            },
-        ],
-    },
-
-    # * error: INVALID_FEATURE_ATTRIBUTE
-    INVALID_FEATURE_ATTRIBUTE_ID: {
-        'id': INVALID_FEATURE_ATTRIBUTE_ID,
-        'name': 'Invalid Feature Attribute',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Invalid feature attribute: {attribute}',
-            },
-        ],
-    },
-
-    # * error: FEATURE_COMMAND_NOT_FOUND
-    FEATURE_COMMAND_NOT_FOUND_ID: {
-        'id': FEATURE_COMMAND_NOT_FOUND_ID,
-        'name': 'Feature Command Not Found',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Feature command not found for feature {feature_id} at position {position}.',
-            },
-        ],
-    },
-
-    # * error: INVALID_FEATURE_COMMAND_ATTRIBUTE
-    INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: {
-        'id': INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
-        'name': 'Invalid Feature Command Attribute',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': (
-                    'Invalid feature command attribute: {attribute}. Supported attributes are '
-                    'name, attribute_id, data_key, pass_on_error, and parameters.'
-                ),
-            },
-        ],
-    },
-
-    # * error: LOGGING_CONFIG_FAILED
-    LOGGING_CONFIG_FAILED_ID: {
-        'id': LOGGING_CONFIG_FAILED_ID,
-        'name': 'Logging Configuration Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to configure logging: {exception}.'}
-        ]
-    },
-
-    # * error: LOGGER_CREATION_FAILED
-    LOGGER_CREATION_FAILED_ID: {
-        'id': LOGGER_CREATION_FAILED_ID,
-        'name': 'Logger Creation Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to create logger with ID {logger_id}: {exception}.'}
-        ]
-    },
-
-    # * error: FILE_NOT_FOUND
-    FILE_NOT_FOUND_ID: {
-        'id': FILE_NOT_FOUND_ID,
-        'name': 'File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'File not found: {path}.'}
-        ]
-    },
-
-    # * error: INVALID_FILE
-    INVALID_FILE_ID: {
-        'id': INVALID_FILE_ID,
-        'name': 'Invalid File',
-        'message': [
-            {'lang': 'en_US', 'text': 'Path is not a file: {path}.'}
-        ]
-    },
-
-    # * error: FILE_ALREADY_OPEN
-    FILE_ALREADY_OPEN_ID: {
-        'id': FILE_ALREADY_OPEN_ID,
-        'name': 'File Already Open',
-        'message': [
-            {'lang': 'en_US', 'text': 'File is already open: {path}.'}
-        ]
-    },
-
-    # * error: INVALID_FILE_MODE
-    INVALID_FILE_MODE_ID: {
-        'id': INVALID_FILE_MODE_ID,
-        'name': 'Invalid File Mode',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid file mode: {mode}. Valid modes include {modes}'}
-        ]
-    },
-
-    # * error: INVALID_ENCODING
-    INVALID_ENCODING_ID: {
-        'id': INVALID_ENCODING_ID,
-        'name': 'Invalid Encoding',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid encoding: {encoding}. Supported encodings are: utf-8, ascii, latin-1.'}
-        ]
-    },
-
-    # * error: INVALID_JSON_FILE
-    INVALID_JSON_FILE_ID: {
-        'id': INVALID_JSON_FILE_ID,
-        'name': 'Invalid JSON File',
-        'message': [
-            {'lang': 'en_US', 'text': 'File is not a valid JSON file: {path}.'}
-        ]
-    },
-
-    # * error: JSON_FILE_LOAD_ERROR
-    JSON_FILE_LOAD_ERROR_ID: {
-        'id': JSON_FILE_LOAD_ERROR_ID,
-        'name': 'JSON File Load Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error occurred while loading the JSON file {path}: {exception}.'}
-        ]
-    },
-
-    # * error: JSON_FILE_SAVE_ERROR
-    JSON_FILE_SAVE_ERROR_ID: {
-        'id': JSON_FILE_SAVE_ERROR_ID,
-        'name': 'JSON File Save Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error occurred while saving to the JSON file {path}: {exception}.'}
-        ]
-    },
-
-    # * error: INVALID_YAML_FILE
-    INVALID_YAML_FILE_ID: {
-        'id': INVALID_YAML_FILE_ID,
-        'name': 'Invalid YAML File',
-        'message': [
-            {'lang': 'en_US', 'text': 'File is not a valid YAML file: {path}.'}
-        ]
-    },
-
-    # * error: YAML_FILE_NOT_FOUND
-    YAML_FILE_NOT_FOUND_ID: {
-        'id': YAML_FILE_NOT_FOUND_ID,
-        'name': 'YAML File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'YAML file not found: {path}.'}
-        ]
-    },
-
-    # * error: YAML_FILE_LOAD_ERROR
-    YAML_FILE_LOAD_ERROR_ID: {
-        'id': YAML_FILE_LOAD_ERROR_ID,
-        'name': 'YAML File Load Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error occurred while loading the YAML file {path}: {exception}.'}
-        ]
-    },
-
-    # * error: YAML_FILE_SAVE_ERROR
-    YAML_FILE_SAVE_ERROR_ID: {
-        'id': YAML_FILE_SAVE_ERROR_ID,
-        'name': 'YAML File Save Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error occurred while saving to the YAML file {path}: {exception}.'}
-        ]
-    },
-
-    # * error: UNSUPPORTED_CONFIG_FILE_TYPE
-    UNSUPPORTED_CONFIG_FILE_TYPE_ID: {
-        'id': UNSUPPORTED_CONFIG_FILE_TYPE_ID,
-        'name': 'Unsupported Configuration File Type',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unsupported configuration file type: {file_extension}.'}
-        ]
-    },
-
-
-    # * error: APP_INTERFACE_NOT_FOUND
-    APP_INTERFACE_NOT_FOUND_ID: {
-        'id': APP_INTERFACE_NOT_FOUND_ID,
-        'name': 'App Interface Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'App interface with ID {interface_id} not found.'}
-        ]
-    },
-
-    # * error: INVALID_SERVICE_REGISTRATION
-    INVALID_SERVICE_REGISTRATION_ID: {
-        'id': INVALID_SERVICE_REGISTRATION_ID,
-        'name': 'Invalid Service Registration',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': (
-                    'A service registration must define either a default type '
-                    '(module_path/class_name) or at least one flagged dependency.'
-                ),
-            }
-        ],
-    },
-
-    # * error: ATTRIBUTE_ALREADY_EXISTS
-    ATTRIBUTE_ALREADY_EXISTS_ID: {
-        'id': ATTRIBUTE_ALREADY_EXISTS_ID,
-        'name': 'Attribute Already Exists',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'A container attribute with ID {id} already exists.',
-            }
-        ],
-    },
-
-    # * error: SERVICE_REGISTRATION_NOT_FOUND
-    SERVICE_REGISTRATION_NOT_FOUND_ID: {
-        'id': SERVICE_REGISTRATION_NOT_FOUND_ID,
-        'name': 'Service Registration Not Found',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Service registration with ID {id} not found.',
-            }
-        ],
-    },
-
-    # * error: INVALID_FLAGGED_DEPENDENCY
-    INVALID_FLAGGED_DEPENDENCY_ID: {
-        'id': INVALID_FLAGGED_DEPENDENCY_ID,
-        'name': 'Invalid Flagged Dependency',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'A flagged dependency must define both module_path and class_name.',
-            }
-        ],
-    },
-
-    # * error: SERVICE_REGISTRATION_ALREADY_EXISTS
-    SERVICE_REGISTRATION_ALREADY_EXISTS_ID: {
-        'id': SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
-        'name': 'Service Registration Already Exists',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'A service registration with ID {id} already exists.',
-            }
-        ],
-    },
-
-    # * error: INVALID_MODEL_ATTRIBUTE
-    INVALID_MODEL_ATTRIBUTE_ID: {
-        'id': INVALID_MODEL_ATTRIBUTE_ID,
-        'name': 'Invalid Model Attribute',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
-            }
-        ],
-    },
-
-    # * error: INVALID_APP_INTERFACE_TYPE
-    INVALID_APP_INTERFACE_TYPE_ID: {
-        'id': INVALID_APP_INTERFACE_TYPE_ID,
-        'name': 'Invalid App Interface Type',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': '{attribute} must be a non-empty string.',
-            }
-        ],
-    },
-
-    # * error: SQLITE_CONN_ALREADY_OPEN
-    SQLITE_CONN_ALREADY_OPEN_ID: {
-        'id': SQLITE_CONN_ALREADY_OPEN_ID,
-        'name': 'SQLite Connection Already Open',
-        'message': [
-            {'lang': 'en_US', 'text': 'Connection already open for path: {path}.'}
-        ]
-    },
-
-    # * error: SQLITE_INVALID_MODE
-    SQLITE_INVALID_MODE_ID: {
-        'id': SQLITE_INVALID_MODE_ID,
-        'name': 'Invalid SQLite Mode',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid SQLite mode: {mode}. Supported: ro, rw, rwc (or None for default auto-create).'}
-        ]
-    },
-
-    # * error: SQLITE_FILE_NOT_FOUND_OR_READONLY
-    SQLITE_FILE_NOT_FOUND_OR_READONLY_ID: {
-        'id': SQLITE_FILE_NOT_FOUND_OR_READONLY_ID,
-        'name': 'SQLite File Not Found or Read-Only',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to open SQLite database at {path}: {original_error}. Check path exists and is writable (use mode=rwc to create).'}
-        ]
-    },
-
-    # * error: SQLITE_CONN_FAILED
-    SQLITE_CONN_FAILED_ID: {
-        'id': SQLITE_CONN_FAILED_ID,
-        'name': 'SQLite Connection Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to connect to SQLite database at {path}: {original_error}'}
-        ]
-    },
-
-    # * error: SQLITE_BACKUP_FAILED
-    SQLITE_BACKUP_FAILED_ID: {
-        'id': SQLITE_BACKUP_FAILED_ID,
-        'name': 'SQLite Backup Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Backup to {target_path} failed: {original_error}'}
-        ]
-    },
-    
-    # * error: SQLITE_CONN_NOT_INITIALIZED
-    SQLITE_CONN_NOT_INITIALIZED_ID: {
-        'id': SQLITE_CONN_NOT_INITIALIZED_ID,
-        'name': 'SQLite Connection Not Initialized',
-        'message': [
-            {'lang': 'en_US', 'text': 'SQLite connection not initialized. Must be used within a "with" block.'}
-        ]
-    },
-    
-    # * error: SERVICE_REGISTRATION_ALREADY_EXISTS
-    SERVICE_REGISTRATION_ALREADY_EXISTS_ID: {
-        'id': SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
-        'name': 'Service Registration Already Exists',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'A service registration with ID {id} already exists.',
-            }
-        ],
-    },
-
-    # * error: INVALID_DEPENDENCY_ERROR
-    INVALID_DEPENDENCY_ERROR_ID: {
-        'id': INVALID_DEPENDENCY_ERROR_ID,
-        'name': 'Invalid Dependency Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'Dependency {dependency} could not be resolved: {reason}.'}
-        ]
-    },
-
-    # * error: APP_ERROR
-    'APP_ERROR': {
-        'id': 'APP_ERROR',
-        'name': 'App Error',
-        'message': [
-            {'lang': 'en_US', 'text': 'An error occurred in the app: {error_message}.'}
-        ]
-    },
-
-    # * error: CONFIG_FILE_NOT_FOUND
-    'CONFIG_FILE_NOT_FOUND': {
-        'id': 'CONFIG_FILE_NOT_FOUND',
-        'name': 'Configuration File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Configuration file {file_path} not found.'}
-        ]
-    },
-
-    # * error: APP_CONFIG_LOADING_FAILED
-    'APP_CONFIG_LOADING_FAILED': {
-        'id': 'APP_CONFIG_LOADING_FAILED',
-        'name': 'App Configuration Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to load app configuration file {file_path}: {exception}.'}
-        ]
-    },
-
-    # * error: CONTAINER_CONFIG_LOADING_FAILED
-    'CONTAINER_CONFIG_LOADING_FAILED': {
-        'id': 'CONTAINER_CONFIG_LOADING_FAILED',
-        'name': 'Container Configuration Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to load container configuration file {file_path}: {exception}.'}
-        ]
-    },
-
-    # * error: FEATURE_CONFIG_LOADING_FAILED
-    'FEATURE_CONFIG_LOADING_FAILED': {
-        'id': 'FEATURE_CONFIG_LOADING_FAILED',
-        'name': 'Feature Configuration Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to load feature configuration file {file_path}: {exception}.'}
-        ]
-    },
-
-    # * error: ERROR_CONFIG_LOADING_FAILED
-    'ERROR_CONFIG_LOADING_FAILED': {
-        'id': 'ERROR_CONFIG_LOADING_FAILED',
-        'name': 'Error Configuration Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to load error configuration file {file_path}: {exception}.'}
-        ]
-    },
-
-    # * error: CLI_CONFIG_LOADING_FAILED
-    'CLI_CONFIG_LOADING_FAILED': {
-        'id': 'CLI_CONFIG_LOADING_FAILED',
-        'name': 'CLI Configuration Loading Failed',
-        'message': [
-            {'lang': 'en_US', 'text': 'Unable to load CLI configuration file {file_path}: {exception}.'}
-        ]
-    },
-
-    # * error: CLI_COMMAND_NOT_FOUND
-    CLI_COMMAND_NOT_FOUND_ID: {
-        'id': CLI_COMMAND_NOT_FOUND_ID,
-        'name': 'CLI Command Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'CLI command {command_id} not found.'}
-        ]
-    },
-
-    # * error: CLI_COMMAND_ALREADY_EXISTS
-    CLI_COMMAND_ALREADY_EXISTS_ID: {
-        'id': CLI_COMMAND_ALREADY_EXISTS_ID,
-        'name': 'CLI Command Already Exists',
-        'message': [
-            {'lang': 'en_US', 'text': 'CLI command with ID {id} already exists.'}
-        ]
-    },
-
-    # * error: INVALID_MODEL_ATTRIBUTE
-    INVALID_MODEL_ATTRIBUTE_ID: {
-        'id': INVALID_MODEL_ATTRIBUTE_ID,
-        'name': 'Invalid Model Attribute',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': 'Invalid attribute: {attribute}. Supported attributes are {supported}.',
-            },
-        ],
-    },
-
-    # * error: INVALID_APP_INTERFACE_TYPE
-    INVALID_APP_INTERFACE_TYPE_ID: {
-        'id': INVALID_APP_INTERFACE_TYPE_ID,
-        'name': 'Invalid App Interface Type',
-        'message': [
-            {
-                'lang': 'en_US',
-                'text': '{attribute} must be a non-empty string.',
-            },
-        ],
-    },
-
-    # * error: YAML_FILE_NOT_FOUND
-    YAML_FILE_NOT_FOUND_ID: {
-        'id': YAML_FILE_NOT_FOUND_ID,
-        'name': 'YAML File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'The specified YAML file could not be found at {path}.'}
-        ]
-    },
-
-    # * error: YAML_FILE_LOAD_ERROR
-    YAML_FILE_LOAD_ERROR_ID: {
-        'id': YAML_FILE_LOAD_ERROR_ID,
-        'name': 'YAML Load Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to parse YAML file: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: YAML_FILE_SAVE_ERROR
-    YAML_FILE_SAVE_ERROR_ID: {
-        'id': YAML_FILE_SAVE_ERROR_ID,
-        'name': 'YAML Save Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to write YAML file: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: JSON_FILE_NOT_FOUND
-    JSON_FILE_NOT_FOUND_ID: {
-        'id': JSON_FILE_NOT_FOUND_ID,
-        'name': 'JSON File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'The specified JSON file could not be found at {path}.'}
-        ]
-    },
-
-    # * error: JSON_FILE_LOAD_ERROR
-    JSON_FILE_LOAD_ERROR_ID: {
-        'id': JSON_FILE_LOAD_ERROR_ID,
-        'name': 'JSON Load Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to parse JSON: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: JSON_FILE_SAVE_ERROR
-    JSON_FILE_SAVE_ERROR_ID: {
-        'id': JSON_FILE_SAVE_ERROR_ID,
-        'name': 'JSON Save Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to serialize/write JSON: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: INVALID_JSON_PATH
-    INVALID_JSON_PATH_ID: {
-        'id': INVALID_JSON_PATH_ID,
-        'name': 'Invalid JSON Path',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid JSON path: {path}. Failed at segment: {part}.'}
-        ]
-    },
-
-    # * error: TOML_FILE_NOT_FOUND
-    TOML_FILE_NOT_FOUND_ID: {
-        'id': TOML_FILE_NOT_FOUND_ID,
-        'name': 'TOML File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'The specified TOML file could not be found at {path}.'}
-        ]
-    },
-
-    # * error: TOML_FILE_LOAD_ERROR
-    TOML_FILE_LOAD_ERROR_ID: {
-        'id': TOML_FILE_LOAD_ERROR_ID,
-        'name': 'TOML Load Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to parse TOML file: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: INVALID_TOML_FILE
-    INVALID_TOML_FILE_ID: {
-        'id': INVALID_TOML_FILE_ID,
-        'name': 'Invalid TOML File',
-        'message': [
-            {'lang': 'en_US', 'text': 'File is not a valid TOML file: {path}.'}
-        ]
-    },
-
-    # * error: CSV_INVALID_MODE
-    CSV_INVALID_MODE_ID: {
-        'id': CSV_INVALID_MODE_ID,
-        'name': 'Invalid CSV Mode',
-        'message': [
-            {'lang': 'en_US', 'text': 'Invalid file mode for CSV operation: {mode}. Expected r, w, a, etc.'}
-        ]
-    },
-
-    # * error: CSV_HANDLE_NOT_INITIALIZED
-    CSV_HANDLE_NOT_INITIALIZED_ID: {
-        'id': CSV_HANDLE_NOT_INITIALIZED_ID,
-        'name': 'CSV Handle Not Initialized',
-        'message': [
-            {'lang': 'en_US', 'text': 'CSV file must be opened before reading/writing.'}
-        ]
-    },
-
-    # * error: CSV_INVALID_READ_MODE
-    CSV_INVALID_READ_MODE_ID: {
-        'id': CSV_INVALID_READ_MODE_ID,
-        'name': 'Invalid CSV Read Mode',
-        'message': [
-            {'lang': 'en_US', 'text': 'File not opened in readable mode for CSV reading.'}
-        ]
-    },
-
-    # * error: CSV_INVALID_WRITE_MODE
-    CSV_INVALID_WRITE_MODE_ID: {
-        'id': CSV_INVALID_WRITE_MODE_ID,
-        'name': 'Invalid CSV Write Mode',
-        'message': [
-            {'lang': 'en_US', 'text': 'File not opened in writable mode for CSV writing.'}
-        ]
-    },
-
-    # * error: CSV_FIELDNAMES_REQUIRED
-    CSV_FIELDNAMES_REQUIRED_ID: {
-        'id': CSV_FIELDNAMES_REQUIRED_ID,
-        'name': 'CSV Fieldnames Required',
-        'message': [
-            {'lang': 'en_US', 'text': 'Fieldnames must be provided when writing dict-based CSV rows.'}
-        ]
-    },
-
-    # * error: CSV_DICT_NO_HEADER
-    CSV_DICT_NO_HEADER_ID: {
-        'id': CSV_DICT_NO_HEADER_ID,
-        'name': 'CSV Dict Reader Without Header',
-        'message': [
-            {'lang': 'en_US', 'text': 'Dict reader expects header row; file appears to lack one or was not read correctly.'}
-        ]
-    },
-
-    # * error: TOML_FILE_NOT_FOUND
-    TOML_FILE_NOT_FOUND_ID: {
-        'id': TOML_FILE_NOT_FOUND_ID,
-        'name': 'TOML File Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'The specified TOML file could not be found at {path}.'}
-        ]
-    },
-
-    # * error: TOML_FILE_LOAD_ERROR
-    TOML_FILE_LOAD_ERROR_ID: {
-        'id': TOML_FILE_LOAD_ERROR_ID,
-        'name': 'TOML Load Failure',
-        'message': [
-            {'lang': 'en_US', 'text': 'Failed to parse TOML file: {error}. Path: {path}.'}
-        ]
-    },
-
-    # * error: INVALID_TOML_FILE
-    INVALID_TOML_FILE_ID: {
-        'id': INVALID_TOML_FILE_ID,
-        'name': 'Invalid TOML File',
-        'message': [
-            {'lang': 'en_US', 'text': 'File is not a valid TOML file: {path}.'}
-        ]
-    },
-}
+# ** constant: csv_dict_no_header_id
+CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'

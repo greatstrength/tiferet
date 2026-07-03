@@ -17,10 +17,8 @@ __all__ = [
 
 # ** app
 from .exceptions import TiferetError, TiferetAPIError
-from .constants import (
-    ERROR_NOT_FOUND_ID,
-    DEFAULT_ERRORS,
-)
+from .constants import ERROR_NOT_FOUND_ID
+from .error import DEFAULT_ERRORS
 from . import constants as const
 from . import blueprints as bps
 from . import app as cli_app
