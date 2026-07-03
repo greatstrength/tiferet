@@ -5,6 +5,8 @@ interfaces:
   calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
+    module_path: tiferet.contexts.cli
+    class_name: CliContext
 
 services:
   add_number_event:
@@ -22,63 +24,171 @@ services:
   exponentiate_number_event:
     module_path: app.events.calc
     class_name: ExponentiateNumber
+  record_calculation_event:
+    module_path: app.events.history
+    class_name: RecordCalculation
+  list_recent_formulas_event:
+    module_path: app.events.history
+    class_name: ListRecentFormulas
+  formula_service:
+    module_path: app.repos.formula
+    class_name: FormulaConfigRepository
+    params:
+      formula_config: formulas.yml
+  save_formula_event:
+    module_path: app.events.formula
+    class_name: SaveFormula
+  get_formula_event:
+    module_path: app.events.formula
+    class_name: GetFormula
+  list_formulas_event:
+    module_path: app.events.formula
+    class_name: ListFormulas
+  evaluate_formula_event:
+    module_path: app.events.formula
+    class_name: EvaluateFormula
 
 features:
   calc:
     add:
       name: Add Number
       description: Adds one number to another
-      commands:
+      params_schema:
+        a: int
+        b: int
+      steps:
         - service_id: add_number_event
           name: Add `a` and `b`
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '+'
     subtract:
       name: Subtract Number
       description: Subtracts one number from another
-      commands:
+      params_schema:
+        a: int
+        b: int
+      steps:
         - service_id: subtract_number_event
           name: Subtract `b` from `a`
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '-'
     multiply:
       name: Multiply Number
       description: Multiplies one number by another
-      commands:
+      params_schema:
+        a: int
+        b: int
+      steps:
         - service_id: multiply_number_event
           name: Multiply `a` and `b`
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '*'
     divide:
       name: Divide Number
       description: Divides one number by another
-      commands:
+      params_schema:
+        a: int
+        b:
+          type: float
+          description: The denominator; must be non-zero.
+      steps:
         - service_id: divide_number_event
           name: Divide `a` by `b`
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '/'
     exp:
       name: Exponentiate Number
       description: Raises one number to the power of another
-      commands:
+      steps:
         - service_id: exponentiate_number_event
           name: Raise `a` to the power of `b`
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '**'
     sqrt:
       name: Square Root
       description: Calculates the square root of a number
-      commands:
+      steps:
         - service_id: exponentiate_number_event
           name: Calculate square root of `a`
           params:
             b: '0.5'
+          data_key: result
+        - service_id: record_calculation_event
+          name: Record the calculation
+          params:
+            operator: '√'
     safe_divide:
       name: Safe Divide
       description: Divides only when denominator is non-zero
-      commands:
+      steps:
         - service_id: divide_number_event
           name: Divide `a` by `b` (skipped when b is 0)
           condition: '$r.b != 0'
+    history:
+      name: Recent Calculations
+      description: Lists the most recently executed calculations
+      steps:
+        - service_id: list_recent_formulas_event
+          name: List recent calculations
+  formula:
+    save:
+      name: Save Formula
+      description: Saves a named, variablized formula
+      params_schema:
+        name: str
+        expression: str
+        description:
+          type: str
+          required: false
+      steps:
+        - service_id: save_formula_event
+          name: Save the formula
+    get:
+      name: Get Formula
+      description: Retrieves a saved formula by id
+      params_schema:
+        id: str
+      steps:
+        - service_id: get_formula_event
+          name: Get the formula
+    list:
+      name: List Formulas
+      description: Lists all saved formulas
+      steps:
+        - service_id: list_formulas_event
+          name: List the formulas
+    eval:
+      name: Evaluate Formula
+      description: Evaluates a saved formula with variable values
+      params_schema:
+        id: str
+      steps:
+        - service_id: evaluate_formula_event
+          name: Evaluate the formula
 
 errors:
   INVALID_INPUT:
     name: Invalid Numeric Input
     message:
       - lang: en_US
-        text: 'Value {} must be a number'
+        text: 'Value {value} must be a number'
       - lang: es_ES
-        text: 'El valor {} debe ser un número'
+        text: 'El valor {value} debe ser un número'
   DIVISION_BY_ZERO:
     name: Division By Zero
     message:
@@ -86,6 +196,21 @@ errors:
         text: 'Cannot divide by zero'
       - lang: es_ES
         text: 'No se puede dividir por cero'
+  FORMULA_NOT_FOUND:
+    name: Formula Not Found
+    message:
+      - lang: en_US
+        text: 'Formula not found: {id}'
+  MISSING_VARIABLE:
+    name: Missing Variable
+    message:
+      - lang: en_US
+        text: 'Missing value for variable: {variable}'
+  FORMULA_EVALUATION_FAILED:
+    name: Formula Evaluation Failed
+    message:
+      - lang: en_US
+        text: 'Could not evaluate formula {id}: {error}'
 
 cli:
   cmds:
@@ -159,6 +284,50 @@ cli:
           - name_or_flags:
               - a
             description: The number to square root.
+      history:
+        group_key: calc
+        key: history
+        name: Recent Calculations Command
+        description: Lists the most recently executed calculations.
+    formula:
+      save:
+        group_key: formula
+        key: save
+        name: Save Formula Command
+        description: Saves a named, variablized formula.
+        args:
+          - name_or_flags:
+              - name
+            description: The name of the formula.
+          - name_or_flags:
+              - expression
+            description: The arithmetic expression using named variables.
+      get:
+        group_key: formula
+        key: get
+        name: Get Formula Command
+        description: Retrieves a saved formula by id.
+        args:
+          - name_or_flags:
+              - id
+            description: The formula identifier.
+      list:
+        group_key: formula
+        key: list
+        name: List Formulas Command
+        description: Lists all saved formulas.
+      eval:
+        group_key: formula
+        key: eval
+        name: Evaluate Formula Command
+        description: Evaluates a saved formula with variable values.
+        args:
+          - name_or_flags:
+              - id
+            description: The formula identifier.
+          - name_or_flags:
+              - values
+            description: A JSON object mapping variable names to values.
 
 logging:
   formatters:

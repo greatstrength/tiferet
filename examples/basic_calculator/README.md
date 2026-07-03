@@ -14,12 +14,24 @@ basic_calculator/
 ├── basic_calc.py          # App blueprint entry point
 ├── calc_cli.py            # CLI blueprint entry point
 ├── config.yml             # Consolidated application configuration
+├── formulas.yml           # Saved formulas store
 └── app/
-    └── events/
-        ├── __init__.py
-        ├── settings.py    # BasicCalcEvent (numeric validation)
-        └── calc.py        # Arithmetic domain events
+    ├── domain/            # Formula domain model
+    │   └── formula.py
+    ├── events/
+    │   ├── settings.py    # BasicCalcEvent (numeric validation)
+    │   ├── calc.py        # Arithmetic domain events
+    │   ├── history.py     # Recent-calculation events
+    │   └── formula.py     # Formula domain events
+    ├── interfaces/        # FormulaService contract
+    │   └── formula.py
+    ├── mappers/           # Formula aggregate + config object
+    │   └── formula.py
+    └── repos/             # FormulaConfigRepository
+        └── formula.py
 ```
+
+`history.json` is created automatically at runtime to store the most recent calculations.
 
 ## Running the Application
 
@@ -65,6 +77,14 @@ python calc_cli.py calc exp 2 3
 
 # Square root
 python calc_cli.py calc sqrt 4
+
+# Recent calculations
+python calc_cli.py calc history
+
+# Save, list, and evaluate a variablized formula
+python calc_cli.py formula save "Rectangle Area" "width * height"
+python calc_cli.py formula list
+python calc_cli.py formula eval rectangle_area '{"width": 3, "height": 4}'
 ```
 
 ## Features
@@ -75,6 +95,11 @@ python calc_cli.py calc sqrt 4
 - **Division** (`calc.divide`) — Divides two numbers with zero-check
 - **Exponentiation** (`calc.exp`) — Raises a number to a power
 - **Square Root** (`calc.sqrt`) — Calculates square root (reuses exponentiation with `b=0.5`)
+- **Recent Calculations** (`calc.history`) — Lists the most recently executed calculations, persisted to `history.json` via the file loader
+- **Save Formula** (`formula.save`) — Saves a named, variablized formula to `formulas.yml`
+- **Get Formula** (`formula.get`) — Retrieves a saved formula by id
+- **List Formulas** (`formula.list`) — Lists all saved formulas
+- **Evaluate Formula** (`formula.eval`) — Evaluates a saved formula with concrete variable values
 
 ## Tutorial
 
