@@ -15,7 +15,7 @@ Inspired by the Kabbalistic principle of harmony and beauty in balance, Tiferet 
 - Clean layering: domain objects • aggregates • transfer objects • services  
 - Structured, multilingual errors built-in  
 - Easy to extend to CLI, web, scripts, TUI, …
-Current status: **2.0.0b3** (pre-release – actively evolving toward stable v2)
+Current status: **2.0.0** (stable release)
 
 ## Quick Start – Add two numbers in ~3 minutes
 
@@ -32,7 +32,7 @@ Create these files in your project folder:
 from tiferet import App
 app = App(
     'basic_calc',
-    app_yaml_file='config.yml',
+    app_config='config.yml',
 )                               # App is the build_app alias
 
 result = app.run(

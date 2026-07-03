@@ -104,13 +104,12 @@ This 1:1 mapping ensures CLI commands are thin entry points that delegate all bu
 
 ## Runtime Role
 
-The `build_cli` blueprint (`tiferet/blueprints/cli.py`) is the primary consumer of the CLI domain at runtime:
+`CliContext` (`tiferet/contexts/cli.py`) is the primary consumer of the CLI domain at runtime; the `build_cli` blueprint is a thin entrypoint that realizes the context and calls `run_cli`:
 
-1. **`get_commands(service_provider)`** resolves all `CliCommand` entries from the configuration via `CliService`.
-2. **`build_parser()`** iterates each `CliCommand`, registering subparsers and arguments with `argparse` using `CliArgument` attributes (`name_or_flags`, `type`, `required`, `default`, `choices`, `nargs`, `action`).
-3. **`parse_argv()`** parses the user's CLI input and returns the matched command group and key.
-4. **`derive_feature_request()`** maps the parsed arguments to a feature ID (`group_key.key`) and dispatches to `AppInterfaceContext.run()`.
-5. **`FeatureContext`** executes the corresponding feature with the parsed data.
+1. **`get_commands()`** resolves all `CliCommand` entries via the injected `list_commands_evt` (backed by `CliService`) and groups them by `group_key` (`group_commands_by_key`).
+2. **`build_parser(commands, parent_arguments)`** iterates each `CliCommand`, registering subparsers and adding each argument via `CliArgument.to_argparse_kwargs()`.
+3. **`parse_cli_request(argv)`** parses the user's CLI input, derives the feature ID (`derive_feature_request`), and builds a `RequestContext`.
+4. **`run_cli(argv)`** dispatches the request through the inherited `AppInterfaceContext.run`, which executes the corresponding feature via `FeatureContext`.
 
 ## Configuration Mapping
 
@@ -166,12 +165,12 @@ These events depend on the `CliService` interface for persistence operations.
 - `save(cli_command) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `CliYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `CliConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
 - **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
-- **App:** The CLI interface in the configuration specifies `CliService` as a service dependency. The `build_cli` blueprint handles argparse wiring and dispatches to `AppInterfaceContext`.
+- **App:** The CLI interface in the configuration points at `CliContext` and specifies `CliService` as a service dependency. `CliContext` handles argparse wiring; the `build_cli` blueprint realizes the context and delegates to `CliContext.run_cli`.
 - **Error:** CLI error responses are formatted via `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
 
 ## Instantiation

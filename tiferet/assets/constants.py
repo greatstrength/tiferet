@@ -31,6 +31,9 @@ PARAMETER_PARSING_FAILED_ID = 'PARAMETER_PARSING_FAILED'
 # ** constant: import_dependency_failed_id
 IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 
+# ** constant: app_service_import_failed_id
+APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
+
 # ** constant: feature_command_loading_failed_id
 FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 
@@ -79,6 +82,9 @@ INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 # ** constant: invalid_app_interface_type_id
 INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
 
+# ** constant: context_not_found_id
+CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
+
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
 
@@ -109,11 +115,44 @@ INVALID_ENCODING_ID = 'INVALID_ENCODING'
 # ** constant: invalid_json_file_id
 INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 
+# ** constant: json_file_load_error_id
+JSON_FILE_LOAD_ERROR_ID = 'JSON_FILE_LOAD_ERROR'
+
+# ** constant: json_file_save_error_id
+JSON_FILE_SAVE_ERROR_ID = 'JSON_FILE_SAVE_ERROR'
+
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
-# ** constant: unsupported_config_file_type_id
+# ** constant: yaml_file_not_found_id
+YAML_FILE_NOT_FOUND_ID = 'YAML_FILE_NOT_FOUND'
+
+# ** constant: yaml_file_load_error_id
+YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
+
+# ** constant: yaml_file_save_error_id
+YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
+
+# ** constant: unsupported_yaml_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
+
+# ** constant: csv_invalid_mode_id
+CSV_INVALID_MODE_ID = 'CSV_INVALID_MODE'
+
+# ** constant: csv_handle_not_initialized_id
+CSV_HANDLE_NOT_INITIALIZED_ID = 'CSV_HANDLE_NOT_INITIALIZED'
+
+# ** constant: csv_invalid_read_mode_id
+CSV_INVALID_READ_MODE_ID = 'CSV_INVALID_READ_MODE'
+
+# ** constant: csv_invalid_write_mode_id
+CSV_INVALID_WRITE_MODE_ID = 'CSV_INVALID_WRITE_MODE'
+
+# ** constant: csv_fieldnames_required_id
+CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
+
+# ** constant: csv_dict_no_header_id
+CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
 
 # ** constant: app_interface_not_found_id
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
@@ -176,6 +215,10 @@ JSON_FILE_NOT_FOUND_ID          = 'JSON_FILE_NOT_FOUND'
 JSON_FILE_LOAD_ERROR_ID         = 'JSON_FILE_LOAD_ERROR'
 JSON_FILE_SAVE_ERROR_ID         = 'JSON_FILE_SAVE_ERROR'
 INVALID_JSON_PATH_ID            = 'INVALID_JSON_PATH'
+
+TOML_FILE_NOT_FOUND_ID          = 'TOML_FILE_NOT_FOUND'
+TOML_FILE_LOAD_ERROR_ID         = 'TOML_FILE_LOAD_ERROR'
+INVALID_TOML_FILE_ID            = 'INVALID_TOML_FILE'
 
 CSV_INVALID_MODE_ID             = 'CSV_INVALID_MODE'
 CSV_HANDLE_NOT_INITIALIZED_ID   = 'CSV_HANDLE_NOT_INITIALIZED'
@@ -275,12 +318,30 @@ DEFAULT_ERRORS = {
         ]
     },
 
+    # * error: APP_SERVICE_IMPORT_FAILED
+    APP_SERVICE_IMPORT_FAILED_ID: {
+        'id': APP_SERVICE_IMPORT_FAILED_ID,
+        'name': 'App Service Import Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to import app service dependencies: {exception}.'}
+        ]
+    },
+
     # * error: FEATURE_COMMAND_LOADING_FAILED
     FEATURE_COMMAND_LOADING_FAILED_ID: {
         'id': FEATURE_COMMAND_LOADING_FAILED_ID,
         'name': 'Feature Command Loading Failed',
         'message': [
-            {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {attribute_id}. Error: {exception}.'}
+            {'lang': 'en_US', 'text': 'Failed to load feature command attribute: {service_id}. Error: {exception}.'}
+        ]
+    },
+
+    # * error: MIDDLEWARE_LOADING_FAILED
+    MIDDLEWARE_LOADING_FAILED_ID: {
+        'id': MIDDLEWARE_LOADING_FAILED_ID,
+        'name': 'Middleware Loading Failed',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to load middleware: {service_id}. Error: {exception}.'}
         ]
     },
 
@@ -334,7 +395,16 @@ DEFAULT_ERRORS = {
         'id': DEPENDENCY_TYPE_NOT_FOUND_ID,
         'name': 'Dependency Type Not Found',
         'message': [
-            {'lang': 'en_US', 'text': 'No dependency type found for attribute {attribute_id} with flags {flags}.'}
+            {'lang': 'en_US', 'text': 'No dependency type found for configuration {configuration_id} with flags {flags}.'}
+        ]
+    },
+
+    # * error: CONTEXT_NOT_FOUND
+    CONTEXT_NOT_FOUND_ID: {
+        'id': CONTEXT_NOT_FOUND_ID,
+        'name': 'Context Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'No context registered for domain type: {domain_type}.'}
         ]
     },
 
@@ -506,12 +576,57 @@ DEFAULT_ERRORS = {
         ]
     },
 
+    # * error: JSON_FILE_LOAD_ERROR
+    JSON_FILE_LOAD_ERROR_ID: {
+        'id': JSON_FILE_LOAD_ERROR_ID,
+        'name': 'JSON File Load Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while loading the JSON file {path}: {exception}.'}
+        ]
+    },
+
+    # * error: JSON_FILE_SAVE_ERROR
+    JSON_FILE_SAVE_ERROR_ID: {
+        'id': JSON_FILE_SAVE_ERROR_ID,
+        'name': 'JSON File Save Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while saving to the JSON file {path}: {exception}.'}
+        ]
+    },
+
     # * error: INVALID_YAML_FILE
     INVALID_YAML_FILE_ID: {
         'id': INVALID_YAML_FILE_ID,
         'name': 'Invalid YAML File',
         'message': [
             {'lang': 'en_US', 'text': 'File is not a valid YAML file: {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_NOT_FOUND
+    YAML_FILE_NOT_FOUND_ID: {
+        'id': YAML_FILE_NOT_FOUND_ID,
+        'name': 'YAML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'YAML file not found: {path}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_LOAD_ERROR
+    YAML_FILE_LOAD_ERROR_ID: {
+        'id': YAML_FILE_LOAD_ERROR_ID,
+        'name': 'YAML File Load Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while loading the YAML file {path}: {exception}.'}
+        ]
+    },
+
+    # * error: YAML_FILE_SAVE_ERROR
+    YAML_FILE_SAVE_ERROR_ID: {
+        'id': YAML_FILE_SAVE_ERROR_ID,
+        'name': 'YAML File Save Error',
+        'message': [
+            {'lang': 'en_US', 'text': 'An error occurred while saving to the YAML file {path}: {exception}.'}
         ]
     },
 
@@ -675,6 +790,18 @@ DEFAULT_ERRORS = {
         ]
     },
     
+    # * error: SERVICE_REGISTRATION_ALREADY_EXISTS
+    SERVICE_REGISTRATION_ALREADY_EXISTS_ID: {
+        'id': SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
+        'name': 'Service Registration Already Exists',
+        'message': [
+            {
+                'lang': 'en_US',
+                'text': 'A service registration with ID {id} already exists.',
+            }
+        ],
+    },
+
     # * error: INVALID_DEPENDENCY_ERROR
     INVALID_DEPENDENCY_ERROR_ID: {
         'id': INVALID_DEPENDENCY_ERROR_ID,
@@ -849,6 +976,33 @@ DEFAULT_ERRORS = {
         'name': 'Invalid JSON Path',
         'message': [
             {'lang': 'en_US', 'text': 'Invalid JSON path: {path}. Failed at segment: {part}.'}
+        ]
+    },
+
+    # * error: TOML_FILE_NOT_FOUND
+    TOML_FILE_NOT_FOUND_ID: {
+        'id': TOML_FILE_NOT_FOUND_ID,
+        'name': 'TOML File Not Found',
+        'message': [
+            {'lang': 'en_US', 'text': 'The specified TOML file could not be found at {path}.'}
+        ]
+    },
+
+    # * error: TOML_FILE_LOAD_ERROR
+    TOML_FILE_LOAD_ERROR_ID: {
+        'id': TOML_FILE_LOAD_ERROR_ID,
+        'name': 'TOML Load Failure',
+        'message': [
+            {'lang': 'en_US', 'text': 'Failed to parse TOML file: {error}. Path: {path}.'}
+        ]
+    },
+
+    # * error: INVALID_TOML_FILE
+    INVALID_TOML_FILE_ID: {
+        'id': INVALID_TOML_FILE_ID,
+        'name': 'Invalid TOML File',
+        'message': [
+            {'lang': 'en_US', 'text': 'File is not a valid TOML file: {path}.'}
         ]
     },
 

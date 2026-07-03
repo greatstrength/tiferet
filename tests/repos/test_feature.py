@@ -281,3 +281,32 @@ def test_int_feature_config_repo_delete(
     feature_config_repo.delete(TEST_FEATURE_ID)
     remaining_features = feature_config_repo.list(group_id='test_group')
     assert remaining_features == []
+
+# ** test_int: feature_config_repo_params_schema_round_trip
+def test_int_feature_config_repo_params_schema_round_trip(
+        feature_config_repo: FeatureConfigRepository,
+    ) -> None:
+    '''
+    Test that a params_schema block round-trips through save and get.
+
+    :param feature_config_repo: The feature configuration repository.
+    :type feature_config_repo: FeatureConfigRepository
+    '''
+
+    # Create a feature carrying a params_schema and save it.
+    schema_feature_id = 'schema_group.schema_feature'
+    feature = FeatureConfigObject.model_validate(dict(
+        id=schema_feature_id,
+        name='Schema Feature',
+        description='A feature with a request schema.',
+        commands=[],
+        params_schema={'a': 'int', 'b': {'type': 'float', 'required': False, 'default': 1.0}},
+        log_params={},
+    )).map()
+    feature_config_repo.save(feature)
+
+    # Reload the feature and verify the params_schema survived persistence.
+    reloaded = feature_config_repo.get(schema_feature_id)
+    params = {p.name: (p.type, p.required, p.default) for p in reloaded.params_schema.parameters}
+    assert params['a'] == ('int', True, None)
+    assert params['b'] == ('float', False, 1.0)

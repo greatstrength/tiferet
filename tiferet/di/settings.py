@@ -140,71 +140,115 @@ def merge_settings(
 
 # *** classes
 
-# ** class: service_provider
-class ServiceProvider(ABC):
+# ** class: service_container
+class ServiceContainer(object):
     '''
-    Service provider for app context dependencies.
+    The low-level dependency-injection engine for the framework. It registers
+    service types and constants and instantiates services with their
+    constructor parameters wired to sibling registrations, backed by the
+    dependency_injector DynamicContainer.
     '''
 
-    # * method: add_service
-    @abstractmethod
-    def add_service(self, service_id: str, service_type: type):
+    # * attribute: container
+    container: containers.DynamicContainer
+
+    # * init
+    def __init__(self, services: Dict[str, type] = None):
         '''
-        Add a service dependency to the service provider.
+        Initialize the service container.
 
-        :param service_id: The service ID.
-        :type service_id: str
-        :param service_type: The type of the service dependency.
-        :type service_type: type
-        '''
-
-        pass
-
-    # * method: add_services
-    @abstractmethod
-    def add_services(self, services: Dict[str, type]):
-        '''
-        Add multiple service dependencies to the service provider.
-
-        :param services: A dictionary of service IDs and their corresponding types.
+        :param services: Initial service ID-to-type mapping.
         :type services: Dict[str, type]
         '''
 
-        pass
+        # Create the underlying DynamicContainer.
+        self.container = containers.DynamicContainer()
+
+        # Register initial services if provided.
+        if services:
+            self.add_services(services)
+
+    # * method: add_service
+    def add_service(self, service_id: str, service_type: type):
+        '''
+        Add a service dependency to the container.
+
+        :param service_id: The ID of the service to add.
+        :type service_id: str
+        :param service_type: The type of the service to add.
+        :type service_type: type
+        '''
+
+        # Build a Factory provider with constructor kwargs wired to sibling providers.
+        factory = self.build_factory(service_type)
+
+        # Register the provider on the container.
+        self.container.set_provider(service_id, factory)
+
+    # * method: add_services
+    def add_services(self, services: Dict[str, type]):
+        '''
+        Add multiple service dependencies to the container.
+
+        Class types are registered as Factory providers (new instance per
+        resolution). Non-type values (scalars, callables, etc.) are registered
+        as Object providers (pass-through).
+
+        Registration is performed in two passes: scalars first, then types.
+        This ensures all parameter values are available in the container
+        when Factory providers are built and their kwargs are wired.
+
+        :param services: A dictionary of service IDs and their corresponding types or values.
+        :type services: Dict[str, type]
+        '''
+
+        # Pass 1: Register all scalar/non-type values first so they are
+        # available when Factory providers are built.
+        for service_id, value in services.items():
+            if not isinstance(value, type):
+                self.container.set_provider(service_id, providers.Object(value))
+
+        # Pass 2: Register all class types as Factory providers.
+        for service_id, value in services.items():
+            if isinstance(value, type):
+                self.add_service(service_id, value)
 
     # * method: add_constants
-    @abstractmethod
     def add_constants(self, constants: Dict[str, Any]):
         '''
-        Add constant dependencies to the service provider.
+        Add constant dependencies to the container.
 
         :param constants: A dictionary of constant names and their corresponding values.
         :type constants: Dict[str, Any]
         '''
 
-        pass
+        # Register each constant as an Object provider for scalar pass-through.
+        for name, value in constants.items():
+            self.container.set_provider(name, providers.Object(value))
 
     # * method: get_service
-    @abstractmethod
     def get_service(self, service_id: str) -> Any:
         '''
         Get a service dependency by its ID.
 
         :param service_id: The service ID.
         :type service_id: str
-        :return: The service dependency instance.
+        :return: The resolved service dependency instance.
         :rtype: Any
         '''
 
-        pass
+        # Look up the provider and invoke it to resolve the dependency. A
+        # missing or failing provider raises a raw exception for the caller
+        # (which has event access) to convert into a structured error.
+        provider = self.container.providers.get(service_id)
+        return provider()
 
     # * method: remove_service
-    @abstractmethod
     def remove_service(self, service_id: str):
         '''
-        Remove a service dependency from the service provider.
+        Remove a service dependency from the container.
 
-        :param service_id: The service ID.
+        :param service_id: The service ID to remove.
         :type service_id: str
         '''
 

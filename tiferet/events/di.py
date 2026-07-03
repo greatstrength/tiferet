@@ -234,6 +234,9 @@ class SetServiceDependency(DIEvent):
             id=id,
         )
 
+        # Coerce optional parameters that argparse may pass as None.
+        parameters = parameters or {}
+
         # Delegate to the model to set/update the flagged dependency.
         registration.set_dependency(
             flag=flag,
@@ -388,7 +391,7 @@ class ListAllSettings(DIEvent):
     # * method: execute
     def execute(self, **kwargs) -> Tuple[List[ServiceRegistration], Dict[str, Any]]:
         '''
-        Execute the list all settings event.
+        List all service registrations and constants from the DI service.
 
         :param kwargs: Additional context.
         :type kwargs: dict

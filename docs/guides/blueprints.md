@@ -14,7 +14,7 @@ A blueprint is responsible for:
 - Loading the application service (repository)
 - Preparing default services and constants
 - Resolving interfaces via domain events
-- Wiring dependency injection
+- Declaratively wiring service dependencies and composing a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - Executing features through the resolved interface context
 
 The canonical example is `build_app` in `tiferet/blueprints/main.py`.
@@ -26,7 +26,7 @@ Blueprints sit at the highest level of the runtime graph. They are what applicat
 ```python
 from tiferet import App
 
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 result = app.run('calc.add', data={'a': 5, 'b': 3})
 ```
 
@@ -43,20 +43,19 @@ Blueprints are intentionally **thin** — they coordinate rather than implement 
 
 `build_app` follows a clear, composable pattern built from smaller blueprint functions:
 
-### 1. Service Provider Factory
+### 1. Declarative Service Wiring
 
-A standalone function allows downstream contexts to create providers consistently:
+`wire_services` instantiates the interface's service dependencies into a name-to-value registry without an app-level DI container, deferring any service whose constructor arguments are not yet resolvable and retrying until all are built:
 
 ```python
-def create_service_provider(
-    provider_type: type = DynamicServiceProvider,
-    type_map: Dict[str, type] = None,
-    **constants
-) -> ServiceProvider:
+def wire_services(
+    services: List[AppServiceDependency],
+    constants: Dict[str, Any],
+) -> Dict[str, Any]:
     ...
 ```
 
-This is registered in the DI container so contexts can create scoped providers.
+`load_app_instance` then composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and injects its `get_dependency` handler into the context.
 
 ### 2. Loading the App Service
 
@@ -76,18 +75,27 @@ def load_default_services() -> List[AppServiceDependency]:
     ]
 ```
 
-Constants are passed via `default_constants=a.bps.DEFAULT_CONSTANTS` to `GetAppInterface`.
+Default services and constants are merged into the interface by the `AppInterface.apply_defaults` domain method (see step 4).
 
 ### 4. Interface Resolution Flow
 
+`resolve_interface` reads the interface via the repo-only `GetAppInterface` event, falls back to the bootstrap default interface definitions through the context helper `resolve_default_interface` when the consumer's config omits it, then merges framework default services and constants via the `AppInterface.apply_defaults` domain method.
+
 ```python
-def resolve_interface(interface_id, ...) -> tuple:
+def resolve_interface(interface_id, ..., default_interfaces=[]) -> tuple:
     app_service = load_app_service(...)
     default_services = load_default_services()
-    app_interface = DomainEvent.handle(
-        GetAppInterface,
-        dependencies={'app_service': app_service},
-        interface_id=interface_id,
+    try:
+        app_interface = DomainEvent.handle(
+            GetAppInterface,
+            dependencies={'app_service': app_service},
+            interface_id=interface_id,
+        )
+    except a.TiferetError:
+        app_interface = resolve_default_interface(interface_id, default_interfaces)
+        if app_interface is None:
+            raise
+    app_interface = app_interface.apply_defaults(
         default_services=default_services,
         default_constants=a.bps.DEFAULT_CONSTANTS,
     )
@@ -104,7 +112,7 @@ def build_app(interface_id, ...) -> AppInterfaceContext:
 
 ## The build_cli Blueprint
 
-The CLI blueprint extends the app blueprint with argparse-based CLI parsing. All argparse wiring lives in the blueprint; runtime execution is delegated to `AppInterfaceContext.run`.
+The CLI blueprint is a thin entrypoint. Argparse parsing and request derivation are owned by the reincorporated `CliContext` (`tiferet/contexts/cli.py`); the blueprint only resolves, realizes, and delegates.
 
 ### Usage
 
@@ -112,7 +120,7 @@ The CLI blueprint extends the app blueprint with argparse-based CLI parsing. All
 from tiferet import CLI
 
 if __name__ == '__main__':
-    CLI('basic_calc_cli', app_yaml_file='config.yml')
+    CLI('basic_calc_cli', app_config='config.yml')
 ```
 
 ### Build Procedure
@@ -120,11 +128,10 @@ if __name__ == '__main__':
 `build_cli(interface_id, argv=None, ...)` follows these steps:
 
 1. Resolve the interface via `resolve_interface(interface_id, ...)`.
-2. Build the argparse parser by composing `get_commands()`, `get_parent_arguments()`, and `build_parser(cli_commands, parent_arguments)`.
-3. Parse arguments with `parse_argv(parser, argv)`; on failure, print to stderr and `sys.exit(2)`.
-4. Derive `feature_id` and `headers` via `derive_feature_request(parsed)` and dispatch to `interface_context.run(...)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+2. Realize the interface context via `realize_interface(...)`. Because the interface points at `CliContext`, the realized context exposes `run_cli`.
+3. Delegate to `cli_context.run_cli(argv)`, which builds the parser, parses `argv` (exiting `2` on failure), derives the feature request, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
 
-Because the CLI blueprint uses the default `AppInterfaceContext`, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
 
 ## When to Create a New Blueprint
 
@@ -154,7 +161,7 @@ Blueprints are **application-level**; contexts are **interface-level**.
 `build_app` resolves and realizes in one call:
 
 ```python
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 ```
 
 ### 2. Consistent Error Handling
@@ -165,12 +172,13 @@ Use framework constants and `RaiseError.execute()` for all failure paths.
 
 Blueprints should **not** contain domain logic — only orchestration, wiring, and delegation.
 
-### 4. Register `create_service_provider`
+### 4. Inject `get_dependency` into the Context
 
-Always register the function so contexts can create scoped providers:
+Compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine:
 
 ```python
-dependencies['create_service_provider'] = create_service_provider
+resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
+return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
 ```
 
 ## Related Documentation

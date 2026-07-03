@@ -7,10 +7,10 @@ from unittest import mock
 
 
 # ** app
-from ..logging import *
-from ...assets import TiferetError
-from ...assets.logging import DEFAULT_FORMATTERS, DEFAULT_HANDLERS, DEFAULT_LOGGERS
-from ...domain.logging import Formatter, Handler, Logger
+from tiferet.contexts.logging import *
+from tiferet.assets import TiferetError
+from tiferet.assets.logging import DEFAULT_FORMATTERS, DEFAULT_HANDLERS, DEFAULT_LOGGERS
+from tiferet.domain.logging import Formatter, Handler, Logger
 
 
 # *** fixtures
@@ -160,72 +160,18 @@ def test_logging_context_build_logger_default_configs(logging_context, logging_l
     assert logger.name == 'root'
 
 
-# ** test: logging_context_format_config_success
-def test_logging_context_format_config_success(logging_context, formatter, handler, logger_root):
-    '''
-    Test LoggingContext format_config successfully formats logging configurations.
-    '''
-
-    # Call format_config to format the configurations.
-    config = logging_context.format_config(
-        formatters=[formatter],
-        handlers=[handler],
-        loggers=[logger_root]
-    )
-
-    # Assert the configuration structure.
-    assert config['version'] == 1
-    assert config['disable_existing_loggers'] is False
-    assert 'formatters' in config
-    assert 'handlers' in config
-    assert 'root' in config
-    assert formatter.id in config['formatters']
-    assert handler.id in config['handlers']
-    assert config['root'] == logger_root.format_config()
-
-
-# ** test: logging_context_format_config_non_root_logger
-def test_logging_context_format_config_non_root_logger(logging_context, formatter, handler):
-    '''
-    Test LoggingContext format_config with non-root logger.
-    '''
-
-    # Create a non-root logger.
-    non_root_logger = Logger(
-        id='app',
-        name='app',
-        description='Application logger.',
-        level='INFO',
-        handlers=[handler.id],
-        propagate=True,
-        is_root=False
-    )
-
-    # Call format_config.
-    config = logging_context.format_config(
-        formatters=[formatter],
-        handlers=[handler],
-        loggers=[non_root_logger]
-    )
-
-    # Assert non-root logger is in loggers section.
-    assert 'loggers' in config
-    assert non_root_logger.id in config['loggers']
-    assert config['root'] is None
-
-
 # ** test: logging_context_create_logger_success
 def test_logging_context_create_logger_success(logging_context, formatter, handler, logger_root):
     '''
     Test LoggingContext create_logger successfully creates a logger.
     '''
 
-    # Format the configurations.
-    config = logging_context.format_config(
+    # Assemble the configuration via the value object.
+    config = LoggingSettings(
         formatters=[formatter],
         handlers=[handler],
-        loggers=[logger_root]
-    )
+        loggers=[logger_root],
+    ).format_config()
 
     # Create the logger.
     logger = logging_context.create_logger(

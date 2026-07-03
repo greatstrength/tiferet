@@ -90,7 +90,7 @@ class ErrorConfigObject(Error, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'message'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 ```
 
@@ -163,7 +163,7 @@ class FeatureConfigObject(Feature, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'steps'}},
-        'to_data.yaml': {
+        'to_data': {
             'by_alias': True,
             'exclude': {'feature_key', 'group_id', 'id'},
         },

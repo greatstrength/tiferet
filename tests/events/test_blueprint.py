@@ -147,7 +147,6 @@ def test_create_service_resolver_requires_app_interface():
     # Assert the required-parameter error code is raised.
     assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
 
-
 # ** test: create_service_resolver_merges_defaults
 def test_create_service_resolver_merges_defaults():
     '''

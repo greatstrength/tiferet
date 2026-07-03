@@ -7,19 +7,19 @@ import pytest
 from unittest import mock
 
 # ** app
-from ... import assets as a
-from ...assets import TiferetError
-from ...di import DependenciesServiceProvider
-from ...contexts.app import AppInterfaceContext
-from ...mappers import AppInterfaceAggregate
-from ...repos.app import AppYamlRepository
-from ... import App
-from ..main import (
+from tiferet import assets as a
+from tiferet.assets import TiferetError
+from tiferet.contexts.app import AppInterfaceContext
+from tiferet.contexts.cli import CliContext
+from tiferet.mappers import AppInterfaceAggregate
+from tiferet.repos.app import AppConfigRepository
+from tiferet import App
+from tiferet.blueprints.main import (
     build_app,
-    create_service_provider,
     load_app_service,
     load_default_services,
     load_app_instance,
+    resolve_collaborators,
 )
 
 # *** fixtures
@@ -58,30 +58,17 @@ def test_app_alias_is_build_app():
     assert App is build_app
 
 
-# ** test: create_service_provider_empty
-def test_create_service_provider_empty():
-    '''
-    Test that create_service_provider returns a valid provider with no arguments.
-    '''
-
-    # Create a provider with no type map or constants.
-    provider = create_service_provider()
-
-    # Assert the provider is a DependenciesServiceProvider.
-    assert isinstance(provider, DependenciesServiceProvider)
-
-
 # ** test: load_app_service_defaults
 def test_load_app_service_defaults():
     '''
-    Validate that load_app_service defaults to AppYamlRepository.
+    Validate that load_app_service defaults to AppConfigRepository.
     '''
 
     # Load the default app service.
-    service = load_app_service(app_yaml_file='app/configs/app.yml')
+    service = load_app_service(app_config='app/configs/app.yml')
 
-    # Assert the service is an AppYamlRepository.
-    assert isinstance(service, AppYamlRepository)
+    # Assert the service is an AppConfigRepository.
+    assert isinstance(service, AppConfigRepository)
 
 
 # ** test: load_default_services_returns_list
@@ -115,6 +102,99 @@ def test_load_app_instance_success(app_interface_aggregate):
     assert isinstance(result, AppInterfaceContext)
 
 
+# ** test: load_app_instance_injects_cli_collaborators
+def test_load_app_instance_injects_cli_collaborators():
+    '''
+    Test that realizing a CliContext interface injects the CLI event
+    collaborators that are not part of the generic hub's fixed set.
+    '''
+
+    # Build a CLI interface aggregate pointing at the reincorporated CliContext.
+    cli_interface = AppInterfaceAggregate(
+        id='test_cli',
+        name='Test CLI',
+        module_path='tiferet.contexts.cli',
+        class_name='CliContext',
+        description='Test CLI interface',
+        flags=['test'],
+        services=load_default_services(),
+        constants=a.bps.DEFAULT_CONSTANTS,
+    )
+
+    # Realize the interface context from the aggregate.
+    result = load_app_instance(cli_interface)
+
+    # Assert a CliContext is realized with the CLI collaborators injected.
+    assert isinstance(result, CliContext)
+    assert result.list_commands_evt is not None
+    assert result.get_parent_args_evt is not None
+
+
+# ** test: resolve_collaborators_generic_unchanged
+def test_resolve_collaborators_generic_unchanged():
+    '''
+    Test that the generic AppInterfaceContext resolves only its original three
+    collaborators, excluding reserved args, default_* kwargs, and unrelated ids.
+    '''
+
+    # Build a registry with the hub events plus reserved/default/unrelated ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+        'unrelated': 'x',
+    }
+
+    # Resolve collaborators for the generic hub.
+    resolved = resolve_collaborators(AppInterfaceContext, registry)
+
+    # Assert only the original three collaborators are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+    }
+
+
+# ** test: resolve_collaborators_cli_adds_cli_events
+def test_resolve_collaborators_cli_adds_cli_events():
+    '''
+    Test that the CliContext additionally resolves its CLI event collaborators
+    while still excluding reserved args and default_* kwargs.
+    '''
+
+    # Build a registry with hub and CLI events plus reserved/default ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+    }
+
+    # Resolve collaborators for the CLI context.
+    resolved = resolve_collaborators(CliContext, registry)
+
+    # Assert the hub events plus the two CLI events are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+        'list_commands_evt',
+        'get_parent_args_evt',
+    }
+
+
 # ** test: build_app_success
 def test_build_app_success(app_interface_aggregate):
     '''
@@ -132,8 +212,8 @@ def test_build_app_success(app_interface_aggregate):
         result = build_app(
             'test_calc',
             module_path='tiferet.repos.app',
-            class_name='AppYamlRepository',
-            app_yaml_file='tiferet/assets/tests/test_calc.yml',
+            class_name='AppConfigRepository',
+            app_config='tiferet/assets/tests/test_calc.yml',
         )
         assert isinstance(result, AppInterfaceContext)
         mock_resolve.assert_called_once()
@@ -156,8 +236,8 @@ def test_build_app_forwards_default_constants(app_interface_aggregate):
         build_app(
             'test_calc',
             module_path='tiferet.repos.app',
-            class_name='AppYamlRepository',
-            app_yaml_file='tiferet/assets/tests/test_calc.yml',
+            class_name='AppConfigRepository',
+            app_config='tiferet/assets/tests/test_calc.yml',
         )
 
         # Assert resolve_interface was called with the expected interface_id.
@@ -189,8 +269,8 @@ def test_build_app_invalid_context(app_interface_aggregate):
             build_app(
                 'invalid_interface',
                 module_path='tiferet.repos.app',
-                class_name='AppYamlRepository',
-                app_yaml_file='tiferet/assets/tests/test_calc.yml',
+                class_name='AppConfigRepository',
+                app_config='tiferet/assets/tests/test_calc.yml',
             )
 
         assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID

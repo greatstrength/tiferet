@@ -123,7 +123,6 @@ def test_app_service_dependency_get_service_type(resolvable_app_dependency: AppS
     # Assert the resolved type matches the expected class.
     assert service_type is AppInterface
 
-
 # ** test: app_interface_apply_defaults_merges_missing_only
 def test_app_interface_apply_defaults_merges_missing_only(app_interface: AppInterface) -> None:
     '''

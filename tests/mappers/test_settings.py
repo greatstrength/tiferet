@@ -3,6 +3,8 @@
 # *** imports
 
 # ** infra
+from typing import Any, ClassVar, Dict
+
 import pytest
 from pydantic import Field, ValidationError
 
@@ -281,3 +283,36 @@ def test_transfer_object_to_primitive_with_role(test_data_object: type):
     # Unknown role should fall back to defaults (exclude_none only).
     fallback = data_object.to_primitive(role='unknown_role')
     assert fallback == {'id': 'test_id', 'name': 'Test Data'}
+
+# ** test: aggregate_to_dict
+def test_aggregate_to_dict(test_aggregate: type):
+    '''
+    Test the to_dict serialization method on Aggregate.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Create an aggregate instance.
+    aggregate = test_aggregate(id='test_id', name='Test Aggregate')
+
+    # Serialize with defaults (exclude_none).
+    result = aggregate.to_dict()
+    assert result == {'id': 'test_id', 'name': 'Test Aggregate'}
+
+# ** test: aggregate_to_dict_with_overrides
+def test_aggregate_to_dict_with_overrides(test_aggregate: type):
+    '''
+    Test to_dict with caller-supplied model_dump overrides.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Create an aggregate instance.
+    aggregate = test_aggregate(id='test_id', name='Test Aggregate')
+
+    # Serialize excluding the id field.
+    result = aggregate.to_dict(exclude={'id'})
+    assert 'id' not in result
+    assert result == {'name': 'Test Aggregate'}

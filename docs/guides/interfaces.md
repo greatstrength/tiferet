@@ -73,18 +73,18 @@ def get_parent_arguments(self) -> List[CliArgumentAggregate]: ...
 
 ### DIService — Non-Standard Naming
 
-`DIService` manages two distinct resources: service configurations and constants. Because both live in the same configuration file but require separate operations, the method names are domain-specific rather than generic CRUD:
+`DIService` manages two distinct resources: service registrations and constants. Because both live in the same configuration file but require separate operations, the method names are domain-specific rather than generic CRUD:
 
 | Standard | DIService equivalent |
 |---|---|
-| `exists` | `configuration_exists` |
-| `get` | `get_configuration` |
+| `exists` | `registration_exists` |
+| `get` | `get_registration` |
 | `list` | `list_all` (returns a tuple: configurations + constants dict) |
-| `save` | `save_configuration` |
-| `delete` | `delete_configuration` |
+| `save` | `save_registration` |
+| `delete` | `delete_registration` |
 | *(none)* | `save_constants` |
 
-The `list_all` return type is `Tuple[List[ServiceConfigurationAggregate], Dict[str, str]]` — a paired result that loads the full DI container state in one call. `save_constants` has no CRUD equivalent because constants are a flat key-value dict, not an aggregate.
+The `list_all` return type is `Tuple[List[ServiceRegistrationAggregate], Dict[str, str]]` — a paired result that loads the full DI container state in one call. `save_constants` has no CRUD equivalent because constants are a flat key-value dict, not an aggregate.
 
 ### LoggingService — Split by Sub-Entity Type
 
@@ -108,7 +108,7 @@ Every abstract method body raises `NotImplementedError` with a descriptive strin
 
 ```python
 raise NotImplementedError('get method is required for ErrorService.')
-raise NotImplementedError('configuration_exists method is required for DIService.')
+raise NotImplementedError('registration_exists method is required for DIService.')
 ```
 
 The message pattern is consistent across all interfaces. Deviating from it (e.g., using a generic `'Not implemented'` message) reduces debuggability when a concrete class forgets to implement a method.
@@ -161,7 +161,7 @@ class GetFeature(DomainEvent):
         return feature
 ```
 
-The concrete implementation (`FeatureYamlRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
+The concrete implementation (`FeatureConfigRepository`, or a mock in tests) is wired at runtime by the dependency injection container. Tests always mock the service interface:
 
 ```python
 mock_feature_service = mock.Mock(spec=FeatureService)
@@ -180,7 +180,7 @@ Use the standard `exists / get / list / save / delete` names whenever possible. 
 
 1. **The domain manages multiple sub-entities of different types** and a single generic name would be ambiguous (`LoggingService` splits by formatter/handler/logger).
 2. **The resource is not an aggregate** — constants are a plain dict, not a model with an ID, so `save_constants` is appropriate and `save(constants)` would be misleading.
-3. **A meaningful qualifier adds clarity** — `configuration_exists` is clearer than `exists` when a service manages both configurations and constants under the same contract.
+3. **A meaningful qualifier adds clarity** — `registration_exists` is clearer than `exists` when a service manages both configurations and constants under the same contract.
 
 Do not rename standard methods for stylistic reasons. If `get` and `exists` cover the use case, use them.
 

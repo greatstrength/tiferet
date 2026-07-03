@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Optional, List
+from typing import List, Optional
 
 # ** app
 from .settings import DomainEvent, a
@@ -43,7 +43,7 @@ class ListCliCommands(CliEvent):
     # * method: execute
     def execute(self, **kwargs) -> List[CliCommand]:
         '''
-        List all CLI commands.
+        List all CLI commands from the CLI service.
 
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
@@ -51,7 +51,7 @@ class ListCliCommands(CliEvent):
         :rtype: List[CliCommand]
         '''
 
-        # Delegate to the CLI service.
+        # Retrieve and return all commands from the CLI service.
         return self.cli_service.list()
 
 # ** event: get_parent_arguments

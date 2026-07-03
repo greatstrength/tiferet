@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 # ** app
-from .. import App, TiferetAPIError
+from tiferet import App, TiferetAPIError
 
 # *** constants
 
@@ -17,19 +17,19 @@ TEST_CALC_CONFIG = {
     'services': {
         'add_number_cmd': {
             'class_name': 'TestAddNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'subtract_number_cmd': {
             'class_name': 'TestSubtractNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'multiply_number_cmd': {
             'class_name': 'TestMultiplyNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
         'divide_number_cmd': {
             'class_name': 'TestDivideNumber',
-            'module_path': 'tiferet.tests_int',
+            'module_path': 'tests_int',
         },
     },
     'errors': {
@@ -107,10 +107,10 @@ TEST_CALC_CONFIG = {
             'name': 'Integration Test - Basic Int Calculator',
             'description': 'The interface instance for testing the calculator features.',
             'constants': {
-                'feature_yaml_file': None,
-                'error_yaml_file': None,
-                'di_yaml_file': None,
-                'logging_yaml_file': None,
+                'feature_config': None,
+                'error_config': None,
+                'di_config': None,
+                'logging_config': None,
             },
         },
     },
@@ -136,7 +136,7 @@ def test_calc_yaml_file(tmp_path):
 
     # Deep copy the config and set all yaml file paths to the temp file.
     config = copy.deepcopy(TEST_CALC_CONFIG)
-    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
+    for key in ('feature_config', 'error_config', 'di_config', 'logging_config'):
         config['interfaces']['test_calc']['constants'][key] = str(file_path)
 
     # Write the configuration to the temporary YAML file.
@@ -159,7 +159,7 @@ def basic_calc(test_calc_yaml_file):
     '''
 
     # Build and return the test_calc interface context.
-    return App('test_calc', app_yaml_file=test_calc_yaml_file)
+    return App('test_calc', app_config=test_calc_yaml_file)
 
 # *** tests
 

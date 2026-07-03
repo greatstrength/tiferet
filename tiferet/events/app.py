@@ -1,7 +1,7 @@
 # *** imports
 
 # ** core
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # ** app
 from .settings import DomainEvent, a
@@ -120,7 +120,7 @@ class GetAppInterface(AppEvent):
     @DomainEvent.parameters_required(['interface_id'])
     def execute(self, interface_id: str, **kwargs) -> AppInterface:
         '''
-        Execute the event to load the application interface.
+        Retrieve an application interface by ID from the app service.
 
         :param interface_id: The ID of the application interface to load.
         :type interface_id: str
@@ -131,7 +131,7 @@ class GetAppInterface(AppEvent):
         :raises TiferetError: If the interface cannot be found.
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the interface from the app service.
         interface = self.app_service.get(interface_id)
 
         # Raise an error if the interface is not found.

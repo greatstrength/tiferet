@@ -1,7 +1,7 @@
 # *** imports
 
 # ** app
-from ..events import DomainEvent
+from tiferet.events import DomainEvent
 
 # *** classes
 

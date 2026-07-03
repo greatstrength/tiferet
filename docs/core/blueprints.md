@@ -17,7 +17,7 @@ Blueprints sit at the highest level of the application graph:
 - They load the application service (typically a repository)
 - They prepare default services and constants from `assets.blueprints`
 - They resolve interfaces via domain events (`GetAppInterface`)
-- They wire the dependency injection container
+- They declaratively wire service dependencies into a name-to-value registry (no app-level DI container) and compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - They delegate feature execution to the resolved `AppInterfaceContext`
 
 This design keeps application code simple while maintaining full extensibility and testability.
@@ -27,7 +27,7 @@ This design keeps application code simple while maintaining full extensibility a
 Tiferet currently defines two blueprints:
 
 - **App blueprint**: `build_app` — used for general script and custom interfaces. Exposed globally as `App`.
-- **CLI blueprint**: `build_cli` — extends the app blueprint with argparse-based CLI build-time translation of `sys.argv` into a feature invocation. Exposed globally as `CLI`.
+- **CLI blueprint**: `build_cli` — a thin entrypoint that resolves and realizes a CLI interface (which must point at `CliContext`) and delegates `sys.argv` translation and feature dispatch to `CliContext.run_cli`. Exposed globally as `CLI`.
 
 Future specialized blueprints may include:
 
@@ -36,14 +36,13 @@ Future specialized blueprints may include:
 
 ### CLI Blueprint Build Procedure
 
-The CLI blueprint (`build_cli`) keeps all build-time CLI parsing in the blueprint and delegates runtime execution to the `AppInterfaceContext`. Its flow follows these steps:
+The CLI blueprint (`build_cli`) is a thin entrypoint; argparse parsing and request derivation live in the reincorporated `CliContext` (`tiferet/contexts/cli.py`). Its flow follows these steps:
 
 1. **Resolve the interface** via `resolve_interface(interface_id)`.
-2. **Build the argparse parser** by composing `get_commands()` (resolves `list_commands_evt` and groups returned commands by `group_key`), `get_parent_arguments()` (resolves `get_parent_args_evt`), and `build_parser(cli_commands, parent_arguments)`.
-3. **Parse arguments** with `parse_argv(parser, argv)`; on failure, print to stderr and `sys.exit(2)`.
-4. **Dispatch the feature** by deriving `feature_id` and `headers` via `derive_feature_request(parsed)`, then calling `interface_context.run(feature_id=feature_id, headers=headers, data=parsed)`. On `TiferetAPIError`, print to stderr and `sys.exit(1)`; otherwise print and return the response.
+2. **Realize the context** via `realize_interface(...)`. The interface must point at `tiferet.contexts.cli` / `CliContext`, so the realized context is a `CliContext`.
+3. **Delegate to the context** by calling `cli_context.run_cli(argv)`, which builds the parser from the interface's CLI commands and parent arguments, parses `argv` (argparse exits `2` on failure), derives `feature_id`/`headers`, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
 
-Because the default `AppInterfaceContext` is sufficient for CLI interfaces, CLI interface definitions in YAML no longer require `module_path`/`class_name` overrides.
+Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
 
 ## Structured Code Design of Blueprints
 
@@ -52,6 +51,8 @@ Blueprints follow Tiferet's standard artifact comment structure.
 ### Artifact Comments
 
 Blueprints are organized under the `# *** blueprints` top-level comment, with individual blueprints under `# ** blueprint: <snake_case_name>`. Each blueprint function uses standard RST docstrings and code snippet conventions.
+
+Side-effect-free helpers (pure input→output transforms with no I/O, instantiation, or error raising) belong in a `# *** functions` section above `# *** blueprints`, with individual helpers under `# ** function: <snake_case_name>`. In `tiferet/blueprints/main.py` these are `resolve_ctor_kwargs`, `build_wiring_constants`, and `resolve_collaborators` — small pure helpers consumed by the orchestration functions below them. Reserve `# *** blueprints` for the orchestration entry points reused by other blueprints or clients (e.g. `wire_services`, `resolve_interface`, `load_app_instance`, `build_app`).
 
 **Spacing rules:**
 
@@ -66,10 +67,11 @@ Blueprints are organized under the `# *** blueprints` top-level comment, with in
 1. Place the function under `# *** blueprints` in an appropriate module (for example, `tiferet/blueprints/main.py`).
 2. Use `# ** blueprint: <snake_case_name>`.
 3. Implement the standard lifecycle functions:
-   - `create_service_provider` — provider factory
    - `load_app_service` — import and construct the app service
    - `load_default_services` — load default service dependencies
    - `resolve_interface` — resolve the interface definition
+   - `wire_services` — declaratively instantiate service dependencies into a name-to-value registry
+   - `load_app_instance` — compose the `ServiceResolver` via the `CreateServiceResolver` bootstrap event and construct the context, injecting `get_dependency`
    - `realize_interface` — build and validate the interface context
    - `build_app` — high-level entry point
 
@@ -79,26 +81,25 @@ Blueprints are organized under the `# *** blueprints` top-level comment, with in
 `build_app` resolves and realizes in one call:
 
 ```python
-app = App('basic_calc', app_yaml_file='config.yml')
+app = App('basic_calc', app_config='config.yml')
 ```
 
 **Default configuration injection**  
-Blueprints automatically inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via `GetAppInterface`:
+Blueprints inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via the `AppInterface.apply_defaults` domain method after the repo-only `GetAppInterface` read (with the context helper `resolve_default_interface` providing the bootstrap interface fallback):
 
 ```python
-app_interface = DomainEvent.handle(
-    GetAppInterface,
-    ...,
+app_interface = app_interface.apply_defaults(
     default_services=default_services,
     default_constants=a.bps.DEFAULT_CONSTANTS,
 )
 ```
 
-**Service provider registration**  
-The `create_service_provider` function is registered so contexts can create scoped providers:
+**Declarative service wiring**  
+`wire_services` instantiates the interface's dependencies into a name-to-value registry, and `load_app_instance` composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, injecting its `get_dependency` handler into the context:
 
 ```python
-dependencies['create_service_provider'] = create_service_provider
+resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
+return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
 ```
 
 ## Testing Blueprints
@@ -106,7 +107,7 @@ dependencies['create_service_provider'] = create_service_provider
 Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 
 - Correct loading of the app service
-- Delegation to `GetAppInterface` with defaults injected
+- Delegation to `GetAppInterface` (repo-only) with defaults merged via `AppInterface.apply_defaults`
 - Validation of the resolved `AppInterfaceContext`
 - High-level `build_app()` behavior
 
@@ -115,18 +116,18 @@ Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 - Keep blueprints **thin** — they should orchestrate, not implement domain logic.
 - Always validate the resolved context type in `realize_interface`.
 - Use `RaiseError.execute()` for all error paths with proper constants.
-- Register `create_service_provider` so contexts remain decoupled from the blueprint.
+- Inject the `ServiceResolver`'s `get_dependency` handler into the context so contexts remain decoupled from the DI engine.
 
 ## Conclusion
 
 Blueprints provide a clean, high-level API for initializing and running Tiferet applications. They encapsulate service loading, default configuration, and interface resolution while delegating execution to `AppInterfaceContext`. Their functional design ensures consistency, forward-compatibility, and extensibility.
 
-Explore source in `tiferet/blueprints/` and tests in `tiferet/blueprints/tests/` for implementation details.
+Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `tests/` tree for implementation details.
 
 ## Related Documentation
 
 - [docs/guides/blueprints.md](../guides/blueprints.md) — blueprint strategies and patterns
 - [docs/core/di.md](../core/di.md) — dependency injection and service provider design
 - [docs/core/events.md](../core/events.md) — domain event design and usage
-- [docs/guides/domain/app.md](../guides/domain/app.md) — application interface and service configuration guide
+- [docs/guides/domain/app.md](../guides/domain/app.md) — application interface and service registration guide
 - [docs/core/code_style.md](../core/code_style.md) — artifact comments and formatting

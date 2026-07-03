@@ -65,17 +65,17 @@ if service:
 
 The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer of the App domain at runtime. The flow is:
 
-1. **`App('basic_calc', app_yaml_file='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
+1. **`App('basic_calc', app_config='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
 2. **`resolve_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event, merging default services.
-3. **`realize_interface(app_interface, ...)`** iterates through `app_interface.services`, imports each class via `ImportDependency.execute()`, and collects them (along with parameters and constants) into a dependencies dict.
-4. The dependencies dict is passed to `create_service_provider`, which builds a DI container that instantiates the context class with all its wired services.
+3. **`load_app_instance(app_interface, ...)`** (invoked by `realize_interface`) calls `wire_services` to import each class in `app_interface.services` via `ImportDependency.execute()` and instantiate them (along with parameters and constants) into a name-to-value registry — no app-level DI container.
+4. A `ServiceResolver` is built from the resolved `di_service`, and the context class is constructed declaratively via `from_domain`, injecting `resolver.get_dependency` and the resolved event collaborators.
 5. The resulting `AppInterfaceContext` is returned, ready to execute features.
 
 ```python
 # Simplified runtime flow
 from tiferet import App
 
-app = App('basic_calc', app_yaml_file='config.yml')  # resolves interface, wires dependencies
+app = App('basic_calc', app_config='config.yml')  # resolves interface, wires dependencies
 result = app.run('calc.add', data={'a': 1, 'b': 2})  # executes features via the wired context
 ```
 
@@ -91,15 +91,17 @@ interfaces:
   basic_calc_cli:
     name: Calculator CLI
     description: Perform basic calculator operations via CLI
+    module_path: tiferet.contexts.cli
+    class_name: CliContext
     attrs:
       cli_repo:
         module_path: tiferet.repos.cli
-        class_name: CliYamlRepository
+        class_name: CliConfigRepository
         params:
-          cli_yaml_file: config.yml
+          cli_config: config.yml
 ```
 
-CLI interfaces no longer require `module_path`/`class_name` overrides — they use the default `AppInterfaceContext` with argparse wiring handled by the `build_cli` blueprint.
+CLI interfaces declare `module_path: tiferet.contexts.cli` / `class_name: CliContext` to opt into the CLI context; the `build_cli` blueprint realizes that context and delegates argv parsing to `CliContext.run_cli`.
 
 ## Domain Events
 
@@ -124,11 +126,11 @@ These events depend on the `AppService` interface for persistence operations.
 - `save(app_interface) -> None`
 - `delete(id: str) -> None`
 
-Concrete implementations (e.g., `AppYamlRepository`) satisfy this interface.
+Concrete implementations (e.g., `AppConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Dependency Injection:** `AppServiceDependency` entries reference service configurations that are resolved at runtime via `DIContext`.
+- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories (wired by `wire_services`); feature-step service registrations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
 - **Feature:** Once an interface is loaded and its context instantiated, features defined in the configuration are executed through the `FeatureContext`.
 - **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain.
 
@@ -142,8 +144,8 @@ from tiferet.domain import AppServiceDependency, AppInterface
 dep = AppServiceDependency(
     service_id='cli_repo',
     module_path='tiferet.repos.cli',
-    class_name='CliYamlRepository',
-    parameters={'cli_yaml_file': 'config.yml'},
+    class_name='CliConfigRepository',
+    parameters={'cli_config': 'config.yml'},
 )
 
 interface = AppInterface(

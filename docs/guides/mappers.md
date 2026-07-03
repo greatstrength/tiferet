@@ -27,7 +27,7 @@ If a domain object is only ever used as a **nested sub-object** inside a parent 
 | `AppInterface` | Yes (`AppInterfaceAggregate`) | Multi-field mutations (`set_service`, `set_constants`, gated `set_attribute`) |
 | `AppServiceDependency` | No | 1:1 field mapping; parent manages mutations |
 | `Feature` | Yes (`FeatureAggregate`) | Complex `new` factory with ID derivation; step ordering and insertion |
-| `FeatureEvent` | Yes (`FeatureEventAggregate`) | Specialized setters for `pass_on_error` and parameter merging |
+| `EventFeatureStep` | Yes (`EventFeatureStepAggregate`) | Specialized setters for `pass_on_error` and parameter merging |
 | `Error` | Yes (`ErrorAggregate`) | Message list management (`set_message`, `remove_message`) |
 | `ErrorMessage` | No | 1:1 mapping; parent manages the list |
 | `CliArgument` | Yes (`CliArgumentAggregate`) | Gated `set_attribute` for mutable fields; serves as return type for `CliService.get_parent_arguments()` |
@@ -89,17 +89,17 @@ self.services.append(dependency)
 The transfer object is responsible for any structural differences between the configuration format and the domain model. The most common pattern is **dict↔list conversion**, where YAML stores sub-objects as a dictionary keyed by an identifier, but the domain model stores them as a list with that identifier as a field.
 
 ```python
-# AppInterfaceYamlObject.map — dict keys become attribute_id fields
+# AppInterfaceConfigObject.map — dict keys become attribute_id fields
 services=[dep.map(attribute_id=dep_id) for dep_id, dep in self.services.items()]
 
-# AppInterfaceYamlObject.from_model — list items become dict entries
+# AppInterfaceConfigObject.from_model — list items become dict entries
 services={
-    dep.attribute_id: TransferObject.from_model(AppServiceDependencyYamlObject, dep)
+    dep.attribute_id: TransferObject.from_model(AppServiceDependencyConfigObject, dep)
     for dep in app_interface.services
 }
 ```
 
-This pattern appears in every domain that nests sub-objects: services in app interfaces, dependencies in service configurations, messages in errors, steps in features.
+This pattern appears in every domain that nests sub-objects: services in app interfaces, dependencies in service registrations, messages in errors, steps in features.
 
 ## Transfer Object Role Strategy
 
@@ -108,8 +108,7 @@ Transfer objects use a `_ROLES` ClassVar to control which fields appear in diffe
 | Role | Purpose |
 |---|---|
 | `to_model` | Fields included when mapping to an aggregate or domain object |
-| `to_data.yaml` | Fields included when serializing to YAML configuration |
-| `to_data.json` | Fields included when serializing to JSON |
+| `to_data` | Fields included when serializing to configuration files |
 
 ### Exclude vs Include
 
@@ -122,8 +121,8 @@ Transfer objects use a `_ROLES` ClassVar to control which fields appear in diffe
 
 ```python
 _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-    'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
-    'to_data.json': {'exclude': {'id'}},
+    'to_data': {'by_alias': True, 'exclude': {'id'}},
+    'to_data': {'exclude': {'id'}},
 }
 ```
 
@@ -212,14 +211,14 @@ The convention is:
 Every transfer object pair (`map` + `from_model`) should support lossless round-trip conversion:
 
 ```
-Aggregate → from_model → YamlObject → map → Aggregate
+Aggregate → from_model → ConfigObject → map → Aggregate
 ```
 
 Tests validate this by asserting field equality after a round trip:
 
 ```python
 def test_round_trip(aggregate):
-    yaml_obj = YamlObject.from_model(aggregate)
+    yaml_obj = ConfigObject.from_model(aggregate)
     round_tripped = yaml_obj.map()
     assert round_tripped.id == aggregate.id
     assert round_tripped.name == aggregate.name
@@ -230,15 +229,15 @@ When the transfer object performs structural transformations (dict↔list), both
 
 ## Composite Transfer Objects
 
-Some transfer objects don't extend a domain object — they compose multiple domain objects into a single configuration structure. `LoggingSettingsYamlObject` is the canonical example: it holds dicts of `FormatterYamlObject`, `HandlerYamlObject`, and `LoggerYamlObject`, representing the entire `logging.yml` file.
+Some transfer objects don't extend a domain object — they compose multiple domain objects into a single configuration structure. `LoggingSettingsConfigObject` is the canonical example: it holds dicts of `FormatterConfigObject`, `HandlerConfigObject`, and `LoggerConfigObject`, representing the entire `logging.yml` file.
 
 These composite transfer objects use `model_validate` with custom hydration logic:
 
 ```python
 @classmethod
-def hydrate(cls, **data) -> 'LoggingSettingsYamlObject':
+def hydrate(cls, **data) -> 'LoggingSettingsConfigObject':
     return cls.model_validate(dict(
-        formatters={id: FormatterYamlObject.model_validate({**d, 'id': id})
+        formatters={id: FormatterConfigObject.model_validate({**d, 'id': id})
                     for id, d in data.get('formatters', {}).items()},
         # ...
     ))
@@ -248,10 +247,10 @@ Use this pattern when a YAML file contains multiple related configuration sectio
 
 ## Custom `to_primitive` Overrides
 
-When the standard role-based serialization isn't sufficient, transfer objects can override `to_primitive` to produce a custom dictionary. `CliCommandYamlObject` does this to handle argument serialization:
+When the standard role-based serialization isn't sufficient, transfer objects can override `to_primitive` to produce a custom dictionary. `CliCommandConfigObject` does this to handle argument serialization:
 
 ```python
-def to_primitive(self, role='to_data.yaml', **kwargs) -> Dict[str, Any]:
+def to_primitive(self, role='to_data', **kwargs) -> Dict[str, Any]:
     return dict(
         **super().to_primitive(role=role, **kwargs),
         args=[arg.model_dump(exclude_none=True) for arg in self.arguments]

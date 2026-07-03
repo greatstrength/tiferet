@@ -9,16 +9,51 @@ This document defines the required code style for all modules in the `tiferet` p
 Artifact comments provide a predictable, machine-readable structure that organizes code into clear sections and sub-sections.
 
 ### Top-Level (`# ***`)
-Denotes major module sections:
+Top-level comments denote major module sections, which fall into two kinds: **preamble groups** (available in every module) and **construct groups** (the module's primary body).
+
+**Preamble artifact section groups** are available in *any* module, regardless of its construct type (`# *** events`, `# *** utils`, etc.). There are four, and they appear in this order when present:
 - `# *** imports` — all import statements.
-- `# *** exports` — public API (only in `__init__.py`).
-- `# *** models`, `# *** commands`, `# *** contexts`, `# *** contracts`, `# *** data`, `# *** repositories`, `# *** proxies` — component groups.
+- `# *** constants` — module-level constant definitions.
+- `# *** functions` — module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
+- `# *** classes` — generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
+
+**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. The `# *** exports` group lists the public API and appears only in `__init__.py`.
+
+A module combines its preamble groups with its construct group(s), ordered `imports` → `constants` → `functions`, then `classes` and/or the construct group(s). For example, a domain-event module that needs a pure helper is laid out as:
+```python
+# *** imports
+...
+
+# *** functions
+
+# ** function: _is_valid_identifier
+def _is_valid_identifier(name: str) -> bool:
+    '''
+    Validate that a name is a valid SQLite identifier.
+
+    :param name: The identifier to validate
+    :type name: str
+    :return: True if valid, False otherwise
+    :rtype: bool
+    '''
+
+    # Basic check: alphanumeric and underscore only, doesn't start with digit
+    if not name:
+        return False
+    if name[0].isdigit():
+        return False
+    return all(c.isalnum() or c == '_' for c in name)
+
+# *** events
+...
+```
 
 **Spacing**: One empty line between top-level comment and first mid-level comment.
 
 ### Mid-Level (`# **`)
 Specifies categories or individual components:
 - For imports: `# ** core`, `# ** infra`, `# ** app`.
+- For functions: `# ** function: <snake_case_name>`.
 - For components: `# ** model: <snake_case_name>`, `# ** command: <snake_case_name>`, etc.
 
 **Spacing**: One empty line between mid-level comments.
@@ -109,21 +144,21 @@ def handle_command(self, ...):
 
 ## Example: Complete Class with Formatting
 
-**Command Example** – `GetFeature`:
+**Domain Event Example** – `GetFeature`:
 ```python
 # *** imports
 
 # ** app
-from .settings import Command
-from ..contracts.feature import FeatureService
-from ..models.feature import Feature
+from .settings import DomainEvent, a
+from ..interfaces import FeatureService
+from ..domain import Feature
 
-# *** commands
+# *** events
 
-# ** command: get_feature
-class GetFeature(Command):
+# ** event: get_feature
+class GetFeature(DomainEvent):
     '''
-    Command to retrieve a feature by its identifier.
+    Domain event to retrieve a feature by its identifier.
     '''
 
     # * attribute: feature_service
@@ -132,7 +167,7 @@ class GetFeature(Command):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the GetFeature command.
+        Initialize the GetFeature event.
         '''
         self.feature_service = feature_service
 
@@ -155,7 +190,7 @@ class GetFeature(Command):
         # If not found, raise structured error.
         if not feature:
             self.raise_error(
-                const.FEATURE_NOT_FOUND_ID,
+                a.const.FEATURE_NOT_FOUND_ID,
                 f'Feature not found: {id}',
                 feature_id=id
             )
@@ -175,8 +210,10 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.commands.feature import GetFeature
-from tiferet.models.feature import Feature
+from tiferet.events.settings import DomainEvent
+from tiferet.events.feature import GetFeature
+from tiferet.interfaces import FeatureService
+from tiferet.domain import Feature
 
 # *** fixtures
 
@@ -194,7 +231,7 @@ def sample_feature() -> Feature:
     '''
     Sample Feature instance for testing.
     '''
-    return ModelObject.new(Feature, id='test.feature', name='Test Feature')
+    return Feature(id='test.feature', name='Test Feature')
 
 # *** tests
 
@@ -210,7 +247,7 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     '''
     mock_feature_service.get.return_value = sample_feature
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         GetFeature,
         dependencies={'feature_service': mock_feature_service},
         id='test.feature'
@@ -321,6 +358,7 @@ Harness test classes follow the same spacing conventions as production code:
 - Write clear RST docstrings.
 - Break methods into commented snippets.
 - Maintain consistent spacing.
+- Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
 - Prefer the domain event test harness (`DomainEventTestBase` / `ServiceEventTestBase`) for all new event tests.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.

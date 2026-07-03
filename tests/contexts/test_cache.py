@@ -4,8 +4,7 @@
 import pytest
 
 # ** app
-from ..cache import *
-
+from tiferet.contexts.cache import *
 
 # *** fixtures
 
@@ -20,7 +19,6 @@ def initial_cache():
 def cache_context():
     """Fixture to provide a fresh CacheContext instance for each test."""
     return CacheContext()
-
 
 # *** tests
 

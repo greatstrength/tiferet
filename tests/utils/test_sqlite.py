@@ -336,16 +336,18 @@ def test_sqlite_client_backup_success(tmp_path: Path, memory_client: SqliteClien
     :type sample_table_sql: str
     :param sample_insert_sql: SQL to insert a row.
     :type sample_insert_sql: str
+    :param tmp_path: The temporary directory path provided by pytest.
+    :type tmp_path: pathlib.Path
     '''
 
-    # Set up source database.
+    # Define the backup target path.
+    backup_path = tmp_path / 'backup.db'
+
+    # Set up source database with data.
     memory_client.open_file()
     memory_client.execute(sample_table_sql)
     memory_client.execute(sample_insert_sql, ('backup_item', 42.0))
     memory_client.commit()
-
-    # Define the backup target path.
-    backup_path = tmp_path / 'backup.db'
 
     try:
 
