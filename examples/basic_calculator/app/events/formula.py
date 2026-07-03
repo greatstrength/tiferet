@@ -59,7 +59,6 @@ class FormulaEvent(DomainEvent):
                 value=value,
             )
 
-
 # ** event: save_formula
 class SaveFormula(FormulaEvent):
     '''
@@ -102,7 +101,6 @@ class SaveFormula(FormulaEvent):
         # Return the saved formula.
         return formula
 
-
 # ** event: get_formula
 class GetFormula(FormulaEvent):
     '''
@@ -137,7 +135,6 @@ class GetFormula(FormulaEvent):
         # Return the retrieved formula.
         return formula
 
-
 # ** event: list_formulas
 class ListFormulas(FormulaEvent):
     '''
@@ -164,7 +161,6 @@ class ListFormulas(FormulaEvent):
 
         # Render each formula on its own line.
         return '\n'.join(formula.display() for formula in formulas)
-
 
 # ** event: evaluate_formula
 class EvaluateFormula(FormulaEvent):

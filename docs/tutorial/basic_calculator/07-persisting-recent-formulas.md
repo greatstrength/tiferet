@@ -29,7 +29,6 @@ from typing import Any
 from tiferet.events import *
 from tiferet import Json
 
-
 class RecordCalculation(DomainEvent):
     """Append the most recent calculation to a JSON history file."""
 
@@ -49,7 +48,6 @@ class RecordCalculation(DomainEvent):
         # Persist via the file loader and return the result unchanged.
         Json(history_file, mode='w').save(entries)
         return result
-
 
 class ListRecentFormulas(DomainEvent):
     """Render the most recently executed calculations as a friendly string."""

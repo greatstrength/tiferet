@@ -19,7 +19,6 @@ from typing import Any, List
 from pydantic import Field, model_validator
 from tiferet import DomainObject
 
-
 class Formula(DomainObject):
     """A saved, variablized calculator formula (e.g. width * height)."""
 
@@ -71,7 +70,6 @@ from typing import Any, ClassVar, Dict
 from tiferet.mappers import Aggregate, TransferObject
 from ..domain.formula import Formula
 
-
 class FormulaAggregate(Formula, Aggregate):
     """A mutable formula aggregate."""
 
@@ -82,7 +80,6 @@ class FormulaAggregate(Formula, Aggregate):
         self.expression = expression
         identifiers = re.findall(r'[A-Za-z_][A-Za-z0-9_]*', expression)
         self.variables = list(dict.fromkeys(identifiers))
-
 
 class FormulaConfigObject(Formula, TransferObject):
     """A configuration (YAML/JSON) representation of a formula."""
@@ -108,7 +105,6 @@ from typing import List
 
 from tiferet.interfaces import Service
 from ..mappers.formula import FormulaAggregate
-
 
 class FormulaService(Service):
     """Service interface for managing saved formulas."""
@@ -142,7 +138,6 @@ from typing import List
 from tiferet.repos.settings import ConfigurationRepository
 from ..interfaces.formula import FormulaService
 from ..mappers.formula import FormulaAggregate, FormulaConfigObject
-
 
 class FormulaConfigRepository(FormulaService, ConfigurationRepository):
     """Persists formulas under the `formulas` node of a config file."""
@@ -195,13 +190,11 @@ from tiferet.events import DomainEvent
 from ..interfaces.formula import FormulaService
 from ..mappers.formula import FormulaAggregate
 
-
 class FormulaEvent(DomainEvent):
     """Base event holding the shared FormulaService."""
 
     def __init__(self, formula_service: FormulaService):
         self.formula_service = formula_service
-
 
 class SaveFormula(FormulaEvent):
     @DomainEvent.parameters_required(['name', 'expression'])
@@ -209,7 +202,6 @@ class SaveFormula(FormulaEvent):
         formula = FormulaAggregate(name=name, expression=expression, description=description)
         self.formula_service.save(formula)   # save is an upsert
         return formula
-
 
 class EvaluateFormula(FormulaEvent):
     @DomainEvent.parameters_required(['id'])
