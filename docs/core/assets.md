@@ -37,14 +37,7 @@ Assets modules follow the standard Tiferet artifact comment hierarchy (see [code
 
 **Spacing rules** match the rest of the framework: one empty line between a top-level comment and the first mid-level comment, one empty line between mid-level entries, and one empty line after docstrings and between code snippets.
 
-### Domain-appropriate specializations
-
-Two modules use specialized labels that are variants of the kinds above, chosen for readability:
-
-- **`# *** exceptions` / `# ** exception: <name>`** (`exceptions.py`) — a specialization of standalone **classes** for exception types.
-- **`# *** configs` / `# ** config: <name>`** (`logging.py`) — a specialization of **constants** for default configuration data structures.
-
-Both remain, fundamentally, standalone classes and constants; the specialized labels simply describe intent.
+There are no specialized top-level labels in this layer. Exception types are plain standalone **classes** (`# *** classes` / `# ** class: <name>`), and default configuration data structures are plain **constants** (`# *** constants` / `# ** constant: <name>`).
 
 ## Artifact Kinds
 
@@ -106,12 +99,12 @@ def is_blank(value: str) -> bool:
 
 ### Classes (standalone)
 
-Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types use the `# *** exceptions` / `# ** exception:` specialization:
+Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types like `TiferetError` are ordinary standalone classes under `# *** classes` / `# ** class:`:
 
 ```python
-# *** exceptions
+# *** classes
 
-# ** exception: tiferet_error
+# ** class: tiferet_error
 class TiferetError(Exception):
     '''
     The base exception for all Tiferet-related errors.
@@ -156,7 +149,7 @@ from . import blueprints as bps
 ## Creating and Extending Assets Modules
 
 1. Start the module with a docstring, then an `# *** imports` section limited to the standard library and third-party primitives.
-2. Add content under exactly one primary artifact kind per concern — `# *** constants`, `# *** functions`, or `# *** classes` (or the `# *** exceptions` / `# *** configs` specializations).
+2. Add content under exactly one primary artifact kind per concern — `# *** constants`, `# *** functions`, or `# *** classes`.
 3. Do not introduce domain, service, event, mapper, or context artifacts here; if a concern needs one, it belongs in the corresponding layer.
 4. Surface any new public symbols from `__init__.py` under `# *** exports`.
 
@@ -165,7 +158,7 @@ from . import blueprints as bps
 - Keep the layer dependency-light: never import from another Tiferet layer.
 - Restrict modules to the five artifact kinds (imports, constants, functions, standalone classes, exports).
 - Use `SCREAMING_SNAKE_CASE` values with `# ** constant: <snake_case>` labels; group large related blocks under `# ** constants: <group>`.
-- Reserve `# *** exceptions` for exception classes and `# *** configs` for default configuration data — both are specializations of the class/constant kinds.
+- Place exception classes under `# *** classes` and default configuration data under `# *** constants`; the layer uses no specialized artifact labels.
 - Write RST docstrings on functions and classes, and keep code snippets separated by single blank lines.
 
 ## Package Layout
