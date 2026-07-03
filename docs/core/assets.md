@@ -22,7 +22,7 @@ There are no domain objects, aggregates, services, events, or contexts here. Tha
 ## The Assets Layer's Role
 
 - **Exceptions** — `TiferetError` and `TiferetAPIError` (`exceptions.py`) are the structured error types raised throughout the framework.
-- **Constants** — error-code identifiers and the `DEFAULT_ERRORS` catalog (`constants.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
+- **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
 - **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
 
 ## Structured Code Design
@@ -53,7 +53,7 @@ import json
 
 ### Constants
 
-Constants are `SCREAMING_SNAKE_CASE` module-level values. Large related groups may share a descriptive `# ** constants: <group>` comment, and entries nested inside a data structure are annotated in place (e.g., `# * error: <NAME>` within `DEFAULT_ERRORS`):
+Constants are `SCREAMING_SNAKE_CASE` module-level values. Each constant carries its own `# ** constant: <snake_case_name>` label — related constants are not grouped under a shared comment. Entries nested inside a data structure are annotated in place (e.g., `# * error: <NAME>` within `DEFAULT_ERRORS`):
 
 ```python
 # *** constants
@@ -138,10 +138,8 @@ Only `__init__.py` carries an `# *** exports` section. It re-exports the public 
 
 # ** app
 from .exceptions import TiferetError, TiferetAPIError
-from .constants import (
-    ERROR_NOT_FOUND_ID,
-    DEFAULT_ERRORS,
-)
+from .constants import ERROR_NOT_FOUND_ID
+from .error import DEFAULT_ERRORS
 from . import constants as const
 from . import blueprints as bps
 ```
@@ -157,7 +155,7 @@ from . import blueprints as bps
 
 - Keep the layer dependency-light: never import from another Tiferet layer.
 - Restrict modules to the five artifact kinds (imports, constants, functions, standalone classes, exports).
-- Use `SCREAMING_SNAKE_CASE` values with `# ** constant: <snake_case>` labels; group large related blocks under `# ** constants: <group>`.
+- Use `SCREAMING_SNAKE_CASE` values, each with its own `# ** constant: <snake_case>` label; do not group multiple constants under a shared `# ** constants: <group>` comment.
 - Place exception classes under `# *** classes` and default configuration data under `# *** constants`; the layer uses no specialized artifact labels.
 - Write RST docstrings on functions and classes, and keep code snippets separated by single blank lines.
 
@@ -166,7 +164,8 @@ from . import blueprints as bps
 ```
 tiferet/assets/
 ├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
-├── constants.py     — Error-code constants and the DEFAULT_ERRORS catalog
+├── constants.py     — Error-code identifier constants
+├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
 ├── exceptions.py    — TiferetError and TiferetAPIError
 ├── blueprints.py    — Bootstrap default constants and service wiring
 └── logging.py       — Default logging formatters, handlers, and loggers
