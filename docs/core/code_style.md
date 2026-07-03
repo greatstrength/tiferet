@@ -50,6 +50,44 @@ def _is_valid_identifier(name: str) -> bool:
 
 **Spacing**: One empty line between top-level comment and first mid-level comment.
 
+### Sub-Groups (`# *** <kind> (<sub-group>)`)
+A large section may be partitioned into **sub-groups** by adding a parenthetical qualifier to the top-level comment. The section/artifact kind is preserved — only the parenthetical names a partition within that kind. This reuses the same parenthetical-qualifier idea already applied to methods with `(static)`.
+
+Use a sub-group only when a single section grows large enough that partitioning aids navigation; small sections stay ungrouped. A module may therefore contain one plain section plus one or more sub-grouped sections of the same kind. For example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
+```python
+# *** constants
+
+# ** constant: en_us
+EN_US = 'en_US'
+
+# *** constants (error)
+
+# ** constant: error_not_found_id
+ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
+```
+The most common use is grouping unit tests by the class or method under test, so a single test module can hold several focused groups:
+```python
+# *** tests (GetFeature)
+
+# ** test: TestGetFeatureSuccess
+...
+
+# *** tests (AddFeature)
+
+# ** test: TestAddFeatureSuccess
+...
+```
+**Grammar rules:**
+- Preserve the kind: the word after `# ***` stays the normal section kind (`constants`, `tests`, ...); the parenthetical is only a label.
+- The parenthetical names the sub-group; keep it short and consistent within the module.
+- Sub-groups do not nest — use at most one parenthetical qualifier per top-level comment.
+- Order any plain (ungrouped) section of a kind before its sub-grouped variants.
+- Individual artifacts keep their standard mid-level label (`# ** constant:`, `# ** test:`); the sub-group never changes the `# **` line.
+
+**Interim scope**: this convention exists primarily so agents editing source directly (and their human handlers) can navigate large sections consistently. Treat this document as the canonical reference until the full grammar is formalized.
+
+**Spacing**: One empty line between a sub-group comment and its first mid-level comment, the same as any top-level section.
+
 ### Mid-Level (`# **`)
 Specifies categories or individual components:
 - For imports: `# ** core`, `# ** infra`, `# ** app`.
@@ -353,6 +391,7 @@ Harness test classes follow the same spacing conventions as production code:
 ## Best Practices Summary
 
 - Use artifact comments consistently.
+- Partition large sections into sub-groups (`# *** <kind> (<sub-group>)`) when it aids navigation, preserving the section kind and per-artifact labels.
 - Explicitly mark static methods with `(static)`.
 - Deprecate obsolete methods with clear notes.
 - Write clear RST docstrings.
