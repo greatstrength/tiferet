@@ -2,7 +2,7 @@
 
 # *** imports
 
-# *** constants (errors)
+# *** constants
 
 # ** constant: command_parameter_required_id
 COMMAND_PARAMETER_REQUIRED_ID = 'COMMAND_PARAMETER_REQUIRED'

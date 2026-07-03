@@ -1,6 +1,6 @@
-# *** configs
+# *** constants
 
-# ** config: default_formatters
+# ** constant: default_formatters
 DEFAULT_FORMATTERS = [
     {
         'id': 'default',
@@ -11,7 +11,7 @@ DEFAULT_FORMATTERS = [
     }
 ]
 
-# ** config: default_handlers
+# ** constant: default_handlers
 DEFAULT_HANDLERS = [
     {
         'id': 'default_root',
@@ -45,7 +45,7 @@ DEFAULT_HANDLERS = [
     }
 ]
 
-# ** config: default_loggers
+# ** constant: default_loggers
 DEFAULT_LOGGERS = [
     {
         'id': 'root',

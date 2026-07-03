@@ -13,9 +13,9 @@ at startup — they are not loaded from the consumer's config file.
 # ** core
 from typing import Any, Dict, List
 
-# *** configs
+# *** constants
 
-# ** config: default_tiferet_cli_feature_list
+# ** constant: default_tiferet_cli_feature_list
 # Each dict matches the Feature domain object constructor fields.
 # Steps use EventFeatureStep field names: service_id, name, parameters, data_key.
 # ``params_schema`` declares the feature-level request validation schema
@@ -556,7 +556,7 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
     },
 ]
 
-# ** config: default_tiferet_cli_features
+# ** constant: default_tiferet_cli_features
 # Id-keyed mapping mirroring YAML shape: the key is the feature id and the
 # value is the record minus id. The bootstrap builder in the orchestration
 # layer materializes each record into a typed Feature object.

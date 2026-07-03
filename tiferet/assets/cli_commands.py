@@ -13,9 +13,9 @@ at startup — they are not loaded from the consumer's config file.
 # ** core
 from typing import Any, Dict, List
 
-# *** configs
+# *** constants
 
-# ** config: default_tiferet_cli_command_list
+# ** constant: default_tiferet_cli_command_list
 # Each dict matches the CliCommand domain object constructor fields.
 # Arguments use CliArgument field names: name_or_flags, description, type, default, required, nargs, choices, action.
 _DEFAULT_TIFERET_CLI_COMMAND_LIST: List[Dict[str, Any]] = [
@@ -514,7 +514,7 @@ _DEFAULT_TIFERET_CLI_COMMAND_LIST: List[Dict[str, Any]] = [
     },
 ]
 
-# ** config: default_tiferet_cli_commands
+# ** constant: default_tiferet_cli_commands
 # Id-keyed mapping mirroring YAML shape: the key is the command id and the
 # value is the record minus id. The bootstrap builder in the orchestration
 # layer materializes each record into a typed CliCommand object.

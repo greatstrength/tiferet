@@ -14,9 +14,9 @@ Services already defined in ``blueprints.DEFAULT_SERVICES`` (e.g.
 # ** core
 from typing import Any, Dict, List, Tuple
 
-# *** configs
+# *** constants
 
-# ** config: default_tiferet_cli_services
+# ** constant: default_tiferet_cli_services
 # Each tuple: (service_id, module_path, class_name, parameters | None)
 DEFAULT_TIFERET_CLI_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] = [
 

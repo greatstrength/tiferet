@@ -4,9 +4,9 @@ Provides the default interface definition for the built-in Tiferet CLI
 management application.
 """
 
-# *** configs
+# *** constants
 
-# ** config: default_tiferet_app_interface
+# ** constant: default_tiferet_app_interface
 DEFAULT_TIFERET_APP_INTERFACE = {
     'id': 'tiferet_app',
     'name': 'Tiferet App',
@@ -15,7 +15,7 @@ DEFAULT_TIFERET_APP_INTERFACE = {
     'class_name': 'AppInterfaceContext',
 }
 
-# ** config: default_tiferet_cli_interface
+# ** constant: default_tiferet_cli_interface
 DEFAULT_TIFERET_CLI_INTERFACE = {
     'id': 'tiferet_cli',
     'name': 'Tiferet CLI',
