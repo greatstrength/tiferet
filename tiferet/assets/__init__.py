@@ -24,6 +24,6 @@ from .constants import (
 from . import constants as const
 from . import blueprints as bps
 from . import app as cli_app
-from . import service as cli_svc
+from . import di as cli_svc
 from . import feature as cli_feat
-from . import cli_commands as cli_cmd
+from . import cli as cli_cmd
