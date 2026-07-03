@@ -48,7 +48,6 @@ class FormulaAggregate(Formula, Aggregate):
         identifiers = re.findall(r'[A-Za-z_][A-Za-z0-9_]*', expression)
         self.variables = list(dict.fromkeys(identifiers))
 
-
 # ** mapper: formula_config_object
 class FormulaConfigObject(Formula, TransferObject):
     '''

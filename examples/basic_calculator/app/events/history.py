@@ -91,7 +91,6 @@ class RecordCalculation(DomainEvent):
         # Return the result unchanged so the feature response is preserved.
         return result
 
-
 # ** event: list_recent_formulas
 class ListRecentFormulas(DomainEvent):
     '''
