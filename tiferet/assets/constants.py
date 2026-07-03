@@ -1,6 +1,16 @@
 """Tiferet Constants (Assets)"""
 
+# *** imports
+
+# ** core
+from typing import List, Tuple, Dict, Any
+
 # *** constants
+
+# ** constant: en_us
+EN_US = 'en_US'
+
+# *** constants (error)
 
 # ** constant: command_parameter_required_id
 COMMAND_PARAMETER_REQUIRED_ID = 'COMMAND_PARAMETER_REQUIRED'
@@ -220,3 +230,27 @@ CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
 
 # ** constant: csv_dict_no_header_id
 CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
+
+# *** functions
+
+# ** function: create_default_error
+def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
+    '''
+    Build a default error definition dictionary.
+
+    :param id: The unique identifier of the error.
+    :type id: str
+    :param name: The human-readable error name.
+    :type name: str
+    :param messages: Ordered (lang, text) message pairs.
+    :type messages: List[Tuple[str, str]]
+    :return: The default error definition.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble and return the default error definition dictionary.
+    return {
+        'id': id,
+        'name': name,
+        'message': [{'lang': lang, 'text': text} for lang, text in messages],
+    }
