@@ -6,7 +6,7 @@
 from typing import Any, Dict
 
 # ** app
-from .base import BaseContext
+from .settings import BaseContext
 from ..domain import Request
 
 # *** contexts
@@ -32,8 +32,7 @@ class RequestContext(BaseContext):
             data: Dict[str, Any] = None,
             session_id: str = None,
             feature_id: str = None,
-            services: Any = None,
-            cache: Any = None):
+            services: Any = None):
         '''
         Initialize the request context, building and binding a Request domain
         value object from the supplied request fields.
@@ -48,12 +47,10 @@ class RequestContext(BaseContext):
         :type feature_id: str
         :param services: The shared DI context (service resolver), if any.
         :type services: Any
-        :param cache: The shared cache context.
-        :type cache: Any
         '''
 
-        # Initialize shared services and cache via the base context.
-        super().__init__(services=services, cache=cache)
+        # Initialize shared services via the base context.
+        super().__init__(services=services)
 
         # Build and bind the request domain value object.
         self.domain = Request(

@@ -8,7 +8,7 @@ import re
 from typing import Any, Callable, Generator, List, Tuple, Dict
 
 # ** app
-from .base import BaseContext
+from .settings import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets.constants import (
@@ -65,8 +65,11 @@ class FeatureContext(BaseContext):
         :type context_data: Dict[str, Any]
         '''
 
-        # Initialize the shared cache via the base context.
-        super().__init__(cache=cache)
+        # Initialize the base context.
+        super().__init__()
+
+        # Wire in the shared cache context, defaulting to a fresh one.
+        self.cache = cache if cache is not None else CacheContext()
 
         # Store the injected service-resolution handler.
         self.get_dependency = get_dependency

@@ -8,8 +8,7 @@ import logging.config
 from typing import Dict, Any, List, Callable
 
 # ** app
-from .base import BaseContext
-from .cache import CacheContext
+from .settings import BaseContext
 from ..assets.logging import *
 from ..domain import (
     Formatter,
@@ -35,7 +34,7 @@ class LoggingContext(BaseContext):
     logger_id: str
 
     # * init
-    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str, cache: CacheContext = None):
+    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str):
         '''
         Initialize the logging context.
 
@@ -43,12 +42,10 @@ class LoggingContext(BaseContext):
         :type logging_list_all_evt: DomainEvent
         :param logger_id: The ID of the logger configuration to create.
         :type logger_id: str
-        :param cache: The shared cache context.
-        :type cache: CacheContext
         '''
 
-        # Initialize the shared cache via the base context.
-        super().__init__(cache=cache)
+        # Initialize the base context.
+        super().__init__()
 
         # Bind the list all handler and store the logger ID.
         self.list_all_handler = logging_list_all_evt.execute

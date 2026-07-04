@@ -6,7 +6,7 @@ import pytest
 # ** app
 from pydantic import Field
 from tiferet.domain import DomainObject, Request
-from tiferet.contexts.base import BaseContext
+from tiferet.contexts.settings import BaseContext
 from tiferet.contexts.request import *
 
 # *** fixtures

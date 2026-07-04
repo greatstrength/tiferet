@@ -17,7 +17,7 @@ from ..assets import (
 )
 from ..domain import AppInterface, Feature, CliCommand, Error
 from ..events import DomainEvent
-from .base import BaseContext
+from .settings import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext, AsyncFeatureContext
 from .error import ErrorContext
@@ -117,6 +117,9 @@ class AppInterfaceContext(BaseContext):
     # * attribute: get_dependency
     get_dependency: Callable
 
+    # * attribute: cache
+    cache: CacheContext
+
     # * init
     def __init__(self,
             get_feature_evt: DomainEvent,
@@ -150,8 +153,11 @@ class AppInterfaceContext(BaseContext):
         :type default_commands: Dict[str, Dict[str, Any]]
         '''
 
-        # Initialize the shared cache via the base context.
-        super().__init__(cache=cache)
+        # Initialize the base context.
+        super().__init__()
+
+        # Wire in the shared cache context, defaulting to a fresh one.
+        self.cache = cache if cache is not None else CacheContext()
 
         # Store the retrieval/configuration events and the service-resolution handler.
         self.get_feature_evt = get_feature_evt
@@ -181,7 +187,6 @@ class AppInterfaceContext(BaseContext):
             self._logging = LoggingContext(
                 logging_list_all_evt=self.logging_list_all_evt,
                 logger_id=self.domain.logger_id,
-                cache=self.cache,
             )
 
         # Return the shared logging context.
@@ -393,7 +398,7 @@ class AppInterfaceContext(BaseContext):
         # Build the error context on demand (resolved via the registry) and
         # format the response for the loaded error.
         error_context_cls = BaseContext.for_domain(Error)
-        formatted_error = error_context_cls(cache=self.cache).format_response(error_domain, error)
+        formatted_error = error_context_cls().format_response(error_domain, error)
 
         # Raise the API exception with the formatted payload.
         raise TiferetAPIError(**formatted_error)

@@ -11,4 +11,4 @@ __all__ = [
 # Only the base context primitives are exported at the framework level. Domain
 # context implementations (feature, error, di, logging, app) are imported
 # directly from their submodules when needed.
-from .base import BaseContext, ContextMeta
+from .settings import BaseContext, ContextMeta

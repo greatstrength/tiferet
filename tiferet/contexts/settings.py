@@ -1,4 +1,4 @@
-"""Tiferet Base Context"""
+"""Tiferet Context Settings"""
 
 # *** imports
 
@@ -6,13 +6,12 @@
 from typing import Any, ClassVar, Dict, Optional, Type
 
 # ** app
-from .cache import CacheContext
 from ..domain import DomainObject
 from ..events import RaiseError, a
 
-# *** metaclasses
+# *** classes
 
-# ** metaclass: context_meta
+# ** class: context_meta
 class ContextMeta(type):
     '''
     Metaclass that maintains a registry mapping domain object types to their
@@ -54,12 +53,10 @@ class ContextMeta(type):
         # Return the created class.
         return cls
 
-# *** contexts
-
-# ** context: base_context
+# ** class: base_context
 class BaseContext(metaclass=ContextMeta):
     '''
-    The base context, providing shared services and cache plus a
+    The base context, providing a shared services slot plus a
     domain-to-context registry that enables declarative, on-demand creation of
     operational contexts from loaded domain objects.
     '''
@@ -73,23 +70,17 @@ class BaseContext(metaclass=ContextMeta):
     # * attribute: services
     services: Any
 
-    # * attribute: cache
-    cache: CacheContext
-
     # * init
-    def __init__(self, services: Any = None, cache: CacheContext = None):
+    def __init__(self, services: Any = None):
         '''
         Initialize the base context.
 
         :param services: The shared DI context (service resolver), if any.
         :type services: Any
-        :param cache: The shared cache context; a fresh one is created when None.
-        :type cache: CacheContext
         '''
 
-        # Assign shared dependencies, defaulting the cache to a fresh context.
+        # Assign the shared services dependency.
         self.services = services
-        self.cache = cache if cache is not None else CacheContext()
 
         # Initialize the bound domain object to None.
         self.domain = None

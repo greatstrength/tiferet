@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from .base import BaseContext
+from .settings import BaseContext
 from .cache import CacheContext
 from ..domain import Error
 
@@ -58,18 +58,6 @@ class ErrorContext(BaseContext):
 
     # * attribute: domain_type
     domain_type = Error
-
-    # * init
-    def __init__(self, cache: CacheContext = None):
-        '''
-        Initialize the error context.
-
-        :param cache: The shared cache context.
-        :type cache: CacheContext
-        '''
-
-        # Initialize the shared cache via the base context.
-        super().__init__(cache=cache)
 
     # * method: format_response
     def format_response(self, error: Error, exception: Exception, lang: str = 'en_US') -> Dict[str, Any]:

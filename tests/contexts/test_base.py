@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from tiferet.assets import TiferetError
-from tiferet.contexts.base import BaseContext, ContextMeta
+from tiferet.contexts.settings import BaseContext, ContextMeta
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.feature import FeatureContext, AsyncFeatureContext
 from tiferet.contexts.error import ErrorContext
