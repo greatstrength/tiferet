@@ -27,9 +27,9 @@ This duality ensures a single source of truth for domain structure and behavior,
 - **Runtime Use** (`ErrorContext`):
   ```python
   # The hub loads the Error; the context formats the response from it.
-  error_message = error.format_message(lang, **getattr(exception, 'kwargs', {}))
+  error_message = error.format_message(lang, **exception.kwargs)
   ```
-  The `Error` domain object is retrieved via the hub's `load_error_domain` and used by `ErrorContext.format_response` to assemble the structured response.
+  The `Error` domain object is retrieved via the hub's `get_error` (cache-first) and used by `ErrorContext.format_response` to assemble the structured response.
 
 - **Mapper Layer Use** (`ErrorAggregate`, `ErrorConfigObject`):
   ```python

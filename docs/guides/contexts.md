@@ -26,7 +26,7 @@ Every context in `tiferet/contexts/` has a single, well-defined responsibility:
 | `CliContext` | Extend `AppInterfaceContext` with CLI concerns: build an argparse parser from configured commands/arguments, parse `argv` into a request (`parse_cli_request`), and dispatch via the inherited `run` (`run_cli`). |
 | `FeatureContext` | Resolve each configured step via the injected `get_dependency` handler, parse parameters, and execute the steps sequentially against a `RequestContext` (operating on a pre-loaded `Feature`). |
 | `AsyncFeatureContext` | Subclass of `FeatureContext` that awaits coroutine-based steps via `execute_feature_async`; selected by `AppInterfaceContext` when a feature's `is_async` flag is set. |
-| `ErrorContext` | Format exceptions into structured, localized API responses using `ErrorService`. |
+| `ErrorContext` | Format a raised `TiferetError` into a structured, localized API response from a pre-loaded `Error` domain object. |
 | `LoggingContext` | Build loggers from configured formatters, handlers, and logger specs. |
 | `CacheContext` | Provide an in-memory keyed cache for reusable objects (e.g., loaded features, service providers). |
 | `RequestContext` | Carry request headers, data, and the feature result through the execution pipeline; produce the final response via `handle_response`. |
@@ -156,7 +156,7 @@ Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py
 
 ### ErrorContext and LoggingContext
 
-- `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object (error retrieval is owned by the hub's `load_error_domain`). `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
+- `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object and the raised `TiferetError` (reading its `kwargs` directly). Error retrieval is owned by the hub's `get_error`, which resolves the error from the shared cache (pre-seeded with the framework defaults under `error_`-prefixed keys) or, on a miss, the get-error event — caching the result. `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
 - `LoggingContext.build_logger` wraps the configured formatters, handlers, and loggers in a `LoggingSettings` value object (which owns the `dictConfig` assembly) and creates a ready-to-use logger instance.
 
 The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.

@@ -65,7 +65,7 @@ Finds the first `ErrorMessage` matching the given `lang` and formats it. Returns
 
 **Response formatting (moved to `ErrorContext`)**
 
-`Error` no longer defines `format_response`. Structured response assembly lives in `ErrorContext.format_response(error, exception, lang='en_US')`, which calls `Error.format_message` and adds `error_code`, `name`, and any exception kwargs. Keeping response shaping in the context layer lets interface-specific contexts (e.g. Flask, FastAPI) override it polymorphically, while `Error.format_message` and `ErrorMessage.format` remain on the domain objects.
+`Error` no longer defines `format_response`. Structured response assembly lives in `ErrorContext.format_response(error, exception, lang='en_US')`, where `exception` is the raised `TiferetError`; it calls `Error.format_message` and adds `error_code`, `name`, and the error's `kwargs` (read directly off the `TiferetError`). Keeping response shaping in the context layer lets interface-specific contexts (e.g. Flask, FastAPI) override it polymorphically, while `Error.format_message` and `ErrorMessage.format` remain on the domain objects.
 
 ## Error Formatting Flow
 
@@ -73,8 +73,8 @@ The error formatting flow in Tiferet follows this path:
 
 1. A domain event calls `self.verify(expression, error_code, ...)` or `self.raise_error(error_code, ...)`.
 2. A `TiferetError` is raised with the `error_code` and contextual kwargs.
-3. `AppInterfaceContext.handle_error()` catches the error and loads the `Error` domain object via the hub's `load_error_domain` (backed by `GetError`/`ErrorService`).
-4. `ErrorContext.format_response(error, exception, lang)` produces the structured error response from the loaded `Error`.
+3. `AppInterfaceContext.handle_error()` catches the error and loads the `Error` domain object via the hub's `get_error`, which resolves it from the shared cache (pre-seeded with the framework defaults under `error_`-prefixed keys) or, on a miss, the get-error event (backed by `GetError`/`ErrorService`), caching the result.
+4. `ErrorContext.format_response(error, exception, lang)` produces the structured error response from the loaded `Error` and the raised `TiferetError`.
 5. The response is wrapped in `TiferetAPIError` and returned to the caller (API response, CLI output, etc.).
 
 ## Built-In Defaults
@@ -138,7 +138,7 @@ Concrete implementations (e.g., `ErrorConfigRepository`) satisfy this interface.
 ## Relationships to Other Domains
 
 - **All Domains:** Every domain event uses `verify()` and `raise_error()` to raise `TiferetError`, which is resolved to an `Error` for formatting.
-- **App:** `ErrorContext` is loaded as part of the application interface bootstrap, receiving `ErrorService` via dependency injection.
+- **App:** `ErrorContext` is built on demand by the `AppInterfaceContext` hub to format a pre-loaded `Error`; error retrieval (via the hub's `get_error` → `GetError`/`ErrorService`) and the shared, default-seeded error cache are owned by the hub.
 - **DI:** `ErrorService` is wired through the DI container (`ServiceRegistration` entries in the `services` section of the configuration).
 
 ## Instantiation
