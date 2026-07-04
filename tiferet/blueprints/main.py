@@ -317,10 +317,14 @@ def load_app_instance(
     # Resolve the context class's event collaborators by name from the registry.
     resolved = resolve_collaborators(context_cls, registry)
 
-    # Construct the context declaratively, injecting the resolution handler.
+    # Build the pre-seeded cache context for this interface instance.
+    cache = build_cache()
+
+    # Construct the context declaratively, injecting the resolution handler and cache.
     return context_cls.from_domain(
         app_interface,
         get_dependency=resolver.get_dependency,
+        cache=cache,
         **resolved,
         **context_kwargs,
     )
