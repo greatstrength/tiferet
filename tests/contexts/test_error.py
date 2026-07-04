@@ -11,10 +11,45 @@ from tiferet.assets import (
     DEFAULT_ERRORS,
     ERROR_NOT_FOUND_ID,
 )
-from tiferet.contexts.error import ErrorContext
+from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.error import ErrorContext, add_default_errors
 from tiferet.domain import Error
 
 # *** fixtures
+
+# ** fixture: sample_errors
+@pytest.fixture
+def sample_errors() -> dict:
+    '''
+    Fixture providing a small subset of default error definitions for decorator tests.
+
+    :return: A dict of error-code ID to raw error definition dict.
+    :rtype: dict
+    '''
+
+    # Return a representative slice of the default error catalog.
+    return {
+        k: DEFAULT_ERRORS[k]
+        for k in list(DEFAULT_ERRORS)[:3]
+    }
+
+
+# ** fixture: base_cache_builder
+@pytest.fixture
+def base_cache_builder():
+    '''
+    Fixture providing a plain cache-builder callable with no pre-seeding.
+
+    :return: A callable that returns a fresh CacheContext.
+    :rtype: Callable
+    '''
+
+    # Return a minimal cache-builder that mirrors the unwrapped build_cache.
+    def _build(cache=None):
+        return CacheContext(cache=cache)
+
+    return _build
+
 
 # ** fixture: error_context
 @pytest.fixture
@@ -43,6 +78,86 @@ def error() -> Error:
     return Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
 
 # *** tests
+
+# ** test: add_default_errors_returns_callable
+def test_add_default_errors_returns_callable(sample_errors, base_cache_builder):
+    '''
+    Test that add_default_errors returns a decorator that produces a callable.
+
+    :param sample_errors: A small sample of error definitions.
+    :type sample_errors: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Apply the decorator.
+    wrapped = add_default_errors(sample_errors)(base_cache_builder)
+
+    # Assert the result is callable.
+    assert callable(wrapped)
+
+
+# ** test: add_default_errors_seeds_cache_with_error_domain_objects
+def test_add_default_errors_seeds_cache_with_error_domain_objects(sample_errors, base_cache_builder):
+    '''
+    Test that the decorated builder stores Error domain objects in the cache.
+
+    :param sample_errors: A small sample of error definitions.
+    :type sample_errors: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_errors(sample_errors)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert each error ID maps to an Error domain object in the cache.
+    for error_id in sample_errors:
+        cached = cache.get(error_id)
+        assert isinstance(cached, Error)
+        assert cached.id == error_id
+
+
+# ** test: add_default_errors_preserves_initial_cache_values
+def test_add_default_errors_preserves_initial_cache_values(sample_errors, base_cache_builder):
+    '''
+    Test that pre-seeded errors do not overwrite an initial cache dict.
+
+    :param sample_errors: A small sample of error definitions.
+    :type sample_errors: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke with a pre-populated initial dict.
+    wrapped = add_default_errors(sample_errors)(base_cache_builder)
+    cache = wrapped(cache={'existing_key': 'existing_value'})
+
+    # Assert the pre-existing entry is still accessible.
+    assert cache.get('existing_key') == 'existing_value'
+
+    # Assert the error entries are also present.
+    for error_id in sample_errors:
+        assert isinstance(cache.get(error_id), Error)
+
+
+# ** test: add_default_errors_empty_dict_leaves_cache_clean
+def test_add_default_errors_empty_dict_leaves_cache_clean(base_cache_builder):
+    '''
+    Test that wrapping with an empty errors dict results in an empty cache.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap with an empty errors dict.
+    wrapped = add_default_errors({})(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the cache contains no entries.
+    assert cache._cache == {}
+
 
 # ** test: error_context_format_response
 def test_error_context_format_response(error_context: ErrorContext, error: Error):

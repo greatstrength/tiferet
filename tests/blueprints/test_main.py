@@ -16,11 +16,14 @@ from tiferet.repos.app import AppConfigRepository
 from tiferet import App
 from tiferet.blueprints.main import (
     build_app,
+    build_cache,
     load_app_service,
     load_default_services,
     load_app_instance,
     resolve_collaborators,
 )
+from tiferet.contexts.cache import CacheContext
+from tiferet.domain import Error
 
 # *** fixtures
 
@@ -47,6 +50,80 @@ def app_interface_aggregate() -> AppInterfaceAggregate:
     )
 
 # *** tests
+
+# ** test: build_cache_returns_cache_context
+def test_build_cache_returns_cache_context():
+    '''
+    Test that build_cache returns a CacheContext instance.
+    '''
+
+    # Invoke build_cache with no arguments.
+    result = build_cache()
+
+    # Assert the result is a CacheContext.
+    assert isinstance(result, CacheContext)
+
+
+# ** test: build_cache_pre_seeds_default_errors
+def test_build_cache_pre_seeds_default_errors():
+    '''
+    Test that build_cache pre-seeds the cache with the full default error catalog.
+    '''
+
+    # Build the cache.
+    cache = build_cache()
+
+    # Assert the cache contains the same number of entries as DEFAULT_ERRORS.
+    assert len(cache._cache) == len(a.DEFAULT_ERRORS)
+
+
+# ** test: build_cache_errors_are_error_domain_objects
+def test_build_cache_errors_are_error_domain_objects():
+    '''
+    Test that every entry pre-seeded by build_cache is an Error domain object.
+    '''
+
+    # Build the cache.
+    cache = build_cache()
+
+    # Assert every cached value is an Error domain object.
+    for error_id, value in cache._cache.items():
+        assert isinstance(value, Error), f'{error_id} is not an Error instance'
+
+
+# ** test: build_cache_specific_error_is_retrievable
+def test_build_cache_specific_error_is_retrievable():
+    '''
+    Test that a known error can be retrieved from the pre-seeded cache by its ID.
+    '''
+
+    # Build the cache.
+    cache = build_cache()
+
+    # Retrieve the ERROR_NOT_FOUND error by its constant ID.
+    error = cache.get(a.ERROR_NOT_FOUND_ID)
+
+    # Assert it is an Error with the expected identity.
+    assert isinstance(error, Error)
+    assert error.id == a.ERROR_NOT_FOUND_ID
+
+
+# ** test: build_cache_with_initial_dict_preserves_values
+def test_build_cache_with_initial_dict_preserves_values():
+    '''
+    Test that build_cache with an initial dict preserves extra entries alongside
+    the pre-seeded errors.
+    '''
+
+    # Build the cache with a pre-populated dict.
+    cache = build_cache(cache={'custom_key': 'custom_value'})
+
+    # Assert the extra entry is accessible.
+    assert cache.get('custom_key') == 'custom_value'
+
+    # Assert the default errors are also present.
+    assert isinstance(cache.get(a.ERROR_NOT_FOUND_ID), Error)
+
 
 # ** test: app_alias_is_build_app
 def test_app_alias_is_build_app():
