@@ -24,6 +24,7 @@ from tiferet.contexts.app import (
     build_command_list,
     resolve_default_interface,
 )
+from tiferet.contexts.error import error_cache_key
 
 # *** fixtures
 
@@ -415,6 +416,26 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     # Assert that the raised exception contains a generic error code and message.
     assert exc_info.value.error_code == 'APP_ERROR'
     assert 'An error occurred in the app' in exc_info.value.message
+
+# ** test: app_interface_context_get_error_cache_hit
+def test_app_interface_context_get_error_cache_hit(app_interface_context):
+    """
+    Test that get_error returns a cached error without invoking the get-error event.
+
+    :param app_interface_context: The AppInterfaceContext instance.
+    :type app_interface_context: AppInterfaceContext
+    """
+
+    # Pre-seed the shared cache with an error under its prefixed cache key.
+    cached_error = Error(id='CACHED_ERROR', name='Cached Error')
+    app_interface_context.cache.set(error_cache_key('CACHED_ERROR'), cached_error)
+
+    # Retrieve the error by its code.
+    result = app_interface_context.get_error('CACHED_ERROR')
+
+    # Assert the cached error is returned and the event was not invoked.
+    assert result is cached_error
+    app_interface_context.get_error_evt.execute.assert_not_called()
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):

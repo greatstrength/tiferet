@@ -23,6 +23,7 @@ from tiferet.blueprints.main import (
     resolve_collaborators,
 )
 from tiferet.contexts.cache import CacheContext
+from tiferet.contexts.error import error_cache_key
 from tiferet.domain import Error
 
 # *** fixtures
@@ -100,8 +101,8 @@ def test_build_cache_specific_error_is_retrievable():
     # Build the cache.
     cache = build_cache()
 
-    # Retrieve the ERROR_NOT_FOUND error by its constant ID.
-    error = cache.get(a.ERROR_NOT_FOUND_ID)
+    # Retrieve the ERROR_NOT_FOUND error by its prefixed cache key.
+    error = cache.get(error_cache_key(a.ERROR_NOT_FOUND_ID))
 
     # Assert it is an Error with the expected identity.
     assert isinstance(error, Error)
@@ -121,8 +122,8 @@ def test_build_cache_with_initial_dict_preserves_values():
     # Assert the extra entry is accessible.
     assert cache.get('custom_key') == 'custom_value'
 
-    # Assert the default errors are also present.
-    assert isinstance(cache.get(a.ERROR_NOT_FOUND_ID), Error)
+    # Assert the default errors are also present under their prefixed keys.
+    assert isinstance(cache.get(error_cache_key(a.ERROR_NOT_FOUND_ID)), Error)
 
 
 # ** test: app_alias_is_build_app

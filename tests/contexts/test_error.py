@@ -12,7 +12,12 @@ from tiferet.assets import (
     ERROR_NOT_FOUND_ID,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.error import ErrorContext, add_default_errors
+from tiferet.contexts.error import (
+    ErrorContext,
+    add_default_errors,
+    error_cache_key,
+    ERROR_CACHE_KEY_PREFIX,
+)
 from tiferet.domain import Error
 
 # *** fixtures
@@ -112,9 +117,10 @@ def test_add_default_errors_seeds_cache_with_error_domain_objects(sample_errors,
     wrapped = add_default_errors(sample_errors)(base_cache_builder)
     cache = wrapped()
 
-    # Assert each error ID maps to an Error domain object in the cache.
+    # Assert each error ID maps to an Error domain object in the cache under
+    # its prefixed cache key.
     for error_id in sample_errors:
-        cached = cache.get(error_id)
+        cached = cache.get(error_cache_key(error_id))
         assert isinstance(cached, Error)
         assert cached.id == error_id
 
@@ -137,9 +143,9 @@ def test_add_default_errors_preserves_initial_cache_values(sample_errors, base_c
     # Assert the pre-existing entry is still accessible.
     assert cache.get('existing_key') == 'existing_value'
 
-    # Assert the error entries are also present.
+    # Assert the error entries are also present under their prefixed keys.
     for error_id in sample_errors:
-        assert isinstance(cache.get(error_id), Error)
+        assert isinstance(cache.get(error_cache_key(error_id)), Error)
 
 
 # ** test: add_default_errors_empty_dict_leaves_cache_clean
@@ -157,6 +163,20 @@ def test_add_default_errors_empty_dict_leaves_cache_clean(base_cache_builder):
 
     # Assert the cache contains no entries.
     assert cache._cache == {}
+
+
+# ** test: error_cache_key_prefixes_error_code
+def test_error_cache_key_prefixes_error_code():
+    '''
+    Test that error_cache_key namespaces an error code with the shared prefix.
+    '''
+
+    # Compose a cache key for a sample error code.
+    key = error_cache_key('ERROR_NOT_FOUND')
+
+    # Assert the key uses the prefix constant.
+    assert key == f'{ERROR_CACHE_KEY_PREFIX}ERROR_NOT_FOUND'
+    assert key == 'error_ERROR_NOT_FOUND'
 
 
 # ** test: error_context_format_response

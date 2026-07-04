@@ -12,15 +12,13 @@ from typing import Dict, Any, List, Callable
 from ..assets import (
     TiferetError,
     TiferetAPIError,
-    ERROR_NOT_FOUND_ID,
-    DEFAULT_ERRORS,
 )
 from ..domain import AppInterface, Feature, CliCommand, Error
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext, AsyncFeatureContext
-from .error import ErrorContext
+from .error import ErrorContext, error_cache_key
 from .logging import LoggingContext
 from .request import RequestContext
 
@@ -221,11 +219,11 @@ class AppInterfaceContext(BaseContext):
         # Return the loaded feature.
         return feature
 
-    # * method: load_error_domain
-    def load_error_domain(self, error_code: str) -> Error:
+    # * method: get_error
+    def get_error(self, error_code: str) -> Error:
         '''
-        Load an error domain object by its code, falling back to the built-in
-        ``ERROR_NOT_FOUND`` definition when the code cannot be resolved.
+        Load an error domain object by its code from the shared cache, falling
+        back to the get-error event and caching the retrieved error.
 
         :param error_code: The error code to resolve.
         :type error_code: str
@@ -233,19 +231,19 @@ class AppInterfaceContext(BaseContext):
         :rtype: Error
         '''
 
-        # Retrieve the error by code, including built-in defaults.
-        try:
-            return self.get_error_evt.execute(error_code, include_defaults=True)
+        # Compute the prefixed cache key for the error code.
+        cache_key = error_cache_key(error_code)
 
-        # On lookup failure, raise the API error using the ERROR_NOT_FOUND details.
-        except TiferetError:
-            error = Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
-            raise TiferetAPIError(
-                error_code=error.id,
-                name=error.name,
-                message=error.format_message(),
-                id=error_code,
-            )
+        # Try the shared cache first (pre-seeded with the default errors).
+        error = self.cache.get(cache_key)
+
+        # Retrieve via the get-error event when not cached, then cache it.
+        if not error:
+            error = self.get_error_evt.execute(error_code, include_defaults=False)
+            self.cache.set(cache_key, error)
+
+        # Return the loaded error.
+        return error
 
     # * method: parse_request
     def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
@@ -393,7 +391,7 @@ class AppInterfaceContext(BaseContext):
             )
 
         # Load the error domain object for the error code.
-        error_domain = self.load_error_domain(error.error_code)
+        error_domain = self.get_error(error.error_code)
 
         # Build the error context on demand (resolved via the registry) and
         # format the response for the loaded error.

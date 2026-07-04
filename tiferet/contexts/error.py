@@ -8,9 +8,29 @@ from typing import Any, Callable, Dict
 # ** app
 from .settings import BaseContext
 from .cache import CacheContext
+from ..assets import TiferetError
 from ..domain import Error
 
+# *** constants
+
+# ** constant: error_cache_key_prefix
+ERROR_CACHE_KEY_PREFIX = 'error_'
+
 # *** functions
+
+# ** function: error_cache_key
+def error_cache_key(error_code: str) -> str:
+    '''
+    Compose the shared-cache key for an error code.
+
+    :param error_code: The error code to key.
+    :type error_code: str
+    :return: The prefixed cache key.
+    :rtype: str
+    '''
+
+    # Prefix the error code to namespace it within the shared cache.
+    return f'{ERROR_CACHE_KEY_PREFIX}{error_code}'
 
 # ** function: add_default_errors
 def add_default_errors(errors: Dict[str, Any]) -> Callable:
@@ -36,9 +56,10 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
             # Delegate to the wrapped cache-builder.
             cache = build_fn(*args, **kwargs)
 
-            # Reconstitute each raw error dict into an Error domain object and cache it.
+            # Reconstitute each raw error dict into an Error domain object and
+            # cache it under its prefixed cache key.
             for error_id, error_data in errors.items():
-                cache.set(error_id, Error.model_validate(error_data))
+                cache.set(error_cache_key(error_id), Error.model_validate(error_data))
 
             # Return the populated cache context.
             return cache
@@ -60,22 +81,22 @@ class ErrorContext(BaseContext):
     domain_type = Error
 
     # * method: format_response
-    def format_response(self, error: Error, exception: Exception, lang: str = 'en_US') -> Dict[str, Any]:
+    def format_response(self, error: Error, exception: TiferetError, lang: str = 'en_US') -> Dict[str, Any]:
         '''
         Format a structured error response dictionary from a loaded error.
 
         :param error: The loaded error domain object.
         :type error: Error
-        :param exception: The raised exception carrying format kwargs.
-        :type exception: Exception
+        :param exception: The raised Tiferet error carrying format kwargs.
+        :type exception: TiferetError
         :param lang: The language to use for the error message.
         :type lang: str
         :return: The formatted error response dictionary.
         :rtype: Dict[str, Any]
         '''
 
-        # Extract any format kwargs carried by the exception.
-        kwargs = getattr(exception, 'kwargs', {})
+        # Extract the format kwargs carried by the error.
+        kwargs = exception.kwargs
 
         # Format the localized message; return no response when none is found.
         error_message = error.format_message(lang, **kwargs)
