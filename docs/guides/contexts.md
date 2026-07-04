@@ -163,19 +163,19 @@ The error context is built on demand inside `handle_error`; the logging context 
 
 ### CacheContext
 
-A simple keyed in-memory cache. `AppInterfaceContext` creates one `CacheContext` per interface and shares it with the sub-contexts it builds (the feature, error, and logging contexts). Treat it as a per-interface cache — it is not shared across interfaces.
+A simple keyed in-memory cache. `AppInterfaceContext` creates one `CacheContext` per interface and shares it with the `FeatureContext` it builds (the error and logging contexts no longer take a cache). Treat it as a per-interface cache — it is not shared across interfaces.
 
 ## Composition in the Application Graph
 
-The `build_app` blueprint constructs the `AppInterfaceContext` declaratively from the loaded `AppInterface` (binding it as `self.domain`). The hub then builds its sub-contexts on demand, sharing a single `CacheContext`:
+The `build_app` blueprint constructs the `AppInterfaceContext` declaratively from the loaded `AppInterface` (binding it as `self.domain`). The hub then builds its sub-contexts on demand, sharing its `CacheContext` with the `FeatureContext`:
 
 ```
 build_app (blueprint)
   └── ServiceResolver           (owns DI assembly; get_dependency injected into the hub)
-        └── AppInterfaceContext  (hub, bound to AppInterface)
+        └── AppInterfaceContext  (hub, bound to AppInterface; owns CacheContext)
               ├── FeatureContext   ── get_dependency + shared CacheContext
-              ├── ErrorContext     ── shared CacheContext
-              └── LoggingContext   ── shared CacheContext
+              ├── ErrorContext     ── (no cache)
+              └── LoggingContext   ── (no cache)
 ```
 
 Each `AppInterfaceContext` instance is per-interface. Interface events and repositories are wired by name into a registry; the context graph itself is built declaratively. Tests can inject a `get_dependency` mock and the logging mock via the hub's lazy cache (`_logging`), and provide feature/error contexts by patching `BaseContext.for_domain`.
@@ -255,7 +255,7 @@ Contexts must raise structured `TiferetError` instances with framework error cod
 
 ### 6. Treat CacheContext as Per-Interface
 
-Each `AppInterfaceContext` creates one `CacheContext` and shares it with the sub-contexts it builds. Do not share a single `CacheContext` across interfaces — a fresh hub per interface means a fresh cache, avoiding cross-interface leakage.
+Each `AppInterfaceContext` creates one `CacheContext` and shares it with the `FeatureContext` it builds. Do not share a single `CacheContext` across interfaces — a fresh hub per interface means a fresh cache, avoiding cross-interface leakage.
 
 ## Related Documentation
 

@@ -42,7 +42,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
 - **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
 - **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
-- **BaseContext** (`contexts/base.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The `AppInterfaceContext` hub binds the loaded `AppInterface` and builds its sub-contexts on demand.
+- **BaseContext** (`contexts/settings.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppInterfaceContext`, `FeatureContext`) wire it themselves. The `AppInterfaceContext` hub binds the loaded `AppInterface` and builds its sub-contexts on demand.
 
 ### Runtime Flow
 
@@ -333,7 +333,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/di/settings.py` — `ServiceContainer` (DI engine) and `ServiceResolver` (public provider)
 - `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point), `wire_services`, `load_app_instance`
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
-- `tiferet/contexts/base.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
+- `tiferet/contexts/settings.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext` (minimal declarative hub bound to the loaded `AppInterface`)
 - `tiferet/contexts/cli.py` — `CliContext` (CLI high-level context: argparse parsing helpers + `get_commands`/`parse_cli_request`/`run_cli`)
 - `tiferet/contexts/feature.py` — `FeatureContext` (sync feature execution engine) and `AsyncFeatureContext` (async subclass selected when `Feature.is_async` is set)

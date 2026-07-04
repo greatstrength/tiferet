@@ -7,7 +7,7 @@ Contexts are a core component of the Tiferet framework, representing the structu
 A Context in Tiferet is a class that encapsulates a specific aspect of an application’s runtime behavior, such as user-facing interactions (e.g., CLI, web), feature execution, dependency injection, error handling, caching, or logging. Contexts form a graph-like structure during execution, defining how the application processes inputs, executes domain logic, and returns outputs. They align with Domain-Driven Design (DDD) principles, isolating concerns to ensure modularity and extensibility.
 
 ### Types of Contexts
-All contexts extend `BaseContext` (`tiferet/contexts/base.py`), which provides a shared `services`/`cache` and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`).
+All contexts extend `BaseContext` (`tiferet/contexts/settings.py`), which provides a shared `services` slot and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`). Caching is not part of the base; contexts that need a `CacheContext` (e.g., `AppInterfaceContext`, `FeatureContext`) declare and wire it themselves.
 
 Tiferet recognizes two broad categories:
 
@@ -40,7 +40,8 @@ Contexts are organized under the `# *** contexts` top-level comment, with indivi
 # *** imports
 
 # ** app
-from .base import BaseContext
+from .settings import BaseContext
+from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
@@ -62,7 +63,8 @@ class AppInterfaceContext(BaseContext):
         Initialize the hub. The loaded AppInterface is bound via from_domain as
         self.domain, supplying the interface id and logger id on demand.
         '''
-        super().__init__(cache=cache)
+        super().__init__()
+        self.cache = cache if cache is not None else CacheContext()
         self.get_feature_evt = get_feature_evt
         # ... store the remaining events and the injected get_dependency
         # service-resolution handler, plus validated bootstrap defaults;
@@ -89,7 +91,7 @@ class AppInterfaceContext(BaseContext):
         return request.handle_response()
 ```
 
-The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the shared `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`, all sharing a single `CacheContext`. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds — there is no `DIContext`.
+The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `load_error_domain`. The hub owns a `CacheContext` — used by `load_feature_domain` and shared with the `FeatureContext` it builds; the error and logging contexts no longer take a cache. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds — there is no `DIContext`.
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
