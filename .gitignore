@@ -172,5 +172,8 @@ test.py
 # Tiferet local artifacts (temporary, do not commit)
 .eloha/
 
+# Handoff documents (local, do not commit)
+.handoff/
+
 # pytest
 pytest.ini
