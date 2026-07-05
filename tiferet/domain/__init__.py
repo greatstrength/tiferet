@@ -4,6 +4,9 @@
 
 # ** app
 from .settings import DomainObject
+from .core import (
+    ServiceDependency,
+)
 from .app import (
     AppInterface,
     AppServiceDependency,
@@ -41,6 +44,7 @@ from .logging import (
 
 __all__ = [
     'DomainObject',
+    'ServiceDependency',
     'AppInterface',
     'AppServiceDependency',
     'FlaggedDependency',
