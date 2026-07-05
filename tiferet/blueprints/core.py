@@ -13,7 +13,7 @@ from .. import assets as a
 # *** blueprints
 
 # ** blueprint: build_cache
-@add_default_errors(a.DEFAULT_ERRORS)
+@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(
     cache: Dict[str, Any] = None,
 ) -> CacheContext:

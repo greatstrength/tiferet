@@ -48,17 +48,8 @@ FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
 # ** constant: middleware_loading_failed_id
 MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
 
-# ** constant: app_repository_import_failed_id
-APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
-
-# ** constant: app_service_not_loaded_id
-APP_SERVICE_NOT_LOADED_ID = 'APP_SERVICE_NOT_LOADED'
-
 # ** constant: di_service_not_configured_id
 DI_SERVICE_NOT_CONFIGURED_ID = 'DI_SERVICE_NOT_CONFIGURED'
-
-# ** constant: dependency_type_not_found_id
-DEPENDENCY_TYPE_NOT_FOUND_ID = 'DEPENDENCY_TYPE_NOT_FOUND'
 
 # ** constant: context_not_found_id
 CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
@@ -132,9 +123,6 @@ APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 # ** constant: invalid_service_registration_id
 INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
 
-# ** constant: attribute_already_exists_id
-ATTRIBUTE_ALREADY_EXISTS_ID = 'ATTRIBUTE_ALREADY_EXISTS'
-
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
@@ -167,9 +155,6 @@ SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
 
 # ** constant: sqlite_conn_not_initialized_id
 SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
-
-# ** constant: invalid_dependency_error_id
-INVALID_DEPENDENCY_ERROR_ID = 'INVALID_DEPENDENCY_ERROR'
 
 # ** constant: app_error_id
 APP_ERROR_ID = 'APP_ERROR'

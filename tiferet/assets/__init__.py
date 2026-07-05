@@ -9,6 +9,7 @@ __all__ = [
     'DEFAULT_ERRORS',
     'const',
     'bps',
+    'error',
     'cli_app',
     'cli_svc',
     'cli_feat',
@@ -21,6 +22,7 @@ from .constants import ERROR_NOT_FOUND_ID
 from .error import DEFAULT_ERRORS
 from . import constants as const
 from . import blueprints as bps
+from . import error
 from . import app as cli_app
 from . import di as cli_svc
 from . import feature as cli_feat
