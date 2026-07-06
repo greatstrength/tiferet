@@ -203,7 +203,7 @@ return context_cls.from_domain(
 
 ## Structured Code Design
 
-The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consistent with other `settings.py` modules in the framework (e.g., `domain/settings.py`).
+The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consistent with other `settings.py` modules in the framework (e.g., `contexts/settings.py`).
 
 ### Artifact Comments
 

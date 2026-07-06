@@ -36,7 +36,7 @@ A working calculator application is provided in `examples/basic_calculator/`.
 
 **Key Concepts**:
 
-- **DomainObject** (`domain/settings.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
+- **DomainObject** (`domain/core.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
 - **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests. Each single-service event module defines a per-module base event (e.g., `ErrorEvent`, `FeatureEvent`) that holds the shared service injection; concrete events extend the base and define only `execute`.
 - **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
@@ -179,7 +179,7 @@ result = DomainEvent.handle(
 
 ## Domain Objects
 
-- Extend `DomainObject` from `tiferet/domain/settings.py`.
+- Extend `DomainObject` from `tiferet/domain/core.py`.
 - `DomainObject` extends `pydantic.BaseModel` with `ConfigDict(extra='forbid', populate_by_name=True, validate_assignment=True)`.
 - Declare fields with idiomatic Pydantic annotations: `name: str = Field(...)`.
 - Instantiate via direct constructors: `Error(id='invalid_input', name='Invalid Input')`.
@@ -191,6 +191,7 @@ result = DomainEvent.handle(
 
 ### Domain Modules
 
+- `domain/core.py` — `DomainObject`, `ServiceDependency`
 - `domain/app.py` — `AppInterface`, `AppServiceDependency`
 - `domain/cli.py` — `CliCommand`, `CliArgument`
 - `domain/di.py` — `ServiceRegistration`, `FlaggedDependency`
@@ -326,7 +327,7 @@ The top-level `tiferet/__init__.py` exports:
 ## Key Files for Orientation
 
 - `tiferet/__init__.py` — Version and public exports
-- `tiferet/domain/settings.py` — `DomainObject` base class (extends `pydantic.BaseModel`)
+- `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`) and `ServiceDependency` core model
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class

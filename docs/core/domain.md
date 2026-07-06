@@ -5,7 +5,7 @@
 
 ## Overview
 
-Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.settings`.
+Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
 
 Domain objects serve a **dual role**:
 
@@ -48,7 +48,7 @@ This duality ensures a single source of truth for domain structure and behavior,
 `DomainObject` extends `pydantic.BaseModel` with a shared `ConfigDict`:
 
 ```python
-# tiferet/domain/settings.py
+# tiferet/domain/core.py
 
 from pydantic import BaseModel, ConfigDict
 
@@ -93,7 +93,7 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 ## Creating and Extending Domain Objects
 
 ### 1. Define the Domain Object
-- Extend `DomainObject` from `tiferet.domain.settings`.
+- Extend `DomainObject` from `tiferet.domain.core`.
 - Declare fields with Pydantic `Field(...)` annotations.
 - Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for derivation logic that was previously in custom `new()` factories.
@@ -160,7 +160,7 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 
 Domain objects are defined in `tiferet/domain/`:
 
-- `settings.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`).
+- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
 - `app.py` – `AppInterface`, `AppServiceDependency`.
 - `cli.py` – `CliCommand`, `CliArgument`.
 - `di.py` – `ServiceRegistration`, `FlaggedDependency`.
