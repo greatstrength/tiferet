@@ -68,14 +68,14 @@ def test_build_cache_returns_cache_context():
 # ** test: build_cache_pre_seeds_default_errors
 def test_build_cache_pre_seeds_default_errors():
     '''
-    Test that build_cache pre-seeds the cache with the full default error catalog.
+    Test that build_cache pre-seeds the cache with the core default error catalog.
     '''
 
     # Build the cache.
     cache = build_cache()
 
-    # Assert the cache contains the same number of entries as DEFAULT_ERRORS.
-    assert len(cache._cache) == len(a.DEFAULT_ERRORS)
+    # Assert the cache contains the same number of entries as CORE_DEFAULT_ERRORS.
+    assert len(cache._cache) == len(a.error.CORE_DEFAULT_ERRORS)
 
 
 # ** test: build_cache_errors_are_error_domain_objects
