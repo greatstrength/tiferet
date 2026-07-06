@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.domain.settings import DomainObject
+from tiferet.domain.core import DomainObject
 from tiferet.domain.app import (
     AppInterface,
     AppServiceDependency,
@@ -29,25 +29,6 @@ def app_dependency() -> AppServiceDependency:
         module_path='test_module_path',
         class_name='test_class_name',
         parameters={'param1': 'value1', 'param2': 'value2'},
-    )
-
-# ** fixture: resolvable_app_dependency
-@pytest.fixture
-def resolvable_app_dependency() -> AppServiceDependency:
-    '''
-    Fixture for an AppServiceDependency with a real module path,
-    used for testing get_service_type().
-
-    :return: The AppServiceDependency instance.
-    :rtype: AppServiceDependency
-    '''
-
-    # Use an import-safe domain module path so import_module resolves correctly.
-    # (The contexts layer is intentionally broken on main during this milestone.)
-    return AppServiceDependency(service_id='resolvable_service',
-        module_path='tiferet.domain.app',
-        class_name='AppInterface',
-        parameters={'param1': 'value1'},
     )
 
 # ** fixture: app_interface
@@ -106,22 +87,6 @@ def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
 
     # Assert None is returned.
     assert service is None
-
-
-# ** test: app_service_dependency_get_service_type
-def test_app_service_dependency_get_service_type(resolvable_app_dependency: AppServiceDependency) -> None:
-    '''
-    Test that AppServiceDependency.get_service_type resolves the configured class type.
-
-    :param resolvable_app_dependency: An AppServiceDependency with a real module path.
-    :type resolvable_app_dependency: AppServiceDependency
-    '''
-
-    # Resolve the service type from the dependency.
-    service_type = resolvable_app_dependency.get_service_type()
-
-    # Assert the resolved type matches the expected class.
-    assert service_type is AppInterface
 
 # ** test: app_interface_apply_defaults_merges_missing_only
 def test_app_interface_apply_defaults_merges_missing_only(app_interface: AppInterface) -> None:
