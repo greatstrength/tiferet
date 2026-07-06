@@ -3,8 +3,8 @@
 # *** imports
 
 # ** app
-from .settings import DomainObject
 from .core import (
+    DomainObject,
     ServiceDependency,
 )
 from .app import (

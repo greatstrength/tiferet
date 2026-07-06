@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Type
 from pydantic import ConfigDict, Field, ValidationError, create_model, model_validator
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject
 from .. import assets as a
 from ..assets import TiferetError
 

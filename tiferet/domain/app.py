@@ -3,19 +3,18 @@
 # *** imports
 
 # ** core
-from importlib import import_module
 from typing import Dict, List
 
 # ** infra
 from pydantic import Field
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject, ServiceDependency
 
 # *** models
 
 # ** model: app_service_dependency
-class AppServiceDependency(DomainObject):
+class AppServiceDependency(ServiceDependency):
     '''
     An app service dependency that defines the service configuration for an app interface.
     '''
@@ -25,36 +24,6 @@ class AppServiceDependency(DomainObject):
         ...,
         description='The service id for the application dependency.',
     )
-
-    # * attribute: module_path
-    module_path: str = Field(
-        ...,
-        description='The module path for the app dependency.',
-    )
-
-    # * attribute: class_name
-    class_name: str = Field(
-        ...,
-        description='The class name for the app dependency.',
-    )
-
-    # * attribute: parameters
-    parameters: Dict[str, str] = Field(
-        default_factory=dict,
-        description='The parameters for the application dependency.',
-    )
-
-    # * method: get_service_type
-    def get_service_type(self) -> type:
-        '''
-        Get the service type for this app service dependency.
-
-        :return: The service type.
-        :rtype: type
-        '''
-
-        # Import and return the service class type.
-        return getattr(import_module(self.module_path), self.class_name)
 
 # ** model: app_interface
 class AppInterface(DomainObject):

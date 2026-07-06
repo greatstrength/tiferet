@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+from importlib import import_module
 from typing import Dict
 
 # ** infra
@@ -54,3 +55,15 @@ class ServiceDependency(DomainObject):
         default_factory=dict,
         description='The parameters for the service dependency.',
     )
+
+    # * method: get_service_type
+    def get_service_type(self) -> type:
+        '''
+        Get the service type for this service dependency.
+
+        :return: The service type.
+        :rtype: type
+        '''
+
+        # Import and return the service class type.
+        return getattr(import_module(self.module_path), self.class_name)

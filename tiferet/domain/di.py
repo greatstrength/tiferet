@@ -10,38 +10,20 @@ from typing import Dict, List
 from pydantic import Field
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject, ServiceDependency
 
 # *** models
 
 # ** model: flagged_dependency
-class FlaggedDependency(DomainObject):
+class FlaggedDependency(ServiceDependency):
     '''
     A flagged container dependency object.
     '''
-
-    # * attribute: module_path
-    module_path: str = Field(
-        ...,
-        description='The module path.',
-    )
-
-    # * attribute: class_name
-    class_name: str = Field(
-        ...,
-        description='The class name.',
-    )
 
     # * attribute: flag
     flag: str = Field(
         ...,
         description='The flag for the container dependency.',
-    )
-
-    # * attribute: parameters
-    parameters: Dict[str, str] = Field(
-        default_factory=dict,
-        description='The container dependency parameters.',
     )
 
 # ** model: service_registration
