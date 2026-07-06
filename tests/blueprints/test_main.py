@@ -47,7 +47,7 @@ def app_interface_aggregate() -> AppInterfaceAggregate:
         description='Test calculator interface',
         flags=['test'],
         services=load_default_services(),
-        constants=a.bps.DEFAULT_CONSTANTS,
+        constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
 # *** tests
@@ -196,7 +196,7 @@ def test_load_app_instance_injects_cli_collaborators():
         description='Test CLI interface',
         flags=['test'],
         services=load_default_services(),
-        constants=a.bps.DEFAULT_CONSTANTS,
+        constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
     # Realize the interface context from the aggregate.

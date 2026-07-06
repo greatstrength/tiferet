@@ -9,6 +9,7 @@ import pytest
 from tiferet.assets.constants import (
     EN_US,
     create_default_error,
+    create_app_service_dependency,
 )
 
 # *** tests
@@ -83,4 +84,49 @@ def test_create_default_error_empty_messages() -> None:
         'id': 'EMPTY_ERROR',
         'name': 'Empty Error',
         'message': [],
+    }
+
+# ** test: create_app_service_dependency_with_parameters
+def test_create_app_service_dependency_with_parameters() -> None:
+    '''
+    Test that create_app_service_dependency builds the expected dependency
+    dictionary when explicit parameters are supplied.
+    '''
+
+    # Build a service dependency definition with parameters.
+    result = create_app_service_dependency(
+        'feature_service',
+        'tiferet.repos.feature',
+        'FeatureConfigRepository',
+        {'feature_config': 'config.yml'},
+    )
+
+    # Assert the definition matches the expected shape.
+    assert result == {
+        'service_id': 'feature_service',
+        'module_path': 'tiferet.repos.feature',
+        'class_name': 'FeatureConfigRepository',
+        'parameters': {'feature_config': 'config.yml'},
+    }
+
+# ** test: create_app_service_dependency_defaults_parameters_to_empty
+def test_create_app_service_dependency_defaults_parameters_to_empty() -> None:
+    '''
+    Test that create_app_service_dependency defaults parameters to an empty dict
+    when None is supplied.
+    '''
+
+    # Build a service dependency definition without parameters.
+    result = create_app_service_dependency(
+        'di_service',
+        'tiferet.repos.di',
+        'DIConfigRepository',
+    )
+
+    # Assert the definition carries an empty parameters dict.
+    assert result == {
+        'service_id': 'di_service',
+        'module_path': 'tiferet.repos.di',
+        'class_name': 'DIConfigRepository',
+        'parameters': {},
     }

@@ -13,7 +13,7 @@ from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
-from ..domain import AppInterface, Feature, CliCommand, Error
+from ..domain import AppInterface, AppServiceDependency, Feature, CliCommand, Error
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
@@ -22,7 +22,120 @@ from .error import ErrorContext, error_cache_key
 from .logging import LoggingContext
 from .request import RequestContext
 
+# *** constants
+
+# ** constant: app_service_cache_key_prefix
+APP_SERVICE_CACHE_KEY_PREFIX = 'app_service_'
+
+# ** constant: app_constant_cache_key_prefix
+APP_CONSTANT_CACHE_KEY_PREFIX = 'app_constant_'
+
 # *** functions
+
+# ** function: app_service_cache_key
+def app_service_cache_key(service_id: str) -> str:
+    '''
+    Compose the shared-cache key for an app service dependency id.
+
+    :param service_id: The service id to key.
+    :type service_id: str
+    :return: The prefixed cache key.
+    :rtype: str
+    '''
+
+    # Prefix the service id to namespace it within the shared cache.
+    return f'{APP_SERVICE_CACHE_KEY_PREFIX}{service_id}'
+
+# ** function: add_default_app_services
+def add_default_app_services(services: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default app service
+    dependency domain objects.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``services`` is reconstituted into an ``AppServiceDependency``
+    domain object and stored in the cache under its prefixed service-id key.
+
+    :param services: A mapping of service ids to raw service dependency dicts.
+    :type services: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default service domain objects.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw service dict into an AppServiceDependency
+            # domain object and cache it under its prefixed cache key.
+            for service_id, service_data in services.items():
+                cache.set(
+                    app_service_cache_key(service_id),
+                    AppServiceDependency.model_validate(service_data),
+                )
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
+
+# ** function: app_constant_cache_key
+def app_constant_cache_key(name: str) -> str:
+    '''
+    Compose the shared-cache key for a bootstrap constant name.
+
+    :param name: The constant name to key.
+    :type name: str
+    :return: The prefixed cache key.
+    :rtype: str
+    '''
+
+    # Prefix the constant name to namespace it within the shared cache.
+    return f'{APP_CONSTANT_CACHE_KEY_PREFIX}{name}'
+
+# ** function: add_default_app_constants
+def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default bootstrap
+    constant values.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each scalar entry in ``constants`` is stored directly in the cache under
+    its prefixed constant-name key. Unlike services and errors, constants are
+    scalar values and need no domain-object reconstitution.
+
+    :param constants: A mapping of constant names to scalar values.
+    :type constants: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default constant values.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Store each scalar constant under its prefixed cache key.
+            for name, value in constants.items():
+                cache.set(app_constant_cache_key(name), value)
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
 
 # ** function: build_feature_index
 def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:

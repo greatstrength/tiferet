@@ -241,21 +241,16 @@ def load_app_service(
 # ** blueprint: load_default_services
 def load_default_services() -> List[AppServiceDependency]:
     '''
-    Load the default app service dependencies from configuration constants.
+    Load the default app service dependencies from the core service catalog.
 
     :return: A list of default app service dependencies.
     :rtype: List[AppServiceDependency]
     '''
 
-    # Build domain dependency models from the default service configuration.
+    # Build domain dependency models from the core default service catalog.
     return [
-        AppServiceDependency.model_construct(
-            service_id=service_id,
-            module_path=module_path,
-            class_name=class_name,
-            parameters=parameters or {},
-        )
-        for service_id, module_path, class_name, parameters in a.bps.DEFAULT_SERVICES
+        AppServiceDependency.model_validate(record)
+        for record in a.app.CORE_DEFAULT_SERVICES.values()
     ]
 
 
@@ -382,7 +377,7 @@ def resolve_interface(
     # Merge the framework default services and constants via the domain model.
     app_interface = app_interface.apply_defaults(
         default_services=default_services,
-        default_constants=a.bps.DEFAULT_CONSTANTS,
+        default_constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
     # Return the resolved interface and default services.

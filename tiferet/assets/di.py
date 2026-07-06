@@ -4,7 +4,7 @@ Provides the default service configurations for the built-in Tiferet CLI
 management application. These register domain events as injectable services
 for CLI feature workflows.
 
-Services already defined in ``blueprints.DEFAULT_SERVICES`` (e.g.
+Services already defined in ``app.CORE_DEFAULT_SERVICES`` (e.g.
 ``get_error_evt``, ``get_feature_evt``, ``list_all_settings_evt``) are
 **not** duplicated here. The blueprint merges both lists at startup.
 """

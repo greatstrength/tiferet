@@ -126,7 +126,7 @@ def build_tiferet_cli(
     # Build the bootstrap constants dict, pointing all config file keys at the
     # consumer's config file so every repo reads from and writes to that file.
     bootstrap_constants: Dict[str, Any] = {
-        **a.bps.DEFAULT_CONSTANTS,
+        **a.app.CORE_DEFAULT_CONSTANTS,
         'app_config': app_config,
         'cli_config': app_config,
         'di_config': app_config,

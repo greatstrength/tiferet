@@ -11,7 +11,7 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
-from tiferet.domain import AppInterface, Feature, CliCommand, Error
+from tiferet.domain import AppInterface, AppServiceDependency, Feature, CliCommand, Error
 from tiferet.mappers import AppInterfaceAggregate
 from tiferet.contexts.app import (
     BaseContext,
@@ -23,10 +23,75 @@ from tiferet.contexts.app import (
     build_feature_index,
     build_command_list,
     resolve_default_interface,
+    app_service_cache_key,
+    app_constant_cache_key,
+    add_default_app_services,
+    add_default_app_constants,
+    APP_SERVICE_CACHE_KEY_PREFIX,
+    APP_CONSTANT_CACHE_KEY_PREFIX,
 )
+from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import error_cache_key
 
 # *** fixtures
+
+# ** fixture: base_cache_builder
+@pytest.fixture
+def base_cache_builder():
+    '''
+    Fixture providing a plain cache-builder callable with no pre-seeding.
+
+    :return: A callable that returns a fresh CacheContext.
+    :rtype: Callable
+    '''
+
+    # Return a minimal cache-builder that mirrors the unwrapped build_cache.
+    def _build(cache=None):
+        return CacheContext(cache=cache)
+
+    return _build
+
+# ** fixture: sample_services
+@pytest.fixture
+def sample_services() -> dict:
+    '''
+    Fixture providing a small subset of default service definitions for decorator tests.
+
+    :return: A dict of service id to raw service dependency dict.
+    :rtype: dict
+    '''
+
+    # Return a representative slice of the default service catalog.
+    return {
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.repos.di',
+            'class_name': 'DIConfigRepository',
+            'parameters': {},
+        },
+        'get_error_evt': {
+            'service_id': 'get_error_evt',
+            'module_path': 'tiferet.events.error',
+            'class_name': 'GetError',
+            'parameters': {},
+        },
+    }
+
+# ** fixture: sample_constants
+@pytest.fixture
+def sample_constants() -> dict:
+    '''
+    Fixture providing a small subset of bootstrap constants for decorator tests.
+
+    :return: A dict of constant name to scalar value.
+    :rtype: dict
+    '''
+
+    # Return a representative slice of the default constant catalog.
+    return {
+        'cli_config': 'config.yml',
+        'di_config': 'config.yml',
+    }
 
 # ** fixture: app_interface
 @pytest.fixture
@@ -166,6 +231,183 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 
 # *** tests
+
+# ** test: app_service_cache_key_prefixes_service_id
+def test_app_service_cache_key_prefixes_service_id():
+    '''
+    Test that app_service_cache_key namespaces a service id with the shared prefix.
+    '''
+
+    # Compose a cache key for a sample service id.
+    key = app_service_cache_key('di_service')
+
+    # Assert the key uses the prefix constant.
+    assert key == f'{APP_SERVICE_CACHE_KEY_PREFIX}di_service'
+    assert key == 'app_service_di_service'
+
+# ** test: app_constant_cache_key_prefixes_name
+def test_app_constant_cache_key_prefixes_name():
+    '''
+    Test that app_constant_cache_key namespaces a constant name with the shared prefix.
+    '''
+
+    # Compose a cache key for a sample constant name.
+    key = app_constant_cache_key('cli_config')
+
+    # Assert the key uses the prefix constant.
+    assert key == f'{APP_CONSTANT_CACHE_KEY_PREFIX}cli_config'
+    assert key == 'app_constant_cli_config'
+
+# ** test: add_default_app_services_returns_callable
+def test_add_default_app_services_returns_callable(sample_services, base_cache_builder):
+    '''
+    Test that add_default_app_services returns a decorator that produces a callable.
+
+    :param sample_services: A small sample of service definitions.
+    :type sample_services: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Apply the decorator.
+    wrapped = add_default_app_services(sample_services)(base_cache_builder)
+
+    # Assert the result is callable.
+    assert callable(wrapped)
+
+# ** test: add_default_app_services_seeds_cache_with_domain_objects
+def test_add_default_app_services_seeds_cache_with_domain_objects(sample_services, base_cache_builder):
+    '''
+    Test that the decorated builder stores AppServiceDependency objects in the cache.
+
+    :param sample_services: A small sample of service definitions.
+    :type sample_services: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_app_services(sample_services)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert each service id maps to an AppServiceDependency in the cache under
+    # its prefixed cache key.
+    for service_id in sample_services:
+        cached = cache.get(app_service_cache_key(service_id))
+        assert isinstance(cached, AppServiceDependency)
+        assert cached.service_id == service_id
+
+# ** test: add_default_app_services_preserves_initial_cache_values
+def test_add_default_app_services_preserves_initial_cache_values(sample_services, base_cache_builder):
+    '''
+    Test that pre-seeded services do not overwrite an initial cache dict.
+
+    :param sample_services: A small sample of service definitions.
+    :type sample_services: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke with a pre-populated initial dict.
+    wrapped = add_default_app_services(sample_services)(base_cache_builder)
+    cache = wrapped(cache={'existing_key': 'existing_value'})
+
+    # Assert the pre-existing entry is still accessible.
+    assert cache.get('existing_key') == 'existing_value'
+
+    # Assert the service entries are also present under their prefixed keys.
+    for service_id in sample_services:
+        assert isinstance(cache.get(app_service_cache_key(service_id)), AppServiceDependency)
+
+# ** test: add_default_app_services_empty_dict_leaves_cache_clean
+def test_add_default_app_services_empty_dict_leaves_cache_clean(base_cache_builder):
+    '''
+    Test that wrapping with an empty services dict results in an empty cache.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap with an empty services dict.
+    wrapped = add_default_app_services({})(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the cache contains no entries.
+    assert cache._cache == {}
+
+# ** test: add_default_app_constants_returns_callable
+def test_add_default_app_constants_returns_callable(sample_constants, base_cache_builder):
+    '''
+    Test that add_default_app_constants returns a decorator that produces a callable.
+
+    :param sample_constants: A small sample of bootstrap constants.
+    :type sample_constants: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Apply the decorator.
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
+
+    # Assert the result is callable.
+    assert callable(wrapped)
+
+# ** test: add_default_app_constants_seeds_cache_with_scalars
+def test_add_default_app_constants_seeds_cache_with_scalars(sample_constants, base_cache_builder):
+    '''
+    Test that the decorated builder stores scalar constant values in the cache.
+
+    :param sample_constants: A small sample of bootstrap constants.
+    :type sample_constants: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert each constant name maps to its scalar value under the prefixed key.
+    for name, value in sample_constants.items():
+        assert cache.get(app_constant_cache_key(name)) == value
+
+# ** test: add_default_app_constants_preserves_initial_cache_values
+def test_add_default_app_constants_preserves_initial_cache_values(sample_constants, base_cache_builder):
+    '''
+    Test that pre-seeded constants do not overwrite an initial cache dict.
+
+    :param sample_constants: A small sample of bootstrap constants.
+    :type sample_constants: dict
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap the builder and invoke with a pre-populated initial dict.
+    wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
+    cache = wrapped(cache={'existing_key': 'existing_value'})
+
+    # Assert the pre-existing entry is still accessible.
+    assert cache.get('existing_key') == 'existing_value'
+
+    # Assert the constant entries are also present under their prefixed keys.
+    for name, value in sample_constants.items():
+        assert cache.get(app_constant_cache_key(name)) == value
+
+# ** test: add_default_app_constants_empty_dict_leaves_cache_clean
+def test_add_default_app_constants_empty_dict_leaves_cache_clean(base_cache_builder):
+    '''
+    Test that wrapping with an empty constants dict results in an empty cache.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Wrap with an empty constants dict.
+    wrapped = add_default_app_constants({})(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the cache contains no entries.
+    assert cache._cache == {}
 
 # ** test: build_feature_index_materializes_typed_features
 def test_build_feature_index_materializes_typed_features():
