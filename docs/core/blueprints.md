@@ -15,7 +15,7 @@ The canonical implementation is `build_app` in `tiferet/blueprints/main.py`.
 Blueprints sit at the highest level of the application graph:
 
 - They load the application service (typically a repository)
-- They prepare default services and constants from `assets.blueprints`
+- They prepare default services and constants from `assets.app` (`a.app.CORE_DEFAULT_SERVICES` / `a.app.CORE_DEFAULT_CONSTANTS`)
 - They resolve interfaces via domain events (`GetAppInterface`)
 - They declaratively wire service dependencies into a name-to-value registry (no app-level DI container) and compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - They delegate feature execution to the resolved `AppInterfaceContext`
@@ -85,13 +85,24 @@ app = App('basic_calc', app_config='config.yml')
 ```
 
 **Default configuration injection**  
-Blueprints inject `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` via the `AppInterface.apply_defaults` domain method after the repo-only `GetAppInterface` read (with the context helper `resolve_default_interface` providing the bootstrap interface fallback):
+Blueprints inject the framework's `CORE_DEFAULT_SERVICES` and `CORE_DEFAULT_CONSTANTS` catalogs (defined in `assets/app.py`, accessed as `a.app`) via the `AppInterface.apply_defaults` domain method after the repo-only `GetAppInterface` read (with the context helper `resolve_default_interface` providing the bootstrap interface fallback):
 
 ```python
 app_interface = app_interface.apply_defaults(
     default_services=default_services,
-    default_constants=a.bps.DEFAULT_CONSTANTS,
+    default_constants=a.app.CORE_DEFAULT_CONSTANTS,
 )
+```
+
+**Cache pre-seeding**  
+The core `build_cache` blueprint (`tiferet/blueprints/core.py`) pre-seeds a `CacheContext` with three framework catalogs via stacked decorators — `add_default_errors`, `add_default_app_services`, and `add_default_app_constants` (the latter two defined in `contexts/app.py`) — namespacing each catalog under its own cache-key prefix (`error_`, `app_service_`, `app_constant_`). Errors and services are reconstituted into domain objects (`Error`, `AppServiceDependency`); constants are seeded as scalars:
+
+```python
+@add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
+@add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
+@add_default_errors(a.error.CORE_DEFAULT_ERRORS)
+def build_cache(cache=None) -> CacheContext:
+    return CacheContext(cache=cache)
 ```
 
 **Declarative service wiring**  

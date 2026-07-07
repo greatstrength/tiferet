@@ -33,7 +33,7 @@ result = app.run('calc.add', data={'a': 5, 'b': 3})
 Key responsibilities:
 
 - **Service loading** — dynamic import of the app service (usually a repository)
-- **Default configuration** — injecting `DEFAULT_SERVICES` and `DEFAULT_CONSTANTS` from `assets.blueprints`
+- **Default configuration** — injecting `CORE_DEFAULT_SERVICES` and `CORE_DEFAULT_CONSTANTS` from `assets.app` (`a.app`)
 - **Interface resolution** — calling `GetAppInterface` and validating the result
 - **Execution** — delegating to `AppInterfaceContext.run()`
 
@@ -70,8 +70,8 @@ def load_app_service(module_path=..., class_name=..., **parameters) -> Any:
 ```python
 def load_default_services() -> List[AppServiceDependency]:
     return [
-        AppServiceDependency.model_construct(...)
-        for ... in a.bps.DEFAULT_SERVICES
+        AppServiceDependency.model_validate(record)
+        for record in a.app.CORE_DEFAULT_SERVICES.values()
     ]
 ```
 
@@ -97,7 +97,7 @@ def resolve_interface(interface_id, ..., default_interfaces=[]) -> tuple:
             raise
     app_interface = app_interface.apply_defaults(
         default_services=default_services,
-        default_constants=a.bps.DEFAULT_CONSTANTS,
+        default_constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
     return app_interface, default_services
 ```
