@@ -3,9 +3,7 @@
 # *** imports
 
 # ** core
-from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Tuple
-import inspect
 
 # ** infra
 from dependency_injector import containers, providers
@@ -13,46 +11,9 @@ from dependency_injector import containers, providers
 # ** app
 from ..domain import ServiceRegistration
 from ..interfaces.di import DIService
+from .core import injectable_parameter_names
 
 # *** functions
-
-# ** function: injectable_parameter_names
-def injectable_parameter_names(service_type: type) -> List[str]:
-    '''
-    Return the injectable constructor parameter names for a service type.
-
-    Excludes ``self`` and variadic (``*args`` / ``**kwargs``) parameters.
-    Types whose constructor cannot be inspected are treated as no-arg.
-
-    :param service_type: The service class to inspect.
-    :type service_type: type
-    :return: The list of injectable constructor parameter names.
-    :rtype: List[str]
-    '''
-
-    # Inspect the constructor signature; treat uninspectable types as no-arg.
-    try:
-        signature = inspect.signature(service_type.__init__)
-    except (ValueError, TypeError):
-        return []
-
-    # Collect parameter names, skipping self and variadic parameters.
-    names = []
-    for name, parameter in signature.parameters.items():
-
-        # Skip the bound self parameter.
-        if name == 'self':
-            continue
-
-        # Skip variadic positional and keyword parameters.
-        if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-            continue
-
-        # Record the injectable parameter name.
-        names.append(name)
-
-    # Return the collected parameter names.
-    return names
 
 # ** function: normalize_flags
 def normalize_flags(*flags) -> List[str]:

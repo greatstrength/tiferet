@@ -13,7 +13,6 @@ from tiferet.interfaces.di import DIService
 from tiferet.di.settings import (
     ServiceContainer,
     ServiceResolver,
-    injectable_parameter_names,
     normalize_flags,
     create_cache_key,
     merge_settings,
@@ -177,33 +176,6 @@ def flagged_param_registration() -> ServiceRegistration:
     )
 
 # *** tests
-
-# ** test: injectable_parameter_names_no_args
-def test_injectable_parameter_names_no_args():
-    '''
-    Test that a dependency-free service yields no injectable parameter names.
-    '''
-
-    # Assert a service with no constructor parameters returns an empty list.
-    assert injectable_parameter_names(SimpleService) == []
-
-# ** test: injectable_parameter_names_with_dependency
-def test_injectable_parameter_names_with_dependency():
-    '''
-    Test that a service with a constructor dependency yields its parameter name.
-    '''
-
-    # Assert the injected dependency parameter is identified.
-    assert injectable_parameter_names(DependentService) == ['simple_service']
-
-# ** test: injectable_parameter_names_scalar
-def test_injectable_parameter_names_scalar():
-    '''
-    Test that a service with a scalar parameter yields its parameter name.
-    '''
-
-    # Assert the scalar parameter is identified.
-    assert injectable_parameter_names(ConfigurableService) == ['config_value']
 
 # ** test: normalize_flags_mixed
 def test_normalize_flags_mixed():
