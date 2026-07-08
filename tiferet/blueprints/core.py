@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 # ** app
 from ..contexts.cache import CacheContext
@@ -17,6 +17,8 @@ from ..contexts.app import (
 from ..domain import AppInterface
 from ..events import ParseParameter
 from ..di import DIAppServiceContainer
+from ..di.core import ServiceResolver
+from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
 
 # *** blueprints
@@ -108,3 +110,40 @@ def parse_parameter(parameter: str) -> Any:
 
     # Delegate to the ParseParameter static event.
     return ParseParameter.execute(parameter)
+
+# ** blueprint: build_service_resolver
+def build_service_resolver(
+    app_service_container: DIAppServiceContainer,
+    parse_parameter: Callable = parse_parameter,
+) -> ServiceResolver:
+    '''
+    Build the feature-level service resolver from a composed app service container.
+
+    Resolves the DI service registration from the app service container, composes
+    a concrete DIDynamicServiceResolver around it, then caches the same app
+    service container on the resolver under the ``app`` flag so app-scoped
+    services resolve through ``get_dependency(<id>, 'app')``.
+
+    :param app_service_container: The composed app service container (defaults + interface overrides).
+    :type app_service_container: DIAppServiceContainer
+    :param parse_parameter: The parameter parser injected into the resolver; defaults to the blueprint parser.
+    :type parse_parameter: Callable
+    :return: The composed feature-level service resolver.
+    :rtype: ServiceResolver
+    '''
+
+    # Resolve the DI service registration from the app service container.
+    di_service = app_service_container.get_dependency('di_service')
+
+    # Compose the concrete per-flag feature resolver, injecting the parameter parser.
+    resolver = DIDynamicServiceResolver(
+        di_service=di_service,
+        parse_parameter=parse_parameter,
+    )
+
+    # Cache the app service container under the app flag so app-scoped
+    # dependencies resolve through it.
+    resolver.add_container(app_service_container, 'app')
+
+    # Return the composed service resolver.
+    return resolver
