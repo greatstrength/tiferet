@@ -95,6 +95,18 @@ The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseConte
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
+### Cache Context and Default Catalogs
+
+The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
+
+The app-context module (`tiferet/contexts/app.py`) provides paired seeders and getters for the bootstrap catalogs:
+
+- `add_default_app_services` / `add_default_app_constants` seed the cache under the `app_service_` and `app_constant_` key prefixes (stacked as decorators on `build_cache`).
+- `get_default_app_services(cache)` returns the seeded `AppServiceDependency` domain objects (the values behind the `app_service_` prefix).
+- `get_default_app_constants(cache)` returns the seeded bootstrap constants keyed by name, stripping the `app_constant_` prefix.
+
+These getters let the `build_app_service_container` blueprint pull the framework defaults back off the shared cache when composing the app-level service container.
+
 ## Writing Contexts
 
 ### Creating a New Context

@@ -20,7 +20,7 @@ tiferet/
 ├── assets/               # Constants, exceptions (TiferetError), shared config
 ├── blueprints/           # build_app, build_cli and top-level runtime orchestration
 ├── contexts/             # Runtime orchestration: BaseContext registry + AppInterfaceContext hub (Feature, Error, Logging) + CliContext
-├── di/                   # DI: ServiceContainer engine + ServiceResolver provider
+├── di/                   # DI: core.py ABCs + dependency_injector.py impls (DIAppServiceContainer, DIDynamicServiceResolver) + legacy settings.py
 ├── domain/               # DomainObject base class and domain modules
 ├── events/               # DomainEvent base class and domain event modules
 ├── interfaces/           # Service ABC and domain service interfaces
@@ -89,6 +89,8 @@ As of v2.0.0b10, DI is provided by two classes in `tiferet/di/settings.py` (the 
 The DI layer is **event-free and asset-free** (it imports only stdlib, `dependency-injector`, `..domain`, and `..interfaces.di`); it assumes best-case inputs, raises raw exceptions for callers with event access to convert, and receives parameter parsing as the injected `parse_parameter` callable. `tiferet/di/settings.py` also exposes pure `# *** functions` — `injectable_parameter_names`, `normalize_flags`, `create_cache_key`, and `merge_settings` — exported from `tiferet/di/__init__.py`.
 
 Interface wiring is declarative: `wire_services` instantiates the interface's events and repositories into a name-to-value registry (no app-level container), and `load_app_instance` composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`) and injects `resolver.get_dependency`.
+
+A DI refactor (see Migration Notes) introduces an abstract, domain-only contract in `tiferet/di/core.py` (the `ServiceContainer` and `ServiceResolver` ABCs, plus `injectable_parameter_names` / `normalize_flags`) and concrete `dependency_injector`-backed implementations in `tiferet/di/dependency_injector.py` (`DIDynamicServiceContainer`, the Singleton `DIAppServiceContainer`, and the per-flag `DIDynamicServiceResolver`). These coexist with the legacy `tiferet/di/settings.py` classes above, which `build_app` still wires.
 
 ## Structured Code Style
 
@@ -194,7 +196,7 @@ result = DomainEvent.handle(
 - `domain/core.py` — `DomainObject`, `ServiceDependency`
 - `domain/app.py` — `AppInterface`, `AppServiceDependency`
 - `domain/cli.py` — `CliCommand`, `CliArgument`
-- `domain/di.py` — `ServiceRegistration`, `FlaggedDependency`
+- `domain/di.py` — `ServiceRegistration` (with `resolve_service` / `get_service_type`), `FlaggedDependency`
 - `domain/error.py` — `Error`, `ErrorMessage`
 - `domain/feature.py` — `Feature`, `FeatureStep`, `EventFeatureStep`
 - `domain/logging.py` — `Formatter`, `Handler`, `Logger`, `LoggingSettings`
@@ -331,7 +333,9 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
-- `tiferet/di/settings.py` — `ServiceContainer` (DI engine) and `ServiceResolver` (public provider)
+- `tiferet/di/core.py` — `ServiceContainer` / `ServiceResolver` ABCs + `injectable_parameter_names` / `normalize_flags`
+- `tiferet/di/dependency_injector.py` — `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton), `DIDynamicServiceResolver` (per-flag)
+- `tiferet/di/settings.py` — legacy `ServiceContainer` (DI engine) and `ServiceResolver` (public provider), still wired by `build_app`
 - `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point), `wire_services`, `load_app_instance`
 - `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
 - `tiferet/contexts/settings.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
@@ -345,6 +349,17 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### DI App Service Container & Feature Service Resolver
+
+This cycle introduces an app-level service container and a feature-level service resolver alongside a DI-layer refactor, all additive (the legacy `tiferet/di/settings.py` remains wired by `build_app`):
+
+- **Abstract DI contract** (`tiferet/di/core.py`) — Adds the `ServiceContainer` and `ServiceResolver` ABCs. `ServiceResolver` owns a per-flag container cache plus a template-method `get_dependency`, leaving `build_container` abstract. `normalize_flags` is relocated here (canonical) alongside `injectable_parameter_names`; `settings.py` re-imports `normalize_flags`, and `tiferet/di/__init__.py` repoints it to `core.py`.
+- **Dependency-injector implementations** (`tiferet/di/dependency_injector.py`) — `DIDynamicServiceContainer` (Factory scope); `DIAppServiceContainer` (Singleton scope, `build_singleton`, and a `from_dependencies` classmethod keyed by `service_id`); and `DIDynamicServiceResolver` (holds a `DIService` + injected `parse_parameter`, implements `build_container`). `DIAppServiceContainer` is exported from `tiferet/di/__init__.py`.
+- **`ServiceRegistration.resolve_service`** (`tiferet/domain/di.py`) — Centralizes the flagged-override → default → None precedence, returning the effective core `ServiceDependency` for a flag set; `get_service_type` now delegates to it.
+- **Cache enumeration** — `CacheContext.get_by_prefix(prefix)` (`tiferet/contexts/cache.py`) returns all entries whose keys start with a prefix. `contexts/app.py` adds `get_default_app_services` / `get_default_app_constants` getters that read the `app_service_` / `app_constant_` cache prefixes seeded by the existing `add_default_app_*` decorators.
+- **Blueprint helpers** (`tiferet/blueprints/core.py`) — `build_app_service_container(cache, app_instance, service_container=DIAppServiceContainer)` composes the app service container from cache-seeded defaults plus interface overrides; `parse_parameter` is a thin wrapper over the `ParseParameter` static event for injection into the resolver.
+- **Deferred** — Wiring the new resolver / app container into `build_app`, consolidating the legacy `settings.py` (including its duplicate `ServiceContainer`), and reconciling `tiferet/di/__init__.py` exports remain follow-ups.
 
 ### v2.0.0b13: Bootstrap/Default Configuration Finalization
 

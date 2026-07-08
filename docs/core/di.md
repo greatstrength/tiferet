@@ -5,28 +5,139 @@
 
 ## Overview
 
-The `tiferet/di/` package provides the dependency-injection layer for the Tiferet framework. As of v2.0.0b10 `tiferet/di/settings.py` defines a set of side-effect-free module functions (grouped under `# *** functions`) plus two classes:
+The `tiferet/di/` package provides the dependency-injection layer for the Tiferet framework. The layer is being refactored into an **abstract contract** plus **dependency-injector-backed implementations**, while the previous single-file design in `tiferet/di/settings.py` remains in place and wired:
 
-- **`injectable_parameter_names`, `normalize_flags`, `create_cache_key`, `merge_settings`** — pure module-level helpers shared by the DI classes, the blueprint wiring (`tiferet/blueprints/main.py`), and the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`).
-- **`ServiceContainer`** — the low-level dependency-injection engine. It registers service types and constants and instantiates services with their constructor parameters wired to sibling registrations, backed by `dependency_injector`'s `DynamicContainer`.
-- **`ServiceResolver`** — the application's single public provider. It takes a `DIService` and a `parse_parameter` callable as direct dependencies (in the spirit of a domain event), reads service registrations and constants, assembles a per-flag type map and constant set, and builds and caches a `ServiceContainer` engine per flag set.
+- **`tiferet/di/core.py`** — the abstract, domain-only core: the `ServiceContainer` and `ServiceResolver` ABCs plus the pure module functions `injectable_parameter_names` and `normalize_flags`. It imports only the standard library and `..domain` (`ServiceDependency`).
+- **`tiferet/di/dependency_injector.py`** — the concrete implementations backed by `dependency_injector`: `DIDynamicServiceContainer` (feature-level, `Factory` scope), `DIAppServiceContainer` (app-level, `Singleton` scope), and `DIDynamicServiceResolver` (per-flag feature resolver). It may additionally import `..interfaces.di` (`DIService`).
+- **`tiferet/di/settings.py`** — the legacy, still-wired module: the `create_cache_key` / `merge_settings` module functions plus the concrete `ServiceContainer` engine and `ServiceResolver` provider that `build_app` currently composes. It coexists with the new modules and is described in the sections below.
 
-The DI layer is deliberately **event-free and asset-free**: `tiferet/di/settings.py` imports only the standard library, `dependency_injector`, `..domain` (`ServiceRegistration`), and `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access (the feature context and the bootstrap event layer). Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports `ParseParameter` itself.
+The DI layer is deliberately **event-free and asset-free**: it imports only the standard library, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access (the feature context and the bootstrap event layer). Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports `ParseParameter` itself.
 
-There is no longer a separate "app-level" vs. "feature-level" DI split. The previous `ServiceProvider` ABC, `DynamicServiceProvider`, the `DependenciesServiceProvider` alias, and the `DIContext` feature-level context have all been retired. DI assembly now lives entirely in `ServiceResolver`, and the contexts that need to resolve services (`AppInterfaceContext`, `FeatureContext`) consume an injected `get_dependency` callable rather than holding a provider or container directly.
+The previous `ServiceProvider` ABC, `DynamicServiceProvider`, the `DependenciesServiceProvider` alias, and the `DIContext` feature-level context remain retired. The refactor re-expresses the natural **app-level vs. feature-level** distinction through provider scope rather than through separate provider classes: app-level core services resolve as shared **Singletons** (`DIAppServiceContainer`), while feature-level services resolve per flag set as **Factories** (`DIDynamicServiceResolver`). The contexts that resolve services (`AppInterfaceContext`, `FeatureContext`) still consume an injected `get_dependency` callable rather than holding a provider or container directly.
 
 This document describes the structure, design principles, and best practices for the DI layer, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
 
 ## Module Functions
 
-`tiferet/di/settings.py` opens with a `# *** functions` section of pure, side-effect-free helpers that are shared across the DI classes, the blueprint wiring, and the `CreateServiceResolver` bootstrap event:
+The DI package exposes pure, side-effect-free helpers under `# *** functions`, now split across `di/core.py` (canonical) and the legacy `di/settings.py`:
 
-- **`injectable_parameter_names(service_type)`** — Returns a service type's injectable constructor parameter names, excluding `self` and variadic parameters. Used by `ServiceContainer.build_factory`, the blueprint's `resolve_ctor_kwargs`, and `CreateServiceResolver`.
-- **`normalize_flags(*flags)`** — Flattens a mixed sequence of strings, lists, and tuples into a flat list of strings.
-- **`create_cache_key(flags)`** — Derives the per-flag container cache key (e.g. `feature_services_<flag>...`).
-- **`merge_settings(configs, constants, default_config_index, default_constants)`** — Appends default-index entries for any service ID not already present and merges default constants beneath the repository constants. Backs both `ServiceResolver.list_all_settings` and the `ListAllSettings` event.
+- **`injectable_parameter_names(service_type)`** (`di/core.py`) — Returns a service type's injectable constructor parameter names, excluding `self` and variadic parameters. Used by every container's `build_factory` / `build_singleton`, the blueprint's `resolve_ctor_kwargs`, and `CreateServiceResolver`.
+- **`normalize_flags(*flags)`** (`di/core.py`) — Flattens a mixed sequence of strings, lists, and tuples into a flat list of strings. Relocated here as the single source of truth; `di/settings.py` re-imports it and it is re-exported from `tiferet/di/__init__.py`.
+- **`create_cache_key(flags)`** (`di/settings.py`) — Derives the per-flag container cache key (e.g. `feature_services_<flag>...`).
+- **`merge_settings(configs, constants, default_config_index, default_constants)`** (`di/settings.py`) — Appends default-index entries for any service ID not already present and merges default constants beneath the repository constants. Backs both the legacy `ServiceResolver.list_all_settings` and the `ListAllSettings` event.
+
+## Abstract DI Contract (`di/core.py`)
+
+`di/core.py` defines the framework's abstract DI contract. It is **domain-only** — it imports the standard library and `..domain` (`ServiceDependency`) and nothing from `..interfaces` — so the abstract layer never depends on service interfaces or events.
+
+### `ServiceContainer` (ABC)
+
+The `ServiceContainer` ABC is the container contract that concrete engines implement. Its methods are keyed on the core `ServiceDependency` domain model:
+
+- **`add_service(service_id, service: ServiceDependency)`** — Register a service dependency. Implementations register the dependency's declared `parameters` as constants (taking precedence) before registering the service.
+- **`add_constant(constant_id, value)`** — Register a single constant value.
+- **`get_dependency(dependency_id)`** — Resolve a registered service or constant by id.
+- **`remove_dependency(dependency_id)`** — Remove a registered dependency (idempotent).
+- **`load_container(services, constants)`** — Bulk-load the container from service dependencies and constants (constants first so factories can wire to them).
+
+### `ServiceResolver` (ABC)
+
+The `ServiceResolver` ABC owns a per-flag `ServiceContainer` cache and a concrete **template-method** `get_dependency`; only `build_container` is abstract. Subclasses implement `build_container(flags)` and inherit the caching/resolution flow for free:
+
+- **`add_container(container, *flags)` / `get_container(*flags)`** — Cache and retrieve containers keyed by the normalized flag tuple (`tuple(normalize_flags(*flags))`).
+- **`build_container(flags)`** (abstract) — Build a `ServiceContainer` for a flag set.
+- **`get_dependency(service_id, *flags)`** (template) — Normalize flags, retrieve the cached container (building and caching one on a miss), then delegate to `container.get_dependency(service_id)`.
+
+```python
+# tiferet/di/core.py (excerpt)
+
+# ** class: service_resolver
+class ServiceResolver(ABC):
+
+    # * method: get_dependency
+    def get_dependency(self, service_id: str, *flags) -> Any:
+        # Normalize the provided flags.
+        normalized = normalize_flags(*flags)
+
+        # Retrieve the cached container, building and caching one on a miss.
+        container = self.get_container(*normalized)
+        if container is None:
+            container = self.add_container(self.build_container(normalized), *normalized)
+
+        # Resolve the dependency from the container.
+        return container.get_dependency(service_id)
+```
+
+Keeping `di_service` off the base preserves the domain-only boundary; the DI-bound state lives on the concrete resolver in `dependency_injector.py`.
+
+## Dependency-Injector Implementations (`di/dependency_injector.py`)
+
+`di/dependency_injector.py` provides the concrete `dependency_injector`-backed implementations. It may import `..interfaces.di` (`DIService`) in addition to `..domain`.
+
+### `DIDynamicServiceContainer`
+
+The feature-level container. It adapts the `ServiceContainer` contract to a `dependency_injector` `DynamicContainer`, registering services as **`Factory`** providers (a new instance per resolution) and constants as **`Object`** providers. `add_service` registers the dependency's `parameters` as constants first, resolves the concrete type via `ServiceDependency.get_service_type()`, then wires constructor kwargs to sibling providers via `build_factory` (using `injectable_parameter_names`). `load_container` registers constants before services.
+
+### `DIAppServiceContainer`
+
+The app-level container, a subclass of `DIDynamicServiceContainer` that registers services as **`Singleton`** providers (one shared instance per app) instead of Factories. It overrides `add_service` to call `build_singleton` and adds a `from_dependencies` classmethod that keys a list of `AppServiceDependency` objects by their `service_id`:
+
+```python
+# tiferet/di/dependency_injector.py (excerpt)
+
+# ** class: di_app_service_container
+class DIAppServiceContainer(DIDynamicServiceContainer):
+
+    # * method: from_dependencies (class)
+    @classmethod
+    def from_dependencies(cls, services=None, constants=None):
+        # Key the app service dependencies by their service id.
+        services_by_id = {service.service_id: service for service in (services or [])}
+
+        # Construct and load the container (constants first, then services).
+        return cls(services=services_by_id, constants=constants)
+```
+
+The blueprint `build_app_service_container` (`tiferet/blueprints/core.py`) composes this container from the framework defaults seeded on the shared cache plus the interface's own service/constant overrides. Because the core catalog registers repositories before the events that depend on them, and constants before services, each Singleton's constructor kwargs wire to already-registered sibling providers.
+
+### `DIDynamicServiceResolver`
+
+The concrete feature-level resolver. It holds a `DIService` and an injected `parse_parameter` callable (default identity), and implements `build_container` by reading `di_service.list_all()`, parsing constants, and unpacking each `ServiceRegistration` into an effective core `ServiceDependency` (via `resolve_service`, below) before building a `DIDynamicServiceContainer`:
+
+```python
+# tiferet/di/dependency_injector.py (excerpt)
+
+# * method: build_container
+def build_container(self, flags: List[str] = None) -> ServiceContainer:
+    # Read the registrations and top-level constants from the DI service.
+    registrations, constants = self.di_service.list_all()
+
+    # Parse the top-level constants once.
+    constants = {key: self.parse_parameter(value) for key, value in constants.items()}
+
+    # Unpack each registration into an effective dependency for these flags.
+    services = {}
+    for registration in registrations:
+        dependency = registration.resolve_service(*(flags or []))
+        if dependency is None:
+            continue
+        services[registration.id] = ServiceDependency(
+            module_path=dependency.module_path,
+            class_name=dependency.class_name,
+            parameters={k: self.parse_parameter(v) for k, v in (dependency.parameters or {}).items()},
+        )
+
+    # Build the container (constants first, then services).
+    return DIDynamicServiceContainer(services=services, constants=constants)
+```
+
+### `ServiceRegistration.resolve_service`
+
+The flagged-override → default → `None` selection used during a build lives in one place on the `ServiceRegistration` domain model (`tiferet/domain/di.py`). `resolve_service(*flags)` returns the effective core `ServiceDependency` for a flag set: a matching flagged override (in flag priority order), else the registration's own default definition when fully specified, else `None`. `get_service_type(*flags)` now delegates to it, so the precedence rule is defined exactly once.
 
 ## The ServiceContainer Engine
+
+> **Note:** This section and the ServiceResolver section below describe the legacy `di/settings.py` implementation, which `build_app` still wires today. It coexists with the abstract contract and dependency-injector implementations documented above.
 
 `ServiceContainer` is the low-level engine. It wraps a `dependency_injector` `DynamicContainer` and exposes a small, consistent API for registering and resolving services.
 
@@ -284,15 +395,23 @@ def test_get_dependency_success(resolver: ServiceResolver):
 
 ```
 tiferet/di/
-├── __init__.py          — Exports: ServiceContainer, ServiceResolver,
-│                          injectable_parameter_names, merge_settings,
-│                          normalize_flags, create_cache_key
-└── settings.py          — # *** functions (injectable_parameter_names,
-                            normalize_flags, create_cache_key, merge_settings)
-                          + ServiceContainer (engine) + ServiceResolver (provider)
+├── __init__.py                — Exports: ServiceContainer, ServiceResolver,
+│                                DIAppServiceContainer, injectable_parameter_names,
+│                                normalize_flags, create_cache_key, merge_settings
+├── core.py                    — # *** functions (injectable_parameter_names,
+│                                normalize_flags) + ServiceContainer (ABC)
+│                                + ServiceResolver (ABC, template get_dependency)
+├── dependency_injector.py     — DIDynamicServiceContainer (Factory),
+│                                DIAppServiceContainer (Singleton),
+│                                DIDynamicServiceResolver (per-flag)
+└── settings.py                — legacy: # *** functions (create_cache_key,
+                                 merge_settings) + concrete ServiceContainer engine
+                                 + ServiceResolver provider (still wired by build_app)
 
 tests/di/
-└── test_settings.py     — DI engine and resolver tests
+├── test_core.py                  — ABC contract + resolver template + normalize_flags
+├── test_dependency_injector.py   — DIDynamic/DIApp container + resolver tests
+└── test_settings.py              — legacy DI engine and resolver tests
 ```
 
 ## Migration from b9
@@ -310,8 +429,19 @@ tests/di/
 - `ServiceResolver` construction moved out of the blueprint into the `CreateServiceResolver` bootstrap event (`tiferet/events/blueprint.py`); the blueprint's `build_config_index` helper was removed.
 - `AppInterface.service_provider_path` / `service_provider_class_name` (dead metadata) were removed from `tiferet/domain/app.py`.
 
+### DI refactor: abstract contract + dependency-injector implementations
+
+The DI layer is being split into an abstract, domain-only contract (`di/core.py`) and concrete `dependency_injector`-backed implementations (`di/dependency_injector.py`), coexisting with the legacy `di/settings.py`:
+
+- `di/core.py` introduces the `ServiceContainer` and `ServiceResolver` ABCs and becomes the canonical home of `injectable_parameter_names` and `normalize_flags` (relocated from `settings.py`, which now re-imports `normalize_flags`).
+- `di/dependency_injector.py` adds `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton, `build_singleton`, `from_dependencies`), and `DIDynamicServiceResolver` (per-flag `build_container`).
+- `ServiceRegistration.resolve_service` (`domain/di.py`) centralizes the flagged-override → default → None precedence; `get_service_type` delegates to it.
+- `tiferet/di/__init__.py` exports `DIAppServiceContainer` and repoints `normalize_flags` to `di/core.py`.
+
+The legacy `di/settings.py` (duplicate `ServiceContainer`, concrete `ServiceResolver`, `create_cache_key`, `merge_settings`) is still what `build_app` wires; consolidating it, wiring the new resolver into `build_app`, and reconciling the `di/__init__.py` exports are deferred follow-ups.
+
 ## Conclusion
 
-The `tiferet/di/` package provides the DI foundation for Tiferet through two classes: the low-level `ServiceContainer` engine (backed by `dependency-injector`'s `DynamicContainer`) and the public `ServiceResolver`, which owns DI assembly from a `DIService` and exposes `get_dependency` for the contexts to consume. This single-provider design removes the previous app-level/feature-level split while preserving per-flag caching, automatic constructor wiring, and bootstrap default merging.
+The `tiferet/di/` package provides the DI foundation for Tiferet. Its abstract contract (`di/core.py`) defines the `ServiceContainer` and `ServiceResolver` ABCs, and its `dependency_injector`-backed implementations (`di/dependency_injector.py`) provide the app-level Singleton container (`DIAppServiceContainer`), the feature-level Factory container (`DIDynamicServiceContainer`), and the per-flag resolver (`DIDynamicServiceResolver`) — while the legacy `di/settings.py` engine and provider remain wired by `build_app`. Together they preserve per-flag caching, automatic constructor wiring, and bootstrap default merging while re-expressing the app-level/feature-level distinction through provider scope.
 
-Explore source in `tiferet/di/settings.py`, runtime consumers in `tiferet/blueprints/main.py` and `tiferet/contexts/`, and tests in `tests/di/test_settings.py`.
+Explore source in `tiferet/di/core.py`, `tiferet/di/dependency_injector.py`, and (legacy) `tiferet/di/settings.py`; runtime consumers in `tiferet/blueprints/` and `tiferet/contexts/`; and tests in `tests/di/`.
