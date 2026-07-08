@@ -27,6 +27,8 @@ from tiferet.contexts.app import (
     app_constant_cache_key,
     add_default_app_services,
     add_default_app_constants,
+    get_default_app_services,
+    get_default_app_constants,
     APP_SERVICE_CACHE_KEY_PREFIX,
     APP_CONSTANT_CACHE_KEY_PREFIX,
 )
@@ -986,3 +988,45 @@ def test_app_interface_context_run_timing_long_execution(app_interface_context, 
         # Assert the final log contains (1500ms).
         assert len(info_calls) == 1
         assert '(1500ms)' in info_calls[0]
+
+# ** test: get_default_app_services_returns_seeded
+def test_get_default_app_services_returns_seeded(base_cache_builder, sample_services):
+    '''
+    Test that get_default_app_services returns the seeded AppServiceDependency objects.
+
+    :param base_cache_builder: The plain cache-builder fixture.
+    :type base_cache_builder: Callable
+    :param sample_services: The sample service definitions fixture.
+    :type sample_services: dict
+    '''
+
+    # Seed a cache with the sample services via the seeding decorator.
+    build = add_default_app_services(sample_services)(base_cache_builder)
+    cache = build()
+
+    # Read the services back via the getter.
+    services = get_default_app_services(cache)
+
+    # Assert each seeded service is returned as an AppServiceDependency keyed by service_id.
+    assert len(services) == len(sample_services)
+    assert all(isinstance(service, AppServiceDependency) for service in services)
+    assert {service.service_id for service in services} == set(sample_services)
+
+# ** test: get_default_app_constants_strips_prefix
+def test_get_default_app_constants_strips_prefix(base_cache_builder, sample_constants):
+    '''
+    Test that get_default_app_constants returns the seeded constants with the prefix stripped.
+
+    :param base_cache_builder: The plain cache-builder fixture.
+    :type base_cache_builder: Callable
+    :param sample_constants: The sample constants fixture.
+    :type sample_constants: dict
+    '''
+
+    # Seed a cache with the sample constants via the seeding decorator.
+    build = add_default_app_constants(sample_constants)(base_cache_builder)
+    cache = build()
+
+    # Read the constants back via the getter and assert the prefix is stripped.
+    constants = get_default_app_constants(cache)
+    assert constants == sample_constants

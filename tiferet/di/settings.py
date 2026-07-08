@@ -11,35 +11,9 @@ from dependency_injector import containers, providers
 # ** app
 from ..domain import ServiceRegistration
 from ..interfaces.di import DIService
-from .core import injectable_parameter_names
+from .core import injectable_parameter_names, normalize_flags
 
 # *** functions
-
-# ** function: normalize_flags
-def normalize_flags(*flags) -> List[str]:
-    '''
-    Flatten a mixed sequence of strings, lists, and tuples into a flat list of strings.
-
-    :param flags: The flags to normalize (strings, lists, or tuples).
-    :type flags: Tuple[Any, ...]
-    :return: A flat list of flag strings.
-    :rtype: List[str]
-    '''
-
-    # Flatten one level of lists/tuples into a single flag list, stringifying every flag.
-    normalized = []
-    for flag in flags:
-
-        # Expand nested list/tuple flag groups, coercing each member to a string.
-        if isinstance(flag, (list, tuple)):
-            normalized.extend(str(f) for f in flag)
-
-        # Append scalar flags coerced to strings.
-        else:
-            normalized.append(str(flag))
-
-    # Return the flattened flag list.
-    return normalized
 
 # ** function: create_cache_key
 def create_cache_key(flags: List[str] = None) -> str:

@@ -86,6 +86,21 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
 
     return decorator
 
+# ** function: get_default_app_services
+def get_default_app_services(cache: CacheContext) -> List[AppServiceDependency]:
+    '''
+    Return the default app service dependencies seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The default app service dependency domain objects.
+    :rtype: List[AppServiceDependency]
+    '''
+
+    # Pull all app-service-prefixed entries and return their values.
+    services = cache.get_by_prefix(APP_SERVICE_CACHE_KEY_PREFIX)
+    return list(services.values())
+
 # ** function: app_constant_cache_key
 def app_constant_cache_key(name: str) -> str:
     '''
@@ -136,6 +151,24 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
         return wrapper
 
     return decorator
+
+# ** function: get_default_app_constants
+def get_default_app_constants(cache: CacheContext) -> Dict[str, Any]:
+    '''
+    Return the default bootstrap constants seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The default constants keyed by name (prefix stripped).
+    :rtype: Dict[str, Any]
+    '''
+
+    # Pull all app-constant-prefixed entries, stripping the prefix from each key.
+    constants = cache.get_by_prefix(APP_CONSTANT_CACHE_KEY_PREFIX)
+    return {
+        key[len(APP_CONSTANT_CACHE_KEY_PREFIX):]: value
+        for key, value in constants.items()
+    }
 
 # ** function: build_feature_index
 def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:

@@ -83,3 +83,18 @@ def test_multiple_operations(cache_context):
     assert cache_context.get("b") == 2
     cache_context.clear()
     assert cache_context.get("b") is None
+
+
+# ** test: test_get_by_prefix_matches
+def test_get_by_prefix_matches(cache_context):
+    cache_context.set("app_service_di", "svc1")
+    cache_context.set("app_service_error", "svc2")
+    cache_context.set("app_constant_cli", "const")
+    result = cache_context.get_by_prefix("app_service_")
+    assert result == {"app_service_di": "svc1", "app_service_error": "svc2"}
+
+
+# ** test: test_get_by_prefix_no_match
+def test_get_by_prefix_no_match(cache_context):
+    cache_context.set("other", "value")
+    assert cache_context.get_by_prefix("app_service_") == {}

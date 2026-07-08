@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.domain.core import DomainObject
+from tiferet.domain.core import DomainObject, ServiceDependency
 from tiferet.domain.di import (
     FlaggedDependency,
     ServiceRegistration,
@@ -259,3 +259,77 @@ def test_service_registration_get_service_type_flag_priority(
     # test_beta first — should resolve beta.
     resolved = service_registration_multiple_deps.get_service_type('test_beta', 'test_alpha')
     assert resolved.__qualname__ == TestDependencyBeta.__qualname__
+
+# ** test: service_registration_resolve_service_flagged
+def test_service_registration_resolve_service_flagged(
+        service_registration: ServiceRegistration,
+    ) -> None:
+    '''
+    Test that resolve_service returns the flagged dependency's effective definition.
+
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
+    '''
+
+    # Resolve the effective dependency under the matching flag.
+    dependency = service_registration.resolve_service('test_alpha')
+
+    # Assert it is a core ServiceDependency carrying the flagged type and parameters.
+    assert isinstance(dependency, ServiceDependency)
+    assert dependency.module_path == 'tests.domain.test_di'
+    assert dependency.class_name == 'TestDependencyAlpha'
+    assert dependency.parameters == {'test_param': 'test_value', 'param': 'value1'}
+
+# ** test: service_registration_resolve_service_default
+def test_service_registration_resolve_service_default(
+        service_registration: ServiceRegistration,
+    ) -> None:
+    '''
+    Test that resolve_service falls back to the registration's default definition.
+
+    :param service_registration: The ServiceRegistration fixture.
+    :type service_registration: ServiceRegistration
+    '''
+
+    # Resolve with no flags — should fall back to the default definition.
+    dependency = service_registration.resolve_service()
+
+    # Assert the default type is returned as a core ServiceDependency.
+    assert isinstance(dependency, ServiceDependency)
+    assert dependency.module_path == 'tests.domain.test_di'
+    assert dependency.class_name == 'TestDependency'
+
+# ** test: service_registration_resolve_service_none
+def test_service_registration_resolve_service_none(
+        service_registration_no_default_type: ServiceRegistration,
+    ) -> None:
+    '''
+    Test that resolve_service returns None when no flag matches and there is no default.
+
+    :param service_registration_no_default_type: ServiceRegistration with no default type.
+    :type service_registration_no_default_type: ServiceRegistration
+    '''
+
+    # Resolve with an unknown flag and no default — should return None.
+    dependency = service_registration_no_default_type.resolve_service('unknown_flag')
+
+    # Assert None is returned.
+    assert dependency is None
+
+# ** test: service_registration_resolve_service_default_parameter_carry_through
+def test_service_registration_resolve_service_default_parameter_carry_through() -> None:
+    '''
+    Test that resolve_service carries the registration's default parameters through.
+    '''
+
+    # Build a registration with default parameters.
+    registration = ServiceRegistration(
+        id='param_service',
+        module_path='tests.domain.test_di',
+        class_name='TestDependency',
+        parameters={'p': 'v'},
+    )
+
+    # Resolve with no flags and assert the default parameters are preserved.
+    dependency = registration.resolve_service()
+    assert dependency.parameters == {'p': 'v'}

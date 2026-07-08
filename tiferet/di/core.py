@@ -4,7 +4,7 @@
 
 # ** core
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 import inspect
 
 # ** app
@@ -49,6 +49,32 @@ def injectable_parameter_names(service_type: type) -> List[str]:
 
     # Return the collected parameter names.
     return names
+
+# ** function: normalize_flags
+def normalize_flags(*flags) -> List[str]:
+    '''
+    Flatten a mixed sequence of strings, lists, and tuples into a flat list of strings.
+
+    :param flags: The flags to normalize (strings, lists, or tuples).
+    :type flags: Tuple[Any, ...]
+    :return: A flat list of flag strings.
+    :rtype: List[str]
+    '''
+
+    # Flatten one level of lists/tuples into a single flag list, stringifying every flag.
+    normalized = []
+    for flag in flags:
+
+        # Expand nested list/tuple flag groups, coercing each member to a string.
+        if isinstance(flag, (list, tuple)):
+            normalized.extend(str(f) for f in flag)
+
+        # Append scalar flags coerced to strings.
+        else:
+            normalized.append(str(flag))
+
+    # Return the flattened flag list.
+    return normalized
 
 # *** classes
 
@@ -140,3 +166,96 @@ class ServiceContainer(ABC):
 
         # Not implemented.
         raise NotImplementedError('load_container method is required for ServiceContainer.')
+
+# ** class: service_resolver
+class ServiceResolver(ABC):
+    '''
+    The abstract application service resolver. It maintains a per-flag cache of
+    ServiceContainers and resolves dependencies through them, deferring the
+    construction of a container for a given flag set to concrete subclasses.
+    '''
+
+    # * attribute: _containers
+    _containers: Dict[Tuple[str, ...], ServiceContainer]
+
+    # * init
+    def __init__(self):
+        '''
+        Initialize the resolver with an empty per-flag container cache.
+        '''
+
+        # Initialize the per-flag container cache.
+        self._containers = {}
+
+    # * method: add_container
+    def add_container(self, container: ServiceContainer, *flags) -> ServiceContainer:
+        '''
+        Cache a service container under the normalized flag-list key.
+
+        :param container: The service container to cache.
+        :type container: ServiceContainer
+        :param flags: The flags identifying the container.
+        :type flags: Tuple[Any, ...]
+        :return: The cached service container.
+        :rtype: ServiceContainer
+        '''
+
+        # Cache the container under the normalized flag tuple.
+        self._containers[tuple(normalize_flags(*flags))] = container
+
+        # Return the cached container.
+        return container
+
+    # * method: get_container
+    def get_container(self, *flags) -> ServiceContainer:
+        '''
+        Return the cached container for the normalized flag list, or None.
+
+        :param flags: The flags identifying the container.
+        :type flags: Tuple[Any, ...]
+        :return: The cached service container, or None when absent.
+        :rtype: ServiceContainer | None
+        '''
+
+        # Return the cached container for the flag tuple if present.
+        return self._containers.get(tuple(normalize_flags(*flags)))
+
+    # * method: build_container
+    @abstractmethod
+    def build_container(self, flags: List[str] = None) -> ServiceContainer:
+        '''
+        Build a service container for the given flag list.
+
+        :param flags: The flags for which to build the container.
+        :type flags: List[str] | None
+        :return: The built service container.
+        :rtype: ServiceContainer
+        '''
+
+        # Not implemented.
+        raise NotImplementedError('build_container method is required for ServiceResolver.')
+
+    # * method: get_dependency
+    def get_dependency(self, service_id: str, *flags) -> Any:
+        '''
+        Resolve a dependency by id for the given flags, building and caching the
+        container on a cache miss (template method).
+
+        :param service_id: The identifier of the service to resolve.
+        :type service_id: str
+        :param flags: The flags identifying the container.
+        :type flags: Tuple[Any, ...]
+        :return: The resolved service instance.
+        :rtype: Any
+        '''
+
+        # Normalize the provided flags.
+        normalized = normalize_flags(*flags)
+
+        # Retrieve the cached container, building and caching one on a miss.
+        container = self.get_container(*normalized)
+        if container is None:
+            container = self.add_container(self.build_container(normalized), *normalized)
+
+        # Resolve the dependency from the container.
+        return container.get_dependency(service_id)

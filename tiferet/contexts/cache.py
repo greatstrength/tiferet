@@ -62,6 +62,20 @@ class CacheContext(object):
         # Remove the item from the cache.
         self._cache.pop(key, None)
 
+    # * method: get_by_prefix
+    def get_by_prefix(self, prefix: str) -> Dict[str, Any]:
+        '''
+        Return all cache entries whose keys start with the given prefix.
+
+        :param prefix: The key prefix to match.
+        :type prefix: str
+        :return: A mapping of matching keys to their values.
+        :rtype: Dict[str, Any]
+        '''
+
+        # Collect entries whose keys start with the prefix.
+        return {key: value for key, value in self._cache.items() if key.startswith(prefix)}
+
     # * method: clear
     def clear(self):
         '''
