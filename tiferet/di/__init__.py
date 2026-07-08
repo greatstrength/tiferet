@@ -4,6 +4,7 @@ __all__ = [
     'ServiceContainer',
     'ServiceResolver',
     'DIAppServiceContainer',
+    'DIDynamicServiceContainer',
     'injectable_parameter_names',
     'normalize_flags',
     'create_cache_key',
@@ -19,4 +20,4 @@ from .settings import (
     merge_settings,
     create_cache_key,
 )
-from .dependency_injector import DIAppServiceContainer
+from .dependency_injector import DIAppServiceContainer, DIDynamicServiceContainer

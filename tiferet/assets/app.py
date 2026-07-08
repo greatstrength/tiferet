@@ -88,6 +88,18 @@ DEFAULT_TIFERET_CLI_INTERFACE = {
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'
 
+# ** constant: default_app_config_file
+DEFAULT_APP_CONFIG_FILE = DEFAULT_CONFIG_FILE
+
+# ** constant: default_app_service_module_path
+DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.app'
+
+# ** constant: default_app_service_class_name
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
+
+# ** constant: default_app_service_parameters
+DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
+
 # ** constant: di_service
 DI_SERVICE = create_app_service_dependency(
     DI_SERVICE_ID, 'tiferet.repos.di', 'DIConfigRepository',
