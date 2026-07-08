@@ -4,11 +4,15 @@
 
 # ** infra
 import pytest
+from unittest import mock
 
 # ** app
 from tiferet import assets as a
+from tiferet import TiferetError
 from tiferet.blueprints.core import (
     build_cache,
+    create_app_service,
+    get_app_interface,
     build_app_service_container,
     parse_parameter,
 )
@@ -16,7 +20,9 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import error_cache_key
 from tiferet.contexts.app import app_service_cache_key, app_constant_cache_key
 from tiferet.domain import Error, AppInterface, AppServiceDependency
+from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
+from tiferet.repos.error import ErrorConfigRepository
 
 # *** tests
 
@@ -97,6 +103,131 @@ def test_build_cache_specific_service_and_constant_retrievable():
     assert cache.get(app_constant_cache_key('cli_config')) == 'config.yml'
 
 
+# ** test: create_app_service_default_composes_app_config_repository
+def test_create_app_service_default_composes_app_config_repository():
+    '''
+    Test that create_app_service composes the default app service
+    (AppConfigRepository) wired to the default app config file.
+    '''
+
+    # Compose the default app service.
+    service = create_app_service()
+
+    # Assert it is the default app repository wired to the default config file.
+    assert isinstance(service, AppConfigRepository)
+    assert service.config_file == a.app.DEFAULT_APP_CONFIG_FILE
+
+
+# ** test: create_app_service_default_parameters_fallback
+def test_create_app_service_default_parameters_fallback():
+    '''
+    Test that create_app_service falls back to the framework default app
+    service parameters when none are supplied, wiring app_config by name.
+    '''
+
+    # Compose the default app service with no explicit parameters.
+    service = create_app_service()
+
+    # Assert the app_config parameter resolved to the framework default.
+    assert service.config_file == a.app.DEFAULT_APP_SERVICE_PARAMETERS['app_config']
+
+
+# ** test: create_app_service_custom_parameter_wiring
+def test_create_app_service_custom_parameter_wiring():
+    '''
+    Test that create_app_service wires an explicit app_config parameter into
+    the composed app service constructor by name.
+    '''
+
+    # Compose the app service with an explicit app_config override.
+    service = create_app_service(parameters={'app_config': 'custom.yml'})
+
+    # Assert the explicit parameter was wired into the constructor.
+    assert isinstance(service, AppConfigRepository)
+    assert service.config_file == 'custom.yml'
+
+
+# ** test: create_app_service_custom_service_type
+def test_create_app_service_custom_service_type():
+    '''
+    Test that create_app_service composes a custom service type and wires its
+    own declared parameter by name.
+    '''
+
+    # Compose a custom service (DIConfigRepository) with its di_config parameter.
+    service = create_app_service(
+        module_path='tiferet.repos.di',
+        class_name='DIConfigRepository',
+        parameters={'di_config': 'di_custom.yml'},
+    )
+
+    # Assert the custom service type composed with its wired parameter.
+    assert isinstance(service, DIConfigRepository)
+    assert service.config_file == 'di_custom.yml'
+
+
+# ** test: get_app_interface_returns_interface
+def test_get_app_interface_returns_interface(monkeypatch):
+    '''
+    Test that get_app_interface returns the interface resolved by the
+    GetAppInterface event, sourcing the app service from create_app_service.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a sample interface and a mock app service that returns it.
+    sample = AppInterface(
+        id='tiferet_app',
+        name='Tiferet App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+    )
+    app_service = mock.Mock()
+    app_service.get.return_value = sample
+
+    # Patch create_app_service so no real repository or config file is composed.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.create_app_service',
+        lambda *args, **kwargs: app_service,
+    )
+
+    # Retrieve the interface by id.
+    result = get_app_interface('tiferet_app')
+
+    # Assert the interface is returned and looked up by id via the app service.
+    assert result is sample
+    app_service.get.assert_called_once_with('tiferet_app')
+
+
+# ** test: get_app_interface_raises_when_absent
+def test_get_app_interface_raises_when_absent(monkeypatch):
+    '''
+    Test that get_app_interface raises APP_INTERFACE_NOT_FOUND when the app
+    service cannot resolve the requested interface.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a mock app service that resolves no interface.
+    app_service = mock.Mock()
+    app_service.get.return_value = None
+
+    # Patch create_app_service to return the mock app service.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.create_app_service',
+        lambda *args, **kwargs: app_service,
+    )
+
+    # Assert retrieval raises the not-found error.
+    with pytest.raises(TiferetError) as exc_info:
+        get_app_interface('missing')
+
+    # Assert the structured error code.
+    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
+
+
 # ** test: build_app_service_container_exposes_core_services
 def test_build_app_service_container_exposes_core_services():
     '''
@@ -171,6 +302,61 @@ def test_build_app_service_container_interface_constant_override():
 
     # Assert the interface constant override wins over the default.
     assert container.get_dependency('error_config') == 'override.yml'
+
+
+# ** test: build_app_service_container_defaults_only_when_no_interface
+def test_build_app_service_container_defaults_only_when_no_interface():
+    '''
+    Test that build_app_service_container returns a defaults-only container when
+    no interface is provided, exposing every core service and constant.
+    '''
+
+    # Build the container from cache defaults with no interface.
+    cache = build_cache()
+    container = build_app_service_container(cache)
+
+    # Assert every core service id resolves to a concrete instance.
+    for service_id in a.app.CORE_DEFAULT_SERVICES:
+        assert container.get_dependency(service_id) is not None
+
+    # Assert every core constant resolves to its default value.
+    for name, value in a.app.CORE_DEFAULT_CONSTANTS.items():
+        assert container.get_dependency(name) == value
+
+
+# ** test: build_app_service_container_constant_override_propagates_to_redeclared_service
+def test_build_app_service_container_constant_override_propagates_to_redeclared_service():
+    '''
+    Test that a constant override layered by the interface propagates to a
+    service the interface redeclares, guarding the constants-before-services
+    ordering (see handoff §4).
+    '''
+
+    # Build a seeded cache and an interface that overrides the error_config
+    # constant and redeclares error_service with its default definition.
+    cache = build_cache()
+    interface = AppInterface(
+        id='test',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppInterfaceContext',
+        constants={'error_config': 'override.yml'},
+        services=[
+            AppServiceDependency(
+                service_id='error_service',
+                module_path='tiferet.repos.error',
+                class_name='ErrorConfigRepository',
+            ),
+        ],
+    )
+
+    # Build the app service container.
+    container = build_app_service_container(cache, interface)
+
+    # Assert the redeclared service was rebuilt against the overridden constant.
+    error_service = container.get_dependency('error_service')
+    assert isinstance(error_service, ErrorConfigRepository)
+    assert error_service.config_file == 'override.yml'
 
 
 # ** test: parse_parameter_literal_passthrough
