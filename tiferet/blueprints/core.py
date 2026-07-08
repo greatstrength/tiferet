@@ -9,14 +9,16 @@ from typing import Any, Callable, Dict
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.app import (
+    AppInterface,
+    AppServiceDependency,
     add_default_app_services,
     add_default_app_constants,
     get_default_app_services,
     get_default_app_constants,
 )
-from ..domain import AppInterface
-from ..events import ParseParameter
-from ..di import DIAppServiceContainer
+from ..events import DomainEvent, ParseParameter
+from ..events.app import GetAppInterface
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
@@ -51,47 +53,136 @@ def build_cache(
     # Construct and return the cache context.
     return CacheContext(cache=cache)
 
+# ** blueprint: create_app_service
+def create_app_service(
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
+    parameters: Dict[str, Any] = None,
+    service_container: type = DIDynamicServiceContainer,
+) -> Any:
+    '''
+    Compose and return an app service instance via a single-use dynamic container.
+
+    Describes the app service as a single id-keyed ``AppServiceDependency`` and
+    resolves it through a function-scoped ``DIDynamicServiceContainer`` so its
+    declared ``parameters`` are wired into the constructor by name (mirroring the
+    legacy direct-import ``load_app_service``). When no parameters are supplied,
+    the framework default (``a.app.DEFAULT_APP_SERVICE_PARAMETERS``) is used.
+
+    :param module_path: The module path of the app service; defaults to the framework app repo.
+    :type module_path: str
+    :param class_name: The class name of the app service; defaults to AppConfigRepository.
+    :type class_name: str
+    :param parameters: The app service constructor parameters; defaults to the framework app service parameters.
+    :type parameters: Dict[str, Any] | None
+    :param service_container: The dynamic container class to compose with; defaults to DIDynamicServiceContainer.
+    :type service_container: type
+    :return: The composed app service instance.
+    :rtype: Any
+    '''
+
+    # Fall back to the framework default parameters when none are supplied.
+    parameters = parameters if parameters else a.app.DEFAULT_APP_SERVICE_PARAMETERS
+
+    # Describe the app service as a single id-keyed dependency.
+    service = AppServiceDependency(
+        service_id='app_service',
+        module_path=module_path,
+        class_name=class_name,
+        parameters=parameters,
+    )
+
+    # Build a single-use, function-scoped dynamic container to compose the app service.
+    container = service_container(services={'app_service': service})
+
+    # Resolve and return the composed app service instance.
+    return container.get_dependency('app_service')
+
+# ** blueprint: get_app_interface
+def get_app_interface(
+    interface_id: str,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
+    **parameters,
+) -> AppInterface:
+    '''
+    Retrieve an app interface by id, composing the app service dependency first.
+
+    Composes the ``app_service`` dependency via :func:`create_app_service`, then
+    retrieves the requested interface through the ``GetAppInterface`` domain
+    event. Any keyword arguments are forwarded as the app service constructor
+    parameters (e.g. ``app_config='config.yml'``); when omitted,
+    :func:`create_app_service` applies the framework default parameters.
+
+    :param interface_id: The id of the app interface to retrieve.
+    :type interface_id: str
+    :param module_path: The module path of the app service; defaults to the framework app repo.
+    :type module_path: str
+    :param class_name: The class name of the app service; defaults to AppConfigRepository.
+    :type class_name: str
+    :param parameters: The app service constructor parameters.
+    :type parameters: dict
+    :return: The retrieved app interface.
+    :rtype: AppInterface
+    '''
+
+    # Compose the app service via a single-use container.
+    app_service = create_app_service(module_path, class_name, parameters)
+
+    # Retrieve the interface via the GetAppInterface event.
+    return DomainEvent.handle(
+        GetAppInterface,
+        dependencies=dict(app_service=app_service),
+        interface_id=interface_id,
+    )
+
 # ** blueprint: build_app_service_container
 def build_app_service_container(
     cache: CacheContext,
-    app_instance: AppInterface,
+    app_instance: AppInterface = None,
     service_container: type = DIAppServiceContainer,
 ) -> DIAppServiceContainer:
     '''
-    Build the app-level service container for a resolved interface.
+    Build the app-level service container from cache defaults, then layer the
+    interface's own constants and services as overrides.
 
-    Pulls the framework default services and constants seeded on the shared
-    cache (by the app-context cache-key prefixes), applies the interface's own
-    services and constants as overrides, and builds a singleton-scoped app
-    service container.
+    Builds a singleton-scoped container from the framework default services and
+    constants seeded on the shared cache (by the app-context cache-key prefixes).
+    When an ``app_instance`` is provided, its constants are layered first so that
+    (re)registered services wire to them, then its services are layered to
+    override defaults by id. When ``app_instance`` is ``None``, a defaults-only
+    container is returned.
 
     :param cache: The shared cache context seeded with default services/constants.
     :type cache: CacheContext
-    :param app_instance: The resolved application interface definition.
-    :type app_instance: AppInterface
+    :param app_instance: The resolved application interface definition, or None for defaults only.
+    :type app_instance: AppInterface | None
     :param service_container: The container class to build; defaults to DIAppServiceContainer.
     :type service_container: type
     :return: The loaded app service container.
     :rtype: DIAppServiceContainer
     '''
 
-    # Pull the framework default services and constants seeded on the cache.
-    default_services = get_default_app_services(cache)
-    default_constants = get_default_app_constants(cache)
-
-    # Merge services: defaults first, interface-provided services override by id.
-    services_by_id = {service.service_id: service for service in default_services}
-    for service in (app_instance.services or []):
-        services_by_id[service.service_id] = service
-
-    # Merge constants: defaults beneath interface-provided constants.
-    constants = {**default_constants, **(app_instance.constants or {})}
-
-    # Build and return the app service container.
-    return service_container.from_dependencies(
-        services=list(services_by_id.values()),
-        constants=constants,
+    # Build the container from the framework defaults seeded on the cache.
+    container = service_container.from_dependencies(
+        services=get_default_app_services(cache),
+        constants=get_default_app_constants(cache),
     )
+
+    # Return the defaults-only container when no interface is provided.
+    if app_instance is None:
+        return container
+
+    # Layer interface constants first so (re)registered services wire to them.
+    for name, value in (app_instance.constants or {}).items():
+        container.add_constant(name, value)
+
+    # Layer interface services, overriding defaults by id and wiring to the latest constants.
+    for service in (app_instance.services or []):
+        container.add_service(service.service_id, service)
+
+    # Return the composed app service container.
+    return container
 
 # ** blueprint: parse_parameter
 def parse_parameter(parameter: str) -> Any:
