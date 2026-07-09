@@ -43,6 +43,7 @@ class EventFeatureStep(FeatureStep):
     parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
     # * attribute: return_to_data (obsolete)
+    # -- obsolete: superseded by data_key; remove when callers are fully migrated
     return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
 
     # * attribute: data_key

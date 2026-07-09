@@ -64,7 +64,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         self.services = list(self.services) + [dependency]
 
     # * method: remove_service
-    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
+    # ++ todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def remove_service(
         self,
         service_id: str | None = None,
@@ -97,7 +97,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         return None
 
     # * method: set_service
-    # + todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
+    # ++ todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def set_service(
         self,
         service_id: str | None = None,
