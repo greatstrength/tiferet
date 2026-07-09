@@ -3,6 +3,7 @@
 Canonical, version-controlled copies of the reusable agent **skills** for Tiferet-family work. They live here so they're shareable and reviewable; to use them, each contributor copies them into an auto-discoverable skills directory.
 
 ## Skills in this folder
+- **`tiferet-annotation-artifacts`** — scan, add, and resolve `# ++ todo:` / `# -- obsolete:` annotation artifacts; covers the pre-session scan, resolution procedure, and Collaboration Report integration. **Use at the start of every implementation session.**
 - **`tiferet-create-milestone`** — create or format a GitHub milestone.
 - **`tiferet-author-trd`** — author a Technical Requirements Document.
 - **`tiferet-collab-report`** — generate a Collaboration Report when an issue is confirmed complete.

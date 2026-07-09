@@ -159,26 +159,53 @@ def load_feature(self, feature_id: str) -> Feature:
   - Methods/attributes within a class.
   - Classes within a component group.
 
-## Deprecation Handling
+## Annotation Artifacts
 
-Mark obsolete methods with:
-- A comment note (e.g., `# NOTE: This method is obsolete and will be removed in v2`).
-- A docstring note indicating deprecation and preferred alternative.
+Annotation artifacts are **transient lifecycle markers** — a fourth tier below the structural `# ***` / `# **` / `# *` hierarchy. Unlike structural comments, annotations describe *state* rather than *shape* and are expected to be resolved over time.
 
-**Example**:
+Two annotation types are defined:
+
+### `# ++ todo: <message>`
+Signals deferred work attached to a specific artifact. The `++` prefix is semantic: *something needs to be added or grown here*. Use it to leave a machine-scannable note for the next agent or developer who touches this artifact.
+
+### `# -- obsolete: <reason or target version>`
+Signals that an artifact is deprecated and slated for removal. The `--` prefix is semantic: *this is being reduced or removed*. Replaces the informal `# NOTE:` docstring approach with a single, consistently placed annotation line.
+
+**Placement grammar** — annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
+
 ```python
-# * method: handle_command (obsolete)
-def handle_command(self, ...):
-    '''
-    Handle the execution of a command.
-    
-    NOTE: This method is obsolete and will be consolidated in v2.
-    Use handle_feature_command instead.
-    '''
+# * method: remove_service
+# ++ todo: remove attribute_id parameter once app event test dependency is resolved
+def remove_service(self, service_id: str | None = None, attribute_id: str | None = None):
     ...
+
+# * attribute: return_to_data
+# -- obsolete: superseded by data_key; remove in v2.1
+return_to_data: bool = Field(default=False, ...)
 ```
 
-**Purpose**: Prevents accidental use of legacy APIs and guides developers to modern patterns.
+Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo or obsolescence applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment.
+
+**Label-level shorthand** — the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
+
+```python
+# * method: handle_command (obsolete)
+```
+
+When a reason or target version is meaningful, prefer `# -- obsolete:` on its own line.
+
+**Resolution expectations**
+- `# ++ todo:` annotations should be removed once the described work is complete. Reference the GitHub issue number in the message when the work is tracked (`# ++ todo: #123 — remove attribute_id once ...`).
+- `# -- obsolete:` annotations should be removed together with the artifact they annotate. Verify no callers remain before deletion.
+- Both types should be surfaced in Collaboration Reports when introduced or resolved during a session.
+
+**Agent scan procedure** — before beginning any implementation session, scan affected files for open annotations:
+
+```bash
+grep -rn "# ++\|# --" tiferet/
+```
+
+This gives an immediate picture of outstanding technical debt and deprecated code in scope.
 
 ## Example: Complete Class with Formatting
 

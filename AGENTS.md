@@ -147,6 +147,23 @@ self.verify(
 return feature
 ```
 
+### Annotation Artifacts
+
+Two transient lifecycle markers sit below the structural hierarchy and signal outstanding work or deprecated code:
+
+- **`# ++ todo: <message>`** — deferred work attached to an artifact (`++` = something to add/grow). Remove when resolved.
+- **`# -- obsolete: <reason>`** — deprecated artifact slated for removal (`--` = something to reduce/remove). Remove together with the artifact when retired.
+
+Both appear immediately after the `# *` / `# **` / `# ***` comment they annotate, before the code body. The `(obsolete)` parenthetical suffix on a `# *` label remains valid shorthand when no reason is needed.
+
+**Before starting any implementation session**, scan affected files for open annotations:
+
+```bash
+grep -rn "# ++\|# --" tiferet/
+```
+
+Full grammar and resolution expectations: [`docs/core/code_style.md § Annotation Artifacts`](docs/core/code_style.md).
+
 ## Domain Events
 
 Domain events are the primary operational units. Key patterns:
