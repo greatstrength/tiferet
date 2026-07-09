@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from .settings import BaseContext
@@ -13,24 +13,10 @@ from ..domain import Error
 
 # *** constants
 
-# ** constant: error_cache_key_prefix
-ERROR_CACHE_KEY_PREFIX = 'error_'
+# ** constant: error_cache_prefix
+ERROR_CACHE_PREFIX: Tuple[str, ...] = ('app', 'errors')
 
 # *** functions
-
-# ** function: error_cache_key
-def error_cache_key(error_code: str) -> str:
-    '''
-    Compose the shared-cache key for an error code.
-
-    :param error_code: The error code to key.
-    :type error_code: str
-    :return: The prefixed cache key.
-    :rtype: str
-    '''
-
-    # Prefix the error code to namespace it within the shared cache.
-    return f'{ERROR_CACHE_KEY_PREFIX}{error_code}'
 
 # ** function: add_default_errors
 def add_default_errors(errors: Dict[str, Any]) -> Callable:
@@ -39,7 +25,7 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``errors`` is reconstituted into an ``Error`` domain object
-    and stored in the cache under its error-code key.
+    and stored in the cache under the ``ERROR_CACHE_PREFIX`` namespace.
 
     :param errors: A mapping of error-code IDs to raw error definition dicts.
     :type errors: Dict[str, Any]
@@ -57,9 +43,9 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
             cache = build_fn(*args, **kwargs)
 
             # Reconstitute each raw error dict into an Error domain object and
-            # cache it under its prefixed cache key.
+            # cache it under the error namespace keyed by error id.
             for error_id, error_data in errors.items():
-                cache.set(error_cache_key(error_id), Error.model_validate(error_data))
+                cache.set(error_id, Error.model_validate(error_data), *ERROR_CACHE_PREFIX)
 
             # Return the populated cache context.
             return cache

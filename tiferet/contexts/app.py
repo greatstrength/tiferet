@@ -6,7 +6,7 @@
 import asyncio
 import threading
 import time
-from typing import Dict, Any, List, Callable
+from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
 from ..assets import (
@@ -18,33 +18,19 @@ from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext, AsyncFeatureContext
-from .error import ErrorContext, error_cache_key
+from .error import ErrorContext, ERROR_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
 
-# ** constant: app_service_cache_key_prefix
-APP_SERVICE_CACHE_KEY_PREFIX = 'app_service_'
+# ** constant: app_service_cache_prefix
+APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'services')
 
-# ** constant: app_constant_cache_key_prefix
-APP_CONSTANT_CACHE_KEY_PREFIX = 'app_constant_'
+# ** constant: app_constant_cache_prefix
+APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('app', 'constants')
 
 # *** functions
-
-# ** function: app_service_cache_key
-def app_service_cache_key(service_id: str) -> str:
-    '''
-    Compose the shared-cache key for an app service dependency id.
-
-    :param service_id: The service id to key.
-    :type service_id: str
-    :return: The prefixed cache key.
-    :rtype: str
-    '''
-
-    # Prefix the service id to namespace it within the shared cache.
-    return f'{APP_SERVICE_CACHE_KEY_PREFIX}{service_id}'
 
 # ** function: add_default_app_services
 def add_default_app_services(services: Dict[str, Any]) -> Callable:
@@ -54,7 +40,8 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``services`` is reconstituted into an ``AppServiceDependency``
-    domain object and stored in the cache under its prefixed service-id key.
+    domain object and stored in the cache under the ``APP_SERVICE_CACHE_PREFIX``
+    namespace keyed by service id.
 
     :param services: A mapping of service ids to raw service dependency dicts.
     :type services: Dict[str, Any]
@@ -72,11 +59,12 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
             cache = build_fn(*args, **kwargs)
 
             # Reconstitute each raw service dict into an AppServiceDependency
-            # domain object and cache it under its prefixed cache key.
+            # domain object and cache it under the services namespace.
             for service_id, service_data in services.items():
                 cache.set(
-                    app_service_cache_key(service_id),
+                    service_id,
                     AppServiceDependency.model_validate(service_data),
+                    *APP_SERVICE_CACHE_PREFIX,
                 )
 
             # Return the populated cache context.
@@ -97,23 +85,8 @@ def get_default_app_services(cache: CacheContext) -> List[AppServiceDependency]:
     :rtype: List[AppServiceDependency]
     '''
 
-    # Pull all app-service-prefixed entries and return their values.
-    services = cache.get_by_prefix(APP_SERVICE_CACHE_KEY_PREFIX)
-    return list(services.values())
-
-# ** function: app_constant_cache_key
-def app_constant_cache_key(name: str) -> str:
-    '''
-    Compose the shared-cache key for a bootstrap constant name.
-
-    :param name: The constant name to key.
-    :type name: str
-    :return: The prefixed cache key.
-    :rtype: str
-    '''
-
-    # Prefix the constant name to namespace it within the shared cache.
-    return f'{APP_CONSTANT_CACHE_KEY_PREFIX}{name}'
+    # Pull all entries from the services namespace and return their values.
+    return list(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX).values())
 
 # ** function: add_default_app_constants
 def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
@@ -122,9 +95,8 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
     constant values.
 
     Wraps a cache-builder callable so that, after the cache is constructed,
-    each scalar entry in ``constants`` is stored directly in the cache under
-    its prefixed constant-name key. Unlike services and errors, constants are
-    scalar values and need no domain-object reconstitution.
+    each scalar entry in ``constants`` is stored in the cache under the
+    ``APP_CONSTANT_CACHE_PREFIX`` namespace keyed by constant name.
 
     :param constants: A mapping of constant names to scalar values.
     :type constants: Dict[str, Any]
@@ -141,9 +113,9 @@ def add_default_app_constants(constants: Dict[str, Any]) -> Callable:
             # Delegate to the wrapped cache-builder.
             cache = build_fn(*args, **kwargs)
 
-            # Store each scalar constant under its prefixed cache key.
+            # Store each scalar constant under the constants namespace.
             for name, value in constants.items():
-                cache.set(app_constant_cache_key(name), value)
+                cache.set(name, value, *APP_CONSTANT_CACHE_PREFIX)
 
             # Return the populated cache context.
             return cache
@@ -159,16 +131,12 @@ def get_default_app_constants(cache: CacheContext) -> Dict[str, Any]:
 
     :param cache: The cache context to read.
     :type cache: CacheContext
-    :return: The default constants keyed by name (prefix stripped).
+    :return: The default constants keyed by name.
     :rtype: Dict[str, Any]
     '''
 
-    # Pull all app-constant-prefixed entries, stripping the prefix from each key.
-    constants = cache.get_by_prefix(APP_CONSTANT_CACHE_KEY_PREFIX)
-    return {
-        key[len(APP_CONSTANT_CACHE_KEY_PREFIX):]: value
-        for key, value in constants.items()
-    }
+    # Pull all entries from the constants namespace and return them directly.
+    return dict(cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX))
 
 # ** function: build_feature_index
 def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:
@@ -377,16 +345,13 @@ class AppInterfaceContext(BaseContext):
         :rtype: Error
         '''
 
-        # Compute the prefixed cache key for the error code.
-        cache_key = error_cache_key(error_code)
-
         # Try the shared cache first (pre-seeded with the default errors).
-        error = self.cache.get(cache_key)
+        error = self.cache.get(error_code, *ERROR_CACHE_PREFIX)
 
         # Retrieve via the get-error event when not cached, then cache it.
         if not error:
             error = self.get_error_evt.execute(error_code, include_defaults=False)
-            self.cache.set(cache_key, error)
+            self.cache.set(error_code, error, *ERROR_CACHE_PREFIX)
 
         # Return the loaded error.
         return error

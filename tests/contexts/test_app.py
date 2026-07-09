@@ -23,17 +23,15 @@ from tiferet.contexts.app import (
     build_feature_index,
     build_command_list,
     resolve_default_interface,
-    app_service_cache_key,
-    app_constant_cache_key,
     add_default_app_services,
     add_default_app_constants,
     get_default_app_services,
     get_default_app_constants,
-    APP_SERVICE_CACHE_KEY_PREFIX,
-    APP_CONSTANT_CACHE_KEY_PREFIX,
+    APP_SERVICE_CACHE_PREFIX,
+    APP_CONSTANT_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.error import error_cache_key
+from tiferet.contexts.error import ERROR_CACHE_PREFIX
 
 # *** fixtures
 
@@ -234,31 +232,23 @@ def app_interface_context(app_interface, feature_context, error_context, logging
 
 # *** tests
 
-# ** test: app_service_cache_key_prefixes_service_id
-def test_app_service_cache_key_prefixes_service_id():
+# ** test: app_service_cache_prefix_value
+def test_app_service_cache_prefix_value():
     '''
-    Test that app_service_cache_key namespaces a service id with the shared prefix.
-    '''
-
-    # Compose a cache key for a sample service id.
-    key = app_service_cache_key('di_service')
-
-    # Assert the key uses the prefix constant.
-    assert key == f'{APP_SERVICE_CACHE_KEY_PREFIX}di_service'
-    assert key == 'app_service_di_service'
-
-# ** test: app_constant_cache_key_prefixes_name
-def test_app_constant_cache_key_prefixes_name():
-    '''
-    Test that app_constant_cache_key namespaces a constant name with the shared prefix.
+    Test that APP_SERVICE_CACHE_PREFIX is the expected namespace tuple.
     '''
 
-    # Compose a cache key for a sample constant name.
-    key = app_constant_cache_key('cli_config')
+    # Assert the prefix constant has the correct value.
+    assert APP_SERVICE_CACHE_PREFIX == ('app', 'services')
 
-    # Assert the key uses the prefix constant.
-    assert key == f'{APP_CONSTANT_CACHE_KEY_PREFIX}cli_config'
-    assert key == 'app_constant_cli_config'
+# ** test: app_constant_cache_prefix_value
+def test_app_constant_cache_prefix_value():
+    '''
+    Test that APP_CONSTANT_CACHE_PREFIX is the expected namespace tuple.
+    '''
+
+    # Assert the prefix constant has the correct value.
+    assert APP_CONSTANT_CACHE_PREFIX == ('app', 'constants')
 
 # ** test: add_default_app_services_returns_callable
 def test_add_default_app_services_returns_callable(sample_services, base_cache_builder):
@@ -292,10 +282,9 @@ def test_add_default_app_services_seeds_cache_with_domain_objects(sample_service
     wrapped = add_default_app_services(sample_services)(base_cache_builder)
     cache = wrapped()
 
-    # Assert each service id maps to an AppServiceDependency in the cache under
-    # its prefixed cache key.
+    # Assert each service id maps to an AppServiceDependency in the services namespace.
     for service_id in sample_services:
-        cached = cache.get(app_service_cache_key(service_id))
+        cached = cache.get(service_id, *APP_SERVICE_CACHE_PREFIX)
         assert isinstance(cached, AppServiceDependency)
         assert cached.service_id == service_id
 
@@ -317,9 +306,9 @@ def test_add_default_app_services_preserves_initial_cache_values(sample_services
     # Assert the pre-existing entry is still accessible.
     assert cache.get('existing_key') == 'existing_value'
 
-    # Assert the service entries are also present under their prefixed keys.
+    # Assert the service entries are also present in the services namespace.
     for service_id in sample_services:
-        assert isinstance(cache.get(app_service_cache_key(service_id)), AppServiceDependency)
+        assert isinstance(cache.get(service_id, *APP_SERVICE_CACHE_PREFIX), AppServiceDependency)
 
 # ** test: add_default_app_services_empty_dict_leaves_cache_clean
 def test_add_default_app_services_empty_dict_leaves_cache_clean(base_cache_builder):
@@ -369,9 +358,9 @@ def test_add_default_app_constants_seeds_cache_with_scalars(sample_constants, ba
     wrapped = add_default_app_constants(sample_constants)(base_cache_builder)
     cache = wrapped()
 
-    # Assert each constant name maps to its scalar value under the prefixed key.
+    # Assert each constant name maps to its scalar value in the constants namespace.
     for name, value in sample_constants.items():
-        assert cache.get(app_constant_cache_key(name)) == value
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
 
 # ** test: add_default_app_constants_preserves_initial_cache_values
 def test_add_default_app_constants_preserves_initial_cache_values(sample_constants, base_cache_builder):
@@ -391,9 +380,9 @@ def test_add_default_app_constants_preserves_initial_cache_values(sample_constan
     # Assert the pre-existing entry is still accessible.
     assert cache.get('existing_key') == 'existing_value'
 
-    # Assert the constant entries are also present under their prefixed keys.
+    # Assert the constant entries are also present in the constants namespace.
     for name, value in sample_constants.items():
-        assert cache.get(app_constant_cache_key(name)) == value
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
 
 # ** test: add_default_app_constants_empty_dict_leaves_cache_clean
 def test_add_default_app_constants_empty_dict_leaves_cache_clean(base_cache_builder):
@@ -670,9 +659,9 @@ def test_app_interface_context_get_error_cache_hit(app_interface_context):
     :type app_interface_context: AppInterfaceContext
     """
 
-    # Pre-seed the shared cache with an error under its prefixed cache key.
+    # Pre-seed the shared cache with an error in the error namespace.
     cached_error = Error(id='CACHED_ERROR', name='Cached Error')
-    app_interface_context.cache.set(error_cache_key('CACHED_ERROR'), cached_error)
+    app_interface_context.cache.set('CACHED_ERROR', cached_error, *ERROR_CACHE_PREFIX)
 
     # Retrieve the error by its code.
     result = app_interface_context.get_error('CACHED_ERROR')

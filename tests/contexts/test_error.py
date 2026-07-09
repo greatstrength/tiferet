@@ -15,8 +15,7 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import (
     ErrorContext,
     add_default_errors,
-    error_cache_key,
-    ERROR_CACHE_KEY_PREFIX,
+    ERROR_CACHE_PREFIX,
 )
 from tiferet.domain import Error
 
@@ -117,10 +116,9 @@ def test_add_default_errors_seeds_cache_with_error_domain_objects(sample_errors,
     wrapped = add_default_errors(sample_errors)(base_cache_builder)
     cache = wrapped()
 
-    # Assert each error ID maps to an Error domain object in the cache under
-    # its prefixed cache key.
+    # Assert each error ID maps to an Error domain object in the error namespace.
     for error_id in sample_errors:
-        cached = cache.get(error_cache_key(error_id))
+        cached = cache.get(error_id, *ERROR_CACHE_PREFIX)
         assert isinstance(cached, Error)
         assert cached.id == error_id
 
@@ -140,12 +138,12 @@ def test_add_default_errors_preserves_initial_cache_values(sample_errors, base_c
     wrapped = add_default_errors(sample_errors)(base_cache_builder)
     cache = wrapped(cache={'existing_key': 'existing_value'})
 
-    # Assert the pre-existing entry is still accessible.
+    # Assert the pre-existing root-namespace entry is still accessible.
     assert cache.get('existing_key') == 'existing_value'
 
-    # Assert the error entries are also present under their prefixed keys.
+    # Assert the error entries are also present in the error namespace.
     for error_id in sample_errors:
-        assert isinstance(cache.get(error_cache_key(error_id)), Error)
+        assert isinstance(cache.get(error_id, *ERROR_CACHE_PREFIX), Error)
 
 
 # ** test: add_default_errors_empty_dict_leaves_cache_clean
@@ -165,18 +163,14 @@ def test_add_default_errors_empty_dict_leaves_cache_clean(base_cache_builder):
     assert cache._cache == {}
 
 
-# ** test: error_cache_key_prefixes_error_code
-def test_error_cache_key_prefixes_error_code():
+# ** test: error_cache_prefix_value
+def test_error_cache_prefix_value():
     '''
-    Test that error_cache_key namespaces an error code with the shared prefix.
+    Test that ERROR_CACHE_PREFIX is the expected namespace tuple.
     '''
 
-    # Compose a cache key for a sample error code.
-    key = error_cache_key('ERROR_NOT_FOUND')
-
-    # Assert the key uses the prefix constant.
-    assert key == f'{ERROR_CACHE_KEY_PREFIX}ERROR_NOT_FOUND'
-    assert key == 'error_ERROR_NOT_FOUND'
+    # Assert the prefix constant has the correct value.
+    assert ERROR_CACHE_PREFIX == ('app', 'errors')
 
 
 # ** test: error_context_format_response

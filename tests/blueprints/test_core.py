@@ -17,8 +17,8 @@ from tiferet.blueprints.core import (
     parse_parameter,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.error import error_cache_key
-from tiferet.contexts.app import app_service_cache_key, app_constant_cache_key
+from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX
 from tiferet.domain import Error, AppInterface, AppServiceDependency
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
@@ -42,20 +42,17 @@ def test_build_cache_returns_cache_context():
 # ** test: build_cache_seeds_all_three_catalogs
 def test_build_cache_seeds_all_three_catalogs():
     '''
-    Test that core.build_cache seeds errors, app services, and app constants,
-    totalling the combined size of the three catalogs.
+    Test that core.build_cache seeds errors, app services, and app constants
+    into their respective namespaces.
     '''
 
     # Build the cache.
     cache = build_cache()
 
-    # Assert the cache size equals the sum of the three seeded catalogs.
-    expected = (
-        len(a.error.CORE_DEFAULT_ERRORS)
-        + len(a.app.CORE_DEFAULT_SERVICES)
-        + len(a.app.CORE_DEFAULT_CONSTANTS)
-    )
-    assert len(cache._cache) == expected
+    # Assert each namespace contains the expected number of entries.
+    assert len(cache.get_by_prefix(*ERROR_CACHE_PREFIX)) == len(a.error.CORE_DEFAULT_ERRORS)
+    assert len(cache.get_by_prefix(*APP_SERVICE_CACHE_PREFIX)) == len(a.app.CORE_DEFAULT_SERVICES)
+    assert len(cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX)) == len(a.app.CORE_DEFAULT_CONSTANTS)
 
 
 # ** test: build_cache_seeds_typed_entries_per_catalog
@@ -68,20 +65,20 @@ def test_build_cache_seeds_typed_entries_per_catalog():
     # Build the cache.
     cache = build_cache()
 
-    # Assert each error is an Error domain object under its prefixed key.
+    # Assert each error is an Error domain object in the error namespace.
     for error_id in a.error.CORE_DEFAULT_ERRORS:
-        assert isinstance(cache.get(error_cache_key(error_id)), Error)
+        assert isinstance(cache.get(error_id, *ERROR_CACHE_PREFIX), Error)
 
-    # Assert each service is an AppServiceDependency under its prefixed key.
+    # Assert each service is an AppServiceDependency in the services namespace.
     for service_id in a.app.CORE_DEFAULT_SERVICES:
         assert isinstance(
-            cache.get(app_service_cache_key(service_id)),
+            cache.get(service_id, *APP_SERVICE_CACHE_PREFIX),
             AppServiceDependency,
         )
 
-    # Assert each constant is its scalar value under its prefixed key.
+    # Assert each constant is its scalar value in the constants namespace.
     for name, value in a.app.CORE_DEFAULT_CONSTANTS.items():
-        assert cache.get(app_constant_cache_key(name)) == value
+        assert cache.get(name, *APP_CONSTANT_CACHE_PREFIX) == value
 
 
 # ** test: build_cache_specific_service_and_constant_retrievable
@@ -94,13 +91,13 @@ def test_build_cache_specific_service_and_constant_retrievable():
     # Build the cache.
     cache = build_cache()
 
-    # Retrieve the di_service dependency by its prefixed key.
-    service = cache.get(app_service_cache_key('di_service'))
+    # Retrieve the di_service dependency from the services namespace.
+    service = cache.get('di_service', *APP_SERVICE_CACHE_PREFIX)
     assert isinstance(service, AppServiceDependency)
     assert service.service_id == 'di_service'
 
-    # Retrieve the cli_config constant by its prefixed key.
-    assert cache.get(app_constant_cache_key('cli_config')) == 'config.yml'
+    # Retrieve the cli_config constant from the constants namespace.
+    assert cache.get('cli_config', *APP_CONSTANT_CACHE_PREFIX) == 'config.yml'
 
 
 # ** test: create_app_service_default_composes_app_config_repository
