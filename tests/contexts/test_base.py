@@ -11,8 +11,8 @@ from tiferet.contexts.settings import BaseContext, ContextMeta
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.feature import FeatureContext, AsyncFeatureContext
 from tiferet.contexts.error import ErrorContext
-from tiferet.contexts.app import AppInterfaceContext
-from tiferet.domain import Feature, Error, AppInterface
+from tiferet.contexts.app import AppSessionContext
+from tiferet.domain import Feature, Error, AppSession
 
 # *** tests
 
@@ -25,7 +25,7 @@ def test_context_meta_registers_domain_types():
     # Assert the known domain-to-context mappings are registered.
     assert ContextMeta.registry.get(Feature) is FeatureContext
     assert ContextMeta.registry.get(Error) is ErrorContext
-    assert ContextMeta.registry.get(AppInterface) is AppInterfaceContext
+    assert ContextMeta.registry.get(AppSession) is AppSessionContext
 
 # ** test: base_context_not_registered
 def test_base_context_not_registered():

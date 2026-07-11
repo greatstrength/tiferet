@@ -19,7 +19,7 @@ from tiferet.blueprints.core import (
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX
-from tiferet.domain import Error, AppInterface, AppServiceDependency
+from tiferet.domain import Error, AppSession, AppServiceDependency
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
 from tiferet.repos.error import ErrorConfigRepository
@@ -167,18 +167,18 @@ def test_create_app_service_custom_service_type():
 def test_get_app_interface_returns_interface(monkeypatch):
     '''
     Test that get_app_interface returns the interface resolved by the
-    GetAppInterface event, sourcing the app service from create_app_service.
+    GetAppSession event, sourcing the app service from create_app_service.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
     # Arrange a sample interface and a mock app service that returns it.
-    sample = AppInterface(
+    sample = AppSession(
         id='tiferet_app',
         name='Tiferet App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
     )
     app_service = mock.Mock()
     app_service.get.return_value = sample
@@ -222,7 +222,7 @@ def test_get_app_interface_raises_when_absent(monkeypatch):
         get_app_interface('missing')
 
     # Assert the structured error code.
-    assert exc_info.value.error_code == a.const.APP_INTERFACE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID
 
 
 # ** test: build_app_service_container_exposes_core_services
@@ -234,11 +234,11 @@ def test_build_app_service_container_exposes_core_services():
 
     # Build the seeded cache and a minimal interface with no overrides.
     cache = build_cache()
-    interface = AppInterface(
+    interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
     )
 
     # Build the app service container.
@@ -257,11 +257,11 @@ def test_build_app_service_container_interface_service_override():
 
     # Build the seeded cache and an interface that overrides error_service.
     cache = build_cache()
-    interface = AppInterface(
+    interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         services=[
             AppServiceDependency(
                 service_id='error_service',
@@ -286,11 +286,11 @@ def test_build_app_service_container_interface_constant_override():
 
     # Build the seeded cache and an interface that overrides the error_config constant.
     cache = build_cache()
-    interface = AppInterface(
+    interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         constants={'error_config': 'override.yml'},
     )
 
@@ -332,11 +332,11 @@ def test_build_app_service_container_constant_override_propagates_to_redeclared_
     # Build a seeded cache and an interface that overrides the error_config
     # constant and redeclares error_service with its default definition.
     cache = build_cache()
-    interface = AppInterface(
+    interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         constants={'error_config': 'override.yml'},
         services=[
             AppServiceDependency(

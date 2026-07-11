@@ -117,8 +117,8 @@ YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 # ** constant: unsupported_config_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
-# ** constant: app_interface_not_found_id
-APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
+# ** constant: app_session_not_found_id
+APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
 
 # ** constant: invalid_service_registration_id
 INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
@@ -135,8 +135,8 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 
-# ** constant: invalid_app_interface_type_id
-INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+# ** constant: invalid_app_session_type_id
+INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
 
 # ** constant: sqlite_conn_already_open_id
 SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
@@ -215,6 +215,14 @@ CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
 
 # ** constant: csv_dict_no_header_id
 CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
+
+# ** constant: app_interface_not_found_id (obsolete)
+# -- obsolete: superseded by APP_SESSION_NOT_FOUND_ID; remove at v2.0.0 stable
+APP_INTERFACE_NOT_FOUND_ID = APP_SESSION_NOT_FOUND_ID
+
+# ** constant: invalid_app_interface_type_id (obsolete)
+# -- obsolete: superseded by INVALID_APP_SESSION_TYPE_ID; remove at v2.0.0 stable
+INVALID_APP_INTERFACE_TYPE_ID = INVALID_APP_SESSION_TYPE_ID
 
 # *** functions
 

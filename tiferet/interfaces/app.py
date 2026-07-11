@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import List
 
 # ** app
-from ..mappers import AppInterfaceAggregate
+from ..mappers import AppSessionAggregate
 from .settings import Service
 
 # *** interfaces
@@ -22,11 +22,11 @@ class AppService(Service):
     @abstractmethod
     def exists(self, id: str) -> bool:
         '''
-        Check if an app interface exists by ID.
+        Check if an app session exists by ID.
 
-        :param id: The app interface identifier.
+        :param id: The app session identifier.
         :type id: str
-        :return: True if the app interface exists, otherwise False.
+        :return: True if the app session exists, otherwise False.
         :rtype: bool
         '''
         # Not implemented.
@@ -34,38 +34,38 @@ class AppService(Service):
 
     # * method: get
     @abstractmethod
-    def get(self, id: str) -> AppInterfaceAggregate:
+    def get(self, id: str) -> AppSessionAggregate:
         '''
-        Retrieve an app interface by ID.
+        Retrieve an app session by ID.
 
-        :param id: The app interface identifier.
+        :param id: The app session identifier.
         :type id: str
-        :return: The app interface aggregate.
-        :rtype: AppInterfaceAggregate
+        :return: The app session aggregate.
+        :rtype: AppSessionAggregate
         '''
         # Not implemented.
         raise NotImplementedError('get method is required for AppService.')
 
     # * method: list
     @abstractmethod
-    def list(self) -> List[AppInterfaceAggregate]:
+    def list(self) -> List[AppSessionAggregate]:
         '''
-        List all app interfaces.
+        List all app sessions.
 
-        :return: A list of app interface aggregates.
-        :rtype: List[AppInterfaceAggregate]
+        :return: A list of app session aggregates.
+        :rtype: List[AppSessionAggregate]
         '''
         # Not implemented.
         raise NotImplementedError('list method is required for AppService.')
 
     # * method: save
     @abstractmethod
-    def save(self, interface: AppInterfaceAggregate) -> None:
+    def save(self, session: AppSessionAggregate) -> None:
         '''
-        Save or update an app interface.
+        Save or update an app session.
 
-        :param interface: The app interface aggregate to save.
-        :type interface: AppInterfaceAggregate
+        :param session: The app session aggregate to save.
+        :type session: AppSessionAggregate
         :return: None
         :rtype: None
         '''
@@ -76,9 +76,9 @@ class AppService(Service):
     @abstractmethod
     def delete(self, id: str) -> None:
         '''
-        Delete an app interface by ID. This operation should be idempotent.
+        Delete an app session by ID. This operation should be idempotent.
 
-        :param id: The app interface identifier.
+        :param id: The app session identifier.
         :type id: str
         :return: None
         :rtype: None

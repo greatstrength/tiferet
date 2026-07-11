@@ -124,8 +124,8 @@ YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 # ** constant: unsupported_config_file_type_id
 UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
-# ** constant: app_interface_not_found_id
-APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
+# ** constant: app_session_not_found_id
+APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
 
 # ** constant: invalid_service_registration_id
 INVALID_SERVICE_REGISTRATION_ID = 'INVALID_SERVICE_REGISTRATION'
@@ -142,8 +142,8 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: invalid_model_attribute_id
 INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
 
-# ** constant: invalid_app_interface_type_id
-INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
+# ** constant: invalid_app_session_type_id
+INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
 
 # ** constant: sqlite_conn_already_open_id
 SQLITE_CONN_ALREADY_OPEN_ID = 'SQLITE_CONN_ALREADY_OPEN'
@@ -470,12 +470,16 @@ UNSUPPORTED_CONFIG_FILE_TYPE = create_default_error(
     [(EN_US, 'Unsupported configuration file type: {file_extension}.')],
 )
 
-# ** constant: app_interface_not_found
-APP_INTERFACE_NOT_FOUND = create_default_error(
-    APP_INTERFACE_NOT_FOUND_ID,
-    'App Interface Not Found',
-    [(EN_US, 'App interface with ID {interface_id} not found.')],
+# ** constant: app_session_not_found
+APP_SESSION_NOT_FOUND = create_default_error(
+    APP_SESSION_NOT_FOUND_ID,
+    'App Session Not Found',
+    [(EN_US, 'App session with ID {interface_id} not found.')],
 )
+
+# ** constant: app_interface_not_found (obsolete)
+# -- obsolete: superseded by APP_SESSION_NOT_FOUND; remove at v2.0.0 stable
+APP_INTERFACE_NOT_FOUND = APP_SESSION_NOT_FOUND
 
 # ** constant: invalid_service_registration
 INVALID_SERVICE_REGISTRATION = create_default_error(
@@ -512,12 +516,16 @@ INVALID_MODEL_ATTRIBUTE = create_default_error(
     [(EN_US, 'Invalid attribute: {attribute}. Supported attributes are {supported}.')],
 )
 
-# ** constant: invalid_app_interface_type
-INVALID_APP_INTERFACE_TYPE = create_default_error(
-    INVALID_APP_INTERFACE_TYPE_ID,
-    'Invalid App Interface Type',
+# ** constant: invalid_app_session_type
+INVALID_APP_SESSION_TYPE = create_default_error(
+    INVALID_APP_SESSION_TYPE_ID,
+    'Invalid App Session Type',
     [(EN_US, '{attribute} must be a non-empty string.')],
 )
+
+# ** constant: invalid_app_interface_type (obsolete)
+# -- obsolete: superseded by INVALID_APP_SESSION_TYPE; remove at v2.0.0 stable
+INVALID_APP_INTERFACE_TYPE = INVALID_APP_SESSION_TYPE
 
 # ** constant: sqlite_conn_already_open
 SQLITE_CONN_ALREADY_OPEN = create_default_error(
@@ -709,9 +717,9 @@ CORE_DEFAULT_ERRORS = {
     PARAMETER_PARSING_FAILED_ID: PARAMETER_PARSING_FAILED,
     IMPORT_DEPENDENCY_FAILED_ID: IMPORT_DEPENDENCY_FAILED,
     APP_SERVICE_IMPORT_FAILED_ID: APP_SERVICE_IMPORT_FAILED,
-    APP_INTERFACE_NOT_FOUND_ID: APP_INTERFACE_NOT_FOUND,
+    APP_SESSION_NOT_FOUND_ID: APP_SESSION_NOT_FOUND,
     DI_SERVICE_NOT_CONFIGURED_ID: DI_SERVICE_NOT_CONFIGURED,
-    INVALID_APP_INTERFACE_TYPE_ID: INVALID_APP_INTERFACE_TYPE,
+    INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE,
     APP_ERROR_ID: APP_ERROR,
     CONTEXT_NOT_FOUND_ID: CONTEXT_NOT_FOUND,
     FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,

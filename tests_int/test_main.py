@@ -155,7 +155,7 @@ def basic_calc(test_calc_yaml_file):
     :param test_calc_yaml_file: The path to the temporary test calculator YAML file.
     :type test_calc_yaml_file: str
     :return: The loaded basic calculator interface context.
-    :rtype: AppInterfaceContext
+    :rtype: AppSessionContext
     '''
 
     # Build and return the test_calc interface context.

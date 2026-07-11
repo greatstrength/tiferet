@@ -9,9 +9,9 @@ from unittest import mock
 # ** app
 from tiferet import assets as a
 from tiferet.assets import TiferetError
-from tiferet.contexts.app import AppInterfaceContext
+from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cli import CliContext
-from tiferet.mappers import AppInterfaceAggregate
+from tiferet.mappers import AppSessionAggregate
 from tiferet.repos.app import AppConfigRepository
 from tiferet import App
 from tiferet.blueprints.main import (
@@ -30,20 +30,20 @@ from tiferet.domain import Error
 
 # ** fixture: app_interface_aggregate
 @pytest.fixture
-def app_interface_aggregate() -> AppInterfaceAggregate:
+def app_interface_aggregate() -> AppSessionAggregate:
     '''
-    Fixture to create a realistic AppInterfaceAggregate.
+    Fixture to create a realistic AppSessionAggregate.
 
     :return: The app interface aggregate.
-    :rtype: AppInterfaceAggregate
+    :rtype: AppSessionAggregate
     '''
 
     # Create and return a representative app interface aggregate.
-    return AppInterfaceAggregate(
+    return AppSessionAggregate(
         id='test_calc',
         name='Test Calculator',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         description='Test calculator interface',
         flags=['test'],
         services=load_default_services(),
@@ -167,17 +167,17 @@ def test_load_default_services_returns_list():
 # ** test: load_app_instance_success
 def test_load_app_instance_success(app_interface_aggregate):
     '''
-    Test that load_app_instance resolves a valid AppInterfaceContext.
+    Test that load_app_instance resolves a valid AppSessionContext.
 
     :param app_interface_aggregate: The app interface aggregate fixture.
-    :type app_interface_aggregate: AppInterfaceAggregate
+    :type app_interface_aggregate: AppSessionAggregate
     '''
 
     # Load the app instance from the aggregate.
     result = load_app_instance(app_interface_aggregate)
 
-    # Assert the result is an AppInterfaceContext.
-    assert isinstance(result, AppInterfaceContext)
+    # Assert the result is an AppSessionContext.
+    assert isinstance(result, AppSessionContext)
 
 
 # ** test: load_app_instance_injects_cli_collaborators
@@ -188,7 +188,7 @@ def test_load_app_instance_injects_cli_collaborators():
     '''
 
     # Build a CLI interface aggregate pointing at the reincorporated CliContext.
-    cli_interface = AppInterfaceAggregate(
+    cli_interface = AppSessionAggregate(
         id='test_cli',
         name='Test CLI',
         module_path='tiferet.contexts.cli',
@@ -211,7 +211,7 @@ def test_load_app_instance_injects_cli_collaborators():
 # ** test: resolve_collaborators_generic_unchanged
 def test_resolve_collaborators_generic_unchanged():
     '''
-    Test that the generic AppInterfaceContext resolves only its original three
+    Test that the generic AppSessionContext resolves only its original three
     collaborators, excluding reserved args, default_* kwargs, and unrelated ids.
     '''
 
@@ -230,7 +230,7 @@ def test_resolve_collaborators_generic_unchanged():
     }
 
     # Resolve collaborators for the generic hub.
-    resolved = resolve_collaborators(AppInterfaceContext, registry)
+    resolved = resolve_collaborators(AppSessionContext, registry)
 
     # Assert only the original three collaborators are resolved.
     assert set(resolved.keys()) == {
@@ -279,7 +279,7 @@ def test_build_app_success(app_interface_aggregate):
     Test successful build_app execution.
 
     :param app_interface_aggregate: The app interface aggregate fixture.
-    :type app_interface_aggregate: AppInterfaceAggregate
+    :type app_interface_aggregate: AppSessionAggregate
     '''
 
     # Mock resolve_interface to return the fixture and empty defaults.
@@ -293,17 +293,17 @@ def test_build_app_success(app_interface_aggregate):
             class_name='AppConfigRepository',
             app_config='tiferet/assets/tests/test_calc.yml',
         )
-        assert isinstance(result, AppInterfaceContext)
+        assert isinstance(result, AppSessionContext)
         mock_resolve.assert_called_once()
 
 
 # ** test: build_app_forwards_default_constants
 def test_build_app_forwards_default_constants(app_interface_aggregate):
     '''
-    Test that build_app passes default constants to GetAppInterface.
+    Test that build_app passes default constants to GetAppSession.
 
     :param app_interface_aggregate: The app interface aggregate fixture.
-    :type app_interface_aggregate: AppInterfaceAggregate
+    :type app_interface_aggregate: AppSessionAggregate
     '''
 
     # Mock resolve_interface to capture the call.
@@ -329,7 +329,7 @@ def test_build_app_invalid_context(app_interface_aggregate):
     Test that build_app raises INVALID_APP_INTERFACE_TYPE when context is invalid.
 
     :param app_interface_aggregate: The app interface aggregate fixture.
-    :type app_interface_aggregate: AppInterfaceAggregate
+    :type app_interface_aggregate: AppSessionAggregate
     '''
 
     # Create invalid context type.
@@ -340,7 +340,7 @@ def test_build_app_invalid_context(app_interface_aggregate):
     with mock.patch('tiferet.blueprints.main.resolve_interface') as mock_resolve, \
          mock.patch('tiferet.blueprints.main.realize_interface') as mock_realize:
         mock_resolve.return_value = (app_interface_aggregate, load_default_services())
-        mock_realize.side_effect = TiferetError(a.const.INVALID_APP_INTERFACE_TYPE_ID, interface_id='invalid_interface')
+        mock_realize.side_effect = TiferetError(a.const.INVALID_APP_SESSION_TYPE_ID, interface_id='invalid_interface')
 
         # Assert invalid context raises expected error.
         with pytest.raises(TiferetError) as exc_info:
@@ -351,5 +351,5 @@ def test_build_app_invalid_context(app_interface_aggregate):
                 app_config='tiferet/assets/tests/test_calc.yml',
             )
 
-        assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
+        assert exc_info.value.error_code == a.const.INVALID_APP_SESSION_TYPE_ID
         assert 'invalid_interface' in str(exc_info.value)

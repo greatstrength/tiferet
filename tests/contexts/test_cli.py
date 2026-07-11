@@ -9,7 +9,7 @@ from unittest import mock
 # ** app
 from tiferet.assets import TiferetAPIError
 from tiferet.domain import CliArgument, CliCommand
-from tiferet.mappers import AppInterfaceAggregate
+from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.cli import (
     CliContext,
     build_parser,
@@ -24,14 +24,14 @@ from tiferet.contexts.request import RequestContext
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create an AppInterfaceAggregate bound as the CLI context domain.
+    Fixture to create an AppSessionAggregate bound as the CLI context domain.
 
-    :return: An AppInterfaceAggregate instance.
-    :rtype: AppInterfaceAggregate
+    :return: An AppSessionAggregate instance.
+    :rtype: AppSessionAggregate
     '''
 
     # Create a test interface pointing at the CLI context.
-    return AppInterfaceAggregate(
+    return AppSessionAggregate(
         id='test_cli',
         name='Test CLI',
         module_path='tiferet.contexts.cli',
@@ -138,7 +138,7 @@ def test_get_commands_falls_back_to_default_commands(app_interface):
     list when the repository (event) returns no commands.
 
     :param app_interface: The bound app interface.
-    :type app_interface: AppInterfaceAggregate
+    :type app_interface: AppSessionAggregate
     '''
 
     # Build a CLI context seeded with an id-keyed bootstrap default command.

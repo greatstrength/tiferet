@@ -9,7 +9,6 @@ from typing import Any, Callable, Dict
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
 from ..contexts.app import (
-    AppInterface,
     AppServiceDependency,
     add_default_app_services,
     add_default_app_constants,
@@ -17,7 +16,7 @@ from ..contexts.app import (
     get_default_app_constants,
 )
 from ..events import DomainEvent, ParseParameter
-from ..events.app import GetAppInterface
+from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
@@ -98,23 +97,23 @@ def create_app_service(
     # Resolve and return the composed app service instance.
     return container.get_dependency('app_service')
 
-# ** blueprint: get_app_interface
-def get_app_interface(
+# ** blueprint: get_app_session
+def get_app_session(
     interface_id: str,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters,
-) -> AppInterface:
+):
     '''
-    Retrieve an app interface by id, composing the app service dependency first.
+    Retrieve an app session by id, composing the app service dependency first.
 
     Composes the ``app_service`` dependency via :func:`create_app_service`, then
-    retrieves the requested interface through the ``GetAppInterface`` domain
+    retrieves the requested session through the ``GetAppSession`` domain
     event. Any keyword arguments are forwarded as the app service constructor
     parameters (e.g. ``app_config='config.yml'``); when omitted,
     :func:`create_app_service` applies the framework default parameters.
 
-    :param interface_id: The id of the app interface to retrieve.
+    :param interface_id: The id of the app session to retrieve.
     :type interface_id: str
     :param module_path: The module path of the app service; defaults to the framework app repo.
     :type module_path: str
@@ -122,24 +121,28 @@ def get_app_interface(
     :type class_name: str
     :param parameters: The app service constructor parameters.
     :type parameters: dict
-    :return: The retrieved app interface.
-    :rtype: AppInterface
+    :return: The retrieved app session.
+    :rtype: AppSession
     '''
 
     # Compose the app service via a single-use container.
     app_service = create_app_service(module_path, class_name, parameters)
 
-    # Retrieve the interface via the GetAppInterface event.
+    # Retrieve the session via the GetAppSession event.
     return DomainEvent.handle(
-        GetAppInterface,
+        GetAppSession,
         dependencies=dict(app_service=app_service),
         interface_id=interface_id,
     )
 
+# ** blueprint: get_app_interface (obsolete)
+# -- obsolete: superseded by get_app_session; remove at v2.0.0 stable
+get_app_interface = get_app_session
+
 # ** blueprint: build_app_service_container
 def build_app_service_container(
     cache: CacheContext,
-    app_instance: AppInterface = None,
+    app_instance = None,
     service_container: type = DIAppServiceContainer,
 ) -> DIAppServiceContainer:
     '''
@@ -155,8 +158,8 @@ def build_app_service_container(
 
     :param cache: The shared cache context seeded with default services/constants.
     :type cache: CacheContext
-    :param app_instance: The resolved application interface definition, or None for defaults only.
-    :type app_instance: AppInterface | None
+    :param app_instance: The resolved application session definition, or None for defaults only.
+    :type app_instance: AppSession | None
     :param service_container: The container class to build; defaults to DIAppServiceContainer.
     :type service_container: type
     :return: The loaded app service container.

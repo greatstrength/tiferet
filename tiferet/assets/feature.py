@@ -323,13 +323,13 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
         'steps': [{'service_id': 'set_service_constants_evt', 'name': 'Set service constants'}],
     },
 
-    # * features: app interface domain
+    # * features: app session domain
     {
         'id': 'app.add',
         'group_id': 'app',
         'feature_key': 'add',
-        'name': 'Add App Interface',
-        'description': 'Add a new application interface configuration.',
+        'name': 'Add App Session',
+        'description': 'Add a new application session configuration.',
         'params_schema': {
             'id': 'str',
             'name': 'str',
@@ -341,45 +341,45 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
             'services': {'type': 'list', 'required': False, 'default': []},
             'constants': {'type': 'dict', 'required': False, 'default': {}},
         },
-        'steps': [{'service_id': 'add_app_interface_evt', 'name': 'Add app interface'}],
+        'steps': [{'service_id': 'add_app_session_evt', 'name': 'Add app session'}],
     },
     {
         'id': 'app.get',
         'group_id': 'app',
         'feature_key': 'get',
-        'name': 'Get App Interface',
-        'description': 'Retrieve an app interface by ID.',
+        'name': 'Get App Session',
+        'description': 'Retrieve an app session by ID.',
         'params_schema': {
             'interface_id': 'str',
         },
-        'steps': [{'service_id': 'get_app_interface_evt', 'name': 'Get app interface'}],
+        'steps': [{'service_id': 'get_app_session_evt', 'name': 'Get app session'}],
     },
     {
         'id': 'app.list',
         'group_id': 'app',
         'feature_key': 'list',
-        'name': 'List App Interfaces',
-        'description': 'List all configured app interfaces.',
-        'steps': [{'service_id': 'list_app_interfaces_evt', 'name': 'List app interfaces'}],
+        'name': 'List App Sessions',
+        'description': 'List all configured app sessions.',
+        'steps': [{'service_id': 'list_app_sessions_evt', 'name': 'List app sessions'}],
     },
     {
         'id': 'app.update',
         'group_id': 'app',
         'feature_key': 'update',
-        'name': 'Update App Interface',
-        'description': 'Update a scalar attribute on an app interface.',
+        'name': 'Update App Session',
+        'description': 'Update a scalar attribute on an app session.',
         'params_schema': {
             'id': 'str',
             'attribute': 'str',
         },
-        'steps': [{'service_id': 'update_app_interface_evt', 'name': 'Update app interface'}],
+        'steps': [{'service_id': 'update_app_session_evt', 'name': 'Update app session'}],
     },
     {
         'id': 'app.set_constants',
         'group_id': 'app',
         'feature_key': 'set_constants',
         'name': 'Set App Constants',
-        'description': 'Set or clear constants on an app interface.',
+        'description': 'Set or clear constants on an app session.',
         'params_schema': {
             'id': 'str',
             'constants': {'type': 'dict', 'required': False},
@@ -391,7 +391,7 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
         'group_id': 'app',
         'feature_key': 'set_service',
         'name': 'Set App Service Dependency',
-        'description': 'Set or update a service dependency on an app interface.',
+        'description': 'Set or update a service dependency on an app session.',
         'params_schema': {
             'id': 'str',
             'service_id': 'str',
@@ -406,7 +406,7 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
         'group_id': 'app',
         'feature_key': 'remove_service',
         'name': 'Remove App Service Dependency',
-        'description': 'Remove a service dependency from an app interface.',
+        'description': 'Remove a service dependency from an app session.',
         'params_schema': {
             'id': 'str',
             'service_id': 'str',
@@ -417,12 +417,12 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
         'id': 'app.remove',
         'group_id': 'app',
         'feature_key': 'remove',
-        'name': 'Remove App Interface',
-        'description': 'Remove an app interface by ID.',
+        'name': 'Remove App Session',
+        'description': 'Remove an app session by ID.',
         'params_schema': {
             'id': 'str',
         },
-        'steps': [{'service_id': 'remove_app_interface_evt', 'name': 'Remove app interface'}],
+        'steps': [{'service_id': 'remove_app_session_evt', 'name': 'Remove app session'}],
     },
 
     # * features: cli domain

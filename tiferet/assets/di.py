@@ -49,15 +49,15 @@ DEFAULT_TIFERET_CLI_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] 
     ('remove_service_registration_evt', 'tiferet.events.di', 'RemoveServiceRegistration', None),
     ('set_service_constants_evt', 'tiferet.events.di', 'SetServiceConstants', None),
 
-    # * services: app interface domain events
-    ('add_app_interface_evt', 'tiferet.events.app', 'AddAppInterface', None),
-    ('get_app_interface_evt', 'tiferet.events.app', 'GetAppInterface', None),
-    ('update_app_interface_evt', 'tiferet.events.app', 'UpdateAppInterface', None),
+    # * services: app session domain events
+    ('add_app_session_evt', 'tiferet.events.app', 'AddAppSession', None),
+    ('get_app_session_evt', 'tiferet.events.app', 'GetAppSession', None),
+    ('update_app_session_evt', 'tiferet.events.app', 'UpdateAppSession', None),
     ('set_app_constants_evt', 'tiferet.events.app', 'SetAppConstants', None),
-    ('list_app_interfaces_evt', 'tiferet.events.app', 'ListAppInterfaces', None),
+    ('list_app_sessions_evt', 'tiferet.events.app', 'ListAppSessions', None),
     ('set_app_service_dependency_evt', 'tiferet.events.app', 'SetServiceDependency', None),
     ('remove_app_service_dependency_evt', 'tiferet.events.app', 'RemoveServiceDependency', None),
-    ('remove_app_interface_evt', 'tiferet.events.app', 'RemoveAppInterface', None),
+    ('remove_app_session_evt', 'tiferet.events.app', 'RemoveAppSession', None),
 
     # * services: cli domain events
     ('add_cli_command_evt', 'tiferet.events.cli', 'AddCliCommand', None),

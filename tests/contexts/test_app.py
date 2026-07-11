@@ -11,15 +11,15 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
-from tiferet.domain import AppInterface, AppServiceDependency, Feature, CliCommand, Error
-from tiferet.mappers import AppInterfaceAggregate
+from tiferet.domain import AppSession, AppServiceDependency, Feature, CliCommand, Error
+from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
     FeatureContext,
     ErrorContext,
     LoggingContext,
     RequestContext,
-    AppInterfaceContext,
+    AppSessionContext,
     build_feature_index,
     build_command_list,
     resolve_default_interface,
@@ -97,18 +97,18 @@ def sample_constants() -> dict:
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create an AppInterfaceAggregate instance.
+    Fixture to create an AppSessionAggregate instance.
 
-    :return: An AppInterfaceAggregate instance.
-    :rtype: AppInterfaceAggregate
+    :return: An AppSessionAggregate instance.
+    :rtype: AppSessionAggregate
     '''
 
-    # Create a test AppInterfaceAggregate instance.
-    return AppInterfaceAggregate(
+    # Create a test AppSessionAggregate instance.
+    return AppSessionAggregate(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         description='The test app.',
         flags=['test'],
         services=[],
@@ -178,12 +178,12 @@ def logging_context():
 @pytest.fixture
 def app_interface_context(app_interface, feature_context, error_context, logging_context, monkeypatch):
     """
-    Fixture to create an AppInterfaceContext hub bound to the test interface.
+    Fixture to create an AppSessionContext hub bound to the test interface.
     The logging context is injected via its lazy cache; feature and error
     contexts are provided by patching the on-demand registry resolver.
 
-    :return: An AppInterfaceContext instance.
-    :rtype: AppInterfaceContext
+    :return: An AppSessionContext instance.
+    :rtype: AppSessionContext
     """
 
     # Build a get-feature event that returns a real (synchronous) Feature.
@@ -199,7 +199,7 @@ def app_interface_context(app_interface, feature_context, error_context, logging
     )
 
     # Construct the hub declaratively from the loaded interface with mock events.
-    context = AppInterfaceContext.from_domain(
+    context = AppSessionContext.from_domain(
         app_interface,
         get_feature_evt=get_feature_evt,
         get_error_evt=mock.Mock(),
@@ -469,7 +469,7 @@ def test_resolve_default_interface_match():
     )
 
     # Assert an interface is built from the matching default.
-    assert isinstance(interface, AppInterface)
+    assert isinstance(interface, AppSession)
     assert interface.id == 'tiferet_cli'
     assert interface.name == 'Tiferet CLI'
 
@@ -489,10 +489,10 @@ def test_resolve_default_interface_no_match():
 # ** test: app_interface_context_parse_request
 def test_app_interface_context_parse_request(app_interface_context):
     """
-    Test parsing a request using the AppInterfaceContext.
+    Test parsing a request using the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     """
 
     # Parse the request using the app interface context.
@@ -518,10 +518,10 @@ def test_app_interface_context_parse_request(app_interface_context):
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
     """
-    Test executing a feature using the AppInterfaceContext.
+    Test executing a feature using the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
     """
@@ -550,8 +550,8 @@ def test_app_interface_context_execute_feature_async(app_interface_context, monk
     Test that an is_async feature is routed to AsyncFeatureContext and its
     execute_feature_async coroutine is driven to completion.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     """
 
     # Arrange the loaded feature to be async.
@@ -593,10 +593,10 @@ def test_app_interface_context_execute_feature_async(app_interface_context, monk
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
     """
-    Test handling an error using the AppInterfaceContext.
+    Test handling an error using the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
     """
@@ -626,10 +626,10 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
 # ** test: app_interface_context_handle_error_invalid
 def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
     """
-    Test handling an invalid error using the AppInterfaceContext.
+    Test handling an invalid error using the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     """
 
     # Create an invalid error object.
@@ -655,8 +655,8 @@ def test_app_interface_context_get_error_cache_hit(app_interface_context):
     """
     Test that get_error returns a cached error without invoking the get-error event.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     """
 
     # Pre-seed the shared cache with an error in the error namespace.
@@ -673,10 +673,10 @@ def test_app_interface_context_get_error_cache_hit(app_interface_context):
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
     """
-    Test handling a response using the AppInterfaceContext.
+    Test handling a response using the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     """
 
     # Create a mock request with a response data.
@@ -703,10 +703,10 @@ def test_app_interface_context_handle_response(app_interface_context):
 # ** test: app_interface_context_run
 def test_app_interface_context_run(app_interface_context, logging_context: LoggingContext):
     """
-    Test running the AppInterfaceContext.
+    Test running the AppSessionContext.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -741,10 +741,10 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
 # ** test: app_interface_context_run_invalid
 def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
     """
-    Test running the AppInterfaceContext with an invalid feature.
+    Test running the AppSessionContext with an invalid feature.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
@@ -798,8 +798,8 @@ def test_app_interface_context_run_timing_success(app_interface_context, logging
     """
     Test that successful execution logs duration in final INFO message.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -838,8 +838,8 @@ def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_con
     """
     Test that pre-execution INFO log is removed.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -867,8 +867,8 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
     """
     Test that no duration is logged on error paths.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
@@ -922,8 +922,8 @@ def test_app_interface_context_run_timing_zero_duration(app_interface_context, l
     """
     Test edge case where execution is extremely fast (0ms).
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """
@@ -953,8 +953,8 @@ def test_app_interface_context_run_timing_long_execution(app_interface_context, 
     """
     Test that long execution durations are logged correctly.
 
-    :param app_interface_context: The AppInterfaceContext instance.
-    :type app_interface_context: AppInterfaceContext
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
     :param logging_context: The mock LoggingContext instance.
     :type logging_context: LoggingContext
     """

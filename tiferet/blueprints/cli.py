@@ -46,12 +46,12 @@ def build_app(
     :rtype: Any
     '''
 
-    # Resolve the interface definition in a single pass.
-    app_interface, _ = resolve_interface(
+    # Resolve the session definition in a single pass.
+    app_session, _ = resolve_interface(
         interface_id, module_path, class_name, **parameters)
 
-    # Realize the CLI interface context from the resolved definition.
-    cli_context = realize_interface(app_interface, interface_id)
+    # Realize the CLI session context from the resolved definition.
+    cli_context = realize_interface(app_session, interface_id)
 
     # Delegate parsing, dispatch, exit codes, and response printing to the context.
     return cli_context.run_cli(argv)

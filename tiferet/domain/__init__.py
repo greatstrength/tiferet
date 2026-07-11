@@ -8,8 +8,10 @@ from .core import (
     ServiceDependency,
 )
 from .app import (
-    AppInterface,
+    AppSession,
     AppServiceDependency,
+    # -- obsolete: superseded by AppSession; remove at v2.0.0 stable
+    AppInterface,
 )
 from .di import (
     FlaggedDependency,
@@ -45,8 +47,9 @@ from .logging import (
 __all__ = [
     'DomainObject',
     'ServiceDependency',
-    'AppInterface',
+    'AppSession',
     'AppServiceDependency',
+    'AppInterface',  # obsolete: superseded by AppSession; remove at v2.0.0 stable
     'FlaggedDependency',
     'ServiceRegistration',
     'CliArgument',

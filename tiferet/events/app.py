@@ -5,9 +5,9 @@ from typing import Any, Dict, List
 
 # ** app
 from .settings import DomainEvent, a
-from ..domain import AppInterface
+from ..domain import AppSession, AppInterface
 from ..interfaces import AppService
-from ..mappers import AppInterfaceAggregate
+from ..mappers import AppSessionAggregate
 
 # *** events
 
@@ -32,10 +32,10 @@ class AppEvent(DomainEvent):
         # Set the app service dependency.
         self.app_service = app_service
 
-# ** event: add_app_interface
-class AddAppInterface(AppEvent):
+# ** event: add_app_session
+class AddAppSession(AppEvent):
     '''
-    A domain event to add a new application interface configuration via the AppService.
+    A domain event to add a new application session configuration via the AppService.
     '''
 
     # * method: execute
@@ -52,9 +52,9 @@ class AddAppInterface(AppEvent):
         services: List[Dict[str, Any]] = [],
         constants: Dict[str, str] = {},
         **kwargs,
-    ) -> AppInterface:
+    ) -> AppSession:
         '''
-        Create and save a new AppInterface using the injected AppService.
+        Create and save a new AppSession using the injected AppService.
 
         Required parameters: ``id``, ``name``, ``module_path``, ``class_name``.
 
@@ -78,8 +78,8 @@ class AddAppInterface(AppEvent):
         :type services: List[Dict[str, Any]] | None
         :param constants: Optional dictionary of constant values.
         :type constants: Dict[str, str] | None
-        :return: The created AppInterface.
-        :rtype: AppInterface
+        :return: The created AppSession.
+        :rtype: AppSession
         '''
 
         # Coerce optional arguments that argparse may pass as None to their defaults.
@@ -88,8 +88,8 @@ class AddAppInterface(AppEvent):
         services = services or []
         constants = constants or {}
 
-        # Collect the app interface data.
-        app_interface_data = {
+        # Collect the app session data.
+        app_session_data = {
             'id': id,
             'name': name,
             'module_path': module_path,
@@ -101,61 +101,61 @@ class AddAppInterface(AppEvent):
             'constants': constants,
         }
 
-        # Create the AppInterface model; flags defaults to ['default'].
-        interface = AppInterfaceAggregate(**app_interface_data)
+        # Create the AppSession model; flags defaults to ['default'].
+        interface = AppSessionAggregate(**app_session_data)
 
-        # Persist the new interface via the app service.
+        # Persist the new session via the app service.
         self.app_service.save(interface)
 
-        # Return the created AppInterface instance.
+        # Return the created AppSession instance.
         return interface
 
-# ** event: get_app_interface
-class GetAppInterface(AppEvent):
+# ** event: get_app_session
+class GetAppSession(AppEvent):
     '''
-    A domain event to retrieve an app interface using the ``AppService`` abstraction.
+    A domain event to retrieve an app session using the ``AppService`` abstraction.
     '''
 
     # * method: execute
     @DomainEvent.parameters_required(['interface_id'])
-    def execute(self, interface_id: str, **kwargs) -> AppInterface:
+    def execute(self, interface_id: str, **kwargs) -> AppSession:
         '''
-        Retrieve an application interface by ID from the app service.
+        Retrieve an application session by ID from the app service.
 
-        :param interface_id: The ID of the application interface to load.
+        :param interface_id: The ID of the application session to load.
         :type interface_id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The loaded application interface.
-        :rtype: AppInterface
-        :raises TiferetError: If the interface cannot be found.
+        :return: The loaded application session.
+        :rtype: AppSession
+        :raises TiferetError: If the session cannot be found.
         '''
 
-        # Retrieve the interface from the app service.
+        # Retrieve the session from the app service.
         interface = self.app_service.get(interface_id)
 
-        # Raise an error if the interface is not found.
+        # Raise an error if the session is not found.
         if not interface:
             self.raise_error(
-                a.const.APP_INTERFACE_NOT_FOUND_ID,
-                f'App interface with ID {interface_id} not found.',
+                a.const.APP_SESSION_NOT_FOUND_ID,
+                f'App session with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
 
-        # Return the loaded application interface.
+        # Return the loaded application session.
         return interface
 
-# ** event: update_app_interface
-class UpdateAppInterface(AppEvent):
+# ** event: update_app_session
+class UpdateAppSession(AppEvent):
     '''
-    A domain event to update scalar attributes of an existing app interface.
+    A domain event to update scalar attributes of an existing app session.
     '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id', 'attribute'])
     def execute(self, id: str, attribute: str, value: Any, **kwargs) -> str:
         '''
-        Update a scalar attribute on an existing app interface.
+        Update a scalar attribute on an existing app session.
 
         :param id: The unique identifier for the app interface to update.
         :type id: str
@@ -169,24 +169,24 @@ class UpdateAppInterface(AppEvent):
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
             interface_id=id,
         )
 
         # Update the attribute via the model method.
         interface.set_attribute(attribute, value)
 
-        # Persist the updated interface.
+        # Persist the updated session.
         self.app_service.save(interface)
 
-        # Return the interface ID.
+        # Return the session ID.
         return id
 
 # ** event: set_app_constants
@@ -216,41 +216,41 @@ class SetAppConstants(AppEvent):
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
             interface_id=id,
         )
 
         # Update constants via the model method.
         interface.set_constants(constants)
 
-        # Persist the updated interface.
+        # Persist the updated session.
         self.app_service.save(interface)
 
-        # Return the interface ID.
+        # Return the session ID.
         return id
 
-# ** event: list_app_interfaces
-class ListAppInterfaces(AppEvent):
+# ** event: list_app_sessions
+class ListAppSessions(AppEvent):
     '''
-    A domain event to list all configured app interfaces.
+    A domain event to list all configured app sessions.
     '''
 
     # * method: execute
-    def execute(self, **kwargs) -> List[AppInterface]:
+    def execute(self, **kwargs) -> List[AppSession]:
         '''
-        List all app interfaces.
+        List all app sessions.
 
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: List of AppInterface models.
-        :rtype: List[AppInterface]
+        :return: List of AppSession models.
+        :rtype: List[AppSession]
         '''
 
         # Delegate to the app service to retrieve all interfaces.
@@ -292,18 +292,18 @@ class SetServiceDependency(AppEvent):
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
             interface_id=id,
         )
 
-        # Set or update the service dependency on the interface.
+        # Set or update the service dependency on the session.
         interface.set_service(
             service_id=service_id,
             module_path=module_path,
@@ -339,18 +339,18 @@ class RemoveServiceDependency(AppEvent):
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
             interface_id=id,
         )
 
-        # Remove the service dependency idempotently from the interface.
+        # Remove the service dependency idempotently from the session.
         interface.remove_service(service_id=service_id)
 
         # Persist the updated interface.
@@ -359,28 +359,49 @@ class RemoveServiceDependency(AppEvent):
         # Return the interface ID.
         return id
 
-# ** event: remove_app_interface
-class RemoveAppInterface(AppEvent):
+# ** event: remove_app_session
+class RemoveAppSession(AppEvent):
     '''
-    A domain event to remove an entire app interface configuration by ID (idempotent).
+    A domain event to remove an entire app session configuration by ID (idempotent).
     '''
 
     # * method: execute
     @DomainEvent.parameters_required(['id'])
     def execute(self, id: str, **kwargs) -> str:
         '''
-        Remove an app interface by ID.
+        Remove an app session by ID.
 
-        :param id: The interface ID.
+        :param id: The session ID.
         :type id: str
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The removed interface ID.
+        :return: The removed session ID.
         :rtype: str
         '''
 
         # Delegate deletion to the app service (idempotent operation).
         self.app_service.delete(id)
 
-        # Return the interface ID.
+        # Return the session ID.
         return id
+
+
+# ** event: add_app_interface (obsolete)
+# -- obsolete: superseded by AddAppSession; remove at v2.0.0 stable
+AddAppInterface = AddAppSession
+
+# ** event: get_app_interface (obsolete)
+# -- obsolete: superseded by GetAppSession; remove at v2.0.0 stable
+GetAppInterface = GetAppSession
+
+# ** event: update_app_interface (obsolete)
+# -- obsolete: superseded by UpdateAppSession; remove at v2.0.0 stable
+UpdateAppInterface = UpdateAppSession
+
+# ** event: list_app_interfaces (obsolete)
+# -- obsolete: superseded by ListAppSessions; remove at v2.0.0 stable
+ListAppInterfaces = ListAppSessions
+
+# ** event: remove_app_interface (obsolete)
+# -- obsolete: superseded by RemoveAppSession; remove at v2.0.0 stable
+RemoveAppInterface = RemoveAppSession

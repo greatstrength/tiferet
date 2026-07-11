@@ -1,4 +1,4 @@
-interfaces:
+sessions:
   basic_calc:
     name: Basic Calculator
     description: Perform basic calculator operations

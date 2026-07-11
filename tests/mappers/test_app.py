@@ -10,8 +10,8 @@ from tiferet.domain import AppServiceDependency
 from tiferet.assets import TiferetError, const
 from tiferet.mappers.settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from tiferet.mappers.app import (
-    AppInterfaceAggregate,
-    AppInterfaceConfigObject,
+    AppSessionAggregate,
+    AppSessionConfigObject,
     AppServiceDependencyConfigObject,
 )
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
@@ -92,13 +92,13 @@ FIELD_NORMALIZERS = {
 
 # *** classes
 
-# ** class: TestAppInterfaceAggregate
-class TestAppInterfaceAggregate(AggregateTestBase):
+# ** class: TestAppSessionAggregate
+class TestAppSessionAggregate(AggregateTestBase):
     '''
-    Tests for AppInterfaceAggregate construction, set_attribute, and domain-specific mutations.
+    Tests for AppSessionAggregate construction, set_attribute, and domain-specific mutations.
     '''
 
-    aggregate_cls = AppInterfaceAggregate
+    aggregate_cls = AppSessionAggregate
 
     sample_data = AGGREGATE_SAMPLE_DATA
 
@@ -114,18 +114,18 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         ('flags',        ['flag1', 'flag2'],       None),
         # invalid
         ('invalid_attr', 'value',                  const.INVALID_MODEL_ATTRIBUTE_ID),
-        ('module_path',  '',                       const.INVALID_APP_INTERFACE_TYPE_ID),
-        ('class_name',   '   ',                    const.INVALID_APP_INTERFACE_TYPE_ID),
+        ('module_path',  '',                       const.INVALID_APP_SESSION_TYPE_ID),
+        ('class_name',   '   ',                    const.INVALID_APP_SESSION_TYPE_ID),
     ]
 
     # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
+    def make_aggregate(self, data: dict = None) -> AppSessionAggregate:
         '''
-        Override to use AppInterfaceAggregate direct constructor.
+        Override to use AppSessionAggregate direct constructor.
         '''
 
         # Create an aggregate using the direct constructor.
-        return AppInterfaceAggregate(
+        return AppSessionAggregate(
             **(data if data is not None else self.sample_data)
         )
 
@@ -135,7 +135,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
     @pytest.fixture
     def aggr_factory(self):
         '''
-        Factory for creating AppInterfaceAggregate with customizable services/constants.
+        Factory for creating AppSessionAggregate with customizable services/constants.
         '''
 
         def factory(services=None, constants=None, **overrides):
@@ -151,7 +151,7 @@ class TestAppInterfaceAggregate(AggregateTestBase):
             data.update(overrides)
 
             # Create and return the aggregate.
-            return AppInterfaceAggregate(**data)
+            return AppSessionAggregate(**data)
 
         return factory
 
@@ -296,14 +296,14 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         assert svc.parameters == {'p1': 'v1', 'p2': '42'}
 
 
-# ** class: TestAppInterfaceConfigObject
-class TestAppInterfaceConfigObject(TransferObjectTestBase):
+# ** class: TestAppSessionConfigObject
+class TestAppSessionConfigObject(TransferObjectTestBase):
     '''
-    Tests for AppInterfaceConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
+    Tests for AppSessionConfigObject mapping, round-trip, and nested AppServiceDependencyConfigObject.
     '''
 
-    transfer_cls = AppInterfaceConfigObject
-    aggregate_cls = AppInterfaceAggregate
+    transfer_cls = AppSessionConfigObject
+    aggregate_cls = AppSessionAggregate
 
     # YAML-format sample data (services as dict keyed by service_id).
     sample_data = {
@@ -341,13 +341,13 @@ class TestAppInterfaceConfigObject(TransferObjectTestBase):
     field_normalizers = FIELD_NORMALIZERS
 
     # * method: make_aggregate
-    def make_aggregate(self, data: dict = None) -> AppInterfaceAggregate:
+    def make_aggregate(self, data: dict = None) -> AppSessionAggregate:
         '''
-        Override to use AppInterfaceAggregate direct constructor.
+        Override to use AppSessionAggregate direct constructor.
         '''
 
         # Create an aggregate using the direct constructor.
-        return AppInterfaceAggregate(
+        return AppSessionAggregate(
             **(data if data is not None else self.aggregate_sample_data)
         )
 
@@ -420,11 +420,11 @@ class TestAppInterfaceConfigObject(TransferObjectTestBase):
     # ** test: app_service_dependency_yaml_round_trip_via_parent
     def test_app_service_dependency_yaml_round_trip_via_parent(self, aggregate):
         '''
-        Test that services are preserved through the parent AppInterfaceConfigObject round-trip.
+        Test that services are preserved through the parent AppSessionConfigObject round-trip.
         '''
 
         # Convert aggregate to YAML object and back.
-        yaml_top = AppInterfaceConfigObject.from_model(aggregate)
+        yaml_top = AppSessionConfigObject.from_model(aggregate)
         round_tripped = yaml_top.map()
 
         # Use nested helper to verify services list preserved.

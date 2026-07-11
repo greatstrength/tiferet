@@ -11,6 +11,7 @@ from pydantic import AliasChoices, Field
 # ** app
 from ..domain import (
     AppServiceDependency,
+    AppSession,
     AppInterface,
 )
 from ..events import RaiseError, a
@@ -23,10 +24,10 @@ from .settings import (
 
 # *** mappers
 
-# ** mapper: app_interface_aggregate
-class AppInterfaceAggregate(AppInterface, Aggregate):
+# ** mapper: app_session_aggregate
+class AppSessionAggregate(AppSession, Aggregate):
     '''
-    An aggregate representation of an app interface contract.
+    An aggregate representation of an app session.
     '''
 
     # * method: add_service
@@ -191,7 +192,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Update a supported scalar attribute on the app interface aggregate.
+        Update a supported scalar attribute on the app session aggregate.
 
         Supported attributes: name, description, module_path, class_name,
         logger_id, flags.
@@ -227,13 +228,19 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         if attribute in {'module_path', 'class_name'}:
             if not value or not str(value).strip():
                 RaiseError.execute(
-                    error_code=a.const.INVALID_APP_INTERFACE_TYPE_ID,
+                    error_code=a.const.INVALID_APP_SESSION_TYPE_ID,
                     message='{attribute} must be a non-empty string.',
                     attribute=attribute,
                 )
 
         # Apply the update; validate_assignment=True handles re-validation.
         setattr(self, attribute, value)
+
+
+
+# ** mapper: app_interface_aggregate (obsolete)
+# -- obsolete: superseded by AppSessionAggregate; remove at v2.0.0 stable
+AppInterfaceAggregate = AppSessionAggregate
 
 
 # ** mapper: app_service_dependency_config_object
@@ -301,10 +308,10 @@ class AppServiceDependencyConfigObject(AppServiceDependency, TransferObject):
         return super().from_model(dependency, **overrides)
 
 
-# ** mapper: app_interface_config_object
-class AppInterfaceConfigObject(AppInterface, TransferObject):
+# ** mapper: app_session_config_object
+class AppSessionConfigObject(AppSession, TransferObject):
     '''
-    A configuration data representation of an app interface settings object.
+    A configuration data representation of an app session settings object.
     '''
 
     # * attribute: _ROLES
@@ -346,19 +353,19 @@ class AppInterfaceConfigObject(AppInterface, TransferObject):
     )
 
     # * method: map
-    def map(self, **overrides) -> AppInterfaceAggregate:
+    def map(self, **overrides) -> AppSessionAggregate:
         '''
-        Map the app interface data to an app interface aggregate.
+        Map the app session data to an app session aggregate.
 
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new app interface aggregate.
-        :rtype: AppInterfaceAggregate
+        :return: A new app session aggregate.
+        :rtype: AppSessionAggregate
         '''
 
-        # Map the app interface data with dict→list conversion for services.
+        # Map the app session data with dict→list conversion for services.
         return super().map(
-            AppInterfaceAggregate,
+            AppSessionAggregate,
             module_path=self.module_path,
             class_name=self.class_name,
             services=[dep.map(service_id=dep_id) for dep_id, dep in (self.services or {}).items()],
@@ -368,25 +375,30 @@ class AppInterfaceConfigObject(AppInterface, TransferObject):
 
     # * method: from_model
     @classmethod
-    def from_model(cls, app_interface: AppInterface, **overrides) -> 'AppInterfaceConfigObject':
+    def from_model(cls, app_session: AppSession, **overrides) -> 'AppSessionConfigObject':
         '''
-        Creates an AppInterfaceConfigObject from an AppInterface model.
+        Creates an AppSessionConfigObject from an AppSession model.
 
-        :param app_interface: The app interface model.
-        :type app_interface: AppInterface
+        :param app_session: The app session model.
+        :type app_session: AppSession
         :param overrides: Additional keyword arguments.
         :type overrides: dict
-        :return: A new AppInterfaceConfigObject.
-        :rtype: AppInterfaceConfigObject
+        :return: A new AppSessionConfigObject.
+        :rtype: AppSessionConfigObject
         '''
 
-        # Create a new AppInterfaceConfigObject from the model, converting
+        # Create a new AppSessionConfigObject from the model, converting
         # the services list into a dictionary keyed by service_id.
         return super().from_model(
-            app_interface,
+            app_session,
             services={
                 dep.service_id: AppServiceDependencyConfigObject.from_model(dep)
-                for dep in app_interface.services
+                for dep in app_session.services
             },
             **overrides,
         )
+
+
+# ** mapper: app_interface_config_object (obsolete)
+# -- obsolete: superseded by AppSessionConfigObject; remove at v2.0.0 stable
+AppInterfaceConfigObject = AppSessionConfigObject

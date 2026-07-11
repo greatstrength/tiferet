@@ -8,7 +8,7 @@ import pytest
 # ** app
 from tiferet.domain.core import DomainObject
 from tiferet.domain.app import (
-    AppInterface,
+    AppSession,
     AppServiceDependency,
 )
 
@@ -33,21 +33,21 @@ def app_dependency() -> AppServiceDependency:
 
 # ** fixture: app_interface
 @pytest.fixture
-def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
+def app_interface(app_dependency: AppServiceDependency) -> AppSession:
     '''
-    Fixture for an AppInterface instance.
+    Fixture for an AppSession instance.
 
     :param app_dependency: The AppServiceDependency fixture.
     :type app_dependency: AppServiceDependency
-    :return: The AppInterface instance.
-    :rtype: AppInterface
+    :return: The AppSession instance.
+    :rtype: AppSession
     '''
 
-    # Create and return a new AppInterface.
-    return AppInterface(id='test',
+    # Create and return a new AppSession.
+    return AppSession(id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         description='The test app.',
         flags=['test'],
         services=[app_dependency],
@@ -56,12 +56,12 @@ def app_interface(app_dependency: AppServiceDependency) -> AppInterface:
 # *** tests
 
 # ** test: app_interface_get_service
-def test_app_interface_get_service(app_interface: AppInterface) -> None:
+def test_app_interface_get_service(app_interface: AppSession) -> None:
     '''
     Test successful retrieval of a service dependency by service id.
 
-    :param app_interface: The AppInterface fixture.
-    :type app_interface: AppInterface
+    :param app_interface: The AppSession fixture.
+    :type app_interface: AppSession
     '''
 
     # Retrieve the service dependency by service id.
@@ -74,12 +74,12 @@ def test_app_interface_get_service(app_interface: AppInterface) -> None:
     assert service.parameters == {'param1': 'value1', 'param2': 'value2'}
 
 # ** test: app_interface_get_service_invalid
-def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
+def test_app_interface_get_service_invalid(app_interface: AppSession) -> None:
     '''
     Test that get_service returns None for an invalid service id.
 
-    :param app_interface: The AppInterface fixture.
-    :type app_interface: AppInterface
+    :param app_interface: The AppSession fixture.
+    :type app_interface: AppSession
     '''
 
     # Attempt to retrieve a non-existent service dependency.
@@ -89,13 +89,13 @@ def test_app_interface_get_service_invalid(app_interface: AppInterface) -> None:
     assert service is None
 
 # ** test: app_interface_apply_defaults_merges_missing_only
-def test_app_interface_apply_defaults_merges_missing_only(app_interface: AppInterface) -> None:
+def test_app_interface_apply_defaults_merges_missing_only(app_interface: AppSession) -> None:
     '''
     Test that apply_defaults adds only missing services and constants, leaving
     existing entries untouched.
 
-    :param app_interface: The AppInterface fixture.
-    :type app_interface: AppInterface
+    :param app_interface: The AppSession fixture.
+    :type app_interface: AppSession
     '''
 
     # Seed an existing constant on a copy of the fixture that must be preserved.
@@ -111,19 +111,19 @@ def test_app_interface_apply_defaults_merges_missing_only(app_interface: AppInte
     )
 
     # Assert existing entries win and only missing ones are added.
-    assert isinstance(result, AppInterface)
+    assert isinstance(result, AppSession)
     assert result.get_service('test_service').module_path == 'test_module_path'
     assert result.get_service('new_service').module_path == 'new.module'
     assert result.constants['di_config'] == 'custom.yml'
     assert result.constants['feature_config'] == 'config.yml'
 
 # ** test: app_interface_apply_defaults_non_mutating
-def test_app_interface_apply_defaults_non_mutating(app_interface: AppInterface) -> None:
+def test_app_interface_apply_defaults_non_mutating(app_interface: AppSession) -> None:
     '''
     Test that apply_defaults returns a new interface and leaves the original unchanged.
 
-    :param app_interface: The AppInterface fixture.
-    :type app_interface: AppInterface
+    :param app_interface: The AppSession fixture.
+    :type app_interface: AppSession
     '''
 
     # Capture the original service count before applying defaults.

@@ -82,11 +82,11 @@ def build_tiferet_cli(
     :rtype: Any
     '''
 
-    # Resolve the interface definition, using the built-in tiferet_cli
-    # defaults when the consumer's config file does not define the interface.
-    app_interface, _ = resolve_interface(
+    # Resolve the session definition, using the built-in tiferet_cli
+    # defaults when the consumer's config file does not define the session.
+    app_session, _ = resolve_interface(
         'tiferet_cli',
-        default_interfaces=[a.cli_app.DEFAULT_TIFERET_CLI_INTERFACE],
+        default_interfaces=[a.cli_app.DEFAULT_TIFERET_CLI_SESSION],
         app_config=app_config,
     )
 
@@ -136,27 +136,27 @@ def build_tiferet_cli(
     }
 
     # Build the merged constants by starting from the defaults (the service
-    # parameters and the placeholder config paths that GetAppInterface seeds
+    # parameters and the placeholder config paths that GetAppSession seeds
     # onto the built-in interface), then updating with the bootstrap constants
     # so the consumer's app_config path wins for every config-file key.
     merged_constants: Dict[str, Any] = {
         k: v for dep in all_services for k, v in dep.parameters.items()
     }
-    merged_constants.update(app_interface.constants or {})
+    merged_constants.update(app_session.constants or {})
     merged_constants.update(bootstrap_constants)
 
-    # Re-seed the interface constants with the merged result so declarative
+    # Re-seed the session constants with the merged result so declarative
     # wiring during realization resolves repositories against the consumer's
     # app_config file rather than the seeded 'config.yml' placeholders.
-    app_interface.set_constants(merged_constants)
+    app_session.set_constants(merged_constants)
 
-    # Realize the built-in CLI context. The interface constants (re-seeded
+    # Realize the built-in CLI context. The session constants (re-seeded
     # above with the consumer's app_config) drive declarative service wiring,
     # and the bootstrap defaults are seeded onto the context and service
     # resolver so the bootstrap commands, features, and configurations resolve
     # even when they are not present in the consumer's config file.
     cli_context = realize_interface(
-        app_interface,
+        app_session,
         'tiferet_cli',
         default_features=a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
         default_commands=a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS,

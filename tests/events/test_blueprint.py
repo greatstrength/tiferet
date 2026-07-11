@@ -9,7 +9,7 @@ import pytest
 from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.events.blueprint import CreateServiceResolver
 from tiferet.di import ServiceResolver
-from tiferet.domain import AppInterface, AppServiceDependency, ServiceRegistration
+from tiferet.domain import AppSession, AppServiceDependency, ServiceRegistration
 
 # *** classes
 
@@ -71,11 +71,11 @@ def test_create_service_resolver_success():
     '''
 
     # Build an interface declaring the fake DI repository as its di_service.
-    app_interface = AppInterface(
+    app_interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         services=[
             AppServiceDependency(
                 service_id='di_service',
@@ -110,11 +110,11 @@ def test_create_service_resolver_missing_di_service():
     '''
 
     # Build an interface with no di_service dependency.
-    app_interface = AppInterface(
+    app_interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         services=[],
     )
 
@@ -156,11 +156,11 @@ def test_create_service_resolver_merges_defaults():
     '''
 
     # Build an interface declaring the fake DI repository as its di_service.
-    app_interface = AppInterface(
+    app_interface = AppSession(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
-        class_name='AppInterfaceContext',
+        class_name='AppSessionContext',
         services=[
             AppServiceDependency(
                 service_id='di_service',

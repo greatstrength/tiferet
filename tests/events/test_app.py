@@ -9,22 +9,22 @@ from unittest import mock
 # ** app
 from tiferet.events.app import (
     AppEvent,
-    GetAppInterface,
-    AddAppInterface,
-    ListAppInterfaces,
-    UpdateAppInterface,
+    GetAppSession,
+    AddAppSession,
+    ListAppSessions,
+    UpdateAppSession,
     SetAppConstants,
     SetServiceDependency,
     RemoveServiceDependency,
-    RemoveAppInterface,
+    RemoveAppSession,
 )
 from tiferet.events.settings import DomainEvent, TiferetError, a
 from tiferet.domain import (
-    AppInterface,
+    AppSession,
     AppServiceDependency,
 )
 from tiferet.interfaces import AppService
-from tiferet.mappers import AppInterfaceAggregate
+from tiferet.mappers import AppSessionAggregate
 from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
@@ -33,14 +33,14 @@ from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 @pytest.fixture
 def app_interface():
     '''
-    Fixture to create an AppInterface aggregate for testing.
+    Fixture to create an AppSession aggregate for testing.
 
-    :return: An AppInterfaceAggregate instance.
-    :rtype: AppInterfaceAggregate
+    :return: An AppSessionAggregate instance.
+    :rtype: AppSessionAggregate
     '''
 
-    # Create a test AppInterface instance.
-    return AppInterfaceAggregate(
+    # Create a test AppSession instance.
+    return AppSessionAggregate(
         id='test',
         name='Test App',
         module_path='tiferet.contexts.app',
@@ -81,14 +81,14 @@ class TestAppEvent:
 
         # Assert each concrete event extends the module base.
         for event_cls in (
-            AddAppInterface,
-            GetAppInterface,
-            UpdateAppInterface,
+            AddAppSession,
+            GetAppSession,
+            UpdateAppSession,
             SetAppConstants,
-            ListAppInterfaces,
+            ListAppSessions,
             SetServiceDependency,
             RemoveServiceDependency,
-            RemoveAppInterface,
+            RemoveAppSession,
         ):
             assert issubclass(event_cls, AppEvent)
 
@@ -103,17 +103,17 @@ class TestAppEvent:
 
         # Assert the base and a concrete event both expose the injected service.
         assert AppEvent(app_service=service).app_service is service
-        assert GetAppInterface(app_service=service).app_service is service
+        assert GetAppSession(app_service=service).app_service is service
 
 
-# ** test: TestAddAppInterface
-class TestAddAppInterface(DomainEventTestBase):
+# ** test: TestAddAppSession
+class TestAddAppSession(DomainEventTestBase):
     '''
-    Tests for AddAppInterface using the domain event test harness.
+    Tests for AddAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = AddAppInterface
+    event_cls = AddAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -138,8 +138,8 @@ class TestAddAppInterface(DomainEventTestBase):
         # Execute via the harness handle helper.
         interface = self.handle(mock_dependencies)
 
-        # Assert the result is an AppInterface instance with expected defaults.
-        assert isinstance(interface, AppInterface)
+        # Assert the result is an AppSession instance with expected defaults.
+        assert isinstance(interface, AppSession)
         assert interface.id == 'test.interface'
         assert interface.name == 'Test Interface'
         assert interface.module_path == 'tiferet.contexts.app'
@@ -177,7 +177,7 @@ class TestAddAppInterface(DomainEventTestBase):
         )
 
         # Assert core fields.
-        assert isinstance(interface, AppInterface)
+        assert isinstance(interface, AppSession)
         assert interface.id == 'test.interface'
         assert interface.description == 'A test app interface.'
         assert interface.logger_id == 'test_logger'
@@ -235,14 +235,14 @@ class TestAddAppInterface(DomainEventTestBase):
         mock_dependencies['app_service'].save.assert_called_once_with(interface)
 
 
-# ** test: TestGetAppInterface
-class TestGetAppInterface(ServiceEventTestBase):
+# ** test: TestGetAppSession
+class TestGetAppSession(ServiceEventTestBase):
     '''
-    Tests for GetAppInterface using the domain event test harness.
+    Tests for GetAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = GetAppInterface
+    event_cls = GetAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -257,7 +257,7 @@ class TestGetAppInterface(ServiceEventTestBase):
     required_params = ['interface_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(interface_id='non_existent_id')
@@ -280,11 +280,11 @@ class TestGetAppInterface(ServiceEventTestBase):
     # * method: test_returns_domain_object_without_rewrap
     def test_returns_domain_object_without_rewrap(self, mock_dependencies):
         '''
-        Test that a plain AppInterface from the repository is returned as-is.
+        Test that a plain AppSession from the repository is returned as-is.
         '''
 
-        # Configure the service mock to return a plain AppInterface domain object.
-        domain_interface = AppInterface(
+        # Configure the service mock to return a plain AppSession domain object.
+        domain_interface = AppSession(
             id='test.interface',
             name='Test Interface',
             module_path='tiferet.contexts.app',
@@ -300,14 +300,14 @@ class TestGetAppInterface(ServiceEventTestBase):
         mock_dependencies['app_service'].get.assert_called_once_with('test.interface')
 
 
-# ** test: TestListAppInterfaces
-class TestListAppInterfaces(DomainEventTestBase):
+# ** test: TestListAppSessions
+class TestListAppSessions(DomainEventTestBase):
     '''
-    Tests for ListAppInterfaces using the domain event test harness.
+    Tests for ListAppSessions using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = ListAppInterfaces
+    event_cls = ListAppSessions
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -318,7 +318,7 @@ class TestListAppInterfaces(DomainEventTestBase):
     # * method: test_empty
     def test_empty(self, mock_dependencies):
         '''
-        Test that ListAppInterfaces returns an empty list when no interfaces are configured.
+        Test that ListAppSessions returns an empty list when no interfaces are configured.
         '''
 
         # Configure the service to return an empty list.
@@ -334,11 +334,11 @@ class TestListAppInterfaces(DomainEventTestBase):
     # * method: test_multiple
     def test_multiple(self, mock_dependencies, app_interface):
         '''
-        Test that ListAppInterfaces returns multiple interfaces when configured.
+        Test that ListAppSessions returns multiple interfaces when configured.
         '''
 
         # Configure the service to return multiple interfaces.
-        another_interface = AppInterfaceAggregate(
+        another_interface = AppSessionAggregate(
             id='other',
             name='Other App',
             module_path='tiferet.contexts.app',
@@ -381,7 +381,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id', 'module_path', 'class_name']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -496,14 +496,14 @@ class TestSetServiceDependency(ServiceEventTestBase):
         # The updated interface should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-# ** test: TestUpdateAppInterface
-class TestUpdateAppInterface(ServiceEventTestBase):
+# ** test: TestUpdateAppSession
+class TestUpdateAppSession(ServiceEventTestBase):
     '''
-    Tests for UpdateAppInterface using the domain event test harness.
+    Tests for UpdateAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = UpdateAppInterface
+    event_cls = UpdateAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -522,7 +522,7 @@ class TestUpdateAppInterface(ServiceEventTestBase):
     required_params = ['id', 'attribute']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -559,7 +559,7 @@ class TestUpdateAppInterface(ServiceEventTestBase):
         self, mock_dependencies, app_interface, attribute, new_value
     ):
         '''
-        Test updating each supported scalar attribute via UpdateAppInterface.
+        Test updating each supported scalar attribute via UpdateAppSession.
         '''
 
         # Execute via the harness handle helper.
@@ -600,7 +600,7 @@ class TestUpdateAppInterface(ServiceEventTestBase):
             self.handle(mock_dependencies, id=app_interface.id, attribute=attribute, value='')
 
         # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
-        assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
+        assert exc_info.value.error_code == a.const.INVALID_APP_SESSION_TYPE_ID
         mock_dependencies['app_service'].save.assert_not_called()
 
 # ** test: TestSetAppConstants
@@ -628,7 +628,7 @@ class TestSetAppConstants(ServiceEventTestBase):
     required_params = ['id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -764,7 +764,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -831,14 +831,14 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         # The updated interface should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-# ** test: TestRemoveAppInterface
-class TestRemoveAppInterface(DomainEventTestBase):
+# ** test: TestRemoveAppSession
+class TestRemoveAppSession(DomainEventTestBase):
     '''
-    Tests for RemoveAppInterface using the domain event test harness.
+    Tests for RemoveAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = RemoveAppInterface
+    event_cls = RemoveAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -852,7 +852,7 @@ class TestRemoveAppInterface(DomainEventTestBase):
     # * method: test_success_existing
     def test_success_existing(self, mock_dependencies):
         '''
-        Test that RemoveAppInterface deletes an existing app interface and returns the ID.
+        Test that RemoveAppSession deletes an existing app interface and returns the ID.
         '''
 
         # Execute via the harness handle helper.

@@ -13,7 +13,7 @@ from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
-from ..domain import AppInterface, AppServiceDependency, Feature, CliCommand, Error
+from ..domain import AppSession, AppInterface, AppServiceDependency, Feature, CliCommand, Error
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
@@ -178,21 +178,21 @@ def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCo
 def resolve_default_interface(
     interface_id: str,
     default_interfaces: List[Dict[str, Any]],
-) -> AppInterface | None:
+) -> AppSession | None:
     '''
-    Construct an app interface from the bootstrap default interface definitions,
+    Construct an app session from the bootstrap default session definitions,
     or return ``None`` when no default matches the requested id.
 
-    Materializes a default interface definition into a typed ``AppInterface``,
+    Materializes a default session definition into a typed ``AppSession``,
     mirroring ``build_feature_index`` / ``build_command_list`` for the bootstrap
-    interface fallback consumed by the blueprint during interface resolution.
+    session fallback consumed by the blueprint during interface resolution.
 
     :param interface_id: The interface ID to look up.
     :type interface_id: str
-    :param default_interfaces: Interface definition dicts, each with an ``id`` key.
+    :param default_interfaces: Session definition dicts, each with an ``id`` key.
     :type default_interfaces: List[Dict[str, Any]]
-    :return: The matching app interface, or None.
-    :rtype: AppInterface | None
+    :return: The matching app session, or None.
+    :rtype: AppSession | None
     '''
 
     # Find the first default whose id matches the requested interface_id.
@@ -201,21 +201,21 @@ def resolve_default_interface(
         None,
     )
 
-    # Construct and return the interface, or None when no default matches.
-    return AppInterface(**matching) if matching else None
+    # Construct and return the session, or None when no default matches.
+    return AppSession(**matching) if matching else None
 
 # *** contexts
 
-# ** context: app_interface_context
-class AppInterfaceContext(BaseContext):
+# ** context: app_session_context
+class AppSessionContext(BaseContext):
     '''
-    The application interface context is a minimal hub that builds operational
-    sub-contexts on demand from a loaded ``AppInterface`` domain object and
+    The application session context is a minimal hub that builds operational
+    sub-contexts on demand from a loaded ``AppSession`` domain object and
     orchestrates feature execution, error handling, and logging.
     '''
 
     # * attribute: domain_type
-    domain_type = AppInterface
+    domain_type = AppSession
 
     # * attribute: get_feature_evt
     get_feature_evt: DomainEvent
@@ -243,10 +243,10 @@ class AppInterfaceContext(BaseContext):
             default_commands: Dict[str, Dict[str, Any]] = None,
         ):
         '''
-        Initialize the application interface hub.
+        Initialize the application session hub.
 
-        The bound ``AppInterface`` domain object (set via ``from_domain``)
-        supplies the interface id and logger id on demand, so no standalone
+        The bound ``AppSession`` domain object (set via ``from_domain``)
+        supplies the session id and logger id on demand, so no standalone
         ``interface_id`` is stored.
 
         :param get_feature_evt: The event used to retrieve features.
@@ -565,3 +565,8 @@ class AppInterfaceContext(BaseContext):
 
         # Handle the response via the request context.
         return request.handle_response()
+
+
+# ** context: app_interface_context (obsolete)
+# -- obsolete: superseded by AppSessionContext; remove at v2.0.0 stable
+AppInterfaceContext = AppSessionContext

@@ -5,8 +5,10 @@
 __all__ = [
     'Aggregate',
     'TransferObject',
-    'AppInterfaceAggregate',
-    'AppInterfaceConfigObject',
+    'AppSessionAggregate',
+    'AppSessionConfigObject',
+    'AppInterfaceAggregate',  # obsolete: superseded by AppSessionAggregate; remove at v2.0.0 stable
+    'AppInterfaceConfigObject',  # obsolete: superseded by AppSessionConfigObject; remove at v2.0.0 stable
     'ServiceRegistrationAggregate',
     'ServiceRegistrationConfigObject',
     'CliArgumentAggregate',
@@ -35,6 +37,8 @@ from .settings import (
 )
 
 from .app import (
+    AppSessionAggregate,
+    AppSessionConfigObject,
     AppInterfaceAggregate,
     AppInterfaceConfigObject,
 )

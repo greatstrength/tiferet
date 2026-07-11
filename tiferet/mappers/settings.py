@@ -18,7 +18,7 @@ from ..events import RaiseError, a
 DEFAULT_MODULE_PATH = 'tiferet.contexts.app'
 
 # ** constant: default_class_name
-DEFAULT_CLASS_NAME = 'AppInterfaceContext'
+DEFAULT_CLASS_NAME = 'AppSessionContext'
 
 # *** classes
 

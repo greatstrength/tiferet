@@ -25,10 +25,10 @@ class AppServiceDependency(ServiceDependency):
         description='The service id for the application dependency.',
     )
 
-# ** model: app_interface
-class AppInterface(DomainObject):
+# ** model: app_session
+class AppSession(DomainObject):
     '''
-    The base application interface object.
+    The base application session object.
     '''
 
     # * attribute: id
@@ -103,21 +103,21 @@ class AppInterface(DomainObject):
     def apply_defaults(self,
             default_services: List[AppServiceDependency] = None,
             default_constants: Dict[str, str] = None,
-        ) -> 'AppInterface':
+        ) -> 'AppSession':
         '''
-        Return a new app interface with framework default services and constants applied.
+        Return a new app session with framework default services and constants applied.
 
         Default services are added for any ``service_id`` not already present, and
-        default constants are added only for keys the interface does not already
+        default constants are added only for keys the session does not already
         define (existing values win). This is a non-mutating derivation: the
-        current interface is left unchanged and a new instance is returned.
+        current session is left unchanged and a new instance is returned.
 
         :param default_services: Default service dependencies to merge.
         :type default_services: List[AppServiceDependency] | None
         :param default_constants: Default constants to merge for missing keys.
         :type default_constants: Dict[str, str] | None
-        :return: A new app interface with the defaults applied.
-        :rtype: AppInterface
+        :return: A new app session with the defaults applied.
+        :rtype: AppSession
         '''
 
         # Append any default service whose service_id is not already present.
@@ -131,5 +131,10 @@ class AppInterface(DomainObject):
         # Merge default constants only for keys not already defined (existing win).
         constants = {**(default_constants or {}), **(self.constants or {})}
 
-        # Return a new interface with the merged services and constants.
+        # Return a new session with the merged services and constants.
         return self.model_copy(update=dict(services=services, constants=constants))
+
+
+# ** model: app_interface (obsolete)
+# -- obsolete: superseded by AppSession; remove at v2.0.0 stable
+AppInterface = AppSession

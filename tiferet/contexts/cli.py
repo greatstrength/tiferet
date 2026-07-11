@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from ..assets import TiferetAPIError
 from ..domain import CliArgument, CliCommand
 from ..events import DomainEvent
-from .app import AppInterfaceContext
+from .app import AppSessionContext
 from .cache import CacheContext
 from .request import RequestContext
 
@@ -127,9 +127,9 @@ def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]
 # *** contexts
 
 # ** context: cli_context
-class CliContext(AppInterfaceContext):
+class CliContext(AppSessionContext):
     '''
-    The CLI context extends the application interface hub with command-line
+    The CLI context extends the application session hub with command-line
     concerns: it retrieves CLI commands, builds and parses an argparse parser,
     derives a feature request from the parsed arguments, and dispatches the
     request through the inherited run pipeline.
@@ -140,8 +140,8 @@ class CliContext(AppInterfaceContext):
     the context methods orchestrate them with the injected event collaborators.
 
     It intentionally omits ``domain_type`` so the ``ContextMeta`` registry
-    keeps mapping ``AppInterface`` to :class:`AppInterfaceContext`; the CLI
-    context is selected explicitly through an interface's configured
+    keeps mapping ``AppSession`` to :class:`AppSessionContext`; the CLI
+    context is selected explicitly through a session's configured
     ``module_path`` / ``class_name``.
     '''
 

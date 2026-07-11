@@ -67,23 +67,31 @@ FEATURE_CONFIG_ID = 'feature_config'
 
 # *** constants (models)
 
-# ** constant: default_tiferet_app_interface
-DEFAULT_TIFERET_APP_INTERFACE = {
+# ** constant: default_tiferet_app_session
+DEFAULT_TIFERET_APP_SESSION = {
     'id': 'tiferet_app',
     'name': 'Tiferet App',
-    'description': 'Default built-in application interface',
+    'description': 'Default built-in application session',
     'module_path': 'tiferet.contexts.app',
-    'class_name': 'AppInterfaceContext',
+    'class_name': 'AppSessionContext',
 }
 
-# ** constant: default_tiferet_cli_interface
-DEFAULT_TIFERET_CLI_INTERFACE = {
+# ** constant: default_tiferet_app_interface (obsolete)
+# -- obsolete: superseded by DEFAULT_TIFERET_APP_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_APP_INTERFACE = DEFAULT_TIFERET_APP_SESSION
+
+# ** constant: default_tiferet_cli_session
+DEFAULT_TIFERET_CLI_SESSION = {
     'id': 'tiferet_cli',
     'name': 'Tiferet CLI',
     'description': 'Built-in CLI for managing Tiferet application configurations',
     'module_path': 'tiferet.contexts.cli',
     'class_name': 'CliContext',
 }
+
+# ** constant: default_tiferet_cli_interface (obsolete)
+# -- obsolete: superseded by DEFAULT_TIFERET_CLI_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_CLI_INTERFACE = DEFAULT_TIFERET_CLI_SESSION
 
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'
