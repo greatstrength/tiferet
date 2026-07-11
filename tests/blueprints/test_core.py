@@ -13,13 +13,15 @@ from tiferet.blueprints.core import (
     build_cache,
     create_app_service,
     get_app_interface,
+    get_error,
+    get_feature,
     build_app_service_container,
     parse_parameter,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX
-from tiferet.domain import Error, AppSession, AppServiceDependency
+from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
 from tiferet.repos.error import ErrorConfigRepository
@@ -354,6 +356,180 @@ def test_build_app_service_container_constant_override_propagates_to_redeclared_
     error_service = container.get_dependency('error_service')
     assert isinstance(error_service, ErrorConfigRepository)
     assert error_service.config_file == 'override.yml'
+
+
+# ** test: get_error_returns_callable
+def test_get_error_returns_callable():
+    '''
+    Test that get_error returns a callable handler bound to the cache and resolver.
+    '''
+
+    # Build the handler with a fresh cache and a mock resolver.
+    handler = get_error(CacheContext(), mock.Mock())
+
+    # Assert the handler is callable.
+    assert callable(handler)
+
+
+# ** test: get_error_handler_cache_hit
+def test_get_error_handler_cache_hit():
+    '''
+    Test that the get_error handler returns a cached error without invoking
+    get_dependency.
+    '''
+
+    # Pre-seed the cache with an error under the error cache prefix.
+    cache = CacheContext()
+    cached_error = Error(id='CACHED_ERROR', name='Cached Error')
+    cache.set('CACHED_ERROR', cached_error, *ERROR_CACHE_PREFIX)
+    get_dependency = mock.Mock()
+
+    # Build and invoke the handler.
+    handler = get_error(cache, get_dependency)
+    result = handler('CACHED_ERROR')
+
+    # Assert the cached error is returned and get_dependency was not called.
+    assert result is cached_error
+    get_dependency.assert_not_called()
+
+
+# ** test: get_error_handler_cache_miss_resolves_event
+def test_get_error_handler_cache_miss_resolves_event():
+    '''
+    Test that the get_error handler resolves a GetError event from the app-scoped
+    container and executes it on a cache miss.
+    '''
+
+    # Arrange a mock get_dependency that returns a mock GetError event.
+    expected_error = Error(id='MISS_ERROR', name='Miss Error')
+    get_error_evt = mock.Mock()
+    get_error_evt.execute.return_value = expected_error
+    get_dependency = mock.Mock(return_value=get_error_evt)
+
+    # Build and invoke the handler against an empty cache.
+    handler = get_error(CacheContext(), get_dependency)
+    result = handler('MISS_ERROR')
+
+    # Assert get_dependency was called with the correct service id and app flag.
+    get_dependency.assert_called_once_with('get_error_evt', 'app')
+
+    # Assert the event was executed with the error code.
+    get_error_evt.execute.assert_called_once_with('MISS_ERROR')
+
+    # Assert the resolved error is returned.
+    assert result is expected_error
+
+
+# ** test: get_error_handler_caches_result_after_miss
+def test_get_error_handler_caches_result_after_miss():
+    '''
+    Test that the get_error handler caches the resolved error under ERROR_CACHE_PREFIX
+    after a cache miss so subsequent calls hit the cache.
+    '''
+
+    # Arrange a mock event that returns a fresh error.
+    expected_error = Error(id='NEW_ERROR', name='New Error')
+    get_error_evt = mock.Mock()
+    get_error_evt.execute.return_value = expected_error
+    get_dependency = mock.Mock(return_value=get_error_evt)
+    cache = CacheContext()
+
+    # Invoke the handler to trigger a miss.
+    handler = get_error(cache, get_dependency)
+    handler('NEW_ERROR')
+
+    # Assert the result is now cached under the error prefix.
+    assert cache.get('NEW_ERROR', *ERROR_CACHE_PREFIX) is expected_error
+
+
+# ** test: get_feature_returns_callable
+def test_get_feature_returns_callable():
+    '''
+    Test that get_feature returns a callable handler bound to the cache and resolver.
+    '''
+
+    # Build the handler with a fresh cache and a mock resolver.
+    handler = get_feature(CacheContext(), mock.Mock())
+
+    # Assert the handler is callable.
+    assert callable(handler)
+
+
+# ** test: get_feature_handler_cache_hit
+def test_get_feature_handler_cache_hit():
+    '''
+    Test that the get_feature handler returns a cached feature without invoking
+    get_dependency.
+    '''
+
+    # Pre-seed the root cache namespace with a feature.
+    cache = CacheContext()
+    cached_feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    cache.set('group.feat', cached_feature)
+    get_dependency = mock.Mock()
+
+    # Build and invoke the handler.
+    handler = get_feature(cache, get_dependency)
+    result = handler('group.feat')
+
+    # Assert the cached feature is returned and get_dependency was not called.
+    assert result is cached_feature
+    get_dependency.assert_not_called()
+
+
+# ** test: get_feature_handler_cache_miss_resolves_event
+def test_get_feature_handler_cache_miss_resolves_event():
+    '''
+    Test that the get_feature handler resolves a GetFeature event from the app-scoped
+    container and executes it with id=feature_id on a cache miss.
+    '''
+
+    # Arrange a mock get_dependency that returns a mock GetFeature event.
+    expected_feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    get_feature_evt = mock.Mock()
+    get_feature_evt.execute.return_value = expected_feature
+    get_dependency = mock.Mock(return_value=get_feature_evt)
+
+    # Build and invoke the handler against an empty cache.
+    handler = get_feature(CacheContext(), get_dependency)
+    result = handler('group.feat')
+
+    # Assert get_dependency was called with the correct service id and app flag.
+    get_dependency.assert_called_once_with('get_feature_evt', 'app')
+
+    # Assert the event was executed with the feature id keyword argument.
+    get_feature_evt.execute.assert_called_once_with(id='group.feat')
+
+    # Assert the resolved feature is returned.
+    assert result is expected_feature
+
+
+# ** test: get_feature_handler_caches_result_after_miss
+def test_get_feature_handler_caches_result_after_miss():
+    '''
+    Test that the get_feature handler caches the resolved feature in the root
+    namespace after a cache miss so subsequent calls hit the cache.
+    '''
+
+    # Arrange a mock event that returns a fresh feature.
+    expected_feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    get_feature_evt = mock.Mock()
+    get_feature_evt.execute.return_value = expected_feature
+    get_dependency = mock.Mock(return_value=get_feature_evt)
+    cache = CacheContext()
+
+    # Invoke the handler to trigger a miss.
+    handler = get_feature(cache, get_dependency)
+    handler('group.feat')
+
+    # Assert the result is now cached in the root namespace.
+    assert cache.get('group.feat') is expected_feature
 
 
 # ** test: parse_parameter_literal_passthrough

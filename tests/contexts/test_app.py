@@ -650,6 +650,78 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     assert exc_info.value.error_code == 'APP_ERROR'
     assert 'An error occurred in the app' in exc_info.value.message
 
+# ** test: app_session_context_get_error_delegates_to_injected_handler
+def test_app_session_context_get_error_delegates_to_injected_handler(app_interface):
+    """
+    Test that get_error delegates entirely to the injected _get_error callable
+    when one is provided, bypassing the cache and event paths.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Arrange a mock handler that returns a known error.
+    expected_error = Error(id='INJECTED_ERROR', name='Injected Error')
+    mock_handler = mock.Mock(return_value=expected_error)
+
+    # Construct the hub with the injected handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+        get_error=mock_handler,
+    )
+
+    # Invoke get_error.
+    result = context.get_error('INJECTED_ERROR')
+
+    # Assert the injected handler was called and its result returned.
+    assert result is expected_error
+    mock_handler.assert_called_once_with('INJECTED_ERROR')
+
+    # Assert the legacy event was not touched.
+    context.get_error_evt.execute.assert_not_called()
+
+
+# ** test: app_session_context_load_feature_domain_delegates_to_injected_handler
+def test_app_session_context_load_feature_domain_delegates_to_injected_handler(app_interface):
+    """
+    Test that load_feature_domain delegates entirely to the injected _get_feature
+    callable when one is provided, bypassing the cache and event paths.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Arrange a mock handler that returns a known feature.
+    expected_feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    mock_handler = mock.Mock(return_value=expected_feature)
+
+    # Construct the hub with the injected handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+        get_feature=mock_handler,
+    )
+
+    # Invoke load_feature_domain.
+    result = context.load_feature_domain('group.feat')
+
+    # Assert the injected handler was called and its result returned.
+    assert result is expected_feature
+    mock_handler.assert_called_once_with('group.feat')
+
+    # Assert the legacy event was not touched.
+    context.get_feature_evt.execute.assert_not_called()
+
+
 # ** test: app_interface_context_get_error_cache_hit
 def test_app_interface_context_get_error_cache_hit(app_interface_context):
     """
