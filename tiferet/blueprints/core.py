@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict
 
 # ** app
 from ..contexts.cache import CacheContext
-from ..contexts.error import add_default_errors
+from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
 from ..contexts.app import (
     AppServiceDependency,
     add_default_app_services,
@@ -138,6 +138,98 @@ def get_app_session(
 # ** blueprint: get_app_interface (obsolete)
 # -- obsolete: superseded by get_app_session; remove at v2.0.0 stable
 get_app_interface = get_app_session
+
+# ** blueprint: get_error
+def get_error(
+    cache: CacheContext,
+    get_dependency: Callable,
+) -> Callable:
+    '''
+    Build an error-retrieval handler with the shared cache and service
+    resolver wired in.
+
+    Returns a callable that, given an error code, first checks the shared
+    cache under ``ERROR_CACHE_PREFIX``. On a miss, resolves a ``GetError``
+    event instance from the app-scoped service container via
+    ``get_dependency``, executes it to retrieve the ``Error`` domain
+    object, caches the result under ``ERROR_CACHE_PREFIX``, and returns it.
+
+    :param cache: The shared cache context pre-seeded with default errors.
+    :type cache: CacheContext
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: An error-retrieval callable bound to the cache and resolver.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with cache and resolver wired in.
+    def handler(error_code: str):
+
+        # Try the shared cache first (pre-seeded with framework defaults).
+        error = cache.get(error_code, *ERROR_CACHE_PREFIX)
+        if error:
+            return error
+
+        # Resolve a GetError event instance from the app-scoped container.
+        get_error_evt = get_dependency('get_error_evt', 'app')
+
+        # Execute the event to retrieve the error domain object.
+        error = get_error_evt.execute(error_code)
+
+        # Cache the result under the error cache prefix.
+        cache.set(error_code, error, *ERROR_CACHE_PREFIX)
+
+        # Return the loaded error.
+        return error
+
+    return handler
+
+# ** blueprint: get_feature
+def get_feature(
+    cache: CacheContext,
+    get_dependency: Callable,
+) -> Callable:
+    '''
+    Build a feature-retrieval handler with the shared cache and service
+    resolver wired in.
+
+    Returns a callable that, given a feature id, first checks the shared
+    cache (root namespace). On a miss, resolves a ``GetFeature`` event
+    instance from the app-scoped service container via ``get_dependency``,
+    executes it to retrieve the ``Feature`` domain object, caches the
+    result, and returns it.
+
+    :param cache: The shared cache context.
+    :type cache: CacheContext
+    :param get_dependency: The service-resolution handler from the
+        ServiceResolver.
+    :type get_dependency: Callable
+    :return: A feature-retrieval callable bound to the cache and resolver.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with cache and resolver wired in.
+    def handler(feature_id: str):
+
+        # Try the shared cache first.
+        feature = cache.get(feature_id)
+        if feature:
+            return feature
+
+        # Resolve a GetFeature event instance from the app-scoped container.
+        get_feature_evt = get_dependency('get_feature_evt', 'app')
+
+        # Execute the event to retrieve the feature domain object.
+        feature = get_feature_evt.execute(id=feature_id)
+
+        # Cache the result.
+        cache.set(feature_id, feature)
+
+        # Return the loaded feature.
+        return feature
+
+    return handler
 
 # ** blueprint: build_app_service_container
 def build_app_service_container(

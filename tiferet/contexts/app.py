@@ -139,6 +139,8 @@ def get_default_app_constants(cache: CacheContext) -> Dict[str, Any]:
     return dict(cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX))
 
 # ** function: build_feature_index
+# -- obsolete: superseded by the assets-backed default catalog pattern (see add_default_app_services / add_default_app_constants); remove when feature defaults are fully migrated to the cache-seeding decorator approach
+# ++ todo: migrate default feature bootstrapping to the add_default_* decorator factory pattern used by app services and constants
 def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:
     '''
     Materialize an id-keyed feature mapping into a typed Feature index.
@@ -157,6 +159,8 @@ def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str,
     }
 
 # ** function: build_command_list
+# -- obsolete: superseded by the assets-backed default catalog pattern; removal to be handled as part of the CLI context/blueprint refactor
+# ++ todo: migrate default command bootstrapping to the CLI context/blueprint layer
 def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCommand]:
     '''
     Materialize an id-keyed command mapping into a typed CliCommand list.
@@ -175,6 +179,8 @@ def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCo
     ]
 
 # ** function: resolve_default_interface
+# -- obsolete: superseded by the assets-backed default catalog pattern (see add_default_app_services / add_default_app_constants); remove when interface defaults are fully migrated to the cache-seeding decorator approach
+# ++ todo: migrate default interface resolution to the add_default_* decorator factory pattern used by app services and constants
 def resolve_default_interface(
     interface_id: str,
     default_interfaces: List[Dict[str, Any]],
@@ -217,11 +223,19 @@ class AppSessionContext(BaseContext):
     # * attribute: domain_type
     domain_type = AppSession
 
-    # * attribute: get_feature_evt
+    # * attribute: get_feature_evt (obsolete)
+    # -- obsolete: superseded by the injected _get_feature callable; remove at v2.0.0 stable
     get_feature_evt: DomainEvent
 
-    # * attribute: get_error_evt
+    # * attribute: _get_feature
+    _get_feature: Callable
+
+    # * attribute: get_error_evt (obsolete)
+    # -- obsolete: superseded by the injected _get_error callable; remove at v2.0.0 stable
     get_error_evt: DomainEvent
+
+    # * attribute: _get_error
+    _get_error: Callable
 
     # * attribute: logging_list_all_evt
     logging_list_all_evt: DomainEvent
@@ -239,6 +253,8 @@ class AppSessionContext(BaseContext):
             logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
             cache: CacheContext = None,
+            get_feature: Callable = None,
+            get_error: Callable = None,
             default_features: Dict[str, Dict[str, Any]] = None,
             default_commands: Dict[str, Dict[str, Any]] = None,
         ):
@@ -249,9 +265,11 @@ class AppSessionContext(BaseContext):
         supplies the session id and logger id on demand, so no standalone
         ``interface_id`` is stored.
 
-        :param get_feature_evt: The event used to retrieve features.
+        :param get_feature_evt: The event used to retrieve features. Obsolete: superseded by
+            the injected ``get_feature`` callable.
         :type get_feature_evt: DomainEvent
-        :param get_error_evt: The event used to retrieve errors.
+        :param get_error_evt: The event used to retrieve errors. Obsolete: superseded by
+            the injected ``get_error`` callable.
         :type get_error_evt: DomainEvent
         :param logging_list_all_evt: The event used to list logging configurations.
         :type logging_list_all_evt: DomainEvent
@@ -259,6 +277,14 @@ class AppSessionContext(BaseContext):
         :type get_dependency: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
+        :param get_feature: An optional feature-retrieval callable produced by the ``get_feature``
+            blueprint in ``blueprints/core.py``. When provided, the ``_get_feature`` handler is
+            used for all feature lookups; when absent, the legacy ``get_feature_evt`` path applies.
+        :type get_feature: Callable
+        :param get_error: An optional error-retrieval callable produced by the ``get_error``
+            blueprint in ``blueprints/core.py``. When provided, the ``_get_error`` handler is
+            used for all error lookups; when absent, the legacy ``get_error_evt`` path applies.
+        :type get_error: Callable
         :param default_features: Optional id-keyed feature records for bootstrap fallback.
         :type default_features: Dict[str, Dict[str, Any]]
         :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
@@ -276,6 +302,10 @@ class AppSessionContext(BaseContext):
         self.get_error_evt = get_error_evt
         self.logging_list_all_evt = logging_list_all_evt
         self.get_dependency = get_dependency
+
+        # Store the injected feature- and error-retrieval handlers (new path).
+        self._get_feature = get_feature
+        self._get_error = get_error
 
         # Materialize the id-keyed bootstrap defaults into typed domain objects.
         self.default_feature_index = build_feature_index(default_features)
@@ -307,8 +337,11 @@ class AppSessionContext(BaseContext):
     # * method: load_feature_domain
     def load_feature_domain(self, feature_id: str) -> Feature:
         '''
-        Load a feature domain object by id, using the shared cache and the
-        bootstrap default feature index as an execute-time fallback.
+        Load a feature domain object by id.
+
+        Delegates to the injected ``_get_feature`` handler when available
+        (new path). Falls back to the legacy cache-then-event path when
+        the handler has not been injected (backward compatibility).
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -316,7 +349,11 @@ class AppSessionContext(BaseContext):
         :rtype: Feature
         '''
 
-        # Try the shared cache first.
+        # Delegate to the injected handler when available (new path).
+        if self._get_feature is not None:
+            return self._get_feature(feature_id)
+
+        # Legacy fallback: try the shared cache first.
         feature = self.cache.get(feature_id)
 
         # Retrieve via the get-feature event, falling back to the bootstrap
@@ -336,8 +373,11 @@ class AppSessionContext(BaseContext):
     # * method: get_error
     def get_error(self, error_code: str) -> Error:
         '''
-        Load an error domain object by its code from the shared cache, falling
-        back to the get-error event and caching the retrieved error.
+        Load an error domain object by its code.
+
+        Delegates to the injected ``_get_error`` handler when available
+        (new path). Falls back to the legacy cache-then-event path when
+        the handler has not been injected (backward compatibility).
 
         :param error_code: The error code to resolve.
         :type error_code: str
@@ -345,7 +385,11 @@ class AppSessionContext(BaseContext):
         :rtype: Error
         '''
 
-        # Try the shared cache first (pre-seeded with the default errors).
+        # Delegate to the injected handler when available (new path).
+        if self._get_error is not None:
+            return self._get_error(error_code)
+
+        # Legacy fallback: try the shared cache first (pre-seeded with the default errors).
         error = self.cache.get(error_code, *ERROR_CACHE_PREFIX)
 
         # Retrieve via the get-error event when not cached, then cache it.
