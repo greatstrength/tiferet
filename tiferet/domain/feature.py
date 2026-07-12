@@ -52,6 +52,12 @@ class EventFeatureStep(FeatureStep):
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')
 
+    # * attribute: is_async
+    is_async: bool = Field(
+        default=False,
+        description='Whether this step executes asynchronously. When True, run_coroutine drives the step even within a synchronous feature.',
+    )
+
     # * attribute: condition
     condition: str | None = Field(
         default=None,

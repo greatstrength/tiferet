@@ -49,8 +49,12 @@ IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 # ** constant: app_service_import_failed_id
 APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 
-# ** constant: feature_command_loading_failed_id
-FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
+# ** constant: feature_step_loading_failed_id
+FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
+
+# ** constant: feature_command_loading_failed_id (obsolete)
+# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED_ID; remove at v2.0.0 stable
+FEATURE_COMMAND_LOADING_FAILED_ID = FEATURE_STEP_LOADING_FAILED_ID
 
 # ** constant: middleware_loading_failed_id
 MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
@@ -295,12 +299,16 @@ APP_SERVICE_IMPORT_FAILED = create_default_error(
     [(EN_US, 'Failed to import app service dependencies: {exception}.')],
 )
 
-# ** constant: feature_command_loading_failed
-FEATURE_COMMAND_LOADING_FAILED = create_default_error(
-    FEATURE_COMMAND_LOADING_FAILED_ID,
-    'Feature Command Loading Failed',
-    [(EN_US, 'Failed to load feature command attribute: {service_id}. Error: {exception}.')],
+# ** constant: feature_step_loading_failed
+FEATURE_STEP_LOADING_FAILED = create_default_error(
+    FEATURE_STEP_LOADING_FAILED_ID,
+    'Feature Step Loading Failed',
+    [(EN_US, 'Failed to load feature step: {service_id}. Error: {exception}.')],
 )
+
+# ** constant: feature_command_loading_failed (obsolete)
+# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED; remove at v2.0.0 stable
+FEATURE_COMMAND_LOADING_FAILED = FEATURE_STEP_LOADING_FAILED
 
 # ** constant: middleware_loading_failed
 MIDDLEWARE_LOADING_FAILED = create_default_error(
@@ -723,7 +731,7 @@ CORE_DEFAULT_ERRORS = {
     APP_ERROR_ID: APP_ERROR,
     CONTEXT_NOT_FOUND_ID: CONTEXT_NOT_FOUND,
     FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
-    FEATURE_COMMAND_LOADING_FAILED_ID: FEATURE_COMMAND_LOADING_FAILED,
+    FEATURE_STEP_LOADING_FAILED_ID: FEATURE_STEP_LOADING_FAILED,
     MIDDLEWARE_LOADING_FAILED_ID: MIDDLEWARE_LOADING_FAILED,
     REQUEST_NOT_FOUND_ID: REQUEST_NOT_FOUND,
     PARAMETER_NOT_FOUND_ID: PARAMETER_NOT_FOUND,

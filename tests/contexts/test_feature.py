@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import asyncio
 from typing import Any
 
 # ** infra
@@ -14,6 +15,9 @@ from tiferet.contexts.feature import (
     FeatureContext,
     AsyncFeatureContext,
     RequestContext,
+    run_coroutine,
+    merge_step_kwargs,
+    build_step_chain,
     parse_request_parameter,
     evaluate_condition,
     validate_request,
@@ -70,6 +74,44 @@ def test_command():
     # Return an instance of the mock event.
     return TestEvent()
 
+# ** fixture: async_test_command
+@pytest.fixture
+def async_test_command():
+
+    class AsyncTestEvent(AsyncDomainEvent):
+        """An async domain event for testing purposes."""
+
+        async def execute(self, key: str, param: str = None, **kwargs) -> Any:
+            """Async execute method that returns a test response."""
+
+            # Verify that the key exists.
+            self.verify(key, 'KEY_NOT_FOUND', 'No key provided for command execution.')
+
+            # Mock response data.
+            if not param:
+                return {"status": "async_success", "data": {"key": key}}
+            return {"status": "async_success", "data": {"key": key, "param": param}}
+
+    # Return an instance of the async event.
+    return AsyncTestEvent()
+
+# ** fixture: async_services_context
+@pytest.fixture
+def async_services_context(async_test_command):
+    """Fixture to provide a mock DI context that returns the async test command."""
+
+    # Create a mock holder exposing an async get_dependency handler.
+    ctx = mock.Mock()
+    ctx.get_dependency.return_value = async_test_command
+    return ctx
+
+# ** fixture: async_feature_context
+@pytest.fixture
+def async_feature_context(async_services_context):
+    """Fixture to provide a FeatureContext wired with the async command."""
+
+    return FeatureContext(get_dependency=async_services_context.get_dependency)
+
 # ** fixture: feature
 @pytest.fixture
 def feature():
@@ -85,76 +127,6 @@ def feature():
 
 
 # *** tests
-
-# ** test: feature_context_parse_request_parameter_success (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_request_ref_success
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_parse_request_parameter_success(feature_context):
-    """Test parsing a request-backed parameter successfully."""
-
-    # Create a mock request with data.
-    request = RequestContext(data={"key": "value"})
-
-    # Parse the parameter from the request.
-    result = feature_context.parse_request_parameter('$r.key', request)
-
-    # Assert that the parsed value is correct.
-    assert result == 'value'
-
-# ** test: feature_context_parse_request_parameter_request_not_found (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_request_not_found
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_parse_request_parameter_request_not_found(feature_context):
-    """Test that an error is raised when request is None for a request-backed parameter."""
-
-    from tiferet.assets import TiferetError
-
-    # Assert that an error is raised when request is None.
-    with pytest.raises(TiferetError) as exc_info:
-        feature_context.parse_request_parameter('$r.key', None)
-
-    assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
-    assert exc_info.value.kwargs.get('parameter') == '$r.key'
-
-# ** test: feature_context_parse_request_parameter_not_found (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_key_missing
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_parse_request_parameter_not_found(feature_context):
-    """Test that an error is raised when the parameter key is missing in request data."""
-
-    from tiferet.assets import TiferetError
-
-    # Create a mock request without the expected key.
-    request = RequestContext(data={})
-
-    # Assert that an error is raised when the parameter is missing.
-    with pytest.raises(TiferetError) as exc_info:
-        feature_context.parse_request_parameter('$r.missing', request)
-
-    assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
-    assert exc_info.value.kwargs.get('parameter') == '$r.missing'
-
-# ** test: feature_context_parse_request_parameter_delegates_to_parse_parameter (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_delegates_to_parse_parameter
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
-    """Test that non-request parameters delegate to ParseParameter.execute."""
-
-    from tiferet.events import static as static_events
-
-    called = {}
-
-    def fake_execute(parameter: str):
-        called['parameter'] = parameter
-        return 'parsed-value'
-
-    monkeypatch.setattr(static_events.ParseParameter, 'execute', staticmethod(fake_execute))
-
-    # Non-request parameter should be delegated to ParseParameter.execute.
-    result = feature_context.parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
-
-    assert result == 'parsed-value'
-    assert called['parameter'] == '$env.MY_VAR'
 
 # ** test: feature_context_load_feature_step_with_combined_flags
 def test_feature_context_load_feature_step_with_combined_flags(feature_context, services_context, test_command):
@@ -262,9 +234,9 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
     with pytest.raises(TiferetError) as exc_info:
         feature_context.load_feature_step(feature_event)
 
-    assert exc_info.value.error_code == 'FEATURE_COMMAND_LOADING_FAILED'
+    assert exc_info.value.error_code == 'FEATURE_STEP_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
-    assert 'Failed to load feature step attribute: non_existent_command' in str(exc_info.value)
+    assert 'Failed to load feature step: non_existent_command' in str(exc_info.value)
 
 # ** test: feature_context_load_feature_middleware
 def test_feature_context_load_feature_middleware(feature_context, services_context, test_command):
@@ -402,92 +374,6 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Assert that the response is stored in the request data under the specified key.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value", "param": "value"}}
 
-# ** test: feature_context_evaluate_condition_none_returns_true (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_none_returns_true
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_none_returns_true(feature_context):
-    """Test that evaluate_condition returns True when condition is None."""
-
-    # Create a mock request.
-    request = RequestContext(data={})
-
-    # Assert that None condition evaluates to True.
-    assert feature_context.evaluate_condition(None, request) is True
-
-# ** test: feature_context_evaluate_condition_empty_returns_true (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_empty_returns_true
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_empty_returns_true(feature_context):
-    """Test that evaluate_condition returns True when condition is empty."""
-
-    # Create a mock request.
-    request = RequestContext(data={})
-
-    # Assert that empty string condition evaluates to True.
-    assert feature_context.evaluate_condition('', request) is True
-    assert feature_context.evaluate_condition('   ', request) is True
-
-# ** test: feature_context_evaluate_condition_true_expression (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_true_expression
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_true_expression(feature_context):
-    """Test that evaluate_condition returns True when expression resolves to True."""
-
-    # Create a request with data for the condition.
-    request = RequestContext(data={'x': 5})
-
-    # Assert that the condition evaluates to True.
-    assert feature_context.evaluate_condition('$r.x > 0', request) is True
-
-# ** test: feature_context_evaluate_condition_false_expression (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_false_expression
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_false_expression(feature_context):
-    """Test that evaluate_condition returns False when expression resolves to False."""
-
-    # Create a request with data for the condition.
-    request = RequestContext(data={'x': -1})
-
-    # Assert that the condition evaluates to False.
-    assert feature_context.evaluate_condition('$r.x > 0', request) is False
-
-# ** test: feature_context_evaluate_condition_string_equality (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_string_equality
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_string_equality(feature_context):
-    """Test that evaluate_condition supports string equality checks."""
-
-    # Create a request with a string value.
-    request = RequestContext(data={'mode': 'advanced'})
-
-    # Assert string equality condition evaluates correctly.
-    assert feature_context.evaluate_condition("$r.mode == 'advanced'", request) is True
-    assert feature_context.evaluate_condition("$r.mode == 'basic'", request) is False
-
-# ** test: feature_context_evaluate_condition_missing_key_returns_false (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_missing_key_returns_false
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_missing_key_returns_false(feature_context):
-    """Test that evaluate_condition returns False when a referenced key is missing."""
-
-    # Create a request without the referenced key.
-    request = RequestContext(data={})
-
-    # Assert that a condition referencing a missing key evaluates to False.
-    assert feature_context.evaluate_condition('$r.x > 0', request) is False
-
-# ** test: feature_context_evaluate_condition_invalid_expression_returns_false (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_invalid_expression_returns_false
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_evaluate_condition_invalid_expression_returns_false(feature_context):
-    """Test that evaluate_condition returns False on unparseable expressions."""
-
-    # Create a mock request.
-    request = RequestContext(data={'x': 5})
-
-    # Assert that an invalid expression evaluates to False (defensive).
-    assert feature_context.evaluate_condition('$r.x >>>!!! invalid', request) is False
-
 # ** test: feature_context_resolve_feature_steps_yields_steps
 def test_feature_context_resolve_feature_steps_yields_steps(feature_context, feature, test_command):
     """Test that resolve_feature_steps yields (cmd, feature_event, params) for each step."""
@@ -592,122 +478,6 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
 
-# ** fixture: async_test_command
-@pytest.fixture
-def async_test_command():
-
-    class AsyncTestEvent(AsyncDomainEvent):
-        """An async domain event for testing purposes."""
-
-        async def execute(self, key: str, param: str = None, **kwargs) -> Any:
-            """Async execute method that returns a test response."""
-
-            # Verify that the key exists.
-            self.verify(key, 'KEY_NOT_FOUND', 'No key provided for command execution.')
-
-            # Mock response data.
-            if not param:
-                return {"status": "async_success", "data": {"key": key}}
-            return {"status": "async_success", "data": {"key": key, "param": param}}
-
-    # Return an instance of the async event.
-    return AsyncTestEvent()
-
-# ** fixture: async_services_context
-@pytest.fixture
-def async_services_context(async_test_command):
-    """Fixture to provide a mock DI context that returns the async test command."""
-
-    # Create a mock holder exposing an async get_dependency handler.
-    ctx = mock.Mock()
-    ctx.get_dependency.return_value = async_test_command
-    return ctx
-
-# ** fixture: async_feature_context
-@pytest.fixture
-def async_feature_context(async_services_context):
-    """Fixture to provide an AsyncFeatureContext wired with the async command."""
-
-    return AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
-
-# ** test: feature_context_handle_feature_step_async
-@pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async(async_feature_context, async_test_command):
-    """Test handling an async command in the FeatureContext."""
-
-    # Create a mock request.
-    request = RequestContext(data={"key": "value"})
-
-    # Handle the async command.
-    await async_feature_context.handle_feature_step_async(async_test_command, request)
-    response = request.handle_response()
-
-    # Assert that the response matches the expected output.
-    assert response == {"status": "async_success", "data": {"key": "value"}}
-
-# ** test: feature_context_handle_feature_step_async_with_sync_command
-@pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async_with_sync_command(async_feature_context, test_command):
-    """Test that handle_feature_step_async correctly dispatches a sync command."""
-
-    # Create a mock request.
-    request = RequestContext(data={"key": "value"})
-
-    # Handle a sync command via the async handler.
-    await async_feature_context.handle_feature_step_async(test_command, request)
-    response = request.handle_response()
-
-    # Assert that the sync command executed correctly.
-    assert response == {"status": "success", "data": {"key": "value"}}
-
-# ** test: feature_context_handle_feature_step_async_with_error
-@pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async_with_error(async_feature_context, async_test_command):
-    """Test handling an async command that raises an error."""
-
-    # Create a request that will cause verify to fail.
-    request = RequestContext(data={'key': None})
-
-    # Attempt to handle the command and catch the raised error.
-    with pytest.raises(TiferetError) as exc_info:
-        await async_feature_context.handle_feature_step_async(async_test_command, request)
-
-    assert exc_info.value.error_code == 'KEY_NOT_FOUND'
-
-# ** test: feature_context_handle_feature_step_async_pass_on_error
-@pytest.mark.asyncio
-async def test_feature_context_handle_feature_step_async_pass_on_error(async_feature_context, async_test_command):
-    """Test handling an async command with pass_on_error."""
-
-    # Create a request that will cause verify to fail.
-    request = RequestContext(data={'key': None})
-
-    # Handle with pass_on_error=True.
-    await async_feature_context.handle_feature_step_async(async_test_command, request, pass_on_error=True)
-
-    # Assert that the request handled the error without raising.
-    assert not request.handle_response()
-
-# ** test: feature_context_execute_feature_async_basic
-@pytest.mark.asyncio
-async def test_feature_context_execute_feature_async_basic(async_feature_context, feature):
-    """Test execute_feature_async with a single async step."""
-
-    # Add an async feature step.
-    feature.steps.append(EventFeatureStep(
-        name='Async Command',
-        service_id='async_test_command',
-    ))
-
-    # Create a mock request.
-    request = RequestContext(data={"key": "value"})
-
-    # Execute the pre-loaded feature asynchronously.
-    await async_feature_context.execute_feature_async(feature, request)
-
-    # Assert the result.
-    assert request.handle_response() == {"status": "async_success", "data": {"key": "value"}}
-
 # ** test: feature_context_handle_feature_step_with_middleware
 def test_feature_context_handle_feature_step_with_middleware(feature_context, test_command):
     """Test that middleware is applied when provided to handle_feature_step."""
@@ -808,97 +578,6 @@ def test_feature_context_load_feature_middleware_resolves_services(feature_conte
     assert result[0] is sentinel
     assert result[1] is sentinel
 
-# ** test: feature_context_execute_feature_async_mixed_chain
-@pytest.mark.asyncio
-async def test_feature_context_execute_feature_async_mixed_chain(feature):
-    """Test execute_feature_async with mixed sync and async steps."""
-
-    # Create both sync and async commands.
-    class SyncStep(DomainEvent):
-        def execute(self, key=None, **kwargs):
-            return {"sync": True, "key": key}
-
-    class AsyncStep(AsyncDomainEvent):
-        async def execute(self, key=None, **kwargs):
-            return {"async": True, "key": key}
-
-    sync_cmd = SyncStep()
-    async_cmd = AsyncStep()
-
-    # Mock the resolution handler to return the right command per service_id.
-    services = mock.Mock()
-    def resolve(service_id, *flags):
-        if service_id == 'sync_step':
-            return sync_cmd
-        return async_cmd
-    services.get_dependency.side_effect = resolve
-
-    # Build the async feature context.
-    ctx = AsyncFeatureContext(get_dependency=services.get_dependency)
-
-    # Add a sync step followed by an async step.
-    feature.steps.append(EventFeatureStep(
-        name='Sync Step',
-        service_id='sync_step',
-        data_key='sync_result',
-    ))
-    feature.steps.append(EventFeatureStep(
-        name='Async Step',
-        service_id='async_step',
-        data_key='async_result',
-    ))
-
-    # Create a request.
-    request = RequestContext(data={"key": "mixed"})
-
-    # Execute the pre-loaded feature asynchronously (supports mixed chains).
-    await ctx.execute_feature_async(feature, request)
-
-    # Assert both steps executed correctly.
-    assert request.data.get('sync_result') == {"sync": True, "key": "mixed"}
-    assert request.data.get('async_result') == {"async": True, "key": "mixed"}
-
-# ** test: async_feature_context_subclasses_feature_context
-def test_async_feature_context_subclasses_feature_context():
-    """Test that AsyncFeatureContext inherits the synchronous FeatureContext helpers."""
-
-    # Assert the inheritance relationship.
-    assert issubclass(AsyncFeatureContext, FeatureContext)
-
-    # Assert the shared helpers and sync execution are inherited (not redefined).
-    shared = (
-        'load_feature_step',
-        'load_feature_middleware',
-        'handle_feature_step',
-        'parse_request_parameter',
-        'evaluate_condition',
-        'resolve_feature_steps',
-        'execute_feature',
-    )
-    for helper in shared:
-        assert getattr(AsyncFeatureContext, helper) is getattr(FeatureContext, helper)
-
-    # Assert the async methods live on AsyncFeatureContext, not on FeatureContext.
-    assert hasattr(AsyncFeatureContext, 'handle_feature_step_async')
-    assert hasattr(AsyncFeatureContext, 'execute_feature_async')
-    assert not hasattr(FeatureContext, 'handle_feature_step_async')
-    assert not hasattr(FeatureContext, 'execute_feature_async')
-
-# ** test: feature_context_validate_request_no_schema_is_noop (obsolete)
-# -- obsolete: tests the obsolete instance method wrapper; superseded by test_validate_request_no_schema_is_noop
-# ++ todo: remove when instance methods are removed at FE2 cleanup
-def test_feature_context_validate_request_no_schema_is_noop(feature_context, feature):
-    """Test that validate_request leaves data unchanged when no schema is set."""
-
-    # Create a request with raw string data.
-    request = RequestContext(data={'a': '5'})
-
-    # Validate against a schema-less feature.
-    feature_context.validate_request(feature, request)
-
-    # Assert the data is unchanged.
-    assert request.data == {'a': '5'}
-
 # ** test: feature_context_execute_feature_validates_and_coerces
 def test_feature_context_execute_feature_validates_and_coerces(feature_context, services_context):
     """Test that execute_feature coerces request data before steps run."""
@@ -976,24 +655,87 @@ def test_feature_context_execute_feature_accepts_flags(feature_context, feature)
 
     assert request.handle_response() == {'status': 'success', 'data': {'key': 'value'}}
 
-# ** test: async_feature_context_execute_feature_async_accepts_flags
+# ** test: feature_context_handle_step_async_with_async_command
 @pytest.mark.asyncio
-async def test_async_feature_context_execute_feature_async_accepts_flags(async_feature_context, feature):
-    """Test that execute_feature_async accepts *flags positional arguments without error."""
+async def test_feature_context_handle_step_async_with_async_command(async_feature_context, async_test_command):
+    """Test _handle_step_async correctly dispatches an async command."""
 
-    # Add an async step.
-    feature.steps.append(EventFeatureStep(name='Async Command', service_id='async_test_command'))
-    request = RequestContext(data={'key': 'value'})
+    # Create a mock request.
+    request = RequestContext(data={"key": "value"})
 
-    # Passing flags should not raise and async execution should complete normally.
-    await async_feature_context.execute_feature_async(feature, request, 'flag_a', 'flag_b')
+    # Handle the async command via the private async step handler.
+    await async_feature_context._handle_step_async(async_test_command, request)
+    response = request.handle_response()
 
-    assert request.handle_response() == {'status': 'async_success', 'data': {'key': 'value'}}
+    # Assert that the response matches the expected output.
+    assert response == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: async_feature_context_execute_feature_async_validates
+# ** test: feature_context_handle_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_async_feature_context_execute_feature_async_validates(async_services_context):
-    """Test that execute_feature_async coerces request data before steps run."""
+async def test_feature_context_handle_step_async_with_sync_command(async_feature_context, test_command):
+    """Test that _handle_step_async correctly dispatches a sync command."""
+
+    # Create a mock request.
+    request = RequestContext(data={"key": "value"})
+
+    # Handle a sync command via the async handler.
+    await async_feature_context._handle_step_async(test_command, request)
+    response = request.handle_response()
+
+    # Assert that the sync command executed correctly.
+    assert response == {"status": "success", "data": {"key": "value"}}
+
+# ** test: feature_context_handle_step_async_with_error
+@pytest.mark.asyncio
+async def test_feature_context_handle_step_async_with_error(async_feature_context, async_test_command):
+    """Test handling an async command that raises an error."""
+
+    # Create a request that will cause verify to fail.
+    request = RequestContext(data={'key': None})
+
+    # Attempt to handle the command and catch the raised error.
+    with pytest.raises(TiferetError) as exc_info:
+        await async_feature_context._handle_step_async(async_test_command, request)
+
+    assert exc_info.value.error_code == 'KEY_NOT_FOUND'
+
+# ** test: feature_context_handle_step_async_pass_on_error
+@pytest.mark.asyncio
+async def test_feature_context_handle_step_async_pass_on_error(async_feature_context, async_test_command):
+    """Test handling an async command with pass_on_error."""
+
+    # Create a request that will cause verify to fail.
+    request = RequestContext(data={'key': None})
+
+    # Handle with pass_on_error=True.
+    await async_feature_context._handle_step_async(async_test_command, request, pass_on_error=True)
+
+    # Assert that the request handled the error without raising.
+    assert not request.handle_response()
+
+# ** test: feature_context_execute_feature_async_basic
+def test_feature_context_execute_feature_async_basic(async_feature_context, feature):
+    """Test execute_feature with feature.is_async=True and a single async step."""
+
+    # Add an async feature step.
+    feature.steps.append(EventFeatureStep(
+        name='Async Command',
+        service_id='async_test_command',
+    ))
+    feature.is_async = True
+
+    # Create a mock request.
+    request = RequestContext(data={"key": "value"})
+
+    # Execute synchronously — FeatureContext drives async internally.
+    async_feature_context.execute_feature(feature, request)
+
+    # Assert the result.
+    assert request.handle_response() == {"status": "async_success", "data": {"key": "value"}}
+
+# ** test: feature_context_execute_feature_async_validates
+def test_feature_context_execute_feature_async_validates(async_services_context):
+    """Test that execute_feature with is_async=True coerces request data before steps run."""
 
     # Capture the kwargs the command receives.
     captured = {}
@@ -1003,29 +745,29 @@ async def test_async_feature_context_execute_feature_async_validates(async_servi
             captured['a'] = a
             return a
 
-    # Resolve the capturing command and build an async context.
+    # Resolve the capturing command and build a context.
     async_services_context.get_dependency.return_value = CaptureEvent()
-    ctx = AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
+    ctx = FeatureContext(get_dependency=async_services_context.get_dependency)
 
     # Build a feature with a params schema and a single step.
     feature = Feature(
         id='calc.add',
         name='Add',
+        is_async=True,
         params_schema={'a': 'int'},
         steps=[EventFeatureStep(name='cap', service_id='cap')],
     )
     request = RequestContext(data={'a': '7'})
 
-    # Execute the feature asynchronously.
-    await ctx.execute_feature_async(feature, request)
+    # Execute the feature synchronously.
+    ctx.execute_feature(feature, request)
 
     # Assert coercion happened before the step ran.
     assert request.data['a'] == 7
     assert captured['a'] == 7
 
-# ** test: async_feature_context_execute_feature_async_invalid_fails_fast
-@pytest.mark.asyncio
-async def test_async_feature_context_execute_feature_async_invalid_fails_fast(async_services_context):
+# ** test: feature_context_execute_feature_async_invalid_fails_fast
+def test_feature_context_execute_feature_async_invalid_fails_fast(async_services_context):
     """Test that invalid request data fails before any async step executes."""
 
     # Track command executions.
@@ -1035,14 +777,15 @@ async def test_async_feature_context_execute_feature_async_invalid_fails_fast(as
         def execute(self, **kwargs):
             calls['count'] += 1
 
-    # Resolve the counting command and build an async context.
+    # Resolve the counting command and build a context.
     async_services_context.get_dependency.return_value = CountEvent()
-    ctx = AsyncFeatureContext(get_dependency=async_services_context.get_dependency)
+    ctx = FeatureContext(get_dependency=async_services_context.get_dependency)
 
     # Build a feature whose schema rejects the request.
     feature = Feature(
         id='calc.add',
         name='Add',
+        is_async=True,
         params_schema={'a': 'int'},
         steps=[EventFeatureStep(name='cap', service_id='cap')],
     )
@@ -1050,10 +793,187 @@ async def test_async_feature_context_execute_feature_async_invalid_fails_fast(as
 
     # Assert the validation error is raised and no command ran.
     with pytest.raises(TiferetError) as exc_info:
-        await ctx.execute_feature_async(feature, request)
+        ctx.execute_feature(feature, request)
 
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
     assert calls['count'] == 0
+
+# ** test: feature_context_execute_feature_async_accepts_flags
+def test_feature_context_execute_feature_async_accepts_flags(async_feature_context, feature):
+    """Test that execute_feature with is_async=True accepts *flags without error."""
+
+    # Add an async step.
+    feature.steps.append(EventFeatureStep(name='Async Command', service_id='async_test_command'))
+    feature.is_async = True
+    request = RequestContext(data={'key': 'value'})
+
+    # Passing flags should not raise and async execution should complete normally.
+    async_feature_context.execute_feature(feature, request, 'flag_a', 'flag_b')
+
+    assert request.handle_response() == {'status': 'async_success', 'data': {'key': 'value'}}
+
+# ** test: feature_context_execute_feature_async_mixed_chain
+def test_feature_context_execute_feature_async_mixed_chain(feature):
+    """Test execute_feature with is_async=True and mixed sync/async steps."""
+
+    # Create both sync and async commands.
+    class SyncStep(DomainEvent):
+        def execute(self, key=None, **kwargs):
+            return {"sync": True, "key": key}
+
+    class AsyncStep(AsyncDomainEvent):
+        async def execute(self, key=None, **kwargs):
+            return {"async": True, "key": key}
+
+    sync_cmd = SyncStep()
+    async_cmd = AsyncStep()
+
+    # Mock the resolution handler to return the right command per service_id.
+    services = mock.Mock()
+    def resolve(service_id, *flags):
+        if service_id == 'sync_step':
+            return sync_cmd
+        return async_cmd
+    services.get_dependency.side_effect = resolve
+
+    # Build the feature context.
+    ctx = FeatureContext(get_dependency=services.get_dependency)
+
+    # Add a sync step followed by an async step.
+    feature.steps.append(EventFeatureStep(
+        name='Sync Step',
+        service_id='sync_step',
+        data_key='sync_result',
+    ))
+    feature.steps.append(EventFeatureStep(
+        name='Async Step',
+        service_id='async_step',
+        data_key='async_result',
+    ))
+    feature.is_async = True
+
+    # Create a request.
+    request = RequestContext(data={"key": "mixed"})
+
+    # Execute synchronously.
+    ctx.execute_feature(feature, request)
+
+    # Assert both steps executed correctly.
+    assert request.data.get('sync_result') == {"sync": True, "key": "mixed"}
+    assert request.data.get('async_result') == {"async": True, "key": "mixed"}
+
+# ** test: feature_context_execute_feature_step_level_async
+def test_feature_context_execute_feature_step_level_async(feature, async_test_command):
+    """Test that a step with is_async=True in a sync feature is driven via run_coroutine."""
+
+    # Build a sync feature with one async step.
+    services = mock.Mock()
+    services.get_dependency.return_value = async_test_command
+    ctx = FeatureContext(get_dependency=services.get_dependency)
+
+    feature.steps.append(EventFeatureStep(
+        name='Async Step',
+        service_id='async_cmd',
+        is_async=True,
+    ))
+
+    request = RequestContext(data={'key': 'value'})
+
+    # Execute synchronously — the async step is driven via run_coroutine internally.
+    ctx.execute_feature(feature, request)
+
+    # Assert the async step produced the expected result.
+    assert request.handle_response() == {'status': 'async_success', 'data': {'key': 'value'}}
+
+# ** test: feature_context_verify_feature_flags_stub
+def test_feature_context_verify_feature_flags_stub(feature_context, feature):
+    """Test that verify_feature_flags exists and does not raise (FE3 stub)."""
+
+    # Call the stub — it should be a no-op.
+    feature_context.verify_feature_flags(feature, ())
+    feature_context.verify_feature_flags(feature, ('flag_a',))
+
+# ** test: run_coroutine_no_loop
+def test_run_coroutine_no_loop():
+    """Test that run_coroutine drives a coroutine when no event loop is running."""
+
+    async def _coro():
+        return 42
+
+    # Drive the coroutine synchronously.
+    result = run_coroutine(_coro())
+
+    # Assert the result is correct.
+    assert result == 42
+
+# ** test: run_coroutine_from_running_loop
+@pytest.mark.asyncio
+async def test_run_coroutine_from_running_loop():
+    """Test that run_coroutine uses the thread fallback when a loop is already running."""
+
+    async def _coro():
+        return 'threaded'
+
+    # run_coroutine must work even when called from inside an async test (running loop).
+    result = run_coroutine(_coro())
+
+    # Assert the result is correct.
+    assert result == 'threaded'
+
+# ** test: build_step_chain_sync
+def test_build_step_chain_sync(test_command):
+    """Test that build_step_chain returns a sync callable that executes the command."""
+
+    merged_kwargs = {'key': 'value'}
+    chain = build_step_chain(test_command, merged_kwargs, [], is_async=False)
+
+    # Execute and assert result.
+    result = chain()
+    assert result == {'status': 'success', 'data': {'key': 'value'}}
+
+# ** test: build_step_chain_async
+@pytest.mark.asyncio
+async def test_build_step_chain_async(async_test_command):
+    """Test that build_step_chain returns an async callable that awaits async commands."""
+
+    merged_kwargs = {'key': 'value'}
+    chain = build_step_chain(async_test_command, merged_kwargs, [], is_async=True)
+
+    # Execute asynchronously and assert result.
+    result = await chain()
+    assert result == {'status': 'async_success', 'data': {'key': 'value'}}
+
+# ** test: build_step_chain_async_with_sync_command
+@pytest.mark.asyncio
+async def test_build_step_chain_async_with_sync_command(test_command):
+    """Test that build_step_chain async path handles a sync command correctly."""
+
+    merged_kwargs = {'key': 'value'}
+    chain = build_step_chain(test_command, merged_kwargs, [], is_async=True)
+
+    # Execute asynchronously — sync command should be called without await.
+    result = await chain()
+    assert result == {'status': 'success', 'data': {'key': 'value'}}
+
+# ** test: build_step_chain_with_middleware
+def test_build_step_chain_with_middleware(test_command):
+    """Test that build_step_chain wraps the command in middleware in the correct order."""
+
+    order = []
+
+    class TrackMw:
+        def __call__(self, event, kwargs, next_fn):
+            order.append('pre')
+            result = next_fn()
+            order.append('post')
+            return result
+
+    merged_kwargs = {'key': 'value'}
+    chain = build_step_chain(test_command, merged_kwargs, [TrackMw()], is_async=False)
+
+    chain()
+
+    assert order == ['pre', 'post']
 
 # ** test: parse_request_parameter_request_ref_success
 def test_parse_request_parameter_request_ref_success():

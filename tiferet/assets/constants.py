@@ -42,8 +42,12 @@ IMPORT_DEPENDENCY_FAILED_ID = 'IMPORT_DEPENDENCY_FAILED'
 # ** constant: app_service_import_failed_id
 APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 
-# ** constant: feature_command_loading_failed_id
-FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
+# ** constant: feature_step_loading_failed_id
+FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
+
+# ** constant: feature_command_loading_failed_id (obsolete)
+# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED_ID; remove at v2.0.0 stable
+FEATURE_COMMAND_LOADING_FAILED_ID = FEATURE_STEP_LOADING_FAILED_ID
 
 # ** constant: middleware_loading_failed_id
 MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'

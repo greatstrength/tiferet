@@ -3,8 +3,6 @@
 # *** imports
 
 # ** core
-import asyncio
-import threading
 import time
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -17,7 +15,7 @@ from ..domain import AppSession, AppInterface, AppServiceDependency, Feature, Cl
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext, AsyncFeatureContext
+from .feature import FeatureContext, AsyncFeatureContext  # -- obsolete: AsyncFeatureContext import; remove at v2.0.0 stable
 from .error import ErrorContext, ERROR_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
@@ -432,16 +430,15 @@ class AppSessionContext(BaseContext):
         # Return the request model object.
         return request
 
-    # * method: _run_coroutine (static)
+    # * method: _run_coroutine (static, obsolete)
+    # -- obsolete: superseded by contexts.feature.run_coroutine; remove at v2.0.0 stable
     @staticmethod
     def _run_coroutine(coro: Any) -> Any:
         '''
         Drive a coroutine to completion from synchronous code.
 
-        Uses ``asyncio.run`` when no event loop is running. When called while a
-        loop is already running (e.g. inside an async host), the coroutine is
-        executed on a short-lived dedicated thread with its own event loop so
-        the synchronous ``run`` entrypoint never raises ``RuntimeError``.
+        NOTE: Obsolete — superseded by :func:`tiferet.contexts.feature.run_coroutine`.
+        This method is retained for one increment for backward compatibility.
 
         :param coro: The coroutine to execute.
         :type coro: Any
@@ -449,43 +446,19 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # Use asyncio.run directly when no event loop is currently running.
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(coro)
-
-        # A loop is already running; execute the coroutine on a dedicated
-        # thread with its own event loop, capturing the result or error.
-        box: Dict[str, Any] = {}
-
-        def _runner():
-            try:
-                box['result'] = asyncio.run(coro)
-            except BaseException as error:  # re-raised on the calling thread
-                box['error'] = error
-
-        # Run the worker thread to completion.
-        thread = threading.Thread(target=_runner)
-        thread.start()
-        thread.join()
-
-        # Re-raise any error captured on the worker thread.
-        if 'error' in box:
-            raise box['error']
-
-        # Return the captured coroutine result.
-        return box.get('result')
+        # Delegate to the module-level run_coroutine in contexts.feature.
+        from .feature import run_coroutine
+        return run_coroutine(coro)
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute the feature request.
 
-        Selects the synchronous :class:`FeatureContext` or the
-        :class:`AsyncFeatureContext` based on the loaded feature's ``is_async``
-        flag. Async features are driven to completion while keeping this
-        entrypoint synchronous.
+        Resolves the registered ``FeatureContext`` via the ``BaseContext``
+        registry and delegates execution. Sync/async dispatch is handled
+        internally by ``FeatureContext.execute_feature`` based on
+        ``feature.is_async`` and ``step.is_async``.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -503,20 +476,7 @@ class AppSessionContext(BaseContext):
         # Load the feature domain object for execution.
         feature = self.load_feature_domain(feature_id)
 
-        # Build the async feature context and drive it to completion when the
-        # loaded feature is flagged async.
-        if feature.is_async:
-            async_context = AsyncFeatureContext(
-                get_dependency=self.get_dependency,
-                cache=self.cache,
-            )
-            self._run_coroutine(
-                async_context.execute_feature_async(feature, request, **kwargs)
-            )
-            return
-
-        # Otherwise build the synchronous feature context on demand (resolved
-        # via the registry) and execute the loaded feature through it.
+        # Resolve the feature context via the registry and execute.
         feature_context_cls = BaseContext.for_domain(Feature)
         feature_context = feature_context_cls(
             get_dependency=self.get_dependency,

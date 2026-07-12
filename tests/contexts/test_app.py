@@ -545,50 +545,39 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     feature_context.execute_feature.assert_called_once()
 
 # ** test: app_interface_context_execute_feature_async
-def test_app_interface_context_execute_feature_async(app_interface_context, monkeypatch):
+def test_app_interface_context_execute_feature_async(app_interface_context, feature_context):
     """
-    Test that an is_async feature is routed to AsyncFeatureContext and its
-    execute_feature_async coroutine is driven to completion.
+    Test that an is_async feature is routed through the unified FeatureContext
+    execute_feature entry point (async dispatch is now handled internally by
+    FeatureContext, not by the hub).
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
     """
 
     # Arrange the loaded feature to be async.
-    app_interface_context.get_feature_evt.execute.return_value = Feature(
+    async_feature = Feature(
         id='test_group.async_feature',
         group_id='test_group',
         feature_key='async_feature',
         name='Async Feature',
         is_async=True,
     )
-
-    # Capture construction and execution of the async feature context.
-    calls = {}
-
-    class FakeAsyncFeatureContext:
-        def __init__(self, **kwargs):
-            calls['init_kwargs'] = kwargs
-
-        async def execute_feature_async(self, feature, request, **kwargs):
-            calls['feature'] = feature
-            calls['request'] = request
-
-    # Patch the async context referenced by the app module.
-    monkeypatch.setattr(
-        'tiferet.contexts.app.AsyncFeatureContext',
-        FakeAsyncFeatureContext,
-    )
+    app_interface_context.get_feature_evt.execute.return_value = async_feature
 
     # Create a request and execute the async feature.
     request = RequestContext(data={'key': 'value'})
     app_interface_context.execute_feature('test_group.async_feature', request)
 
-    # Assert the async context was constructed and its coroutine was driven.
-    assert 'init_kwargs' in calls
-    assert calls['feature'].is_async is True
-    assert calls['request'] is request
+    # Assert the feature id was added to the request headers.
     assert request.headers.get('feature_id') == 'test_group.async_feature'
+
+    # Assert the unified FeatureContext.execute_feature was called with the async feature.
+    feature_context.execute_feature.assert_called_once()
+    called_feature = feature_context.execute_feature.call_args[0][0]
+    assert called_feature.is_async is True
 
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
