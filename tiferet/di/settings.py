@@ -16,6 +16,7 @@ from .core import injectable_parameter_names, normalize_flags
 # *** functions
 
 # ** function: create_cache_key
+# -- obsolete: used only by legacy ServiceResolver; retire at N5
 def create_cache_key(flags: List[str] = None) -> str:
     '''
     Create a cache key for a per-flag service container.
@@ -30,6 +31,7 @@ def create_cache_key(flags: List[str] = None) -> str:
     return f"feature_services{'_' + '_'.join(flags) if flags else ''}"
 
 # ** function: merge_settings
+# -- obsolete: superseded by pre-cached container pattern (D16); retire at N5
 def merge_settings(
         configs: List[ServiceRegistration] = None,
         constants: Dict[str, Any] = None,
@@ -76,6 +78,7 @@ def merge_settings(
 # *** classes
 
 # ** class: service_container
+# -- obsolete: incomplete duplicate (remove_service is a stub); retire together with second declaration at N5
 class ServiceContainer(object):
     '''
     The low-level dependency-injection engine for the framework. It registers
@@ -190,6 +193,7 @@ class ServiceContainer(object):
         pass
 
 # ** class: service_container
+# -- obsolete: superseded by DIDynamicServiceContainer (di/dependency_injector.py); retire at N5
 class ServiceContainer(object):
     '''
     A low-level dependency-injection engine backed by the dependency_injector
@@ -323,6 +327,7 @@ class ServiceContainer(object):
         return providers.Factory(service_type, **kwargs)
 
 # ** class: service_resolver
+# -- obsolete: superseded by DIDynamicServiceResolver + pre-cached container pattern (D16); retire at N5
 class ServiceResolver(object):
     '''
     The application service provider. Reads service registrations and constants

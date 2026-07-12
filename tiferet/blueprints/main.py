@@ -282,7 +282,7 @@ def load_app_instance(
     resolved = resolve_collaborators(context_cls, registry)
 
     # Use a pre-built cache if forwarded via context_kwargs, otherwise build fresh.
-    # ++ todo: remove fallback when the core compose path is wired at N2/FE1
+    # ++ todo: remove fallback when the core compose path is wired at N2
     cache = context_kwargs.pop('cache', None) or build_cache()
 
     # Construct the context declaratively, injecting the resolution handler and cache.

@@ -95,7 +95,7 @@ def build_tiferet_cli(
     # dependencies, and bootstrap constants). This bridges the legacy path to the
     # core compose path; the cache is forwarded into realize_interface so
     # load_app_instance reuses it rather than creating a second one.
-    # ++ todo: temporary cache creation; thread through the core compose path at FE1
+    # ++ todo: temporary cache creation; thread through the core compose path at N2
     cache = build_cache()
 
     # Read default services from the seeded cache rather than calling load_default_services.
