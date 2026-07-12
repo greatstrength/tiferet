@@ -13,7 +13,6 @@ from unittest import mock
 # ** app
 from tiferet.contexts.feature import (
     FeatureContext,
-    AsyncFeatureContext,
     RequestContext,
     run_coroutine,
     merge_step_kwargs,

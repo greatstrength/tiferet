@@ -187,8 +187,9 @@ def app_interface_context(app_interface, feature_context, error_context, logging
     """
 
     # Build a get-feature event that returns a real (synchronous) Feature.
-    # A bare Mock is truthy, so its `is_async` attribute would incorrectly
-    # route every feature to the async branch; a real Feature avoids that.
+    # A bare Mock is truthy, so its `is_async` attribute would be True,
+    # triggering the async dispatch path inside FeatureContext.execute_feature;
+    # a real Feature with is_async=False avoids that.
     get_feature_evt = mock.Mock()
     get_feature_evt.execute.return_value = Feature(
         id='test_group.test_feature',

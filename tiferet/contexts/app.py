@@ -15,7 +15,7 @@ from ..domain import AppSession, AppInterface, AppServiceDependency, Feature, Cl
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext, AsyncFeatureContext  # -- obsolete: AsyncFeatureContext import; remove at v2.0.0 stable
+from .feature import FeatureContext
 from .error import ErrorContext, ERROR_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
@@ -429,26 +429,6 @@ class AppSessionContext(BaseContext):
 
         # Return the request model object.
         return request
-
-    # * method: _run_coroutine (static, obsolete)
-    # -- obsolete: superseded by contexts.feature.run_coroutine; remove at v2.0.0 stable
-    @staticmethod
-    def _run_coroutine(coro: Any) -> Any:
-        '''
-        Drive a coroutine to completion from synchronous code.
-
-        NOTE: Obsolete — superseded by :func:`tiferet.contexts.feature.run_coroutine`.
-        This method is retained for one increment for backward compatibility.
-
-        :param coro: The coroutine to execute.
-        :type coro: Any
-        :return: The coroutine result.
-        :rtype: Any
-        '''
-
-        # Delegate to the module-level run_coroutine in contexts.feature.
-        from .feature import run_coroutine
-        return run_coroutine(coro)
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):

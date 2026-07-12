@@ -9,7 +9,7 @@ import pytest
 from tiferet.assets import TiferetError
 from tiferet.contexts.settings import BaseContext, ContextMeta
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.feature import FeatureContext, AsyncFeatureContext
+from tiferet.contexts.feature import FeatureContext
 from tiferet.contexts.error import ErrorContext
 from tiferet.contexts.app import AppSessionContext
 from tiferet.domain import Feature, Error, AppSession
@@ -35,20 +35,6 @@ def test_base_context_not_registered():
 
     # Assert no registry entry maps to BaseContext.
     assert BaseContext not in ContextMeta.registry.values()
-
-# ** test: async_feature_context_not_registered
-def test_async_feature_context_not_registered():
-    '''
-    Test that AsyncFeatureContext inherits domain_type without clobbering the
-    Feature registry entry, leaving FeatureContext as the resolved context.
-    '''
-
-    # Assert Feature still resolves to the synchronous FeatureContext.
-    assert ContextMeta.registry.get(Feature) is FeatureContext
-    assert BaseContext.for_domain(Feature) is FeatureContext
-
-    # Assert the async subclass is not registered for any domain type.
-    assert AsyncFeatureContext not in ContextMeta.registry.values()
 
 # ** test: for_domain_success
 def test_for_domain_success():
