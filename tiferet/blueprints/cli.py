@@ -18,8 +18,8 @@ from .main import (
 def build_app(
     interface_id: str,
     argv: Optional[List[str]] = None,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> Any:
     '''

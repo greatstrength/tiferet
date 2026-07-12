@@ -31,7 +31,8 @@ from .core import get_app_session
 
 # *** functions
 
-# ** function: resolve_ctor_kwargs
+# ** function: resolve_ctor_kwargs (obsolete)
+# -- obsolete: internal helper for wire_services; retires with it at N3
 def resolve_ctor_kwargs(service_type: type, registry: Dict[str, Any]) -> Dict[str, Any] | None:
     '''
     Resolve constructor keyword arguments for a service type from the registry.
@@ -69,7 +70,8 @@ def resolve_ctor_kwargs(service_type: type, registry: Dict[str, Any]) -> Dict[st
     return kwargs
 
 
-# ** function: build_wiring_constants
+# ** function: build_wiring_constants (obsolete)
+# -- obsolete: internal helper for load_app_instance; retires with it at N3
 def build_wiring_constants(app_session: AppSession) -> Dict[str, Any]:
     '''
     Build the wiring-registry seed constants from an app interface.
@@ -92,7 +94,8 @@ def build_wiring_constants(app_session: AppSession) -> Dict[str, Any]:
     }
 
 
-# ** function: resolve_collaborators
+# ** function: resolve_collaborators (obsolete)
+# -- obsolete: internal helper for load_app_instance; replaced by container-sourced lookup at N2; retires at N3
 def resolve_collaborators(context_cls: type, registry: Dict[str, Any]) -> Dict[str, Any]:
     '''
     Resolve a context class's event collaborators by name from a wiring registry.
@@ -129,7 +132,9 @@ def resolve_collaborators(context_cls: type, registry: Dict[str, Any]) -> Dict[s
 
 # *** blueprints
 
-# ** blueprint: build_cache
+# ** blueprint: build_cache (obsolete)
+# -- obsolete: superseded by core.build_cache which also seeds the app_service_ and
+#    app_constant_ cache prefixes; this version seeds errors only; retires at N6
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(
     cache: Dict[str, Any] = None,
@@ -153,7 +158,8 @@ def build_cache(
     return CacheContext(cache=cache)
 
 
-# ** blueprint: wire_services
+# ** blueprint: wire_services (obsolete)
+# -- obsolete: replaced by build_app_service_container in core.py; removal at N3
 def wire_services(
     services: List[AppServiceDependency],
     constants: Dict[str, Any],
@@ -217,6 +223,7 @@ def wire_services(
 
 
 # ** blueprint: load_app_instance
+# ++ todo: replace with core.build_app_interface_context at N2
 def load_app_instance(
     app_session: AppSession,
     **context_kwargs,
@@ -289,6 +296,7 @@ def load_app_instance(
 
 
 # ** blueprint: resolve_interface
+# ++ todo: delegate fully to core.get_app_session + apply_defaults at N6
 def resolve_interface(
     interface_id: str,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
@@ -343,6 +351,7 @@ def resolve_interface(
 
 
 # ** blueprint: realize_interface
+# ++ todo: type validation collapses into N2 path; retires at N6
 def realize_interface(
     app_session: AppSession,
     interface_id: str,
@@ -378,6 +387,7 @@ def realize_interface(
 
 
 # ** blueprint: build_app
+# ++ todo: converge onto core compose path at N6
 def build_app(
     interface_id: str,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,

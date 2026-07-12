@@ -14,6 +14,8 @@ from ..di import ServiceResolver, injectable_parameter_names
 # *** events
 
 # ** event: create_service_resolver
+# ++ todo: N4 — decide if this event retires or becomes a thin validation wrapper
+#    when N2 owns resolver composition in build_app_interface_context
 class CreateServiceResolver(DomainEvent):
     '''
     A bootstrap domain event that composes a fully wired ServiceResolver from

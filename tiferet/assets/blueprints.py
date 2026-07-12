@@ -8,8 +8,12 @@ live in ``assets/app.py`` as ``app.CORE_DEFAULT_SERVICES`` and
 
 # *** constants
 
-# ** constant: default_app_service_module_path
+# ** constant: default_app_service_module_path (obsolete)
+# -- obsolete: duplicated in assets/app.py as DEFAULT_APP_SERVICE_MODULE_PATH;
+#    remove this file once no consumers reference a.bps.*
 DEFAULT_APP_SERVICE_MODULE_PATH: str = 'tiferet.repos.app'
 
-# ** constant: default_app_service_class_name
+# ** constant: default_app_service_class_name (obsolete)
+# -- obsolete: duplicated in assets/app.py as DEFAULT_APP_SERVICE_CLASS_NAME;
+#    remove this file once no consumers reference a.bps.*
 DEFAULT_APP_SERVICE_CLASS_NAME: str = 'AppConfigRepository'
