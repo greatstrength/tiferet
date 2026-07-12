@@ -12,19 +12,16 @@ from tiferet.assets import TiferetError
 from tiferet.contexts.app import AppSessionContext
 from tiferet.contexts.cli import CliContext
 from tiferet.mappers import AppSessionAggregate
-from tiferet.repos.app import AppConfigRepository
 from tiferet import App
 from tiferet.blueprints.main import (
     build_app,
     build_cache,
-    load_app_service,
-    load_default_services,
     load_app_instance,
     resolve_collaborators,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
-from tiferet.domain import Error
+from tiferet.domain import AppServiceDependency, Error
 
 # *** fixtures
 
@@ -46,7 +43,7 @@ def app_interface_aggregate() -> AppSessionAggregate:
         class_name='AppSessionContext',
         description='Test calculator interface',
         flags=['test'],
-        services=load_default_services(),
+        services=[AppServiceDependency.model_validate(r) for r in a.app.CORE_DEFAULT_SERVICES.values()],
         constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
@@ -136,34 +133,6 @@ def test_app_alias_is_build_app():
     assert App is build_app
 
 
-# ** test: load_app_service_defaults
-def test_load_app_service_defaults():
-    '''
-    Validate that load_app_service defaults to AppConfigRepository.
-    '''
-
-    # Load the default app service.
-    service = load_app_service(app_config='app/configs/app.yml')
-
-    # Assert the service is an AppConfigRepository.
-    assert isinstance(service, AppConfigRepository)
-
-
-# ** test: load_default_services_returns_list
-def test_load_default_services_returns_list():
-    '''
-    Test that load_default_services returns a non-empty list of AppServiceDependency.
-    '''
-
-    # Load the default services.
-    services = load_default_services()
-
-    # Assert the result is a non-empty list.
-    assert isinstance(services, list)
-    assert len(services) > 0
-    assert all(hasattr(dep, 'service_id') for dep in services)
-
-
 # ** test: load_app_instance_success
 def test_load_app_instance_success(app_interface_aggregate):
     '''
@@ -195,7 +164,7 @@ def test_load_app_instance_injects_cli_collaborators():
         class_name='CliContext',
         description='Test CLI interface',
         flags=['test'],
-        services=load_default_services(),
+        services=[AppServiceDependency.model_validate(r) for r in a.app.CORE_DEFAULT_SERVICES.values()],
         constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
@@ -284,7 +253,7 @@ def test_build_app_success(app_interface_aggregate):
 
     # Mock resolve_interface to return the fixture and empty defaults.
     with mock.patch('tiferet.blueprints.main.resolve_interface') as mock_resolve:
-        mock_resolve.return_value = (app_interface_aggregate, load_default_services())
+        mock_resolve.return_value = (app_interface_aggregate, [])
 
         # Build the app and assert the result type.
         result = build_app(
@@ -308,7 +277,7 @@ def test_build_app_forwards_default_constants(app_interface_aggregate):
 
     # Mock resolve_interface to capture the call.
     with mock.patch('tiferet.blueprints.main.resolve_interface') as mock_resolve:
-        mock_resolve.return_value = (app_interface_aggregate, load_default_services())
+        mock_resolve.return_value = (app_interface_aggregate, [])
 
         # Build the app.
         build_app(
@@ -339,7 +308,7 @@ def test_build_app_invalid_context(app_interface_aggregate):
     # Mock resolve_interface and realize_interface.
     with mock.patch('tiferet.blueprints.main.resolve_interface') as mock_resolve, \
          mock.patch('tiferet.blueprints.main.realize_interface') as mock_realize:
-        mock_resolve.return_value = (app_interface_aggregate, load_default_services())
+        mock_resolve.return_value = (app_interface_aggregate, [])
         mock_realize.side_effect = TiferetError(a.const.INVALID_APP_SESSION_TYPE_ID, interface_id='invalid_interface')
 
         # Assert invalid context raises expected error.

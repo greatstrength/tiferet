@@ -26,8 +26,8 @@ from ..events import (
     ImportDependency,
     RaiseError,
 )
-from ..events.app import GetAppSession, GetAppInterface
 from ..events.blueprint import CreateServiceResolver
+from .core import get_app_session
 
 # *** functions
 
@@ -216,46 +216,6 @@ def wire_services(
     return registry
 
 
-# ** blueprint: load_app_service
-def load_app_service(
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
-    **parameters
-) -> Any:
-    '''
-    Import and construct the application service.
-
-    :param module_path: The module path of the app service implementation.
-    :type module_path: str
-    :param class_name: The class name of the app service implementation.
-    :type class_name: str
-    :param parameters: Additional parameters to pass to the app service constructor.
-    :type parameters: dict
-    :return: The constructed app service instance.
-    :rtype: Any
-    '''
-
-    # Import and construct the app service.
-    service_cls = ImportDependency.execute(module_path, class_name)
-    return service_cls(**parameters)
-
-
-# ** blueprint: load_default_services
-def load_default_services() -> List[AppServiceDependency]:
-    '''
-    Load the default app service dependencies from the core service catalog.
-
-    :return: A list of default app service dependencies.
-    :rtype: List[AppServiceDependency]
-    '''
-
-    # Build domain dependency models from the core default service catalog.
-    return [
-        AppServiceDependency.model_validate(record)
-        for record in a.app.CORE_DEFAULT_SERVICES.values()
-    ]
-
-
 # ** blueprint: load_app_instance
 def load_app_instance(
     app_session: AppSession,
@@ -314,8 +274,9 @@ def load_app_instance(
     # Resolve the context class's event collaborators by name from the registry.
     resolved = resolve_collaborators(context_cls, registry)
 
-    # Build the pre-seeded cache context for this session instance.
-    cache = build_cache()
+    # Use a pre-built cache if forwarded via context_kwargs, otherwise build fresh.
+    # ++ todo: remove fallback when the core compose path is wired at N2/FE1
+    cache = context_kwargs.pop('cache', None) or build_cache()
 
     # Construct the context declaratively, injecting the resolution handler and cache.
     return context_cls.from_domain(
@@ -330,16 +291,17 @@ def load_app_instance(
 # ** blueprint: resolve_interface
 def resolve_interface(
     interface_id: str,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> tuple:
     '''
     Load the app service and resolve the session definition.
 
-    Returns the resolved AppSession and the default services list
-    for downstream use by blueprint variants.
+    Returns the resolved AppSession. The second tuple element is vestigial
+    (all callers discard it with ``_``) and will be removed when
+    ``resolve_interface`` retires at N6.
 
     :param interface_id: The interface ID to load.
     :type interface_id: str
@@ -352,25 +314,14 @@ def resolve_interface(
     :type default_interfaces: List[Dict[str, Any]]
     :param parameters: Additional parameters to pass to the app service constructor.
     :type parameters: dict
-    :return: A tuple of (app_session, default_services).
+    :return: A tuple of (app_session, []).
     :rtype: tuple
     '''
 
-    # Load the app service.
-    app_service = load_app_service(module_path, class_name, **parameters)
-
-    # Load the default app service dependencies.
-    default_services = load_default_services()
-
-    # Retrieve the session via the event, falling back to the bootstrap default
-    # session definitions (materialized by the context bootstrap helper) when
-    # the consumer's config does not define it.
+    # Retrieve the session via the core blueprint, falling back to the bootstrap
+    # default session definitions when the config does not define it.
     try:
-        app_session = DomainEvent.handle(
-            GetAppSession,
-            dependencies=dict(app_service=app_service),
-            interface_id=interface_id,
-        )
+        app_session = get_app_session(interface_id, module_path, class_name, **parameters)
     except a.TiferetError:
         app_session = resolve_default_interface(interface_id, default_interfaces)
         if app_session is None:
@@ -378,12 +329,17 @@ def resolve_interface(
 
     # Merge the framework default services and constants via the domain model.
     app_session = app_session.apply_defaults(
-        default_services=default_services,
+        default_services=[
+            AppServiceDependency.model_validate(r)
+            for r in a.app.CORE_DEFAULT_SERVICES.values()
+        ],
         default_constants=a.app.CORE_DEFAULT_CONSTANTS,
     )
 
-    # Return the resolved session and default services.
-    return app_session, default_services
+    # Return the resolved session. The second element is vestigial; callers
+    # discard it with _ and it will be removed when resolve_interface retires at N6.
+    # ++ todo: simplify to single return value at N6
+    return app_session, []
 
 
 # ** blueprint: realize_interface
@@ -424,8 +380,8 @@ def realize_interface(
 # ** blueprint: build_app
 def build_app(
     interface_id: str,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     default_interfaces: List[Dict[str, Any]] = [],
     **parameters
 ) -> AppSessionContext:

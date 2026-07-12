@@ -11,11 +11,12 @@ from typing import Any, Dict, List, Optional
 from ..assets import TiferetAPIError
 from ..domain import AppServiceDependency
 from .. import assets as a
+from .core import build_cache
 from .main import (
-    load_default_services,
     resolve_interface,
     realize_interface,
 )
+from ..contexts.app import get_default_app_services
 
 # *** blueprints
 
@@ -90,9 +91,17 @@ def build_tiferet_cli(
         app_config=app_config,
     )
 
-    # Load the framework's default services and add CLI-specific services,
-    # avoiding duplicates of service IDs already present in the defaults.
-    default_services = load_default_services()
+    # Build the shared cache using the core blueprint (seeds errors, app service
+    # dependencies, and bootstrap constants). This bridges the legacy path to the
+    # core compose path; the cache is forwarded into realize_interface so
+    # load_app_instance reuses it rather than creating a second one.
+    # ++ todo: temporary cache creation; thread through the core compose path at FE1
+    cache = build_cache()
+
+    # Read default services from the seeded cache rather than calling load_default_services.
+    default_services = get_default_app_services(cache)
+
+    # Add CLI-specific services not already present in the defaults.
     existing_service_ids = {dep.service_id for dep in default_services}
     cli_service_deps = [
         AppServiceDependency.model_construct(
@@ -158,6 +167,7 @@ def build_tiferet_cli(
     cli_context = realize_interface(
         app_session,
         'tiferet_cli',
+        cache=cache,
         default_features=a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES,
         default_commands=a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS,
         default_configurations=default_configuration_dicts,
