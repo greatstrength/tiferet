@@ -427,7 +427,7 @@ class FeatureContext(BaseContext):
         validate_request(feature, request)
 
     # * method: execute_feature
-    def execute_feature(self, feature: Feature, request: RequestContext, **kwargs):
+    def execute_feature(self, feature: Feature, request: RequestContext, *flags, **kwargs):
         '''
         Execute a pre-loaded feature with the provided request.
 
@@ -435,6 +435,9 @@ class FeatureContext(BaseContext):
         :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
+        :param flags: Optional execution flags for feature-level service resolution;
+            consumed by the flag-verification hook added at FE3.
+        :type flags: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
@@ -552,7 +555,7 @@ class AsyncFeatureContext(FeatureContext):
         request.set_result(result, data_key)
 
     # * method: execute_feature_async
-    async def execute_feature_async(self, feature: Feature, request: RequestContext, **kwargs):
+    async def execute_feature_async(self, feature: Feature, request: RequestContext, *flags, **kwargs):
         '''
         Execute a pre-loaded feature with the provided request, supporting
         mixed sync/async step chains.
@@ -561,6 +564,9 @@ class AsyncFeatureContext(FeatureContext):
         :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
+        :param flags: Optional execution flags for feature-level service resolution;
+            consumed by the flag-verification hook added at FE3.
+        :type flags: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''

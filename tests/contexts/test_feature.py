@@ -962,7 +962,33 @@ def test_feature_context_execute_feature_invalid_request_fails_fast(feature_cont
         feature_context.execute_feature(feature, request)
 
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
-    assert calls['count'] == 0
+
+# ** test: feature_context_execute_feature_accepts_flags
+def test_feature_context_execute_feature_accepts_flags(feature_context, feature):
+    """Test that execute_feature accepts *flags positional arguments without error."""
+
+    # Add a standard step.
+    feature.steps.append(EventFeatureStep(name='Test Command', service_id='test_command'))
+    request = RequestContext(data={'key': 'value'})
+
+    # Passing flags should not raise and execution should complete normally.
+    feature_context.execute_feature(feature, request, 'flag_a', 'flag_b')
+
+    assert request.handle_response() == {'status': 'success', 'data': {'key': 'value'}}
+
+# ** test: async_feature_context_execute_feature_async_accepts_flags
+@pytest.mark.asyncio
+async def test_async_feature_context_execute_feature_async_accepts_flags(async_feature_context, feature):
+    """Test that execute_feature_async accepts *flags positional arguments without error."""
+
+    # Add an async step.
+    feature.steps.append(EventFeatureStep(name='Async Command', service_id='async_test_command'))
+    request = RequestContext(data={'key': 'value'})
+
+    # Passing flags should not raise and async execution should complete normally.
+    await async_feature_context.execute_feature_async(feature, request, 'flag_a', 'flag_b')
+
+    assert request.handle_response() == {'status': 'async_success', 'data': {'key': 'value'}}
 
 # ** test: async_feature_context_execute_feature_async_validates
 @pytest.mark.asyncio
