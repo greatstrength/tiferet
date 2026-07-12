@@ -14,6 +14,9 @@ from tiferet.contexts.feature import (
     FeatureContext,
     AsyncFeatureContext,
     RequestContext,
+    parse_request_parameter,
+    evaluate_condition,
+    validate_request,
 )
 from tiferet.assets import TiferetError
 from tiferet.events import DomainEvent, AsyncDomainEvent
@@ -83,7 +86,9 @@ def feature():
 
 # *** tests
 
-# ** test: feature_context_parse_request_parameter_success
+# ** test: feature_context_parse_request_parameter_success (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_request_ref_success
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_parse_request_parameter_success(feature_context):
     """Test parsing a request-backed parameter successfully."""
 
@@ -96,7 +101,9 @@ def test_feature_context_parse_request_parameter_success(feature_context):
     # Assert that the parsed value is correct.
     assert result == 'value'
 
-# ** test: feature_context_parse_request_parameter_request_not_found
+# ** test: feature_context_parse_request_parameter_request_not_found (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_request_not_found
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_parse_request_parameter_request_not_found(feature_context):
     """Test that an error is raised when request is None for a request-backed parameter."""
 
@@ -109,7 +116,9 @@ def test_feature_context_parse_request_parameter_request_not_found(feature_conte
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.key'
 
-# ** test: feature_context_parse_request_parameter_not_found
+# ** test: feature_context_parse_request_parameter_not_found (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_key_missing
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_parse_request_parameter_not_found(feature_context):
     """Test that an error is raised when the parameter key is missing in request data."""
 
@@ -125,7 +134,9 @@ def test_feature_context_parse_request_parameter_not_found(feature_context):
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.missing'
 
-# ** test: feature_context_parse_request_parameter_delegates_to_parse_parameter
+# ** test: feature_context_parse_request_parameter_delegates_to_parse_parameter (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_parse_request_parameter_delegates_to_parse_parameter
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_parse_request_parameter_delegates_to_parse_parameter(feature_context, monkeypatch):
     """Test that non-request parameters delegate to ParseParameter.execute."""
 
@@ -391,7 +402,9 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
     # Assert that the response is stored in the request data under the specified key.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value", "param": "value"}}
 
-# ** test: feature_context_evaluate_condition_none_returns_true
+# ** test: feature_context_evaluate_condition_none_returns_true (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_none_returns_true
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_none_returns_true(feature_context):
     """Test that evaluate_condition returns True when condition is None."""
 
@@ -401,7 +414,9 @@ def test_feature_context_evaluate_condition_none_returns_true(feature_context):
     # Assert that None condition evaluates to True.
     assert feature_context.evaluate_condition(None, request) is True
 
-# ** test: feature_context_evaluate_condition_empty_returns_true
+# ** test: feature_context_evaluate_condition_empty_returns_true (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_empty_returns_true
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_empty_returns_true(feature_context):
     """Test that evaluate_condition returns True when condition is empty."""
 
@@ -412,7 +427,9 @@ def test_feature_context_evaluate_condition_empty_returns_true(feature_context):
     assert feature_context.evaluate_condition('', request) is True
     assert feature_context.evaluate_condition('   ', request) is True
 
-# ** test: feature_context_evaluate_condition_true_expression
+# ** test: feature_context_evaluate_condition_true_expression (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_true_expression
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_true_expression(feature_context):
     """Test that evaluate_condition returns True when expression resolves to True."""
 
@@ -422,7 +439,9 @@ def test_feature_context_evaluate_condition_true_expression(feature_context):
     # Assert that the condition evaluates to True.
     assert feature_context.evaluate_condition('$r.x > 0', request) is True
 
-# ** test: feature_context_evaluate_condition_false_expression
+# ** test: feature_context_evaluate_condition_false_expression (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_false_expression
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_false_expression(feature_context):
     """Test that evaluate_condition returns False when expression resolves to False."""
 
@@ -432,7 +451,9 @@ def test_feature_context_evaluate_condition_false_expression(feature_context):
     # Assert that the condition evaluates to False.
     assert feature_context.evaluate_condition('$r.x > 0', request) is False
 
-# ** test: feature_context_evaluate_condition_string_equality
+# ** test: feature_context_evaluate_condition_string_equality (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_string_equality
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_string_equality(feature_context):
     """Test that evaluate_condition supports string equality checks."""
 
@@ -443,7 +464,9 @@ def test_feature_context_evaluate_condition_string_equality(feature_context):
     assert feature_context.evaluate_condition("$r.mode == 'advanced'", request) is True
     assert feature_context.evaluate_condition("$r.mode == 'basic'", request) is False
 
-# ** test: feature_context_evaluate_condition_missing_key_returns_false
+# ** test: feature_context_evaluate_condition_missing_key_returns_false (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_missing_key_returns_false
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_missing_key_returns_false(feature_context):
     """Test that evaluate_condition returns False when a referenced key is missing."""
 
@@ -453,7 +476,9 @@ def test_feature_context_evaluate_condition_missing_key_returns_false(feature_co
     # Assert that a condition referencing a missing key evaluates to False.
     assert feature_context.evaluate_condition('$r.x > 0', request) is False
 
-# ** test: feature_context_evaluate_condition_invalid_expression_returns_false
+# ** test: feature_context_evaluate_condition_invalid_expression_returns_false (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_evaluate_condition_invalid_expression_returns_false
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_evaluate_condition_invalid_expression_returns_false(feature_context):
     """Test that evaluate_condition returns False on unparseable expressions."""
 
@@ -859,7 +884,9 @@ def test_async_feature_context_subclasses_feature_context():
     assert not hasattr(FeatureContext, 'handle_feature_step_async')
     assert not hasattr(FeatureContext, 'execute_feature_async')
 
-# ** test: feature_context_validate_request_no_schema_is_noop
+# ** test: feature_context_validate_request_no_schema_is_noop (obsolete)
+# -- obsolete: tests the obsolete instance method wrapper; superseded by test_validate_request_no_schema_is_noop
+# ++ todo: remove when instance methods are removed at FE2 cleanup
 def test_feature_context_validate_request_no_schema_is_noop(feature_context, feature):
     """Test that validate_request leaves data unchanged when no schema is set."""
 
@@ -1001,3 +1028,171 @@ async def test_async_feature_context_execute_feature_async_invalid_fails_fast(as
 
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
     assert calls['count'] == 0
+
+# ** test: parse_request_parameter_request_ref_success
+def test_parse_request_parameter_request_ref_success():
+    """Test that parse_request_parameter extracts a $r.-prefixed value from request data."""
+
+    # Create a request containing the referenced key.
+    request = RequestContext(data={'key': 'value'})
+
+    # Parse the request-backed parameter.
+    result = parse_request_parameter('$r.key', request)
+
+    # Assert the extracted value is returned.
+    assert result == 'value'
+
+# ** test: parse_request_parameter_request_not_found
+def test_parse_request_parameter_request_not_found():
+    """Test that parse_request_parameter raises REQUEST_NOT_FOUND when no request is given."""
+
+    # Assert the structured error is raised when no request is provided.
+    with pytest.raises(TiferetError) as exc_info:
+        parse_request_parameter('$r.key', None)
+
+    assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.key'
+
+# ** test: parse_request_parameter_key_missing
+def test_parse_request_parameter_key_missing():
+    """Test that parse_request_parameter raises PARAMETER_NOT_FOUND when the key is absent."""
+
+    # Create a request that does not contain the referenced key.
+    request = RequestContext(data={})
+
+    # Assert the structured error is raised when the key is missing.
+    with pytest.raises(TiferetError) as exc_info:
+        parse_request_parameter('$r.missing', request)
+
+    assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
+    assert exc_info.value.kwargs.get('parameter') == '$r.missing'
+
+# ** test: parse_request_parameter_delegates_to_parse_parameter
+def test_parse_request_parameter_delegates_to_parse_parameter(monkeypatch):
+    """Test that non-$r. parameters are forwarded to ParseParameter.execute."""
+
+    from tiferet.events import static as static_events
+
+    called = {}
+
+    def fake_execute(parameter: str):
+        called['parameter'] = parameter
+        return 'parsed-value'
+
+    monkeypatch.setattr(static_events.ParseParameter, 'execute', staticmethod(fake_execute))
+
+    # A non-$r. parameter should delegate to ParseParameter.execute.
+    result = parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
+
+    assert result == 'parsed-value'
+    assert called['parameter'] == '$env.MY_VAR'
+
+# ** test: evaluate_condition_none_returns_true
+def test_evaluate_condition_none_returns_true():
+    """Test that evaluate_condition returns True when condition is None."""
+
+    request = RequestContext(data={})
+
+    assert evaluate_condition(None, request) is True
+
+# ** test: evaluate_condition_empty_returns_true
+def test_evaluate_condition_empty_returns_true():
+    """Test that evaluate_condition returns True when condition is empty or blank."""
+
+    request = RequestContext(data={})
+
+    assert evaluate_condition('', request) is True
+    assert evaluate_condition('   ', request) is True
+
+# ** test: evaluate_condition_true_expression
+def test_evaluate_condition_true_expression():
+    """Test that evaluate_condition returns True when the expression resolves to True."""
+
+    request = RequestContext(data={'x': 5})
+
+    assert evaluate_condition('$r.x > 0', request) is True
+
+# ** test: evaluate_condition_false_expression
+def test_evaluate_condition_false_expression():
+    """Test that evaluate_condition returns False when the expression resolves to False."""
+
+    request = RequestContext(data={'x': -1})
+
+    assert evaluate_condition('$r.x > 0', request) is False
+
+# ** test: evaluate_condition_string_equality
+def test_evaluate_condition_string_equality():
+    """Test that evaluate_condition handles string equality checks correctly."""
+
+    request = RequestContext(data={'mode': 'advanced'})
+
+    assert evaluate_condition("$r.mode == 'advanced'", request) is True
+    assert evaluate_condition("$r.mode == 'basic'", request) is False
+
+# ** test: evaluate_condition_missing_key_returns_false
+def test_evaluate_condition_missing_key_returns_false():
+    """Test that evaluate_condition returns False when a referenced key is absent."""
+
+    request = RequestContext(data={})
+
+    assert evaluate_condition('$r.x > 0', request) is False
+
+# ** test: evaluate_condition_invalid_expression_returns_false
+def test_evaluate_condition_invalid_expression_returns_false():
+    """Test that evaluate_condition returns False on an unparseable expression."""
+
+    request = RequestContext(data={'x': 5})
+
+    assert evaluate_condition('$r.x >>>!!! invalid', request) is False
+
+# ** test: validate_request_no_schema_is_noop
+def test_validate_request_no_schema_is_noop(feature):
+    """Test that validate_request leaves request data unchanged when the feature has no schema."""
+
+    # Create a request with raw string data.
+    request = RequestContext(data={'a': '5'})
+
+    # Validate against a schema-less feature.
+    validate_request(feature, request)
+
+    # Assert the data is unchanged.
+    assert request.data == {'a': '5'}
+
+# ** test: validate_request_coerces_data
+def test_validate_request_coerces_data():
+    """Test that validate_request coerces request data to the feature's declared types."""
+
+    # Build a feature with an int/float schema.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int', 'b': 'float'},
+        steps=[],
+    )
+    request = RequestContext(data={'a': '5', 'b': '2'})
+
+    # Validate and coerce the request.
+    validate_request(feature, request)
+
+    # Assert the data was coerced to the declared types.
+    assert request.data['a'] == 5
+    assert request.data['b'] == 2.0
+
+# ** test: validate_request_invalid_data_raises
+def test_validate_request_invalid_data_raises():
+    """Test that validate_request raises REQUEST_VALIDATION_FAILED for type-incompatible data."""
+
+    # Build a feature with an int schema.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int'},
+        steps=[],
+    )
+    request = RequestContext(data={'a': 'notint'})
+
+    # Assert the structured validation error is raised.
+    with pytest.raises(TiferetError) as exc_info:
+        validate_request(feature, request)
+
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'

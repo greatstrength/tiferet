@@ -24,6 +24,118 @@ from ..events import (
 )
 from ..domain import Feature, EventFeatureStep
 
+# *** functions
+
+# ** function: parse_request_parameter
+def parse_request_parameter(parameter: str, request: RequestContext = None) -> str:
+    '''
+    Parse a request-aware parameter value.
+
+    Delegates non-prefixed parameters to :func:`ParseParameter.execute`. For
+    ``$r.``-prefixed references, extracts the value keyed by the suffix from
+    ``request.data``, raising a structured error when the request is absent or
+    the key is missing.
+
+    :param parameter: The parameter value to parse.
+    :type parameter: str
+    :param request: The request context object containing data for parameter parsing.
+    :type request: RequestContext
+    :return: The parsed parameter value.
+    :rtype: str
+    '''
+
+    # Delegate non-prefixed parameters to the ParseParameter static event.
+    if not parameter.startswith('$r.'):
+        return ParseParameter.execute(parameter)
+
+    # Raise an error if the request is not provided for a request-backed parameter.
+    if not request:
+        RaiseError.execute(
+            REQUEST_NOT_FOUND_ID,
+            'Request data is not available for parameter parsing.',
+            parameter=parameter
+        )
+
+    # Extract the value from the request data using the key after the $r. prefix.
+    result = request.data.get(parameter[3:], None)
+
+    # Raise an error if the parameter key is not found in the request data.
+    if result is None:
+        RaiseError.execute(
+            PARAMETER_NOT_FOUND_ID,
+            f'Parameter {parameter} not found in request data.',
+            parameter=parameter
+        )
+
+    # Return the parsed parameter value.
+    return result
+
+# ** function: evaluate_condition
+def evaluate_condition(condition: str, request: RequestContext) -> bool:
+    '''
+    Evaluate a boolean expression against request data.
+
+    Returns ``True`` when ``condition`` is ``None`` or empty (unconditional
+    step). Resolves ``$r.<key>`` references from ``request.data`` via regex
+    substitution, then evaluates the resulting expression in a sandboxed
+    environment. Returns ``False`` on any evaluation failure.
+
+    :param condition: The boolean expression to evaluate. Uses ``$r.`` prefix
+        to reference values from ``request.data``.
+    :type condition: str
+    :param request: The request context containing the data to resolve references against.
+    :type request: RequestContext
+    :return: The boolean result of the evaluated expression.
+    :rtype: bool
+    '''
+
+    # Return True if condition is None or empty (unconditional step).
+    if not condition or not condition.strip():
+        return True
+
+    # Resolve $r. references by substituting values from request data.
+    def _resolve_ref(match: re.Match) -> str:
+        key = match.group(1)
+        value = request.data.get(key)
+        if value is None:
+            return 'None'
+        return repr(value)
+
+    # Replace all $r.<key> references with their repr'd values.
+    resolved = re.sub(r'\$r\.(\w+)', _resolve_ref, condition)
+
+    # Evaluate the resolved expression safely; return False on failure.
+    try:
+        return bool(eval(resolved, {"__builtins__": {}}, {}))  # noqa: S307
+    except Exception:
+        return False
+
+# ** function: validate_request
+def validate_request(feature: Feature, request: RequestContext) -> None:
+    '''
+    Validate and coerce request data against the feature's request schema.
+
+    When the feature declares no ``params_schema`` the request is left
+    unchanged; otherwise the coerced result replaces ``request.data`` so all
+    downstream steps receive validated, type-coerced inputs. A schema failure
+    raises a single ``REQUEST_VALIDATION_FAILED`` error before any step runs.
+
+    :param feature: The pre-loaded feature domain object.
+    :type feature: Feature
+    :param request: The request context whose data is validated in place.
+    :type request: RequestContext
+    '''
+
+    # Skip validation when the feature declares no request schema.
+    if feature.params_schema is None:
+        return
+
+    # Validate and coerce the request data, assigning the merged result back.
+    request.data = feature.params_schema.validate(
+        request.data,
+        feature_id=feature.id,
+    )
+
 # *** contexts
 
 # ** context: feature_context
@@ -214,10 +326,15 @@ class FeatureContext(BaseContext):
         # Store the result via the request context.
         request.set_result(result, data_key)
 
-    # * method: parse_request_parameter
+    # * method: parse_request_parameter (obsolete)
+    # -- obsolete: superseded by the module-level parse_request_parameter function; remove at FE2 cleanup
+    # ++ todo: update test callers to invoke the module-level parse_request_parameter directly
     def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
         '''
         Parse a request-aware parameter.
+
+        NOTE: Obsolete — delegates to the module-level :func:`parse_request_parameter`.
+        Call that function directly instead.
 
         :param parameter: The parameter to parse.
         :type parameter: str
@@ -227,40 +344,20 @@ class FeatureContext(BaseContext):
         :rtype: str
         '''
 
-        # Parse the parameter if it is not a request-backed parameter.
-        if not parameter.startswith('$r.'):
-            return ParseParameter.execute(parameter)
+        # Delegate to the module-level function.
+        return parse_request_parameter(parameter, request)
 
-        # Raise an error if the request is not provided for a request-backed parameter.
-        if not request:
-            RaiseError.execute(
-                REQUEST_NOT_FOUND_ID,
-                'Request data is not available for parameter parsing.',
-                parameter=parameter
-            )
-
-        # Parse the parameter from the request if provided.
-        result = request.data.get(parameter[3:], None)
-
-        # Raise an error if the parameter is not found in the request data.
-        if result is None:
-            RaiseError.execute(
-                PARAMETER_NOT_FOUND_ID,
-                f'Parameter {parameter} not found in request data.',
-                parameter=parameter
-            )
-
-        # Return the parsed parameter.
-        return result
-
-    # * method: evaluate_condition
+    # * method: evaluate_condition (obsolete)
+    # -- obsolete: superseded by the module-level evaluate_condition function; remove at FE2 cleanup
+    # ++ todo: update test callers to invoke the module-level evaluate_condition directly
     def evaluate_condition(self, condition: str, request: RequestContext) -> bool:
         '''
         Evaluate a boolean expression against request data.
-        Returns True when condition is None or empty.
 
-        :param condition: The boolean expression to evaluate. Uses ``$r.`` prefix
-            to reference values from ``request.data``.
+        NOTE: Obsolete — delegates to the module-level :func:`evaluate_condition`.
+        Call that function directly instead.
+
+        :param condition: The boolean expression to evaluate.
         :type condition: str
         :param request: The request context containing the data to resolve references against.
         :type request: RequestContext
@@ -268,26 +365,8 @@ class FeatureContext(BaseContext):
         :rtype: bool
         '''
 
-        # Return True if condition is None or empty (unconditional step).
-        if not condition or not condition.strip():
-            return True
-
-        # Resolve $r. references by substituting values from request data.
-        def _resolve_ref(match: re.Match) -> str:
-            key = match.group(1)
-            value = request.data.get(key)
-            if value is None:
-                return 'None'
-            return repr(value)
-
-        # Replace all $r.<key> references with their repr'd values.
-        resolved = re.sub(r'\$r\.(\w+)', _resolve_ref, condition)
-
-        # Evaluate the resolved expression safely; return False on failure.
-        try:
-            return bool(eval(resolved, {"__builtins__": {}}, {}))  # noqa: S307
-        except Exception:
-            return False
+        # Delegate to the module-level function.
+        return evaluate_condition(condition, request)
 
     # * method: resolve_feature_steps
     def resolve_feature_steps(self,
@@ -313,7 +392,7 @@ class FeatureContext(BaseContext):
         for feature_event in feature.steps:
 
             # Evaluate the step condition; skip if False.
-            if not self.evaluate_condition(feature_event.condition, request):
+            if not evaluate_condition(feature_event.condition, request):
                 continue
 
             # Load the event dependency for this step, honoring any configured flags.
@@ -321,24 +400,22 @@ class FeatureContext(BaseContext):
 
             # Parse the step parameters.
             params = {
-                param: self.parse_request_parameter(value, request)
+                param: parse_request_parameter(value, request)
                 for param, value in feature_event.parameters.items()
             }
 
             # Yield the resolved step.
             yield cmd, feature_event, params
 
-    # * method: validate_request
+    # * method: validate_request (obsolete)
+    # -- obsolete: superseded by the module-level validate_request function; remove at FE2 cleanup
+    # ++ todo: update test callers to invoke the module-level validate_request directly
     def validate_request(self, feature: Feature, request: RequestContext) -> None:
         '''
-        Validate and coerce request data against the feature's request schema
-        before any step executes.
+        Validate and coerce request data against the feature's request schema.
 
-        When the feature declares no ``params_schema`` the request is left
-        unchanged; otherwise the coerced result replaces ``request.data`` so all
-        downstream steps receive validated, type-coerced inputs. A schema
-        failure raises a single ``REQUEST_VALIDATION_FAILED`` error before any
-        step runs.
+        NOTE: Obsolete — delegates to the module-level :func:`validate_request`.
+        Call that function directly instead.
 
         :param feature: The pre-loaded feature domain object.
         :type feature: Feature
@@ -346,15 +423,8 @@ class FeatureContext(BaseContext):
         :type request: RequestContext
         '''
 
-        # Skip validation when the feature declares no request schema.
-        if feature.params_schema is None:
-            return
-
-        # Validate and coerce the request data, assigning the merged result back.
-        request.data = feature.params_schema.validate(
-            request.data,
-            feature_id=feature.id,
-        )
+        # Delegate to the module-level function.
+        validate_request(feature, request)
 
     # * method: execute_feature
     def execute_feature(self, feature: Feature, request: RequestContext, **kwargs):
@@ -371,7 +441,7 @@ class FeatureContext(BaseContext):
 
         # Validate and coerce request data against the feature schema first,
         # failing fast before any step executes.
-        self.validate_request(feature, request)
+        validate_request(feature, request)
 
         # Resolve feature-level middleware once for all steps.
         feature_middleware = self.load_feature_middleware(feature.middleware)
@@ -497,7 +567,7 @@ class AsyncFeatureContext(FeatureContext):
 
         # Validate and coerce request data against the feature schema first,
         # failing fast before any step executes.
-        self.validate_request(feature, request)
+        validate_request(feature, request)
 
         # Resolve feature-level middleware once for all steps.
         feature_middleware = self.load_feature_middleware(feature.middleware)
