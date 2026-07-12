@@ -174,6 +174,8 @@ class FeatureAggregate(Feature, Aggregate):
         pass_on_error: bool = False,
         condition: str | None = None,
         middleware: List[str] | None = None,
+        is_async: bool = False,
+        flags: List[str] | None = None,
         position: int | None = None,
     ) -> EventFeatureStep:
         '''
@@ -193,6 +195,10 @@ class FeatureAggregate(Feature, Aggregate):
         :type condition: str | None
         :param middleware: Optional ordered list of middleware service IDs.
         :type middleware: list[str] | None
+        :param is_async: Whether this step executes asynchronously.
+        :type is_async: bool
+        :param flags: Optional list of feature flags that activate this step.
+        :type flags: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created EventFeatureStep instance.
@@ -208,6 +214,8 @@ class FeatureAggregate(Feature, Aggregate):
             pass_on_error=pass_on_error,
             condition=condition,
             middleware=middleware or [],
+            is_async=is_async,
+            flags=flags or [],
         )
 
         # Copy steps to a local list, insert or append, then reassign.

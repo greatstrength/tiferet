@@ -182,6 +182,31 @@ def build_step_chain(
     # Return the composed sync chain.
     return chain
 
+# ** function: compose_step_middleware
+def compose_step_middleware(
+        feature_middleware: list,
+        step_middleware: list,
+) -> list:
+    '''
+    Compose feature-level and step-level middleware into a single ordered list.
+
+    Feature-level middleware (outermost) wraps every step in the feature;
+    step-level middleware (innermost) wraps only the individual step. Returns
+    the concatenated list, or an empty list when both inputs are absent.
+
+    :param feature_middleware: Resolved feature-level middleware instances.
+        Applied as the outermost wrappers, before step-level middleware.
+    :type feature_middleware: list
+    :param step_middleware: Resolved step-level middleware instances.
+        Applied as the innermost wrappers, after feature-level middleware.
+    :type step_middleware: list
+    :return: Composed middleware list, feature-level first.
+    :rtype: list
+    '''
+
+    # Concatenate feature-level (outer) and step-level (inner) middleware.
+    return (feature_middleware or []) + (step_middleware or [])
+
 # ** function: parse_request_parameter
 def parse_request_parameter(parameter: str, request: RequestContext = None) -> str:
     '''
@@ -353,15 +378,14 @@ class FeatureContext(BaseContext):
         # Store the context-level execution defaults.
         self.context_data = context_data if context_data is not None else {}
 
-    # * method: load_feature_step
-    def load_feature_step(self, feature_event: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
+    # * method: resolve_step_event
+    def resolve_step_event(self, step: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
         '''
-        Resolve a feature event step via the injected service-resolution
-        handler using its service ID and any configured flags.
+        Resolve the domain event for a feature step via the injected
+        service-resolution handler using its service ID and any configured flags.
 
-        :param feature_event: The feature event metadata describing the
-            service configuration and flags.
-        :type feature_event: EventFeatureStep
+        :param step: The feature step whose service ID and flags drive resolution.
+        :type step: EventFeatureStep
         :param feature_flags: Optional list of flags from the parent feature.
         :type feature_flags: List[str]
         :return: The resolved domain event.
@@ -369,10 +393,10 @@ class FeatureContext(BaseContext):
         '''
 
         # Resolve the service identifier for the event.
-        service_id = feature_event.service_id
+        service_id = step.service_id
 
         # Combine flags: feature-level (higher priority) first, then step-level.
-        combined_flags = (feature_flags or []) + (feature_event.flags or [])
+        combined_flags = (feature_flags or []) + (step.flags or [])
 
         # Attempt to resolve the event via the injected handler using the combined flags.
         try:
@@ -390,8 +414,8 @@ class FeatureContext(BaseContext):
                 exception=str(e)
             )
 
-    # * method: load_feature_middleware
-    def load_feature_middleware(self, middleware_ids: list) -> list:
+    # * method: resolve_middleware
+    def resolve_middleware(self, middleware_ids: list) -> list:
         '''
         Resolve a list of middleware service IDs to callable middleware instances.
 
@@ -424,39 +448,41 @@ class FeatureContext(BaseContext):
         # Return the resolved middleware instances.
         return middleware
 
-    # * method: handle_feature_step
-    def handle_feature_step(self,
-        command: DomainEvent,
+    # * method: execute_step
+    def execute_step(self,
+        event: DomainEvent,
         request: RequestContext,
+        merged_kwargs: Dict[str, Any],
         data_key: str = None,
         pass_on_error: bool = False,
         middleware: list = None,
-        **kwargs
     ):
         '''
-        Execute a feature step synchronously with the provided request and options.
+        Execute a feature step synchronously with pre-merged kwargs.
 
-        When ``middleware`` is provided the command execution is wrapped in an
-        ordered chain. Each middleware callable receives
-        ``(event, kwargs, next_fn)`` and must call ``next_fn()`` to continue.
+        Receives fully merged execution kwargs from the caller (built by
+        ``execute_feature`` via ``merge_step_kwargs``). When ``middleware`` is
+        provided the event execution is wrapped in an ordered chain. Each
+        middleware callable receives ``(event, kwargs, next_fn)`` and must call
+        ``next_fn()`` to continue.
 
-        :param command: The domain event to execute.
-        :type command: DomainEvent
+        :param event: The domain event to execute.
+        :type event: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
+        :param merged_kwargs: Pre-merged execution kwargs (context defaults,
+            request data, step params, and caller overrides already combined).
+        :type merged_kwargs: Dict[str, Any]
         :param data_key: Optional key to store the result in the request data.
         :type data_key: str
         :param pass_on_error: If True, pass on the error instead of raising it.
         :type pass_on_error: bool
         :param middleware: Optional ordered list of resolved middleware callables.
         :type middleware: list | None
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
-        # Build the merged kwargs and the sync execution chain.
-        merged_kwargs = merge_step_kwargs(self.context_data, request.data, {}, **kwargs)
-        chain = build_step_chain(command, merged_kwargs, middleware or [], is_async=False)
+        # Build the sync execution chain from the pre-merged kwargs.
+        chain = build_step_chain(event, merged_kwargs, middleware or [])
 
         # Execute the chain, handling errors per pass_on_error.
         try:
@@ -473,41 +499,42 @@ class FeatureContext(BaseContext):
         # Store the result via the request context.
         request.set_result(result, data_key)
 
-    # * method: _handle_step_async
-    async def _handle_step_async(self,
-        command: DomainEvent,
+    # * method: _execute_step_async
+    async def _execute_step_async(self,
+        event: DomainEvent,
         request: RequestContext,
+        merged_kwargs: Dict[str, Any],
         data_key: str = None,
         pass_on_error: bool = False,
         middleware: list = None,
-        **kwargs
     ):
         '''
-        Execute a feature step asynchronously, supporting both sync and async
-        domain events and middleware.
+        Execute a feature step asynchronously with pre-merged kwargs.
 
-        Detects whether the command's ``execute`` is a coroutine function and
-        awaits it when necessary, otherwise calls it synchronously. When
-        ``middleware`` is provided the execution is wrapped in an ordered async
-        chain; async middleware must ``await next_fn()``.
+        Receives fully merged execution kwargs from the caller (built by
+        ``_execute_async`` via ``merge_step_kwargs``). Detects whether the
+        event's ``execute`` is a coroutine function and awaits it when
+        necessary, otherwise calls it synchronously. When ``middleware`` is
+        provided the execution is wrapped in an ordered async chain; async
+        middleware must ``await next_fn()``.
 
-        :param command: The domain event to execute (sync or async).
-        :type command: DomainEvent
+        :param event: The domain event to execute (sync or async).
+        :type event: DomainEvent
         :param request: The request context object.
         :type request: RequestContext
+        :param merged_kwargs: Pre-merged execution kwargs (context defaults,
+            request data, step params, and caller overrides already combined).
+        :type merged_kwargs: Dict[str, Any]
         :param data_key: Optional key to store the result in the request data.
         :type data_key: str
         :param pass_on_error: If True, pass on the error instead of raising it.
         :type pass_on_error: bool
         :param middleware: Optional ordered list of resolved middleware callables.
         :type middleware: list | None
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
         '''
 
-        # Build the merged kwargs and the async execution chain.
-        merged_kwargs = merge_step_kwargs(self.context_data, request.data, {}, **kwargs)
-        chain = build_step_chain(command, merged_kwargs, middleware or [], is_async=True)
+        # Build the async execution chain from the pre-merged kwargs.
+        chain = build_step_chain(event, merged_kwargs, middleware or [], is_async=True)
 
         # Execute the async chain, handling errors per pass_on_error.
         try:
@@ -530,7 +557,7 @@ class FeatureContext(BaseContext):
         Execute a pre-loaded async feature, awaiting each step in turn.
 
         Supports mixed sync/async step chains: each step is dispatched through
-        ``_handle_step_async``, which detects and awaits coroutine-based
+        ``_execute_step_async``, which detects and awaits coroutine-based
         domain events while calling synchronous events directly.
 
         This method is a genuine async coroutine and stays awaitable for any
@@ -541,91 +568,85 @@ class FeatureContext(BaseContext):
         :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
-        :param flags: Optional execution flags; consumed by the FE3
-            flag-verification hook.
+        :param flags: Execution flags combined additively with feature-level
+            and step-level flags at resolution time.
         :type flags: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         '''
 
         # Resolve feature-level middleware once for all steps.
-        feature_middleware = self.load_feature_middleware(feature.middleware)
+        feature_middleware = self.resolve_middleware(feature.middleware)
 
         # Resolve and execute each step, awaiting async commands as needed.
-        for cmd, step, params in self.resolve_feature_steps(feature, request):
+        for event, step, params in self.resolve_feature_steps(feature, request, *flags):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
-            step_middleware = self.load_feature_middleware(step.middleware)
-            combined_middleware = feature_middleware + step_middleware or None
+            step_middleware = self.resolve_middleware(step.middleware)
+            combined_middleware = compose_step_middleware(feature_middleware, step_middleware)
 
-            await self._handle_step_async(
-                cmd,
+            # Build merged kwargs: context defaults < request data < step params < caller overrides.
+            merged_kwargs = merge_step_kwargs(self.context_data, request.data, params, cache=self.cache, **kwargs)
+
+            await self._execute_step_async(
+                event,
                 request,
+                merged_kwargs,
                 data_key=step.data_key,
                 pass_on_error=step.pass_on_error,
                 middleware=combined_middleware,
-                **params,
-                cache=self.cache,
-                **kwargs
             )
 
     # * method: resolve_feature_steps
     def resolve_feature_steps(self,
             feature: Feature,
             request: RequestContext,
+            *execution_flags: str,
         ) -> Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]:
         '''
         Resolve and yield executable steps for a pre-loaded feature.
 
         Evaluates step conditions, resolves each step's domain event from the
         DI context, and parses its parameters. Yields tuples of
-        ``(command, feature_event, params)`` for each step that should execute.
+        ``(event, step, params)`` for each step that should execute.
+
+        Flags are **additive**: execution flags (from the caller) are combined
+        with feature-level flags and step-level flags at resolution time so
+        the service resolver receives the full combined flag set. No subset
+        validation is performed — the resolver is authoritative.
 
         :param feature: The pre-loaded feature domain object.
         :type feature: Feature
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
-        :return: A generator yielding (command, feature_event, params) tuples.
+        :param execution_flags: Caller-supplied execution flags combined with
+            feature-level flags before step-level flags are appended.
+        :type execution_flags: str
+        :return: A generator yielding (event, step, params) tuples.
         :rtype: Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]
         '''
 
+        # Build the combined feature-level flag set: execution flags + feature flags.
+        combined_feature_flags = list(execution_flags) + (feature.flags or [])
+
         # Iterate over the feature's configured steps.
-        for feature_event in feature.steps:
+        for step in feature.steps:
 
             # Evaluate the step condition; skip if False.
-            if not evaluate_condition(feature_event.condition, request):
+            if not evaluate_condition(step.condition, request):
                 continue
 
-            # Load the event dependency for this step, honoring any configured flags.
-            cmd = self.load_feature_step(feature_event, feature_flags=feature.flags)
+            # Resolve the domain event, combining all flag tiers additively.
+            event = self.resolve_step_event(step, feature_flags=combined_feature_flags)
 
             # Parse the step parameters.
             params = {
                 param: parse_request_parameter(value, request)
-                for param, value in feature_event.parameters.items()
+                for param, value in step.parameters.items()
             }
 
-            # Yield the resolved step.
-            yield cmd, feature_event, params
-
-    # * method: verify_feature_flags
-    def verify_feature_flags(self, feature: Feature, flags: tuple) -> None:
-        '''
-        Verify that the feature's declared flags are satisfied by the
-        execution flags passed to ``execute_feature``.
-
-        .. note::
-            This method is a hook stub; the verification logic and the new
-            ``FEATURE_FLAGS_NOT_SATISFIED`` error are wired in at FE3.
-
-        :param feature: The pre-loaded feature domain object.
-        :type feature: Feature
-        :param flags: The execution flags passed to ``execute_feature``.
-        :type flags: tuple
-        '''
-
-        # ++ todo: implement flag subset check at FE3 — set(feature.flags) ⊆ set(flags)
-        pass
+            # Yield the resolved event, step config, and parsed params.
+            yield event, step, params
 
     # * method: execute_feature
     def execute_feature(self, feature: Feature, request: RequestContext, *flags, **kwargs):
@@ -637,17 +658,17 @@ class FeatureContext(BaseContext):
         1. ``feature.is_async=True`` — the entire step loop runs asynchronously
            via ``run_coroutine(self._execute_async(...))``.
         2. ``feature.is_async=False``, ``step.is_async=True`` — a per-step
-           ``run_coroutine(self._handle_step_async(...))`` drives individual
+           ``run_coroutine(self._execute_step_async(...))`` drives individual
            async steps within an otherwise synchronous feature.
-        3. Both flags ``False`` — fully synchronous ``handle_feature_step``
+        3. Both flags ``False`` — fully synchronous ``execute_step``
            execution.
 
         :param feature: The pre-loaded feature domain object.
         :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
-        :param flags: Optional execution flags for feature-level service
-            resolution; consumed by the flag-verification hook at FE3.
+        :param flags: Execution flags combined additively with feature-level
+            and step-level flags at resolution time.
         :type flags: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
@@ -663,38 +684,37 @@ class FeatureContext(BaseContext):
             return
 
         # Cases 2 & 3: synchronous feature loop with per-step async detection.
-        feature_middleware = self.load_feature_middleware(feature.middleware)
+        feature_middleware = self.resolve_middleware(feature.middleware)
 
-        for cmd, step, params in self.resolve_feature_steps(feature, request):
+        for event, step, params in self.resolve_feature_steps(feature, request, *flags):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
-            step_middleware = self.load_feature_middleware(step.middleware)
-            combined_middleware = feature_middleware + step_middleware or None
+            step_middleware = self.resolve_middleware(step.middleware)
+            combined_middleware = compose_step_middleware(feature_middleware, step_middleware)
+
+            # Build merged kwargs: context defaults < request data < step params < caller overrides.
+            merged_kwargs = merge_step_kwargs(self.context_data, request.data, params, cache=self.cache, **kwargs)
 
             # Case 2: individual step is async — drive it via run_coroutine.
             if step.is_async:
-                run_coroutine(self._handle_step_async(
-                    cmd,
+                run_coroutine(self._execute_step_async(
+                    event,
                     request,
+                    merged_kwargs,
                     data_key=step.data_key,
                     pass_on_error=step.pass_on_error,
                     middleware=combined_middleware,
-                    **params,
-                    cache=self.cache,
-                    **kwargs
                 ))
                 continue
 
             # Case 3: fully synchronous step.
-            self.handle_feature_step(
-                cmd,
+            self.execute_step(
+                event,
                 request,
+                merged_kwargs,
                 data_key=step.data_key,
                 pass_on_error=step.pass_on_error,
                 middleware=combined_middleware,
-                **params,
-                cache=self.cache,
-                **kwargs
             )
 
 
@@ -711,7 +731,7 @@ class AsyncFeatureContext(FeatureContext):
     '''
 
     # * method: handle_feature_step_async (obsolete)
-    # -- obsolete: superseded by FeatureContext._handle_step_async; remove at v2.0.0 stable
+    # -- obsolete: superseded by FeatureContext._execute_step_async; remove at v2.0.0 stable
     async def handle_feature_step_async(self,
         command: DomainEvent,
         request: RequestContext,
@@ -723,17 +743,17 @@ class AsyncFeatureContext(FeatureContext):
         '''
         Handle the execution of a command asynchronously.
 
-        NOTE: Obsolete — delegates to :meth:`FeatureContext._handle_step_async`.
+        NOTE: Obsolete — delegates to :meth:`FeatureContext._execute_step_async`.
         Call that method directly instead.
         '''
 
-        # Delegate to the unified private async step handler.
-        await self._handle_step_async(
-            command, request,
+        # Build merged kwargs and delegate to the unified private async step handler.
+        _merged = merge_step_kwargs({}, request.data, {}, **kwargs)
+        await self._execute_step_async(
+            command, request, _merged,
             data_key=data_key,
             pass_on_error=pass_on_error,
             middleware=middleware,
-            **kwargs,
         )
 
     # * method: execute_feature_async (obsolete)

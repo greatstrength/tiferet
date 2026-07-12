@@ -42,12 +42,8 @@ class EventFeatureStep(FeatureStep):
     # * attribute: parameters
     parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
-    # * attribute: return_to_data (obsolete)
-    # -- obsolete: superseded by data_key; remove when callers are fully migrated
-    return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
-
     # * attribute: data_key
-    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in if Return to Data is True.')
+    data_key: str | None = Field(default=None, description='The key under which to store the step result in the request data. When None, the step result is set as the top-level response.')
 
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')
@@ -55,7 +51,7 @@ class EventFeatureStep(FeatureStep):
     # * attribute: is_async
     is_async: bool = Field(
         default=False,
-        description='Whether this step executes asynchronously. When True, run_coroutine drives the step even within a synchronous feature.',
+        description='Whether this step executes asynchronously. Only evaluated when the parent Feature.is_async is False; when the feature is async the entire step loop runs via run_coroutine(_execute_async) regardless of this flag.',
     )
 
     # * attribute: condition
@@ -344,6 +340,10 @@ class Feature(DomainObject):
     feature_key: str = Field(..., description='The key of the feature.')
 
     # * attribute: steps
+    # ++ todo: when additional step types emerge (e.g. LoopStep, BranchStep), broaden to a discriminated union:
+    # ++       List[Annotated[Union[EventFeatureStep, ...], Field(discriminator='type')]]
+    #          Changing to List[FeatureStep] now would break Pydantic validation (extra='forbid' on DomainObject
+    #          rejects EventFeatureStep-specific fields when validating dicts against the base type).
     steps: List[EventFeatureStep] = Field(default_factory=list, description='The step workflow for the feature.')
 
     # * attribute: middleware
@@ -355,7 +355,7 @@ class Feature(DomainObject):
     # * attribute: is_async
     is_async: bool = Field(
         default=False,
-        description='Whether the feature executes its steps asynchronously. Selects the AsyncFeatureContext when True.',
+        description='Whether the feature executes its steps asynchronously. When True, execute_feature drives the full step loop via run_coroutine(_execute_async). Step-level is_async is only evaluated when this flag is False.',
     )
 
     # * attribute: log_params

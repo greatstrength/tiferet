@@ -18,6 +18,7 @@ from tiferet.contexts.feature import (
     run_coroutine,
     merge_step_kwargs,
     build_step_chain,
+    compose_step_middleware,
     parse_request_parameter,
     evaluate_condition,
     validate_request,
@@ -128,21 +129,21 @@ def feature():
 
 # *** tests
 
-# ** test: feature_context_load_feature_step_with_combined_flags
-def test_feature_context_load_feature_step_with_combined_flags(feature_context, services_context, test_command):
-    """Test loading a feature step combining feature and step flags with correct priority."""
+# ** test: feature_context_resolve_step_event_with_combined_flags
+def test_feature_context_resolve_step_event_with_combined_flags(feature_context, services_context, test_command):
+    """Test resolving a step event combining feature and step flags with correct priority."""
 
     feature_flags = ['feature_flag_1', 'feature_flag_2']
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag_1', 'command_flag_2'],
     )
 
-    command = feature_context.load_feature_step(feature_event, feature_flags=feature_flags)
+    event = feature_context.resolve_step_event(step, feature_flags=feature_flags)
 
-    assert command == test_command
+    assert event == test_command
     services_context.get_dependency.assert_called_once_with(
         'test_command',
         'feature_flag_1',
@@ -152,72 +153,72 @@ def test_feature_context_load_feature_step_with_combined_flags(feature_context, 
     )
 
 
-# ** test: feature_context_load_feature_step_only_feature_flags
-def test_feature_context_load_feature_step_only_feature_flags(feature_context, services_context, test_command):
-    """Test loading a feature step with only feature flags."""
+# ** test: feature_context_resolve_step_event_only_feature_flags
+def test_feature_context_resolve_step_event_only_feature_flags(feature_context, services_context, test_command):
+    """Test resolving a step event with only feature flags."""
 
     feature_flags = ['feature_flag']
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=[],
     )
 
-    command = feature_context.load_feature_step(feature_event, feature_flags=feature_flags)
+    event = feature_context.resolve_step_event(step, feature_flags=feature_flags)
 
-    assert command == test_command
+    assert event == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'feature_flag')
 
-# ** test: feature_context_load_feature_step_only_command_flags
-def test_feature_context_load_feature_step_only_command_flags(feature_context, services_context, test_command):
-    """Test loading a feature step with only step flags."""
+# ** test: feature_context_resolve_step_event_only_step_flags
+def test_feature_context_resolve_step_event_only_step_flags(feature_context, services_context, test_command):
+    """Test resolving a step event with only step-level flags."""
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['command_flag'],
     )
 
-    command = feature_context.load_feature_step(feature_event)
+    event = feature_context.resolve_step_event(step)
 
-    assert command == test_command
+    assert event == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'command_flag')
 
-# ** test: feature_context_load_feature_step_with_flags
-def test_feature_context_load_feature_step_with_flags(feature_context, services_context, test_command):
-    """Test loading a feature step that includes flags for dependency resolution."""
+# ** test: feature_context_resolve_step_event_with_flags
+def test_feature_context_resolve_step_event_with_flags(feature_context, services_context, test_command):
+    """Test resolving a step event that includes flags for dependency resolution."""
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
         flags=['flag1', 'flag2'],
     )
 
-    command = feature_context.load_feature_step(feature_event)
+    event = feature_context.resolve_step_event(step)
 
-    assert command == test_command
+    assert event == test_command
     services_context.get_dependency.assert_called_once_with('test_command', 'flag1', 'flag2')
 
 
-# ** test: feature_context_load_feature_step_without_flags
-def test_feature_context_load_feature_step_without_flags(feature_context, services_context, test_command):
-    """Test loading a feature step when no flags are configured."""
+# ** test: feature_context_resolve_step_event_without_flags
+def test_feature_context_resolve_step_event_without_flags(feature_context, services_context, test_command):
+    """Test resolving a step event when no flags are configured."""
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Test Command',
         service_id='test_command',
     )
 
-    command = feature_context.load_feature_step(feature_event)
+    event = feature_context.resolve_step_event(step)
 
-    assert command == test_command
+    assert event == test_command
     services_context.get_dependency.assert_called_once_with('test_command')
 
 
-# ** test: feature_context_load_feature_step_failed
-def test_feature_context_load_feature_step_failed(feature_context, services_context):
-    """Test loading a feature step that does not exist in the DIContext."""
+# ** test: feature_context_resolve_step_event_failed
+def test_feature_context_resolve_step_event_failed(feature_context, services_context):
+    """Test that resolve_step_event raises FEATURE_STEP_LOADING_FAILED when the service is absent."""
 
     # Add a side effect to raise an exception when the service is not found.
     services_context.get_dependency.side_effect = TiferetError(
@@ -225,44 +226,44 @@ def test_feature_context_load_feature_step_failed(feature_context, services_cont
         'Feature command not found in services: non_existent_command',
     )
 
-    feature_event: EventFeatureStep = EventFeatureStep(
+    step: EventFeatureStep = EventFeatureStep(
         name='Missing Command',
         service_id='non_existent_command',
         flags=['flagX'],
     )
 
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.load_feature_step(feature_event)
+        feature_context.resolve_step_event(step)
 
     assert exc_info.value.error_code == 'FEATURE_STEP_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'non_existent_command'
     assert 'Failed to load feature step: non_existent_command' in str(exc_info.value)
 
-# ** test: feature_context_load_feature_middleware
-def test_feature_context_load_feature_middleware(feature_context, services_context, test_command):
+# ** test: feature_context_resolve_middleware
+def test_feature_context_resolve_middleware(feature_context, services_context, test_command):
     """Test resolving middleware service IDs to instances in order."""
 
     # Resolve a list of middleware ids via the injected handler.
-    middleware = feature_context.load_feature_middleware(['mw_one', 'mw_two'])
+    middleware = feature_context.resolve_middleware(['mw_one', 'mw_two'])
 
     # Assert each id resolved to the handler's return value, preserving order.
     assert middleware == [test_command, test_command]
     assert services_context.get_dependency.call_count == 2
 
-# ** test: feature_context_load_feature_middleware_empty
-def test_feature_context_load_feature_middleware_empty(feature_context, services_context):
+# ** test: feature_context_resolve_middleware_empty
+def test_feature_context_resolve_middleware_empty(feature_context, services_context):
     """Test that an empty middleware list resolves to an empty list without resolution."""
 
     # Resolve an empty middleware list.
-    middleware = feature_context.load_feature_middleware([])
+    middleware = feature_context.resolve_middleware([])
 
     # Assert no resolution occurred and the result is empty.
     assert middleware == []
     services_context.get_dependency.assert_not_called()
 
-# ** test: feature_context_load_feature_middleware_failed
-def test_feature_context_load_feature_middleware_failed(feature_context, services_context):
-    """Test that load_feature_middleware raises MIDDLEWARE_LOADING_FAILED on resolution failure."""
+# ** test: feature_context_resolve_middleware_failed
+def test_feature_context_resolve_middleware_failed(feature_context, services_context):
+    """Test that resolve_middleware raises MIDDLEWARE_LOADING_FAILED on resolution failure."""
 
     # Configure the resolution handler to fail for the middleware id.
     services_context.get_dependency.side_effect = TiferetError(
@@ -272,65 +273,81 @@ def test_feature_context_load_feature_middleware_failed(feature_context, service
 
     # Assert the structured middleware-loading error is raised.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.load_feature_middleware(['missing_mw'])
+        feature_context.resolve_middleware(['missing_mw'])
 
     assert exc_info.value.error_code == 'MIDDLEWARE_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'missing_mw'
     assert 'Failed to load middleware: missing_mw' in str(exc_info.value)
 
-# ** test: feature_context_handle_feature_step
-def test_feature_context_handle_feature_step(feature_context, test_command):
-    """Test handling a command in the FeatureContext."""
+# ** test: feature_context_execute_step
+def test_feature_context_execute_step(feature_context, test_command):
+    '''Test executing a step synchronously via execute_step.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Handle the command using the feature context.
-    feature_context.handle_feature_step(test_command, request)
+    # Execute the step with pre-merged kwargs.
+    feature_context.execute_step(test_command, request, request.data)
     response = request.handle_response()
 
     # Assert that the response matches the expected output.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_feature_step_with_error
-def test_feature_context_handle_feature_step_with_error(feature_context, test_command):
-    """Test handling a command that raises an error in the FeatureContext."""
+# ** test: feature_context_execute_step_with_error
+def test_feature_context_execute_step_with_error(feature_context, test_command):
+    '''Test that execute_step propagates errors from the domain event.
 
-    # Create a mock request that will raise an error.
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a mock request that will cause the event to raise.
     request = RequestContext(data={'key': None})
 
-    # Attempt to handle the command and catch the raised error.
+    # Attempt to execute and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        feature_context.handle_feature_step(test_command, request)
+        feature_context.execute_step(test_command, request, request.data)
 
     # Assert that the exception message is as expected.
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
     assert 'No key provided for command execution.' in str(exc_info.value)
 
-# ** test: feature_context_handle_feature_step_with_data_key
-def test_feature_context_handle_feature_step_with_data_key(feature_context, test_command):
-    """Test handling a command with a data key in the FeatureContext."""
+# ** test: feature_context_execute_step_with_data_key
+def test_feature_context_execute_step_with_data_key(feature_context, test_command):
+    '''Test that execute_step stores the result under data_key when provided.
 
-    # Create a mock request with a data key.
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Handle the command using the feature context.
-    feature_context.handle_feature_step(test_command, request, data_key="response_data")
+    # Execute the step with a data_key.
+    feature_context.execute_step(test_command, request, request.data, data_key="response_data")
 
-    # Assert that the response matches the expected output.
+    # Assert that the result is stored under the data key.
     assert request.data.get('response_data') == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_feature_step_with_pass_on_error
-def test_feature_context_handle_feature_step_with_pass_on_error(feature_context, test_command):
-    """Test handling a command with pass_on_error in the FeatureContext."""
+# ** test: feature_context_execute_step_with_pass_on_error
+def test_feature_context_execute_step_with_pass_on_error(feature_context, test_command):
+    '''Test that execute_step suppresses errors when pass_on_error is True.
 
-    # Create a mock request that will raise an error.
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a mock request that will cause the event to raise.
     request = RequestContext(data={'key': None})
 
-    # Handle the command with pass_on_error set to True.
-    feature_context.handle_feature_step(test_command, request, pass_on_error=True)
+    # Execute with pass_on_error — no exception should propagate.
+    feature_context.execute_step(test_command, request, request.data, pass_on_error=True)
 
-    # Assert that the request handled the error without raising an exception.
+    # Assert that the request result is falsy (None set on error).
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature
@@ -376,7 +393,7 @@ def test_feature_context_execute_feature_with_request_parameter(feature_context,
 
 # ** test: feature_context_resolve_feature_steps_yields_steps
 def test_feature_context_resolve_feature_steps_yields_steps(feature_context, feature, test_command):
-    """Test that resolve_feature_steps yields (cmd, feature_event, params) for each step."""
+    """Test that resolve_feature_steps yields (event, step, params) for each step."""
 
     # Add two steps to the feature.
     step_a = EventFeatureStep(name='Step A', service_id='test_command')
@@ -478,9 +495,13 @@ def test_feature_context_execute_feature_with_pass_on_error(feature_context, fea
     # Assert that the request handled the error without raising an exception.
     assert not request.handle_response()
 
-# ** test: feature_context_handle_feature_step_with_middleware
-def test_feature_context_handle_feature_step_with_middleware(feature_context, test_command):
-    """Test that middleware is applied when provided to handle_feature_step."""
+# ** test: feature_context_execute_step_with_middleware
+def test_feature_context_execute_step_with_middleware(feature_context, test_command):
+    '''Test that middleware is applied when provided to execute_step.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Track execution order.
     order = []
@@ -496,10 +517,11 @@ def test_feature_context_handle_feature_step_with_middleware(feature_context, te
     # Create a mock request.
     request = RequestContext(data={'key': 'value'})
 
-    # Handle the command with middleware.
-    feature_context.handle_feature_step(
+    # Execute the step with middleware using pre-merged kwargs.
+    feature_context.execute_step(
         test_command,
         request,
+        request.data,
         middleware=[TrackMiddleware()],
     )
 
@@ -554,24 +576,24 @@ def test_feature_context_execute_feature_with_feature_middleware(feature_context
     assert call_counts['pre'] == 1
     assert call_counts['post'] == 1
 
-# ** test: feature_context_load_feature_middleware_empty
-def test_feature_context_load_feature_middleware_empty(feature_context):
-    """Test that load_feature_middleware returns empty list for empty input."""
+# ** test: feature_context_resolve_middleware_empty_list
+def test_feature_context_resolve_middleware_empty_list(feature_context):
+    """Test that resolve_middleware returns empty list for empty or None input."""
 
     # Assert empty list returned for no middleware.
-    assert feature_context.load_feature_middleware([]) == []
-    assert feature_context.load_feature_middleware(None) == []
+    assert feature_context.resolve_middleware([]) == []
+    assert feature_context.resolve_middleware(None) == []
 
-# ** test: feature_context_load_feature_middleware_resolves_services
-def test_feature_context_load_feature_middleware_resolves_services(feature_context, services_context):
-    """Test that load_feature_middleware resolves service IDs from the DI context."""
+# ** test: feature_context_resolve_middleware_resolves_services
+def test_feature_context_resolve_middleware_resolves_services(feature_context, services_context):
+    """Test that resolve_middleware resolves service IDs from the DI context."""
 
     # Configure the DI context to return a sentinel value.
     sentinel = object()
     services_context.get_dependency.return_value = sentinel
 
     # Resolve middleware.
-    result = feature_context.load_feature_middleware(['mw_a', 'mw_b'])
+    result = feature_context.resolve_middleware(['mw_a', 'mw_b'])
 
     # Verify both service IDs were resolved.
     assert len(result) == 2
@@ -655,62 +677,78 @@ def test_feature_context_execute_feature_accepts_flags(feature_context, feature)
 
     assert request.handle_response() == {'status': 'success', 'data': {'key': 'value'}}
 
-# ** test: feature_context_handle_step_async_with_async_command
+# ** test: feature_context_execute_step_async_with_async_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_step_async_with_async_command(async_feature_context, async_test_command):
-    """Test _handle_step_async correctly dispatches an async command."""
+async def test_feature_context_execute_step_async_with_async_command(async_feature_context, async_test_command):
+    '''Test _execute_step_async correctly dispatches an async command.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Handle the async command via the private async step handler.
-    await async_feature_context._handle_step_async(async_test_command, request)
+    # Execute the async command via the private async step handler.
+    await async_feature_context._execute_step_async(async_test_command, request, request.data)
     response = request.handle_response()
 
     # Assert that the response matches the expected output.
     assert response == {"status": "async_success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_step_async_with_sync_command
+# ** test: feature_context_execute_step_async_with_sync_command
 @pytest.mark.asyncio
-async def test_feature_context_handle_step_async_with_sync_command(async_feature_context, test_command):
-    """Test that _handle_step_async correctly dispatches a sync command."""
+async def test_feature_context_execute_step_async_with_sync_command(async_feature_context, test_command):
+    '''Test that _execute_step_async correctly dispatches a sync command.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Create a mock request.
     request = RequestContext(data={"key": "value"})
 
-    # Handle a sync command via the async handler.
-    await async_feature_context._handle_step_async(test_command, request)
+    # Execute a sync command via the async handler.
+    await async_feature_context._execute_step_async(test_command, request, request.data)
     response = request.handle_response()
 
     # Assert that the sync command executed correctly.
     assert response == {"status": "success", "data": {"key": "value"}}
 
-# ** test: feature_context_handle_step_async_with_error
+# ** test: feature_context_execute_step_async_with_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_step_async_with_error(async_feature_context, async_test_command):
-    """Test handling an async command that raises an error."""
+async def test_feature_context_execute_step_async_with_error(async_feature_context, async_test_command):
+    '''Test that _execute_step_async propagates errors from the domain event.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Create a request that will cause verify to fail.
     request = RequestContext(data={'key': None})
 
-    # Attempt to handle the command and catch the raised error.
+    # Attempt to execute and catch the raised error.
     with pytest.raises(TiferetError) as exc_info:
-        await async_feature_context._handle_step_async(async_test_command, request)
+        await async_feature_context._execute_step_async(async_test_command, request, request.data)
 
     assert exc_info.value.error_code == 'KEY_NOT_FOUND'
 
-# ** test: feature_context_handle_step_async_pass_on_error
+# ** test: feature_context_execute_step_async_pass_on_error
 @pytest.mark.asyncio
-async def test_feature_context_handle_step_async_pass_on_error(async_feature_context, async_test_command):
-    """Test handling an async command with pass_on_error."""
+async def test_feature_context_execute_step_async_pass_on_error(async_feature_context, async_test_command):
+    '''Test that _execute_step_async suppresses errors when pass_on_error is True.
+
+    :return: None
+    :rtype: None
+    '''
 
     # Create a request that will cause verify to fail.
     request = RequestContext(data={'key': None})
 
-    # Handle with pass_on_error=True.
-    await async_feature_context._handle_step_async(async_test_command, request, pass_on_error=True)
+    # Execute with pass_on_error=True — no exception should propagate.
+    await async_feature_context._execute_step_async(async_test_command, request, request.data, pass_on_error=True)
 
-    # Assert that the request handled the error without raising.
+    # Assert that the request result is falsy (None set on error).
     assert not request.handle_response()
 
 # ** test: feature_context_execute_feature_async_basic
@@ -885,13 +923,42 @@ def test_feature_context_execute_feature_step_level_async(feature, async_test_co
     # Assert the async step produced the expected result.
     assert request.handle_response() == {'status': 'async_success', 'data': {'key': 'value'}}
 
-# ** test: feature_context_verify_feature_flags_stub
-def test_feature_context_verify_feature_flags_stub(feature_context, feature):
-    """Test that verify_feature_flags exists and does not raise (FE3 stub)."""
+# ** test: feature_context_resolve_feature_steps_combines_flags_additively
+def test_feature_context_resolve_feature_steps_combines_flags_additively(feature_context, services_context, test_command):
+    '''Test that resolve_feature_steps combines execution, feature, and step flags additively.
 
-    # Call the stub — it should be a no-op.
-    feature_context.verify_feature_flags(feature, ())
-    feature_context.verify_feature_flags(feature, ('flag_a',))
+    Execution flags are prepended, then feature flags, then step flags —
+    all passed to get_dependency in a single combined call.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a feature that declares a feature-level flag.
+    feature = Feature(
+        id='test.step_flags',
+        name='Step Flags',
+        flags=['feature_flag'],
+        steps=[
+            EventFeatureStep(
+                name='Flagged Step',
+                service_id='test_command',
+                flags=['step_flag'],
+            )
+        ],
+    )
+    request = RequestContext(data={'key': 'value'})
+
+    # Resolve steps with an execution-level flag.
+    list(feature_context.resolve_feature_steps(feature, request, 'exec_flag'))
+
+    # Assert get_dependency received all three flag tiers in additive order.
+    services_context.get_dependency.assert_called_once_with(
+        'test_command',
+        'exec_flag',     # execution flag first
+        'feature_flag',  # then feature flag
+        'step_flag',     # then step flag
+    )
 
 # ** test: run_coroutine_no_loop
 def test_run_coroutine_no_loop():
@@ -1142,3 +1209,68 @@ def test_validate_request_invalid_data_raises():
         validate_request(feature, request)
 
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+
+# ** test: compose_step_middleware_both_empty
+def test_compose_step_middleware_both_empty():
+    '''Test that compose_step_middleware returns an empty list when both inputs are empty.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Both empty lists should produce an empty list.
+    assert compose_step_middleware([], []) == []
+
+# ** test: compose_step_middleware_feature_only
+def test_compose_step_middleware_feature_only():
+    '''Test compose_step_middleware with only feature-level middleware present.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a mock feature-level middleware instance.
+    mw_a = mock.Mock()
+
+    # Only feature middleware should be returned.
+    assert compose_step_middleware([mw_a], []) == [mw_a]
+
+# ** test: compose_step_middleware_step_only
+def test_compose_step_middleware_step_only():
+    '''Test compose_step_middleware with only step-level middleware present.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a mock step-level middleware instance.
+    mw_b = mock.Mock()
+
+    # Only step middleware should be returned.
+    assert compose_step_middleware([], [mw_b]) == [mw_b]
+
+# ** test: compose_step_middleware_feature_first
+def test_compose_step_middleware_feature_first():
+    '''Test that compose_step_middleware places feature-level middleware before step-level.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create distinct mock middleware instances.
+    mw_a, mw_b = mock.Mock(), mock.Mock()
+
+    # Feature-level middleware must appear before step-level in the result.
+    result = compose_step_middleware([mw_a], [mw_b])
+    assert result == [mw_a, mw_b]
+
+# ** test: compose_step_middleware_none_inputs
+def test_compose_step_middleware_none_inputs():
+    '''Test that compose_step_middleware tolerates None inputs, returning an empty list.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # None inputs should be treated as empty and return an empty list.
+    assert compose_step_middleware(None, None) == []
