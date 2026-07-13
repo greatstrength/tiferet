@@ -50,6 +50,15 @@ GET_PARENT_ARGS_EVT_ID = 'get_parent_args_evt'
 # ** constant: di_list_all_configs_evt_id
 DI_LIST_ALL_CONFIGS_EVT_ID = 'di_list_all_configs_evt'
 
+# ** constant: logging_middleware_id
+LOGGING_MIDDLEWARE_ID = 'logging_middleware'
+
+# ** constant: timing_middleware_id
+TIMING_MIDDLEWARE_ID = 'timing_middleware'
+
+# ** constant: cache_middleware_id
+CACHE_MIDDLEWARE_ID = 'cache_middleware'
+
 # ** constant: cli_config_id
 CLI_CONFIG_ID = 'cli_config'
 
@@ -163,6 +172,21 @@ DI_LIST_ALL_CONFIGS_EVT = create_app_service_dependency(
     DI_LIST_ALL_CONFIGS_EVT_ID, 'tiferet.events.di', 'ListAllSettings',
 )
 
+# ** constant: logging_middleware
+LOGGING_MIDDLEWARE = create_app_service_dependency(
+    LOGGING_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'LoggingMiddleware',
+)
+
+# ** constant: timing_middleware
+TIMING_MIDDLEWARE = create_app_service_dependency(
+    TIMING_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'TimingMiddleware',
+)
+
+# ** constant: cache_middleware
+CACHE_MIDDLEWARE = create_app_service_dependency(
+    CACHE_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'CacheMiddleware',
+)
+
 # *** constants (groups)
 
 # ** constant: core_default_services
@@ -178,6 +202,9 @@ CORE_DEFAULT_SERVICES = {
     LIST_COMMANDS_EVT_ID: LIST_COMMANDS_EVT,
     GET_PARENT_ARGS_EVT_ID: GET_PARENT_ARGS_EVT,
     DI_LIST_ALL_CONFIGS_EVT_ID: DI_LIST_ALL_CONFIGS_EVT,
+    LOGGING_MIDDLEWARE_ID: LOGGING_MIDDLEWARE,
+    TIMING_MIDDLEWARE_ID: TIMING_MIDDLEWARE,
+    CACHE_MIDDLEWARE_ID: CACHE_MIDDLEWARE,
 }
 
 # ** constant: core_default_constants

@@ -8,6 +8,13 @@ from typing import Any, Callable, Dict
 # ** app
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
+from ..contexts.feature import (
+    Feature,
+    FeatureContext,
+    FEATURE_CACHE_PREFIX,
+    add_default_features,
+)
+from ..contexts.request import RequestContext
 from ..contexts.app import (
     AppServiceDependency,
     add_default_app_services,
@@ -195,10 +202,10 @@ def get_feature(
     resolver wired in.
 
     Returns a callable that, given a feature id, first checks the shared
-    cache (root namespace). On a miss, resolves a ``GetFeature`` event
-    instance from the app-scoped service container via ``get_dependency``,
-    executes it to retrieve the ``Feature`` domain object, caches the
-    result, and returns it.
+    cache under ``FEATURE_CACHE_PREFIX``. On a miss, resolves a ``GetFeature``
+    event instance from the app-scoped service container via
+    ``get_dependency``, executes it to retrieve the ``Feature`` domain object,
+    caches the result under ``FEATURE_CACHE_PREFIX``, and returns it.
 
     :param cache: The shared cache context.
     :type cache: CacheContext
@@ -212,8 +219,8 @@ def get_feature(
     # Return the handler closure with cache and resolver wired in.
     def handler(feature_id: str):
 
-        # Try the shared cache first.
-        feature = cache.get(feature_id)
+        # Try the shared cache first (under the feature cache prefix).
+        feature = cache.get(feature_id, *FEATURE_CACHE_PREFIX)
         if feature:
             return feature
 
@@ -223,8 +230,8 @@ def get_feature(
         # Execute the event to retrieve the feature domain object.
         feature = get_feature_evt.execute(id=feature_id)
 
-        # Cache the result.
-        cache.set(feature_id, feature)
+        # Cache the result under the feature cache prefix.
+        cache.set(feature_id, feature, *FEATURE_CACHE_PREFIX)
 
         # Return the loaded feature.
         return feature
@@ -259,9 +266,15 @@ def build_app_service_container(
     '''
 
     # Build the container from the framework defaults seeded on the cache.
+    # Register the general-purpose cache loader as a constant *before* the
+    # services load so build_singleton can wire it into CacheMiddleware by
+    # constructor inspection (constants-before-services ordering).
     container = service_container.from_dependencies(
         services=get_default_app_services(cache),
-        constants=get_default_app_constants(cache),
+        constants={
+            **get_default_app_constants(cache),
+            'load_cache': load_cache(cache),
+        },
     )
 
     # Return the defaults-only container when no interface is provided.
@@ -333,3 +346,148 @@ def build_service_resolver(
 
     # Return the composed service resolver.
     return resolver
+
+# ** blueprint: load_cache
+def load_cache(cache: CacheContext) -> Callable[[], Dict[str, Any]]:
+    '''
+    Build a general-purpose cache-loader closure over the shared cache.
+
+    Returns a zero-argument callable that yields a shallow snapshot of the
+    cache's root namespace (``cache.get_by_prefix()``). The loader is
+    general-purpose — not tied to any specific prefix — and is registered as
+    the ``'load_cache'`` constant so it can be wired into ``CacheMiddleware``
+    via constructor injection, keeping the utils layer decoupled from the
+    cache context.
+
+    :param cache: The shared cache context to snapshot on demand.
+    :type cache: CacheContext
+    :return: A zero-argument loader returning the root-namespace cache dict.
+    :rtype: Callable[[], Dict[str, Any]]
+    '''
+
+    # Return a loader closure that snapshots the cache root namespace.
+    def loader() -> Dict[str, Any]:
+
+        # Return a shallow copy of the root-namespace cache dict.
+        return cache.get_by_prefix()
+
+    return loader
+
+# ** blueprint: create_request_context
+def create_request_context(
+    feature: Feature,
+    data: Dict[str, Any] = None,
+    headers: Dict[str, str] = None,
+    **kwargs,
+) -> RequestContext:
+    '''
+    Compose a request context for a feature execution.
+
+    Pure, side-effect-free constructor that seeds the request's ``feature_id``
+    from the feature and wires in the supplied data and headers. Suitable as
+    the hub's injected request-context factory.
+
+    :param feature: The feature being executed; supplies the feature id.
+    :type feature: Feature
+    :param data: The request data payload.
+    :type data: Dict[str, Any] | None
+    :param headers: The request headers.
+    :type headers: Dict[str, str] | None
+    :param kwargs: Additional request context constructor arguments.
+    :type kwargs: dict
+    :return: The composed request context.
+    :rtype: RequestContext
+    '''
+
+    # Compose and return the request context, seeding feature_id from the feature.
+    return RequestContext(
+        headers=headers,
+        data=data,
+        feature_id=feature.id,
+        **kwargs,
+    )
+
+# ** blueprint: create_feature_context
+def create_feature_context(
+    get_dependency: Callable,
+    cache: CacheContext,
+    feature: Feature = None,
+    feature_id: str = None,
+) -> tuple[Feature, FeatureContext]:
+    '''
+    Compose a feature context, loading the feature when only an id is given.
+
+    Accepts either a pre-loaded ``Feature`` or a ``feature_id``; when only the
+    id is supplied the feature is loaded via the ``get_feature`` handler bound
+    to the shared cache and service resolver. Returns the ``(feature,
+    feature_context)`` pair so callers get both without knowing the loading
+    internals.
+
+    :param get_dependency: The service-resolution handler from the ServiceResolver.
+    :type get_dependency: Callable
+    :param cache: The shared cache context.
+    :type cache: CacheContext
+    :param feature: A pre-loaded feature domain object, if available.
+    :type feature: Feature | None
+    :param feature_id: The feature id to load when no feature is supplied.
+    :type feature_id: str | None
+    :return: The loaded feature and its composed feature context.
+    :rtype: tuple[Feature, FeatureContext]
+    '''
+
+    # Load the feature via the get_feature handler when only an id is given.
+    if feature is None:
+        feature = get_feature(cache, get_dependency)(feature_id)
+
+    # Compose the feature context with the resolver handler and shared cache.
+    feature_context = FeatureContext(get_dependency=get_dependency, cache=cache)
+
+    # Return the feature and its composed context.
+    return feature, feature_context
+
+# ** blueprint: execute_feature
+def execute_feature(
+    feature_id: str,
+    get_dependency: Callable,
+    cache: CacheContext,
+    request: RequestContext,
+    *flags,
+    **kwargs,
+) -> Any:
+    '''
+    Execute a feature end-to-end and return its response.
+
+    Composes the feature context (loading the feature by id), drives
+    ``FeatureContext.execute_feature`` with the pre-made request and the
+    additive execution flags, and returns the request's handled response.
+    Errors propagate unhandled; logging/error parity converges in a later
+    increment.
+
+    :param feature_id: The id of the feature to execute.
+    :type feature_id: str
+    :param get_dependency: The service-resolution handler from the ServiceResolver.
+    :type get_dependency: Callable
+    :param cache: The shared cache context.
+    :type cache: CacheContext
+    :param request: The pre-made request context for this execution.
+    :type request: RequestContext
+    :param flags: Execution flags combined additively at step resolution time.
+    :type flags: str
+    :param kwargs: Additional keyword arguments forwarded to feature execution.
+    :type kwargs: dict
+    :return: The handled feature response.
+    :rtype: Any
+    '''
+
+    # Compose the feature context, loading the feature by id.
+    feature, feature_context = create_feature_context(
+        get_dependency,
+        cache,
+        feature_id=feature_id,
+    )
+
+    # Drive feature execution with the pre-made request and execution flags.
+    feature_context.execute_feature(feature, request, *flags, **kwargs)
+
+    # Return the handled response from the request.
+    return request.handle_response()

@@ -24,7 +24,49 @@ from ..events import (
 )
 from ..domain import Feature, EventFeatureStep
 
+# *** constants
+
+# ** constant: feature_cache_prefix
+FEATURE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'features')
+
 # *** functions
+
+# ** function: add_default_features
+def add_default_features(features: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default feature domain objects.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``features`` is reconstituted into a ``Feature`` domain object
+    and stored in the cache under the ``FEATURE_CACHE_PREFIX`` namespace keyed
+    by feature id.
+
+    :param features: A mapping of feature IDs to raw feature definition dicts.
+    :type features: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default feature domain objects.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw feature dict into a Feature domain object and
+            # cache it under the feature namespace keyed by feature id.
+            for feature_id, feature_data in features.items():
+                cache.set(feature_id, Feature.model_validate(feature_data), *FEATURE_CACHE_PREFIX)
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
 
 # ** function: run_coroutine
 def run_coroutine(coro: Any) -> Any:
@@ -434,7 +476,7 @@ class FeatureContext(BaseContext):
         middleware = []
         for mid_id in middleware_ids:
             try:
-                middleware.append(self.get_dependency(mid_id))
+                middleware.append(self.get_dependency(mid_id, 'app'))
 
             # If the middleware cannot be loaded, raise an error.
             except Exception as e:

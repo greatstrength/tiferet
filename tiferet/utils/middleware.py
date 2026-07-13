@@ -78,6 +78,63 @@ class LoggingMiddleware(MiddlewareService):
         return result
 
 
+# ** util: cache_middleware
+class CacheMiddleware(MiddlewareService):
+    '''
+    Infrastructure middleware that injects a cache snapshot into event kwargs.
+
+    Receives a general-purpose ``load_cache`` callable via DI injection and,
+    when configured, injects the loaded snapshot as the ``'cache'`` kwarg on
+    the merged execution kwargs before invoking the remainder of the chain.
+    The injection is additive: it never overwrites a ``'cache'`` value already
+    present in kwargs, and it is a transparent no-op when no loader was
+    supplied. To preserve the utils/contexts layer boundary this middleware
+    does not import or reference ``CacheContext`` — the loader is created at
+    the blueprint layer where the cache context is accessible.
+    '''
+
+    # * attribute: load_cache
+    load_cache: Callable[[], Dict[str, Any]]
+
+    # * init
+    def __init__(self, load_cache: Callable[[], Dict[str, Any]] = None):
+        '''
+        Initialize the CacheMiddleware.
+
+        :param load_cache: A zero-argument callable returning a cache snapshot dict.
+        :type load_cache: Callable[[], Dict[str, Any]] | None
+        '''
+
+        # Store the injected cache loader; None makes the middleware a no-op.
+        self.load_cache = load_cache
+
+    # * method: __call__
+    def __call__(self,
+            event: Any,
+            kwargs: Dict[str, Any],
+            next_fn: Callable[[], Any],
+        ) -> Any:
+        '''
+        Inject a cache snapshot into kwargs, then return the chain result.
+
+        :param event: The instantiated domain event instance.
+        :type event: Any
+        :param kwargs: The merged execution keyword arguments.
+        :type kwargs: Dict[str, Any]
+        :param next_fn: Zero-argument callable that invokes the remainder of the chain.
+        :type next_fn: Callable[[], Any]
+        :return: The unchanged result of the chain execution.
+        :rtype: Any
+        '''
+
+        # Inject the cache snapshot when a loader is set and no cache is present.
+        if self.load_cache is not None and 'cache' not in kwargs:
+            kwargs['cache'] = self.load_cache()
+
+        # Invoke the remainder of the chain and return its result unchanged.
+        return next_fn()
+
+
 # ** util: timing_middleware
 class TimingMiddleware(MiddlewareService):
     '''

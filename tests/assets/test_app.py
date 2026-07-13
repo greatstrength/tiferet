@@ -21,6 +21,9 @@ from tiferet.assets.app import (
     LIST_COMMANDS_EVT_ID,
     GET_PARENT_ARGS_EVT_ID,
     DI_LIST_ALL_CONFIGS_EVT_ID,
+    LOGGING_MIDDLEWARE_ID,
+    TIMING_MIDDLEWARE_ID,
+    CACHE_MIDDLEWARE_ID,
     CLI_CONFIG_ID,
     DI_CONFIG_ID,
     ERROR_CONFIG_ID,
@@ -43,6 +46,9 @@ EXPECTED_SERVICE_IDS = {
     LIST_COMMANDS_EVT_ID,
     GET_PARENT_ARGS_EVT_ID,
     DI_LIST_ALL_CONFIGS_EVT_ID,
+    LOGGING_MIDDLEWARE_ID,
+    TIMING_MIDDLEWARE_ID,
+    CACHE_MIDDLEWARE_ID,
 }
 
 # ** constant: expected_config_ids
@@ -59,11 +65,12 @@ EXPECTED_CONFIG_IDS = {
 # ** test: core_default_services_keys_match_service_ids
 def test_core_default_services_keys_match_service_ids() -> None:
     '''
-    Test that CORE_DEFAULT_SERVICES is keyed by the eleven core service ids.
+    Test that CORE_DEFAULT_SERVICES is keyed by the fourteen core service ids
+    (eleven repos/events plus the three framework middleware).
     '''
 
-    # Assert the catalog has exactly the eleven expected service ids.
-    assert len(CORE_DEFAULT_SERVICES) == 11
+    # Assert the catalog has exactly the fourteen expected service ids.
+    assert len(CORE_DEFAULT_SERVICES) == 14
     assert set(CORE_DEFAULT_SERVICES.keys()) == EXPECTED_SERVICE_IDS
 
 # ** test: core_default_services_entries_have_expected_shape

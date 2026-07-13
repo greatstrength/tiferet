@@ -14,6 +14,8 @@ from unittest import mock
 from tiferet.contexts.feature import (
     FeatureContext,
     RequestContext,
+    FEATURE_CACHE_PREFIX,
+    add_default_features,
     run_coroutine,
     merge_step_kwargs,
     build_step_chain,
@@ -22,6 +24,7 @@ from tiferet.contexts.feature import (
     evaluate_condition,
     validate_request,
 )
+from tiferet.contexts.cache import CacheContext
 from tiferet.assets import TiferetError
 from tiferet.events import DomainEvent, AsyncDomainEvent
 from tiferet.domain import (
@@ -277,6 +280,16 @@ def test_feature_context_resolve_middleware_failed(feature_context, services_con
     assert exc_info.value.error_code == 'MIDDLEWARE_LOADING_FAILED'
     assert exc_info.value.kwargs.get('service_id') == 'missing_mw'
     assert 'Failed to load middleware: missing_mw' in str(exc_info.value)
+
+# ** test: feature_context_resolve_middleware_uses_app_flag
+def test_feature_context_resolve_middleware_uses_app_flag(feature_context, services_context):
+    """Test that resolve_middleware resolves each middleware from the app-scoped container."""
+
+    # Resolve a single middleware id via the injected handler.
+    feature_context.resolve_middleware(['mw_one'])
+
+    # Assert the handler was called with the reserved 'app' flag.
+    services_context.get_dependency.assert_called_once_with('mw_one', 'app')
 
 # ** test: feature_context_execute_step
 def test_feature_context_execute_step(feature_context, test_command):
@@ -1273,3 +1286,51 @@ def test_compose_step_middleware_none_inputs():
 
     # None inputs should be treated as empty and return an empty list.
     assert compose_step_middleware(None, None) == []
+
+# ** test: feature_cache_prefix_value
+def test_feature_cache_prefix_value():
+    '''Test that FEATURE_CACHE_PREFIX addresses the app feature namespace.'''
+
+    # Assert the prefix mirrors the error/service namespace convention.
+    assert FEATURE_CACHE_PREFIX == ('app', 'features')
+
+# ** test: add_default_features_seeds_cache
+def test_add_default_features_seeds_cache():
+    '''Test that add_default_features seeds Feature domain objects under the feature prefix.'''
+
+    # Define a raw default-feature catalog keyed by feature id.
+    catalog = {
+        'test_group.test_feature': {
+            'group_id': 'test_group',
+            'feature_key': 'test_feature',
+            'name': 'Test Feature',
+            'steps': [],
+        },
+    }
+
+    # Wrap a bare cache-builder with the seeding decorator.
+    @add_default_features(catalog)
+    def build_cache() -> CacheContext:
+        return CacheContext()
+
+    # Build the cache and read back the seeded feature.
+    cache = build_cache()
+    feature = cache.get('test_group.test_feature', *FEATURE_CACHE_PREFIX)
+
+    # Assert a typed Feature domain object was seeded under the prefix.
+    assert isinstance(feature, Feature)
+    assert feature.id == 'test_group.test_feature'
+    assert feature.name == 'Test Feature'
+
+# ** test: add_default_features_empty_catalog
+def test_add_default_features_empty_catalog():
+    '''Test that add_default_features leaves the feature namespace empty for an empty catalog.'''
+
+    # Wrap a bare cache-builder with an empty catalog.
+    @add_default_features({})
+    def build_cache() -> CacheContext:
+        return CacheContext()
+
+    # Build the cache and assert the feature namespace has no entries.
+    cache = build_cache()
+    assert cache.get_by_prefix(*FEATURE_CACHE_PREFIX) == {}

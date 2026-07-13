@@ -17,11 +17,18 @@ from tiferet.blueprints.core import (
     get_feature,
     build_app_service_container,
     parse_parameter,
+    load_cache,
+    create_request_context,
+    create_feature_context,
+    execute_feature,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, FeatureContext
+from tiferet.contexts.request import RequestContext
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX
 from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
+from tiferet.utils.middleware import CacheMiddleware
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
 from tiferet.repos.error import ErrorConfigRepository
@@ -462,12 +469,12 @@ def test_get_feature_handler_cache_hit():
     get_dependency.
     '''
 
-    # Pre-seed the root cache namespace with a feature.
+    # Pre-seed the feature cache namespace with a feature.
     cache = CacheContext()
     cached_feature = Feature(
         id='group.feat', group_id='group', feature_key='feat', name='Feat'
     )
-    cache.set('group.feat', cached_feature)
+    cache.set('group.feat', cached_feature, *FEATURE_CACHE_PREFIX)
     get_dependency = mock.Mock()
 
     # Build and invoke the handler.
@@ -511,8 +518,8 @@ def test_get_feature_handler_cache_miss_resolves_event():
 # ** test: get_feature_handler_caches_result_after_miss
 def test_get_feature_handler_caches_result_after_miss():
     '''
-    Test that the get_feature handler caches the resolved feature in the root
-    namespace after a cache miss so subsequent calls hit the cache.
+    Test that the get_feature handler caches the resolved feature under the
+    feature cache prefix after a cache miss so subsequent calls hit the cache.
     '''
 
     # Arrange a mock event that returns a fresh feature.
@@ -528,8 +535,8 @@ def test_get_feature_handler_caches_result_after_miss():
     handler = get_feature(cache, get_dependency)
     handler('group.feat')
 
-    # Assert the result is now cached in the root namespace.
-    assert cache.get('group.feat') is expected_feature
+    # Assert the result is now cached under the feature cache prefix.
+    assert cache.get('group.feat', *FEATURE_CACHE_PREFIX) is expected_feature
 
 
 # ** test: parse_parameter_literal_passthrough
@@ -554,3 +561,158 @@ def test_parse_parameter_resolves_env(monkeypatch):
     # Set an environment variable and assert the $env. reference resolves to it.
     monkeypatch.setenv('TIFERET_TEST_VAR', 'resolved_value')
     assert parse_parameter('$env.TIFERET_TEST_VAR') == 'resolved_value'
+
+
+# ** test: load_cache_returns_root_snapshot_callable
+def test_load_cache_returns_root_snapshot_callable():
+    '''
+    Test that load_cache returns a zero-argument callable yielding the cache's
+    root-namespace snapshot.
+    '''
+
+    # Seed the root namespace and a prefixed namespace on a fresh cache.
+    cache = CacheContext()
+    cache.set('root_key', 'root_value')
+    cache.set('scoped', 'scoped_value', 'app', 'features')
+
+    # Build the loader and invoke it.
+    loader = load_cache(cache)
+    snapshot = loader()
+
+    # Assert the loader is callable and returns only the root-namespace entries.
+    assert callable(loader)
+    assert snapshot == {'root_key': 'root_value'}
+
+
+# ** test: create_request_context_seeds_feature_id
+def test_create_request_context_seeds_feature_id():
+    '''
+    Test that create_request_context builds a RequestContext seeded with the
+    feature id and the supplied data and headers.
+    '''
+
+    # Build a feature and compose a request context around it.
+    feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    request = create_request_context(
+        feature,
+        data={'a': 1},
+        headers={'h': 'v'},
+    )
+
+    # Assert the request is shaped from the feature and inputs.
+    assert isinstance(request, RequestContext)
+    assert request.feature_id == 'group.feat'
+    assert request.data == {'a': 1}
+    assert request.headers == {'h': 'v'}
+
+
+# ** test: create_feature_context_with_preloaded_feature
+def test_create_feature_context_with_preloaded_feature():
+    '''
+    Test that create_feature_context returns the given feature unchanged and a
+    FeatureContext, without loading via get_dependency.
+    '''
+
+    # Arrange a pre-loaded feature and a resolver that must not be called for loading.
+    feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    get_dependency = mock.Mock()
+    cache = CacheContext()
+
+    # Compose the feature context from the pre-loaded feature.
+    loaded, feature_context = create_feature_context(
+        get_dependency, cache, feature=feature
+    )
+
+    # Assert the same feature is returned with a wired FeatureContext.
+    assert loaded is feature
+    assert isinstance(feature_context, FeatureContext)
+    assert feature_context.get_dependency is get_dependency
+    assert feature_context.cache is cache
+    get_dependency.assert_not_called()
+
+
+# ** test: create_feature_context_loads_by_feature_id
+def test_create_feature_context_loads_by_feature_id():
+    '''
+    Test that create_feature_context loads the feature via the get_feature
+    handler when only a feature_id is supplied.
+    '''
+
+    # Arrange a resolver returning a GetFeature event that yields the feature.
+    expected_feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    get_feature_evt = mock.Mock()
+    get_feature_evt.execute.return_value = expected_feature
+    get_dependency = mock.Mock(return_value=get_feature_evt)
+    cache = CacheContext()
+
+    # Compose the feature context by id.
+    loaded, feature_context = create_feature_context(
+        get_dependency, cache, feature_id='group.feat'
+    )
+
+    # Assert the feature was loaded via the app-scoped GetFeature event.
+    assert loaded is expected_feature
+    assert isinstance(feature_context, FeatureContext)
+    get_dependency.assert_called_once_with('get_feature_evt', 'app')
+    get_feature_evt.execute.assert_called_once_with(id='group.feat')
+
+
+# ** test: execute_feature_drives_context_and_returns_response
+def test_execute_feature_drives_context_and_returns_response(monkeypatch):
+    '''
+    Test that execute_feature composes the context, drives feature execution,
+    and returns the request's handled response.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a feature, a stub feature context, and a request with a result.
+    feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    request = RequestContext(data={})
+    request.set_result('done')
+    feature_context = mock.Mock()
+
+    # Patch create_feature_context to return the stubbed pair.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.create_feature_context',
+        lambda *args, **kwargs: (feature, feature_context),
+    )
+
+    # Execute the feature with an execution flag.
+    result = execute_feature('group.feat', mock.Mock(), CacheContext(), request, 'flag_a')
+
+    # Assert the feature context was driven with the feature, request, and flag.
+    feature_context.execute_feature.assert_called_once_with(feature, request, 'flag_a')
+
+    # Assert the handled response is returned.
+    assert result == 'done'
+
+
+# ** test: build_app_service_container_wires_load_cache_into_cache_middleware
+def test_build_app_service_container_wires_load_cache_into_cache_middleware():
+    '''
+    Test that build_app_service_container registers the load_cache constant and
+    wires it into the CacheMiddleware singleton via constructor injection.
+    '''
+
+    # Build the seeded cache and a defaults-only container.
+    cache = build_cache()
+    container = build_app_service_container(cache)
+
+    # Assert the load_cache constant resolves to a callable loader.
+    loader = container.get_dependency('load_cache')
+    assert callable(loader)
+
+    # Assert the cache_middleware singleton composed with the loader wired in.
+    middleware = container.get_dependency('cache_middleware')
+    assert isinstance(middleware, CacheMiddleware)
+    assert middleware.load_cache is loader

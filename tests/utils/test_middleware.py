@@ -10,7 +10,7 @@ import re
 import pytest
 
 # ** app
-from tiferet.utils.middleware import LoggingMiddleware, TimingMiddleware
+from tiferet.utils.middleware import LoggingMiddleware, TimingMiddleware, CacheMiddleware
 from tiferet.interfaces.middleware import MiddlewareService
 
 
@@ -232,3 +232,91 @@ def test_timing_middleware_failure(sample_event: object, caplog):
     ]
     assert len(timing_records) == 1
     assert re.search(r'raised after \d+\.\d{2}ms', timing_records[0].getMessage())
+
+
+# ** test: cache_middleware_conformance
+def test_cache_middleware_conformance():
+    '''
+    Test that CacheMiddleware conforms to MiddlewareService and defaults its loader to None.
+    '''
+
+    # Assert class-level conformance to the MiddlewareService contract.
+    assert issubclass(CacheMiddleware, MiddlewareService)
+
+    # Instantiate without a loader and assert instance-level conformance.
+    middleware = CacheMiddleware()
+    assert isinstance(middleware, MiddlewareService)
+
+    # Assert the loader defaults to None.
+    assert middleware.load_cache is None
+
+
+# ** test: cache_middleware_injects_snapshot
+def test_cache_middleware_injects_snapshot(sample_event: object):
+    '''
+    Test that CacheMiddleware injects the load_cache snapshot as the 'cache' kwarg.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build a middleware whose loader yields a known snapshot dict.
+    snapshot = {'answer': 42}
+    middleware = CacheMiddleware(load_cache=lambda: snapshot)
+
+    # Provide a kwargs dict without a cache entry and a sentinel next_fn.
+    kwargs = {'a': 1}
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned unchanged.
+    assert result == 'result'
+
+    # Assert the snapshot was injected under the 'cache' key, leaving others intact.
+    assert kwargs['cache'] == snapshot
+    assert kwargs['a'] == 1
+
+
+# ** test: cache_middleware_skips_when_cache_present
+def test_cache_middleware_skips_when_cache_present(sample_event: object):
+    '''
+    Test that CacheMiddleware does not overwrite an existing 'cache' kwarg.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build a middleware whose loader would raise if it were ever invoked.
+    def _loader():
+        raise AssertionError('load_cache must not be called when cache is present')
+
+    middleware = CacheMiddleware(load_cache=_loader)
+
+    # Provide a kwargs dict that already carries a cache value.
+    existing = {'existing': True}
+    kwargs = {'cache': existing}
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned and the existing cache is preserved.
+    assert result == 'result'
+    assert kwargs['cache'] is existing
+
+
+# ** test: cache_middleware_noop_without_loader
+def test_cache_middleware_noop_without_loader(sample_event: object):
+    '''
+    Test that CacheMiddleware is a transparent no-op when no loader is supplied.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build a middleware without a loader.
+    middleware = CacheMiddleware()
+
+    # Provide a kwargs dict with no cache entry.
+    kwargs = {'a': 1}
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned and no cache key was injected.
+    assert result == 'result'
+    assert 'cache' not in kwargs
