@@ -222,18 +222,26 @@ class AppSessionContext(BaseContext):
     domain_type = AppSession
 
     # * attribute: get_feature_evt (obsolete)
-    # -- obsolete: superseded by the injected _get_feature callable; remove at v2.0.0 stable
+    # -- obsolete: superseded by the injected _execute_feature callable; remove at N2
+    # ++ todo: remove at N2
     get_feature_evt: DomainEvent
 
-    # * attribute: _get_feature
-    _get_feature: Callable
-
     # * attribute: get_error_evt (obsolete)
-    # -- obsolete: superseded by the injected _get_error callable; remove at v2.0.0 stable
+    # -- obsolete: superseded by the injected _raise_error callable; remove at N2
+    # ++ todo: remove at N2
     get_error_evt: DomainEvent
 
-    # * attribute: _get_error
-    _get_error: Callable
+    # * attribute: _execute_feature
+    _execute_feature: Callable
+
+    # * attribute: _create_request
+    _create_request: Callable
+
+    # * attribute: _raise_error
+    _raise_error: Callable
+
+    # * attribute: _build_response
+    _build_response: Callable
 
     # * attribute: logging_list_all_evt
     logging_list_all_evt: DomainEvent
@@ -251,8 +259,10 @@ class AppSessionContext(BaseContext):
             logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
             cache: CacheContext = None,
-            get_feature: Callable = None,
-            get_error: Callable = None,
+            execute_feature_handler: Callable = None,
+            create_request_handler: Callable = None,
+            raise_error_handler: Callable = None,
+            response_handler: Callable = None,
             default_features: Dict[str, Dict[str, Any]] = None,
             default_commands: Dict[str, Dict[str, Any]] = None,
         ):
@@ -263,26 +273,35 @@ class AppSessionContext(BaseContext):
         supplies the session id and logger id on demand, so no standalone
         ``interface_id`` is stored.
 
-        :param get_feature_evt: The event used to retrieve features. Obsolete: superseded by
-            the injected ``get_feature`` callable.
+        :param get_feature_evt: The event used to retrieve features. Obsolete:
+            superseded by the injected ``execute_feature_handler`` callable.
         :type get_feature_evt: DomainEvent
-        :param get_error_evt: The event used to retrieve errors. Obsolete: superseded by
-            the injected ``get_error`` callable.
+        :param get_error_evt: The event used to retrieve errors. Obsolete:
+            superseded by the injected ``raise_error_handler`` callable.
         :type get_error_evt: DomainEvent
         :param logging_list_all_evt: The event used to list logging configurations.
         :type logging_list_all_evt: DomainEvent
-        :param get_dependency: The injected service-resolution handler used to resolve feature step events and middleware.
+        :param get_dependency: The injected service-resolution handler used to
+            resolve feature step events and middleware.
         :type get_dependency: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
-        :param get_feature: An optional feature-retrieval callable produced by the ``get_feature``
-            blueprint in ``blueprints/core.py``. When provided, the ``_get_feature`` handler is
-            used for all feature lookups; when absent, the legacy ``get_feature_evt`` path applies.
-        :type get_feature: Callable
-        :param get_error: An optional error-retrieval callable produced by the ``get_error``
-            blueprint in ``blueprints/core.py``. When provided, the ``_get_error`` handler is
-            used for all error lookups; when absent, the legacy ``get_error_evt`` path applies.
-        :type get_error: Callable
+        :param execute_feature_handler: The feature-execution callable produced by
+            the ``execute_feature_handler`` blueprint. When wired, ``execute_feature``
+            delegates to it; when absent the legacy event path applies.
+        :type execute_feature_handler: Callable
+        :param create_request_handler: The request-creation callable produced by
+            the ``create_session_request`` blueprint. When wired, ``build_request``
+            delegates to it; when absent the legacy construction path applies.
+        :type create_request_handler: Callable
+        :param raise_error_handler: The error-raising callable produced by the
+            ``raise_error_handler`` blueprint. When wired, ``handle_error`` delegates
+            to it; when absent the legacy error path applies.
+        :type raise_error_handler: Callable
+        :param response_handler: The response-extraction callable produced by the
+            ``response_handler`` blueprint. When wired, ``build_response`` delegates
+            to it; when absent ``request.handle_response()`` is called directly.
+        :type response_handler: Callable
         :param default_features: Optional id-keyed feature records for bootstrap fallback.
         :type default_features: Dict[str, Dict[str, Any]]
         :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
@@ -301,11 +320,14 @@ class AppSessionContext(BaseContext):
         self.logging_list_all_evt = logging_list_all_evt
         self.get_dependency = get_dependency
 
-        # Store the injected feature- and error-retrieval handlers (new path).
-        self._get_feature = get_feature
-        self._get_error = get_error
+        # Store the injected FE4 handler callables.
+        self._execute_feature = execute_feature_handler
+        self._create_request = create_request_handler
+        self._raise_error = raise_error_handler
+        self._build_response = response_handler
 
         # Materialize the id-keyed bootstrap defaults into typed domain objects.
+        # -- obsolete: default_feature_index is only consumed by the legacy load_feature_domain path; remove at N2
         self.default_feature_index = build_feature_index(default_features)
         self.default_commands_list = build_command_list(default_commands)
 
@@ -332,14 +354,13 @@ class AppSessionContext(BaseContext):
         # Return the shared logging context.
         return self._logging
 
-    # * method: load_feature_domain
+    # * method: load_feature_domain (obsolete)
+    # -- obsolete: superseded by _execute_feature; remove at N2
     def load_feature_domain(self, feature_id: str) -> Feature:
         '''
         Load a feature domain object by id.
 
-        Delegates to the injected ``_get_feature`` handler when available
-        (new path). Falls back to the legacy cache-then-event path when
-        the handler has not been injected (backward compatibility).
+        Falls back to the legacy cache-then-event path.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -347,11 +368,7 @@ class AppSessionContext(BaseContext):
         :rtype: Feature
         '''
 
-        # Delegate to the injected handler when available (new path).
-        if self._get_feature is not None:
-            return self._get_feature(feature_id)
-
-        # Legacy fallback: try the shared cache first.
+        # Legacy path: try the shared cache first.
         feature = self.cache.get(feature_id)
 
         # Retrieve via the get-feature event, falling back to the bootstrap
@@ -368,24 +385,19 @@ class AppSessionContext(BaseContext):
         # Return the loaded feature.
         return feature
 
-    # * method: get_error
+    # * method: get_error (obsolete)
+    # -- obsolete: superseded by _raise_error; remove at N2
     def get_error(self, error_code: str) -> Error:
         '''
         Load an error domain object by its code.
 
-        Delegates to the injected ``_get_error`` handler when available
-        (new path). Falls back to the legacy cache-then-event path when
-        the handler has not been injected (backward compatibility).
+        Falls back to the legacy cache-then-event path.
 
         :param error_code: The error code to resolve.
         :type error_code: str
         :return: The loaded error domain object.
         :rtype: Error
         '''
-
-        # Delegate to the injected handler when available (new path).
-        if self._get_error is not None:
-            return self._get_error(error_code)
 
         # Legacy fallback: try the shared cache first (pre-seeded with the default errors).
         error = self.cache.get(error_code, *ERROR_CACHE_PREFIX)
@@ -398,7 +410,39 @@ class AppSessionContext(BaseContext):
         # Return the loaded error.
         return error
 
-    # * method: parse_request
+    # * method: build_request
+    def build_request(self, feature_id: str, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> RequestContext:
+        '''
+        Build the request context for a feature execution.
+
+        Template method override point. Delegates to the injected
+        ``_create_request`` callable when available; falls back to
+        constructing the request directly, enriching headers with the
+        interface id sourced from the bound domain object.
+
+        :param feature_id: The feature identifier.
+        :type feature_id: str
+        :param headers: The request headers.
+        :type headers: dict
+        :param data: The request data.
+        :type data: dict
+        :return: The composed request context.
+        :rtype: RequestContext
+        '''
+
+        # Delegate to the injected create-request handler when available (new path).
+        if self._create_request is not None:
+            return self._create_request(self.domain.id, feature_id, headers, data)
+
+        # Legacy fallback: enrich headers with the interface id and construct directly.
+        return RequestContext(
+            headers={**(headers or {}), 'interface_id': self.domain.id},
+            data=data,
+            feature_id=feature_id,
+        )
+
+    # * method: parse_request (obsolete)
+    # -- obsolete: renamed to build_request; remove at N2
     def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
         '''
         Parse the incoming request.
@@ -415,30 +459,20 @@ class AppSessionContext(BaseContext):
         :rtype: RequestContext
         '''
 
-        # Add the interface id (from the bound domain) to the request headers.
-        headers.update(dict(
-            interface_id=self.domain.id,
-        ))
-
-        # Create the request context object.
-        request = RequestContext(
-            headers=headers,
-            data=data,
-            feature_id=feature_id,
-        )
-
-        # Return the request model object.
-        return request
+        # Delegate to the renamed template method.
+        return self.build_request(feature_id, headers, data)
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute the feature request.
 
-        Resolves the registered ``FeatureContext`` via the ``BaseContext``
-        registry and delegates execution. Sync/async dispatch is handled
-        internally by ``FeatureContext.execute_feature`` based on
-        ``feature.is_async`` and ``step.is_async``.
+        Template method override point. Delegates to the injected
+        ``_execute_feature`` callable when available; falls back to the legacy
+        path that loads the feature domain object and drives a ``FeatureContext``
+        directly. Sync/async dispatch is handled internally by
+        ``FeatureContext.execute_feature`` based on ``feature.is_async`` and
+        ``step.is_async``.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -448,7 +482,12 @@ class AppSessionContext(BaseContext):
         :type kwargs: dict
         '''
 
-        # Add the feature id to the request headers.
+        # Delegate to the injected handler when available (new path).
+        if self._execute_feature is not None:
+            self._execute_feature(feature_id, request, **kwargs)
+            return
+
+        # Legacy fallback: add the feature id to the request headers.
         request.headers.update(dict(
             feature_id=feature_id
         ))
@@ -467,7 +506,12 @@ class AppSessionContext(BaseContext):
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
         '''
-        Handle the error by formatting it via ErrorContext and raising TiferetAPIError.
+        Handle the error.
+
+        Template method override point. Delegates to the injected
+        ``_raise_error`` callable when available; falls back to the legacy path
+        that formats the error via an ``ErrorContext`` and raises
+        ``TiferetAPIError``.
 
         :param error: The error to handle.
         :type error: Exception
@@ -477,7 +521,11 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # If the error is not a TiferetError, wrap it in one.
+        # Delegate to the injected handler when available (new path).
+        if self._raise_error is not None:
+            return self._raise_error(error, **kwargs)
+
+        # Legacy fallback: wrap plain exceptions in a TiferetError.
         if not isinstance(error, TiferetError):
             error = TiferetError(
                 'APP_ERROR',
@@ -496,14 +544,42 @@ class AppSessionContext(BaseContext):
         # Raise the API exception with the formatted payload.
         raise TiferetAPIError(**formatted_error)
 
+    # * method: build_response
+    def build_response(self, request: RequestContext) -> Any:
+        '''
+        Build the response from a completed request context.
+
+        Template method override point. Delegates to the injected
+        ``_build_response`` callable when available; falls back to
+        ``request.handle_response()`` directly. Subclasses override this
+        method to produce context-specific output (e.g. a ``CliContext``
+        serialises to stdout; a ``FlaskApiContext`` wraps in a JSON response).
+
+        :param request: The completed request context.
+        :type request: RequestContext
+        :return: The handled feature response.
+        :rtype: Any
+        '''
+
+        # Delegate to the injected response handler when available (new path).
+        if self._build_response is not None:
+            return self._build_response(request)
+
+        # Default: delegate to the request context's response handler.
+        return request.handle_response()
+
     # * method: run
-    def run(self, 
-            feature_id: str, 
-            headers: Dict[str, str] = {}, 
+    def run(self,
+            feature_id: str,
+            headers: Dict[str, str] = {},
             data: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
         Run the application interface by executing the feature.
+
+        Pure orchestrator that calls the four template methods in order:
+        ``build_request`` → ``execute_feature`` → ``handle_error`` (on error)
+        → ``build_response``. Each method is a stable subclass override point.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -513,6 +589,8 @@ class AppSessionContext(BaseContext):
         :type data: dict
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
+        :return: The feature response.
+        :rtype: Any
         '''
 
         # Start timing immediately.
@@ -521,18 +599,14 @@ class AppSessionContext(BaseContext):
         # Create the logger for the app interface context.
         logger = self.load_logging_context().build_logger()
 
-        # Parse request.
-        logger.debug(f'Parsing request for feature: {feature_id}')
-        request = self.parse_request(headers, data, feature_id)
+        # Build request via the template method.
+        logger.debug(f'Building request for feature: {feature_id}')
+        request = self.build_request(feature_id, headers or {}, data or {})
 
-        # Execute feature context and return session.
+        # Execute feature via the template method.
         try:
             logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
-            self.execute_feature(
-                feature_id=feature_id, 
-                request=request, 
-                logger=logger,
-                **kwargs)
+            self.execute_feature(feature_id, request, logger=logger, **kwargs)
 
         # Handle error and return response if triggered.
         except TiferetError as e:
@@ -541,14 +615,13 @@ class AppSessionContext(BaseContext):
 
         # Calculate execution duration in milliseconds.
         duration_ms = round((time.perf_counter() - start_time) * 1000)
-        duration_str = f" ({duration_ms}ms)"
 
         # Log successful execution with timing.
-        logger.debug(f'Feature {feature_id} executed successfully, handling response.')
-        logger.info(f'Executed Feature - {feature_id}{duration_str}')
+        logger.debug(f'Feature {feature_id} executed successfully, building response.')
+        logger.info(f'Executed Feature - {feature_id} ({duration_ms}ms)')
 
-        # Handle the response via the request context.
-        return request.handle_response()
+        # Build and return the response via the template method.
+        return self.build_response(request)
 
 
 # ** context: app_interface_context (obsolete)

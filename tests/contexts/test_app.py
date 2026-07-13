@@ -640,19 +640,19 @@ def test_app_interface_context_handle_error_invalid(app_interface_context, error
     assert exc_info.value.error_code == 'APP_ERROR'
     assert 'An error occurred in the app' in exc_info.value.message
 
-# ** test: app_session_context_get_error_delegates_to_injected_handler
-def test_app_session_context_get_error_delegates_to_injected_handler(app_interface):
+# ** test: app_session_context_build_request_delegates_to_create_request_handler
+def test_app_session_context_build_request_delegates_to_create_request_handler(app_interface):
     """
-    Test that get_error delegates entirely to the injected _get_error callable
-    when one is provided, bypassing the cache and event paths.
+    Test that build_request delegates to the injected _create_request callable
+    when create_request_handler is wired, bypassing the legacy construction path.
 
     :param app_interface: The test AppSessionAggregate.
     :type app_interface: AppSessionAggregate
     """
 
-    # Arrange a mock handler that returns a known error.
-    expected_error = Error(id='INJECTED_ERROR', name='Injected Error')
-    mock_handler = mock.Mock(return_value=expected_error)
+    # Arrange a mock create_request_handler returning a known request.
+    expected_request = RequestContext(data={'k': 'v'})
+    mock_handler = mock.Mock(return_value=expected_request)
 
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
@@ -661,35 +661,101 @@ def test_app_session_context_get_error_delegates_to_injected_handler(app_interfa
         get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
-        get_error=mock_handler,
+        create_request_handler=mock_handler,
     )
 
-    # Invoke get_error.
-    result = context.get_error('INJECTED_ERROR')
+    # Invoke build_request.
+    result = context.build_request('group.feat', {'h': 'v'}, {'d': 1})
 
-    # Assert the injected handler was called and its result returned.
-    assert result is expected_error
-    mock_handler.assert_called_once_with('INJECTED_ERROR')
+    # Assert the injected handler was called with interface_id, feature_id, headers, data.
+    assert result is expected_request
+    mock_handler.assert_called_once_with(app_interface.id, 'group.feat', {'h': 'v'}, {'d': 1})
+
+
+# ** test: app_session_context_execute_feature_delegates_to_handler
+def test_app_session_context_execute_feature_delegates_to_handler(app_interface):
+    """
+    Test that execute_feature delegates to the injected _execute_feature callable
+    when execute_feature_handler is wired, bypassing the legacy path.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Arrange a mock execute_feature_handler (void callable).
+    execute_mock = mock.Mock()
+    request = RequestContext(data={})
+
+    # Construct the hub with the injected handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+        execute_feature_handler=execute_mock,
+    )
+
+    # Invoke execute_feature.
+    context.execute_feature('group.feat', request)
+
+    # Assert the injected handler was called with the feature_id and request.
+    execute_mock.assert_called_once_with('group.feat', request)
+
+
+# ** test: app_session_context_handle_error_delegates_to_raise_error_handler
+def test_app_session_context_handle_error_delegates_to_raise_error_handler(app_interface):
+    """
+    Test that handle_error delegates to the injected _raise_error callable when
+    raise_error_handler is wired, bypassing the legacy error path.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+    from tiferet.assets import TiferetAPIError
+
+    # Arrange a raise_error_handler that raises a TiferetAPIError.
+    api_error = TiferetAPIError(
+        error_code='INJECTED_ERROR',
+        name='Injected Error',
+        message='Injected error message.',
+    )
+    raise_mock = mock.Mock(side_effect=api_error)
+
+    # Construct the hub with the injected handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+        raise_error_handler=raise_mock,
+    )
+
+    # Invoke handle_error and assert the injected handler is called.
+    error = TiferetError('INJECTED_ERROR', 'injected')
+    with pytest.raises(TiferetAPIError):
+        context.handle_error(error)
+
+    raise_mock.assert_called_once_with(error)
 
     # Assert the legacy event was not touched.
     context.get_error_evt.execute.assert_not_called()
 
 
-# ** test: app_session_context_load_feature_domain_delegates_to_injected_handler
-def test_app_session_context_load_feature_domain_delegates_to_injected_handler(app_interface):
+# ** test: app_session_context_build_response_delegates_to_response_handler
+def test_app_session_context_build_response_delegates_to_response_handler(app_interface):
     """
-    Test that load_feature_domain delegates entirely to the injected _get_feature
-    callable when one is provided, bypassing the cache and event paths.
+    Test that build_response delegates to the injected _build_response callable
+    when response_handler is wired.
 
     :param app_interface: The test AppSessionAggregate.
     :type app_interface: AppSessionAggregate
     """
 
-    # Arrange a mock handler that returns a known feature.
-    expected_feature = Feature(
-        id='group.feat', group_id='group', feature_key='feat', name='Feat'
-    )
-    mock_handler = mock.Mock(return_value=expected_feature)
+    # Arrange a response_handler that returns a known result.
+    expected_result = {'status': 'ok'}
+    response_mock = mock.Mock(return_value=expected_result)
 
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
@@ -698,18 +764,44 @@ def test_app_session_context_load_feature_domain_delegates_to_injected_handler(a
         get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
-        get_feature=mock_handler,
+        response_handler=response_mock,
     )
 
-    # Invoke load_feature_domain.
-    result = context.load_feature_domain('group.feat')
+    # Invoke build_response.
+    request = RequestContext(data={})
+    result = context.build_response(request)
 
     # Assert the injected handler was called and its result returned.
-    assert result is expected_feature
-    mock_handler.assert_called_once_with('group.feat')
+    assert result is expected_result
+    response_mock.assert_called_once_with(request)
 
-    # Assert the legacy event was not touched.
-    context.get_feature_evt.execute.assert_not_called()
+
+# ** test: app_session_context_build_response_fallback
+def test_app_session_context_build_response_fallback(app_interface):
+    """
+    Test that build_response falls back to request.handle_response() when no
+    response_handler is wired.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Construct the hub without a response_handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_feature_evt=mock.Mock(),
+        get_error_evt=mock.Mock(),
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+    )
+
+    # Arrange a request with a known result.
+    request = RequestContext(data={})
+    request.set_result('the_result')
+
+    # Assert build_response returns the request's handled response.
+    result = context.build_response(request)
+    assert result == 'the_result'
 
 
 # ** test: app_interface_context_get_error_cache_hit

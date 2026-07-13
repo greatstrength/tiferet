@@ -27,7 +27,14 @@ from ..events import (
     RaiseError,
 )
 from ..events.blueprint import CreateServiceResolver
-from .core import get_app_session
+from .core import (
+    get_app_session,
+    execute_feature_handler,
+    raise_error_handler,
+    create_session_request,
+    response_handler,
+    get_error,
+)
 
 # *** functions
 
@@ -285,11 +292,16 @@ def load_app_instance(
     # ++ todo: remove fallback when the core compose path is wired at N2
     cache = context_kwargs.pop('cache', None) or build_cache()
 
-    # Construct the context declaratively, injecting the resolution handler and cache.
+    # Construct the context declaratively, injecting the resolution handler, cache,
+    # and all four FE4 template-method handler callables.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
+        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
+        create_request_handler=create_session_request,
+        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
+        response_handler=response_handler,
         **resolved,
         **context_kwargs,
     )

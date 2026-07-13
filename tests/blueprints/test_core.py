@@ -8,7 +8,7 @@ from unittest import mock
 
 # ** app
 from tiferet import assets as a
-from tiferet import TiferetError
+from tiferet import TiferetError, TiferetAPIError
 from tiferet.blueprints.core import (
     build_cache,
     create_app_service,
@@ -21,6 +21,10 @@ from tiferet.blueprints.core import (
     create_request_context,
     create_feature_context,
     execute_feature,
+    create_session_request,
+    execute_feature_handler,
+    raise_error_handler,
+    response_handler,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
@@ -695,6 +699,205 @@ def test_execute_feature_drives_context_and_returns_response(monkeypatch):
 
     # Assert the handled response is returned.
     assert result == 'done'
+
+
+# ** test: create_session_request_builds_request_context
+def test_create_session_request_builds_request_context():
+    '''
+    Test that create_session_request builds a RequestContext with interface_id
+    injected into headers, feature_id set, and data wired.
+    '''
+
+    # Build the session request.
+    request = create_session_request(
+        interface_id='test_interface',
+        feature_id='group.feat',
+        headers={'h': 'v'},
+        data={'a': 1},
+    )
+
+    # Assert the request is shaped correctly.
+    assert isinstance(request, RequestContext)
+    assert request.feature_id == 'group.feat'
+    assert request.headers.get('interface_id') == 'test_interface'
+    assert request.headers.get('h') == 'v'
+    assert request.data == {'a': 1}
+
+
+# ** test: create_session_request_empty_headers_and_data
+def test_create_session_request_empty_headers_and_data():
+    '''
+    Test that create_session_request handles None headers and data,
+    producing a request with only interface_id in headers.
+    '''
+
+    # Build the session request with no headers or data.
+    request = create_session_request(
+        interface_id='iface',
+        feature_id='g.f',
+    )
+
+    # Assert the interface_id is the only header and data defaults to an empty dict.
+    assert request.headers == {'interface_id': 'iface'}
+    assert request.data == {}
+
+
+# ** test: execute_feature_handler_returns_callable
+def test_execute_feature_handler_returns_callable():
+    '''
+    Test that execute_feature_handler returns a callable bound to the
+    get_dependency and cache.
+    '''
+
+    # Build the handler with a mock resolver and fresh cache.
+    handler = execute_feature_handler(mock.Mock(), CacheContext())
+
+    # Assert the result is callable.
+    assert callable(handler)
+
+
+# ** test: execute_feature_handler_drives_feature_context
+def test_execute_feature_handler_drives_feature_context(monkeypatch):
+    '''
+    Test that the callable returned by execute_feature_handler loads the
+    feature via create_feature_context and drives FeatureContext.execute_feature.
+    The handler is void — it does not call handle_response.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a feature and a stub feature context.
+    feature = Feature(
+        id='group.feat', group_id='group', feature_key='feat', name='Feat'
+    )
+    request = RequestContext(data={})
+    feature_context = mock.Mock()
+
+    # Patch create_feature_context to return the stubbed pair.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.create_feature_context',
+        lambda *args, **kwargs: (feature, feature_context),
+    )
+
+    # Build the handler and invoke it with a flag.
+    handler = execute_feature_handler(mock.Mock(), CacheContext())
+    result = handler('group.feat', request, 'flag_a')
+
+    # Assert the feature context was driven with the feature, request, and flag.
+    feature_context.execute_feature.assert_called_once_with(feature, request, 'flag_a')
+
+    # Assert the handler is void (returns None, not the response).
+    assert result is None
+
+
+# ** test: raise_error_handler_returns_callable
+def test_raise_error_handler_returns_callable():
+    '''
+    Test that raise_error_handler returns a callable bound to the
+    get_error_handler.
+    '''
+
+    # Build the handler with a mock error retrieval callable.
+    handler = raise_error_handler(mock.Mock())
+
+    # Assert the result is callable.
+    assert callable(handler)
+
+
+# ** test: raise_error_handler_raises_api_error_on_tiferet_error
+def test_raise_error_handler_raises_api_error_on_tiferet_error(monkeypatch):
+    '''
+    Test that the callable returned by raise_error_handler raises
+    TiferetAPIError when given a TiferetError input.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+    from tiferet.contexts.error import ErrorContext
+    from tiferet.domain import Error
+
+    # Arrange an error domain object and a mock error context.
+    error_domain = Error(id='TEST_ERROR', name='Test Error')
+    get_error_mock = mock.Mock(return_value=error_domain)
+
+    # Patch BaseContext.for_domain to return a mock error context class.
+    error_context_instance = mock.Mock(spec=ErrorContext)
+    error_context_instance.format_response.return_value = {
+        'error_code': 'TEST_ERROR',
+        'name': 'Test Error',
+        'message': 'A test error occurred.',
+    }
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.BaseContext.for_domain',
+        lambda domain_cls: (lambda **kwargs: error_context_instance),
+    )
+
+    # Build the handler and invoke it with a TiferetError.
+    handler = raise_error_handler(get_error_mock)
+    error = TiferetError('TEST_ERROR', 'A test error occurred.')
+
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(error)
+
+    # Assert the structured error was raised with the expected data.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.name == 'Test Error'
+    get_error_mock.assert_called_once_with('TEST_ERROR')
+
+
+# ** test: raise_error_handler_wraps_plain_exception
+def test_raise_error_handler_wraps_plain_exception(monkeypatch):
+    '''
+    Test that the callable returned by raise_error_handler wraps a plain
+    Exception in a TiferetError with APP_ERROR code before formatting.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+    from tiferet.contexts.error import ErrorContext
+    from tiferet.domain import Error
+
+    # Arrange an APP_ERROR domain object and a mock error context.
+    error_domain = Error(id='APP_ERROR', name='App Error')
+    get_error_mock = mock.Mock(return_value=error_domain)
+
+    # Patch BaseContext.for_domain to return a mock error context class.
+    error_context_instance = mock.Mock(spec=ErrorContext)
+    error_context_instance.format_response.return_value = {
+        'error_code': 'APP_ERROR',
+        'name': 'App Error',
+        'message': 'An error occurred: something went wrong',
+    }
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.BaseContext.for_domain',
+        lambda domain_cls: (lambda **kwargs: error_context_instance),
+    )
+
+    # Build the handler and invoke it with a plain Exception.
+    handler = raise_error_handler(get_error_mock)
+
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(Exception('something went wrong'))
+
+    # Assert the exception was wrapped and routed through APP_ERROR.
+    assert exc_info.value.error_code == 'APP_ERROR'
+    get_error_mock.assert_called_once_with('APP_ERROR')
+
+
+# ** test: response_handler_delegates_to_request
+def test_response_handler_delegates_to_request():
+    '''
+    Test that response_handler returns the result of request.handle_response().
+    '''
+
+    # Arrange a request with a known result.
+    request = RequestContext(data={})
+    request.set_result({'status': 'ok'})
+
+    # Assert the handler returns the expected response.
+    result = response_handler(request)
+    assert result == {'status': 'ok'}
 
 
 # ** test: build_app_service_container_wires_load_cache_into_cache_middleware

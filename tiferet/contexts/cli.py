@@ -160,6 +160,10 @@ class CliContext(AppSessionContext):
             list_commands_evt: DomainEvent,
             get_parent_args_evt: DomainEvent,
             cache: CacheContext = None,
+            execute_feature_handler: Callable = None,
+            create_request_handler: Callable = None,
+            raise_error_handler: Callable = None,
+            response_handler: Callable = None,
             default_features: Dict[str, Dict[str, Any]] = None,
             default_commands: Dict[str, Dict[str, Any]] = None,
         ):
@@ -181,6 +185,14 @@ class CliContext(AppSessionContext):
         :type get_parent_args_evt: DomainEvent
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
+        :param execute_feature_handler: The feature-execution callable (FE4). Forwarded to hub.
+        :type execute_feature_handler: Callable
+        :param create_request_handler: The request-creation callable (FE4). Forwarded to hub.
+        :type create_request_handler: Callable
+        :param raise_error_handler: The error-raising callable (FE4). Forwarded to hub.
+        :type raise_error_handler: Callable
+        :param response_handler: The response-extraction callable (FE4). Forwarded to hub.
+        :type response_handler: Callable
         :param default_features: Optional id-keyed feature records for bootstrap fallback.
         :type default_features: Dict[str, Dict[str, Any]]
         :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
@@ -194,6 +206,10 @@ class CliContext(AppSessionContext):
             logging_list_all_evt=logging_list_all_evt,
             get_dependency=get_dependency,
             cache=cache,
+            execute_feature_handler=execute_feature_handler,
+            create_request_handler=create_request_handler,
+            raise_error_handler=raise_error_handler,
+            response_handler=response_handler,
             default_features=default_features,
             default_commands=default_commands,
         )

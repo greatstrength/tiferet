@@ -6,6 +6,7 @@
 from typing import Any, Callable, Dict
 
 # ** app
+from ..assets import TiferetError, TiferetAPIError
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
 from ..contexts.feature import (
@@ -15,12 +16,14 @@ from ..contexts.feature import (
     add_default_features,
 )
 from ..contexts.request import RequestContext
+from ..contexts.settings import BaseContext
 from ..contexts.app import (
     AppServiceDependency,
     add_default_app_services,
     add_default_app_constants,
     get_default_app_services,
     get_default_app_constants,
+    Error,
 )
 from ..events import DomainEvent, ParseParameter
 from ..events.app import GetAppSession
@@ -445,7 +448,8 @@ def create_feature_context(
     # Return the feature and its composed context.
     return feature, feature_context
 
-# ** blueprint: execute_feature
+# ** blueprint: execute_feature (obsolete)
+# -- obsolete: absorbed into execute_feature_handler factory (see FE4); no standalone value outside hub scope; remove at N2
 def execute_feature(
     feature_id: str,
     get_dependency: Callable,
@@ -490,4 +494,140 @@ def execute_feature(
     feature_context.execute_feature(feature, request, *flags, **kwargs)
 
     # Return the handled response from the request.
+    return request.handle_response()
+
+# ** blueprint: create_session_request
+def create_session_request(
+    interface_id: str,
+    feature_id: str,
+    headers: Dict[str, str] = None,
+    data: Dict[str, Any] = None,
+) -> RequestContext:
+    '''
+    Compose a session request context for the hub's ``run`` method.
+
+    Pure, side-effect-free constructor that enriches the supplied headers with
+    the ``interface_id`` and constructs a ``RequestContext`` seeded with the
+    ``feature_id``. Unlike :func:`create_request_context`, this variant takes
+    string scalars so it can be called before the feature is loaded, matching
+    the hub's current construction order.
+
+    :param interface_id: The interface id to inject into the request headers.
+    :type interface_id: str
+    :param feature_id: The feature id to seed on the request context.
+    :type feature_id: str
+    :param headers: Optional request headers to merge with the interface id.
+    :type headers: Dict[str, str] | None
+    :param data: Optional request data payload.
+    :type data: Dict[str, Any] | None
+    :return: The composed request context.
+    :rtype: RequestContext
+    '''
+
+    # Compose and return the request context, enriching headers with the interface id.
+    return RequestContext(
+        headers={**(headers or {}), 'interface_id': interface_id},
+        data=data,
+        feature_id=feature_id,
+    )
+
+# ** blueprint: execute_feature_handler
+def execute_feature_handler(
+    get_dependency: Callable,
+    cache: CacheContext,
+) -> Callable:
+    '''
+    Build the hub's feature-execution callable, bound to the service resolver
+    and shared cache.
+
+    Returns a void callable that loads the feature via
+    :func:`create_feature_context` and drives
+    ``FeatureContext.execute_feature``, accumulating the result on the
+    request context. The handler is void — result extraction is the
+    responsibility of the response step.
+
+    :param get_dependency: The service-resolution handler from the ServiceResolver.
+    :type get_dependency: Callable
+    :param cache: The shared cache context.
+    :type cache: CacheContext
+    :return: A void execution callable bound to the resolver and cache.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure with the resolver and cache wired in.
+    def handler(feature_id: str, request: RequestContext, *flags, **kwargs) -> None:
+
+        # Load the feature and compose the feature context.
+        feature, feature_context = create_feature_context(
+            get_dependency, cache, feature_id=feature_id
+        )
+
+        # Drive execution; result is accumulated on the request context.
+        feature_context.execute_feature(feature, request, *flags, **kwargs)
+
+    return handler
+
+# ** blueprint: raise_error_handler
+def raise_error_handler(
+    get_error_handler: Callable,
+) -> Callable:
+    '''
+    Build an error-raising handler bound to an error-retrieval callable.
+
+    Returns a callable that, given an error (``TiferetError`` or plain
+    ``Exception``), retrieves the matching ``Error`` domain object via the
+    supplied ``get_error_handler``, formats the response through an
+    ``ErrorContext``, and raises ``TiferetAPIError``. Plain exceptions are
+    wrapped in a ``TiferetError`` before formatting. The callable always
+    raises — it never returns, echoing the ``RaiseError`` convention.
+
+    :param get_error_handler: An error-retrieval callable produced by
+        :func:`get_error`.
+    :type get_error_handler: Callable
+    :return: An error-raising callable bound to the error retrieval handler.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure bound to the error retrieval handler.
+    def handler(error: Exception, **kwargs) -> None:
+
+        # Wrap plain exceptions in a TiferetError before formatting.
+        if not isinstance(error, TiferetError):
+            error = TiferetError(
+                'APP_ERROR',
+                f'An error occurred: {str(error)}',
+                error=str(error),
+            )
+
+        # Retrieve the error domain object via the error retrieval handler.
+        error_domain = get_error_handler(error.error_code)
+
+        # Resolve the error context class via the registry and format the response.
+        error_context_cls = BaseContext.for_domain(Error)
+        formatted_error = error_context_cls().format_response(error_domain, error)
+
+        # Raise the API exception with the formatted payload.
+        raise TiferetAPIError(**formatted_error)
+
+    return handler
+
+# ** blueprint: response_handler
+def response_handler(request: RequestContext) -> Any:
+    '''
+    Extract the handled response from a completed request context.
+
+    Pure, dependency-free function that delegates to
+    ``request.handle_response()``. Stored directly on the hub as
+    ``_build_response`` — no partial binding is needed. Subclasses override
+    ``build_response`` to produce context-specific output (e.g. a
+    ``CliContext`` serialises to stdout; a ``FlaskApiContext`` wraps in a JSON
+    response).
+
+    :param request: The completed request context.
+    :type request: RequestContext
+    :return: The handled feature response.
+    :rtype: Any
+    '''
+
+    # Delegate to the request context's response handler.
     return request.handle_response()
