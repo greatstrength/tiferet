@@ -349,6 +349,58 @@ def test_constructor_delegates_to_load_container(simple_dependency: ServiceDepen
     assert isinstance(container.get_dependency('simple_service'), SimpleService)
     assert container.get_dependency('config_value') == 'test_config'
 
+# ** test: has_dependency_present
+def test_has_dependency_present(simple_dependency: ServiceDependency):
+    '''
+    Test that has_dependency returns True for a registered dependency.
+
+    :param simple_dependency: The simple service dependency fixture.
+    :type simple_dependency: ServiceDependency
+    '''
+
+    # Register a service and assert it is detected as present.
+    container = DIDynamicServiceContainer()
+    container.add_service('simple_service', simple_dependency)
+
+    # Assert has_dependency returns True for the registered id.
+    assert container.has_dependency('simple_service') is True
+
+# ** test: has_dependency_absent
+def test_has_dependency_absent():
+    '''
+    Test that has_dependency returns False for an unregistered dependency ID.
+    '''
+
+    # Assert has_dependency returns False on an empty container.
+    container = DIDynamicServiceContainer()
+
+    # Assert has_dependency returns False for an unknown id.
+    assert container.has_dependency('missing') is False
+
+# ** test: has_dependency_app_container
+def test_has_dependency_app_container(simple_dependency: ServiceDependency):
+    '''
+    Test that has_dependency is inherited correctly by DIAppServiceContainer.
+
+    :param simple_dependency: The simple service dependency fixture.
+    :type simple_dependency: ServiceDependency
+    '''
+
+    # Build an app container with one service.
+    container = DIAppServiceContainer.from_dependencies(
+        services=[
+            AppServiceDependency(
+                service_id='simple_service',
+                module_path=MODULE_PATH,
+                class_name='SimpleService',
+            ),
+        ],
+    )
+
+    # Assert has_dependency returns True for the registered id and False for an absent one.
+    assert container.has_dependency('simple_service') is True
+    assert container.has_dependency('not_registered') is False
+
 # ** test: get_dependency_missing_raises_raw_error
 def test_get_dependency_missing_raises_raw_error():
     '''

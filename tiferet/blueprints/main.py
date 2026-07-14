@@ -27,6 +27,7 @@ from ..events import (
     RaiseError,
 )
 from ..events.blueprint import CreateServiceResolver
+from . import core
 from .core import (
     get_app_session,
     execute_feature_handler,
@@ -288,8 +289,8 @@ def load_app_instance(
     # Resolve the context class's event collaborators by name from the registry.
     resolved = resolve_collaborators(context_cls, registry)
 
-    # Use a pre-built cache if forwarded via context_kwargs, otherwise build fresh.
-    # ++ todo: remove fallback when the core compose path is wired at N2
+    # Use a pre-built cache forwarded via context_kwargs (build_tiferet_cli always provides one).
+    # ++ todo: remove fallback once build_tiferet_cli is on the core path at N6
     cache = context_kwargs.pop('cache', None) or build_cache()
 
     # Construct the context declaratively, injecting the resolution handler, cache,
@@ -363,7 +364,7 @@ def resolve_interface(
 
 
 # ** blueprint: realize_interface
-# ++ todo: type validation collapses into N2 path; retires at N6
+# ++ todo: remove default_configurations routing and load_app_instance fallback at N6
 def realize_interface(
     app_session: AppSession,
     interface_id: str,
@@ -371,6 +372,12 @@ def realize_interface(
 ) -> AppSessionContext:
     '''
     Build and validate the concrete app session context from a resolved session.
+
+    Routes through the core compose path (``core.build_app_session_context``)
+    unless ``default_configurations`` is present in ``context_kwargs``, which
+    indicates the legacy ``build_tiferet_cli`` path that still uses
+    ``load_app_instance`` and ``CreateServiceResolver``.  The routing guard
+    will be removed when ``build_tiferet_cli`` is ported to the core path at N6.
 
     :param app_session: The resolved app session definition.
     :type app_session: AppSession
@@ -383,8 +390,22 @@ def realize_interface(
     :rtype: AppSessionContext
     '''
 
-    # Create the concrete app session context.
-    app_session_context = load_app_instance(app_session, **context_kwargs)
+    # Route through the core compose path when default_configurations is absent.
+    if 'default_configurations' not in context_kwargs:
+
+        # Pop the cache from kwargs; the core path requires one.
+        cache = context_kwargs.pop('cache', None) or core.build_cache()
+
+        # Build the app session context via the core compose path.
+        app_session_context = core.build_app_session_context(
+            app_session, cache, **context_kwargs
+        )
+
+    else:
+
+        # Legacy path: build_tiferet_cli passes default_configurations for feature-level
+        # DI bootstrapping; remains on load_app_instance until N6.
+        app_session_context = load_app_instance(app_session, **context_kwargs)
 
     # Verify that the resolved context is valid.
     if not isinstance(app_session_context, AppSessionContext):
@@ -399,7 +420,6 @@ def realize_interface(
 
 
 # ** blueprint: build_app
-# ++ todo: converge onto core compose path at N6
 def build_app(
     interface_id: str,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
@@ -434,5 +454,8 @@ def build_app(
         **parameters,
     )
 
-    # Realize and return the app session context.
-    return realize_interface(app_session, interface_id)
+    # Build the shared cache (seeded with errors, services, and constants).
+    cache = core.build_cache()
+
+    # Realize and return the app session context via the core compose path.
+    return realize_interface(app_session, interface_id, cache=cache)

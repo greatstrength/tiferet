@@ -136,6 +136,21 @@ class ServiceContainer(ABC):
         # Not implemented.
         raise NotImplementedError('get_dependency method is required for ServiceContainer.')
 
+    # * method: has_dependency
+    @abstractmethod
+    def has_dependency(self, dependency_id: str) -> bool:
+        '''
+        Return True when a dependency is registered under the given identifier.
+
+        :param dependency_id: The identifier of the dependency to check.
+        :type dependency_id: str
+        :return: True when the dependency is registered, False otherwise.
+        :rtype: bool
+        '''
+
+        # Not implemented.
+        raise NotImplementedError('has_dependency method is required for ServiceContainer.')
+
     # * method: remove_dependency
     @abstractmethod
     def remove_dependency(self, dependency_id: str):

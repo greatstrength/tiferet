@@ -153,8 +153,6 @@ class CliContext(AppSessionContext):
 
     # * init
     def __init__(self,
-            get_feature_evt: DomainEvent,
-            get_error_evt: DomainEvent,
             logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
             list_commands_evt: DomainEvent,
@@ -166,14 +164,12 @@ class CliContext(AppSessionContext):
             response_handler: Callable = None,
             default_features: Dict[str, Dict[str, Any]] = None,
             default_commands: Dict[str, Dict[str, Any]] = None,
+            get_feature_evt: DomainEvent = None,
+            get_error_evt: DomainEvent = None,
         ):
         '''
         Initialize the CLI context.
 
-        :param get_feature_evt: The event used to retrieve features.
-        :type get_feature_evt: DomainEvent
-        :param get_error_evt: The event used to retrieve errors.
-        :type get_error_evt: DomainEvent
         :param logging_list_all_evt: The event used to list logging configurations.
         :type logging_list_all_evt: DomainEvent
         :param get_dependency: The injected service-resolution handler used to
@@ -197,6 +193,10 @@ class CliContext(AppSessionContext):
         :type default_features: Dict[str, Dict[str, Any]]
         :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
         :type default_commands: Dict[str, Dict[str, Any]]
+        :param get_feature_evt: Obsolete — superseded by execute_feature_handler; remove at N3.
+        :type get_feature_evt: DomainEvent
+        :param get_error_evt: Obsolete — superseded by raise_error_handler; remove at N3.
+        :type get_error_evt: DomainEvent
         '''
 
         # Initialize the base application interface hub.

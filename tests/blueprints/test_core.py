@@ -25,12 +25,13 @@ from tiferet.blueprints.core import (
     execute_feature_handler,
     raise_error_handler,
     response_handler,
+    build_app_session_context,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, FeatureContext
 from tiferet.contexts.request import RequestContext
-from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX
+from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX, AppSessionContext
 from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
 from tiferet.utils.middleware import CacheMiddleware
 from tiferet.repos.app import AppConfigRepository
@@ -919,3 +920,150 @@ def test_build_app_service_container_wires_load_cache_into_cache_middleware():
     middleware = container.get_dependency('cache_middleware')
     assert isinstance(middleware, CacheMiddleware)
     assert middleware.load_cache is loader
+
+
+# ** test: build_app_session_context_returns_app_session_context
+def test_build_app_session_context_returns_app_session_context(monkeypatch):
+    '''
+    Test that build_app_session_context returns a fully wired AppSessionContext
+    with the domain bound and the resolver handler injected.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a mock app container that reports the three hub collaborators.
+    collaborator_mocks = {
+        'get_feature_evt': mock.Mock(),
+        'get_error_evt': mock.Mock(),
+        'logging_list_all_evt': mock.Mock(),
+    }
+    app_container = mock.Mock()
+    app_container.has_dependency.side_effect = lambda name: name in collaborator_mocks
+    app_container.get_dependency.side_effect = lambda name: collaborator_mocks.get(name, mock.Mock())
+
+    # Arrange a mock resolver.
+    resolver = mock.Mock()
+
+    # Patch build_app_service_container and build_service_resolver.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_app_service_container',
+        lambda *a, **kw: app_container,
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_service_resolver',
+        lambda *a, **kw: resolver,
+    )
+
+    # Build a minimal app session.
+    app_session = AppSession(
+        id='test_app',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+    )
+    cache = CacheContext()
+
+    # Build the session context.
+    result = build_app_session_context(app_session, cache)
+
+    # Assert the result is an AppSessionContext with domain and resolver wired.
+    assert isinstance(result, AppSessionContext)
+    assert result.domain is app_session
+    assert result.get_dependency is resolver.get_dependency
+    assert result.cache is cache
+
+
+# ** test: build_app_session_context_resolves_collaborators_from_container
+def test_build_app_session_context_resolves_collaborators_from_container(monkeypatch):
+    '''
+    Test that build_app_session_context resolves the three hub event
+    collaborators from the app container via the has_dependency / get_dependency
+    loop and injects them into the constructed context.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange distinct mock events for each collaborator.
+    get_feature_evt = mock.Mock()
+    get_error_evt = mock.Mock()
+    logging_list_all_evt = mock.Mock()
+    collaborators = {
+        'get_feature_evt': get_feature_evt,
+        'get_error_evt': get_error_evt,
+        'logging_list_all_evt': logging_list_all_evt,
+    }
+    app_container = mock.Mock()
+    app_container.has_dependency.side_effect = lambda name: name in collaborators
+    app_container.get_dependency.side_effect = lambda name: collaborators.get(name, mock.Mock())
+
+    # Patch the two heavy builders.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_app_service_container',
+        lambda *a, **kw: app_container,
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_service_resolver',
+        lambda *a, **kw: mock.Mock(),
+    )
+
+    # Build the context.
+    app_session = AppSession(
+        id='test_app',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+    )
+    result = build_app_session_context(app_session, CacheContext())
+
+    # Assert all three collaborators were resolved from the container and wired.
+    assert result.get_feature_evt is get_feature_evt
+    assert result.get_error_evt is get_error_evt
+    assert result.logging_list_all_evt is logging_list_all_evt
+
+
+# ** test: build_app_session_context_wires_four_fe4_handlers
+def test_build_app_session_context_wires_four_fe4_handlers(monkeypatch):
+    '''
+    Test that build_app_session_context wires all four FE4 template-method
+    handler callables onto the resulting hub.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange the three required collaborators so the context constructs correctly.
+    collaborators = {
+        'get_feature_evt': mock.Mock(),
+        'get_error_evt': mock.Mock(),
+        'logging_list_all_evt': mock.Mock(),
+    }
+    app_container = mock.Mock()
+    app_container.has_dependency.side_effect = lambda name: name in collaborators
+    app_container.get_dependency.side_effect = lambda name: collaborators.get(name, mock.Mock())
+
+    # Patch the two heavy builders.
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_app_service_container',
+        lambda *a, **kw: app_container,
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_service_resolver',
+        lambda *a, **kw: mock.Mock(),
+    )
+
+    # Build the context.
+    app_session = AppSession(
+        id='test_app',
+        name='Test App',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+    )
+    result = build_app_session_context(app_session, CacheContext())
+
+    # Assert all four FE4 handler attributes are callable.
+    assert callable(result._execute_feature)
+    assert callable(result._create_request)
+    assert callable(result._raise_error)
+    assert callable(result._build_response)

@@ -34,8 +34,9 @@ def test_build_app_delegates_to_run_cli():
         response = build_app('test_cli', argv=argv)
 
     # Assert the interface was resolved and realized for the requested id.
+    # The core path now passes cache= to realize_interface.
     mock_resolve.assert_called_once()
-    mock_realize.assert_called_once_with(mock_interface, 'test_cli')
+    mock_realize.assert_called_once_with(mock_interface, 'test_cli', cache=mock.ANY)
 
     # Assert argv was delegated to run_cli and its response returned.
     mock_cli_context.run_cli.assert_called_once_with(argv)

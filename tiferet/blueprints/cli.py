@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 
 # ** app
 from .. import assets as a
+from . import core
 from .main import (
     resolve_interface,
     realize_interface,
@@ -50,8 +51,11 @@ def build_app(
     app_session, _ = resolve_interface(
         interface_id, module_path, class_name, **parameters)
 
-    # Realize the CLI session context from the resolved definition.
-    cli_context = realize_interface(app_session, interface_id)
+    # Build the shared cache (seeded with errors, services, and constants).
+    cache = core.build_cache()
+
+    # Realize the CLI session context via the core compose path.
+    cli_context = realize_interface(app_session, interface_id, cache=cache)
 
     # Delegate parsing, dispatch, exit codes, and response printing to the context.
     return cli_context.run_cli(argv)

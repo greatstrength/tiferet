@@ -254,8 +254,6 @@ class AppSessionContext(BaseContext):
 
     # * init
     def __init__(self,
-            get_feature_evt: DomainEvent,
-            get_error_evt: DomainEvent,
             logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
             cache: CacheContext = None,
@@ -265,6 +263,8 @@ class AppSessionContext(BaseContext):
             response_handler: Callable = None,
             default_features: Dict[str, Dict[str, Any]] = None,
             default_commands: Dict[str, Dict[str, Any]] = None,
+            get_feature_evt: DomainEvent = None,
+            get_error_evt: DomainEvent = None,
         ):
         '''
         Initialize the application session hub.
@@ -273,12 +273,6 @@ class AppSessionContext(BaseContext):
         supplies the session id and logger id on demand, so no standalone
         ``interface_id`` is stored.
 
-        :param get_feature_evt: The event used to retrieve features. Obsolete:
-            superseded by the injected ``execute_feature_handler`` callable.
-        :type get_feature_evt: DomainEvent
-        :param get_error_evt: The event used to retrieve errors. Obsolete:
-            superseded by the injected ``raise_error_handler`` callable.
-        :type get_error_evt: DomainEvent
         :param logging_list_all_evt: The event used to list logging configurations.
         :type logging_list_all_evt: DomainEvent
         :param get_dependency: The injected service-resolution handler used to
@@ -306,6 +300,12 @@ class AppSessionContext(BaseContext):
         :type default_features: Dict[str, Dict[str, Any]]
         :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
         :type default_commands: Dict[str, Dict[str, Any]]
+        :param get_feature_evt: Obsolete — superseded by the injected
+            ``execute_feature_handler`` callable; remove at N3.
+        :type get_feature_evt: DomainEvent
+        :param get_error_evt: Obsolete — superseded by the injected
+            ``raise_error_handler`` callable; remove at N3.
+        :type get_error_evt: DomainEvent
         '''
 
         # Initialize the base context.

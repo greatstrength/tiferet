@@ -18,6 +18,8 @@ from ..contexts.feature import (
 from ..contexts.request import RequestContext
 from ..contexts.settings import BaseContext
 from ..contexts.app import (
+    AppSession,
+    AppSessionContext,
     AppServiceDependency,
     add_default_app_services,
     add_default_app_constants,
@@ -25,9 +27,9 @@ from ..contexts.app import (
     get_default_app_constants,
     Error,
 )
-from ..events import DomainEvent, ParseParameter
+from ..events import DomainEvent, ParseParameter, ImportDependency
 from ..events.app import GetAppSession
-from ..di import DIAppServiceContainer, DIDynamicServiceContainer
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
@@ -631,3 +633,85 @@ def response_handler(request: RequestContext) -> Any:
 
     # Delegate to the request context's response handler.
     return request.handle_response()
+
+# ** blueprint: build_app_session_context
+def build_app_session_context(
+    app_session: AppSession,
+    cache: CacheContext,
+    **context_kwargs,
+) -> AppSessionContext:
+    '''
+    Build a fully wired app session context from a resolved app session.
+
+    Chains the core building blocks to replace the legacy
+    ``load_app_instance`` path: builds the app service container from defaults
+    and interface overrides, composes the feature-level resolver, imports the
+    declared context class, resolves its event collaborators from the app
+    container, wires the four FE4 template-method handlers, and constructs the
+    context via the ``BaseContext.from_domain`` factory (inherited by any
+    context subclass).
+
+    All three hub event collaborators (``get_feature_evt``,
+    ``get_error_evt``, ``logging_list_all_evt``) are in
+    ``CORE_DEFAULT_SERVICES`` and are picked up automatically by the
+    collaborator-resolution loop. Custom contexts (e.g. ``CliContext``) gain
+    their additional collaborators the same way.
+
+    :param app_session: The resolved app session definition with defaults applied.
+    :type app_session: AppSession
+    :param cache: The pre-built shared cache context (errors, services, constants seeded).
+    :type cache: CacheContext
+    :param context_kwargs: Additional keyword arguments forwarded to the context constructor.
+    :type context_kwargs: dict
+    :return: The wired app session context.
+    :rtype: AppSessionContext
+    '''
+
+    # Build the app service container from defaults and interface overrides.
+    app_container = build_app_service_container(cache, app_session)
+
+    # Build the feature-level resolver from the app container.
+    resolver = build_service_resolver(app_container)
+
+    # Import the context class declared by the session (supports custom contexts).
+    context_cls = ImportDependency.execute(
+        app_session.module_path,
+        app_session.class_name,
+    )
+
+    # Resolve the context's collaborators from the app container by id.
+    # Skip the explicitly supplied resolver, cache, handler params, and bootstrap defaults.
+    reserved = {
+        'get_dependency',
+        'cache',
+        'execute_feature_handler',
+        'create_request_handler',
+        'raise_error_handler',
+        'response_handler',
+    }
+    collaborators = {
+        name: app_container.get_dependency(name)
+        for name in injectable_parameter_names(context_cls)
+        if name not in reserved
+        and not name.startswith('default_')
+        and app_container.has_dependency(name)
+    }
+
+    # Build the four FE4 template-method handlers.
+    handlers = dict(
+        execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
+        create_request_handler=create_session_request,
+        raise_error_handler=raise_error_handler(get_error(cache, resolver.get_dependency)),
+        response_handler=response_handler,
+    )
+
+    # Construct the context via from_domain, injecting the resolver handler,
+    # cache, all collaborators, and the four FE4 handlers.
+    return context_cls.from_domain(
+        app_session,
+        get_dependency=resolver.get_dependency,
+        cache=cache,
+        **handlers,
+        **collaborators,
+        **context_kwargs,
+    )

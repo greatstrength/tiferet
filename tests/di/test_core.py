@@ -93,6 +93,13 @@ class StubContainer(ServiceContainer):
         self.requested.append(dependency_id)
         return self.resolved.get(dependency_id)
 
+    # * method: has_dependency
+    def has_dependency(self, dependency_id: str) -> bool:
+        '''Return True when the id is in the fixed resolution map.'''
+
+        # Return True for ids present in the fixed map.
+        return dependency_id in self.resolved
+
     # * method: remove_dependency
     def remove_dependency(self, dependency_id: str):
         '''No-op removal for the stub.'''

@@ -109,6 +109,20 @@ class DIDynamicServiceContainer(ServiceContainer):
         provider = self.container.providers.get(dependency_id)
         return provider()
 
+    # * method: has_dependency
+    def has_dependency(self, dependency_id: str) -> bool:
+        '''
+        Return True when a dependency is registered under the given identifier.
+
+        :param dependency_id: The identifier of the dependency to check.
+        :type dependency_id: str
+        :return: True when the dependency is registered, False otherwise.
+        :rtype: bool
+        '''
+
+        # Check the underlying container's provider registry.
+        return self.container.providers.get(dependency_id) is not None
+
     # * method: remove_dependency
     def remove_dependency(self, dependency_id: str):
         '''
