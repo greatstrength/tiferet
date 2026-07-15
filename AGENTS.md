@@ -46,8 +46,8 @@ A working calculator application is provided in `examples/basic_calculator/`.
 
 ### Runtime Flow
 
-1. `App(interface_id)` (alias for `build_app`) resolves the interface and returns an `AppInterfaceContext`.
-2. The blueprint loads the app service (typically `AppConfigRepository`), resolves the interface via `GetAppInterface`, declaratively wires the interface's service dependencies into a name-to-value registry (`wire_services`), composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, resolves the hub's event collaborators by name from the registry, and constructs the `AppInterfaceContext` via `BaseContext.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved.
+1. `App(interface_id)` (alias for `core.build_app`) resolves the app session and returns an `AppSessionContext`.
+2. `core.build_app` builds the shared cache (`build_cache`), composes the app service and resolves the session via the `GetAppSession` event (`get_app_session`), then constructs the context via `build_app_session_context`: it builds the app service container by merging cache defaults with the session's own constants/services (`build_app_service_container`), composes a `ServiceResolver` (`build_service_resolver`), resolves the hub's event collaborators from the app container, and constructs the `AppSessionContext` via `BaseContext.from_domain(app_session, get_dependency=resolver.get_dependency, ...)` — the context graph itself is not DI-resolved. No `apply_defaults` is called on the core path.
 3. `AppInterfaceContext.run(feature_id, data={})` builds a logger, parses the request, loads the `Feature` domain object, executes it, and returns the response.
 4. The hub builds its sub-contexts (`FeatureContext`, `ErrorContext`, `LoggingContext`) on demand; `FeatureContext.execute_feature(feature, request)` resolves each step's service via the injected `get_dependency` handler (from `ServiceResolver`) and executes it sequentially. When the loaded `Feature` has `is_async` set, the hub instead selects `AsyncFeatureContext` (a `FeatureContext` subclass) and drives `execute_feature_async` to completion via a `_run_coroutine` helper, keeping `run()` synchronous.
 5. Each step is a `DomainEvent` subclass that receives injected services and performs domain logic.
@@ -57,25 +57,23 @@ A working calculator application is provided in `examples/basic_calculator/`.
 
 Blueprints (`tiferet/blueprints/`) are module-level functions that orchestrate application bootstrapping and execution. They replace the previous class-based `AppBuilder`/`CliBuilder` pattern from v2.0.0b2.
 
-- `build_app(interface_id, ...)` is defined in `tiferet/blueprints/main.py` and exported as `App` from `tiferet/__init__.py`. It resolves the interface definition, composes the DI `ServiceResolver`, and returns a fully wired `AppInterfaceContext`.
-- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It is a thin entrypoint that resolves and realizes a CLI interface (which must point at `CliContext`) and delegates `argv` parsing and feature dispatch to `CliContext.run_cli`.
+- `build_app(interface_id, ...)` is defined in `tiferet/blueprints/core.py` and exported as `App` from `tiferet/__init__.py`. It chains `build_cache()` → `get_app_session(id, cache, ...)` → `build_app_session_context(session, cache)` → `INVALID_APP_SESSION_TYPE` validation, returning a fully wired `AppSessionContext`. (The former `blueprints/main.py` was retired in the Chapter M cleanup.)
+- `build_cli(interface_id, ...)` is defined in `tiferet/blueprints/cli.py` and exported as `CLI` from `tiferet/__init__.py`. It is a thin entrypoint that calls `core.build_app(...)` (the interface must point at `CliContext`) and delegates `argv` parsing and feature dispatch to `CliContext.run_cli`.
+- `build_tiferet_app` / `build_tiferet_cli` (`tiferet/blueprints/tiferet_app.py` / `tiferet_cli.py`, exported as `TiferetApp` / `TiferetCLI`) bootstrap the built-in `tiferet_app` / `tiferet_cli` sessions that are not in the consumer config; they resolve through the shared module-private `_resolve_bootstrap_session` in `tiferet_cli.py` (default-session fallback + `apply_defaults`).
 
-**Pure helpers in `main.py` (`# *** functions`):** side-effect-free transforms grouped above the blueprints.
-- `resolve_ctor_kwargs(service_type, registry)` — Matches a service type's injectable constructor parameters (via the shared `injectable_parameter_names`) to registry entries, returning resolved kwargs or `None` to defer instantiation.
-- `build_wiring_constants(app_interface)` — Builds the wiring-registry seed constants (interface scalars + declared constants).
-- `resolve_collaborators(context_cls, registry)` — Resolves a context class's event collaborators by name from the registry, inspecting the context class's own injectable constructor parameters (so a `CliContext` also receives `list_commands_evt`/`get_parent_args_evt`) while skipping the explicitly-supplied `get_dependency`/`cache` and any bootstrap `default_*` kwargs.
+**Core composition functions in `core.py` (`# *** blueprints`):**
+- `build_cache()` — builds the shared cache pre-seeded with default errors, app services, and constants.
+- `create_app_service(...)` — composes the app service via a single-use dynamic container.
+- `get_app_session(interface_id, cache, ...)` — resolves the app session via the `GetAppSession` event (raises `APP_SESSION_NOT_FOUND` when absent; no core fallback). The `cache` parameter is a build-ordering seam (`# ++ todo:` — default sessions are not yet cache-seeded).
+- `build_app_service_container(cache, app_instance)` — builds the singleton app service container by merging cache defaults with the session's own constants/services **before** building (session wins), so overrides reach default services the session does not redeclare.
+- `build_service_resolver(app_container)` — composes the feature-level `ServiceResolver`, caching the app container under the `app` flag.
+- `build_app_session_context(app_session, cache)` — imports the declared context class, resolves its collaborators from the app container, wires the four hub handlers, and constructs via `BaseContext.from_domain`.
+- `build_app(interface_id, ...)` — the single-call entry point chaining the above.
 
-**Key blueprint functions in `main.py` (`# *** blueprints`):**
-- `wire_services(services, constants)` — Declaratively instantiates the interface's service dependencies into a name-to-value registry (no app-level DI container), deferring services whose constructor args are not yet resolvable.
-- `load_app_service(module_path, class_name, **parameters)` — Imports and constructs the application service.
-- `load_default_services()` — Loads default app service dependencies from the `a.app.CORE_DEFAULT_SERVICES` catalog (`assets/app.py`).
-- `resolve_interface(interface_id, ...)` — Loads the app service and resolves the interface definition via `GetAppInterface`.
-- `load_app_instance(app_interface, **context_kwargs)` — Composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event, resolves the hub's event collaborators, and constructs the `AppInterfaceContext` via `from_domain`, injecting `resolver.get_dependency`.
-- `realize_interface(app_interface, interface_id, **context_kwargs)` — Builds (via `load_app_instance`) and validates the concrete `AppInterfaceContext`; forwards `**context_kwargs` (e.g. bootstrap defaults) to the context constructor.
-- `build_app(interface_id, ...)` — Resolves and realizes the interface in a single call.
+**Relocated legacy feature-DI bootstrap (module-private in `tiferet/blueprints/tiferet_cli.py`):** `_wire_services`, `_resolve_ctor_kwargs`, `_build_wiring_constants`, `_resolve_collaborators`, `_load_app_instance`, and the shared `_resolve_bootstrap_session`. Retained only for `build_tiferet_cli`, which still composes the resolver via the `CreateServiceResolver` bootstrap event; the standard app/CLI path uses the core compose path instead.
 
 **CLI blueprint function in `cli.py`:**
-- `build_app(interface_id, argv, ...)` — Thin CLI entrypoint: resolves the interface, realizes the context (a `CliContext`), and delegates to `cli_context.run_cli(argv)`. Exported as `build_cli` / `CLI`.
+- `build_app(interface_id, argv, ...)` — Thin CLI entrypoint: calls `core.build_app(...)` (a `CliContext`) and delegates to `cli_context.run_cli(argv)`. Exported as `build_cli` / `CLI`.
 
 CLI parsing is owned by `CliContext` (`tiferet/contexts/cli.py`): the side-effect-free module-level helpers `group_commands_by_key`, `build_parser`, and `derive_feature_request`, plus the `get_commands` / `parse_cli_request` / `run_cli` methods. Per-argument argparse translation lives on `CliArgument.to_argparse_kwargs()`. Consumer CLI interfaces opt in by pointing their config at `tiferet.contexts.cli` / `CliContext`.
 
@@ -353,8 +351,10 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/di/core.py` — `ServiceContainer` / `ServiceResolver` ABCs + `injectable_parameter_names` / `normalize_flags`
 - `tiferet/di/dependency_injector.py` — `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton), `DIDynamicServiceResolver` (per-flag)
 - `tiferet/di/settings.py` — legacy `ServiceContainer` (DI engine) and `ServiceResolver` (public provider), still wired by `build_app`
-- `tiferet/blueprints/main.py` — `build_app` (public app orchestration entry point), `wire_services`, `load_app_instance`
-- `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`)
+- `tiferet/blueprints/core.py` — `build_app` (public app orchestration entry point, exported as `App`) plus the composition chain: `build_cache`, `create_app_service`, `get_app_session`, `build_app_service_container`, `build_service_resolver`, `build_app_session_context`
+- `tiferet/blueprints/cli.py` — `build_cli` (CLI orchestration entry point, exported as `CLI`; calls `core.build_app` then `run_cli`)
+- `tiferet/blueprints/tiferet_cli.py` — `build_tiferet_cli` (`TiferetCLI`) plus the relocated module-private legacy feature-DI bootstrap (`_wire_services`, `_load_app_instance`, `_resolve_collaborators`, `_resolve_bootstrap_session`, ...)
+- `tiferet/blueprints/tiferet_app.py` — `build_tiferet_app` (`TiferetApp`; core compose path + shared default-session fallback)
 - `tiferet/contexts/settings.py` — `BaseContext` and `ContextMeta` (domain→context registry, `for_domain`, `from_domain`)
 - `tiferet/contexts/app.py` — `AppInterfaceContext` (minimal declarative hub bound to the loaded `AppInterface`)
 - `tiferet/contexts/cli.py` — `CliContext` (CLI high-level context: argparse parsing helpers + `get_commands`/`parse_cli_request`/`run_cli`)
@@ -366,6 +366,19 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### Chapter M: Retire `main.py`, promote `core.build_app`
+
+The Chapter M cleanup makes `tiferet/blueprints/core.py` own the public `build_app` entry point and deletes `tiferet/blueprints/main.py`. Key changes:
+
+- **`core.build_app`** — New single-call entry point (exported as `App`), ordered `build_cache()` → `get_app_session(id, cache, ...)` → `build_app_session_context(session, cache)` → `INVALID_APP_SESSION_TYPE` validation. It never calls `apply_defaults` / `resolve_default_interface`; all framework defaults come from the cache seeded by `build_cache`.
+- **`core.get_app_session`** — Gained an optional `cache` build-ordering seam (`# ++ todo:` — default sessions are not yet cache-seeded; kept `= None` so the obsolete `get_app_interface` alias still resolves). The obsolete `core.execute_feature` was removed.
+- **`core.build_app_service_container`** — Now merges the framework default services/constants (from the cache) with the session's own **before** building the container (single `from_dependencies` call) instead of layering overrides onto an already-built container. This fixes the stale-singleton wiring finding for the core path, which no longer passes a defaults-applied session: an interface constant override reaches default services the session does not redeclare.
+- **`cli.build_app`** — Rewritten to call `core.build_app(...)` then `cli_context.run_cli(argv)`.
+- **`tiferet_app.build_tiferet_app`** — Repointed onto the core compose path with the shared default-session fallback.
+- **Relocation** — The legacy declarative feature-DI bootstrap (`wire_services`, `resolve_ctor_kwargs`, `build_wiring_constants`, `resolve_collaborators`, `load_app_instance`) plus a shared `_resolve_bootstrap_session` (relocated `resolve_interface` logic: `get_app_session` → `resolve_default_interface` fallback → `apply_defaults`) moved (module-private, underscore-prefixed) into `tiferet/blueprints/tiferet_cli.py`. `build_tiferet_cli` still needs them; the standard app/CLI path does not.
+- **Removal** — `tiferet/blueprints/main.py` deleted; `blueprints/__init__.py` imports `build_app` / `App` from `core`. `apply_defaults` (`domain/app.py`) and `resolve_default_interface` (`contexts/app.py`) are now downstream-only, used solely by the relocated bootstrap path.
+- **Deferred** — Seeding default app *sessions* into the cache (so the built-in bootstrappers can drop the fallback and call `core.build_app` directly); removing `apply_defaults` / `resolve_default_interface`; deep `build_tiferet_cli` feature-DI parity; N4 (`CreateServiceResolver` disposition); N5 (`di/settings.py` consolidation).
 
 ### DI App Service Container & Feature Service Resolver
 

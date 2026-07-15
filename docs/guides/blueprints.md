@@ -17,7 +17,7 @@ A blueprint is responsible for:
 - Declaratively wiring service dependencies and composing a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
 - Executing features through the resolved interface context
 
-The canonical example is `build_app` in `tiferet/blueprints/main.py`.
+The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The former `tiferet/blueprints/main.py` was retired in the Chapter M cleanup; the legacy declarative feature-DI bootstrap it owned was relocated (module-private) into `tiferet/blueprints/tiferet_cli.py` for `build_tiferet_cli`.
 
 ## Role of Blueprints in the Architecture
 
@@ -41,74 +41,39 @@ Blueprints are intentionally **thin** — they coordinate rather than implement 
 
 ## The build_app Blueprint
 
-`build_app` follows a clear, composable pattern built from smaller blueprint functions:
-
-### 1. Declarative Service Wiring
-
-`wire_services` instantiates the interface's service dependencies into a name-to-value registry without an app-level DI container, deferring any service whose constructor arguments are not yet resolvable and retrying until all are built:
+`core.build_app` is the single-call entry point (exported as `App`). It chains smaller `core.py` composition functions in a fixed order:
 
 ```python
-def wire_services(
-    services: List[AppServiceDependency],
-    constants: Dict[str, Any],
-) -> Dict[str, Any]:
-    ...
+def build_app(interface_id, module_path=..., class_name=..., **parameters) -> AppSessionContext:
+    cache = build_cache()                                              # errors + app services + constants
+    app_session = get_app_session(interface_id, cache, module_path, class_name, **parameters)
+    app_session_context = build_app_session_context(app_session, cache)
+    if not isinstance(app_session_context, AppSessionContext):
+        RaiseError.execute(a.const.INVALID_APP_SESSION_TYPE_ID, ..., interface_id=interface_id)
+    return app_session_context
 ```
 
-`load_app_instance` then composes a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and injects its `get_dependency` handler into the context.
+### 1. Shared Cache
 
-### 2. Loading the App Service
+`build_cache()` returns a `CacheContext` pre-seeded (via stacked decorators) with the framework's default errors, app service dependencies, and bootstrap constants, each namespaced under its own cache-key prefix.
 
-```python
-def load_app_service(module_path=..., class_name=..., **parameters) -> Any:
-    service_cls = ImportDependency.execute(module_path, class_name)
-    return service_cls(**parameters)
-```
+### 2. App Session Resolution
 
-### 3. Loading Default Services and Constants
+`get_app_session(interface_id, cache, ...)` composes the app service through `create_app_service` and loads the session via the `GetAppSession` event, which raises `APP_SESSION_NOT_FOUND` when the session is absent — the core path has no built-in fallback.
 
-```python
-def load_default_services() -> List[AppServiceDependency]:
-    return [
-        AppServiceDependency.model_validate(record)
-        for record in a.app.CORE_DEFAULT_SERVICES.values()
-    ]
-```
+### 3. Context Composition
 
-Default services and constants are merged into the interface by the `AppInterface.apply_defaults` domain method (see step 4).
+`build_app_session_context(app_session, cache)`:
 
-### 4. Interface Resolution Flow
+- builds the singleton app service container from the cache defaults merged with the session's own constants/services, session winning (`build_app_service_container`);
+- composes the feature-level `ServiceResolver` (`build_service_resolver`, caching the app container under the `app` flag);
+- imports the declared context class, resolves its event collaborators from the app container, wires the four hub handler callables, and constructs the context via `BaseContext.from_domain`.
 
-`resolve_interface` reads the interface via the repo-only `GetAppInterface` event, falls back to the bootstrap default interface definitions through the context helper `resolve_default_interface` when the consumer's config omits it, then merges framework default services and constants via the `AppInterface.apply_defaults` domain method.
+No `apply_defaults` is called on the core path — all framework defaults come from the cache.
 
-```python
-def resolve_interface(interface_id, ..., default_interfaces=[]) -> tuple:
-    app_service = load_app_service(...)
-    default_services = load_default_services()
-    try:
-        app_interface = DomainEvent.handle(
-            GetAppInterface,
-            dependencies={'app_service': app_service},
-            interface_id=interface_id,
-        )
-    except a.TiferetError:
-        app_interface = resolve_default_interface(interface_id, default_interfaces)
-        if app_interface is None:
-            raise
-    app_interface = app_interface.apply_defaults(
-        default_services=default_services,
-        default_constants=a.app.CORE_DEFAULT_CONSTANTS,
-    )
-    return app_interface, default_services
-```
+### Built-in Bootstrappers and the Relocated Legacy Path
 
-### 5. High-level Entry Point
-
-```python
-def build_app(interface_id, ...) -> AppInterfaceContext:
-    app_interface, _ = resolve_interface(interface_id, ...)
-    return realize_interface(app_interface, interface_id)
-```
+`build_tiferet_app` (`TiferetApp`) and `build_tiferet_cli` (`TiferetCLI`) target built-in sessions (`tiferet_app` / `tiferet_cli`) that are not defined in the consumer config, so they resolve through a shared `_resolve_bootstrap_session(interface_id, cache, default_interfaces=[...], ...)` helper (module-private in `tiferet/blueprints/tiferet_cli.py`) that falls back to the built-in session definition via `resolve_default_interface` and applies `apply_defaults`. `build_tiferet_cli` additionally uses the relocated `_load_app_instance` / `_wire_services` declarative feature-DI bootstrap (via the `CreateServiceResolver` event), which the core compose path cannot yet replace.
 
 ## The build_cli Blueprint
 
@@ -127,9 +92,8 @@ if __name__ == '__main__':
 
 `build_cli(interface_id, argv=None, ...)` follows these steps:
 
-1. Resolve the interface via `resolve_interface(interface_id, ...)`.
-2. Realize the interface context via `realize_interface(...)`. Because the interface points at `CliContext`, the realized context exposes `run_cli`.
-3. Delegate to `cli_context.run_cli(argv)`, which builds the parser, parses `argv` (exiting `2` on failure), derives the feature request, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
+1. Build the context via `core.build_app(interface_id, ...)`. Because the interface points at `CliContext`, the composed context exposes `run_cli`.
+2. Delegate to `cli_context.run_cli(argv)`, which builds the parser, parses `argv` (exiting `2` on failure), derives the feature request, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
 
 Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
 
@@ -174,12 +138,14 @@ Blueprints should **not** contain domain logic — only orchestration, wiring, a
 
 ### 4. Inject `get_dependency` into the Context
 
-Compose a `ServiceResolver` via the `CreateServiceResolver` bootstrap event and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine:
+Compose a `ServiceResolver` from the app service container (`build_service_resolver`) and inject its `get_dependency` handler so contexts resolve feature-step services without coupling to the DI engine (`build_app_session_context` does this):
 
 ```python
-resolver = DomainEvent.handle(CreateServiceResolver, dependencies={}, app_interface=app_interface, ...)
-return context_cls.from_domain(app_interface, get_dependency=resolver.get_dependency, ...)
+resolver = build_service_resolver(app_container)
+return context_cls.from_domain(app_session, get_dependency=resolver.get_dependency, ...)
 ```
+
+(The `CreateServiceResolver` bootstrap event is now used only by the relocated `_load_app_instance` path in `tiferet/blueprints/tiferet_cli.py`.)
 
 ## Related Documentation
 
