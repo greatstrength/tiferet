@@ -9,10 +9,16 @@ from unittest import mock
 # ** app
 from tiferet import assets as a
 from tiferet.assets import TiferetAPIError
+from tiferet.contexts.app import AppSessionContext
+from tiferet.contexts.cli import CliContext
+from tiferet.mappers import AppSessionAggregate
+from tiferet.domain import AppServiceDependency
 import tiferet.blueprints.tiferet_cli as tiferet_cli
 from tiferet.blueprints.tiferet_cli import (
     build_tiferet_cli,
     _decode_json_arguments,
+    _load_app_instance,
+    _resolve_collaborators,
 )
 
 # *** fixtures
@@ -46,9 +52,10 @@ def mock_cli_context(mock_request):
     :rtype: mock.Mock
     '''
 
-    # Build a mock context whose parse_cli_request returns the request and whose
-    # run returns a sentinel response.
-    context = mock.Mock()
+    # Build a mock context (spec'd as CliContext so it passes the realized-type
+    # validation) whose parse_cli_request returns the request and whose run
+    # returns a sentinel response.
+    context = mock.Mock(spec=CliContext)
     context.parse_cli_request.return_value = mock_request
     context.run.return_value = 'cli-response'
     return context
@@ -67,6 +74,29 @@ def mock_interface():
     interface = mock.Mock()
     interface.constants = {}
     return interface
+
+# ** fixture: app_interface_aggregate
+@pytest.fixture
+def app_interface_aggregate() -> AppSessionAggregate:
+    '''
+    Fixture to create a realistic AppSessionAggregate for the relocated
+    _load_app_instance wiring path.
+
+    :return: The app interface aggregate.
+    :rtype: AppSessionAggregate
+    '''
+
+    # Create and return a representative app interface aggregate.
+    return AppSessionAggregate(
+        id='test_calc',
+        name='Test Calculator',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+        description='Test calculator interface',
+        flags=['test'],
+        services=[AppServiceDependency.model_validate(r) for r in a.app.CORE_DEFAULT_SERVICES.values()],
+        constants=a.app.CORE_DEFAULT_CONSTANTS,
+    )
 
 # *** tests
 
@@ -88,9 +118,9 @@ def test_build_tiferet_cli_realizes_cli_context_with_bootstrap_defaults(
     :type capsys: pytest.CaptureFixture
     '''
 
-    # Patch interface resolution and realization to isolate the blueprint.
-    with mock.patch.object(tiferet_cli, 'resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch.object(tiferet_cli, 'realize_interface', return_value=mock_cli_context) as mock_realize:
+    # Patch session resolution and realization to isolate the blueprint.
+    with mock.patch.object(tiferet_cli, '_resolve_bootstrap_session', return_value=mock_interface), \
+         mock.patch.object(tiferet_cli, '_load_app_instance', return_value=mock_cli_context) as mock_load:
 
         # Invoke the built-in CLI for a sample feature command.
         response = build_tiferet_cli('config.yml', argv=['feature', 'add', 'Test Feature', 'group'])
@@ -99,13 +129,13 @@ def test_build_tiferet_cli_realizes_cli_context_with_bootstrap_defaults(
     mock_interface.set_constants.assert_called_once()
 
     # Assert realization received the framework bootstrap defaults.
-    realize_kwargs = mock_realize.call_args.kwargs
-    assert realize_kwargs['default_features'] is a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES
-    assert realize_kwargs['default_commands'] is a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS
-    assert isinstance(realize_kwargs['default_configurations'], list)
-    assert realize_kwargs['default_configurations']
-    assert realize_kwargs['default_constants']['app_config'] == 'config.yml'
-    assert realize_kwargs['default_constants']['cli_config'] == 'config.yml'
+    load_kwargs = mock_load.call_args.kwargs
+    assert load_kwargs['default_features'] is a.cli_feat.DEFAULT_TIFERET_CLI_FEATURES
+    assert load_kwargs['default_commands'] is a.cli_cmd.DEFAULT_TIFERET_CLI_COMMANDS
+    assert isinstance(load_kwargs['default_configurations'], list)
+    assert load_kwargs['default_configurations']
+    assert load_kwargs['default_constants']['app_config'] == 'config.yml'
+    assert load_kwargs['default_constants']['cli_config'] == 'config.yml'
 
     # Assert the context parsed argv and dispatched the request.
     mock_cli_context.parse_cli_request.assert_called_once_with(
@@ -138,8 +168,8 @@ def test_build_tiferet_cli_decodes_json_arguments(mock_interface, mock_cli_conte
     mock_request.data = {'id': 'svc', 'parameters': '{"a": 1, "b": 2}'}
 
     # Patch resolution/realization and dispatch the CLI.
-    with mock.patch.object(tiferet_cli, 'resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch.object(tiferet_cli, 'realize_interface', return_value=mock_cli_context):
+    with mock.patch.object(tiferet_cli, '_resolve_bootstrap_session', return_value=mock_interface), \
+         mock.patch.object(tiferet_cli, '_load_app_instance', return_value=mock_cli_context):
         build_tiferet_cli('config.yml', argv=['di', 'add', 'svc'])
 
     # Assert the JSON string was decoded into structured data before run.
@@ -163,8 +193,8 @@ def test_build_tiferet_cli_api_error_exits_1(mock_interface, mock_cli_context):
     )
 
     # Patch resolution/realization and assert a clean exit with code 1.
-    with mock.patch.object(tiferet_cli, 'resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch.object(tiferet_cli, 'realize_interface', return_value=mock_cli_context):
+    with mock.patch.object(tiferet_cli, '_resolve_bootstrap_session', return_value=mock_interface), \
+         mock.patch.object(tiferet_cli, '_load_app_instance', return_value=mock_cli_context):
         with pytest.raises(SystemExit) as exc_info:
             build_tiferet_cli('config.yml', argv=['feature', 'add', 'X', 'g'])
 
@@ -216,3 +246,108 @@ def test_blueprint_drops_command_map_and_mapper_import():
     # Assert the generic CLI parsing helpers are no longer imported.
     for name in ('build_parser', 'parse_argv', 'derive_feature_request'):
         assert not hasattr(tiferet_cli, name)
+
+# ** test: load_app_instance_success
+def test_load_app_instance_success(app_interface_aggregate):
+    '''
+    Test that the relocated _load_app_instance resolves a valid AppSessionContext.
+
+    :param app_interface_aggregate: The app interface aggregate fixture.
+    :type app_interface_aggregate: AppSessionAggregate
+    '''
+
+    # Load the app instance from the aggregate.
+    result = _load_app_instance(app_interface_aggregate)
+
+    # Assert the result is an AppSessionContext.
+    assert isinstance(result, AppSessionContext)
+
+# ** test: load_app_instance_injects_cli_collaborators
+def test_load_app_instance_injects_cli_collaborators():
+    '''
+    Test that realizing a CliContext interface via _load_app_instance injects
+    the CLI event collaborators that are not part of the generic hub's fixed set.
+    '''
+
+    # Build a CLI interface aggregate pointing at the reincorporated CliContext.
+    cli_interface = AppSessionAggregate(
+        id='test_cli',
+        name='Test CLI',
+        module_path='tiferet.contexts.cli',
+        class_name='CliContext',
+        description='Test CLI interface',
+        flags=['test'],
+        services=[AppServiceDependency.model_validate(r) for r in a.app.CORE_DEFAULT_SERVICES.values()],
+        constants=a.app.CORE_DEFAULT_CONSTANTS,
+    )
+
+    # Realize the interface context from the aggregate.
+    result = _load_app_instance(cli_interface)
+
+    # Assert a CliContext is realized with the CLI collaborators injected.
+    assert isinstance(result, CliContext)
+    assert result.list_commands_evt is not None
+    assert result.get_parent_args_evt is not None
+
+# ** test: resolve_collaborators_generic_unchanged
+def test_resolve_collaborators_generic_unchanged():
+    '''
+    Test that the generic AppSessionContext resolves only its original three
+    collaborators, excluding reserved args, default_* kwargs, and unrelated ids.
+    '''
+
+    # Build a registry with the hub events plus reserved/default/unrelated ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+        'unrelated': 'x',
+    }
+
+    # Resolve collaborators for the generic hub.
+    resolved = _resolve_collaborators(AppSessionContext, registry)
+
+    # Assert only the original three collaborators are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+    }
+
+# ** test: resolve_collaborators_cli_adds_cli_events
+def test_resolve_collaborators_cli_adds_cli_events():
+    '''
+    Test that the CliContext additionally resolves its CLI event collaborators
+    while still excluding reserved args and default_* kwargs.
+    '''
+
+    # Build a registry with hub and CLI events plus reserved/default ids.
+    registry = {
+        'get_feature_evt': 'gf',
+        'get_error_evt': 'ge',
+        'logging_list_all_evt': 'll',
+        'list_commands_evt': 'lc',
+        'get_parent_args_evt': 'gpa',
+        'get_dependency': 'gd',
+        'cache': 'c',
+        'default_features': 'df',
+        'default_commands': 'dc',
+    }
+
+    # Resolve collaborators for the CLI context.
+    resolved = _resolve_collaborators(CliContext, registry)
+
+    # Assert the hub events plus the two CLI events are resolved.
+    assert set(resolved.keys()) == {
+        'get_feature_evt',
+        'get_error_evt',
+        'logging_list_all_evt',
+        'list_commands_evt',
+        'get_parent_args_evt',
+    }

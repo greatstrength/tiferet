@@ -20,12 +20,12 @@ from tiferet.blueprints.core import (
     load_cache,
     create_request_context,
     create_feature_context,
-    execute_feature,
     create_session_request,
     execute_feature_handler,
     raise_error_handler,
     response_handler,
     build_app_session_context,
+    build_app,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
@@ -668,40 +668,6 @@ def test_create_feature_context_loads_by_feature_id():
     get_feature_evt.execute.assert_called_once_with(id='group.feat')
 
 
-# ** test: execute_feature_drives_context_and_returns_response
-def test_execute_feature_drives_context_and_returns_response(monkeypatch):
-    '''
-    Test that execute_feature composes the context, drives feature execution,
-    and returns the request's handled response.
-
-    :param monkeypatch: The pytest monkeypatch fixture.
-    :type monkeypatch: pytest.MonkeyPatch
-    '''
-
-    # Arrange a feature, a stub feature context, and a request with a result.
-    feature = Feature(
-        id='group.feat', group_id='group', feature_key='feat', name='Feat'
-    )
-    request = RequestContext(data={})
-    request.set_result('done')
-    feature_context = mock.Mock()
-
-    # Patch create_feature_context to return the stubbed pair.
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.create_feature_context',
-        lambda *args, **kwargs: (feature, feature_context),
-    )
-
-    # Execute the feature with an execution flag.
-    result = execute_feature('group.feat', mock.Mock(), CacheContext(), request, 'flag_a')
-
-    # Assert the feature context was driven with the feature, request, and flag.
-    feature_context.execute_feature.assert_called_once_with(feature, request, 'flag_a')
-
-    # Assert the handled response is returned.
-    assert result == 'done'
-
-
 # ** test: create_session_request_builds_request_context
 def test_create_session_request_builds_request_context():
     '''
@@ -1067,3 +1033,109 @@ def test_build_app_session_context_wires_four_fe4_handlers(monkeypatch):
     assert callable(result._create_request)
     assert callable(result._raise_error)
     assert callable(result._build_response)
+
+
+# ** test: build_app_success
+def test_build_app_success(monkeypatch):
+    '''
+    Test that build_app resolves the session via get_app_session and returns
+    the AppSessionContext composed by build_app_session_context.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a resolved session and a spec'd context that passes validation.
+    app_session = AppSession(
+        id='test_calc',
+        name='Test Calculator',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+    )
+    app_context = mock.Mock(spec=AppSessionContext)
+
+    # Patch session resolution and the core compose path.
+    get_session = mock.Mock(return_value=app_session)
+    compose = mock.Mock(return_value=app_context)
+    monkeypatch.setattr('tiferet.blueprints.core.get_app_session', get_session)
+    monkeypatch.setattr('tiferet.blueprints.core.build_app_session_context', compose)
+
+    # Build the app.
+    result = build_app('test_calc', app_config='config.yml')
+
+    # Assert the composed context is returned and the session was resolved by id.
+    assert result is app_context
+    assert get_session.call_args[0][0] == 'test_calc'
+    compose.assert_called_once()
+
+
+# ** test: build_app_invalid_context
+def test_build_app_invalid_context(monkeypatch):
+    '''
+    Test that build_app raises INVALID_APP_SESSION_TYPE when the composed
+    context is not an AppSessionContext.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Arrange a resolved session and an invalid (non-context) compose result.
+    app_session = AppSession(
+        id='invalid_interface',
+        name='Invalid',
+        module_path='tiferet.contexts.app',
+        class_name='AppSessionContext',
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.get_app_session',
+        lambda *args, **kwargs: app_session,
+    )
+    monkeypatch.setattr(
+        'tiferet.blueprints.core.build_app_session_context',
+        lambda *args, **kwargs: object(),
+    )
+
+    # Assert an invalid composed context raises the expected error.
+    with pytest.raises(TiferetError) as exc_info:
+        build_app('invalid_interface', app_config='config.yml')
+
+    # Assert the structured error code and interface id.
+    assert exc_info.value.error_code == a.const.INVALID_APP_SESSION_TYPE_ID
+    assert 'invalid_interface' in str(exc_info.value)
+
+
+# ** test: build_app_missing_session_propagates_not_found
+def test_build_app_missing_session_propagates_not_found(monkeypatch):
+    '''
+    Test that build_app propagates the GetAppSession APP_SESSION_NOT_FOUND
+    error when the session is absent — the core path has no fallback.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Patch get_app_session to raise the not-found error the event would raise.
+    def _raise(*args, **kwargs):
+        raise TiferetError(a.const.APP_SESSION_NOT_FOUND_ID, interface_id='missing')
+
+    monkeypatch.setattr('tiferet.blueprints.core.get_app_session', _raise)
+
+    # Assert the not-found error propagates unhandled.
+    with pytest.raises(TiferetError) as exc_info:
+        build_app('missing', app_config='config.yml')
+
+    # Assert the structured error code.
+    assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID
+
+
+# ** test: app_alias_is_core_build_app
+def test_app_alias_is_core_build_app():
+    '''
+    Test that the top-level App alias resolves to core.build_app.
+    '''
+
+    # Import the public App alias.
+    from tiferet import App
+
+    # Assert it is the core build_app entry point.
+    assert App is build_app

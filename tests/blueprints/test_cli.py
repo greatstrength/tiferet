@@ -15,28 +15,24 @@ from tiferet.blueprints.cli import build_app
 # ** test: build_app_delegates_to_run_cli
 def test_build_app_delegates_to_run_cli():
     '''
-    Test that build_app resolves, realizes, and delegates argv to CliContext.run_cli.
+    Test that build_app builds the context via core.build_app and delegates argv
+    to CliContext.run_cli.
     '''
 
     # Arrange a mock CLI context whose run_cli returns a sentinel response.
     mock_cli_context = mock.Mock()
     mock_cli_context.run_cli.return_value = 'cli-response'
 
-    # Arrange a minimal resolved interface.
-    mock_interface = mock.Mock()
-
-    # Patch interface resolution and realization to isolate build_app.
-    with mock.patch.object(cli_blueprint, 'resolve_interface', return_value=(mock_interface, [])) as mock_resolve, \
-         mock.patch.object(cli_blueprint, 'realize_interface', return_value=mock_cli_context) as mock_realize:
+    # Patch the core single-call entrypoint to isolate build_app.
+    with mock.patch('tiferet.blueprints.core.build_app', return_value=mock_cli_context) as mock_build:
 
         # Invoke build_app with a sample argv.
         argv = ['calc', 'add', '1', '2']
         response = build_app('test_cli', argv=argv)
 
-    # Assert the interface was resolved and realized for the requested id.
-    # The core path now passes cache= to realize_interface.
-    mock_resolve.assert_called_once()
-    mock_realize.assert_called_once_with(mock_interface, 'test_cli', cache=mock.ANY)
+    # Assert the context was built via core.build_app for the requested id.
+    mock_build.assert_called_once()
+    assert mock_build.call_args[0][0] == 'test_cli'
 
     # Assert argv was delegated to run_cli and its response returned.
     mock_cli_context.run_cli.assert_called_once_with(argv)
@@ -48,14 +44,12 @@ def test_build_app_defaults_argv_none():
     Test that build_app forwards a None argv to run_cli when none is provided.
     '''
 
-    # Arrange a mock CLI context and interface.
+    # Arrange a mock CLI context.
     mock_cli_context = mock.Mock()
     mock_cli_context.run_cli.return_value = None
-    mock_interface = mock.Mock()
 
-    # Patch resolution/realization and invoke without an explicit argv.
-    with mock.patch.object(cli_blueprint, 'resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch.object(cli_blueprint, 'realize_interface', return_value=mock_cli_context):
+    # Patch the core entrypoint and invoke without an explicit argv.
+    with mock.patch('tiferet.blueprints.core.build_app', return_value=mock_cli_context):
         build_app('test_cli')
 
     # Assert run_cli received None (defaulted to sys.argv[1:] inside the context).

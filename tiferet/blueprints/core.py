@@ -27,7 +27,7 @@ from ..contexts.app import (
     get_default_app_constants,
     Error,
 )
-from ..events import DomainEvent, ParseParameter, ImportDependency
+from ..events import DomainEvent, ParseParameter, ImportDependency, RaiseError
 from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
@@ -110,8 +110,12 @@ def create_app_service(
     return container.get_dependency('app_service')
 
 # ** blueprint: get_app_session
+# ++ todo: default app sessions are not yet cache-seeded; the `cache` param is a
+#    seam for future default-session-from-cache resolution and to establish the
+#    build ordering used by build_app.
 def get_app_session(
     interface_id: str,
+    cache: CacheContext = None,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
     class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters,
@@ -120,13 +124,18 @@ def get_app_session(
     Retrieve an app session by id, composing the app service dependency first.
 
     Composes the ``app_service`` dependency via :func:`create_app_service`, then
-    retrieves the requested session through the ``GetAppSession`` domain
-    event. Any keyword arguments are forwarded as the app service constructor
-    parameters (e.g. ``app_config='config.yml'``); when omitted,
-    :func:`create_app_service` applies the framework default parameters.
+    retrieves the requested session through the ``GetAppSession`` domain event,
+    which raises ``APP_SESSION_NOT_FOUND`` when the session is absent — so no
+    built-in fallback belongs here. Any keyword arguments are forwarded as the
+    app service constructor parameters (e.g. ``app_config='config.yml'``); when
+    omitted, :func:`create_app_service` applies the framework default
+    parameters. The ``cache`` argument is a build-ordering seam reserved for
+    future default-session-from-cache resolution; it is not consumed yet.
 
     :param interface_id: The id of the app session to retrieve.
     :type interface_id: str
+    :param cache: The shared cache context; a seam for future default-session resolution.
+    :type cache: CacheContext | None
     :param module_path: The module path of the app service; defaults to the framework app repo.
     :type module_path: str
     :param class_name: The class name of the app service; defaults to AppConfigRepository.
@@ -250,15 +259,22 @@ def build_app_service_container(
     service_container: type = DIAppServiceContainer,
 ) -> DIAppServiceContainer:
     '''
-    Build the app-level service container from cache defaults, then layer the
-    interface's own constants and services as overrides.
+    Build the app-level service container from cache defaults merged with the
+    interface's own constants and services.
 
-    Builds a singleton-scoped container from the framework default services and
-    constants seeded on the shared cache (by the app-context cache-key prefixes).
-    When an ``app_instance`` is provided, its constants are layered first so that
-    (re)registered services wire to them, then its services are layered to
-    override defaults by id. When ``app_instance`` is ``None``, a defaults-only
-    container is returned.
+    Merges the framework default services and constants seeded on the shared
+    cache (by the app-context cache-key prefixes) with the ``app_instance``'s
+    own constants and services (the interface wins), then builds the
+    singleton-scoped container once from the merged result. Merging *before*
+    the build — rather than layering overrides onto an already-built container
+    — ensures every singleton, defaults included, wires to the final constant
+    values, so an interface constant override reaches default services the
+    interface does not redeclare (a constant swapped in after a singleton is
+    built does not propagate to it; see the handoff wiring finding). The
+    general-purpose cache loader is registered as the ``'load_cache'`` constant
+    so ``build_singleton`` can wire it into ``CacheMiddleware`` via constructor
+    inspection. When ``app_instance`` is ``None``, a defaults-only container is
+    returned.
 
     :param cache: The shared cache context seeded with default services/constants.
     :type cache: CacheContext
@@ -270,32 +286,30 @@ def build_app_service_container(
     :rtype: DIAppServiceContainer
     '''
 
-    # Build the container from the framework defaults seeded on the cache.
-    # Register the general-purpose cache loader as a constant *before* the
-    # services load so build_singleton can wire it into CacheMiddleware by
-    # constructor inspection (constants-before-services ordering).
-    container = service_container.from_dependencies(
-        services=get_default_app_services(cache),
-        constants={
-            **get_default_app_constants(cache),
-            'load_cache': load_cache(cache),
-        },
+    # Merge default constants with the interface's own (interface wins), adding
+    # the general-purpose cache loader so build_singleton can wire it into
+    # CacheMiddleware by constructor inspection.
+    constants = {
+        **get_default_app_constants(cache),
+        'load_cache': load_cache(cache),
+    }
+    if app_instance is not None:
+        constants.update(app_instance.constants or {})
+
+    # Merge default services with the interface's own, overriding defaults by
+    # service id.
+    services = {dep.service_id: dep for dep in get_default_app_services(cache)}
+    if app_instance is not None:
+        for service in (app_instance.services or []):
+            services[service.service_id] = service
+
+    # Build the singleton-scoped container once from the merged services and
+    # constants. from_dependencies registers constants before services, so
+    # every singleton wires to the final constant values.
+    return service_container.from_dependencies(
+        services=list(services.values()),
+        constants=constants,
     )
-
-    # Return the defaults-only container when no interface is provided.
-    if app_instance is None:
-        return container
-
-    # Layer interface constants first so (re)registered services wire to them.
-    for name, value in (app_instance.constants or {}).items():
-        container.add_constant(name, value)
-
-    # Layer interface services, overriding defaults by id and wiring to the latest constants.
-    for service in (app_instance.services or []):
-        container.add_service(service.service_id, service)
-
-    # Return the composed app service container.
-    return container
 
 # ** blueprint: parse_parameter
 def parse_parameter(parameter: str) -> Any:
@@ -449,54 +463,6 @@ def create_feature_context(
 
     # Return the feature and its composed context.
     return feature, feature_context
-
-# ** blueprint: execute_feature (obsolete)
-# -- obsolete: absorbed into execute_feature_handler factory (see FE4); no standalone value outside hub scope; remove at N2
-def execute_feature(
-    feature_id: str,
-    get_dependency: Callable,
-    cache: CacheContext,
-    request: RequestContext,
-    *flags,
-    **kwargs,
-) -> Any:
-    '''
-    Execute a feature end-to-end and return its response.
-
-    Composes the feature context (loading the feature by id), drives
-    ``FeatureContext.execute_feature`` with the pre-made request and the
-    additive execution flags, and returns the request's handled response.
-    Errors propagate unhandled; logging/error parity converges in a later
-    increment.
-
-    :param feature_id: The id of the feature to execute.
-    :type feature_id: str
-    :param get_dependency: The service-resolution handler from the ServiceResolver.
-    :type get_dependency: Callable
-    :param cache: The shared cache context.
-    :type cache: CacheContext
-    :param request: The pre-made request context for this execution.
-    :type request: RequestContext
-    :param flags: Execution flags combined additively at step resolution time.
-    :type flags: str
-    :param kwargs: Additional keyword arguments forwarded to feature execution.
-    :type kwargs: dict
-    :return: The handled feature response.
-    :rtype: Any
-    '''
-
-    # Compose the feature context, loading the feature by id.
-    feature, feature_context = create_feature_context(
-        get_dependency,
-        cache,
-        feature_id=feature_id,
-    )
-
-    # Drive feature execution with the pre-made request and execution flags.
-    feature_context.execute_feature(feature, request, *flags, **kwargs)
-
-    # Return the handled response from the request.
-    return request.handle_response()
 
 # ** blueprint: create_session_request
 def create_session_request(
@@ -715,3 +681,55 @@ def build_app_session_context(
         **collaborators,
         **context_kwargs,
     )
+
+# ** blueprint: build_app
+def build_app(
+    interface_id: str,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
+    **parameters,
+) -> AppSessionContext:
+    '''
+    Build a fully wired app session context in a single call.
+
+    Orchestrates the core composition chain in fixed order: builds the shared
+    cache (seeded with the framework default errors, services, and constants),
+    resolves the requested app session via the ``GetAppSession`` event (which
+    raises ``APP_SESSION_NOT_FOUND`` when the session is absent — the core path
+    has no built-in default-session fallback), composes the wired
+    ``AppSessionContext`` through :func:`build_app_session_context`, and
+    validates the result type. All framework defaults come from the cache
+    seeded by :func:`build_cache`; ``apply_defaults`` is never called here.
+    This is the single-call entry point exported as ``App``.
+
+    :param interface_id: The id of the app session to build.
+    :type interface_id: str
+    :param module_path: The module path of the app service; defaults to the framework app repo.
+    :type module_path: str
+    :param class_name: The class name of the app service; defaults to AppConfigRepository.
+    :type class_name: str
+    :param parameters: The app service constructor parameters (e.g. ``app_config='config.yml'``).
+    :type parameters: dict
+    :return: The fully wired app session context.
+    :rtype: AppSessionContext
+    '''
+
+    # Build the shared cache (seeded with errors, services, and constants).
+    cache = build_cache()
+
+    # Resolve the app session; GetAppSession raises APP_SESSION_NOT_FOUND when absent.
+    app_session = get_app_session(interface_id, cache, module_path, class_name, **parameters)
+
+    # Compose the wired app session context via the core compose path.
+    app_session_context = build_app_session_context(app_session, cache)
+
+    # Verify that the composed context is a valid app session context.
+    if not isinstance(app_session_context, AppSessionContext):
+        RaiseError.execute(
+            a.const.INVALID_APP_SESSION_TYPE_ID,
+            f'App context for session is not valid: {interface_id}.',
+            interface_id=interface_id,
+        )
+
+    # Return the validated app session context.
+    return app_session_context

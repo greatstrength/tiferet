@@ -8,10 +8,6 @@ from typing import Any, List, Optional
 # ** app
 from .. import assets as a
 from . import core
-from .main import (
-    resolve_interface,
-    realize_interface,
-)
 
 # *** blueprints
 
@@ -47,15 +43,8 @@ def build_app(
     :rtype: Any
     '''
 
-    # Resolve the session definition in a single pass.
-    app_session, _ = resolve_interface(
-        interface_id, module_path, class_name, **parameters)
-
-    # Build the shared cache (seeded with errors, services, and constants).
-    cache = core.build_cache()
-
-    # Realize the CLI session context via the core compose path.
-    cli_context = realize_interface(app_session, interface_id, cache=cache)
+    # Build the CLI session context via the core single-call entrypoint.
+    cli_context = core.build_app(interface_id, module_path, class_name, **parameters)
 
     # Delegate parsing, dispatch, exit codes, and response printing to the context.
     return cli_context.run_cli(argv)
