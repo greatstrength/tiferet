@@ -81,8 +81,8 @@ DEFAULT_TIFERET_APP_SESSION = {
     'id': 'tiferet_app',
     'name': 'Tiferet App',
     'description': 'Default built-in application session',
-    'module_path': 'tiferet.contexts.app',
-    'class_name': 'AppSessionContext',
+    'module_path': 'tiferet.contexts.app',  # -- obsolete: remove at v2.0.0 stable
+    'class_name': 'AppSessionContext',       # -- obsolete: remove at v2.0.0 stable
 }
 
 # ** constant: default_tiferet_app_interface (obsolete)
@@ -94,8 +94,8 @@ DEFAULT_TIFERET_CLI_SESSION = {
     'id': 'tiferet_cli',
     'name': 'Tiferet CLI',
     'description': 'Built-in CLI for managing Tiferet application configurations',
-    'module_path': 'tiferet.contexts.cli',
-    'class_name': 'CliContext',
+    'module_path': 'tiferet.contexts.cli',      # -- obsolete: remove at v2.0.0 stable
+    'class_name': 'CliSessionContext',           # -- obsolete: remove at v2.0.0 stable; was CliContext
 }
 
 # ** constant: default_tiferet_cli_interface (obsolete)

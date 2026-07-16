@@ -39,6 +39,9 @@ class AddAppSession(AppEvent):
     '''
 
     # * method: execute
+    # -- obsolete: module_path and class_name params will be dropped when the domain
+    #    fields are removed at v2.0.0 stable
+    # ++ todo: remove module_path and class_name params at v2.0.0 stable
     @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name'])
     def execute(
         self,

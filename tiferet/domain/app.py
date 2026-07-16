@@ -50,12 +50,16 @@ class AppSession(DomainObject):
     )
 
     # * attribute: module_path
+    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
+    # ++ todo: remove at v2.0.0 stable
     module_path: str = Field(
         ...,
         description='The module path for the application instance context.',
     )
 
     # * attribute: class_name
+    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
+    # ++ todo: remove at v2.0.0 stable
     class_name: str = Field(
         ...,
         description='The class name for the application instance context.',

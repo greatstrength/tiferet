@@ -321,6 +321,8 @@ class AppSessionConfigObject(AppSession, TransferObject):
     }
 
     # * attribute: module_path
+    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
+    # ++ todo: remove at v2.0.0 stable
     module_path: str = Field(
         default=DEFAULT_MODULE_PATH,
         serialization_alias='module',
@@ -329,6 +331,8 @@ class AppSessionConfigObject(AppSession, TransferObject):
     )
 
     # * attribute: class_name
+    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
+    # ++ todo: remove at v2.0.0 stable
     class_name: str = Field(
         default=DEFAULT_CLASS_NAME,
         serialization_alias='class',

@@ -27,7 +27,7 @@ from ..contexts.app import (
     get_default_app_constants,
     Error,
 )
-from ..events import DomainEvent, ParseParameter, ImportDependency, RaiseError
+from ..events import DomainEvent, ParseParameter, RaiseError
 from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
@@ -639,11 +639,10 @@ def build_app_session_context(
     # Build the feature-level resolver from the app container.
     resolver = build_service_resolver(app_container)
 
-    # Import the context class declared by the session (supports custom contexts).
-    context_cls = ImportDependency.execute(
-        app_session.module_path,
-        app_session.class_name,
-    )
+    # Hardcode the AppSessionContext class; blueprint functions are the declarative
+    # owner of context class selection — the session's module_path / class_name
+    # fields are no longer consulted at runtime (annotated obsolete).
+    context_cls = AppSessionContext
 
     # Resolve the context's collaborators from the app container by id.
     # Skip the explicitly supplied resolver, cache, handler params, and bootstrap defaults.

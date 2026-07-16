@@ -11,6 +11,7 @@ __all__ = [
     'bps',
     'error',
     'app',
+    'cli',
     'cli_app',
     'cli_svc',
     'cli_feat',
@@ -28,4 +29,5 @@ from . import app
 from . import app as cli_app
 from . import di as cli_svc
 from . import feature as cli_feat
+from . import cli
 from . import cli as cli_cmd

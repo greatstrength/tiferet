@@ -13,6 +13,141 @@ from .core import DomainObject
 
 # *** models
 
+# ** model: cli_record
+class CliRecord(DomainObject):
+    '''
+    A typed atomic record unit that both CLI output models are built from.
+
+    Stores an ordered mapping of attribute names to string values extracted
+    from a raw domain result. All values are coerced to ``str``; the insertion
+    order is preserved so column order is predictable in tabular output.
+    '''
+
+    # * attribute: fields
+    fields: Dict[str, str] = Field(
+        default_factory=dict,
+        description='Ordered attribute-to-string-value pairs extracted from the raw result.',
+    )
+
+
+# ** model: cli_output_record
+class CliOutputRecord(DomainObject):
+    '''
+    Single-record vertical output model.
+
+    Wraps one :class:`CliRecord` and renders it as a top-down attribute-value
+    list, one ``attribute: value`` line per field, with attribute names
+    left-padded to a consistent width.
+    '''
+
+    # * attribute: record
+    record: CliRecord = Field(
+        ...,
+        description='The typed record to display.',
+    )
+
+    # * method: format_output
+    def format_output(self, indent: int = 2) -> str:
+        '''
+        Render the record as an indented attribute-value list.
+
+        Each line is ``<indent><attribute padded to max width>: <value>``. An
+        empty string is returned when the record has no fields.
+
+        :param indent: Number of leading spaces before each line.
+        :type indent: int
+        :return: The formatted output string.
+        :rtype: str
+        '''
+
+        # Return early when the record is empty.
+        if not self.record.fields:
+            return ''
+
+        # Determine the width of the widest attribute name.
+        max_key_len = max(len(k) for k in self.record.fields)
+
+        # Render one line per field.
+        lines = [
+            f'{" " * indent}{k.ljust(max_key_len)}: {v}'
+            for k, v in self.record.fields.items()
+        ]
+
+        # Return the joined lines.
+        return '\n'.join(lines)
+
+
+# ** model: cli_record_list
+class CliRecordList(DomainObject):
+    '''
+    Multi-record tabular output model.
+
+    Wraps a list of :class:`CliRecord` rows and renders them as an aligned
+    table: a header row derived from the union of all field keys, a separator
+    row, then one horizontal row per record, with each column aligned to its
+    widest value.
+    '''
+
+    # * attribute: records
+    records: List[CliRecord] = Field(
+        default_factory=list,
+        description='The typed record rows; each CliRecord represents one table row.',
+    )
+
+    # * method: format_output
+    def format_output(self) -> str:
+        '''
+        Render the records as an aligned table.
+
+        The header row is derived from the union of all field keys in encounter
+        order. Each column is aligned to the widest value in that column
+        (including the header). An empty string is returned when the list is
+        empty.
+
+        :return: The formatted table string.
+        :rtype: str
+        '''
+
+        # Return early when there are no records.
+        if not self.records:
+            return ''
+
+        # Derive the ordered header from the union of all field keys.
+        all_keys: List[str] = []
+        seen: set = set()
+        for record in self.records:
+            for k in record.fields:
+                if k not in seen:
+                    all_keys.append(k)
+                    seen.add(k)
+
+        # Return early when all records are empty.
+        if not all_keys:
+            return ''
+
+        # Calculate per-column widths as the max of the header and all values.
+        col_widths = {k: len(k) for k in all_keys}
+        for record in self.records:
+            for k in all_keys:
+                v = record.fields.get(k, '')
+                col_widths[k] = max(col_widths[k], len(v))
+
+        # Build the header and separator rows.
+        header = '  '.join(k.ljust(col_widths[k]) for k in all_keys)
+        separator = '  '.join('-' * col_widths[k] for k in all_keys)
+
+        # Build one data row per record.
+        rows = [
+            '  '.join(
+                record.fields.get(k, '').ljust(col_widths[k]) for k in all_keys
+            )
+            for record in self.records
+        ]
+
+        # Return the joined table.
+        return '\n'.join([header, separator] + rows)
+
+
 # ** model: cli_argument
 class CliArgument(DomainObject):
     '''

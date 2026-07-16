@@ -12,7 +12,17 @@ from tiferet.domain import CliArgument, CliCommand
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.cli import (
     CliContext,
-    build_parser,
+    CliRequestContext,
+    CliSessionContext,
+    build_cli_record,
+    add_default_cli_commands,
+    get_default_cli_commands,
+)
+from tiferet.contexts.app import AppSessionContext
+from tiferet.contexts.cache import CacheContext
+from tiferet.domain import CliRecord, CliOutputRecord, CliRecordList
+from tiferet.blueprints.cli import (
+    build_argument_parser as build_parser,
     derive_feature_request,
     group_commands_by_key,
 )
@@ -358,3 +368,418 @@ def test_run_cli_api_error_exits_1(cli_context):
     with pytest.raises(SystemExit) as exc_info:
         cli_context.run_cli(['calc', 'add', '1'])
     assert exc_info.value.code == 1
+
+
+# *** build_cli_record
+
+# ** test: build_cli_record_from_domain_object
+def test_build_cli_record_from_domain_object() -> None:
+    '''
+    Test that build_cli_record extracts model_dump fields from a DomainObject,
+    coercing all values to str.
+    '''
+
+    # Use a CliCommand as a representative DomainObject.
+    command = CliCommand(name='Add', key='add', group_key='calc')
+
+    # Build the record.
+    record = build_cli_record(command)
+
+    # Assert the record is a CliRecord with the expected field values.
+    assert isinstance(record, CliRecord)
+    assert record.fields['name'] == 'Add'
+    assert record.fields['key'] == 'add'
+    assert record.fields['group_key'] == 'calc'
+
+# ** test: build_cli_record_omits_none_from_domain_object
+def test_build_cli_record_omits_none_from_domain_object() -> None:
+    '''
+    Test that build_cli_record omits None-valued fields from a DomainObject.
+    '''
+
+    # Use a CliCommand with an explicit None description.
+    command = CliCommand(name='Add', key='add', group_key='calc', description=None)
+
+    # Build the record.
+    record = build_cli_record(command)
+
+    # Assert that the None-valued description is absent from the record fields.
+    assert 'description' not in record.fields
+
+# ** test: build_cli_record_from_dict
+def test_build_cli_record_from_dict() -> None:
+    '''
+    Test that build_cli_record iterates a dict and coerces all values to str.
+    '''
+
+    # Build a record from a plain dict with a non-string value.
+    record = build_cli_record({'name': 'Add', 'count': 42})
+
+    # Assert the record has the expected fields with str values.
+    assert isinstance(record, CliRecord)
+    assert record.fields['name'] == 'Add'
+    assert record.fields['count'] == '42'
+
+# ** test: build_cli_record_from_primitive
+def test_build_cli_record_from_primitive() -> None:
+    '''
+    Test that build_cli_record wraps a primitive in a single-field record
+    keyed by "value".
+    '''
+
+    # Build a record from an integer primitive.
+    record = build_cli_record(99)
+
+    # Assert the record has a single "value" field coerced to str.
+    assert isinstance(record, CliRecord)
+    assert record.fields == {'value': '99'}
+
+
+# *** CliRequestContext
+
+# ** fixture: cli_request_context
+@pytest.fixture
+def cli_request_context() -> CliRequestContext:
+    '''
+    Fixture for a CliRequestContext with a None result.
+
+    :return: A CliRequestContext instance.
+    :rtype: CliRequestContext
+    '''
+
+    # Construct and return a basic CLI request context.
+    return CliRequestContext(feature_id='test.feature')
+
+# ** test: cli_request_context_handle_response_list
+def test_cli_request_context_handle_response_list(
+        cli_request_context: CliRequestContext,
+) -> None:
+    '''
+    Test that handle_response converts a list result into a CliRecordList.
+
+    :param cli_request_context: The CliRequestContext fixture.
+    :type cli_request_context: CliRequestContext
+    '''
+
+    # Set the result to a list of domain objects.
+    cli_request_context.result = [
+        CliCommand(name='Add', key='add', group_key='calc'),
+        CliCommand(name='Sub', key='sub', group_key='calc'),
+    ]
+
+    # Handle the response.
+    output = cli_request_context.handle_response()
+
+    # Assert a CliRecordList is returned with one record per item.
+    assert isinstance(output, CliRecordList)
+    assert len(output.records) == 2
+    assert output.records[0].fields['name'] == 'Add'
+    assert output.records[1].fields['name'] == 'Sub'
+
+# ** test: cli_request_context_handle_response_domain_object
+def test_cli_request_context_handle_response_domain_object(
+        cli_request_context: CliRequestContext,
+) -> None:
+    '''
+    Test that handle_response converts a DomainObject result into a CliOutputRecord.
+
+    :param cli_request_context: The CliRequestContext fixture.
+    :type cli_request_context: CliRequestContext
+    '''
+
+    # Set the result to a single domain object.
+    cli_request_context.result = CliCommand(name='Add', key='add', group_key='calc')
+
+    # Handle the response.
+    output = cli_request_context.handle_response()
+
+    # Assert a CliOutputRecord wrapping the serialised fields is returned.
+    assert isinstance(output, CliOutputRecord)
+    assert output.record.fields['name'] == 'Add'
+    assert output.record.fields['key'] == 'add'
+
+# ** test: cli_request_context_handle_response_dict
+def test_cli_request_context_handle_response_dict(
+        cli_request_context: CliRequestContext,
+) -> None:
+    '''
+    Test that handle_response converts a dict result into a CliOutputRecord.
+
+    :param cli_request_context: The CliRequestContext fixture.
+    :type cli_request_context: CliRequestContext
+    '''
+
+    # Set the result to a plain dict.
+    cli_request_context.result = {'id': 'calc.add', 'status': 'ok'}
+
+    # Handle the response.
+    output = cli_request_context.handle_response()
+
+    # Assert a CliOutputRecord is returned with the dict fields.
+    assert isinstance(output, CliOutputRecord)
+    assert output.record.fields['id'] == 'calc.add'
+    assert output.record.fields['status'] == 'ok'
+
+# ** test: cli_request_context_handle_response_primitive
+def test_cli_request_context_handle_response_primitive(
+        cli_request_context: CliRequestContext,
+) -> None:
+    '''
+    Test that handle_response passes primitives through unchanged.
+
+    :param cli_request_context: The CliRequestContext fixture.
+    :type cli_request_context: CliRequestContext
+    '''
+
+    # Set the result to a primitive string.
+    cli_request_context.result = 'plain-string'
+
+    # Handle the response.
+    output = cli_request_context.handle_response()
+
+    # Assert the primitive is returned as-is.
+    assert output == 'plain-string'
+
+
+# *** CliSessionContext
+
+# ** fixture: cli_session_context
+@pytest.fixture
+def cli_session_context(app_interface):
+    '''
+    Fixture for a minimal CliSessionContext with no parse_cli_args injected
+    (legacy-compatible mode) and a no-op response handler.
+
+    :return: A CliSessionContext instance.
+    :rtype: CliSessionContext
+    '''
+
+    # Build a CliSessionContext without a parse_cli_args closure.
+    return CliSessionContext.from_domain(
+        app_interface,
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+    )
+
+# ** test: cli_session_context_build_response_prints_format_output
+def test_cli_session_context_build_response_prints_format_output(
+        cli_session_context: CliSessionContext,
+        capsys,
+) -> None:
+    '''
+    Test that build_response prints the formatted output when the request is a
+    CliRequestContext and the model exposes format_output.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    :param capsys: The pytest stdout/stderr capture fixture.
+    :type capsys: pytest.CaptureFixture
+    '''
+
+    # Build a CliOutputRecord with known fields.
+    output_record = CliOutputRecord(
+        record=CliRecord(fields={'id': '42', 'name': 'Test'}),
+    )
+
+    # Wire the response handler to return the pre-built output record.
+    cli_session_context._build_response = mock.Mock(return_value=output_record)
+
+    # Call build_response with a CliRequestContext.
+    request = CliRequestContext(feature_id='test.feature')
+    result = cli_session_context.build_response(request)
+
+    # Assert the formatted output was printed.
+    out = capsys.readouterr().out
+    assert 'id' in out
+    assert '42' in out
+    assert 'name' in out
+    assert 'Test' in out
+
+    # Assert the output record is returned.
+    assert result is output_record
+
+# ** test: cli_session_context_build_response_prints_primitive
+def test_cli_session_context_build_response_prints_primitive(
+        cli_session_context: CliSessionContext,
+        capsys,
+) -> None:
+    '''
+    Test that build_response prints the stringified model when the model has no
+    format_output method and the request is a CliRequestContext.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    :param capsys: The pytest stdout/stderr capture fixture.
+    :type capsys: pytest.CaptureFixture
+    '''
+
+    # Wire the response handler to return a plain string.
+    cli_session_context._build_response = mock.Mock(return_value='hello world')
+
+    # Call build_response with a CliRequestContext.
+    request = CliRequestContext(feature_id='test.feature')
+    result = cli_session_context.build_response(request)
+
+    # Assert the primitive was printed and returned.
+    assert 'hello world' in capsys.readouterr().out
+    assert result == 'hello world'
+
+# ** test: cli_session_context_build_response_legacy_no_print
+def test_cli_session_context_build_response_legacy_no_print(
+        cli_session_context: CliSessionContext,
+        capsys,
+) -> None:
+    '''
+    Test that build_response does NOT print when the request is a plain
+    RequestContext (legacy path), leaving printing to the caller.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    :param capsys: The pytest stdout/stderr capture fixture.
+    :type capsys: pytest.CaptureFixture
+    '''
+
+    # Wire the response handler to return a sentinel value.
+    cli_session_context._build_response = mock.Mock(return_value='legacy-result')
+
+    # Call build_response with a plain RequestContext (not CliRequestContext).
+    request = RequestContext(feature_id='test.feature')
+    result = cli_session_context.build_response(request)
+
+    # Assert nothing was printed and the result was returned as-is.
+    assert capsys.readouterr().out == ''
+    assert result == 'legacy-result'
+
+# ** test: cli_session_context_run_new_path
+def test_cli_session_context_run_new_path(
+        app_interface,
+) -> None:
+    '''
+    Test that run(argv) in the new path calls the injected _parse_cli_args
+    closure and delegates to super().run with the parsed request tuple.
+
+    :param app_interface: The bound app interface fixture.
+    :type app_interface: AppSessionAggregate
+    '''
+
+    # Build a parse closure that returns a known (feature_id, headers, data) tuple.
+    parse_fn = mock.Mock(return_value=('calc.add', {'h': '1'}, {'a': 1}))
+
+    # Build a CliSessionContext with parse_cli_args injected.
+    context = CliSessionContext.from_domain(
+        app_interface,
+        logging_list_all_evt=mock.Mock(),
+        get_dependency=mock.Mock(),
+        parse_cli_args=parse_fn,
+    )
+
+    # Patch AppSessionContext.run to isolate CliSessionContext.run.
+    with mock.patch.object(
+        AppSessionContext, 'run', return_value='parsed-result',
+    ) as mock_run:
+        result = context.run(['calc', 'add', '1'])
+
+    # Assert the parse closure was called with the provided argv.
+    parse_fn.assert_called_once_with(['calc', 'add', '1'])
+
+    # Assert super().run was dispatched with the parsed tuple.
+    mock_run.assert_called_once_with('calc.add', headers={'h': '1'}, data={'a': 1})
+    assert result == 'parsed-result'
+
+# ** test: cli_session_context_run_legacy_path_feature_id_kwarg
+def test_cli_session_context_run_legacy_path_feature_id_kwarg(
+        cli_session_context: CliSessionContext,
+) -> None:
+    '''
+    Test that run delegates to the parent when feature_id is passed as a kwarg
+    (the pre-Phase-1 AppSessionContext.run calling convention).
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Patch AppSessionContext.run to verify the delegation.
+    with mock.patch.object(
+        AppSessionContext, 'run', return_value='legacy',
+    ) as mock_run:
+        result = cli_session_context.run(
+            feature_id='calc.add', headers={'h': '1'}, data={'a': 1},
+        )
+
+    # Assert super().run was called with the forwarded kwargs.
+    mock_run.assert_called_once_with(
+        feature_id='calc.add', headers={'h': '1'}, data={'a': 1},
+    )
+    assert result == 'legacy'
+
+# ** test: cli_session_context_run_legacy_path_no_parse_fn
+def test_cli_session_context_run_legacy_path_no_parse_fn(
+        cli_session_context: CliSessionContext,
+) -> None:
+    '''
+    Test that run falls back to the parent when no _parse_cli_args is wired in,
+    forwarding argv as feature_id so the call does not crash.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    '''
+
+    # Confirm no parse closure is wired (legacy-compatible context).
+    assert cli_session_context._parse_cli_args is None
+
+    # Patch AppSessionContext.run to verify delegation without a parse fn.
+    with mock.patch.object(
+        AppSessionContext, 'run', return_value='fallback',
+    ) as mock_run:
+        result = cli_session_context.run(feature_id='calc.add', headers={}, data={})
+
+    # Assert the parent run was invoked and the result forwarded.
+    mock_run.assert_called_once()
+    assert result == 'fallback'
+
+
+# *** add_default_cli_commands / get_default_cli_commands
+
+# ** test: add_default_cli_commands_seeds_cache
+def test_add_default_cli_commands_seeds_cache() -> None:
+    '''
+    Test that the add_default_cli_commands decorator pre-seeds the cache with
+    typed CliCommand objects keyed by command id.
+    '''
+
+    # Define an id-keyed command catalog.
+    commands = {
+        'calc.add': {'name': 'Add', 'key': 'add', 'group_key': 'calc'},
+        'calc.sub': {'name': 'Sub', 'key': 'sub', 'group_key': 'calc'},
+    }
+
+    # Wrap a bare cache-builder with the decorator.
+    @add_default_cli_commands(commands)
+    def build():
+        return CacheContext()
+
+    # Build the cache.
+    cache = build()
+
+    # Retrieve the seeded commands.
+    result = get_default_cli_commands(cache)
+
+    # Assert both commands are present as typed CliCommand objects.
+    assert len(result) == 2
+    ids = {cmd.id for cmd in result}
+    assert 'calc.add' in ids
+    assert 'calc.sub' in ids
+    assert all(isinstance(cmd, CliCommand) for cmd in result)
+
+# ** test: get_default_cli_commands_returns_empty_when_not_seeded
+def test_get_default_cli_commands_returns_empty_when_not_seeded() -> None:
+    '''
+    Test that get_default_cli_commands returns an empty list when the cache has
+    not been seeded with any CLI commands.
+    '''
+
+    # Build a bare (unseeded) cache.
+    cache = CacheContext()
+
+    # Assert no commands are returned.
+    assert get_default_cli_commands(cache) == []
