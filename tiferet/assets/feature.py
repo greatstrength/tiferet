@@ -556,11 +556,15 @@ _DEFAULT_TIFERET_CLI_FEATURE_LIST: List[Dict[str, Any]] = [
     },
 ]
 
-# ** constant: default_tiferet_cli_features
+# ** constant: admin_default_features
 # Id-keyed mapping mirroring YAML shape: the key is the feature id and the
 # value is the record minus id. The bootstrap builder in the orchestration
 # layer materializes each record into a typed Feature object.
-DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
+ADMIN_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = {
     entry['id']: {key: value for key, value in entry.items() if key != 'id'}
     for entry in _DEFAULT_TIFERET_CLI_FEATURE_LIST
 }
+
+# ** constant: default_tiferet_cli_features (obsolete)
+# -- obsolete: superseded by ADMIN_DEFAULT_FEATURES; remove at v2.0.0 stable
+DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = ADMIN_DEFAULT_FEATURES

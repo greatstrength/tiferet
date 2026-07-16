@@ -1,4 +1,7 @@
-"""Tiferet CLI Blueprint — Built-in CLI Management Interface"""
+"""Tiferet CLI Blueprint — Built-in CLI Management Interface
+
+-- obsolete: superseded by blueprints/admin_cli.py; remove at v2.0.0 stable
+"""
 
 # *** imports
 
@@ -374,7 +377,8 @@ def _decode_json_arguments(parsed: Dict[str, Any]) -> Dict[str, Any]:
     return parsed
 
 
-# ** blueprint: build_tiferet_cli
+# ** blueprint: build_tiferet_cli (obsolete)
+# -- obsolete: superseded by admin_cli.build_admin_cli; remove at v2.0.0 stable
 def build_tiferet_cli(
     app_config: str,
     argv: Optional[List[str]] = None,

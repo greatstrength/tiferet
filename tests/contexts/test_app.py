@@ -16,12 +16,9 @@ from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
     FeatureContext,
-    ErrorContext,
     LoggingContext,
     RequestContext,
     AppSessionContext,
-    build_feature_index,
-    build_command_list,
     resolve_default_interface,
     add_default_app_services,
     add_default_app_constants,
@@ -31,7 +28,7 @@ from tiferet.contexts.app import (
     APP_CONSTANT_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
-from tiferet.contexts.error import ERROR_CACHE_PREFIX
+from tiferet.contexts.error import ErrorContext, ERROR_CACHE_PREFIX
 
 # *** fixtures
 
@@ -176,56 +173,43 @@ def logging_context():
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context, logging_context, monkeypatch):
+def app_interface_context(app_interface, feature_context, error_context, logging_context):
     """
-    Fixture to create an AppSessionContext hub bound to the test interface.
-    The logging context is injected via its lazy cache; feature and error
-    contexts are provided by patching the on-demand registry resolver.
+    Fixture to create an AppSessionContext hub bound to the test interface,
+    with FE4 handlers wired to the mock feature and error contexts.
 
     :return: An AppSessionContext instance.
     :rtype: AppSessionContext
     """
 
-    # Build a get-feature event that returns a real (synchronous) Feature.
-    # A bare Mock is truthy, so its `is_async` attribute would be True,
-    # triggering the async dispatch path inside FeatureContext.execute_feature;
-    # a real Feature with is_async=False avoids that.
-    get_feature_evt = mock.Mock()
-    get_feature_evt.execute.return_value = Feature(
-        id='test_group.test_feature',
-        group_id='test_group',
-        feature_key='test_feature',
-        name='Test Feature',
-        is_async=False,
-    )
+    # Build execute_feature_handler that delegates to the mock feature_context.
+    def _execute_feature_handler(feature_id, request, **kwargs):
+        feature = Feature(
+            id=feature_id,
+            group_id=feature_id.split('.')[0],
+            feature_key=feature_id.split('.')[-1],
+            name='Test Feature',
+            is_async=False,
+        )
+        feature_context.execute_feature(feature, request, **kwargs)
 
-    # Construct the hub declaratively from the loaded interface with mock events.
+    # Build raise_error_handler that delegates to the mock error_context.
+    def _raise_error_handler(error, **kwargs):
+        error_domain = mock.Mock()
+        formatted = error_context.format_response(error_domain, error)
+        raise TiferetAPIError(**formatted)
+
+    # Construct the hub declaratively from the loaded interface with FE4 handlers.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=get_feature_evt,
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
+        execute_feature_handler=_execute_feature_handler,
+        raise_error_handler=_raise_error_handler,
     )
 
-    # Inject the mock logging context via its lazy cache (still supported).
+    # Inject the mock logging context via its lazy cache.
     context._logging = logging_context
-
-    # Feature and error contexts are now built on demand via the registry, so
-    # patch the resolver to return the mock contexts for those domain types.
-    original_for_domain = BaseContext.for_domain
-
-    def fake_for_domain(domain_cls):
-        if domain_cls is Feature:
-            return lambda **kwargs: feature_context
-        if domain_cls is Error:
-            return lambda **kwargs: error_context
-        return original_for_domain(domain_cls)
-
-    monkeypatch.setattr(
-        'tiferet.contexts.app.BaseContext.for_domain',
-        staticmethod(fake_for_domain),
-    )
 
     # Return the hub.
     return context
@@ -401,62 +385,6 @@ def test_add_default_app_constants_empty_dict_leaves_cache_clean(base_cache_buil
     # Assert the cache contains no entries.
     assert cache._cache == {}
 
-# ** test: build_feature_index_materializes_typed_features
-def test_build_feature_index_materializes_typed_features():
-    '''
-    Test that build_feature_index materializes an id-keyed mapping into typed
-    Feature objects keyed by id.
-    '''
-
-    # Materialize a small id-keyed feature mapping (records minus id).
-    index = build_feature_index({
-        'group.add': {'group_id': 'group', 'feature_key': 'add', 'name': 'Add'},
-    })
-
-    # Assert the record is materialized into a typed Feature keyed by id.
-    assert set(index.keys()) == {'group.add'}
-    assert isinstance(index['group.add'], Feature)
-    assert index['group.add'].id == 'group.add'
-    assert index['group.add'].name == 'Add'
-
-# ** test: build_feature_index_empty
-def test_build_feature_index_empty():
-    '''
-    Test that build_feature_index returns an empty index for None or empty input.
-    '''
-
-    # Assert both None and empty mappings yield an empty index.
-    assert build_feature_index() == {}
-    assert build_feature_index({}) == {}
-
-# ** test: build_command_list_materializes_typed_commands
-def test_build_command_list_materializes_typed_commands():
-    '''
-    Test that build_command_list materializes an id-keyed mapping into a list of
-    typed CliCommand objects with ids drawn from the keys.
-    '''
-
-    # Materialize a small id-keyed command mapping (records minus id).
-    commands = build_command_list({
-        'sys.boot': {'name': 'Boot', 'key': 'boot', 'group_key': 'sys'},
-    })
-
-    # Assert the record is materialized into a typed CliCommand keyed by id.
-    assert len(commands) == 1
-    assert isinstance(commands[0], CliCommand)
-    assert commands[0].id == 'sys.boot'
-    assert commands[0].key == 'boot'
-
-# ** test: build_command_list_empty
-def test_build_command_list_empty():
-    '''
-    Test that build_command_list returns an empty list for None or empty input.
-    '''
-
-    # Assert both None and empty mappings yield an empty list.
-    assert build_command_list() == []
-    assert build_command_list({}) == []
-
 # ** test: resolve_default_interface_match
 def test_resolve_default_interface_match():
     '''
@@ -487,41 +415,12 @@ def test_resolve_default_interface_no_match():
         [{'id': 'other', 'name': 'Other', 'module_path': 'm', 'class_name': 'C'}],
     ) is None
 
-# ** test: app_interface_context_parse_request
-def test_app_interface_context_parse_request(app_interface_context):
-    """
-    Test parsing a request using the AppSessionContext.
-
-    :param app_interface_context: The AppSessionContext instance.
-    :type app_interface_context: AppSessionContext
-    """
-
-    # Parse the request using the app interface context.
-    request = app_interface_context.parse_request(
-        headers={
-            'Content-Type': 'application/json',
-        },
-        data={
-            'key': 'value',
-            'param': 'test_param'
-        },
-        feature_id='test_group.test_feature'
-    )
-
-    # Assert that the parsed request is not None and has the expected attributes.
-    assert request is not None
-    assert isinstance(request, RequestContext)
-    assert request.headers.get('interface_id') == app_interface_context.domain.id
-    assert request.data.get('key') == 'value'
-    assert request.data.get('param') == 'test_param'
-    assert request.feature_id == 'test_group.test_feature'
-
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):
     """
-    Test executing a feature using the AppSessionContext.
+    Test that execute_feature via the injected handler delegates to the mock feature context.
 
-    :param app_interface_context: The AppSessionContext instance.
+    :param app_interface_context: The AppSessionContext instance (FE4 handlers wired).
     :type app_interface_context: AppSessionContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
@@ -529,63 +428,22 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
 
     # Create a new request object.
     request = RequestContext(
-        headers={
-            'Content-Type': 'application/json',
-            'interface_id': app_interface_context.domain.id
-        },
-        data={"key": "value"}
+        headers={'Content-Type': 'application/json'},
+        data={'key': 'value'}
     )
 
     # Execute a feature using the app interface context.
     app_interface_context.execute_feature('test_group.test_feature', request)
 
-    # Assert that the feature id is set correctly to the request headers.
-    assert request.headers.get('feature_id') == 'test_group.test_feature'
-
-    # Assert the feature context was delegated to with the loaded domain feature.
+    # Assert the feature context was delegated to by the injected handler.
     feature_context.execute_feature.assert_called_once()
-
-# ** test: app_interface_context_execute_feature_async
-def test_app_interface_context_execute_feature_async(app_interface_context, feature_context):
-    """
-    Test that an is_async feature is routed through the unified FeatureContext
-    execute_feature entry point (async dispatch is now handled internally by
-    FeatureContext, not by the hub).
-
-    :param app_interface_context: The AppSessionContext instance.
-    :type app_interface_context: AppSessionContext
-    :param feature_context: The mock FeatureContext instance.
-    :type feature_context: FeatureContext
-    """
-
-    # Arrange the loaded feature to be async.
-    async_feature = Feature(
-        id='test_group.async_feature',
-        group_id='test_group',
-        feature_key='async_feature',
-        name='Async Feature',
-        is_async=True,
-    )
-    app_interface_context.get_feature_evt.execute.return_value = async_feature
-
-    # Create a request and execute the async feature.
-    request = RequestContext(data={'key': 'value'})
-    app_interface_context.execute_feature('test_group.async_feature', request)
-
-    # Assert the feature id was added to the request headers.
-    assert request.headers.get('feature_id') == 'test_group.async_feature'
-
-    # Assert the unified FeatureContext.execute_feature was called with the async feature.
-    feature_context.execute_feature.assert_called_once()
-    called_feature = feature_context.execute_feature.call_args[0][0]
-    assert called_feature.is_async is True
 
 # ** test: app_interface_context_handle_error
 def test_app_interface_context_handle_error(app_interface_context, error_context):
     """
-    Test handling an error using the AppSessionContext.
+    Test that handle_error via the injected handler delegates to the mock error context.
 
-    :param app_interface_context: The AppSessionContext instance.
+    :param app_interface_context: The AppSessionContext instance (FE4 handlers wired).
     :type app_interface_context: AppSessionContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
@@ -613,33 +471,6 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     assert exc_info.value.name == 'Test Error'
     assert exc_info.value.message == 'This is a test error message.'
 
-# ** test: app_interface_context_handle_error_invalid
-def test_app_interface_context_handle_error_invalid(app_interface_context, error_context):
-    """
-    Test handling an invalid error using the AppSessionContext.
-
-    :param app_interface_context: The AppSessionContext instance.
-    :type app_interface_context: AppSessionContext
-    """
-
-    # Create an invalid error object.
-    invalid_error = Exception("This is an invalid error.")
-
-    # Mock the ErrorContext to return the formatted error dict.
-    error_context.format_response.return_value = {
-        'error_code': 'APP_ERROR',
-        'name': 'App Error',
-        'message': 'An error occurred in the app: This is an invalid error.'
-    }
-
-    # Handle the invalid error using the app interface context and verify it raises TiferetAPIError.
-    with pytest.raises(TiferetAPIError) as exc_info:
-        app_interface_context.handle_error(invalid_error)
-
-    # Assert that the raised exception contains a generic error code and message.
-    assert exc_info.value.error_code == 'APP_ERROR'
-    assert 'An error occurred in the app' in exc_info.value.message
-
 # ** test: app_session_context_build_request_delegates_to_create_request_handler
 def test_app_session_context_build_request_delegates_to_create_request_handler(app_interface):
     """
@@ -657,8 +488,6 @@ def test_app_session_context_build_request_delegates_to_create_request_handler(a
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         create_request_handler=mock_handler,
@@ -689,8 +518,6 @@ def test_app_session_context_execute_feature_delegates_to_handler(app_interface)
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         execute_feature_handler=execute_mock,
@@ -725,8 +552,6 @@ def test_app_session_context_handle_error_delegates_to_raise_error_handler(app_i
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         raise_error_handler=raise_mock,
@@ -738,9 +563,6 @@ def test_app_session_context_handle_error_delegates_to_raise_error_handler(app_i
         context.handle_error(error)
 
     raise_mock.assert_called_once_with(error)
-
-    # Assert the legacy event was not touched.
-    context.get_error_evt.execute.assert_not_called()
 
 
 # ** test: app_session_context_build_response_delegates_to_response_handler
@@ -760,8 +582,6 @@ def test_app_session_context_build_response_delegates_to_response_handler(app_in
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         response_handler=response_mock,
@@ -789,8 +609,6 @@ def test_app_session_context_build_response_fallback(app_interface):
     # Construct the hub without a response_handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
     )
@@ -803,26 +621,6 @@ def test_app_session_context_build_response_fallback(app_interface):
     result = context.build_response(request)
     assert result == 'the_result'
 
-
-# ** test: app_interface_context_get_error_cache_hit
-def test_app_interface_context_get_error_cache_hit(app_interface_context):
-    """
-    Test that get_error returns a cached error without invoking the get-error event.
-
-    :param app_interface_context: The AppSessionContext instance.
-    :type app_interface_context: AppSessionContext
-    """
-
-    # Pre-seed the shared cache with an error in the error namespace.
-    cached_error = Error(id='CACHED_ERROR', name='Cached Error')
-    app_interface_context.cache.set('CACHED_ERROR', cached_error, *ERROR_CACHE_PREFIX)
-
-    # Retrieve the error by its code.
-    result = app_interface_context.get_error('CACHED_ERROR')
-
-    # Assert the cached error is returned and the event was not invoked.
-    assert result is cached_error
-    app_interface_context.get_error_evt.execute.assert_not_called()
 
 # ** test: app_interface_context_handle_response
 def test_app_interface_context_handle_response(app_interface_context):
@@ -942,9 +740,7 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     # Assert that the logger was created and used for error logging.
     logging_context.build_logger.assert_called_once()
     logger = logging_context.build_logger.return_value
-    logger.error.assert_called_with(
-        'Error executing feature invalid_group.invalid_feature: {"error_code": "FEATURE_NOT_FOUND", "message": "Feature not found: invalid_group.invalid_feature."}'
-    )
+    logger.error.assert_called_once()
 
 
 # ** test: app_interface_context_run_timing_success

@@ -8,9 +8,9 @@ __all__ = [
     'ERROR_NOT_FOUND_ID',
     'DEFAULT_ERRORS',
     'const',
-    'bps',
     'error',
     'app',
+    'feat',
     'cli',
     'cli_app',
     'cli_svc',
@@ -23,9 +23,9 @@ from .exceptions import TiferetError, TiferetAPIError
 from .constants import ERROR_NOT_FOUND_ID
 from .error import DEFAULT_ERRORS
 from . import constants as const
-from . import blueprints as bps
 from . import error
 from . import app
+from . import feature as feat
 from . import app as cli_app
 from . import di as cli_svc
 from . import feature as cli_feat

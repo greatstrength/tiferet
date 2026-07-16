@@ -25,8 +25,8 @@ from ..contexts.app import (
     add_default_app_constants,
     get_default_app_services,
     get_default_app_constants,
-    Error,
 )
+from ..domain import Error
 from ..events import DomainEvent, ParseParameter, RaiseError
 from ..events.app import GetAppSession
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names

@@ -943,21 +943,17 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
 # ** test: build_app_session_context_resolves_collaborators_from_container
 def test_build_app_session_context_resolves_collaborators_from_container(monkeypatch):
     '''
-    Test that build_app_session_context resolves the three hub event
-    collaborators from the app container via the has_dependency / get_dependency
-    loop and injects them into the constructed context.
+    Test that build_app_session_context resolves the hub event collaborator
+    (logging_list_all_evt) from the app container via the has_dependency /
+    get_dependency loop and injects it into the constructed context.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Arrange distinct mock events for each collaborator.
-    get_feature_evt = mock.Mock()
-    get_error_evt = mock.Mock()
+    # Arrange the hub's sole injectable collaborator.
     logging_list_all_evt = mock.Mock()
     collaborators = {
-        'get_feature_evt': get_feature_evt,
-        'get_error_evt': get_error_evt,
         'logging_list_all_evt': logging_list_all_evt,
     }
     app_container = mock.Mock()
@@ -983,9 +979,7 @@ def test_build_app_session_context_resolves_collaborators_from_container(monkeyp
     )
     result = build_app_session_context(app_session, CacheContext())
 
-    # Assert all three collaborators were resolved from the container and wired.
-    assert result.get_feature_evt is get_feature_evt
-    assert result.get_error_evt is get_error_evt
+    # Assert the collaborator was resolved from the container and wired.
     assert result.logging_list_all_evt is logging_list_all_evt
 
 

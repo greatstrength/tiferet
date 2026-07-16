@@ -11,12 +11,11 @@ from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
-from ..domain import AppSession, AppInterface, AppServiceDependency, Feature, CliCommand, Error
+from ..domain import AppSession, AppInterface, AppServiceDependency, Feature
 from ..events import DomainEvent
 from .settings import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
-from .error import ErrorContext, ERROR_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
 
@@ -27,6 +26,12 @@ APP_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('app', 'services')
 
 # ** constant: app_constant_cache_prefix
 APP_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('app', 'constants')
+
+# ** constant: admin_service_cache_prefix
+ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'services')
+
+# ** constant: admin_constant_cache_prefix
+ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
 
 # *** functions
 
@@ -136,45 +141,109 @@ def get_default_app_constants(cache: CacheContext) -> Dict[str, Any]:
     # Pull all entries from the constants namespace and return them directly.
     return dict(cache.get_by_prefix(*APP_CONSTANT_CACHE_PREFIX))
 
-# ** function: build_feature_index
-# -- obsolete: superseded by the assets-backed default catalog pattern (see add_default_app_services / add_default_app_constants); remove when feature defaults are fully migrated to the cache-seeding decorator approach
-# ++ todo: migrate default feature bootstrapping to the add_default_* decorator factory pattern used by app services and constants
-def build_feature_index(features: Dict[str, Dict[str, Any]] = None) -> Dict[str, Feature]:
+# ** function: add_default_admin_services
+def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     '''
-    Materialize an id-keyed feature mapping into a typed Feature index.
+    Decorator factory that pre-seeds a cache context with default admin service
+    dependency domain objects.
 
-    :param features: Id-keyed mapping of feature records (each value is the
-        record minus its id).
-    :type features: Dict[str, Dict[str, Any]] | None
-    :return: A mapping of feature id to typed Feature objects.
-    :rtype: Dict[str, Feature]
-    '''
+    Mirrors ``add_default_app_services`` under the ``ADMIN_SERVICE_CACHE_PREFIX``
+    namespace, giving the admin blueprints their own catalog distinct from the
+    core app-service catalog.
 
-    # Feed each record into the Feature domain object, keyed by its id.
-    return {
-        feature_id: Feature.model_validate({**(record or {}), 'id': feature_id})
-        for feature_id, record in (features or {}).items()
-    }
-
-# ** function: build_command_list
-# -- obsolete: superseded by the assets-backed default catalog pattern; removal to be handled as part of the CLI context/blueprint refactor
-# ++ todo: migrate default command bootstrapping to the CLI context/blueprint layer
-def build_command_list(commands: Dict[str, Dict[str, Any]] = None) -> List[CliCommand]:
-    '''
-    Materialize an id-keyed command mapping into a typed CliCommand list.
-
-    :param commands: Id-keyed mapping of command records (each value is the
-        record minus its id).
-    :type commands: Dict[str, Dict[str, Any]] | None
-    :return: A list of typed CliCommand objects.
-    :rtype: List[CliCommand]
+    :param services: A mapping of service ids to raw service dependency dicts.
+    :type services: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
     '''
 
-    # Feed each record into the CliCommand domain object, keyed by its id.
-    return [
-        CliCommand.model_validate({**(record or {}), 'id': command_id})
-        for command_id, record in (commands or {}).items()
-    ]
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default admin service domain objects.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw service dict into an AppServiceDependency
+            # domain object and cache it under the admin services namespace.
+            for service_id, service_data in services.items():
+                cache.set(
+                    service_id,
+                    AppServiceDependency.model_validate(service_data),
+                    *ADMIN_SERVICE_CACHE_PREFIX,
+                )
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
+
+# ** function: get_default_admin_services
+def get_default_admin_services(cache: CacheContext) -> List[AppServiceDependency]:
+    '''
+    Return the default admin service dependencies seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The default admin service dependency domain objects.
+    :rtype: List[AppServiceDependency]
+    '''
+
+    # Pull all entries from the admin services namespace and return their values.
+    return list(cache.get_by_prefix(*ADMIN_SERVICE_CACHE_PREFIX).values())
+
+# ** function: add_default_admin_constants
+def add_default_admin_constants(constants: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default admin
+    bootstrap constant values.
+
+    Mirrors ``add_default_app_constants`` under the ``ADMIN_CONSTANT_CACHE_PREFIX``
+    namespace.
+
+    :param constants: A mapping of constant names to scalar values.
+    :type constants: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default admin constant values.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Store each scalar constant under the admin constants namespace.
+            for name, value in constants.items():
+                cache.set(name, value, *ADMIN_CONSTANT_CACHE_PREFIX)
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
+
+# ** function: get_default_admin_constants
+def get_default_admin_constants(cache: CacheContext) -> Dict[str, Any]:
+    '''
+    Return the default admin bootstrap constants seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The default admin constants keyed by name.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Pull all entries from the admin constants namespace and return them directly.
+    return dict(cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX))
 
 # ** function: resolve_default_interface
 # -- obsolete: superseded by the assets-backed default catalog pattern (see add_default_app_services / add_default_app_constants); remove when interface defaults are fully migrated to the cache-seeding decorator approach
@@ -221,16 +290,6 @@ class AppSessionContext(BaseContext):
     # * attribute: domain_type
     domain_type = AppSession
 
-    # * attribute: get_feature_evt (obsolete)
-    # -- obsolete: superseded by the injected _execute_feature callable; remove at N2
-    # ++ todo: remove at N2
-    get_feature_evt: DomainEvent
-
-    # * attribute: get_error_evt (obsolete)
-    # -- obsolete: superseded by the injected _raise_error callable; remove at N2
-    # ++ todo: remove at N2
-    get_error_evt: DomainEvent
-
     # * attribute: _execute_feature
     _execute_feature: Callable
 
@@ -261,10 +320,6 @@ class AppSessionContext(BaseContext):
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
             response_handler: Callable = None,
-            default_features: Dict[str, Dict[str, Any]] = None,
-            default_commands: Dict[str, Dict[str, Any]] = None,
-            get_feature_evt: DomainEvent = None,
-            get_error_evt: DomainEvent = None,
         ):
         '''
         Initialize the application session hub.
@@ -281,31 +336,17 @@ class AppSessionContext(BaseContext):
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
         :param execute_feature_handler: The feature-execution callable produced by
-            the ``execute_feature_handler`` blueprint. When wired, ``execute_feature``
-            delegates to it; when absent the legacy event path applies.
+            the ``execute_feature_handler`` blueprint.
         :type execute_feature_handler: Callable
         :param create_request_handler: The request-creation callable produced by
-            the ``create_session_request`` blueprint. When wired, ``build_request``
-            delegates to it; when absent the legacy construction path applies.
+            the ``create_session_request`` blueprint.
         :type create_request_handler: Callable
         :param raise_error_handler: The error-raising callable produced by the
-            ``raise_error_handler`` blueprint. When wired, ``handle_error`` delegates
-            to it; when absent the legacy error path applies.
+            ``raise_error_handler`` blueprint.
         :type raise_error_handler: Callable
         :param response_handler: The response-extraction callable produced by the
-            ``response_handler`` blueprint. When wired, ``build_response`` delegates
-            to it; when absent ``request.handle_response()`` is called directly.
+            ``response_handler`` blueprint.
         :type response_handler: Callable
-        :param default_features: Optional id-keyed feature records for bootstrap fallback.
-        :type default_features: Dict[str, Dict[str, Any]]
-        :param default_commands: Optional id-keyed CLI command records for bootstrap fallback.
-        :type default_commands: Dict[str, Dict[str, Any]]
-        :param get_feature_evt: Obsolete — superseded by the injected
-            ``execute_feature_handler`` callable; remove at N3.
-        :type get_feature_evt: DomainEvent
-        :param get_error_evt: Obsolete — superseded by the injected
-            ``raise_error_handler`` callable; remove at N3.
-        :type get_error_evt: DomainEvent
         '''
 
         # Initialize the base context.
@@ -315,8 +356,6 @@ class AppSessionContext(BaseContext):
         self.cache = cache if cache is not None else CacheContext()
 
         # Store the retrieval/configuration events and the service-resolution handler.
-        self.get_feature_evt = get_feature_evt
-        self.get_error_evt = get_error_evt
         self.logging_list_all_evt = logging_list_all_evt
         self.get_dependency = get_dependency
 
@@ -326,13 +365,7 @@ class AppSessionContext(BaseContext):
         self._raise_error = raise_error_handler
         self._build_response = response_handler
 
-        # Materialize the id-keyed bootstrap defaults into typed domain objects.
-        # -- obsolete: default_feature_index is only consumed by the legacy load_feature_domain path; remove at N2
-        self.default_feature_index = build_feature_index(default_features)
-        self.default_commands_list = build_command_list(default_commands)
-
-        # Initialize the lazily-built logging sub-context cache. The feature
-        # and error contexts are built on demand.
+        # Initialize the lazily-built logging sub-context cache.
         self._logging = None
 
     # * method: load_logging_context
@@ -353,62 +386,6 @@ class AppSessionContext(BaseContext):
 
         # Return the shared logging context.
         return self._logging
-
-    # * method: load_feature_domain (obsolete)
-    # -- obsolete: superseded by _execute_feature; remove at N2
-    def load_feature_domain(self, feature_id: str) -> Feature:
-        '''
-        Load a feature domain object by id.
-
-        Falls back to the legacy cache-then-event path.
-
-        :param feature_id: The feature identifier.
-        :type feature_id: str
-        :return: The loaded feature domain object.
-        :rtype: Feature
-        '''
-
-        # Legacy path: try the shared cache first.
-        feature = self.cache.get(feature_id)
-
-        # Retrieve via the get-feature event, falling back to the bootstrap
-        # default index when the repository does not contain the feature.
-        if not feature:
-            try:
-                feature = self.get_feature_evt.execute(id=feature_id)
-            except TiferetError:
-                feature = self.default_feature_index.get(feature_id)
-                if feature is None:
-                    raise
-            self.cache.set(feature_id, feature)
-
-        # Return the loaded feature.
-        return feature
-
-    # * method: get_error (obsolete)
-    # -- obsolete: superseded by _raise_error; remove at N2
-    def get_error(self, error_code: str) -> Error:
-        '''
-        Load an error domain object by its code.
-
-        Falls back to the legacy cache-then-event path.
-
-        :param error_code: The error code to resolve.
-        :type error_code: str
-        :return: The loaded error domain object.
-        :rtype: Error
-        '''
-
-        # Legacy fallback: try the shared cache first (pre-seeded with the default errors).
-        error = self.cache.get(error_code, *ERROR_CACHE_PREFIX)
-
-        # Retrieve via the get-error event when not cached, then cache it.
-        if not error:
-            error = self.get_error_evt.execute(error_code, include_defaults=False)
-            self.cache.set(error_code, error, *ERROR_CACHE_PREFIX)
-
-        # Return the loaded error.
-        return error
 
     # * method: build_request
     def build_request(self, feature_id: str, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> RequestContext:
@@ -441,27 +418,6 @@ class AppSessionContext(BaseContext):
             feature_id=feature_id,
         )
 
-    # * method: parse_request (obsolete)
-    # -- obsolete: renamed to build_request; remove at N2
-    def parse_request(self, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}, feature_id: str = None, **kwargs) -> RequestContext:
-        '''
-        Parse the incoming request.
-
-        :param headers: The request headers.
-        :type headers: dict
-        :param data: The request data.
-        :type data: dict
-        :param feature_id: The feature identifier if provided.
-        :type feature_id: str
-        :kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The parsed request as a request context.
-        :rtype: RequestContext
-        '''
-
-        # Delegate to the renamed template method.
-        return self.build_request(feature_id, headers, data)
-
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
@@ -487,20 +443,13 @@ class AppSessionContext(BaseContext):
             self._execute_feature(feature_id, request, **kwargs)
             return
 
-        # Legacy fallback: add the feature id to the request headers.
-        request.headers.update(dict(
-            feature_id=feature_id
-        ))
-
-        # Load the feature domain object for execution.
-        feature = self.load_feature_domain(feature_id)
-
-        # Resolve the feature context via the registry and execute.
+        # Fallback: execute directly (should not normally be reached when blueprints wire handlers).
         feature_context_cls = BaseContext.for_domain(Feature)
         feature_context = feature_context_cls(
             get_dependency=self.get_dependency,
             cache=self.cache,
         )
+        feature = self.cache.get(feature_id)
         feature_context.execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
@@ -525,24 +474,18 @@ class AppSessionContext(BaseContext):
         if self._raise_error is not None:
             return self._raise_error(error, **kwargs)
 
-        # Legacy fallback: wrap plain exceptions in a TiferetError.
+        # Fallback: wrap plain exceptions and raise a generic API error.
         if not isinstance(error, TiferetError):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
                 error=str(error)
             )
-
-        # Load the error domain object for the error code.
-        error_domain = self.get_error(error.error_code)
-
-        # Build the error context on demand (resolved via the registry) and
-        # format the response for the loaded error.
-        error_context_cls = BaseContext.for_domain(Error)
-        formatted_error = error_context_cls().format_response(error_domain, error)
-
-        # Raise the API exception with the formatted payload.
-        raise TiferetAPIError(**formatted_error)
+        raise TiferetAPIError(
+            error_code=error.error_code,
+            name=error.error_code,
+            message=str(error),
+        )
 
     # * method: build_response
     def build_response(self, request: RequestContext) -> Any:

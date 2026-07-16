@@ -14,6 +14,7 @@ application bootstrapping and cache seeding.
 
 # ** app
 from .constants import create_app_service_dependency
+from .di import DEFAULT_TIFERET_CLI_SERVICES as _CLI_SERVICES_LIST
 
 # *** constants (ids)
 
@@ -76,31 +77,39 @@ FEATURE_CONFIG_ID = 'feature_config'
 
 # *** constants (models)
 
-# ** constant: default_tiferet_app_session
-DEFAULT_TIFERET_APP_SESSION = {
+# ** constant: default_admin_app_session
+DEFAULT_ADMIN_APP_SESSION = {
     'id': 'tiferet_app',
-    'name': 'Tiferet App',
-    'description': 'Default built-in application session',
+    'name': 'Admin App',
+    'description': 'Default built-in admin application session',
     'module_path': 'tiferet.contexts.app',  # -- obsolete: remove at v2.0.0 stable
     'class_name': 'AppSessionContext',       # -- obsolete: remove at v2.0.0 stable
 }
 
-# ** constant: default_tiferet_app_interface (obsolete)
-# -- obsolete: superseded by DEFAULT_TIFERET_APP_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_APP_INTERFACE = DEFAULT_TIFERET_APP_SESSION
-
-# ** constant: default_tiferet_cli_session
-DEFAULT_TIFERET_CLI_SESSION = {
+# ** constant: default_admin_cli_session
+DEFAULT_ADMIN_CLI_SESSION = {
     'id': 'tiferet_cli',
-    'name': 'Tiferet CLI',
+    'name': 'Admin CLI',
     'description': 'Built-in CLI for managing Tiferet application configurations',
-    'module_path': 'tiferet.contexts.cli',      # -- obsolete: remove at v2.0.0 stable
-    'class_name': 'CliSessionContext',           # -- obsolete: remove at v2.0.0 stable; was CliContext
+    'module_path': 'tiferet.contexts.cli',  # -- obsolete: remove at v2.0.0 stable
+    'class_name': 'CliSessionContext',       # -- obsolete: remove at v2.0.0 stable
 }
 
+# ** constant: default_tiferet_app_session (obsolete)
+# -- obsolete: superseded by DEFAULT_ADMIN_APP_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_APP_SESSION = DEFAULT_ADMIN_APP_SESSION
+
+# ** constant: default_tiferet_app_interface (obsolete)
+# -- obsolete: superseded by DEFAULT_ADMIN_APP_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_APP_INTERFACE = DEFAULT_ADMIN_APP_SESSION
+
+# ** constant: default_tiferet_cli_session (obsolete)
+# -- obsolete: superseded by DEFAULT_ADMIN_CLI_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_CLI_SESSION = DEFAULT_ADMIN_CLI_SESSION
+
 # ** constant: default_tiferet_cli_interface (obsolete)
-# -- obsolete: superseded by DEFAULT_TIFERET_CLI_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_CLI_INTERFACE = DEFAULT_TIFERET_CLI_SESSION
+# -- obsolete: superseded by DEFAULT_ADMIN_CLI_SESSION; remove at v2.0.0 stable
+DEFAULT_TIFERET_CLI_INTERFACE = DEFAULT_ADMIN_CLI_SESSION
 
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'
@@ -214,4 +223,25 @@ CORE_DEFAULT_CONSTANTS = {
     ERROR_CONFIG_ID: DEFAULT_CONFIG_FILE,
     LOGGING_CONFIG_ID: DEFAULT_CONFIG_FILE,
     FEATURE_CONFIG_ID: DEFAULT_CONFIG_FILE,
+}
+
+# ** constant: admin_default_services
+# Full service catalog for the admin layer: all core services plus admin domain
+# events (derived from the CLI services list) and the AppConfigRepository.
+ADMIN_DEFAULT_SERVICES = {
+    **CORE_DEFAULT_SERVICES,
+    'app_service': create_app_service_dependency(
+        'app_service', 'tiferet.repos.app', 'AppConfigRepository',
+    ),
+    **{
+        sid: create_app_service_dependency(sid, mp, cn)
+        for sid, mp, cn, _p in _CLI_SERVICES_LIST
+    },
+}
+
+# ** constant: admin_default_constants
+# Core constants plus the app_config key that the admin layer exposes directly.
+ADMIN_DEFAULT_CONSTANTS = {
+    **CORE_DEFAULT_CONSTANTS,
+    'app_config': DEFAULT_CONFIG_FILE,
 }

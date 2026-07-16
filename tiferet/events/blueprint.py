@@ -14,8 +14,8 @@ from ..di import ServiceResolver, injectable_parameter_names
 # *** events
 
 # ** event: create_service_resolver
-# ++ todo: N4 — decide if this event retires or becomes a thin validation wrapper
-#    when N2 owns resolver composition in build_app_interface_context
+# -- obsolete: last consumer (_load_app_instance in tiferet_cli.py) removed;
+#    retire together with tiferet_cli.py at v2.0.0 stable
 class CreateServiceResolver(DomainEvent):
     '''
     A bootstrap domain event that composes a fully wired ServiceResolver from

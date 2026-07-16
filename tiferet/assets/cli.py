@@ -514,11 +514,15 @@ _DEFAULT_TIFERET_CLI_COMMAND_LIST: List[Dict[str, Any]] = [
     },
 ]
 
-# ** constant: default_tiferet_cli_commands
+# ** constant: admin_default_commands
 # Id-keyed mapping mirroring YAML shape: the key is the command id and the
 # value is the record minus id. The bootstrap builder in the orchestration
 # layer materializes each record into a typed CliCommand object.
-DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
+ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
     entry['id']: {key: value for key, value in entry.items() if key != 'id'}
     for entry in _DEFAULT_TIFERET_CLI_COMMAND_LIST
 }
+
+# ** constant: default_tiferet_cli_commands (obsolete)
+# -- obsolete: superseded by ADMIN_DEFAULT_COMMANDS; remove at v2.0.0 stable
+DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = ADMIN_DEFAULT_COMMANDS
