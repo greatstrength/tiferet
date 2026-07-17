@@ -24,14 +24,10 @@ Represents a single injectable service dependency binding for an application int
 | `module_path`  | `str`                  | Yes      | —       | The module path for the app dependency.                                           |
 | `class_name`   | `str`                  | Yes      | —       | The class name for the app dependency.                                            |
 | `service_id`   | `str`                  | No *(todo: required)* | — | The canonical service id for the application dependency.             |
-| `attribute_id` | `str`                  | No *(obsolete)* | — | The attribute id for the application dependency. Superseded by `service_id`. |
+| `attribute_id` | `str`                  | No *(obsolete)* | — | Obsolete; use `service_id` instead. |
 | `parameters`   | `Dict[str, str]`       | No       | `{}`    | The parameters for the application dependency.                                    |
 
 No methods. Pure data structure.
-
-#### Rename Note: AppAttribute → AppServiceDependency
-
-In v1.x, service dependency bindings were called `AppAttribute`. In v2.0, the class is renamed to `AppServiceDependency` to better reflect its role as a service dependency binding rather than a generic attribute. The field set and semantics are unchanged.
 
 ### AppInterface
 
@@ -53,7 +49,7 @@ Represents the complete configuration of an application entry point.
 
 **`get_service(service_id: str) -> AppServiceDependency`**
 
-Returns the `AppServiceDependency` whose `service_id` matches the given value, or `None` if no match is found. For backward compatibility, also falls back to matching on `attribute_id` (this fallback will be removed once `attribute_id` is fully migrated).
+Returns the `AppServiceDependency` whose `service_id` matches the given value, also checking `attribute_id`. Returns `None` if no match is found.
 
 ```python
 service = app_interface.get_service('cli_repo')
@@ -63,13 +59,12 @@ if service:
 
 ## Runtime Role
 
-The `build_app` blueprint (`tiferet/blueprints/main.py`) is the primary consumer of the App domain at runtime. The flow is:
+The `build_app` blueprint (`tiferet/blueprints/core.py`, exported as `App`) is the primary consumer of the App domain at runtime. The flow is:
 
-1. **`App('basic_calc', app_config='config.yml')`** calls `build_app`, which loads the app service and resolves the interface.
-2. **`resolve_interface(interface_id)`** retrieves the `AppInterface` via the `GetAppInterface` domain event, merging default services.
-3. **`load_app_instance(app_interface, ...)`** (invoked by `realize_interface`) calls `wire_services` to import each class in `app_interface.services` via `ImportDependency.execute()` and instantiate them (along with parameters and constants) into a name-to-value registry — no app-level DI container.
-4. A `ServiceResolver` is built from the resolved `di_service`, and the context class is constructed declaratively via `from_domain`, injecting `resolver.get_dependency` and the resolved event collaborators.
-5. The resulting `AppInterfaceContext` is returned, ready to execute features.
+1. **`App('basic_calc', app_config='config.yml')`** calls `core.build_app`, which chains `build_cache`, `get_app_session`, and `build_app_session_context`.
+2. **`get_app_session(interface_id, cache, ...)`** composes the app service and retrieves the `AppInterface` via the `GetAppSession` event, raising `APP_SESSION_NOT_FOUND` when absent.
+3. **`build_app_session_context(app_session, cache)`** merges cache-seeded framework defaults with the session's own services and constants (`build_app_service_container`), composes a `ServiceResolver` (`build_service_resolver`), imports the declared context class, resolves its event collaborators from the app container, and constructs the context via `BaseContext.from_domain`, injecting `resolver.get_dependency`.
+4. The resulting `AppSessionContext` is validated and returned, ready to execute features.
 
 ```python
 # Simplified runtime flow
@@ -130,7 +125,7 @@ Concrete implementations (e.g., `AppConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
-- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories (wired by `wire_services`); feature-step service registrations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
+- **Dependency Injection:** `AppServiceDependency` entries declare the interface's events and repositories; feature-step service registrations are resolved at runtime by `ServiceResolver` via the injected `get_dependency` handler.
 - **Feature:** Once an interface is loaded and its context instantiated, features defined in the configuration are executed through the `FeatureContext`.
 - **Logging:** `AppInterface.logger_id` references a logger configuration from the Logging domain.
 

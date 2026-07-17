@@ -79,7 +79,7 @@ Key characteristics:
 
 Domain objects follow a strict artifact comment structure for consistency and AI/human readability:
 
-- `# *** models` – top-level section (retained for backward compatibility; these are domain objects).
+- `# *** models` – top-level section for domain object modules.
 - `# ** model: <name>` – individual domain object (snake_case).
 - `# * attribute: <name>` – instance attributes (Pydantic `Field(...)` annotations).
 - `# * method: <name>` – domain methods.
@@ -96,7 +96,7 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 - Extend `DomainObject` from `tiferet.domain.core`.
 - Declare fields with Pydantic `Field(...)` annotations.
 - Instantiate directly via the constructor or `model_validate()`.
-- Use `@model_validator(mode='before')` for derivation logic that was previously in custom `new()` factories.
+- Use `@model_validator(mode='before')` for domain-specific derivation logic.
 
 **Example** – `CalculatorResult`:
 ```python
@@ -141,7 +141,7 @@ Domain objects are extended in the mappers layer as Aggregates (with mutation me
 - Declare fields with `Field(...)` including `description` metadata.
 - Keep domain objects focused on **structure and read-only behavior** (formatting, lookups).
 - Place **mutation logic** (e.g., `rename`, `add_command`, `set_message`) in Aggregate classes in the mappers layer.
-- Instantiate directly via the constructor or `model_validate()` — there is no `DomainObject.new()` factory.
+- Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for domain-specific derivation logic (e.g., `Error._derive_error_code` computes `error_code` from `id`).
 
 ## Testing Domain Objects
@@ -170,16 +170,6 @@ Domain objects are defined in `tiferet/domain/`:
 - `__init__.py` – Public exports for all domain objects.
 
 Tests live in `tiferet/domain/tests/`.
-
-## Migration from Schematics to Pydantic v2
-
-In v2.0, the domain layer was migrated from `schematics.Model` to `pydantic.BaseModel`:
-
-- `DomainObject` now extends `pydantic.BaseModel` with a shared `ConfigDict` instead of `schematics.Model`.
-- Schematics type descriptors (`StringType`, `IntegerType`, `FloatType`, etc.) are replaced with standard Python type annotations and `pydantic.Field(...)`.
-- The `DomainObject.new(Type, **kwargs)` static factory is removed; use the Pydantic constructor directly or `model_validate()` for external data.
-- Custom `new()` factory methods with derivation logic are replaced by `@model_validator(mode='before')` class methods.
-- `tiferet/entities/` was renamed to `tiferet/domain/`, and `ModelObject` was renamed to `DomainObject`.
 
 ## Conclusion
 

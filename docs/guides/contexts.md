@@ -72,8 +72,16 @@ class FlaskApiContext(AppInterfaceContext):
     flask_handler: FlaskApiHandler
 
     # * init
-    def __init__(self, interface_id, features, errors, logging, flask_handler):
-        super().__init__(interface_id, features, errors, logging)
+    def __init__(self, flask_handler, **kwargs):
+        '''
+        Initialize the Flask API context.
+
+        :param flask_handler: The Flask request handler.
+        :param kwargs: Hub collaborators forwarded to AppInterfaceContext.
+        '''
+
+        # Forward hub collaborators to the parent and store the handler.
+        super().__init__(**kwargs)
         self.flask_handler = flask_handler
 
     # * method: parse_request
@@ -89,7 +97,7 @@ class FlaskApiContext(AppInterfaceContext):
         return super().parse_request(headers=headers, data=data, feature_id=feature_id)
 ```
 
-Override only the methods you need. Always call `super()` for shared behavior (e.g., adding `interface_id` to headers).
+High-level contexts accept transport-specific collaborators as explicit keyword arguments and forward the hub collaborators via `**kwargs` to `super().__init__(**kwargs)`. The blueprint imports the context class from the interface's `module_path`/`class_name` and constructs it via `BaseContext.from_domain`. Override only the lifecycle methods you need; always call `super()` for shared behavior.
 
 ### CLI Interfaces and CliContext
 
@@ -116,7 +124,7 @@ Feature-level flags (defined on the `Feature`) are combined with step-level flag
 
 `EventFeatureStep` supports an optional `condition` field — a boolean expression string evaluated against request data before the step executes. The `$r.` prefix references values from `request.data` (e.g., `$r.b != 0`, `$r.mode == 'advanced'`).
 
-- When `condition` is `None` or empty, the step always executes (backward compatible).
+- When `condition` is `None` or empty, the step always executes.
 - When `condition` evaluates to `False`, the step is silently skipped (no error raised).
 - Invalid or unparseable expressions are treated as `False` (defensive).
 
@@ -142,13 +150,13 @@ Selection is driven by the `Feature.is_async` flag. `AppInterfaceContext.execute
 
 ### Service Resolution (ServiceResolver)
 
-Feature-step services are resolved by `ServiceResolver` (`tiferet/di/settings.py`), whose bound `get_dependency(registration_id, *flags)` method is injected into the hub and forwarded to each `FeatureContext`. There is no `DIContext`. `ServiceResolver.get_dependency` performs:
+Feature-step services are resolved by `ServiceResolver`, whose bound `get_dependency(registration_id, *flags)` method is injected into the hub and forwarded to each `FeatureContext`. `ServiceResolver.get_dependency` performs:
 
 1. Normalize the flags into a flat list.
 2. Build (or retrieve from cache) a per-flag `ServiceContainer` via `build_container`.
 3. Resolve and return the service from the container by `registration_id`.
 
-`build_container` lists all `ServiceRegistration` objects and constants (merging bootstrap defaults via `list_all_settings`), parses constants and per-configuration parameters (`load_constants`), resolves each configuration to a concrete type (`build_type_map`), and constructs a `ServiceContainer` directly (registering constants before service types). The blueprint composes the `ServiceResolver` via the `CreateServiceResolver` bootstrap event in `load_app_instance` (`tiferet/blueprints/main.py`).
+`build_container` lists all `ServiceRegistration` objects and constants (merging bootstrap defaults), parses constants and per-configuration parameters, resolves each configuration to a concrete type, and loads the resulting services into a `ServiceContainer` (registering constants before service types). The `ServiceResolver` is composed by `build_service_resolver` in `tiferet/blueprints/core.py` and injected via `get_dependency` into the context at construction time.
 
 ### RequestContext
 

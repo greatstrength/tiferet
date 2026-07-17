@@ -264,17 +264,3 @@ DomainEvent.handle(
 )
 ```
 
-## Migration Notes
-
-### v2.0.0a6 Changes
-
-- **Class renames:** `AddFeatureCommand` → `AddFeatureStep`, `UpdateFeatureCommand` → `UpdateFeatureStep`, `RemoveFeatureCommand` → `RemoveFeatureStep`, `ReorderFeatureCommand` → `ReorderFeatureStep`.
-- **Parameter renames:** `attribute_id` → `service_id` in `AddFeatureStep.execute()` and `UpdateFeatureStep` valid attributes.
-- **Parameter renames:** `commands` → `steps` in `AddFeature.execute()`.
-- **Artifact comments:** Updated from `# *** commands` / `# ** command:` to `# *** events` / `# ** event:`.
-- **Unused imports removed:** `Aggregate` and `FeatureEventAggregate` no longer imported.
-
-### Core DDD Parity II Changes
-
-- **Base event introduced:** `FeatureEvent(DomainEvent)` now holds the shared `feature_service` and its constructor; concrete events keep only `execute`.
-- **Domain-object rename:** the former `FeatureEvent` domain object (a feature workflow step) is renamed to `EventFeatureStep`, with mappers `EventFeatureStepAggregate` and `EventFeatureStepConfigObject`. This frees the `FeatureEvent` name for the base event above.

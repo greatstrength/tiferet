@@ -7,17 +7,17 @@
 
 ## Overview
 
-Blueprints are the top-level orchestration layer in Tiferet v2.0+. They serve as the primary public entry point for applications, providing module-level functions that replace the previous class-based `AppBuilder`/`CliBuilder` pattern.
+Blueprints are the top-level orchestration layer in Tiferet. They serve as the primary public entry point for applications, providing module-level functions that orchestrate service loading, default configuration, and interface resolution.
 
 A blueprint is responsible for:
 
 - Loading the application service (repository)
 - Preparing default services and constants
 - Resolving interfaces via domain events
-- Declaratively wiring service dependencies and composing a `ServiceResolver` via the `CreateServiceResolver` bootstrap event
+- Composing the app service container and feature-level `ServiceResolver` via the core composition functions
 - Executing features through the resolved interface context
 
-The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The former `tiferet/blueprints/main.py` was retired in the Chapter M cleanup; the legacy declarative feature-DI bootstrap it owned was relocated (module-private) into `tiferet/blueprints/tiferet_cli.py` for `build_tiferet_cli`.
+The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The built-in CLI bootstrapper (`build_tiferet_cli`) uses a separate declarative bootstrap path in `tiferet/blueprints/tiferet_cli.py`.
 
 ## Role of Blueprints in the Architecture
 
@@ -71,13 +71,13 @@ def build_app(interface_id, module_path=..., class_name=..., **parameters) -> Ap
 
 No `apply_defaults` is called on the core path — all framework defaults come from the cache.
 
-### Built-in Bootstrappers and the Relocated Legacy Path
+### Built-in Bootstrappers
 
-`build_tiferet_app` (`TiferetApp`) and `build_tiferet_cli` (`TiferetCLI`) target built-in sessions (`tiferet_app` / `tiferet_cli`) that are not defined in the consumer config, so they resolve through a shared `_resolve_bootstrap_session(interface_id, cache, default_interfaces=[...], ...)` helper (module-private in `tiferet/blueprints/tiferet_cli.py`) that falls back to the built-in session definition via `resolve_default_interface` and applies `apply_defaults`. `build_tiferet_cli` additionally uses the relocated `_load_app_instance` / `_wire_services` declarative feature-DI bootstrap (via the `CreateServiceResolver` event), which the core compose path cannot yet replace.
+`build_tiferet_app` (`TiferetApp`) and `build_tiferet_cli` (`TiferetCLI`) target built-in sessions (`tiferet_app` / `tiferet_cli`) that are not defined in the consumer config. They resolve through a shared `_resolve_bootstrap_session` helper (module-private in `tiferet/blueprints/tiferet_cli.py`) that falls back to the built-in session definition via `resolve_default_interface` and applies `apply_defaults`. `build_tiferet_cli` additionally uses the `_load_app_instance` / `_wire_services` declarative feature-DI bootstrap (via the `CreateServiceResolver` event) in `tiferet/blueprints/tiferet_cli.py`.
 
 ## The build_cli Blueprint
 
-The CLI blueprint is a thin entrypoint. Argparse parsing and request derivation are owned by the reincorporated `CliContext` (`tiferet/contexts/cli.py`); the blueprint only resolves, realizes, and delegates.
+The CLI blueprint is a thin entrypoint. Argparse parsing and request derivation are owned by `CliContext` (`tiferet/contexts/cli.py`); the blueprint only resolves, realizes, and delegates.
 
 ### Usage
 
@@ -145,7 +145,7 @@ resolver = build_service_resolver(app_container)
 return context_cls.from_domain(app_session, get_dependency=resolver.get_dependency, ...)
 ```
 
-(The `CreateServiceResolver` bootstrap event is now used only by the relocated `_load_app_instance` path in `tiferet/blueprints/tiferet_cli.py`.)
+(The `CreateServiceResolver` bootstrap event is used by the `_load_app_instance` path in `tiferet/blueprints/tiferet_cli.py` for the built-in CLI bootstrapper.)
 
 ## Related Documentation
 

@@ -105,7 +105,7 @@ You should see:
 - [Domain Events](docs/core/events.md)  
 - [Aggregates & Transfer Objects (Mappers)](docs/core/mappers.md)  
 - [Service Interfaces](docs/core/interfaces.md)  
-- [Dependency Injection (ServiceProvider)](docs/core/di.md)  
+- [Dependency Injection (ServiceResolver)](docs/core/di.md)  
 - [Repositories](docs/core/repos.md)  
 - [Utilities (File/Yaml/Json/Csv/Sqlite)](docs/core/utils.md)
 

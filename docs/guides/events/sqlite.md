@@ -204,10 +204,3 @@ result = DomainEvent.handle(
 )
 ```
 
-## Migration Notes (v2.0)
-
-- **Module docstring:** Added `"""Tiferet SQLite Events"""`.
-- **Artifact comments:** `# *** commands` → `# *** events`; `# ** command:` → `# ** event:`.
-- **Docstrings:** "Helper command to" → "Event to" for `CreateTableSql` and `DropTableSql`.
-- **No parameter renames** — SQLite events do not use `attribute_id`.
-- **Tests:** Converted from 42 function-based tests to 7 harness classes using `SqliteEventTestBase` (a `DomainEventTestBase` subclass with MagicMock context manager support). Result: 49 pass, 0 skip.

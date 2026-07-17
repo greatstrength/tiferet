@@ -166,7 +166,7 @@ Common aliases:
 | `dependencies` | `deps` | `AliasChoices('deps', 'dependencies', 'flags')` |
 | `steps` | `commands` | `AliasChoices('handlers', 'functions', 'commands', 'steps')` |
 
-Broad `AliasChoices` lists provide backward compatibility with older configuration formats. The `serialization_alias` controls the canonical output key.
+Wide `AliasChoices` lists accept multiple YAML field names for the same attribute. The `serialization_alias` controls the canonical output key.
 
 ## Gated `set_attribute` Pattern
 

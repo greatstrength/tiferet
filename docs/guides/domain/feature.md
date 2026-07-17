@@ -13,10 +13,6 @@ All domain objects in this module are **immutable value objects**: they carry no
 
 **Module:** `tiferet/domain/feature.py`
 
-> **Rename note (v2.0a2):** `FeatureCommand` was renamed to `FeatureEvent` to align with the `Command` → `DomainEvent` transition. The polymorphic `FeatureStep` base class is new in v2.0a2.
->
-> **Rename note:** the concrete step domain object `FeatureEvent` was renamed to `EventFeatureStep` (mappers `EventFeatureStepAggregate`/`EventFeatureStepConfigObject`), freeing the `FeatureEvent` name for a future per-module base domain event. The field set and semantics are unchanged.
-
 ## Domain Objects
 
 ### FeatureStep

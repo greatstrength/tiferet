@@ -393,17 +393,6 @@ Repositories are defined in `tiferet/repos/`:
 
 Tests live in `tests/repos/`.
 
-## Migration from Proxies and Schematics
-
-Repositories are the v2.0 successor to Proxies (`tiferet/proxies/`). Key changes:
-
-- **Package rename**: `tiferet/proxies/yaml/<domain>.py` → `tiferet/repos/<domain>.py`. The nested middleware-specific directory structure is flattened; the shared `ConfigurationRepository` base resolves the backing loader from the configuration file extension.
-- **Base class**: Proxies extended `YamlConfigurationProxy` (a middleware base class). Repositories extend the Service interface together with the `ConfigurationRepository` base, which dispatches to `YamlLoader` or `JsonLoader` internally.
-- **Artifact comments**: `# *** proxies` / `# ** proxy:` → `# *** repos` / `# ** repo:`.
-- **Data mapping**: Proxies used `DataObject.from_data()` and `DataObject.map()`. Repositories use `model_validate()` for reads and `from_model()` classmethod + `to_primitive(role)` for writes.
-- **Contract alignment**: Proxies implemented `Repository` contracts. Repositories implement `Service` interfaces — the unified v2.0 contract type.
-- **Pydantic v2 migration**: `TransferObject.from_data(Type, **kwargs)` → `Type.model_validate(data_dict)`; `Aggregate.new(Type, **kwargs)` → direct Pydantic constructor.
-
 ## Conclusion
 
 Repositories provide the concrete data-access layer for the Tiferet framework, implementing Service interfaces with utility-backed persistence. Their structured design ensures consistency, testability, and clean DI resolution. Repositories are never exported directly — consuming code depends only on the abstract Service interface.

@@ -189,10 +189,3 @@ DomainEvent.handle(
 )
 ```
 
-## Migration Notes (v2.0)
-
-- **Artifact comments:** `# *** commands` → `# *** events`; `# ** command:` → `# ** event:`.
-- **Docstrings:** "Command to" → "Event to" throughout.
-- **Aggregate instantiation:** Aggregates are instantiated directly via the Pydantic constructor (e.g., `FormatterAggregate(...)`, `HandlerAggregate(...)`, `LoggerAggregate(...)`). No static factory methods are used.
-- **No parameter renames** — logging events do not use `attribute_id`.
-- **Tests:** Converted from 13 function-based tests to 7 harness classes using `DomainEventTestBase` (27 pass, 1 skip).

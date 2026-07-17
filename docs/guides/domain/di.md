@@ -13,10 +13,6 @@ These domain objects are **immutable value objects**: they carry no mutation met
 
 **Module:** `tiferet/domain/di.py`
 
-### Rename Note: container.py → di.py, ContainerAttribute → ServiceRegistration
-
-In v1.x, dependency injection configuration was defined in `container.py` with the `ContainerAttribute` domain object. In v2.0, the module is renamed to `di.py` and the class to `ServiceRegistration` to better reflect its role in the DI infrastructure. `FlaggedDependency` retains its original name. The field set and semantics are unchanged.
-
 ## Domain Objects
 
 ### FlaggedDependency

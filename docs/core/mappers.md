@@ -19,7 +19,7 @@ The mappers layer (`tiferet.mappers`) provides the bridge between persistent con
    - Provides `to_primitive(role)`, `map(target)`, and `from_model` classmethod for mapping and transformation.
    - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
 
-Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`) with a clearer separation of mutation (Aggregate) and serialization (TransferObject) concerns.
+Together, these classes provide a clear separation of mutation (Aggregate) and serialization (TransferObject) concerns.
 
 ### Example: Error Domain
 
@@ -157,7 +157,7 @@ class FeatureAggregate(Feature, Aggregate):
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
     '''
-    YAML transfer object for the Feature domain object.
+    Configuration data representation of the Feature domain object.
     '''
 
     # * attribute: _ROLES
@@ -219,7 +219,7 @@ Repositories use transfer objects to load from configuration and map to aggregat
 ### Best Practices
 - Use artifact comments consistently (`# *** mappers`, `# ** mapper:`, `# *`).
 - Keep aggregates focused on mutation; keep transfer objects focused on serialization.
-- Instantiate aggregates directly via the Pydantic constructor — there is no `Aggregate.new()` factory.
+- Instantiate aggregates directly via the Pydantic constructor.
 - Use `set_attribute` for validated mutations with unknown-field checking.
 - Define `_ROLES` ClassVar on all transfer objects for role-based serialization.
 - Use `model_dump` kwargs (`exclude`, `by_alias`, `include`) in `_ROLES` definitions.
@@ -410,16 +410,6 @@ When a TransferObject contains nested child mappers (e.g., `AppServiceDependency
 #### Standalone Tests
 Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
 
-### Migration Status
-
-The following test modules have been migrated to the harness-based style:
-- `test_app.py`, `test_cli.py`, `test_di.py`, `test_error.py`, `test_feature.py`, `test_logging.py`
-
-The following use the legacy standalone style and are candidates for migration:
-- `test_container.py`
-
-`test_settings.py` tests the base classes themselves and appropriately uses standalone functions.
-
 ## Package Layout
 
 Mappers are defined in `tiferet/mappers/`:
@@ -435,23 +425,10 @@ Mappers are defined in `tiferet/mappers/`:
 
 Tests live in `tiferet/mappers/tests/`.
 
-## Migration from Schematics to Pydantic v2
-
-The mappers layer was migrated from `schematics.Model` to Pydantic v2:
-
-- `Aggregate.new(Type, **kwargs)` → Direct Pydantic constructor: `Type(**kwargs)`.
-- `set_attribute` now checks `model_fields` instead of `hasattr`; `validate_assignment=True` handles re-validation.
-- `TransferObject.from_data(Type, **kwargs)` → `Type.model_validate(data_dict)`.
-- `TransferObject.allow()` / `deny()` / `class Options` / `serialize_when_none` → `_ROLES` ClassVar with `model_dump` kwargs (`include`, `exclude`, `by_alias`, `exclude_none`).
-- `to_primitive(role)` now delegates to `model_dump` with role-resolved kwargs.
-- `from_model` is now a `@classmethod` on `TransferObject` using `model_dump(by_alias=False)` + `model_validate`.
-- Attribute aliasing: `serialized_name` → `serialization_alias`; `deserialize_from` → `validation_alias` with `AliasChoices`.
-
 ## Conclusion
 
 The mappers layer provides the structural bridge between persistent configuration and runtime domain objects, with clear separation between mutation (`Aggregate`) and serialization (`TransferObject`). This design enables:
 - Validated, mutation-safe domain updates.
 - Role-based serialization for multiple output formats.
-- Incremental migration from the legacy `DataObject` pattern.
 
 Explore source in `tiferet/mappers/` and tests in `tiferet/mappers/tests/` for implementation details.

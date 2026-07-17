@@ -9,8 +9,6 @@
 
 The DI event module provides the full CRUD surface for `ServiceRegistration` objects — the dependency injection blueprints that define how services are resolved and wired at runtime. Every event in this module depends on an injected `DIService` and operates on `ServiceRegistration` domain objects through the `ServiceRegistrationAggregate` mapper.
 
-These events are the forward-compatible successors to the container events in `tiferet/events/container.py`, using DI-specific terminology (`ServiceRegistration`, `DIService`, `registration_exists`, etc.) instead of container-centric naming (`ContainerAttribute`, `ContainerService`, `attribute_exists`).
-
 ## Events at a Glance
 
 | Event | Operation | Required Parameters | Returns |
@@ -246,20 +244,6 @@ A service registration must always have at least one type source — either a de
 ### Idempotent Deletes
 
 Both `RemoveServiceDependency` (at the model level) and `RemoveServiceRegistration` are idempotent — they succeed silently if the target does not exist.
-
-### Container vs DI Events
-
-The DI events mirror the container events but use forward-compatible DI terminology:
-
-| Container (legacy) | DI (forward) |
-|---|---|
-| `ContainerService` | `DIService` |
-| `ContainerAttribute` | `ServiceRegistration` |
-| `attribute_exists()` | `registration_exists()` |
-| `get_attribute()` | `get_registration()` |
-| `save_attribute()` | `save_registration()` |
-| `delete_attribute()` | `delete_registration()` |
-| `ATTRIBUTE_ALREADY_EXISTS` | `SERVICE_REGISTRATION_ALREADY_EXISTS` |
 
 ## Related Documentation
 
