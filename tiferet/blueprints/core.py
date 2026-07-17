@@ -6,9 +6,9 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from ..assets import TiferetError, TiferetAPIError
+from ..assets import TiferetError, TiferetAPIError, RaiseError
 from ..contexts.cache import CacheContext
-from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
+from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX, Error
 from ..contexts.feature import (
     Feature,
     FeatureContext,
@@ -28,13 +28,12 @@ from ..contexts.app import (
     AppServiceDependency,
     add_default_app_services,
     add_default_app_constants,
+    add_default_app_sessions,
     get_default_app_services,
     get_default_app_constants,
+    get_default_app_session,
 )
-from ..domain import Error
-from ..events import DomainEvent, ParseParameter, RaiseError
-from ..events.app import GetAppSession
-from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names, ParseParameter
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
@@ -43,6 +42,7 @@ from .. import assets as a
 
 # ** blueprint: build_cache
 @add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
+@add_default_app_sessions(a.app.CORE_DEFAULT_APP_SESSIONS)
 @add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
 @add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
@@ -116,9 +116,6 @@ def create_app_service(
     return container.get_dependency('app_service')
 
 # ** blueprint: get_app_session
-# ++ todo: default app sessions are not yet cache-seeded; the `cache` param is a
-#    seam for future default-session-from-cache resolution and to establish the
-#    build ordering used by build_app.
 def get_app_session(
     interface_id: str,
     cache: CacheContext = None,
@@ -127,20 +124,21 @@ def get_app_session(
     **parameters,
 ):
     '''
-    Retrieve an app session by id, composing the app service dependency first.
+    Retrieve an app session by id, checking the cache first then the config file.
 
-    Composes the ``app_service`` dependency via :func:`create_app_service`, then
-    retrieves the requested session through the ``GetAppSession`` domain event,
-    which raises ``APP_SESSION_NOT_FOUND`` when the session is absent — so no
-    built-in fallback belongs here. Any keyword arguments are forwarded as the
-    app service constructor parameters (e.g. ``app_config='config.yml'``); when
-    omitted, :func:`create_app_service` applies the framework default
-    parameters. The ``cache`` argument is a build-ordering seam reserved for
-    future default-session-from-cache resolution; it is not consumed yet.
+    Checks the shared cache for a session seeded by the ``add_default_app_sessions``
+    decorator (e.g. the built-in admin sessions).  When found, the cached
+    ``AppSession`` is returned immediately without touching the config file.  When
+    absent from the cache (or when no cache is provided), composes the
+    ``app_service`` dependency via :func:`create_app_service` and retrieves the
+    session through ``AppSessionContext.load``, which raises
+    ``APP_SESSION_NOT_FOUND`` when the session is absent from the config file.
+    Any keyword arguments are forwarded as the app service constructor parameters
+    (e.g. ``app_config='config.yml'``).
 
     :param interface_id: The id of the app session to retrieve.
     :type interface_id: str
-    :param cache: The shared cache context; a seam for future default-session resolution.
+    :param cache: The shared cache context pre-seeded with default sessions.
     :type cache: CacheContext | None
     :param module_path: The module path of the app service; defaults to the framework app repo.
     :type module_path: str
@@ -152,15 +150,17 @@ def get_app_session(
     :rtype: AppSession
     '''
 
+    # Check the cache for a seeded default session (e.g. built-in admin sessions).
+    if cache is not None:
+        cached_session = get_default_app_session(cache, interface_id)
+        if cached_session is not None:
+            return cached_session
+
     # Compose the app service via a single-use container.
     app_service = create_app_service(module_path, class_name, parameters)
 
-    # Retrieve the session via the GetAppSession event.
-    return DomainEvent.handle(
-        GetAppSession,
-        dependencies=dict(app_service=app_service),
-        interface_id=interface_id,
-    )
+    # Retrieve the session from the config file via the AppSessionContext classmethod.
+    return AppSessionContext.load(interface_id, app_service)
 
 # ** blueprint: get_error
 def get_error(

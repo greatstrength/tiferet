@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict, List
 
 # ** app
-from ..assets import TiferetError
+from ..assets import RaiseError
 from . import core
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
@@ -19,12 +19,10 @@ from ..contexts.app import (
     add_default_admin_constants,
     get_default_admin_services,
     get_default_admin_constants,
-    resolve_default_interface,
 )
 from ..di import injectable_parameter_names
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
-from ..events import RaiseError
 from .. import assets as a
 
 # *** blueprints
@@ -213,13 +211,8 @@ def build_admin_app(
     # Build the admin cache (seeded with errors, services, constants, and features).
     cache = build_cache()
 
-    # Resolve the session; fall back to the built-in admin app default when absent.
-    try:
-        app_session = core.get_app_session(interface_id, cache, **parameters)
-    except TiferetError:
-        app_session = resolve_default_interface(interface_id, [a.app.DEFAULT_ADMIN_APP_SESSION])
-        if app_session is None:
-            raise
+    # Resolve the session; built-in sessions are cache-seeded so no fallback needed.
+    app_session = core.get_app_session(interface_id, cache, **parameters)
 
     # Compose the wired admin app session context.
     app_session_context = build_admin_app_session_context(app_session, cache)

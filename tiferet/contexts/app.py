@@ -12,6 +12,9 @@ from ..assets import (
     TiferetAPIError,
 )
 from ..domain import AppSession, AppServiceDependency, Feature
+from ..events import DomainEvent
+from ..events.app import GetAppSession
+from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
@@ -31,6 +34,9 @@ ADMIN_SERVICE_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'services')
 
 # ** constant: admin_constant_cache_prefix
 ADMIN_CONSTANT_CACHE_PREFIX: Tuple[str, ...] = ('admin', 'constants')
+
+# ** constant: app_session_cache_prefix
+APP_SESSION_CACHE_PREFIX: Tuple[str, ...] = ('app', 'sessions')
 
 # *** functions
 
@@ -244,37 +250,63 @@ def get_default_admin_constants(cache: CacheContext) -> Dict[str, Any]:
     # Pull all entries from the admin constants namespace and return them directly.
     return dict(cache.get_by_prefix(*ADMIN_CONSTANT_CACHE_PREFIX))
 
-# ** function: resolve_default_interface
-# -- obsolete: superseded by the assets-backed default catalog pattern (see add_default_app_services / add_default_app_constants); remove when interface defaults are fully migrated to the cache-seeding decorator approach
-# ++ todo: migrate default interface resolution to the add_default_* decorator factory pattern used by app services and constants
-def resolve_default_interface(
-    interface_id: str,
-    default_interfaces: List[Dict[str, Any]],
-) -> AppSession | None:
+# ** function: add_default_app_sessions
+def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
     '''
-    Construct an app session from the bootstrap default session definitions,
-    or return ``None`` when no default matches the requested id.
+    Decorator factory that pre-seeds a cache context with default app session
+    domain objects.
 
-    Materializes a default session definition into a typed ``AppSession``,
-    mirroring ``build_feature_index`` / ``build_command_list`` for the bootstrap
-    session fallback consumed by the blueprint during interface resolution.
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``sessions`` is reconstituted into an ``AppSession`` domain
+    object and stored in the cache under the ``APP_SESSION_CACHE_PREFIX``
+    namespace keyed by session id.
 
-    :param interface_id: The interface ID to look up.
-    :type interface_id: str
-    :param default_interfaces: Session definition dicts, each with an ``id`` key.
-    :type default_interfaces: List[Dict[str, Any]]
-    :return: The matching app session, or None.
+    :param sessions: A mapping of session ids to raw session definition dicts.
+    :type sessions: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default session domain objects.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw session dict into an AppSession domain object
+            # and cache it under the sessions namespace keyed by session id.
+            for session_id, session_data in sessions.items():
+                cache.set(
+                    session_id,
+                    AppSession.model_validate(session_data),
+                    *APP_SESSION_CACHE_PREFIX,
+                )
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
+
+# ** function: get_default_app_session
+def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession | None:
+    '''
+    Return a default app session seeded on the cache, or ``None`` when absent.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :param session_id: The session id to look up.
+    :type session_id: str
+    :return: The cached app session domain object, or None.
     :rtype: AppSession | None
     '''
 
-    # Find the first default whose id matches the requested interface_id.
-    matching = next(
-        (definition for definition in (default_interfaces or []) if definition.get('id') == interface_id),
-        None,
-    )
-
-    # Construct and return the session, or None when no default matches.
-    return AppSession(**matching) if matching else None
+    # Pull the session from the sessions namespace by id.
+    return cache.get(session_id, *APP_SESSION_CACHE_PREFIX)
 
 # *** contexts
 
@@ -362,6 +394,30 @@ class AppSessionContext(BaseContext):
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
         self._build_response = response_handler
+
+    # * method: load (static)
+    @classmethod
+    def load(cls, interface_id: str, app_service: AppService) -> AppSession:
+        '''
+        Retrieve an app session by id via the GetAppSession domain event.
+
+        Encapsulates the ``DomainEvent.handle(GetAppSession, ...)`` call so
+        blueprints can load a session without importing the events layer directly.
+
+        :param interface_id: The id of the app session to retrieve.
+        :type interface_id: str
+        :param app_service: The app service used to look up the session.
+        :type app_service: AppService
+        :return: The loaded app session.
+        :rtype: AppSession
+        '''
+
+        # Delegate to the GetAppSession domain event via the standard handle path.
+        return DomainEvent.handle(
+            GetAppSession,
+            dependencies=dict(app_service=app_service),
+            interface_id=interface_id,
+        )
 
     # * method: load_logging_context
     def load_logging_context(self) -> LoggingContext:

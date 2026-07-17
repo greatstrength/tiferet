@@ -5,6 +5,7 @@
 __all__ = [
     'TiferetError',
     'TiferetAPIError',
+    'RaiseError',
     'ERROR_NOT_FOUND_ID',
     'DEFAULT_ERRORS',
     'core',
@@ -20,7 +21,7 @@ __all__ = [
 ]
 
 # ** app
-from .exceptions import TiferetError, TiferetAPIError
+from .exceptions import TiferetError, TiferetAPIError, RaiseError
 from .error import ERROR_NOT_FOUND_ID, DEFAULT_ERRORS
 from . import core
 from . import error

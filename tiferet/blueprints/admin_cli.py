@@ -19,7 +19,6 @@ from .cli import (
 from ..contexts.app import (
     AppSession,
     AppSessionContext,
-    resolve_default_interface,
 )
 from ..contexts.cache import CacheContext
 from ..contexts.cli import (
@@ -254,13 +253,8 @@ def build_admin_cli(
     # features, and CLI commands).
     cache = build_cache()
 
-    # Resolve the session; fall back to the built-in admin CLI default when absent.
-    try:
-        app_session = core.get_app_session('tiferet_cli', cache, app_config=app_config)
-    except a.TiferetError:
-        app_session = resolve_default_interface('tiferet_cli', [a.app.DEFAULT_ADMIN_CLI_SESSION])
-        if app_session is None:
-            raise
+    # Resolve the session; built-in sessions are cache-seeded so no fallback needed.
+    app_session = core.get_app_session('tiferet_cli', cache, app_config=app_config)
 
     # Re-seed the session constants so all config-file repos point to the
     # consumer's app_config file rather than the seeded 'config.yml' placeholders.

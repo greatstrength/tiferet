@@ -87,38 +87,4 @@ class AppSession(DomainObject):
         # Get the service dependency by service id.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
 
-    # * method: apply_defaults
-    def apply_defaults(self,
-            default_services: List[AppServiceDependency] = None,
-            default_constants: Dict[str, str] = None,
-        ) -> 'AppSession':
-        '''
-        Return a new app session with framework default services and constants applied.
-
-        Default services are added for any ``service_id`` not already present, and
-        default constants are added only for keys the session does not already
-        define (existing values win). This is a non-mutating derivation: the
-        current session is left unchanged and a new instance is returned.
-
-        :param default_services: Default service dependencies to merge.
-        :type default_services: List[AppServiceDependency] | None
-        :param default_constants: Default constants to merge for missing keys.
-        :type default_constants: Dict[str, str] | None
-        :return: A new app session with the defaults applied.
-        :rtype: AppSession
-        '''
-
-        # Append any default service whose service_id is not already present.
-        services = list(self.services)
-        existing_ids = {dep.service_id for dep in services}
-        for dep in (default_services or []):
-            if dep.service_id not in existing_ids:
-                services.append(dep)
-                existing_ids.add(dep.service_id)
-
-        # Merge default constants only for keys not already defined (existing win).
-        constants = {**(default_constants or {}), **(self.constants or {})}
-
-        # Return a new session with the merged services and constants.
-        return self.model_copy(update=dict(services=services, constants=constants))
 

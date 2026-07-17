@@ -225,3 +225,11 @@ ADMIN_DEFAULT_CONSTANTS = {
     **CORE_DEFAULT_CONSTANTS,
     'app_config': DEFAULT_CONFIG_FILE,
 }
+
+# ** constant: core_default_app_sessions
+# Built-in session definitions seeded into the cache by build_cache so the admin
+# paths can resolve them without a config-file entry or a separate fallback.
+CORE_DEFAULT_APP_SESSIONS = {
+    DEFAULT_ADMIN_APP_SESSION['id']: DEFAULT_ADMIN_APP_SESSION,
+    DEFAULT_ADMIN_CLI_SESSION['id']: DEFAULT_ADMIN_CLI_SESSION,
+}

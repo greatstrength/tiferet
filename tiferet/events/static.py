@@ -91,24 +91,6 @@ class ImportDependency(DomainEvent):
             )
 
 # ** event: raise_error
-class RaiseError(DomainEvent):
-    '''
-    A static domain event to raise an error with a specific message.
-    '''
-
-    # * method: execute (static)
-    @staticmethod
-    def execute(error_code: str, message: str = None, **kwargs):
-        '''
-        Raise a TiferetError with the specified error code.
-
-        :param error_code: The error code to raise.
-        :type error_code: str
-        :param message: The error message to raise.
-        :type message: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        '''
-
-        # Raise an error with the specified code and arguments.
-        raise TiferetError(error_code, message, **kwargs)
+# Re-export from assets.exceptions so blueprints can import RaiseError from
+# either the events or assets layer without circular imports.
+from ..assets.exceptions import RaiseError

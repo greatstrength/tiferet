@@ -19,13 +19,15 @@ from tiferet.contexts.app import (
     LoggingContext,
     RequestContext,
     AppSessionContext,
-    resolve_default_interface,
     add_default_app_services,
     add_default_app_constants,
+    add_default_app_sessions,
     get_default_app_services,
     get_default_app_constants,
+    get_default_app_session,
     APP_SERVICE_CACHE_PREFIX,
     APP_CONSTANT_CACHE_PREFIX,
+    APP_SESSION_CACHE_PREFIX,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ErrorContext, ERROR_CACHE_PREFIX
@@ -378,35 +380,73 @@ def test_add_default_app_constants_empty_dict_leaves_cache_clean(base_cache_buil
     # Assert the cache contains no entries.
     assert cache._cache == {}
 
-# ** test: resolve_default_interface_match
-def test_resolve_default_interface_match():
+# ** test: app_session_cache_prefix_value
+def test_app_session_cache_prefix_value():
     '''
-    Test that resolve_default_interface builds an interface from a matching default.
-    '''
-
-    # Resolve a default interface whose id matches.
-    interface = resolve_default_interface(
-        'tiferet_cli',
-        [{'id': 'tiferet_cli', 'name': 'Tiferet CLI'}],
-    )
-
-    # Assert an interface is built from the matching default.
-    assert isinstance(interface, AppSession)
-    assert interface.id == 'tiferet_cli'
-    assert interface.name == 'Tiferet CLI'
-
-# ** test: resolve_default_interface_no_match
-def test_resolve_default_interface_no_match():
-    '''
-    Test that resolve_default_interface returns None when no default matches.
+    Test that APP_SESSION_CACHE_PREFIX is the expected namespace tuple.
     '''
 
-    # Assert no match yields None for both empty and non-matching defaults.
-    assert resolve_default_interface('missing', []) is None
-    assert resolve_default_interface(
-        'missing',
-        [{'id': 'other', 'name': 'Other'}],
-    ) is None
+    # Assert the prefix constant has the correct value.
+    assert APP_SESSION_CACHE_PREFIX == ('app', 'sessions')
+
+# ** test: add_default_app_sessions_seeds_cache_with_domain_objects
+def test_add_default_app_sessions_seeds_cache_with_domain_objects(base_cache_builder):
+    '''
+    Test that add_default_app_sessions stores AppSession objects in the cache.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Sample session definitions keyed by id.
+    sample_sessions = {
+        'tiferet_app': {'id': 'tiferet_app', 'name': 'Admin App'},
+        'tiferet_cli': {'id': 'tiferet_cli', 'name': 'Admin CLI'},
+    }
+
+    # Wrap the builder and invoke it.
+    wrapped = add_default_app_sessions(sample_sessions)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert each session id maps to an AppSession in the sessions namespace.
+    for session_id in sample_sessions:
+        cached = cache.get(session_id, *APP_SESSION_CACHE_PREFIX)
+        assert isinstance(cached, AppSession)
+        assert cached.id == session_id
+
+# ** test: get_default_app_session_returns_cached_session
+def test_get_default_app_session_returns_cached_session(base_cache_builder):
+    '''
+    Test that get_default_app_session retrieves a session seeded by the decorator.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Seed a session into the cache.
+    sample_sessions = {'tiferet_app': {'id': 'tiferet_app', 'name': 'Admin App'}}
+    wrapped = add_default_app_sessions(sample_sessions)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert the session is retrievable by id.
+    session = get_default_app_session(cache, 'tiferet_app')
+    assert isinstance(session, AppSession)
+    assert session.id == 'tiferet_app'
+
+# ** test: get_default_app_session_returns_none_when_absent
+def test_get_default_app_session_returns_none_when_absent(base_cache_builder):
+    '''
+    Test that get_default_app_session returns None when the session is not cached.
+
+    :param base_cache_builder: A plain cache-builder callable.
+    :type base_cache_builder: Callable
+    '''
+
+    # Build an empty cache.
+    cache = base_cache_builder()
+
+    # Assert a missing session id returns None.
+    assert get_default_app_session(cache, 'missing') is None
 
 # ** test: app_interface_context_execute_feature
 def test_app_interface_context_execute_feature(app_interface_context, feature_context):

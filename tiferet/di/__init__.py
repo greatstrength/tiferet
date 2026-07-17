@@ -8,8 +8,10 @@ __all__ = [
     'DIDynamicServiceResolver',
     'injectable_parameter_names',
     'normalize_flags',
+    'ParseParameter',
 ]
 
 # ** app
 from .core import ServiceContainer, ServiceResolver, injectable_parameter_names, normalize_flags
 from .dependency_injector import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
+from ..events.static import ParseParameter
