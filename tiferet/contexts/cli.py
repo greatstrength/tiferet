@@ -16,7 +16,6 @@ from ..domain import (
     CliOutputRecord,
     CliRecordList,
 )
-from ..events import DomainEvent
 from .app import AppSessionContext
 from .cache import CacheContext
 from .request import RequestContext
@@ -197,8 +196,8 @@ class CliSessionContext(AppSessionContext):
 
     # * init
     def __init__(self,
-            logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
+            logging_context = None,
             parse_cli_args: Callable = None,
             cache: CacheContext = None,
             execute_feature_handler: Callable = None,
@@ -209,11 +208,11 @@ class CliSessionContext(AppSessionContext):
         '''
         Initialize the CLI session context.
 
-        :param logging_list_all_evt: The event used to list logging configurations.
-        :type logging_list_all_evt: DomainEvent
         :param get_dependency: The injected service-resolution handler used to
             resolve feature step events and middleware.
         :type get_dependency: Callable
+        :param logging_context: The pre-built logging context for this session.
+        :type logging_context: LoggingContext
         :param parse_cli_args: Injected callable that parses ``argv`` and returns
             ``(feature_id, headers, data)``. Built by the CLI blueprint via
             ``parse_cli_args_handler``.
@@ -232,7 +231,7 @@ class CliSessionContext(AppSessionContext):
 
         # Initialize the base application session hub.
         super().__init__(
-            logging_list_all_evt=logging_list_all_evt,
+            logging_context=logging_context,
             get_dependency=get_dependency,
             cache=cache,
             execute_feature_handler=execute_feature_handler,

@@ -5,41 +5,93 @@
 # ** core
 import logging
 import logging.config
-from typing import Dict, Any, List, Callable
+from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from .core import BaseContext
-from ..assets.logging import *
-from ..domain import (
-    Formatter,
-    Handler,
-    Logger,
-    LoggingSettings,
-)
-from ..events import DomainEvent, RaiseError, a
+from .cache import CacheContext
+from ..domain import LoggingSettings
+from ..events import RaiseError, a
+
+# *** constants
+
+# ** constant: logging_cache_prefix
+LOGGING_CACHE_PREFIX: Tuple[str, ...] = ('logging',)
+
+# *** functions
+
+# ** function: add_default_logging_settings
+def add_default_logging_settings(settings: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with the default
+    LoggingSettings domain object.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    the supplied settings dict is validated into a ``LoggingSettings`` domain
+    object and stored in the cache under ``LOGGING_CACHE_PREFIX`` keyed by
+    ``'default'``.
+
+    :param settings: A raw dict of logging settings (formatters, handlers, loggers).
+    :type settings: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default LoggingSettings domain object.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Validate the raw settings dict into a LoggingSettings domain object
+            # and store it under the logging namespace keyed by 'default'.
+            cache.set('default', LoggingSettings.model_validate(settings), *LOGGING_CACHE_PREFIX)
+
+            # Return the populated cache context.
+            return cache
+
+        return wrapper
+
+    return decorator
+
+# ** function: get_default_logging_settings
+def get_default_logging_settings(cache: CacheContext) -> LoggingSettings:
+    '''
+    Return the default LoggingSettings seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The default LoggingSettings domain object.
+    :rtype: LoggingSettings
+    '''
+
+    # Retrieve the default LoggingSettings from the logging namespace.
+    return cache.get('default', *LOGGING_CACHE_PREFIX)
 
 # *** contexts
 
 # ** context: logging_context
 class LoggingContext(BaseContext):
     '''
-    The logging context builds a configured logger from formatter, handler, and
-    logger definitions, applying built-in defaults when none are configured.
+    The logging context builds a configured logger from a pre-assembled
+    ``LoggingSettings`` domain object, applying the settings once at session
+    startup rather than re-fetching from the repository on every request.
     '''
 
-    # * attribute: list_all_handler
-    list_all_handler: Callable
+    # * attribute: domain_type
+    domain_type = LoggingSettings
 
     # * attribute: logger_id
     logger_id: str
 
     # * init
-    def __init__(self, logging_list_all_evt: DomainEvent, logger_id: str):
+    def __init__(self, logger_id: str):
         '''
         Initialize the logging context.
 
-        :param logging_list_all_evt: The event to list all logging configurations.
-        :type logging_list_all_evt: DomainEvent
         :param logger_id: The ID of the logger configuration to create.
         :type logger_id: str
         '''
@@ -47,8 +99,7 @@ class LoggingContext(BaseContext):
         # Initialize the base context.
         super().__init__()
 
-        # Bind the list all handler and store the logger ID.
-        self.list_all_handler = logging_list_all_evt.execute
+        # Store the logger ID.
         self.logger_id = logger_id
 
     # * method: create_logger
@@ -91,26 +142,15 @@ class LoggingContext(BaseContext):
     # * method: build_logger
     def build_logger(self) -> logging.Logger:
         '''
-        Build a logger instance for the specified logger ID.
+        Build a logger instance from the pre-assembled domain settings.
 
         :return: The native logger instance.
         :rtype: logging.Logger
         '''
 
-        # List all formatter, handler, and logger configurations.
-        formatters, handlers, loggers = self.list_all_handler()
-
-        # Build the runtime logging settings value object, applying the built-in
-        # defaults as the fallback for any section the repository does not provide.
-        settings = LoggingSettings(
-            formatters=formatters or [Formatter(**data) for data in DEFAULT_FORMATTERS],
-            handlers=handlers or [Handler(**data) for data in DEFAULT_HANDLERS],
-            loggers=loggers or [Logger(**data) for data in DEFAULT_LOGGERS],
-        )
-
-        # Assemble the dictConfig via the value object and create the logger.
+        # Assemble the dictConfig via the domain value object and create the logger.
         return self.create_logger(
             logger_id=self.logger_id,
-            logging_config=settings.format_config(),
+            logging_config=self.domain.format_config(),
         )
 

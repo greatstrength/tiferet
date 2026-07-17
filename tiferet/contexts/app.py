@@ -12,7 +12,6 @@ from ..assets import (
     TiferetAPIError,
 )
 from ..domain import AppSession, AppInterface, AppServiceDependency, Feature
-from ..events import DomainEvent
 from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
@@ -302,9 +301,6 @@ class AppSessionContext(BaseContext):
     # * attribute: _build_response
     _build_response: Callable
 
-    # * attribute: logging_list_all_evt
-    logging_list_all_evt: DomainEvent
-
     # * attribute: get_dependency
     get_dependency: Callable
 
@@ -313,8 +309,8 @@ class AppSessionContext(BaseContext):
 
     # * init
     def __init__(self,
-            logging_list_all_evt: DomainEvent,
             get_dependency: Callable,
+            logging_context: LoggingContext = None,
             cache: CacheContext = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
@@ -328,11 +324,11 @@ class AppSessionContext(BaseContext):
         supplies the session id and logger id on demand, so no standalone
         ``interface_id`` is stored.
 
-        :param logging_list_all_evt: The event used to list logging configurations.
-        :type logging_list_all_evt: DomainEvent
         :param get_dependency: The injected service-resolution handler used to
             resolve feature step events and middleware.
         :type get_dependency: Callable
+        :param logging_context: The pre-built logging context for this session.
+        :type logging_context: LoggingContext
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
         :param execute_feature_handler: The feature-execution callable produced by
@@ -355,9 +351,11 @@ class AppSessionContext(BaseContext):
         # Wire in the shared cache context, defaulting to a fresh one.
         self.cache = cache if cache is not None else CacheContext()
 
-        # Store the retrieval/configuration events and the service-resolution handler.
-        self.logging_list_all_evt = logging_list_all_evt
+        # Store the service-resolution handler.
         self.get_dependency = get_dependency
+
+        # Store the pre-built logging context.
+        self._logging = logging_context
 
         # Store the injected FE4 handler callables.
         self._execute_feature = execute_feature_handler
@@ -365,26 +363,16 @@ class AppSessionContext(BaseContext):
         self._raise_error = raise_error_handler
         self._build_response = response_handler
 
-        # Initialize the lazily-built logging sub-context cache.
-        self._logging = None
-
     # * method: load_logging_context
     def load_logging_context(self) -> LoggingContext:
         '''
-        Build (once) and return the logging context.
+        Return the pre-built logging context.
 
         :return: The shared logging context.
         :rtype: LoggingContext
         '''
 
-        # Build the logging context on first access, reading the logger id from the domain.
-        if self._logging is None:
-            self._logging = LoggingContext(
-                logging_list_all_evt=self.logging_list_all_evt,
-                logger_id=self.domain.logger_id,
-            )
-
-        # Return the shared logging context.
+        # Return the pre-built logging context.
         return self._logging
 
     # * method: build_request

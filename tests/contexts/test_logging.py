@@ -7,10 +7,19 @@ from unittest import mock
 
 
 # ** app
-from tiferet.contexts.logging import *
+from tiferet.contexts.logging import (
+    LoggingContext,
+    LoggingSettings,
+    LOGGING_CACHE_PREFIX,
+    add_default_logging_settings,
+    get_default_logging_settings,
+)
+from tiferet.contexts.cache import CacheContext
 from tiferet.assets import TiferetError
-from tiferet.assets.logging import DEFAULT_FORMATTERS, DEFAULT_HANDLERS, DEFAULT_LOGGERS
 from tiferet.domain.logging import Formatter, Handler, Logger
+
+# re-import stdlib logging so tests can use it as a type reference
+import logging
 
 
 # *** fixtures
@@ -66,97 +75,56 @@ def logger_root(handler):
     )
 
 
-# ** fixture: logging_list_all_evt
+# ** fixture: logging_settings
 @pytest.fixture
-def logging_list_all_evt(formatter, handler, logger_root):
+def logging_settings(formatter, handler, logger_root):
     '''
-    Fixture to create a mocked ListAllLoggingConfigs event instance.
+    Fixture to create a LoggingSettings domain object from sample configs.
     '''
-    evt = mock.Mock()
-    evt.execute.return_value = ([formatter], [handler], [logger_root])
-    return evt
+    return LoggingSettings(
+        formatters=[formatter],
+        handlers=[handler],
+        loggers=[logger_root],
+    )
 
 
 # ** fixture: logging_context
 @pytest.fixture
-def logging_context(logging_list_all_evt):
+def logging_context(logging_settings):
     '''
-    Fixture to create a LoggingContext instance.
+    Fixture to create a LoggingContext instance bound to the sample settings.
     '''
-    return LoggingContext(logging_list_all_evt=logging_list_all_evt, logger_id='root')
+    return LoggingContext.from_domain(logging_settings, logger_id='root')
 
 
-# ** fixture: default_configs
+# ** fixture: base_cache_builder
 @pytest.fixture
-def default_configs():
+def base_cache_builder():
     '''
-    Fixture to mock default logging configurations.
+    Fixture providing a plain cache-builder callable with no pre-seeding.
     '''
-    return {
-        'DEFAULT_FORMATTERS': [{
-            'id': 'default',
-            'name': 'Default Formatter',
-            'description': 'A default logging formatter.',
-            'format': '%(message)s',
-            'datefmt': None
-        }],
-        'DEFAULT_HANDLERS': [{
-            'id': 'default',
-            'name': 'Default Handler',
-            'description': 'A default logging handler.',
-            'module_path': 'logging',
-            'class_name': 'NullHandler',
-            'level': 'INFO',
-            'formatter': 'default'
-        }],
-        'DEFAULT_LOGGERS': [{
-            'id': 'root',
-            'name': '',
-            'description': 'Default root logger.',
-            'level': 'INFO',
-            'handlers': ['default'],
-            'propagate': False,
-            'is_root': True
-        }]
-    }
+
+    # Return a minimal cache-builder that mirrors the unwrapped build_cache.
+    def _build(cache=None):
+        return CacheContext(cache=cache)
+
+    return _build
 
 
 # *** tests
 
 
 # ** test: logging_context_build_logger_success
-def test_logging_context_build_logger_success(logging_context, logging_list_all_evt, formatter, handler, logger_root):
+def test_logging_context_build_logger_success(logging_context, formatter, handler, logger_root):
     '''
-    Test successful logger creation by LoggingContext with provided configurations.
+    Test successful logger creation by LoggingContext reading from its domain.
     '''
 
     # Call build_logger to create a logger.
     logger = logging_context.build_logger()
 
-    # Assert that the logger is created and methods are called.
+    # Assert that the logger is created from the pre-assembled domain.
     assert isinstance(logger, logging.Logger)
-    logging_list_all_evt.execute.assert_called_once()
-    assert logger.name == 'root'
-
-
-# ** test: logging_context_build_logger_default_configs
-def test_logging_context_build_logger_default_configs(logging_context, logging_list_all_evt, default_configs):
-    '''
-    Test LoggingContext build_logger using default configurations.
-    '''
-
-    # Mock empty configurations from logging_list_all_evt.
-    logging_list_all_evt.execute.return_value = ([], [], [])
-
-    # Mock default configurations.
-    with mock.patch('tiferet.contexts.logging.DEFAULT_FORMATTERS', default_configs['DEFAULT_FORMATTERS']):
-        with mock.patch('tiferet.contexts.logging.DEFAULT_HANDLERS', default_configs['DEFAULT_HANDLERS']):
-            with mock.patch('tiferet.contexts.logging.DEFAULT_LOGGERS', default_configs['DEFAULT_LOGGERS']):
-                logger = logging_context.build_logger()
-
-    # Assert that default configurations are used.
-    assert isinstance(logger, logging.Logger)
-    logging_list_all_evt.execute.assert_called_once()
     assert logger.name == 'root'
 
 
@@ -218,24 +186,133 @@ def test_logging_context_create_logger_invalid_config(logging_context):
 
 
 # ** test: logging_context_build_logger_error
-def test_logging_context_build_logger_error(logging_context, logging_list_all_evt):
+def test_logging_context_build_logger_error(formatter, handler):
     '''
-    Test LoggingContext build_logger with configurations that fail dictConfig.
+    Test LoggingContext build_logger propagates LOGGING_CONFIG_FAILED when
+    dictConfig fails (handler references a non-existent class).
     '''
 
-    # Mock list_all to return invalid configurations that will fail.
-    invalid_formatter = Formatter(
-        id='invalid',
-        name='Invalid Formatter',
-        description='An invalid formatter.',
-        format='%(invalid)s',
-        datefmt=None
+    # Build a settings object whose handler class cannot be imported.
+    invalid_handler = Handler(
+        id='bad',
+        name='Bad Handler',
+        module_path='invalid.module',
+        class_name='NonExistentHandler',
+        level='INFO',
+        formatter=formatter.id,
     )
-    logging_list_all_evt.execute.return_value = ([invalid_formatter], [], [])
+    invalid_logger = Logger(
+        id='root',
+        name='',
+        description='Root logger.',
+        level='DEBUG',
+        handlers=[invalid_handler.id],
+        propagate=False,
+        is_root=True,
+    )
+    invalid_settings = LoggingSettings(
+        formatters=[formatter],
+        handlers=[invalid_handler],
+        loggers=[invalid_logger],
+    )
+    invalid_context = LoggingContext.from_domain(invalid_settings, logger_id='root')
 
-    # Call build_logger with invalid configurations.
+    # Call build_logger with the invalid settings.
     with pytest.raises(TiferetError) as exc_info:
-        logging_context.build_logger()
+        invalid_context.build_logger()
 
     # Assert that the correct error is raised.
     assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'
+
+
+# ** test: logging_context_domain_type_registered
+def test_logging_context_domain_type_registered():
+    '''
+    Test that LoggingContext declares domain_type = LoggingSettings and is
+    registered in the ContextMeta registry.
+    '''
+
+    # Assert the domain_type is set on the class.
+    assert LoggingContext.domain_type is LoggingSettings
+
+
+# ** test: add_default_logging_settings_seeds_cache
+def test_add_default_logging_settings_seeds_cache(base_cache_builder):
+    '''
+    Test that add_default_logging_settings seeds a LoggingSettings object
+    under LOGGING_CACHE_PREFIX keyed by "default".
+    '''
+
+    # A minimal raw settings dict.
+    raw = {
+        'formatters': [{
+            'id': 'default',
+            'name': 'Default Formatter',
+            'format': '%(message)s',
+        }],
+        'handlers': [{
+            'id': 'default',
+            'name': 'Default Handler',
+            'module_path': 'logging',
+            'class_name': 'NullHandler',
+            'level': 'INFO',
+            'formatter': 'default',
+        }],
+        'loggers': [{
+            'id': 'root',
+            'name': '',
+            'level': 'INFO',
+            'handlers': ['default'],
+            'is_root': True,
+        }],
+    }
+
+    # Apply the decorator and invoke the builder.
+    wrapped = add_default_logging_settings(raw)(base_cache_builder)
+    cache = wrapped()
+
+    # Assert a LoggingSettings is stored under the logging namespace keyed 'default'.
+    result = cache.get('default', *LOGGING_CACHE_PREFIX)
+    assert isinstance(result, LoggingSettings)
+
+
+# ** test: add_default_logging_settings_returns_callable
+def test_add_default_logging_settings_returns_callable(base_cache_builder):
+    '''
+    Test that add_default_logging_settings returns a decorator that produces
+    a callable.
+    '''
+
+    # Apply the decorator.
+    wrapped = add_default_logging_settings({})(base_cache_builder)
+
+    # Assert the result is callable.
+    assert callable(wrapped)
+
+
+# ** test: get_default_logging_settings_returns_seeded
+def test_get_default_logging_settings_returns_seeded(logging_settings):
+    '''
+    Test that get_default_logging_settings returns the LoggingSettings object
+    seeded on the cache under LOGGING_CACHE_PREFIX.
+    '''
+
+    # Seed the cache directly.
+    cache = CacheContext()
+    cache.set('default', logging_settings, *LOGGING_CACHE_PREFIX)
+
+    # Assert the getter returns the same object.
+    result = get_default_logging_settings(cache)
+    assert result is logging_settings
+
+
+# ** test: get_default_logging_settings_returns_none_when_absent
+def test_get_default_logging_settings_returns_none_when_absent():
+    '''
+    Test that get_default_logging_settings returns None when the cache has no
+    entry under LOGGING_CACHE_PREFIX.
+    '''
+
+    # Assert an empty cache yields None.
+    result = get_default_logging_settings(CacheContext())
+    assert result is None

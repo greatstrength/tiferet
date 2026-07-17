@@ -75,3 +75,10 @@ DEFAULT_LOGGERS = [
         'is_root': False
     }
 ]
+
+# ** constant: core_default_logging_settings
+CORE_DEFAULT_LOGGING_SETTINGS = {
+    'formatters': DEFAULT_FORMATTERS,
+    'handlers':   DEFAULT_HANDLERS,
+    'loggers':    DEFAULT_LOGGERS,
+}

@@ -70,7 +70,6 @@ def cli_context(app_interface):
     # Construct the CLI context declaratively from the loaded interface.
     ctx = CliContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         parse_cli_args=parse_fn,
     )
@@ -358,7 +357,6 @@ def cli_session_context(app_interface):
     # Build a CliSessionContext without a parse_cli_args closure.
     return CliSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
     )
 
@@ -469,7 +467,6 @@ def test_cli_session_context_run_new_path(
     # Build a CliSessionContext with parse_cli_args injected.
     context = CliSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         parse_cli_args=parse_fn,
     )

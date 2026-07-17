@@ -15,6 +15,11 @@ from ..contexts.feature import (
     FEATURE_CACHE_PREFIX,
     add_default_features,
 )
+from ..contexts.logging import (
+    add_default_logging_settings,
+    get_default_logging_settings,
+    LoggingContext,
+)
 from ..contexts.request import RequestContext
 from ..contexts.settings import BaseContext
 from ..contexts.app import (
@@ -37,6 +42,7 @@ from .. import assets as a
 # *** blueprints
 
 # ** blueprint: build_cache
+@add_default_logging_settings(a.logging.CORE_DEFAULT_LOGGING_SETTINGS)
 @add_default_app_constants(a.app.CORE_DEFAULT_CONSTANTS)
 @add_default_app_services(a.app.CORE_DEFAULT_SERVICES)
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
@@ -251,6 +257,53 @@ def get_feature(
         return feature
 
     return handler
+
+# ** blueprint: build_logging_context
+def build_logging_context(
+    cache: CacheContext,
+    get_dependency: Callable,
+    logger_id: str,
+) -> LoggingContext:
+    '''
+    Build the logging context from resolved repository configs merged with
+    cache-seeded framework defaults.
+
+    Resolves the ``logging_list_all_evt`` from the app-scoped service container,
+    calls it once to fetch any repository-specific logging configurations, merges
+    the result over the cache-seeded ``LoggingSettings`` defaults (empty sections
+    fall back to defaults), and constructs a ``LoggingContext`` via
+    ``LoggingContext.from_domain`` with the assembled ``LoggingSettings`` bound
+    as the domain object.
+
+    :param cache: The shared cache context pre-seeded with default LoggingSettings.
+    :type cache: CacheContext
+    :param get_dependency: The service-resolution handler from the ServiceResolver.
+    :type get_dependency: Callable
+    :param logger_id: The ID of the logger to create for the session.
+    :type logger_id: str
+    :return: The constructed logging context bound to the assembled settings.
+    :rtype: LoggingContext
+    '''
+
+    # Resolve the list-all event from the app-scoped container.
+    logging_list_all_evt = get_dependency('logging_list_all_evt', 'app')
+
+    # Fetch repo-specific configs; empty sections signal no config file present.
+    formatters, handlers, loggers = logging_list_all_evt.execute()
+
+    # Load the cache-seeded defaults as the fallback for any missing section.
+    defaults = get_default_logging_settings(cache)
+
+    # Build the LoggingSettings domain object, merging repo data over defaults.
+    from ..domain import LoggingSettings
+    settings = LoggingSettings(
+        formatters=formatters or defaults.formatters,
+        handlers=handlers or defaults.handlers,
+        loggers=loggers or defaults.loggers,
+    )
+
+    # Construct the LoggingContext via the BaseContext factory, injecting logger_id.
+    return LoggingContext.from_domain(settings, logger_id=logger_id)
 
 # ** blueprint: build_app_service_container
 def build_app_service_container(
@@ -611,21 +664,20 @@ def build_app_session_context(
 
     Chains the core building blocks to replace the legacy
     ``load_app_instance`` path: builds the app service container from defaults
-    and interface overrides, composes the feature-level resolver, imports the
-    declared context class, resolves its event collaborators from the app
-    container, wires the four FE4 template-method handlers, and constructs the
-    context via the ``BaseContext.from_domain`` factory (inherited by any
-    context subclass).
+    and interface overrides, composes the feature-level resolver, builds the
+    logging context once at session startup via :func:`build_logging_context`,
+    resolves any remaining event collaborators from the app container, wires
+    the four FE4 template-method handlers, and constructs the context via the
+    ``BaseContext.from_domain`` factory (inherited by any context subclass).
 
-    All three hub event collaborators (``get_feature_evt``,
-    ``get_error_evt``, ``logging_list_all_evt``) are in
-    ``CORE_DEFAULT_SERVICES`` and are picked up automatically by the
-    collaborator-resolution loop. Custom contexts (e.g. ``CliContext``) gain
-    their additional collaborators the same way.
+    ``logging_list_all_evt`` remains in ``CORE_DEFAULT_SERVICES`` but is no
+    longer injected directly into the hub constructor; it is consumed once
+    inside ``build_logging_context``. Custom contexts (e.g. ``CliContext``)
+    gain their additional collaborators via the same generic resolution loop.
 
     :param app_session: The resolved app session definition with defaults applied.
     :type app_session: AppSession
-    :param cache: The pre-built shared cache context (errors, services, constants seeded).
+    :param cache: The pre-built shared cache context (errors, services, constants, logging seeded).
     :type cache: CacheContext
     :param context_kwargs: Additional keyword arguments forwarded to the context constructor.
     :type context_kwargs: dict
@@ -639,16 +691,21 @@ def build_app_session_context(
     # Build the feature-level resolver from the app container.
     resolver = build_service_resolver(app_container)
 
+    # Build the logging context once at session startup (blueprint-time fetch).
+    logging_ctx = build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
+
     # Hardcode the AppSessionContext class; blueprint functions are the declarative
     # owner of context class selection — the session's module_path / class_name
     # fields are no longer consulted at runtime (annotated obsolete).
     context_cls = AppSessionContext
 
     # Resolve the context's collaborators from the app container by id.
-    # Skip the explicitly supplied resolver, cache, handler params, and bootstrap defaults.
+    # Skip the explicitly supplied resolver, cache, logging_context, handler
+    # params, and bootstrap defaults.
     reserved = {
         'get_dependency',
         'cache',
+        'logging_context',
         'execute_feature_handler',
         'create_request_handler',
         'raise_error_handler',
@@ -671,11 +728,12 @@ def build_app_session_context(
     )
 
     # Construct the context via from_domain, injecting the resolver handler,
-    # cache, all collaborators, and the four FE4 handlers.
+    # cache, the pre-built logging context, all collaborators, and the four FE4 handlers.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
+        logging_context=logging_ctx,
         **handlers,
         **collaborators,
         **context_kwargs,

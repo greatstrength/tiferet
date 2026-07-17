@@ -12,6 +12,7 @@ __all__ = [
     'app',
     'feat',
     'cli',
+    'logging',
     'cli_app',
     'cli_svc',
     'cli_feat',
@@ -26,6 +27,7 @@ from . import constants as const
 from . import error
 from . import app
 from . import feature as feat
+from . import logging
 from . import app as cli_app
 from . import di as cli_svc
 from . import feature as cli_feat

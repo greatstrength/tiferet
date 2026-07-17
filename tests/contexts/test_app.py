@@ -199,20 +199,15 @@ def app_interface_context(app_interface, feature_context, error_context, logging
         formatted = error_context.format_response(error_domain, error)
         raise TiferetAPIError(**formatted)
 
-    # Construct the hub declaratively from the loaded interface with FE4 handlers.
-    context = AppSessionContext.from_domain(
+    # Construct the hub declaratively from the loaded interface with FE4 handlers,
+    # passing the pre-built mock logging context directly.
+    return AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
+        logging_context=logging_context,
         get_dependency=mock.Mock(),
         execute_feature_handler=_execute_feature_handler,
         raise_error_handler=_raise_error_handler,
     )
-
-    # Inject the mock logging context via its lazy cache.
-    context._logging = logging_context
-
-    # Return the hub.
-    return context
 
 
 # *** tests
@@ -488,7 +483,6 @@ def test_app_session_context_build_request_delegates_to_create_request_handler(a
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         create_request_handler=mock_handler,
     )
@@ -518,7 +512,6 @@ def test_app_session_context_execute_feature_delegates_to_handler(app_interface)
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         execute_feature_handler=execute_mock,
     )
@@ -552,7 +545,6 @@ def test_app_session_context_handle_error_delegates_to_raise_error_handler(app_i
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         raise_error_handler=raise_mock,
     )
@@ -582,7 +574,6 @@ def test_app_session_context_build_response_delegates_to_response_handler(app_in
     # Construct the hub with the injected handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
         response_handler=response_mock,
     )
@@ -609,7 +600,6 @@ def test_app_session_context_build_response_fallback(app_interface):
     # Construct the hub without a response_handler.
     context = AppSessionContext.from_domain(
         app_interface,
-        logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
     )
 
