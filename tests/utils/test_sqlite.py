@@ -116,7 +116,7 @@ def test_sqlite_client_invalid_mode():
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_INVALID_MODE_ID
+    assert exc_info.value.error_code == a.error.SQLITE_INVALID_MODE_ID
 
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open(memory_client: SqliteClient):
@@ -137,7 +137,7 @@ def test_sqlite_client_already_open(memory_client: SqliteClient):
             memory_client.open_file()
 
         # Verify the error code.
-        assert exc_info.value.error_code == a.const.SQLITE_CONN_ALREADY_OPEN_ID
+        assert exc_info.value.error_code == a.error.SQLITE_CONN_ALREADY_OPEN_ID
 
     finally:
 
@@ -430,7 +430,7 @@ def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_p
         memory_client.backup(str(backup_path))
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
@@ -446,7 +446,7 @@ def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
         memory_client.execute('SELECT 1')
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
@@ -462,7 +462,7 @@ def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
         memory_client.commit()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_conn_failed
 def test_sqlite_client_conn_failed(tmp_path: Path):
@@ -481,7 +481,7 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.SQLITE_CONN_FAILED_ID
+    assert exc_info.value.error_code == a.error.SQLITE_CONN_FAILED_ID
 
 # ** test: sqlite_client_isolation_level_propagation
 def test_sqlite_client_isolation_level_propagation():

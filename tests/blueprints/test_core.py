@@ -239,7 +239,7 @@ def test_get_app_session_raises_when_absent(monkeypatch):
         get_app_session('missing')
 
     # Assert the structured error code.
-    assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
 
 
 # ** test: build_app_service_container_exposes_core_services
@@ -1186,7 +1186,7 @@ def test_build_app_invalid_context(monkeypatch):
         build_app('invalid_interface', app_config='config.yml')
 
     # Assert the structured error code and interface id.
-    assert exc_info.value.error_code == a.const.INVALID_APP_SESSION_TYPE_ID
+    assert exc_info.value.error_code == a.error.INVALID_APP_SESSION_TYPE_ID
     assert 'invalid_interface' in str(exc_info.value)
 
 
@@ -1202,7 +1202,7 @@ def test_build_app_missing_session_propagates_not_found(monkeypatch):
 
     # Patch get_app_session to raise the not-found error the event would raise.
     def _raise(*args, **kwargs):
-        raise TiferetError(a.const.APP_SESSION_NOT_FOUND_ID, interface_id='missing')
+        raise TiferetError(a.error.APP_SESSION_NOT_FOUND_ID, interface_id='missing')
 
     monkeypatch.setattr('tiferet.blueprints.core.get_app_session', _raise)
 
@@ -1211,7 +1211,7 @@ def test_build_app_missing_session_propagates_not_found(monkeypatch):
         build_app('missing', app_config='config.yml')
 
     # Assert the structured error code.
-    assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
 
 
 # ** test: app_alias_is_core_build_app

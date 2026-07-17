@@ -102,7 +102,7 @@ class TestFlaggedDependencyAggregate(AggregateTestBase):
         ('module_path', 'new.module.path', None),
         ('class_name',  'NewClassName',    None),
         # invalid
-        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
@@ -171,7 +171,7 @@ class TestServiceRegistrationAggregate(AggregateTestBase):
         ('module_path',  'updated.module',  None),
         ('class_name',   'UpdatedClass',    None),
         # invalid
-        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate

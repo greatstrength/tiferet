@@ -227,7 +227,7 @@ def build_admin_app(
     # Verify that the composed context is a valid app session context.
     if not isinstance(app_session_context, AppSessionContext):
         RaiseError.execute(
-            a.const.INVALID_APP_SESSION_TYPE_ID,
+            a.error.INVALID_APP_SESSION_TYPE_ID,
             f'App context for session is not valid: {interface_id}.',
             interface_id=interface_id,
         )

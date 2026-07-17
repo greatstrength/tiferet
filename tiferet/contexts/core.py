@@ -103,7 +103,7 @@ class BaseContext(metaclass=ContextMeta):
         # Raise a structured error when no context is registered for the domain.
         if context_cls is None:
             RaiseError.execute(
-                a.const.CONTEXT_NOT_FOUND_ID,
+                a.error.CONTEXT_NOT_FOUND_ID,
                 f'No context registered for domain type: {getattr(domain_cls, "__name__", domain_cls)}.',
                 domain_type=getattr(domain_cls, '__name__', str(domain_cls)),
             )

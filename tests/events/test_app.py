@@ -251,7 +251,7 @@ class TestGetAppSession(ServiceEventTestBase):
     required_params = ['interface_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+    not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(interface_id='non_existent_id')
@@ -371,7 +371,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id', 'module_path', 'class_name']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+    not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -512,7 +512,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
     required_params = ['id', 'attribute']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+    not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -573,7 +573,7 @@ class TestUpdateAppSession(ServiceEventTestBase):
             self.handle(mock_dependencies, id=app_interface.id, attribute='invalid_attribute', value='value')
 
         # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
-        assert exc_info.value.error_code == a.const.INVALID_MODEL_ATTRIBUTE_ID
+        assert exc_info.value.error_code == a.error.INVALID_MODEL_ATTRIBUTE_ID
         mock_dependencies['app_service'].save.assert_not_called()
 
 # ** test: TestSetAppConstants
@@ -601,7 +601,7 @@ class TestSetAppConstants(ServiceEventTestBase):
     required_params = ['id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+    not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -737,7 +737,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+    not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(

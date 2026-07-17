@@ -72,7 +72,7 @@ class AddError(ErrorEvent):
         exists = self.error_service.exists(id)
         self.verify(
             expression=exists is False,
-            error_code=a.const.ERROR_ALREADY_EXISTS_ID,
+            error_code=a.error.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
             id=id
         )
@@ -128,7 +128,7 @@ class GetError(ErrorEvent):
 
         # If still not found and defaults not included, raise structured error.
         self.raise_error(
-            error_code=a.const.ERROR_NOT_FOUND_ID,
+            error_code=a.error.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id,
         )
@@ -192,7 +192,7 @@ class RenameError(ErrorEvent):
         # Verify that the error exists.
         self.verify(
             expression=error,
-            error_code=a.const.ERROR_NOT_FOUND_ID,
+            error_code=a.error.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -236,7 +236,7 @@ class SetErrorMessage(ErrorEvent):
         # Verify that the error exists.
         self.verify(
             expression=error,
-            error_code=a.const.ERROR_NOT_FOUND_ID,
+            error_code=a.error.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -275,7 +275,7 @@ class RemoveErrorMessage(ErrorEvent):
         error = self.error_service.get(id)
         self.verify(
             expression=error,
-            error_code=a.const.ERROR_NOT_FOUND_ID,
+            error_code=a.error.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
             id=id
         )
@@ -286,7 +286,7 @@ class RemoveErrorMessage(ErrorEvent):
         # Verify that at least one message remains.
         self.verify(
             expression=len(error.message) > 0,
-            error_code=a.const.NO_ERROR_MESSAGES_ID,
+            error_code=a.error.NO_ERROR_MESSAGES_ID,
             message=f'No error messages are defined for error ID {id}.',
             id=id
         )

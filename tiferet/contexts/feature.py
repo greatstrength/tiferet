@@ -11,7 +11,7 @@ from typing import Any, Callable, Generator, List, Tuple, Dict
 from .core import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
-from ..assets.constants import (
+from ..assets.error import (
     FEATURE_STEP_LOADING_FAILED_ID,
     MIDDLEWARE_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,

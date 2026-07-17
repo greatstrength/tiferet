@@ -7,7 +7,7 @@ __all__ = [
     'TiferetAPIError',
     'ERROR_NOT_FOUND_ID',
     'DEFAULT_ERRORS',
-    'const',
+    'core',
     'error',
     'app',
     'feat',
@@ -21,9 +21,8 @@ __all__ = [
 
 # ** app
 from .exceptions import TiferetError, TiferetAPIError
-from .constants import ERROR_NOT_FOUND_ID
-from .error import DEFAULT_ERRORS
-from . import constants as const
+from .error import ERROR_NOT_FOUND_ID, DEFAULT_ERRORS
+from . import core
 from . import error
 from . import app
 from . import feature as feat

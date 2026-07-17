@@ -82,7 +82,7 @@ class AddServiceRegistration(DIEvent):
         # Check for an existing registration id.
         self.verify(
             not self.di_service.registration_exists(id),
-            a.const.SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
+            a.error.SERVICE_REGISTRATION_ALREADY_EXISTS_ID,
             id=id,
         )
 
@@ -91,7 +91,7 @@ class AddServiceRegistration(DIEvent):
         has_deps = bool(flagged_dependencies)
         self.verify(
             has_default or has_deps,
-            a.const.INVALID_SERVICE_REGISTRATION_ID,
+            a.error.INVALID_SERVICE_REGISTRATION_ID,
         )
 
         # Create the service registration aggregate from dependency dicts.
@@ -146,7 +146,7 @@ class SetDefaultServiceRegistration(DIEvent):
         # Verify that the registration exists.
         self.verify(
             registration is not None,
-            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
+            a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -155,7 +155,7 @@ class SetDefaultServiceRegistration(DIEvent):
         if module_path is not None or class_name is not None:
             self.verify(
                 module_path is not None and class_name is not None,
-                a.const.INVALID_SERVICE_REGISTRATION_ID,
+                a.error.INVALID_SERVICE_REGISTRATION_ID,
             )
 
             # Update both type and parameters via the model helper.
@@ -221,7 +221,7 @@ class SetServiceDependency(DIEvent):
         # flagged dependency.
         self.verify(
             bool(module_path) and bool(class_name),
-            a.const.INVALID_FLAGGED_DEPENDENCY_ID,
+            a.error.INVALID_FLAGGED_DEPENDENCY_ID,
         )
 
         # Retrieve the existing registration.
@@ -230,7 +230,7 @@ class SetServiceDependency(DIEvent):
         # Verify that the registration exists.
         self.verify(
             registration is not None,
-            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
+            a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -283,7 +283,7 @@ class RemoveServiceDependency(DIEvent):
         # Verify that the registration exists.
         self.verify(
             registration is not None,
-            a.const.SERVICE_REGISTRATION_NOT_FOUND_ID,
+            a.error.SERVICE_REGISTRATION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -295,7 +295,7 @@ class RemoveServiceDependency(DIEvent):
         has_deps = bool(registration.dependencies)
         self.verify(
             has_default or has_deps,
-            a.const.INVALID_SERVICE_REGISTRATION_ID,
+            a.error.INVALID_SERVICE_REGISTRATION_ID,
         )
 
         # Persist the updated registration.

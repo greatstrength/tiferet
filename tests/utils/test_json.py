@@ -191,7 +191,7 @@ def test_json_loader_load_file_not_found(tmp_path):
         loader.load()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: json_loader_load_malformed_json
 def test_json_loader_load_malformed_json(tmp_path):
@@ -212,7 +212,7 @@ def test_json_loader_load_malformed_json(tmp_path):
         loader.load()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.JSON_FILE_LOAD_ERROR_ID
+    assert exc_info.value.error_code == a.error.JSON_FILE_LOAD_ERROR_ID
     assert 'path' in exc_info.value.kwargs
 
 # ** test: json_loader_save_write_failure
@@ -233,7 +233,7 @@ def test_json_loader_save_write_failure(tmp_path):
         saver.save({'key': 'value'})
 
     # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: json_loader_parse_json_path_dict
 def test_json_loader_parse_json_path_dict(nested_json_data: dict):
@@ -294,7 +294,7 @@ def test_json_loader_parse_json_path_invalid(nested_json_data: dict):
         JsonLoader.parse_json_path(nested_json_data, 'metadata.total.invalid')
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.INVALID_JSON_PATH_ID
+    assert exc_info.value.error_code == a.error.INVALID_JSON_PATH_ID
 
 # ** test: json_loader_verify_json_file_success
 def test_json_loader_verify_json_file_success(temp_json_file: Path):
@@ -328,7 +328,7 @@ def test_json_loader_verify_json_file_invalid_extension(tmp_path):
         JsonLoader.verify_json_file(loader)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.INVALID_FILE_ID
+    assert exc_info.value.error_code == a.error.INVALID_FILE_ID
 
 # ** test: json_loader_verify_json_file_not_found
 def test_json_loader_verify_json_file_not_found(tmp_path):
@@ -347,7 +347,7 @@ def test_json_loader_verify_json_file_not_found(tmp_path):
         JsonLoader.verify_json_file(loader)
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.JSON_FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.JSON_FILE_NOT_FOUND_ID
     assert 'missing.json' in exc_info.value.kwargs.get('path', '')
 
 # ** test: json_loader_verify_json_file_fallback

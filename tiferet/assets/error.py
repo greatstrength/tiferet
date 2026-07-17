@@ -12,7 +12,7 @@ consumer's configuration.
 # *** imports
 
 # ** app
-from .constants import (
+from .core import (
     EN_US,
     create_default_error,
 )

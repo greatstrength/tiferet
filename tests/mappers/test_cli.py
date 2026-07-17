@@ -108,8 +108,8 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('default', 'new_default', None),
         ('action', 'store_false', None),
         # invalid
-        ('name_or_flags', ['b'], a.const.INVALID_MODEL_ATTRIBUTE_ID),
-        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('name_or_flags', ['b'], a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
 
@@ -134,7 +134,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         ('key', 'subtract', None),
         ('group_key', 'math', None),
         # invalid
-        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # ** test: add_argument_appends

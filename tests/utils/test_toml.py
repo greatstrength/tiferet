@@ -9,7 +9,7 @@ from pathlib import Path
 # ** app
 from tiferet.utils.toml import TomlLoader
 from tiferet.assets.exceptions import TiferetError
-from tiferet.assets.constants import (
+from tiferet.assets.error import (
     TOML_FILE_NOT_FOUND_ID,
     TOML_FILE_LOAD_ERROR_ID,
     INVALID_TOML_FILE_ID,

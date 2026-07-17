@@ -13,7 +13,7 @@ application bootstrapping and cache seeding.
 # *** imports
 
 # ** app
-from .constants import create_app_service_dependency
+from .core import create_app_service_dependency
 from .di import DEFAULT_TIFERET_CLI_SERVICES as _CLI_SERVICES_LIST
 
 # *** constants (ids)

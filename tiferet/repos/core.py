@@ -72,7 +72,7 @@ class ConfigurationRepository:
 
         # Raise a structured error for any unsupported file type.
         RaiseError.execute(
-            error_code=a.const.UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+            error_code=a.error.UNSUPPORTED_CONFIG_FILE_TYPE_ID,
             file_extension=ext,
         )
 

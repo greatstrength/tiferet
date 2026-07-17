@@ -251,7 +251,7 @@ class TestQuerySql(SqliteEventTestBase):
             self.handle(mock_dependencies, query="INSERT INTO users VALUES (1, 'Alice')")
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Query must start with SELECT or WITH" in str(exc_info.value)
 
     # * method: test_execution_error
@@ -371,7 +371,7 @@ class TestMutateSql(SqliteEventTestBase):
             self.handle(mock_dependencies, statement="SELECT * FROM users")
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
     # * method: test_execution_error
@@ -459,7 +459,7 @@ class TestBulkMutateSql(SqliteEventTestBase):
             self.handle(mock_dependencies, statement="SELECT * FROM users", parameters_list=[(1,)])
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Statement must start with INSERT, UPDATE, or DELETE" in str(exc_info.value)
 
     # * method: test_empty_parameters_list
@@ -473,7 +473,7 @@ class TestBulkMutateSql(SqliteEventTestBase):
             self.handle(mock_dependencies, parameters_list=[])
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Parameters list must not be empty" in str(exc_info.value)
 
     # * method: test_execution_error
@@ -534,7 +534,7 @@ class TestExecuteScriptSql(SqliteEventTestBase):
             self.handle(mock_dependencies, script="   \n   ")
 
         # Assert the error code.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert 'script' in exc_info.value.kwargs.get('parameters')
 
     # * method: test_execution_error
@@ -617,7 +617,7 @@ class TestBackupSql(SqliteEventTestBase):
             self.handle(mock_dependencies, target_path='/invalid/path/backup.db')
 
         # Assert the error code.
-        assert exc_info.value.error_code == a.const.SQLITE_BACKUP_FAILED_ID
+        assert exc_info.value.error_code == a.error.SQLITE_BACKUP_FAILED_ID
 
 
 # ** test: TestCreateTableSql
@@ -747,13 +747,13 @@ class TestCreateTableSql(SqliteEventTestBase):
         # Test with spaces.
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='invalid table', columns={'id': 'INTEGER'})
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Invalid table name" in str(exc_info.value)
 
         # Test with hyphens.
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='table-name', columns={'id': 'INTEGER'})
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
 
     # * method: test_empty_columns
     def test_empty_columns(self, mock_dependencies):
@@ -766,7 +766,7 @@ class TestCreateTableSql(SqliteEventTestBase):
             self.handle(mock_dependencies, columns={})
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Columns must be a non-empty dictionary" in str(exc_info.value)
 
     # * method: test_invalid_column_name
@@ -780,7 +780,7 @@ class TestCreateTableSql(SqliteEventTestBase):
             self.handle(mock_dependencies, columns={'': 'INTEGER'})
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Column name must be a non-empty string" in str(exc_info.value)
 
     # * method: test_invalid_column_type
@@ -794,7 +794,7 @@ class TestCreateTableSql(SqliteEventTestBase):
             self.handle(mock_dependencies, columns={'id': ''})
 
         # Assert the error code and message.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Column type" in str(exc_info.value)
         assert "must be a non-empty string" in str(exc_info.value)
 
@@ -902,13 +902,13 @@ class TestDropTableSql(SqliteEventTestBase):
         # Test with spaces.
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='invalid table')
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert "Invalid table name" in str(exc_info.value)
 
         # Test with hyphens.
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='table-name')
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
 
     # * method: test_with_data
     def test_with_data(self, mock_dependencies):

@@ -311,7 +311,7 @@ def test_csv_loader_save_rows_dict_no_fieldnames(tmp_path):
         CsvLoader.save_rows(file_path, data)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_loader_append_row_static
 def test_csv_loader_append_row_static(tmp_path):
@@ -386,7 +386,7 @@ def test_csv_loader_invalid_read_mode(tmp_path):
             loader.build_reader()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.CSV_INVALID_READ_MODE_ID
+    assert exc_info.value.error_code == a.error.CSV_INVALID_READ_MODE_ID
 
 # ** test: csv_loader_invalid_write_mode
 def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
@@ -403,7 +403,7 @@ def test_csv_loader_invalid_write_mode(temp_csv_file: Path):
             loader.build_writer()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.CSV_INVALID_WRITE_MODE_ID
+    assert exc_info.value.error_code == a.error.CSV_INVALID_WRITE_MODE_ID
 
 # ** test: csv_loader_file_not_found
 def test_csv_loader_file_not_found(tmp_path):
@@ -420,7 +420,7 @@ def test_csv_loader_file_not_found(tmp_path):
             loader.read_all()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: csv_loader_empty_file
 def test_csv_loader_empty_file(temp_empty_csv_file: Path):
@@ -573,7 +573,7 @@ def test_csv_dict_loader_save_rows_no_fieldnames(tmp_path):
         CsvDictLoader.save_rows(file_path, data)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_fieldnames_required_on_build_writer
 def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
@@ -591,7 +591,7 @@ def test_csv_dict_loader_fieldnames_required_on_build_writer(tmp_path):
             loader.build_writer()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.CSV_FIELDNAMES_REQUIRED_ID
+    assert exc_info.value.error_code == a.error.CSV_FIELDNAMES_REQUIRED_ID
 
 # ** test: csv_dict_loader_yield_rows
 def test_csv_dict_loader_yield_rows(temp_dict_csv_file: Path):

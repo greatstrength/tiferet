@@ -129,7 +129,7 @@ class GetAppSession(AppEvent):
         # Raise an error if the session is not found.
         if not interface:
             self.raise_error(
-                a.const.APP_SESSION_NOT_FOUND_ID,
+                a.error.APP_SESSION_NOT_FOUND_ID,
                 f'App session with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
@@ -167,7 +167,7 @@ class UpdateAppSession(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             interface_id=id,
         )
@@ -214,7 +214,7 @@ class SetAppConstants(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             interface_id=id,
         )
@@ -290,7 +290,7 @@ class SetServiceDependency(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             interface_id=id,
         )
@@ -337,7 +337,7 @@ class RemoveServiceDependency(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             interface_id=id,
         )

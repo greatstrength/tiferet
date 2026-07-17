@@ -288,7 +288,7 @@ class RequestSpecification(DomainObject):
                 for err in error.errors()
             ]
             raise TiferetError(
-                a.const.REQUEST_VALIDATION_FAILED_ID,
+                a.error.REQUEST_VALIDATION_FAILED_ID,
                 f'Request validation failed for feature {feature_id}: {violations}.',
                 feature_id=feature_id,
                 violations=violations,

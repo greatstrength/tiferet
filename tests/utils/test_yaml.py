@@ -216,7 +216,7 @@ def test_yaml_loader_load_file_not_found(tmp_path):
         loader.load()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: yaml_loader_load_malformed_yaml
 def test_yaml_loader_load_malformed_yaml(tmp_path):
@@ -237,7 +237,7 @@ def test_yaml_loader_load_malformed_yaml(tmp_path):
         loader.load()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.YAML_FILE_LOAD_ERROR_ID
+    assert exc_info.value.error_code == a.error.YAML_FILE_LOAD_ERROR_ID
     assert 'path' in exc_info.value.kwargs
 
 # ** test: yaml_loader_save_write_failure
@@ -258,7 +258,7 @@ def test_yaml_loader_save_write_failure(tmp_path):
         saver.save({'key': 'value'})
 
     # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: yaml_loader_verify_yaml_file_success
 def test_yaml_loader_verify_yaml_file_success(temp_yaml_file: Path):
@@ -292,7 +292,7 @@ def test_yaml_loader_verify_yaml_file_invalid_extension(tmp_path):
         YamlLoader.verify_yaml_file(loader)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.INVALID_FILE_ID
+    assert exc_info.value.error_code == a.error.INVALID_FILE_ID
 
 # ** test: yaml_loader_verify_yaml_file_fallback
 def test_yaml_loader_verify_yaml_file_fallback(tmp_path):
@@ -330,7 +330,7 @@ def test_yaml_loader_verify_yaml_file_not_found(tmp_path):
         YamlLoader.verify_yaml_file(loader)
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.YAML_FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.YAML_FILE_NOT_FOUND_ID
     assert 'missing.yaml' in exc_info.value.kwargs.get('path', '')
 
 # ** test: yaml_loader_context_manager_closes_on_error

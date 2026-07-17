@@ -116,7 +116,7 @@ class DomainEvent(object):
         # Raise a single error with all violations if any found.
         if missing:
             DomainEvent.raise_error(
-                a.const.COMMAND_PARAMETER_REQUIRED_ID,
+                a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Required parameters missing for {instance.__class__.__name__}.',
                 parameters=missing,
                 command=instance.__class__.__name__,
