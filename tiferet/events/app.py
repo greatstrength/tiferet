@@ -4,7 +4,7 @@
 from typing import Any, Dict, List
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import AppSession, AppInterface
 from ..interfaces import AppService
 from ..mappers import AppSessionAggregate

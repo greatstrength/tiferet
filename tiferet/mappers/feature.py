@@ -14,7 +14,7 @@ from ..domain import (
     FeatureStep,
     EventFeatureStep,
 )
-from .settings import (
+from .core import (
     Aggregate,
     TransferObject,
 )

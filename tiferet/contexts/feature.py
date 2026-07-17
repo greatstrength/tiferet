@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Generator, List, Tuple, Dict
 
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from .cache import CacheContext
 from .request import RequestContext
 from ..assets.constants import (

@@ -6,7 +6,7 @@
 from typing import Any, Dict
 
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from ..domain import Request
 
 # *** contexts

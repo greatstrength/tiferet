@@ -13,7 +13,7 @@ from ..assets import (
 )
 from ..domain import AppSession, AppInterface, AppServiceDependency, Feature
 from ..events import DomainEvent
-from .settings import BaseContext
+from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
 from .logging import LoggingContext

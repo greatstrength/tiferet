@@ -1,16 +1,5 @@
 """Tiferet Interfaces Settings"""
+# -- obsolete: remove at v2.0.0 stable; import from .core instead
 
-# *** imports
-
-# ** infra
-from abc import ABC
-
-# *** interfaces
-
-# ** interface: service
-class Service(ABC):
-    '''
-    The service interface as an abstract base class.
-    '''
-
-    pass
+# ** app
+from .core import Service

@@ -8,7 +8,7 @@ from typing import List, Optional
 
 # ** app
 from ..mappers import FeatureAggregate
-from .settings import Service
+from .core import Service
 
 # *** interfaces
 

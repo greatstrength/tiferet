@@ -1,4 +1,4 @@
-"""Mapper Settings Tests"""
+"""Tiferet Mapper Core Tests"""
 
 # *** imports
 
@@ -10,7 +10,7 @@ from pydantic import Field, ValidationError
 
 # ** app
 from tiferet.domain import DomainObject
-from tiferet.mappers.settings import Aggregate, TransferObject
+from tiferet.mappers.core import Aggregate, TransferObject
 from tiferet.assets import TiferetError
 
 # *** fixtures

@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict, Tuple
 
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from .cache import CacheContext
 from ..assets import TiferetError
 from ..domain import Error

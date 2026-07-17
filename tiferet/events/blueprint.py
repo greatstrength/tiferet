@@ -6,10 +6,10 @@
 from typing import Any, Dict, List
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from .static import ParseParameter
 from ..domain import AppInterface, ServiceRegistration
-from ..di import ServiceResolver, injectable_parameter_names
+from ..di import ServiceResolver, DIDynamicServiceResolver, injectable_parameter_names
 
 # *** events
 
@@ -83,9 +83,10 @@ class CreateServiceResolver(DomainEvent):
         }
 
         # Compose and return the resolver, injecting the real parameter parser.
-        return ServiceResolver(
+        # Note: default_config_index / default_di_constants are the legacy
+        # merge_settings approach (retired); DIDynamicServiceResolver reads
+        # directly from di_service.list_all() without merging bootstrap defaults.
+        return DIDynamicServiceResolver(
             di_service=di_service,
             parse_parameter=ParseParameter.execute,
-            default_config_index=default_config_index,
-            default_di_constants=default_constants or {},
         )

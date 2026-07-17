@@ -11,7 +11,7 @@ from ..mappers import (
     ServiceRegistrationAggregate,
     ServiceRegistrationConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

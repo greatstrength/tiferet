@@ -6,7 +6,7 @@
 from typing import List, Optional
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import CliCommand
 from ..interfaces import CliService
 from ..mappers import CliCommandAggregate

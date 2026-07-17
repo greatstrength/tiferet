@@ -13,7 +13,7 @@ from ..domain import (
     Error,
     ErrorMessage,
 )
-from .settings import (
+from .core import (
     Aggregate,
     TransferObject,
 )

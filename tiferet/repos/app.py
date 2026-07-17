@@ -11,7 +11,7 @@ from ..mappers import (
     AppSessionAggregate,
     AppSessionConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

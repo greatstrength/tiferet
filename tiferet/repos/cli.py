@@ -12,7 +12,7 @@ from ..mappers import (
     CliCommandAggregate,
     CliCommandConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

@@ -8,7 +8,7 @@ import logging.config
 from typing import Dict, Any, List, Callable
 
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from ..assets.logging import *
 from ..domain import (
     Formatter,
