@@ -282,10 +282,6 @@ def build_admin_cli(
     return cli_context.run(argv)
 
 
-# ** blueprint: build_tiferet_cli (obsolete)
-# -- obsolete: superseded by build_admin_cli; remove at v2.0.0 stable
-build_tiferet_cli = build_admin_cli
-
 
 # ** blueprint: main
 def main() -> None:

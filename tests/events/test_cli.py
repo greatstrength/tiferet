@@ -14,7 +14,7 @@ from tiferet.events.cli import (
     ListCliCommands,
     GetParentArguments,
 )
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import CliCommand, CliArgument
 from tiferet.interfaces import CliService
 from tiferet.mappers import CliCommandAggregate

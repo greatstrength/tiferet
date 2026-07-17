@@ -18,7 +18,7 @@ from tiferet.events.app import (
     RemoveServiceDependency,
     RemoveAppSession,
 )
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import (
     AppSession,
     AppServiceDependency,
@@ -43,8 +43,6 @@ def app_interface():
     return AppSessionAggregate(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
         description='The test app.',
         flags=['test'],
         services=[
@@ -122,12 +120,10 @@ class TestAddAppSession(DomainEventTestBase):
     sample_kwargs = dict(
         id='test.interface',
         name='Test Interface',
-        module_path='tiferet.contexts.app',
-        class_name='AppContext',
     )
 
     # * attribute: required_params
-    required_params = ['id', 'name', 'module_path', 'class_name']
+    required_params = ['id', 'name']
 
     # * method: test_minimal_success
     def test_minimal_success(self, mock_dependencies):
@@ -142,8 +138,6 @@ class TestAddAppSession(DomainEventTestBase):
         assert isinstance(interface, AppSession)
         assert interface.id == 'test.interface'
         assert interface.name == 'Test Interface'
-        assert interface.module_path == 'tiferet.contexts.app'
-        assert interface.class_name == 'AppContext'
         assert interface.description is None
         assert interface.logger_id == 'default'
         assert interface.flags == ['default']
@@ -287,8 +281,6 @@ class TestGetAppSession(ServiceEventTestBase):
         domain_interface = AppSession(
             id='test.interface',
             name='Test Interface',
-            module_path='tiferet.contexts.app',
-            class_name='AppContext',
         )
         mock_dependencies['app_service'].get.return_value = domain_interface
 
@@ -341,8 +333,6 @@ class TestListAppSessions(DomainEventTestBase):
         another_interface = AppSessionAggregate(
             id='other',
             name='Other App',
-            module_path='tiferet.contexts.app',
-            class_name='OtherAppContext',
         )
         mock_dependencies['app_service'].list.return_value = [app_interface, another_interface]
 
@@ -549,8 +539,6 @@ class TestUpdateAppSession(ServiceEventTestBase):
         [
             ('name', 'Updated Name'),
             ('description', 'Updated description'),
-            ('module_path', 'updated.module.path'),
-            ('class_name', 'UpdatedClass'),
             ('logger_id', 'updated_logger'),
             ('flags', ['updated_flags']),
         ],
@@ -586,21 +574,6 @@ class TestUpdateAppSession(ServiceEventTestBase):
 
         # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
         assert exc_info.value.error_code == a.const.INVALID_MODEL_ATTRIBUTE_ID
-        mock_dependencies['app_service'].save.assert_not_called()
-
-    # * method: test_invalid_type_attributes_empty_value
-    @pytest.mark.parametrize('attribute', ['module_path', 'class_name'])
-    def test_invalid_type_attributes_empty_value(self, mock_dependencies, app_interface, attribute):
-        '''
-        Test that empty values for module_path or class_name are rejected by the model.
-        '''
-
-        # Execute the command with an empty value for a type-constrained attribute.
-        with pytest.raises(TiferetError) as exc_info:
-            self.handle(mock_dependencies, id=app_interface.id, attribute=attribute, value='')
-
-        # The underlying model validation should raise INVALID_APP_INTERFACE_TYPE.
-        assert exc_info.value.error_code == a.const.INVALID_APP_SESSION_TYPE_ID
         mock_dependencies['app_service'].save.assert_not_called()
 
 # ** test: TestSetAppConstants

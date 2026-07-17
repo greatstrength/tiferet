@@ -12,7 +12,7 @@ import pytest
 # ** app
 from tiferet.utils.json import JsonLoader
 from tiferet.events import a
-from tiferet.events.settings import TiferetError
+from tiferet.events.core import TiferetError
 
 # *** fixtures
 

@@ -20,7 +20,7 @@ from tiferet.events.error import (
     RemoveErrorMessage,
     RemoveError,
 )
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import Error
 from tiferet.interfaces import ErrorService
 from tiferet.mappers import ErrorAggregate

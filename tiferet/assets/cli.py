@@ -523,6 +523,3 @@ ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
     for entry in _DEFAULT_TIFERET_CLI_COMMAND_LIST
 }
 
-# ** constant: default_tiferet_cli_commands (obsolete)
-# -- obsolete: superseded by ADMIN_DEFAULT_COMMANDS; remove at v2.0.0 stable
-DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = ADMIN_DEFAULT_COMMANDS

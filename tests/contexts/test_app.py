@@ -104,8 +104,6 @@ def app_interface():
     return AppSessionAggregate(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
         description='The test app.',
         flags=['test'],
         services=[],
@@ -389,7 +387,7 @@ def test_resolve_default_interface_match():
     # Resolve a default interface whose id matches.
     interface = resolve_default_interface(
         'tiferet_cli',
-        [{'id': 'tiferet_cli', 'name': 'Tiferet CLI', 'module_path': 'tiferet.contexts.cli', 'class_name': 'CliContext'}],
+        [{'id': 'tiferet_cli', 'name': 'Tiferet CLI'}],
     )
 
     # Assert an interface is built from the matching default.
@@ -407,7 +405,7 @@ def test_resolve_default_interface_no_match():
     assert resolve_default_interface('missing', []) is None
     assert resolve_default_interface(
         'missing',
-        [{'id': 'other', 'name': 'Other', 'module_path': 'm', 'class_name': 'C'}],
+        [{'id': 'other', 'name': 'Other'}],
     ) is None
 
 # ** test: app_interface_context_execute_feature

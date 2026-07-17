@@ -10,8 +10,6 @@ from .core import (
 from .app import (
     AppSession,
     AppServiceDependency,
-    # -- obsolete: superseded by AppSession; remove at v2.0.0 stable
-    AppInterface,
 )
 from .di import (
     FlaggedDependency,
@@ -52,7 +50,6 @@ __all__ = [
     'ServiceDependency',
     'AppSession',
     'AppServiceDependency',
-    'AppInterface',  # obsolete: superseded by AppSession; remove at v2.0.0 stable
     'FlaggedDependency',
     'ServiceRegistration',
     'CliArgument',

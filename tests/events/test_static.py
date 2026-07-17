@@ -8,7 +8,7 @@ import os
 
 # ** app
 from tiferet.events.static import ParseParameter, ImportDependency, RaiseError
-from tiferet.events.settings import TiferetError, a
+from tiferet.events.core import TiferetError, a
 
 # *** tests
 

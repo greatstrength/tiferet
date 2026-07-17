@@ -11,7 +11,7 @@ import pytest
 # ** app
 from tiferet.utils.csv import CsvLoader, CsvDictLoader
 from tiferet.events import a
-from tiferet.events.settings import TiferetError
+from tiferet.events.core import TiferetError
 
 # *** fixtures
 

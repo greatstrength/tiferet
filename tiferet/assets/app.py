@@ -82,8 +82,6 @@ DEFAULT_ADMIN_APP_SESSION = {
     'id': 'tiferet_app',
     'name': 'Admin App',
     'description': 'Default built-in admin application session',
-    'module_path': 'tiferet.contexts.app',  # -- obsolete: remove at v2.0.0 stable
-    'class_name': 'AppSessionContext',       # -- obsolete: remove at v2.0.0 stable
 }
 
 # ** constant: default_admin_cli_session
@@ -91,25 +89,7 @@ DEFAULT_ADMIN_CLI_SESSION = {
     'id': 'tiferet_cli',
     'name': 'Admin CLI',
     'description': 'Built-in CLI for managing Tiferet application configurations',
-    'module_path': 'tiferet.contexts.cli',  # -- obsolete: remove at v2.0.0 stable
-    'class_name': 'CliSessionContext',       # -- obsolete: remove at v2.0.0 stable
 }
-
-# ** constant: default_tiferet_app_session (obsolete)
-# -- obsolete: superseded by DEFAULT_ADMIN_APP_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_APP_SESSION = DEFAULT_ADMIN_APP_SESSION
-
-# ** constant: default_tiferet_app_interface (obsolete)
-# -- obsolete: superseded by DEFAULT_ADMIN_APP_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_APP_INTERFACE = DEFAULT_ADMIN_APP_SESSION
-
-# ** constant: default_tiferet_cli_session (obsolete)
-# -- obsolete: superseded by DEFAULT_ADMIN_CLI_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_CLI_SESSION = DEFAULT_ADMIN_CLI_SESSION
-
-# ** constant: default_tiferet_cli_interface (obsolete)
-# -- obsolete: superseded by DEFAULT_ADMIN_CLI_SESSION; remove at v2.0.0 stable
-DEFAULT_TIFERET_CLI_INTERFACE = DEFAULT_ADMIN_CLI_SESSION
 
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'

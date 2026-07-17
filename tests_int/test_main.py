@@ -102,7 +102,7 @@ TEST_CALC_CONFIG = {
             },
         },
     },
-    'interfaces': {
+    'sessions': {
         'test_calc': {
             'name': 'Integration Test - Basic Int Calculator',
             'description': 'The interface instance for testing the calculator features.',
@@ -137,7 +137,7 @@ def test_calc_yaml_file(tmp_path):
     # Deep copy the config and set all yaml file paths to the temp file.
     config = copy.deepcopy(TEST_CALC_CONFIG)
     for key in ('feature_config', 'error_config', 'di_config', 'logging_config'):
-        config['interfaces']['test_calc']['constants'][key] = str(file_path)
+        config['sessions']['test_calc']['constants'][key] = str(file_path)
 
     # Write the configuration to the temporary YAML file.
     with open(str(file_path), 'w', encoding='utf-8') as f:

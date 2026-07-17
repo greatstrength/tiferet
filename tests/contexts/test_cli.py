@@ -11,7 +11,6 @@ from tiferet.assets import TiferetAPIError
 from tiferet.domain import CliArgument, CliCommand
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.cli import (
-    CliContext,
     CliRequestContext,
     CliSessionContext,
     build_cli_record,
@@ -44,8 +43,6 @@ def app_interface():
     return AppSessionAggregate(
         id='test_cli',
         name='Test CLI',
-        module_path='tiferet.contexts.cli',
-        class_name='CliContext',
         description='The test CLI interface.',
         flags=['test'],
         services=[],
@@ -67,8 +64,8 @@ def cli_context(app_interface):
     # Build a no-op parse closure (individual tests override via cli_context._parse_cli_args).
     parse_fn = mock.Mock(return_value=('test.feature', {}, {}))
 
-    # Construct the CLI context declaratively from the loaded interface.
-    ctx = CliContext.from_domain(
+    # Construct the CLI session context declaratively from the loaded interface.
+    ctx = CliSessionContext.from_domain(
         app_interface,
         get_dependency=mock.Mock(),
         parse_cli_args=parse_fn,

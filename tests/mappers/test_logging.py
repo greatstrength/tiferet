@@ -4,7 +4,7 @@
 
 # ** app
 from tiferet.events import a
-from tiferet.mappers.settings import TransferObject
+from tiferet.mappers.core import TransferObject
 from tiferet.mappers.logging import (
     FormatterAggregate,
     FormatterConfigObject,

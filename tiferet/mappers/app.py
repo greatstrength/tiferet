@@ -12,14 +12,11 @@ from pydantic import AliasChoices, Field
 from ..domain import (
     AppServiceDependency,
     AppSession,
-    AppInterface,
 )
 from ..events import RaiseError, a
 from .core import (
     Aggregate,
     TransferObject,
-    DEFAULT_MODULE_PATH,
-    DEFAULT_CLASS_NAME,
 )
 
 # *** mappers
@@ -65,26 +62,18 @@ class AppSessionAggregate(AppSession, Aggregate):
         self.services = list(self.services) + [dependency]
 
     # * method: remove_service
-    # ++ todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def remove_service(
         self,
-        service_id: str | None = None,
-        attribute_id: str | None = None,
+        service_id: str,
     ) -> AppServiceDependency | None:
         '''
         Remove and return a service dependency by its service_id (idempotent).
 
         :param service_id: The service_id of the service dependency to remove.
-        :type service_id: str | None
-        :param attribute_id: Deprecated alias for service_id.
-        :type attribute_id: str | None
+        :type service_id: str
         :return: The removed AppServiceDependency or None.
         :rtype: AppServiceDependency | None
         '''
-
-        # Fall back to attribute_id if service_id is not provided.
-        if service_id is None and attribute_id is not None:
-            service_id = attribute_id
 
         # Work on a local copy; reassign only when a match is found.
         services = list(self.services)
@@ -98,35 +87,27 @@ class AppSessionAggregate(AppSession, Aggregate):
         return None
 
     # * method: set_service
-    # ++ todo: remove attribute_id parameter once the dependency with the app event tests has been resolved
     def set_service(
         self,
-        service_id: str | None = None,
+        service_id: str,
         module_path: str | None = None,
         class_name: str | None = None,
         parameters: Dict[str, Any] | None = None,
-        attribute_id: str | None = None,
     ) -> None:
         '''
         Set or update a service dependency by service_id (PUT semantics).
 
         :param service_id: The service dependency identifier.
-        :type service_id: str | None
+        :type service_id: str
         :param module_path: The module path.
         :type module_path: str | None
         :param class_name: The class name.
         :type class_name: str | None
         :param parameters: New parameters (None to clear).
         :type parameters: Dict[str, Any] | None
-        :param attribute_id: Deprecated alias for service_id.
-        :type attribute_id: str | None
         :return: None
         :rtype: None
         '''
-
-        # Fall back to attribute_id if service_id is not provided.
-        if service_id is None and attribute_id is not None:
-            service_id = attribute_id
 
         # Find the existing dependency by service_id.
         dep = self.get_service(service_id)
@@ -209,8 +190,6 @@ class AppSessionAggregate(AppSession, Aggregate):
         supported = {
             'name',
             'description',
-            'module_path',
-            'class_name',
             'logger_id',
             'flags',
         }
@@ -224,23 +203,9 @@ class AppSessionAggregate(AppSession, Aggregate):
                 supported=', '.join(sorted(supported)),
             )
 
-        # Specific validation for module_path and class_name.
-        if attribute in {'module_path', 'class_name'}:
-            if not value or not str(value).strip():
-                RaiseError.execute(
-                    error_code=a.const.INVALID_APP_SESSION_TYPE_ID,
-                    message='{attribute} must be a non-empty string.',
-                    attribute=attribute,
-                )
-
         # Apply the update; validate_assignment=True handles re-validation.
         setattr(self, attribute, value)
 
-
-
-# ** mapper: app_interface_aggregate (obsolete)
-# -- obsolete: superseded by AppSessionAggregate; remove at v2.0.0 stable
-AppInterfaceAggregate = AppSessionAggregate
 
 
 # ** mapper: app_service_dependency_config_object
@@ -316,29 +281,9 @@ class AppSessionConfigObject(AppSession, TransferObject):
 
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
-        'to_model': {'exclude': {'services', 'constants', 'module_path', 'class_name'}},
+        'to_model': {'exclude': {'services', 'constants'}},
         'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
-
-    # * attribute: module_path
-    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
-    # ++ todo: remove at v2.0.0 stable
-    module_path: str = Field(
-        default=DEFAULT_MODULE_PATH,
-        serialization_alias='module',
-        validation_alias=AliasChoices('module_path', 'module'),
-        description='The app context module path for the app settings.',
-    )
-
-    # * attribute: class_name
-    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
-    # ++ todo: remove at v2.0.0 stable
-    class_name: str = Field(
-        default=DEFAULT_CLASS_NAME,
-        serialization_alias='class',
-        validation_alias=AliasChoices('class_name', 'class'),
-        description='The class name for the app context.',
-    )
 
     # * attribute: services
     services: Dict[str, AppServiceDependencyConfigObject] = Field(
@@ -370,8 +315,6 @@ class AppSessionConfigObject(AppSession, TransferObject):
         # Map the app session data with dict→list conversion for services.
         return super().map(
             AppSessionAggregate,
-            module_path=self.module_path,
-            class_name=self.class_name,
             services=[dep.map(service_id=dep_id) for dep_id, dep in (self.services or {}).items()],
             constants=dict(self.constants or {}),
             **overrides,
@@ -402,7 +345,3 @@ class AppSessionConfigObject(AppSession, TransferObject):
             **overrides,
         )
 
-
-# ** mapper: app_interface_config_object (obsolete)
-# -- obsolete: superseded by AppSessionConfigObject; remove at v2.0.0 stable
-AppInterfaceConfigObject = AppSessionConfigObject

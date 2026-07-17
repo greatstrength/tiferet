@@ -308,7 +308,3 @@ class CliSessionContext(AppSessionContext):
             print(e, file=sys.stderr)
             sys.exit(1)
 
-
-# ** context: cli_context (obsolete)
-# -- obsolete: superseded by CliSessionContext; remove at v2.0.0 stable
-CliContext = CliSessionContext

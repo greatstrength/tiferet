@@ -46,8 +46,6 @@ def app_interface(app_dependency: AppServiceDependency) -> AppSession:
     # Create and return a new AppSession.
     return AppSession(id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
         description='The test app.',
         flags=['test'],
         services=[app_dependency],

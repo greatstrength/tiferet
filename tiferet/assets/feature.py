@@ -565,6 +565,3 @@ ADMIN_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = {
     for entry in _DEFAULT_TIFERET_CLI_FEATURE_LIST
 }
 
-# ** constant: default_tiferet_cli_features (obsolete)
-# -- obsolete: superseded by ADMIN_DEFAULT_FEATURES; remove at v2.0.0 stable
-DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = ADMIN_DEFAULT_FEATURES

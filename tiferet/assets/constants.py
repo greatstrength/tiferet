@@ -45,10 +45,6 @@ APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 # ** constant: feature_step_loading_failed_id
 FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
 
-# ** constant: feature_command_loading_failed_id (obsolete)
-# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED_ID; remove at v2.0.0 stable
-FEATURE_COMMAND_LOADING_FAILED_ID = FEATURE_STEP_LOADING_FAILED_ID
-
 # ** constant: middleware_loading_failed_id
 MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
 
@@ -219,14 +215,6 @@ CSV_FIELDNAMES_REQUIRED_ID = 'CSV_FIELDNAMES_REQUIRED'
 
 # ** constant: csv_dict_no_header_id
 CSV_DICT_NO_HEADER_ID = 'CSV_DICT_NO_HEADER'
-
-# ** constant: app_interface_not_found_id (obsolete)
-# -- obsolete: superseded by APP_SESSION_NOT_FOUND_ID; remove at v2.0.0 stable
-APP_INTERFACE_NOT_FOUND_ID = APP_SESSION_NOT_FOUND_ID
-
-# ** constant: invalid_app_interface_type_id (obsolete)
-# -- obsolete: superseded by INVALID_APP_SESSION_TYPE_ID; remove at v2.0.0 stable
-INVALID_APP_INTERFACE_TYPE_ID = INVALID_APP_SESSION_TYPE_ID
 
 # *** functions
 

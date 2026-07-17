@@ -21,7 +21,7 @@ from ..contexts.logging import (
     LoggingContext,
 )
 from ..contexts.request import RequestContext
-from ..contexts.settings import BaseContext
+from ..contexts.core import BaseContext
 from ..contexts.app import (
     AppSession,
     AppSessionContext,
@@ -161,10 +161,6 @@ def get_app_session(
         dependencies=dict(app_service=app_service),
         interface_id=interface_id,
     )
-
-# ** blueprint: get_app_interface (obsolete)
-# -- obsolete: superseded by get_app_session; remove at v2.0.0 stable
-get_app_interface = get_app_session
 
 # ** blueprint: get_error
 def get_error(

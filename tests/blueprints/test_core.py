@@ -12,7 +12,7 @@ from tiferet import TiferetError, TiferetAPIError
 from tiferet.blueprints.core import (
     build_cache,
     create_app_service,
-    get_app_interface,
+    get_app_session,
     get_error,
     get_feature,
     build_app_service_container,
@@ -182,22 +182,20 @@ def test_create_app_service_custom_service_type():
     assert service.config_file == 'di_custom.yml'
 
 
-# ** test: get_app_interface_returns_interface
-def test_get_app_interface_returns_interface(monkeypatch):
+# ** test: get_app_session_returns_session
+def test_get_app_session_returns_session(monkeypatch):
     '''
-    Test that get_app_interface returns the interface resolved by the
+    Test that get_app_session returns the session resolved by the
     GetAppSession event, sourcing the app service from create_app_service.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Arrange a sample interface and a mock app service that returns it.
+    # Arrange a sample session and a mock app service that returns it.
     sample = AppSession(
         id='tiferet_app',
         name='Tiferet App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     app_service = mock.Mock()
     app_service.get.return_value = sample
@@ -208,25 +206,25 @@ def test_get_app_interface_returns_interface(monkeypatch):
         lambda *args, **kwargs: app_service,
     )
 
-    # Retrieve the interface by id.
-    result = get_app_interface('tiferet_app')
+    # Retrieve the session by id.
+    result = get_app_session('tiferet_app')
 
-    # Assert the interface is returned and looked up by id via the app service.
+    # Assert the session is returned and looked up by id via the app service.
     assert result is sample
     app_service.get.assert_called_once_with('tiferet_app')
 
 
-# ** test: get_app_interface_raises_when_absent
-def test_get_app_interface_raises_when_absent(monkeypatch):
+# ** test: get_app_session_raises_when_absent
+def test_get_app_session_raises_when_absent(monkeypatch):
     '''
-    Test that get_app_interface raises APP_INTERFACE_NOT_FOUND when the app
-    service cannot resolve the requested interface.
+    Test that get_app_session raises APP_SESSION_NOT_FOUND when the app
+    service cannot resolve the requested session.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Arrange a mock app service that resolves no interface.
+    # Arrange a mock app service that resolves no session.
     app_service = mock.Mock()
     app_service.get.return_value = None
 
@@ -238,7 +236,7 @@ def test_get_app_interface_raises_when_absent(monkeypatch):
 
     # Assert retrieval raises the not-found error.
     with pytest.raises(TiferetError) as exc_info:
-        get_app_interface('missing')
+        get_app_session('missing')
 
     # Assert the structured error code.
     assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID
@@ -256,8 +254,6 @@ def test_build_app_service_container_exposes_core_services():
     interface = AppSession(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
 
     # Build the app service container.
@@ -279,8 +275,6 @@ def test_build_app_service_container_interface_service_override():
     interface = AppSession(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
         services=[
             AppServiceDependency(
                 service_id='error_service',
@@ -308,8 +302,6 @@ def test_build_app_service_container_interface_constant_override():
     interface = AppSession(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
         constants={'error_config': 'override.yml'},
     )
 
@@ -354,8 +346,6 @@ def test_build_app_service_container_constant_override_propagates_to_redeclared_
     interface = AppSession(
         id='test',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
         constants={'error_config': 'override.yml'},
         services=[
             AppServiceDependency(
@@ -1035,8 +1025,6 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
     app_session = AppSession(
         id='test_app',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     cache = CacheContext()
 
@@ -1086,8 +1074,6 @@ def test_build_app_session_context_injects_logging_context_via_build_logging_con
     app_session = AppSession(
         id='test_app',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     result = build_app_session_context(app_session, CacheContext())
 
@@ -1129,8 +1115,6 @@ def test_build_app_session_context_wires_four_fe4_handlers(monkeypatch):
     app_session = AppSession(
         id='test_app',
         name='Test App',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     result = build_app_session_context(app_session, CacheContext())
 
@@ -1155,8 +1139,6 @@ def test_build_app_success(monkeypatch):
     app_session = AppSession(
         id='test_calc',
         name='Test Calculator',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     app_context = mock.Mock(spec=AppSessionContext)
 
@@ -1189,8 +1171,6 @@ def test_build_app_invalid_context(monkeypatch):
     app_session = AppSession(
         id='invalid_interface',
         name='Invalid',
-        module_path='tiferet.contexts.app',
-        class_name='AppSessionContext',
     )
     monkeypatch.setattr(
         'tiferet.blueprints.core.get_app_session',

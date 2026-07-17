@@ -11,7 +11,7 @@ from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
-from ..domain import AppSession, AppInterface, AppServiceDependency, Feature
+from ..domain import AppSession, AppServiceDependency, Feature
 from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
@@ -554,7 +554,3 @@ class AppSessionContext(BaseContext):
         # Build and return the response via the template method.
         return self.build_response(request)
 
-
-# ** context: app_interface_context (obsolete)
-# -- obsolete: superseded by AppSessionContext; remove at v2.0.0 stable
-AppInterfaceContext = AppSessionContext

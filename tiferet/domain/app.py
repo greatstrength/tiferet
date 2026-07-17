@@ -49,22 +49,6 @@ class AppSession(DomainObject):
         description='The description of the application interface.',
     )
 
-    # * attribute: module_path
-    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
-    # ++ todo: remove at v2.0.0 stable
-    module_path: str = Field(
-        ...,
-        description='The module path for the application instance context.',
-    )
-
-    # * attribute: class_name
-    # -- obsolete: superseded by blueprint-level context class declaration; remove at v2.0.0 stable
-    # ++ todo: remove at v2.0.0 stable
-    class_name: str = Field(
-        ...,
-        description='The class name for the application instance context.',
-    )
-
     # * attribute: logger_id
     logger_id: str = Field(
         default='default',
@@ -138,7 +122,3 @@ class AppSession(DomainObject):
         # Return a new session with the merged services and constants.
         return self.model_copy(update=dict(services=services, constants=constants))
 
-
-# ** model: app_interface (obsolete)
-# -- obsolete: superseded by AppSession; remove at v2.0.0 stable
-AppInterface = AppSession

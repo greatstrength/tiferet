@@ -52,10 +52,6 @@ APP_SERVICE_IMPORT_FAILED_ID = 'APP_SERVICE_IMPORT_FAILED'
 # ** constant: feature_step_loading_failed_id
 FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
 
-# ** constant: feature_command_loading_failed_id (obsolete)
-# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED_ID; remove at v2.0.0 stable
-FEATURE_COMMAND_LOADING_FAILED_ID = FEATURE_STEP_LOADING_FAILED_ID
-
 # ** constant: middleware_loading_failed_id
 MIDDLEWARE_LOADING_FAILED_ID = 'MIDDLEWARE_LOADING_FAILED'
 
@@ -306,10 +302,6 @@ FEATURE_STEP_LOADING_FAILED = create_default_error(
     [(EN_US, 'Failed to load feature step: {service_id}. Error: {exception}.')],
 )
 
-# ** constant: feature_command_loading_failed (obsolete)
-# -- obsolete: renamed to FEATURE_STEP_LOADING_FAILED; remove at v2.0.0 stable
-FEATURE_COMMAND_LOADING_FAILED = FEATURE_STEP_LOADING_FAILED
-
 # ** constant: middleware_loading_failed
 MIDDLEWARE_LOADING_FAILED = create_default_error(
     MIDDLEWARE_LOADING_FAILED_ID,
@@ -485,10 +477,6 @@ APP_SESSION_NOT_FOUND = create_default_error(
     [(EN_US, 'App session with ID {interface_id} not found.')],
 )
 
-# ** constant: app_interface_not_found (obsolete)
-# -- obsolete: superseded by APP_SESSION_NOT_FOUND; remove at v2.0.0 stable
-APP_INTERFACE_NOT_FOUND = APP_SESSION_NOT_FOUND
-
 # ** constant: invalid_service_registration
 INVALID_SERVICE_REGISTRATION = create_default_error(
     INVALID_SERVICE_REGISTRATION_ID,
@@ -530,10 +518,6 @@ INVALID_APP_SESSION_TYPE = create_default_error(
     'Invalid App Session Type',
     [(EN_US, '{attribute} must be a non-empty string.')],
 )
-
-# ** constant: invalid_app_interface_type (obsolete)
-# -- obsolete: superseded by INVALID_APP_SESSION_TYPE; remove at v2.0.0 stable
-INVALID_APP_INTERFACE_TYPE = INVALID_APP_SESSION_TYPE
 
 # ** constant: sqlite_conn_already_open
 SQLITE_CONN_ALREADY_OPEN = create_default_error(

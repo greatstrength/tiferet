@@ -235,6 +235,3 @@ def build_admin_app(
     # Return the validated admin app session context.
     return app_session_context
 
-# ** blueprint: build_tiferet_app (obsolete)
-# -- obsolete: superseded by build_admin_app; remove at v2.0.0 stable
-build_tiferet_app = build_admin_app

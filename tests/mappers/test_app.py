@@ -8,7 +8,6 @@ import pytest
 # ** app
 from tiferet.domain import AppServiceDependency
 from tiferet.assets import TiferetError, const
-from tiferet.mappers.settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from tiferet.mappers.app import (
     AppSessionAggregate,
     AppSessionConfigObject,
@@ -24,8 +23,6 @@ AGGREGATE_SAMPLE_DATA = {
     'id': 'test.interface',
     'name': 'Test Interface',
     'description': 'The test app interface.',
-    'module_path': DEFAULT_MODULE_PATH,
-    'class_name': DEFAULT_CLASS_NAME,
     'flags': ['test_feature', 'test_data'],
     'logger_id': 'default',
     'services': [
@@ -54,8 +51,6 @@ EQUALITY_FIELDS = [
     'id',
     'name',
     'description',
-    'module_path',
-    'class_name',
     'logger_id',
     'flags',
     'constants',
@@ -114,8 +109,6 @@ class TestAppSessionAggregate(AggregateTestBase):
         ('flags',        ['flag1', 'flag2'],       None),
         # invalid
         ('invalid_attr', 'value',                  const.INVALID_MODEL_ATTRIBUTE_ID),
-        ('module_path',  '',                       const.INVALID_APP_SESSION_TYPE_ID),
-        ('class_name',   '   ',                    const.INVALID_APP_SESSION_TYPE_ID),
     ]
 
     # * method: make_aggregate
@@ -310,8 +303,6 @@ class TestAppSessionConfigObject(TransferObjectTestBase):
         'id': 'test.interface',
         'name': 'Test Interface',
         'description': 'The test app interface.',
-        'module_path': DEFAULT_MODULE_PATH,
-        'class_name': DEFAULT_CLASS_NAME,
         'flags': ['test_feature', 'test_data'],
         'logger_id': 'default',
         'services': {

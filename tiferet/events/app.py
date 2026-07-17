@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 # ** app
 from .core import DomainEvent, a
-from ..domain import AppSession, AppInterface
+from ..domain import AppSession
 from ..interfaces import AppService
 from ..mappers import AppSessionAggregate
 
@@ -39,16 +39,11 @@ class AddAppSession(AppEvent):
     '''
 
     # * method: execute
-    # -- obsolete: module_path and class_name params will be dropped when the domain
-    #    fields are removed at v2.0.0 stable
-    # ++ todo: remove module_path and class_name params at v2.0.0 stable
-    @DomainEvent.parameters_required(['id', 'name', 'module_path', 'class_name'])
+    @DomainEvent.parameters_required(['id', 'name'])
     def execute(
         self,
         id: str,
         name: str,
-        module_path: str,
-        class_name: str,
         description: str | None = None,
         logger_id: str = 'default',
         flags: List[str] = ['default'],
@@ -59,16 +54,12 @@ class AddAppSession(AppEvent):
         '''
         Create and save a new AppSession using the injected AppService.
 
-        Required parameters: ``id``, ``name``, ``module_path``, ``class_name``.
+        Required parameters: ``id``, ``name``.
 
-        :param id: Unique identifier for the app interface.
+        :param id: Unique identifier for the app session.
         :type id: str
-        :param name: Human readable name of the interface.
+        :param name: Human readable name of the session.
         :type name: str
-        :param module_path: Python module path of the app context class.
-        :type module_path: str
-        :param class_name: Name of the app context class.
-        :type class_name: str
         :param description: Optional description.
         :type description: str | None
         :param logger_id: Optional logger identifier, defaults to ``'default'``.
@@ -95,8 +86,6 @@ class AddAppSession(AppEvent):
         app_session_data = {
             'id': id,
             'name': name,
-            'module_path': module_path,
-            'class_name': class_name,
             'description': description,
             'logger_id': logger_id,
             'flags': flags,
@@ -388,23 +377,3 @@ class RemoveAppSession(AppEvent):
         # Return the session ID.
         return id
 
-
-# ** event: add_app_interface (obsolete)
-# -- obsolete: superseded by AddAppSession; remove at v2.0.0 stable
-AddAppInterface = AddAppSession
-
-# ** event: get_app_interface (obsolete)
-# -- obsolete: superseded by GetAppSession; remove at v2.0.0 stable
-GetAppInterface = GetAppSession
-
-# ** event: update_app_interface (obsolete)
-# -- obsolete: superseded by UpdateAppSession; remove at v2.0.0 stable
-UpdateAppInterface = UpdateAppSession
-
-# ** event: list_app_interfaces (obsolete)
-# -- obsolete: superseded by ListAppSessions; remove at v2.0.0 stable
-ListAppInterfaces = ListAppSessions
-
-# ** event: remove_app_interface (obsolete)
-# -- obsolete: superseded by RemoveAppSession; remove at v2.0.0 stable
-RemoveAppInterface = RemoveAppSession

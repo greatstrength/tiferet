@@ -138,7 +138,7 @@ def derive_feature_request(parsed: Dict[str, Any]) -> Tuple[str, Dict[str, str]]
 # *** blueprints
 
 # ** blueprint: build_cli_cache
-@add_default_cli_commands(a.cli.DEFAULT_TIFERET_CLI_COMMANDS)
+@add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)
 def build_cli_cache(cache: Dict[str, Any] = None) -> CacheContext:
     '''
     Build a cache context seeded with the framework defaults plus the

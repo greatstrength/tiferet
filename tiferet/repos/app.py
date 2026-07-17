@@ -47,9 +47,8 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load the sessions mapping from the configuration file.
-        # ++ todo: remove interfaces: fallback at v2.0.0 stable
         interfaces_data = self._load(
-            start_node=lambda data: data.get('sessions') or data.get('interfaces', {})
+            start_node=lambda data: data.get('sessions', {})
         )
 
         # Return whether the interface id exists in the mapping.
@@ -67,9 +66,8 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load the specific session data from the configuration file.
-        # ++ todo: remove interfaces: fallback at v2.0.0 stable
         interface_data = self._load(
-            start_node=lambda data: (data.get('sessions') or data.get('interfaces', {})).get(id)
+            start_node=lambda data: data.get('sessions', {}).get(id)
         )
 
         # If no data is found, return None.
@@ -91,9 +89,8 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load all sessions data from the configuration file.
-        # ++ todo: remove interfaces: fallback at v2.0.0 stable
         interfaces_data = self._load(
-            start_node=lambda data: data.get('sessions') or data.get('interfaces', {})
+            start_node=lambda data: data.get('sessions', {})
         )
 
         # Map each session entry to an AppSessionAggregate.
@@ -141,10 +138,8 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         # Load the full configuration file.
         full_data = self._load()
 
-        # Remove the session entry from both sessions: and interfaces: sections (idempotent).
-        # ++ todo: remove interfaces: fallback at v2.0.0 stable
+        # Remove the session entry from the sessions section (idempotent).
         full_data.get('sessions', {}).pop(id, None)
-        full_data.get('interfaces', {}).pop(id, None)
 
         # Persist the updated configuration file.
         self._save(full_data)

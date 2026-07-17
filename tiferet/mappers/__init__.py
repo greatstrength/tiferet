@@ -7,8 +7,6 @@ __all__ = [
     'TransferObject',
     'AppSessionAggregate',
     'AppSessionConfigObject',
-    'AppInterfaceAggregate',  # obsolete: superseded by AppSessionAggregate; remove at v2.0.0 stable
-    'AppInterfaceConfigObject',  # obsolete: superseded by AppSessionConfigObject; remove at v2.0.0 stable
     'ServiceRegistrationAggregate',
     'ServiceRegistrationConfigObject',
     'CliArgumentAggregate',
@@ -39,8 +37,6 @@ from .core import (
 from .app import (
     AppSessionAggregate,
     AppSessionConfigObject,
-    AppInterfaceAggregate,
-    AppInterfaceConfigObject,
 )
 from .di import (
     ServiceRegistrationAggregate,

@@ -23,20 +23,16 @@ ANOTHER_APP_ID = 'another.app'
 
 # ** constant: app_data
 APP_DATA: Dict[str, Dict] = {
-    'interfaces': {
+    'sessions': {
         TEST_APP_ID: {
             'name': 'Test App',
             'description': 'A test app interface.',
-            'module': 'tiferet.apps.test',
-            'class': 'TestApp',
             'attrs': {},
             'const': {},
         },
         ANOTHER_APP_ID: {
             'name': 'Another App',
             'description': 'Another test app interface.',
-            'module': 'tiferet.apps.another',
-            'class': 'AnotherApp',
             'attrs': {},
             'const': {},
         },
@@ -117,15 +113,11 @@ def test_int_app_config_repo_get(
     assert app
     assert app.id == TEST_APP_ID
     assert app.name == 'Test App'
-    assert app.module_path == 'tiferet.apps.test'
-    assert app.class_name == 'TestApp'
 
     # Check the second app interface.
     assert another_app
     assert another_app.id == ANOTHER_APP_ID
     assert another_app.name == 'Another App'
-    assert another_app.module_path == 'tiferet.apps.another'
-    assert another_app.class_name == 'AnotherApp'
 
 # ** test_int: app_config_repo_get_not_found
 def test_int_app_config_repo_get_not_found(
@@ -184,8 +176,6 @@ def test_int_app_config_repo_save(
         id=new_app_id,
         name='New App',
         description='A new test app interface.',
-        module_path='tiferet.apps.new',
-        class_name='NewApp',
         attributes={},
         constants={},
     )).map()
@@ -200,8 +190,6 @@ def test_int_app_config_repo_save(
     assert new_app
     assert new_app.id == new_app_id
     assert new_app.name == 'New App'
-    assert new_app.module_path == 'tiferet.apps.new'
-    assert new_app.class_name == 'NewApp'
 
 # ** test_int: app_config_repo_delete
 def test_int_app_config_repo_delete(
