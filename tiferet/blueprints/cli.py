@@ -294,6 +294,9 @@ def build_cli_session_context(
     # Build the feature-level resolver from the app container.
     resolver = core.build_service_resolver(app_container)
 
+    # Build the logging context once at session startup (parallel to core path).
+    logging_ctx = core.build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
+
     # Resolve the CLI event collaborators from the app container.
     list_commands_evt = app_container.get_dependency('list_commands_evt')
     get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
@@ -306,11 +309,12 @@ def build_cli_session_context(
     )
 
     # Resolve the context's other collaborators from the app container by id,
-    # skipping the explicitly supplied handler params, resolver, cache, and
-    # the CLI arg-parser (injected separately below).
+    # skipping the explicitly supplied handler params, resolver, cache,
+    # the pre-built logging context, and the CLI arg-parser (injected separately below).
     reserved = {
         'get_dependency',
         'cache',
+        'logging_context',
         'execute_feature_handler',
         'create_request_handler',
         'raise_error_handler',
@@ -339,6 +343,7 @@ def build_cli_session_context(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
+        logging_context=logging_ctx,
         parse_cli_args=parse_cli_args,
         **handlers,
         **collaborators,
