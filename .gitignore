@@ -169,6 +169,9 @@ test.py
 # TRD local copies
 .trd/
 
+# Milestone planning artifacts (local, do not commit)
+.milestones/
+
 # Tiferet local artifacts (temporary, do not commit)
 .eloha/
 
