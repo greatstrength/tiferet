@@ -159,30 +159,6 @@ class FileService(Service):
    - Declare the Service as a constructor dependency (e.g., `error_service: ErrorService`).
    - Depend only on the interface for all vertical operations.
 
-## Migration from Contracts
-
-The `tiferet.interfaces` package is the successor to `tiferet.contracts` and represents the canonical location for service interfaces going forward.
-
-### Package Rename Rationale
-The rename from `contracts` to `interfaces` better reflects the purpose of these components as abstract service interfaces, aligning with widely understood software engineering terminology and the v2.0 architectural direction.
-
-### Artifact Comment Changes
-When migrating service files from `tiferet.contracts` to `tiferet.interfaces`, update the artifact comments as follows:
-
-- `# *** contracts` → `# *** interfaces`
-- `# ** contract: <name>` → `# ** interface: <name>`
-
-All other artifact comments (`# * method:`, `# * attribute:`, etc.) remain unchanged.
-
-### Incremental Migration Path
-Migration of concrete service interfaces (e.g., `ErrorService`, `FeatureService`, `ContainerService`) from `tiferet.contracts` to `tiferet.interfaces` will proceed incrementally:
-
-1. **Phase 1 (current)**: Only the base `Service` class is ported to `tiferet.interfaces.settings`. All domain-specific interfaces remain in `tiferet.contracts`.
-2. **Phase 2 (future)**: Individual service interfaces will be migrated as their dependent aggregates, mappers, and domain events become available in the v2.0 architecture.
-3. **Backward compatibility**: During migration, `tiferet.contracts` will continue to function. No existing imports will break until an explicit deprecation cycle is initiated.
-
-New service interfaces should be created in `tiferet.interfaces` from the start.
-
 ## Best Practices
 - Use artifact comments consistently (`# * method`, `# * attribute`).
 - Define methods with clear RST docstrings, type hints, and domain intent.
@@ -225,4 +201,4 @@ For async middleware, implement `async def __call__` and `await next_fn()`. The 
 
 Services are the unified vertical interfaces in Tiferet, serving as the primary interface for middleware, data access, configuration management, and utilities. Commands and domain events depend exclusively on these Service interfaces, achieving high decoupling, testability, and extensibility. Concrete implementations satisfy the Service interfaces while hiding infrastructure details.
 
-Explore `tiferet/interfaces/` for base definitions, `tiferet/contracts/` for current domain-specific Service interfaces, and `tiferet/middleware/` and `tiferet/repos/` for implementation patterns.
+Explore `tiferet/interfaces/` for base definitions and `tiferet/repos/` for implementation patterns.

@@ -405,27 +405,17 @@ FIELD_NORMALIZERS = {
 ```
 
 #### Child Mapper Tests
-When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppInterfaceConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
+When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppSessionConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
 
 #### Standalone Tests
 Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
-
-### Migration Status
-
-The following test modules have been migrated to the harness-based style:
-- `test_app.py`, `test_cli.py`, `test_di.py`, `test_error.py`, `test_feature.py`, `test_logging.py`
-
-The following use the legacy standalone style and are candidates for migration:
-- `test_container.py`
-
-`test_settings.py` tests the base classes themselves and appropriately uses standalone functions.
 
 ## Package Layout
 
 Mappers are defined in `tiferet/mappers/`:
 
 - `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppInterfaceAggregate`, `AppInterfaceConfigObject`.
+- `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
 - `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
 - `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
 - `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.
@@ -435,23 +425,10 @@ Mappers are defined in `tiferet/mappers/`:
 
 Tests live in `tiferet/mappers/tests/`.
 
-## Migration from Schematics to Pydantic v2
-
-The mappers layer was migrated from `schematics.Model` to Pydantic v2:
-
-- `Aggregate.new(Type, **kwargs)` → Direct Pydantic constructor: `Type(**kwargs)`.
-- `set_attribute` now checks `model_fields` instead of `hasattr`; `validate_assignment=True` handles re-validation.
-- `TransferObject.from_data(Type, **kwargs)` → `Type.model_validate(data_dict)`.
-- `TransferObject.allow()` / `deny()` / `class Options` / `serialize_when_none` → `_ROLES` ClassVar with `model_dump` kwargs (`include`, `exclude`, `by_alias`, `exclude_none`).
-- `to_primitive(role)` now delegates to `model_dump` with role-resolved kwargs.
-- `from_model` is now a `@classmethod` on `TransferObject` using `model_dump(by_alias=False)` + `model_validate`.
-- Attribute aliasing: `serialized_name` → `serialization_alias`; `deserialize_from` → `validation_alias` with `AliasChoices`.
-
 ## Conclusion
 
 The mappers layer provides the structural bridge between persistent configuration and runtime domain objects, with clear separation between mutation (`Aggregate`) and serialization (`TransferObject`). This design enables:
 - Validated, mutation-safe domain updates.
 - Role-based serialization for multiple output formats.
-- Incremental migration from the legacy `DataObject` pattern.
 
 Explore source in `tiferet/mappers/` and tests in `tiferet/mappers/tests/` for implementation details.
