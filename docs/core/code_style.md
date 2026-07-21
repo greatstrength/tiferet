@@ -337,14 +337,14 @@ Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-leve
 ```python
 # *** tests
 
-# ** test: TestAddAppInterface
-class TestAddAppInterface(DomainEventTestBase):
+# ** test: TestAddAppSession
+class TestAddAppSession(DomainEventTestBase):
     '''
-    Tests for AddAppInterface using the domain event test harness.
+    Tests for AddAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = AddAppInterface
+    event_cls = AddAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -369,8 +369,8 @@ class TestAddAppInterface(DomainEventTestBase):
         # Execute via the harness handle helper.
         interface = self.handle(mock_dependencies)
 
-        # Assert the result is an AppInterface instance.
-        assert isinstance(interface, AppInterface)
+        # Assert the result is an AppSession instance.
+        assert isinstance(interface, AppSession)
 
         # Assert the interface is saved via the app service.
         mock_dependencies['app_service'].save.assert_called_once_with(interface)
@@ -397,14 +397,14 @@ When a test class needs a pre-configured service mock (e.g., `get()` returns a r
 ```python
     # * fixture: mock_dependencies
     @pytest.fixture
-    def mock_dependencies(self, app_interface):
+    def mock_dependencies(self, app_session):
         '''
-        Override to provide a service mock pre-configured with an app_interface.
+        Override to provide a service mock pre-configured with an app_session.
         '''
 
-        # Create a mock AppService that returns the app_interface on get.
+        # Create a mock AppService that returns the app_session on get.
         service = mock.Mock(spec=AppService)
-        service.get.return_value = app_interface
+        service.get.return_value = app_session
         return {'app_service': service}
 ```
 
@@ -434,11 +434,13 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
 - **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** – Assets layer conventions (imports, constants, functions, standalone classes, exports).
+- **[blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md)** – Blueprint orchestration conventions.
+- **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context conventions (high-level and low-level runtime shape).
+- **[di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md)** – Dependency injection layer conventions.
 - **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
 - **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
-- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
+- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
+- **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing harness conventions (AggregateTestBase, TransferObjectTestBase, DomainEventTestBase).
 - **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.
-
-Additional component-style documents (e.g., contexts) will be added as the framework evolves. Refer to this list for the current set of authoritative style guides.

@@ -7,14 +7,14 @@ Contexts are a core component of the Tiferet framework, representing the structu
 A Context in Tiferet is a class that encapsulates a specific aspect of an application’s runtime behavior, such as user-facing interactions (e.g., CLI, web), feature execution, dependency injection, error handling, caching, or logging. Contexts form a graph-like structure during execution, defining how the application processes inputs, executes domain logic, and returns outputs. They align with Domain-Driven Design (DDD) principles, isolating concerns to ensure modularity and extensibility.
 
 ### Types of Contexts
-All contexts extend `BaseContext` (`tiferet/contexts/settings.py`), which provides a shared `services` slot and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`). Caching is not part of the base; contexts that need a `CacheContext` (e.g., `AppInterfaceContext`, `FeatureContext`) declare and wire it themselves.
+All contexts extend `BaseContext` (`tiferet/contexts/settings.py`), which provides a shared `services` slot and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`). Caching is not part of the base; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) declare and wire it themselves.
 
 Tiferet recognizes two broad categories:
 
-- **High-Level Contexts**: Handle user interactions (e.g., `CliContext` for command-line interfaces, `FlaskApiContext` for web APIs). They extend `AppInterfaceContext`, the minimal hub built declaratively from the loaded `AppInterface`. CLI interfaces point at `CliContext`, which owns argparse parsing; the `build_cli` blueprint is a thin entrypoint that delegates to `CliContext.run_cli`.
+- **High-Level Contexts**: Handle user interactions (e.g., `CliContext` for command-line interfaces, `FlaskApiContext` for web APIs). They extend `AppSessionContext`, the minimal hub built declaratively from the loaded `AppSession`. CLI interfaces point at `CliContext`, which owns argparse parsing; the `build_cli` blueprint is a thin entrypoint that delegates to `CliContext.run_cli`.
 - **Low-Level Contexts**: Support specific functions (e.g., `FeatureContext`, `AsyncFeatureContext`, `ErrorContext`, `CacheContext`, `RequestContext`, `LoggingContext`).
 
-In the calculator application, `AppInterfaceContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
+In the calculator application, `AppSessionContext` handles feature execution, while low-level contexts manage dependency injection, error handling, and logging.
 
 **Note on Method Design**: The nature of methods in Contexts is not restrictive regarding inputs and outputs. Methods must be defined according to the domain requirements of the context containing them, allowing flexibility for domain-specific tasks while maintaining clear, documented signatures.
 
@@ -45,22 +45,22 @@ from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
 from .logging import LoggingContext
-from ..domain import AppInterface
+from ..domain import AppSession
 
 # *** contexts
 
 # ** context: app_interface_context
-class AppInterfaceContext(BaseContext):
+class AppSessionContext(BaseContext):
 
     # * attribute: domain_type
-    domain_type = AppInterface
+    domain_type = AppSession
 
     # * init
     def __init__(self, get_feature_evt, get_error_evt, logging_list_all_evt,
                  get_dependency, cache=None,
                  default_features=None, default_commands=None):
         '''
-        Initialize the hub. The loaded AppInterface is bound via from_domain as
+        Initialize the hub. The loaded AppSession is bound via from_domain as
         self.domain, supplying the interface id and logger id on demand.
         '''
         super().__init__()
@@ -111,21 +111,21 @@ These getters let the `build_app_service_container` blueprint pull the framework
 
 ### Creating a New Context
 1. Place under `# *** contexts` in appropriate module.
-2. Extend `AppInterfaceContext` for high-level contexts or base class for low-level.
+2. Extend `AppSessionContext` for high-level contexts or base class for low-level.
 3. Use `# * attribute`, `# * init`, `# * method` comments.
 4. Follow spacing and docstring conventions.
 
 **Example** – High-level `FlaskApiContext`:
 ```python
 # ** context: flask_api_context
-class FlaskApiContext(AppInterfaceContext):
+class FlaskApiContext(AppSessionContext):
 
     # * attribute: flask_handler
     flask_handler: FlaskApiHandler
 
     # * init
     def __init__(self, flask_handler, **kwargs):
-        # Forward the resolved hub collaborators/defaults to AppInterfaceContext.
+        # Forward the resolved hub collaborators/defaults to AppSessionContext.
         # The blueprint imports this class from the interface's module_path/
         # class_name and constructs it via from_domain.
         super().__init__(**kwargs)
@@ -148,7 +148,7 @@ class FlaskApiContext(AppInterfaceContext):
 
 Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `# *** tests`.
 
-**Example** – `AppInterfaceContext` test:
+**Example** – `AppSessionContext` test:
 ```python
 # *** fixtures
 
@@ -156,7 +156,7 @@ Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `#
 @pytest.fixture
 def app_interface_context(app_interface, feature_context, error_context, logging_context):
     # Build the hub declaratively from a loaded interface with mock events.
-    context = AppInterfaceContext.from_domain(
+    context = AppSessionContext.from_domain(
         app_interface,
         get_feature_evt=mock.Mock(),
         get_error_evt=mock.Mock(),

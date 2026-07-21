@@ -6,7 +6,7 @@ While contexts define the runtime shape and behavior of an individual interface,
 
 ## What is a Blueprint?
 
-A blueprint in Tiferet is a module-level function that encapsulates the initialization and orchestration logic required to prepare and run an application interface. Blueprints are intentionally thin: they focus on service loading, default configuration injection, dependency wiring, and delegation to the appropriate `AppInterfaceContext`.
+A blueprint in Tiferet is a module-level function that encapsulates the initialization and orchestration logic required to prepare and run an application interface. Blueprints are intentionally thin: they focus on service loading, default configuration injection, dependency wiring, and delegation to the appropriate `AppSessionContext`.
 
 The canonical implementation is `build_app` in `tiferet/blueprints/core.py` (exported as `App`), which chains the composition functions `build_cache` → `get_app_session` → `build_app_session_context`. The built-in CLI bootstrapper (`build_tiferet_cli`) uses a separate declarative bootstrap path in `tiferet/blueprints/tiferet_cli.py`.
 
@@ -89,7 +89,7 @@ The core path sources the framework's `CORE_DEFAULT_SERVICES` / `CORE_DEFAULT_CO
 container = build_app_service_container(cache, app_session)  # cache defaults + session overrides
 ```
 
-The `AppInterface.apply_defaults` domain method and the `resolve_default_interface` bootstrap fallback are used by the built-in bootstrappers (`_resolve_bootstrap_session` in `tiferet/blueprints/tiferet_cli.py`), whose sessions (`tiferet_app`, `tiferet_cli`) are not defined in the consumer config.
+The `AppSession.apply_defaults` domain method and the `resolve_default_interface` bootstrap fallback are used by the built-in bootstrappers (`_resolve_bootstrap_session` in `tiferet/blueprints/tiferet_cli.py`), whose sessions (`tiferet_app`, `tiferet_cli`) are not defined in the consumer config.
 
 **Cache pre-seeding**  
 The core `build_cache` blueprint (`tiferet/blueprints/core.py`) pre-seeds a `CacheContext` with three framework catalogs via stacked decorators — `add_default_errors`, `add_default_app_services`, and `add_default_app_constants` (the latter two defined in `contexts/app.py`) — namespacing each catalog under its own cache-key prefix (`error_`, `app_service_`, `app_constant_`). Errors and services are reconstituted into domain objects (`Error`, `AppServiceDependency`); constants are seeded as scalars:
@@ -130,7 +130,7 @@ Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 
 ## Conclusion
 
-Blueprints provide a clean, high-level API for initializing and running Tiferet applications. They encapsulate service loading, default configuration, and interface resolution while delegating execution to `AppInterfaceContext`. Their functional design ensures consistency, forward-compatibility, and extensibility.
+Blueprints provide a clean, high-level API for initializing and running Tiferet applications. They encapsulate service loading, default configuration, and interface resolution while delegating execution to `AppSessionContext`. Their functional design ensures consistency, forward-compatibility, and extensibility.
 
 Explore source in `tiferet/blueprints/` and blueprint tests in the top-level `tests/` tree for implementation details.
 

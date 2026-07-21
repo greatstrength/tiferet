@@ -13,7 +13,7 @@ The `tiferet/di/` package provides the dependency-injection layer for the Tifere
 
 The DI layer is deliberately **event-free and asset-free**: it imports only the standard library, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di` (`DIService`). It assumes best-case inputs and raises raw exceptions, leaving structured error handling to callers that have event access. Parameter parsing (e.g. `$env.` references) is injected as a `parse_parameter` callable so DI never imports `ParseParameter` itself.
 
-App-level core services resolve as shared **Singletons** (`DIAppServiceContainer`), while feature-level services resolve per flag set as **Factories** (`DIDynamicServiceResolver`). Contexts (`AppInterfaceContext`, `FeatureContext`) consume an injected `get_dependency` callable rather than holding a provider or container directly.
+App-level core services resolve as shared **Singletons** (`DIAppServiceContainer`), while feature-level services resolve per flag set as **Factories** (`DIDynamicServiceResolver`). Contexts (`AppSessionContext`, `FeatureContext`) consume an injected `get_dependency` callable rather than holding a provider or container directly.
 
 This document describes the structure, design principles, and best practices for the DI layer, adhering to Tiferet's structured code style ([docs/core/code_style.md](code_style.md)).
 
@@ -275,7 +275,7 @@ class ServiceResolver(object):
 
 The contexts do not hold a container or provider. Instead, the resolver's bound `get_dependency` method is injected as a plain callable:
 
-- `AppInterfaceContext` receives `get_dependency` and forwards it to the feature context it builds on demand.
+- `AppSessionContext` receives `get_dependency` and forwards it to the feature context it builds on demand.
 - `FeatureContext` (and `AsyncFeatureContext`) call `self.get_dependency(service_id, *flags)` to resolve each step's domain event and any configured middleware.
 
 ```python

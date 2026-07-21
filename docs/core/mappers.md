@@ -405,7 +405,7 @@ FIELD_NORMALIZERS = {
 ```
 
 #### Child Mapper Tests
-When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppInterfaceConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
+When a TransferObject contains nested child mappers (e.g., `AppServiceDependencyConfigObject` inside `AppSessionConfigObject`), test the child within the parent's test class under a `# *** child mapper: <ChildName>` sub-section.
 
 #### Standalone Tests
 Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject`) may use standalone test functions instead of the harness, placed after the class-based tests.
@@ -415,7 +415,7 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject
 Mappers are defined in `tiferet/mappers/`:
 
 - `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
-- `app.py` — `AppInterfaceAggregate`, `AppInterfaceConfigObject`.
+- `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
 - `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
 - `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
 - `error.py` — `ErrorAggregate`, `ErrorConfigObject`, `ErrorMessageConfigObject`.

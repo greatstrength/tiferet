@@ -15,8 +15,8 @@ Domain objects serve a **dual role**:
    - Used by Contexts to perform domain-specific work (e.g., `ErrorContext` retrieves and formats an `Error` for response generation).
 
 2. **Structural Foundation for the Mappers Layer**  
-   - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
-   - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
+  - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
+  - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
    - Define the field shape mirrored in YAML/JSON configuration files.
    - Enable reliable round-trip mapping between persistent configuration and runtime models.
 
@@ -161,12 +161,12 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 Domain objects are defined in `tiferet/domain/`:
 
 - `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
-- `app.py` – `AppInterface`, `AppServiceDependency`.
+- `app.py` – `AppSession`, `AppServiceDependency`.
 - `cli.py` – `CliCommand`, `CliArgument`.
 - `di.py` – `ServiceRegistration`, `FlaggedDependency`.
 - `error.py` – `Error`, `ErrorMessage`.
 - `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
-- `logging.py` – `Formatter`, `Handler`, `Logger`.
+- `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
 - `__init__.py` – Public exports for all domain objects.
 
 Tests live in `tiferet/domain/tests/`.
