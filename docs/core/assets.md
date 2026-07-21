@@ -22,7 +22,7 @@ There are no domain objects, aggregates, services, events, or contexts here. Tha
 ## The Assets Layer's Role
 
 - **Exceptions** — `TiferetError` and `TiferetAPIError` (`exceptions.py`) are the structured error types raised throughout the framework.
-- **Constants** — error-code identifiers and the `DEFAULT_ERRORS` catalog (`constants.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
+- **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
 - **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
 
 ## Structured Code Design
@@ -37,14 +37,7 @@ Assets modules follow the standard Tiferet artifact comment hierarchy (see [code
 
 **Spacing rules** match the rest of the framework: one empty line between a top-level comment and the first mid-level comment, one empty line between mid-level entries, and one empty line after docstrings and between code snippets.
 
-### Domain-appropriate specializations
-
-Two modules use specialized labels that are variants of the kinds above, chosen for readability:
-
-- **`# *** exceptions` / `# ** exception: <name>`** (`exceptions.py`) — a specialization of standalone **classes** for exception types.
-- **`# *** configs` / `# ** config: <name>`** (`logging.py`) — a specialization of **constants** for default configuration data structures.
-
-Both remain, fundamentally, standalone classes and constants; the specialized labels simply describe intent.
+There are no specialized top-level labels in this layer. Exception types are plain standalone **classes** (`# *** classes` / `# ** class: <name>`), and default configuration data structures are plain **constants** (`# *** constants` / `# ** constant: <name>`).
 
 ## Artifact Kinds
 
@@ -60,58 +53,74 @@ import json
 
 ### Constants
 
-Constants are `SCREAMING_SNAKE_CASE` module-level values. Large related groups may share a descriptive `# ** constants: <group>` comment, and entries nested inside a data structure are annotated in place (e.g., `# * error: <NAME>` within `DEFAULT_ERRORS`):
+Constants are `SCREAMING_SNAKE_CASE` module-level values. Each constant carries its own `# ** constant: <snake_case_name>` label — related constants are not grouped under a shared `# **` comment. A large constants section may instead be partitioned into top-level **sub-groups** (see [code_style.md](code_style.md)); for example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
 
 ```python
 # *** constants
 
+# ** constant: en_us
+EN_US = 'en_US'
+
+# *** constants (error)
+
 # ** constant: error_not_found_id
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
+```
+
+Structured data is built from a factory rather than annotated inline. `DEFAULT_ERRORS` keys each error-id constant to a definition produced by `create_default_error`, and each definition is itself a named constant:
+
+```python
+# ** constant: error_not_found
+ERROR_NOT_FOUND = create_default_error(
+    ERROR_NOT_FOUND_ID,
+    'Error Not Found',
+    [(EN_US, 'Error not found: {id}.')],
+)
 
 # ** constant: default_errors
 DEFAULT_ERRORS = {
-
-    # * error: ERROR_NOT_FOUND
-    ERROR_NOT_FOUND_ID: {
-        'id': ERROR_NOT_FOUND_ID,
-        'name': 'Error Not Found',
-        'message': [
-            {'lang': 'en_US', 'text': 'Error not found: {id}.'}
-        ],
-    },
+    ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND,
 }
 ```
 
 ### Functions
 
-Assets functions are small, stateless helpers with no framework dependencies:
+Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error` (in `constants.py`) builds a default error definition from ordered `(lang, text)` message pairs:
 
 ```python
 # *** functions
 
-# ** function: is_blank
-def is_blank(value: str) -> bool:
+# ** function: create_default_error
+def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
     '''
-    Return True when a string is empty or whitespace-only.
+    Build a default error definition dictionary.
 
-    :param value: The string to inspect.
-    :type value: str
-    :return: True if the value is None or blank, otherwise False.
-    :rtype: bool
+    :param id: The unique identifier of the error.
+    :type id: str
+    :param name: The human-readable error name.
+    :type name: str
+    :param messages: Ordered (lang, text) message pairs.
+    :type messages: List[Tuple[str, str]]
+    :return: The default error definition.
+    :rtype: Dict[str, Any]
     '''
 
-    # Treat None and whitespace-only strings as blank.
-    return value is None or not value.strip()
+    # Assemble and return the default error definition dictionary.
+    return {
+        'id': id,
+        'name': name,
+        'message': [{'lang': lang, 'text': text} for lang, text in messages],
+    }
 ```
 
 ### Classes (standalone)
 
-Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types use the `# *** exceptions` / `# ** exception:` specialization:
+Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types like `TiferetError` are ordinary standalone classes under `# *** classes` / `# ** class:`:
 
 ```python
-# *** exceptions
+# *** classes
 
-# ** exception: tiferet_error
+# ** class: tiferet_error
 class TiferetError(Exception):
     '''
     The base exception for all Tiferet-related errors.
@@ -145,10 +154,8 @@ Only `__init__.py` carries an `# *** exports` section. It re-exports the public 
 
 # ** app
 from .exceptions import TiferetError, TiferetAPIError
-from .constants import (
-    ERROR_NOT_FOUND_ID,
-    DEFAULT_ERRORS,
-)
+from .constants import ERROR_NOT_FOUND_ID
+from .error import DEFAULT_ERRORS
 from . import constants as const
 from . import blueprints as bps
 ```
@@ -156,7 +163,7 @@ from . import blueprints as bps
 ## Creating and Extending Assets Modules
 
 1. Start the module with a docstring, then an `# *** imports` section limited to the standard library and third-party primitives.
-2. Add content under exactly one primary artifact kind per concern — `# *** constants`, `# *** functions`, or `# *** classes` (or the `# *** exceptions` / `# *** configs` specializations).
+2. Add content under exactly one primary artifact kind per concern — `# *** constants`, `# *** functions`, or `# *** classes`.
 3. Do not introduce domain, service, event, mapper, or context artifacts here; if a concern needs one, it belongs in the corresponding layer.
 4. Surface any new public symbols from `__init__.py` under `# *** exports`.
 
@@ -164,8 +171,8 @@ from . import blueprints as bps
 
 - Keep the layer dependency-light: never import from another Tiferet layer.
 - Restrict modules to the five artifact kinds (imports, constants, functions, standalone classes, exports).
-- Use `SCREAMING_SNAKE_CASE` values with `# ** constant: <snake_case>` labels; group large related blocks under `# ** constants: <group>`.
-- Reserve `# *** exceptions` for exception classes and `# *** configs` for default configuration data — both are specializations of the class/constant kinds.
+- Use `SCREAMING_SNAKE_CASE` values, each with its own `# ** constant: <snake_case>` label; do not group multiple constants under a shared `# ** constants: <group>` comment. To partition a large section, use a top-level sub-group (`# *** constants (<sub-group>)`) instead — see [code_style.md](code_style.md).
+- Place exception classes under `# *** classes` and default configuration data under `# *** constants`; build structured defaults from a `# *** functions` factory (e.g., `create_default_error`) rather than annotating entries inline.
 - Write RST docstrings on functions and classes, and keep code snippets separated by single blank lines.
 
 ## Package Layout
@@ -173,7 +180,8 @@ from . import blueprints as bps
 ```
 tiferet/assets/
 ├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
-├── constants.py     — Error-code constants and the DEFAULT_ERRORS catalog
+├── constants.py     — Error-code identifier constants
+├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
 ├── exceptions.py    — TiferetError and TiferetAPIError
 ├── blueprints.py    — Bootstrap default constants and service wiring
 └── logging.py       — Default logging formatters, handlers, and loggers

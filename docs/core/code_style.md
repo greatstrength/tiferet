@@ -9,16 +9,89 @@ This document defines the required code style for all modules in the `tiferet` p
 Artifact comments provide a predictable, machine-readable structure that organizes code into clear sections and sub-sections.
 
 ### Top-Level (`# ***`)
-Denotes major module sections:
+Top-level comments denote major module sections, which fall into two kinds: **preamble groups** (available in every module) and **construct groups** (the module's primary body).
+
+**Preamble artifact section groups** are available in *any* module, regardless of its construct type (`# *** events`, `# *** utils`, etc.). There are four, and they appear in this order when present:
 - `# *** imports` — all import statements.
-- `# *** exports` — public API (only in `__init__.py`).
-- `# *** models`, `# *** commands`, `# *** contexts`, `# *** contracts`, `# *** data`, `# *** repositories`, `# *** proxies` — component groups.
+- `# *** constants` — module-level constant definitions.
+- `# *** functions` — module-level, side-effect-free helper functions. A helper belongs here when it takes only its arguments and returns a plain value: no `self`, no injected services, and no domain-object returns. Prefer this over duplicating the same logic as a static method across classes.
+- `# *** classes` — generic or base classes not tied to a specific construct type (e.g., the base classes defined in a `settings.py`).
+
+**Construct groups** form the primary body of a module and are selected by what the module defines — for example `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`. The `# *** exports` group lists the public API and appears only in `__init__.py`.
+
+A module combines its preamble groups with its construct group(s), ordered `imports` → `constants` → `functions`, then `classes` and/or the construct group(s). For example, a domain-event module that needs a pure helper is laid out as:
+```python
+# *** imports
+...
+
+# *** functions
+
+# ** function: _is_valid_identifier
+def _is_valid_identifier(name: str) -> bool:
+    '''
+    Validate that a name is a valid SQLite identifier.
+
+    :param name: The identifier to validate
+    :type name: str
+    :return: True if valid, False otherwise
+    :rtype: bool
+    '''
+
+    # Basic check: alphanumeric and underscore only, doesn't start with digit
+    if not name:
+        return False
+    if name[0].isdigit():
+        return False
+    return all(c.isalnum() or c == '_' for c in name)
+
+# *** events
+...
+```
 
 **Spacing**: One empty line between top-level comment and first mid-level comment.
+
+### Sub-Groups (`# *** <kind> (<sub-group>)`)
+A large section may be partitioned into **sub-groups** by adding a parenthetical qualifier to the top-level comment. The section/artifact kind is preserved — only the parenthetical names a partition within that kind. This reuses the same parenthetical-qualifier idea already applied to methods with `(static)`.
+
+Use a sub-group only when a single section grows large enough that partitioning aids navigation; small sections stay ungrouped. A module may therefore contain one plain section plus one or more sub-grouped sections of the same kind. For example, `constants.py` keeps language constants under `# *** constants` and error-id constants under `# *** constants (error)`:
+```python
+# *** constants
+
+# ** constant: en_us
+EN_US = 'en_US'
+
+# *** constants (error)
+
+# ** constant: error_not_found_id
+ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
+```
+The most common use is grouping unit tests by the class or method under test, so a single test module can hold several focused groups:
+```python
+# *** tests (GetFeature)
+
+# ** test: TestGetFeatureSuccess
+...
+
+# *** tests (AddFeature)
+
+# ** test: TestAddFeatureSuccess
+...
+```
+**Grammar rules:**
+- Preserve the kind: the word after `# ***` stays the normal section kind (`constants`, `tests`, ...); the parenthetical is only a label.
+- The parenthetical names the sub-group; keep it short and consistent within the module.
+- Sub-groups do not nest — use at most one parenthetical qualifier per top-level comment.
+- Order any plain (ungrouped) section of a kind before its sub-grouped variants.
+- Individual artifacts keep their standard mid-level label (`# ** constant:`, `# ** test:`); the sub-group never changes the `# **` line.
+
+**Interim scope**: this convention exists primarily so agents editing source directly (and their human handlers) can navigate large sections consistently. Treat this document as the canonical reference until the full grammar is formalized.
+
+**Spacing**: One empty line between a sub-group comment and its first mid-level comment, the same as any top-level section.
 
 ### Mid-Level (`# **`)
 Specifies categories or individual components:
 - For imports: `# ** core`, `# ** infra`, `# ** app`.
+- For functions: `# ** function: <snake_case_name>`.
 - For components: `# ** model: <snake_case_name>`, `# ** command: <snake_case_name>`, etc.
 
 **Spacing**: One empty line between mid-level comments.
@@ -86,44 +159,71 @@ def load_feature(self, feature_id: str) -> Feature:
   - Methods/attributes within a class.
   - Classes within a component group.
 
-## Deprecation Handling
+## Annotation Artifacts
 
-Mark obsolete methods with:
-- A comment note (e.g., `# NOTE: This method is obsolete and will be removed in v2`).
-- A docstring note indicating deprecation and preferred alternative.
+Annotation artifacts are **transient lifecycle markers** — a fourth tier below the structural `# ***` / `# **` / `# *` hierarchy. Unlike structural comments, annotations describe *state* rather than *shape* and are expected to be resolved over time.
 
-**Example**:
+Two annotation types are defined:
+
+### `# ++ todo: <message>`
+Signals deferred work attached to a specific artifact. The `++` prefix is semantic: *something needs to be added or grown here*. Use it to leave a machine-scannable note for the next agent or developer who touches this artifact.
+
+### `# -- obsolete: <reason or target version>`
+Signals that an artifact is deprecated and slated for removal. The `--` prefix is semantic: *this is being reduced or removed*. Replaces the informal `# NOTE:` docstring approach with a single, consistently placed annotation line.
+
+**Placement grammar** — annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
+
 ```python
-# * method: handle_command (obsolete)
-def handle_command(self, ...):
-    '''
-    Handle the execution of a command.
-    
-    NOTE: This method is obsolete and will be consolidated in v2.
-    Use handle_feature_command instead.
-    '''
+# * method: remove_service
+# ++ todo: remove attribute_id parameter once app event test dependency is resolved
+def remove_service(self, service_id: str | None = None, attribute_id: str | None = None):
     ...
+
+# * attribute: return_to_data
+# -- obsolete: superseded by data_key; remove in v2.1
+return_to_data: bool = Field(default=False, ...)
 ```
 
-**Purpose**: Prevents accidental use of legacy APIs and guides developers to modern patterns.
+Annotations may also appear below `# **` (mid-level) or `# ***` (top-level) comments when the todo or obsolescence applies to an entire section or class. Inside method bodies, `# ++ todo:` follows the same inline-before-snippet placement as any other snippet comment.
+
+**Label-level shorthand** — the `(obsolete)` parenthetical suffix on a `# *` or `# **` label remains valid shorthand when no further reason is needed:
+
+```python
+# * method: handle_command (obsolete)
+```
+
+When a reason or target version is meaningful, prefer `# -- obsolete:` on its own line.
+
+**Resolution expectations**
+- `# ++ todo:` annotations should be removed once the described work is complete. Reference the GitHub issue number in the message when the work is tracked (`# ++ todo: #123 — remove attribute_id once ...`).
+- `# -- obsolete:` annotations should be removed together with the artifact they annotate. Verify no callers remain before deletion.
+- Both types should be surfaced in Collaboration Reports when introduced or resolved during a session.
+
+**Agent scan procedure** — before beginning any implementation session, scan affected files for open annotations:
+
+```bash
+grep -rn "# ++\|# --" tiferet/
+```
+
+This gives an immediate picture of outstanding technical debt and deprecated code in scope.
 
 ## Example: Complete Class with Formatting
 
-**Command Example** – `GetFeature`:
+**Domain Event Example** – `GetFeature`:
 ```python
 # *** imports
 
 # ** app
-from .settings import Command
-from ..contracts.feature import FeatureService
-from ..models.feature import Feature
+from .settings import DomainEvent, a
+from ..interfaces import FeatureService
+from ..domain import Feature
 
-# *** commands
+# *** events
 
-# ** command: get_feature
-class GetFeature(Command):
+# ** event: get_feature
+class GetFeature(DomainEvent):
     '''
-    Command to retrieve a feature by its identifier.
+    Domain event to retrieve a feature by its identifier.
     '''
 
     # * attribute: feature_service
@@ -132,7 +232,7 @@ class GetFeature(Command):
     # * init
     def __init__(self, feature_service: FeatureService) -> None:
         '''
-        Initialize the GetFeature command.
+        Initialize the GetFeature event.
         '''
         self.feature_service = feature_service
 
@@ -155,7 +255,7 @@ class GetFeature(Command):
         # If not found, raise structured error.
         if not feature:
             self.raise_error(
-                const.FEATURE_NOT_FOUND_ID,
+                a.const.FEATURE_NOT_FOUND_ID,
                 f'Feature not found: {id}',
                 feature_id=id
             )
@@ -175,8 +275,10 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.commands.feature import GetFeature
-from tiferet.models.feature import Feature
+from tiferet.events.settings import DomainEvent
+from tiferet.events.feature import GetFeature
+from tiferet.interfaces import FeatureService
+from tiferet.domain import Feature
 
 # *** fixtures
 
@@ -194,7 +296,7 @@ def sample_feature() -> Feature:
     '''
     Sample Feature instance for testing.
     '''
-    return ModelObject.new(Feature, id='test.feature', name='Test Feature')
+    return Feature(id='test.feature', name='Test Feature')
 
 # *** tests
 
@@ -210,7 +312,7 @@ def test_get_feature_success(mock_feature_service: FeatureService, sample_featur
     '''
     mock_feature_service.get.return_value = sample_feature
 
-    result = Command.handle(
+    result = DomainEvent.handle(
         GetFeature,
         dependencies={'feature_service': mock_feature_service},
         id='test.feature'
@@ -235,14 +337,14 @@ Harness test classes use `# ** test: TestClassName` (PascalCase) as the mid-leve
 ```python
 # *** tests
 
-# ** test: TestAddAppInterface
-class TestAddAppInterface(DomainEventTestBase):
+# ** test: TestAddAppSession
+class TestAddAppSession(DomainEventTestBase):
     '''
-    Tests for AddAppInterface using the domain event test harness.
+    Tests for AddAppSession using the domain event test harness.
     '''
 
     # * attribute: event_cls
-    event_cls = AddAppInterface
+    event_cls = AddAppSession
 
     # * attribute: dependencies
     dependencies = {'app_service': AppService}
@@ -267,8 +369,8 @@ class TestAddAppInterface(DomainEventTestBase):
         # Execute via the harness handle helper.
         interface = self.handle(mock_dependencies)
 
-        # Assert the result is an AppInterface instance.
-        assert isinstance(interface, AppInterface)
+        # Assert the result is an AppSession instance.
+        assert isinstance(interface, AppSession)
 
         # Assert the interface is saved via the app service.
         mock_dependencies['app_service'].save.assert_called_once_with(interface)
@@ -295,14 +397,14 @@ When a test class needs a pre-configured service mock (e.g., `get()` returns a r
 ```python
     # * fixture: mock_dependencies
     @pytest.fixture
-    def mock_dependencies(self, app_interface):
+    def mock_dependencies(self, app_session):
         '''
-        Override to provide a service mock pre-configured with an app_interface.
+        Override to provide a service mock pre-configured with an app_session.
         '''
 
-        # Create a mock AppService that returns the app_interface on get.
+        # Create a mock AppService that returns the app_session on get.
         service = mock.Mock(spec=AppService)
-        service.get.return_value = app_interface
+        service.get.return_value = app_session
         return {'app_service': service}
 ```
 
@@ -316,11 +418,13 @@ Harness test classes follow the same spacing conventions as production code:
 ## Best Practices Summary
 
 - Use artifact comments consistently.
+- Partition large sections into sub-groups (`# *** <kind> (<sub-group>)`) when it aids navigation, preserving the section kind and per-artifact labels.
 - Explicitly mark static methods with `(static)`.
 - Deprecate obsolete methods with clear notes.
 - Write clear RST docstrings.
 - Break methods into commented snippets.
 - Maintain consistent spacing.
+- Place module-level, side-effect-free helpers under `# *** functions` instead of duplicating them as static methods across classes.
 - Prefer the domain event test harness (`DomainEventTestBase` / `ServiceEventTestBase`) for all new event tests.
 
 These practices ensure Tiferet code remains consistent, maintainable, and AI-friendly. Explore source modules in `tiferet/` for implementation examples.
@@ -330,11 +434,13 @@ These practices ensure Tiferet code remains consistent, maintainable, and AI-fri
 The Tiferet framework maintains a suite of focused documentation in `docs/core/` to guide consistent implementation across different component types. These documents complement the main **Structured Code Style** guidelines and provide domain-specific conventions.
 
 - **[assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md)** – Assets layer conventions (imports, constants, functions, standalone classes, exports).
+- **[blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md)** – Blueprint orchestration conventions.
+- **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context conventions (high-level and low-level runtime shape).
+- **[di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md)** – Dependency injection layer conventions.
 - **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain object conventions (dual role, factory methods, read-only design).
 - **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event conventions (dependency injection, validation, test harness).
-- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Service interface conventions.
+- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Aggregate and TransferObject conventions.
 - **[repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md)** – Repository implementation conventions.
+- **[testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md)** – Testing harness conventions (AggregateTestBase, TransferObjectTestBase, DomainEventTestBase).
 - **[utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md)** – Utility and infrastructure conventions.
-
-Additional component-style documents (e.g., contexts) will be added as the framework evolves. Refer to this list for the current set of authoritative style guides.

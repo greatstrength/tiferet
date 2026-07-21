@@ -5,7 +5,7 @@
 
 ## Overview
 
-Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.settings`.
+Domain objects are the structural core of the Tiferet framework. Every domain concept — errors, features, containers, app interfaces, CLI commands, and logging configurations — is expressed as a class extending `DomainObject` from `tiferet.domain.core`.
 
 Domain objects serve a **dual role**:
 
@@ -15,8 +15,8 @@ Domain objects serve a **dual role**:
    - Used by Contexts to perform domain-specific work (e.g., `ErrorContext` retrieves and formats an `Error` for response generation).
 
 2. **Structural Foundation for the Mappers Layer**  
-   - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
-   - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
+  - Aggregates extend domain objects with mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
+  - TransferObjects extend domain objects with serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
    - Define the field shape mirrored in YAML/JSON configuration files.
    - Enable reliable round-trip mapping between persistent configuration and runtime models.
 
@@ -48,7 +48,7 @@ This duality ensures a single source of truth for domain structure and behavior,
 `DomainObject` extends `pydantic.BaseModel` with a shared `ConfigDict`:
 
 ```python
-# tiferet/domain/settings.py
+# tiferet/domain/core.py
 
 from pydantic import BaseModel, ConfigDict
 
@@ -79,7 +79,7 @@ Key characteristics:
 
 Domain objects follow a strict artifact comment structure for consistency and AI/human readability:
 
-- `# *** models` – top-level section (retained for backward compatibility; these are domain objects).
+- `# *** models` – top-level section for domain object modules.
 - `# ** model: <name>` – individual domain object (snake_case).
 - `# * attribute: <name>` – instance attributes (Pydantic `Field(...)` annotations).
 - `# * method: <name>` – domain methods.
@@ -93,7 +93,7 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 ## Creating and Extending Domain Objects
 
 ### 1. Define the Domain Object
-- Extend `DomainObject` from `tiferet.domain.settings`.
+- Extend `DomainObject` from `tiferet.domain.core`.
 - Declare fields with Pydantic `Field(...)` annotations.
 - Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for derivation logic that was previously in custom `new()` factories.
@@ -141,7 +141,7 @@ Domain objects are extended in the mappers layer as Aggregates (with mutation me
 - Declare fields with `Field(...)` including `description` metadata.
 - Keep domain objects focused on **structure and read-only behavior** (formatting, lookups).
 - Place **mutation logic** (e.g., `rename`, `add_command`, `set_message`) in Aggregate classes in the mappers layer.
-- Instantiate directly via the constructor or `model_validate()` — there is no `DomainObject.new()` factory.
+- Instantiate directly via the constructor or `model_validate()`.
 - Use `@model_validator(mode='before')` for domain-specific derivation logic (e.g., `Error._derive_error_code` computes `error_code` from `id`).
 
 ## Testing Domain Objects
@@ -160,26 +160,16 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 
 Domain objects are defined in `tiferet/domain/`:
 
-- `settings.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`).
-- `app.py` – `AppInterface`, `AppServiceDependency`.
+- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
+- `app.py` – `AppSession`, `AppServiceDependency`.
 - `cli.py` – `CliCommand`, `CliArgument`.
 - `di.py` – `ServiceRegistration`, `FlaggedDependency`.
 - `error.py` – `Error`, `ErrorMessage`.
 - `feature.py` – `Feature`, `FeatureStep`, `EventFeatureStep`.
-- `logging.py` – `Formatter`, `Handler`, `Logger`.
+- `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
 - `__init__.py` – Public exports for all domain objects.
 
 Tests live in `tiferet/domain/tests/`.
-
-## Migration from Schematics to Pydantic v2
-
-In v2.0, the domain layer was migrated from `schematics.Model` to `pydantic.BaseModel`:
-
-- `DomainObject` now extends `pydantic.BaseModel` with a shared `ConfigDict` instead of `schematics.Model`.
-- Schematics type descriptors (`StringType`, `IntegerType`, `FloatType`, etc.) are replaced with standard Python type annotations and `pydantic.Field(...)`.
-- The `DomainObject.new(Type, **kwargs)` static factory is removed; use the Pydantic constructor directly or `model_validate()` for external data.
-- Custom `new()` factory methods with derivation logic are replaced by `@model_validator(mode='before')` class methods.
-- `tiferet/entities/` was renamed to `tiferet/domain/`, and `ModelObject` was renamed to `DomainObject`.
 
 ## Conclusion
 

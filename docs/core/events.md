@@ -405,14 +405,13 @@ Domain events are defined in `tiferet/events/`:
 
 - `settings.py` – `DomainEvent` base class, `@parameters_required` decorator.
 - `static.py` – Static utility events (`ParseParameter`, `ImportDependency`, `RaiseError`).
-- `app.py` – App interface management events.
-- `cli.py` – CLI command management events.
-- `container.py` – Container attribute management events.
-- `dependencies.py` – DI service configuration events.
-- `error.py` – Error management events.
-- `feature.py` – Feature workflow management events.
-- `logging.py` – Logging configuration events.
-- `sqlite.py` – SQLite management events.
+- `app.py` – `AppEvent` base + app interface management events.
+- `cli.py` – `CliEvent` base + CLI command management events.
+- `di.py` – `DIEvent` base + DI service registration events.
+- `error.py` – `ErrorEvent` base + error management events.
+- `feature.py` – `FeatureEvent` base + feature workflow management events.
+- `logging.py` – `LoggingEvent` base + logging configuration events.
+- `sqlite.py` – `SqliteEvent` base + SQLite management events.
 - `__init__.py` – Public exports (`DomainEvent`, `TiferetError`, `a`).
 
 Tests live in `tiferet/events/tests/`:
