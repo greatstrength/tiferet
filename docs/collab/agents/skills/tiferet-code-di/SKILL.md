@@ -17,7 +17,7 @@ Module skeleton (any module):
 # *** imports
 # *** constants          ← optional
 # *** functions          ← optional; pure, stateless DI helpers
-# *** classes            ← base classes and concrete implementations
+# *** di                 ← DI containers and resolvers
 # *** exports            ← __init__.py only
 ```
 
@@ -26,16 +26,14 @@ DI-specific labels:
 # *** functions                         ← artifact section: pure, stateless DI helpers
 # ** function: <snake_case_name>        ← artifact
 
-# *** classes                           ← artifact section: ABCs and implementations
-# ** class: <snake_case_name>           ← artifact
+# *** di                                ← artifact section: containers and resolvers
+# ** di: <snake_case_name>             ← artifact
 # * attribute: <name>                   ← artifact member: instance attributes
 # * init                                ← artifact member: constructor
 # * method: <name>                      ← artifact member: instance methods
 # * method: <name> (static)            ← artifact member: static methods
 # * method: <name> (class)             ← artifact member: classmethods
 ```
-
-Note: DI modules use `# *** classes` (not a construct-specific group) because the DI layer defines base classes, not domain constructs.
 
 ## Key conventions
 
@@ -50,7 +48,7 @@ Note: DI modules use `# *** classes` (not a construct-specific group) because th
 - **`ServiceResolver`** (ABC provider): owns a per-flag `ServiceContainer` cache. Provides `add_container`, `get_container`, `get_dependency` (template method); leaves `build_container(flags)` abstract for subclasses.
 - **App-level:** `DIAppServiceContainer` uses `Singleton` scope — one shared instance per app. Created via `from_dependencies(services, constants)` classmethod.
 - **Feature-level:** `DIDynamicServiceResolver` uses `Factory` scope — a new instance per resolution. Built per flag set by `build_container`.
-- Use `# *** classes` in all DI modules (no `# *** di` group). Use `# * method: <name> (class)` for `@classmethod` entries.
+- Use `# *** di` as the construct group for all DI component classes. Use `# * method: <name> (class)` for `@classmethod` entries.
 
 ## Example
 
@@ -97,9 +95,9 @@ def injectable_parameter_names(service_type: type) -> List[str]:
         )
     ]
 
-# *** classes
+# *** di
 
-# ** class: service_container
+# ** di: service_container
 class ServiceContainer(ABC):
     '''
     Abstract DI container contract for the framework.

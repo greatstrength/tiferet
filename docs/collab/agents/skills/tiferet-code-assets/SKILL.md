@@ -35,9 +35,9 @@ Artifact labels:
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
-# *** constants (models)            ← assembled default definition dicts
+# *** constants (errors)            ← assembled default definition dicts
 # ** constant: feature_not_found
-FEATURE_NOT_FOUND = create_default_error(...)
+FEATURE_NOT_FOUND = { 'id': FEATURE_NOT_FOUND_ID, 'name': 'Feature Not Found', ... }
 
 # *** constants (groups)            ← catalog dicts grouping the above
 # ** constant: default_errors
@@ -70,6 +70,22 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_already_exists_id
 FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
 
+# *** constants (errors)
+
+# ** constant: feature_not_found
+FEATURE_NOT_FOUND = {
+    'id': FEATURE_NOT_FOUND_ID,
+    'name': 'Feature Not Found',
+    'message': [{'lang': 'en_US', 'text': 'Feature not found: {feature_id}.'}],
+}
+
+# *** constants (groups)
+
+# ** constant: default_errors
+DEFAULT_ERRORS = {
+    FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
+}
+
 # *** functions
 
 # ** function: create_default_error
@@ -95,22 +111,6 @@ def create_default_error(id: str,
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
-
-# *** constants (models)
-
-# ** constant: feature_not_found
-FEATURE_NOT_FOUND = create_default_error(
-    FEATURE_NOT_FOUND_ID,
-    'Feature Not Found',
-    [('en_US', 'Feature not found: {feature_id}.')],
-)
-
-# *** constants (groups)
-
-# ** constant: default_errors
-DEFAULT_ERRORS = {
-    FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
-}
 
 # *** classes
 

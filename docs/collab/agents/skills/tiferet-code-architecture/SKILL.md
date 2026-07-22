@@ -49,20 +49,21 @@ flowchart TD
     repos
   end
 
-  contexts --> assets & events & domain & mappers & di
+  contexts --> assets & events & domain
   blueprints --> assets & contexts & di & events
   events --> assets & domain & interfaces & mappers & di
-  domain --> assets
   di --> domain & interfaces
   mappers --> domain & events
   interfaces --> domain
-  utils --> interfaces & events
-  repos --> interfaces & mappers & utils & events
+  utils --> interfaces & mappers
+  repos --> interfaces & mappers & utils
 ```
 
 **Key notes on position:**
 - `assets` is the **root node** of the Accessor layer — it has no framework imports, but every other layer may import from it.
-- `blueprints` accesses domain models **via `contexts` or `di`**, never by importing directly from `domain`.
+- `domain` has **no framework dependencies** — it is pure Pydantic model definitions only.
+- `blueprints` accesses domain models via `contexts` and wires DI through blueprint-injected handler functions; it never imports `domain` or `mappers` directly.
+- `contexts` receive DI resolution through blueprint-injected handler callables — they do not import `di` or `mappers` directly.
 - `di` is **event-free and asset-free** — it imports only from `domain` and `interfaces`.
 - `repos` and `utils` are resolved through DI at runtime; `contexts` and `blueprints` do not import them directly.
 
@@ -75,8 +76,8 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: any other framework layer.
 
 **`domain`** — structural definitions
-- `# ** app`: `assets` sub-modules (e.g. `from .. import assets as a`).
-- ✗ Never: `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
+- `# ** app`: none. Pure Pydantic model definitions; no framework imports.
+- ✗ Never: `assets`, `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`interfaces`** — abstract service contracts
 - `# ** app`: `domain` (for type hints in abstract method signatures); sibling `interfaces` modules.
@@ -95,16 +96,16 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`utils`** — infrastructure implementations
-- `# ** app`: `interfaces` (to implement a Service contract), `events` (`RaiseError`, `a`).
-- ✗ Never: `domain`, `mappers`, `repos`, `di`, `contexts`, `blueprints`.
+- `# ** app`: `interfaces` (to implement a Service contract), `mappers` (for aggregate and transfer types).
+- ✗ Never: `events`, `domain`, `repos`, `di`, `contexts`, `blueprints`.
 
 **`repos`** — configuration and database persistence
-- `# ** app`: `interfaces` (the Service to implement), `mappers` (transfer objects and aggregates), `utils` (loader utilities), `events` (`RaiseError`, `a`).
-- ✗ Never: `domain` directly (use `mappers` instead), `di`, `contexts`, `blueprints`.
+- `# ** app`: `interfaces` (the Service to implement), `mappers` (transfer objects and aggregates), `utils` (loader utilities).
+- ✗ Never: `events`, `domain` directly (use `mappers` instead), `di`, `contexts`, `blueprints`.
 
 **`contexts`** — runtime orchestration
-- `# ** app`: `assets`, `domain`, `events`, `mappers`, `di`.
-- ✗ Never: `repos`, `utils` (resolved via DI at runtime), `blueprints`.
+- `# ** app`: `assets`, `domain`, `events`.
+- ✗ Never: `mappers`, `di` (wired via blueprint-injected handlers), `repos`, `utils` (resolved via DI at runtime), `blueprints`.
 
 **`blueprints`** — application entry points
 - `# ** app`: `assets`, `contexts` (to build and wire AppSessionContext), `di` (container and resolver classes), `events` (for bootstrap events via `DomainEvent.handle`).
