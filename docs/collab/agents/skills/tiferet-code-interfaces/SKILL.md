@@ -12,16 +12,28 @@ description: Apply service interface conventions when adding or modifying Servic
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** interfaces                        ← top-level
-# ** interface: <snake_case_name>       ← individual service interface
-# * attribute: <name>                   ← type-hinted instance attribute (rare; no assignment)
-# * method: <name>                      ← abstract method
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** interfaces         ← construct group for this skill
+# *** exports            ← __init__.py only
+```
+
+Interface-specific labels:
+```
+# *** interfaces                        ← artifact section
+# ** interface: <snake_case_name>       ← artifact
+# * attribute: <name>                   ← artifact member: type-hinted instance attribute (rare; no assignment)
+# * method: <name>                      ← artifact member: abstract method
 ```
 
 ## Key conventions
 
-- Extend `Service` from `tiferet.interfaces.settings` (a minimal `ABC`).
+- **Layer boundary — valid `# ** app` imports:** `domain` (for type hints in abstract method signatures); sibling `interfaces` modules. Never import from `events`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- Extend `Service` from `tiferet.interfaces.core` (a minimal `ABC`).
 - Mark every method `@abstractmethod` and raise `NotImplementedError()` in the body.
 - Use RST docstrings with `:param`/`:type`/`:return`/`:rtype` on every method.
 - No `# * init` — services are abstract definitions, not instantiated directly.
@@ -29,6 +41,7 @@ description: Apply service interface conventions when adding or modifying Servic
 - Services are **unified vertical contracts**: data repositories, utility wrappers, and middleware all satisfy this same base.
 - **`MiddlewareService`** (`tiferet/interfaces/middleware.py`) is the special abstract contract for domain event middleware — implement `__call__(self, event, kwargs, next_fn)` (sync) or `async def __call__` (async); label with `# * method: __call__`.
 - Domain events and contexts depend exclusively on these Service interfaces; never depend on concrete classes.
+- **Exported interfaces:** `Service`, `AppService`, `CliService`, `ConfigurationService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `MiddlewareService`.
 
 ## Example
 
@@ -40,7 +53,7 @@ from abc import abstractmethod
 from typing import List, Optional
 
 # ** app
-from .settings import Service
+from .core import Service
 from ..domain.error import Error
 
 # *** interfaces

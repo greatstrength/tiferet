@@ -13,18 +13,30 @@ description: Apply blueprint conventions when adding or modifying blueprint orch
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** functions                         ← pure, side-effect-free composition helpers
-# ** function: <snake_case_name>        ← individual helper
+# *** imports
+# *** constants          ← optional
+# *** functions          ← pure, side-effect-free composition helpers
+# *** classes            ← base classes only (core.py modules)
+# *** blueprints         ← construct group for this skill
+# *** exports            ← __init__.py only
+```
 
-# *** blueprints                        ← orchestration entry points
-# ** blueprint: <snake_case_name>       ← individual blueprint function
+Blueprint-specific labels:
+```
+# *** functions                         ← artifact section: pure, side-effect-free composition helpers
+# ** function: <snake_case_name>        ← artifact
+
+# *** blueprints                        ← artifact section: orchestration entry points
+# ** blueprint: <snake_case_name>       ← artifact
 ```
 
 Both sections may appear in the same module. `# *** functions` must appear first. Use `# *** functions` for helpers that take only input args and return a plain value (no I/O, no error raising, no instantiation of domain objects from services). Reserve `# *** blueprints` for the orchestration entry points (e.g. `build_app`, `build_cli`).
 
 ## Key conventions
 
+- **Layer boundary — valid `# ** app` imports:** `assets`, `contexts`, `di`, `events`. Blueprints access domain models **via `contexts` or `di`**, not by importing directly from `domain`. Never import from `interfaces`, `mappers`, `utils`, or `repos`.
 - Blueprints are **module-level functions**, not classes.
 - Blueprints are **thin orchestrators** — they wire and delegate; they do not implement domain logic.
 - The canonical entry point is `build_app` in `tiferet/blueprints/core.py`, exported as `App`. The CLI entry point is `build_cli` in `tiferet/blueprints/cli.py`, exported as `CLI`.

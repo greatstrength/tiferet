@@ -7,36 +7,50 @@ description: Apply context conventions when adding or modifying runtime contexts
 
 ## When to use
 - When adding a new context class or modifying an existing one in `tiferet/contexts/`.
-- When extending `AppSessionContext` for a new high-level interface (e.g. Flask API, gRPC).
-- When adding behavior to a low-level context (`FeatureContext`, `ErrorContext`, `LoggingContext`).
+- When extending `AppSessionContext` for a new high-level interface (e.g. CLI, web API, gRPC).
+- When adding behavior to a low-level context (`FeatureContext`, `ErrorContext`, `LoggingContext`) or introducing a new domain-specific context for a framework extension.
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** contexts                          ← top-level
-# ** context: <snake_case_name>         ← individual context
-# * attribute: <name>                   ← instance attributes (type hints)
-# * attribute: domain_type              ← ClassVar mapping this context to its domain type
-# * init                                ← constructor
-# * method: <name>                      ← runtime behavior methods
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** contexts           ← construct group for this skill
+# *** exports            ← __init__.py only
+```
+
+Context-specific labels:
+```
+# *** contexts                          ← artifact section
+# ** context: <snake_case_name>         ← artifact
+# * attribute: <name>                   ← artifact member: instance attributes (type hints)
+# * attribute: domain_type              ← artifact member: ClassVar mapping this context to its domain type
+# * init                                ← artifact member: constructor
+# * method: <name>                      ← artifact member: runtime behavior methods
 ```
 
 ## Key conventions
 
-**Base class:** All contexts extend `BaseContext` from `tiferet/contexts/settings.py`.
+**Layer boundary — valid `# ** app` imports:** `assets`, `domain`, `events`, `mappers`, `di`. Never import from `repos` or `utils` directly (resolved via DI at runtime), or from `blueprints`.
+
+**Base class:** All contexts extend `BaseContext` from `tiferet/contexts/core.py`.
 - `BaseContext` provides a `ContextMeta` registry keyed by `domain_type`.
 - `BaseContext.for_domain(DomainType)` — resolves the registered context class.
 - `BaseContext.from_domain(domain_obj, **kwargs)` — constructs a context bound to a domain object; the object is exposed as `ctx.domain`.
 - Caching is NOT in the base — declare a `CacheContext` on contexts that need one.
 
-**High-level contexts** (user-facing, e.g. `FlaskApiContext`):
+**High-level contexts** (user-facing, e.g. `CliContext`, `FlaskApiContext`):
 - Extend `AppSessionContext` (the minimal hub in `tiferet/contexts/app.py`).
-- The `AppSessionContext` hub takes event collaborators (`get_feature_evt`, `get_error_evt`, `logging_list_all_evt`), `get_dependency`, and optional `cache` and defaults. It binds the loaded `AppSession` via `from_domain` and exposes `self.domain.id`.
-- Override only the methods your interface specializes (e.g. `parse_request`).
+- `AppSessionContext` receives blueprint-injected handler callables — `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` — plus `get_dependency`, `logging_context`, and `cache`. These are wired by the blueprint during app initialization, not declared as named event collaborators.
+- Override only the methods your interface specializes (e.g. `parse_request`, `build_response`).
 
-**Low-level contexts** (supporting, e.g. `FeatureContext`, `ErrorContext`):
+**Low-level contexts** (supporting any domain concern at the app-operation level):
 - Extend `BaseContext` directly.
 - Declared in `tiferet/contexts/<concern>.py`.
+- Not limited to the built-in trio (FeatureContext, ErrorContext, LoggingContext). Framework extensions introduce their own low-level contexts for domain-specific concerns; blueprints and handler injection are the mechanism for composing them alongside the built-in ones.
 
 **`domain_type` ClassVar:**
 - Declare on each context to register it in the `ContextMeta` registry.
@@ -52,58 +66,46 @@ description: Apply context conventions when adding or modifying runtime contexts
 ```python
 # *** imports
 
+# ** core
+import sys
+from typing import Any
+
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from .app import AppSessionContext
 from ..domain import AppSession
 
 # *** contexts
 
-# ** context: flask_api_context
-class FlaskApiContext(AppSessionContext):
+# ** context: cli_context
+class CliContext(AppSessionContext):
     '''
-    High-level context for Flask API interfaces.
+    High-level context for CLI interfaces.
 
-    Extends AppSessionContext with Flask-specific request parsing.
-    The loaded AppSession is bound as self.domain via from_domain.
+    Extends AppSessionContext with argparse-based command parsing and
+    feature dispatch. The loaded AppSession is bound as self.domain via
+    from_domain. CLI parsing is owned by this context, not the blueprint.
     '''
 
-    # * attribute: domain_type
-    domain_type = AppSession
-
-    # * attribute: flask_handler
-    flask_handler: object
-
-    # * init
-    def __init__(self, flask_handler, **kwargs):
+    # * method: run_cli
+    def run_cli(self, argv: list | None = None) -> Any:
         '''
-        Initialize the Flask API context.
+        Parse argv and dispatch the resolved feature request.
 
-        :param flask_handler: The Flask application handler.
-        :type flask_handler: object
-        :param kwargs: Hub collaborators forwarded to AppSessionContext.
-        :type kwargs: dict
+        :param argv: Explicit argv list; defaults to sys.argv[1:].
+        :type argv: list | None
+        :return: The feature execution result.
+        :rtype: Any
         '''
 
-        # Forward all hub collaborators to the parent context.
-        super().__init__(**kwargs)
+        # Resolve argv, falling back to sys.argv.
+        resolved = argv if argv is not None else sys.argv[1:]
 
-        # Store the Flask handler.
-        self.flask_handler = flask_handler
+        # Parse the CLI request into feature_id and data.
+        feature_id, data = self.parse_cli_request(resolved)
 
-    # * method: parse_flask_request
-    def parse_flask_request(self, flask_request) -> dict:
-        '''
-        Parse a Flask request into a data dict for feature execution.
-
-        :param flask_request: The Flask request object.
-        :type flask_request: object
-        :return: A dict of feature input data.
-        :rtype: dict
-        '''
-
-        # Extract and return the JSON payload from the request.
-        return flask_request.get_json(force=True) or {}
+        # Delegate to the standard run entry point.
+        return self.run(feature_id=feature_id, data=data)
 ```
 
 ## Canonical source

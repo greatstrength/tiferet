@@ -13,26 +13,38 @@ description: Apply domain event conventions when adding or modifying domain even
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** events                      ← top-level (use # *** classes in settings.py)
-# ** event: <snake_case_name>     ← individual event
-# * attribute: <name>             ← injected dependency (on base event only)
-# * init                          ← constructor (on base event only)
-# * method: execute               ← main execution method
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** events             ← construct group for this skill
+# *** exports            ← __init__.py only
 ```
 
-Side-effect-free module-level helpers go in a `# *** functions` section above `# *** events`.
+Event-specific labels:
+```
+# *** events                      ← artifact section
+# ** event: <snake_case_name>     ← artifact
+# * attribute: <name>             ← artifact member: injected dependency (base event only)
+# * init                          ← artifact member: constructor (base event only)
+# * method: execute               ← artifact member: main execution method
+```
 
 ## Key conventions
 
-- Extend `DomainEvent` from `tiferet.events.settings` — either directly (new base or service-less event) or via the **per-module base event** (most common).
+- **Layer boundary — valid `# ** app` imports:** `assets`, `domain`, `interfaces`, `mappers`, `di`. Never import from `repos`, `utils`, `contexts`, or `blueprints`.
+- Extend `DomainEvent` from `tiferet.events.core` — either directly (new base or service-less event) or via the **per-module base event** (most common).
 - **Per-module base events:** Each single-service module defines one base event (e.g. `ErrorEvent`, `FeatureEvent`, `AppEvent`, `CliEvent`, `DIEvent`, `LoggingEvent`, `SqliteEvent`) that holds the shared service. Concrete events extend the base and declare only `execute`.
 - `@DomainEvent.parameters_required(['param1', 'param2'])` — declarative required-input validator placed as a decorator on `execute`. A parameter is invalid if absent, `None`, or an empty string after `.strip()`; falsy-but-valid values (`0`, `False`, `[]`) pass.
 - `self.verify(expression, error_code, message=None, **kwargs)` — domain rule assertions inside `execute`.
 - `self.raise_error(error_code, message=None, **kwargs)` — direct error raising when `verify` is not appropriate.
-- Access error constants via `a.const.ERROR_CODE_ID` (import `a` from `tiferet.events.settings`).
+- Access error constants via `a.<submodule>.ERROR_CODE_ID` (e.g. `a.error.COMMAND_PARAMETER_REQUIRED_ID`). `a` is imported as `from .. import assets as a`; constants are namespaced by sub-module: `a.error`, `a.app`, `a.feat`, `a.cli`, `a.logging`.
 - Return a domain object or identifier; never return `None` on success.
-- `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` — standard invocation pattern in tests and contexts.
+- `DomainEvent.handle(EventClass, dependencies={...}, middleware=None, **kwargs)` — standard invocation pattern in tests and contexts. `middleware` is an optional outermost-first list of `(event, kwargs, next_fn)` callables.
+- `DomainEvent.handle_async(...)` — async equivalent; use when driving `AsyncDomainEvent` subclasses.
+- **`AsyncDomainEvent`** — extend this instead of `DomainEvent` when `execute` is a coroutine (`async def execute`). Inherits `verify`, `raise_error`, and `parameters_required` unchanged.
 
 ## Example
 
@@ -40,7 +52,7 @@ Side-effect-free module-level helpers go in a `# *** functions` section above `#
 # *** imports
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import Error
 from ..mappers import ErrorAggregate
 from .error import ErrorEvent     # per-module base event
@@ -82,7 +94,7 @@ class AddError(ErrorEvent):
         # Verify the error does not already exist.
         self.verify(
             not self.error_service.exists(id),
-            a.const.ERROR_ALREADY_EXISTS_ID,
+            a.error.ERROR_ALREADY_EXISTS_ID,
             message=f'An error with ID {id} already exists.',
             id=id,
         )

@@ -13,24 +13,30 @@ description: Apply domain object conventions when adding or modifying domain obj
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** models                        ← top-level for domain object modules
-# ** model: <snake_case_name>       ← individual domain object
-# * attribute: <name>               ← Pydantic Field(...) annotation
-# * method: <name>                  ← read-only domain behavior
-# * method: _derive_<name> (validator) ← @model_validator derivation logic
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** models             ← construct group for this skill
+# *** exports            ← __init__.py only
 ```
 
-Import organization follows the standard three groups:
-```python
-# *** imports
-# ** core      ← stdlib (typing, etc.)
-# ** infra     ← pydantic (Field, model_validator, AliasChoices)
-# ** app       ← framework imports (DomainObject, other domain objects)
+Model-specific labels:
 ```
+# *** models                              ← artifact section
+# ** model: <snake_case_name>             ← artifact
+# * attribute: <name>                     ← artifact member: Pydantic Field(...) annotation
+# * method: <name>                        ← artifact member: read-only domain behavior
+# * method: _derive_<name> (validator)    ← artifact member: @model_validator derivation logic
+```
+
+Import artifact groups: `# ** core` (stdlib), `# ** infra` (pydantic), `# ** app` (framework).
 
 ## Key conventions
 
+- **Layer boundary — valid `# ** app` imports:** `assets` sub-modules only (e.g. `from .. import assets as a`). Never import from `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
 - Extend `DomainObject` from `tiferet.domain.core` (which extends `pydantic.BaseModel`).
 - `DomainObject` config: `extra='forbid'`, `populate_by_name=True`, `validate_assignment=True`, `arbitrary_types_allowed=True`, `coerce_numbers_to_str=True`.
 - Declare all fields with `pydantic.Field(...)` including a `description` kwarg.

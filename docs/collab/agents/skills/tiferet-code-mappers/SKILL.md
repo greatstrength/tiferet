@@ -6,27 +6,41 @@ description: Apply mapper conventions when adding or modifying Aggregates or Tra
 # Mappers Code Style – Tiferet
 
 ## When to use
-- When adding or modifying an Aggregate or TransferObject (ConfigObject) in `tiferet/mappers/`.
+- When adding or modifying an Aggregate or TransferObject in `tiferet/mappers/`.
 - When adding mutation methods to a domain aggregate.
-- When defining serialization roles for a configuration object.
+- When defining serialization roles for domain objects going to and from any persistence or transport layer (config files, databases, REST, etc.). `ConfigObject` is the framework's own example of the pattern.
 - Pair with `tiferet-code-domain` (field shapes) and `tiferet-code-testing` (harness details).
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** mappers                       ← top-level for mapper modules
-# ** mapper: <snake_case_name>      ← individual mapper (Aggregate or ConfigObject)
-# * attribute: <name>               ← Pydantic Field or ClassVar
-# * method: <name>                  ← mutation methods (Aggregate) or map/from_model (ConfigObject)
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** mappers            ← construct group for this skill
+# *** exports            ← __init__.py only
 ```
 
-Use `# *** classes` in `settings.py` for the `Aggregate` and `TransferObject` base classes themselves.
+Mapper-specific labels:
+```
+# *** mappers                       ← artifact section
+# ** mapper: <snake_case_name>      ← artifact (Aggregate or TransferObject)
+# * attribute: <name>               ← artifact member: Pydantic Field or ClassVar
+# * method: <name>                  ← artifact member: mutation methods (Aggregate) or map/from_model (TransferObject)
+```
+
+Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base classes themselves.
 
 ## Key conventions
 
+**Layer boundary — valid `# ** app` imports:** `domain` (the domain object being extended), `events` (`RaiseError`, `a`). Never import from `interfaces`, `repos`, `utils`, `contexts`, or `blueprints`.
+
 **Naming:**
 - `<Domain>Aggregate` — mutable extension of a domain object (e.g. `ErrorAggregate`, `FeatureAggregate`).
-- `<Domain>ConfigObject` — serialization transfer object (e.g. `ErrorConfigObject`, `FeatureConfigObject`).
+- `<Domain>TransferObject` — default name for a serialization transfer object when the backing medium is not known or is general-purpose.
+- Use a precision suffix when the backing medium is specific: `<Domain>ConfigObject` (YAML/JSON config), `<Domain>SqliteObject` (SQLite). These replace `TransferObject` in the class name when the medium is known.
 
 **Aggregate:**
 - Combine the domain object + `Aggregate`: `class ErrorAggregate(Error, Aggregate)`.
@@ -34,6 +48,7 @@ Use `# *** classes` in `settings.py` for the `Aggregate` and `TransferObject` ba
 - Add mutation methods; `validate_assignment=True` (inherited) triggers field validation on every `setattr`.
 - Use `set_attribute(attr, value)` for safe mutations with unknown-field checking; raises `INVALID_MODEL_ATTRIBUTE_ID` for unknown attrs.
 - No `Aggregate.new()` factory — use the constructor directly.
+- `to_dict(role=None, **overrides)` — serialize an aggregate to a dict; mirrors `TransferObject.to_primitive` for consistent serialization without going through a transfer object.
 
 **TransferObject (ConfigObject):**
 - Combine the domain object + `TransferObject`: `class ErrorConfigObject(Error, TransferObject)`.
@@ -59,7 +74,7 @@ from pydantic import Field, AliasChoices
 
 # ** app
 from ..domain.feature import Feature, EventFeatureStep
-from ..mappers.settings import Aggregate, TransferObject
+from ..mappers.core import Aggregate, TransferObject
 
 # *** mappers
 

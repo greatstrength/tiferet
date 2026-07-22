@@ -13,37 +13,40 @@ description: Apply assets layer conventions when adding or modifying constants, 
 
 ## Artifact comment structure
 
-Assets modules restrict themselves to exactly **five artifact kinds**:
-
+Module skeleton (assets modules use exactly five artifact kinds, in this order):
 ```
 # *** imports         ← stdlib and third-party primitives only
 # *** constants       ← SCREAMING_SNAKE_CASE module-level values
 # *** functions       ← stateless helper functions
 # *** classes         ← standalone exception or utility classes
-# *** exports         ← public re-exports (only in __init__.py)
+# *** exports         ← public re-exports (__init__.py only)
 ```
 
-Mid-level labels for each kind:
+Artifact labels:
 ```
 # ** constant: <snake_case_name>    ← individual constant
 # ** function: <snake_case_name>    ← individual function
 # ** class: <snake_case_name>       ← individual class
 ```
 
-**Sub-groups** — use a parenthetical qualifier to partition a large `# *** constants` section instead of grouping under a shared `# **` entry:
+**Sub-groups** — partition a large `# *** constants` section with a parenthetical qualifier. The framework convention (e.g. `assets/error.py`) uses three sub-groups:
 ```python
-# *** constants
-# ** constant: en_us
-EN_US = 'en_US'
-
-# *** constants (error)
+# *** constants (ids)               ← raw error-code identifier strings
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
+
+# *** constants (models)            ← assembled default definition dicts
+# ** constant: feature_not_found
+FEATURE_NOT_FOUND = create_default_error(...)
+
+# *** constants (groups)            ← catalog dicts grouping the above
+# ** constant: default_errors
+DEFAULT_ERRORS = { FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND }
 ```
 
 ## Key conventions
 
-- **Imports:** Only `# ** core` (stdlib) and `# ** infra` (third-party primitives like `json`). Never import from `domain`, `events`, `interfaces`, `mappers`, `repos`, `contexts`, or `blueprints`.
+- **Layer boundary — valid `# ** app` imports:** none. `assets` is the root layer; it has no framework imports. Only `# ** core` (stdlib) and `# ** infra` (minimal third-party, e.g. `json`) are valid. Never import from any other framework layer.
 - **Constants:** `SCREAMING_SNAKE_CASE`. Each constant has its own `# ** constant: <snake_case>` label. Do not group multiple constants under a single `# ** constants: <group>` mid-level label — use a top-level sub-group instead.
 - **Structured defaults:** Build structured default data from a factory function (e.g. `create_default_error`), not inline dicts. Define each entry as a named constant, then assemble the catalog dict as a separate constant.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
@@ -59,7 +62,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 from typing import List, Tuple, Dict, Any
 import json
 
-# *** constants (error)
+# *** constants (ids)
 
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
@@ -93,7 +96,7 @@ def create_default_error(id: str,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
 
-# *** constants
+# *** constants (models)
 
 # ** constant: feature_not_found
 FEATURE_NOT_FOUND = create_default_error(
@@ -101,6 +104,8 @@ FEATURE_NOT_FOUND = create_default_error(
     'Feature Not Found',
     [('en_US', 'Feature not found: {feature_id}.')],
 )
+
+# *** constants (groups)
 
 # ** constant: default_errors
 DEFAULT_ERRORS = {

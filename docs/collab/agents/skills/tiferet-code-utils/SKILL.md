@@ -12,18 +12,30 @@ description: Apply utility conventions when adding or modifying infrastructure u
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** utils                             ← top-level
-# ** util: <snake_case_name>            ← individual utility class
-# * attribute: <name>                   ← instance attributes
-# * init                                ← constructor
-# * method: <name>                      ← instance methods
-# * method: <name> (static)             ← static one-shot helpers
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** utils              ← construct group for this skill
+# *** exports            ← __init__.py only
+```
+
+Util-specific labels:
+```
+# *** utils                             ← artifact section
+# ** util: <snake_case_name>            ← artifact
+# * attribute: <name>                   ← artifact member: instance attributes
+# * init                                ← artifact member: constructor
+# * method: <name>                      ← artifact member: instance methods
+# * method: <name> (static)             ← artifact member: static one-shot helpers
 ```
 
 ## Key conventions
 
-- Utilities implement a **Service** contract from `tiferet/interfaces/` (e.g. `FileLoader` implements `FileService`, `SqliteClient` implements `SqliteService`).
+- **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract), `events` (`RaiseError`, `a`). Never import from `domain`, `mappers`, `repos`, `di`, `contexts`, or `blueprints`.
+- Implementing a **Service** contract from `tiferet/interfaces/` is **optional** — required only when the utility needs to be DI-injectable (resolved from the container). Utilities called statically or directly do not need a Service interface.
 - Use `RaiseError.execute(error_code, ...)` from `tiferet/events/static.py` for all error paths — never raise raw exceptions from utilities.
 - **Resource-owning utilities** implement the context manager protocol: `__enter__` (open/connect) and `__exit__` (close/disconnect; commit or rollback on error).
 - **Static one-shot helpers** on utilities (e.g. `CsvLoader.load_rows(path)`) provide a convenience API that opens, reads, closes in a single call.
@@ -32,14 +44,18 @@ description: Apply utility conventions when adding or modifying infrastructure u
 
 **Current utility aliases:**
 
-| Full name | Alias | Service |
+| Full name | Alias | Service contract |
 |---|---|---|
 | `FileLoader` | `File` | `FileService` |
 | `YamlLoader` | `Yaml` | (via `FileLoader`) |
 | `JsonLoader` | `Json` | (via `FileLoader`) |
+| `TomlLoader` | `Toml` | (via `FileLoader`) |
 | `CsvLoader` | `Csv` | (via `FileLoader`) |
 | `CsvDictLoader` | `CsvDict` | (via `FileLoader`) |
 | `SqliteClient` | `Sqlite` | `SqliteService`, `FileService` |
+| `LoggingMiddleware` | — | `MiddlewareService` |
+| `TimingMiddleware` | — | `MiddlewareService` |
+| `CacheMiddleware` | — | `MiddlewareService` |
 
 ## Example
 

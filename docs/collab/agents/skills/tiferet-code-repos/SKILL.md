@@ -12,17 +12,32 @@ description: Apply repository conventions when adding or modifying configuration
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** repos                            ← top-level
-# ** repo: <snake_case_name>           ← individual repository
-# * attribute: <name>                  ← instance attributes (inherited; rarely redeclared)
-# * init                               ← constructor
-# * method: <name>                     ← Service interface implementation
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; side-effect-free module helpers
+# *** classes            ← base classes only (core.py modules)
+# *** repos              ← construct group for this skill
+# *** exports            ← __init__.py only
+```
+
+Repo-specific labels:
+```
+# *** repos                            ← artifact section
+# ** repo: <snake_case_name>           ← artifact
+# * attribute: <name>                  ← artifact member: instance attributes (inherited; rarely redeclared)
+# * init                               ← artifact member: constructor
+# * method: <name>                     ← artifact member: Service interface implementation
 ```
 
 ## Key conventions
 
-**Naming:** `<Domain>ConfigRepository` (e.g. `ErrorConfigRepository`, `FeatureConfigRepository`).
+**Layer boundary — valid `# ** app` imports:** `interfaces` (the Service to implement), `mappers` (transfer objects and aggregates), `utils` (loader utilities), `events` (`RaiseError`, `a`). Never import from `domain` directly (use `mappers` instead), `di`, `contexts`, or `blueprints`.
+
+**Naming:**
+- `<Domain>ConfigRepository` — for YAML/JSON config-backed repos (e.g. `ErrorConfigRepository`, `FeatureConfigRepository`). Both formats are handled by `ConfigurationRepository`.
+- `<Domain>SqliteRepository` — for SQLite-backed repos (e.g. `OrderSqliteRepository`). The suffix reflects the backing connector (`SqliteClient`) rather than the file format.
 
 **Class declaration:** Extend the Service interface **and** `ConfigurationRepository`:
 ```python
@@ -75,7 +90,7 @@ from typing import List, Optional
 # ** app
 from ..interfaces import ErrorService
 from ..mappers import ErrorAggregate, ErrorConfigObject
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

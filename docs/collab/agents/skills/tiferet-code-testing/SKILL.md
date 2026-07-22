@@ -13,7 +13,18 @@ description: Apply Tiferet test harness conventions when writing or extending te
 
 ## Artifact comment structure
 
-Harness-based test modules follow standard artifact comments:
+Test modules introduce two testing-specific artifact sections as their primary additions:
+
+```
+# *** fixtures                          ← module-level pytest fixtures (testing-specific)
+# ** fixture: <snake_case_name>         ← individual fixture
+
+# *** tests                             ← test classes or standalone tests (testing-specific)
+# ** test: TestClassName                ← harness test class (PascalCase)
+# ** test: <snake_case_name>            ← standalone test function
+```
+
+Standard preamble groups follow general styling rules and appear before `fixtures` and `tests`:
 
 ```
 # *** imports
@@ -21,21 +32,14 @@ Harness-based test modules follow standard artifact comments:
 
 # *** constants                         ← shared sample data and normalizers
 # ** constant: <snake_case_name>
-
-# *** fixtures                          ← module-level pytest fixtures
-# ** fixture: <snake_case_name>
-
-# *** tests                             ← test classes or standalone tests
-# ** test: TestClassName                ← harness test class (PascalCase)
-# ** test: <snake_case_name>            ← standalone test function
 ```
 
 Inside harness test classes:
 
 ```
-# * attribute: <name>                   ← harness class configuration attrs
-# * fixture: <name>                     ← fixture overrides
-# * method: <name>                      ← custom test methods
+# * attribute: <name>                   ← artifact member: harness class configuration attrs
+# * fixture: <name>                     ← artifact member: fixture overrides
+# * method: <name>                      ← artifact member: custom test methods
 ```
 
 Repository integration tests use `# ** test_int: <name>`.

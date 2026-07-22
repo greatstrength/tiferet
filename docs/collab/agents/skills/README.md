@@ -14,16 +14,17 @@ Collaboration skills are thin wrappers that reference `docs/collab/` and `docs/c
 
 ## Code style skills
 
-Twelve self-contained code style skills — one per component — that embed the artifact comment labels, naming conventions, spacing rules, and a minimal working example so an implementation agent can apply the conventions without fetching any external URL. Each skill's **Canonical source** section links to the full `docs/core/` guide as a fallback.
+Thirteen self-contained code style skills that embed artifact comment labels, naming conventions, spacing rules, layer boundary import rules, and a minimal working example so an implementation agent can apply the conventions without fetching any external URL. Each skill's **Canonical source** section links to the full `docs/core/` guide as a fallback.
 
-**Read `tiferet-code-style` at the start of every implementation session** (same standing as `tiferet-annotation-artifacts`).
+**Read `tiferet-code-style` at the start of every implementation session** (same standing as `tiferet-annotation-artifacts`). **Read `tiferet-code-architecture` before any multi-component implementation.**
 
 | Skill | Source doc | When to use |
 |---|---|---|
+| **`tiferet-code-architecture`** | `docs/core/` | Any multi-component task — layer graph, import rules, runtime flow |
 | **`tiferet-code-style`** | `docs/core/code_style.md` | Every implementation session — read first |
 | **`tiferet-code-domain`** | `docs/core/domain.md` | Adding or modifying domain objects |
 | **`tiferet-code-events`** | `docs/core/events.md` | Adding or modifying domain events |
-| **`tiferet-code-mappers`** | `docs/core/mappers.md` | Adding or modifying aggregates or config objects |
+| **`tiferet-code-mappers`** | `docs/core/mappers.md` | Adding or modifying aggregates or transfer objects |
 | **`tiferet-code-interfaces`** | `docs/core/interfaces.md` | Adding or modifying service interfaces |
 | **`tiferet-code-repos`** | `docs/core/repos.md` | Adding or modifying repositories |
 | **`tiferet-code-contexts`** | `docs/core/contexts.md` | Adding or modifying contexts |

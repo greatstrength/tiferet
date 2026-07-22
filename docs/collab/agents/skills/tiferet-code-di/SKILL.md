@@ -1,38 +1,53 @@
 ---
 name: tiferet-code-di
-description: Apply DI layer conventions when adding or modifying ServiceContainer, ServiceResolver, or pure DI helper functions in a Tiferet-family repo. Covers the event-free/asset-free design constraint, Factory vs Singleton scope, and the injectable_parameter_names helper.
+description: Apply DI layer conventions when adding or modifying ServiceContainer, ServiceResolver, or pure DI helper functions in a Tiferet-family repo. Covers the event-free/asset-free design constraint, ABC inheritance requirements, Factory vs Singleton scope, and the injectable_parameter_names helper.
 ---
 
 # Dependency Injection Code Style – Tiferet
 
 ## When to use
 - When adding or modifying classes in `tiferet/di/` (container, resolver, or base ABCs).
-- When adding a pure DI helper function (`injectable_parameter_names`, `normalize_flags`, `create_cache_key`, `merge_settings`).
+- When adding a pure DI helper function (`injectable_parameter_names`, `normalize_flags`).
 - Do NOT use for domain events or assets — the DI layer is deliberately event-free and asset-free.
 
 ## Artifact comment structure
 
+Module skeleton (any module):
 ```
-# *** functions                         ← pure, stateless DI helpers
-# ** function: <snake_case_name>        ← individual function
+# *** imports
+# *** constants          ← optional
+# *** functions          ← optional; pure, stateless DI helpers
+# *** classes            ← base classes and concrete implementations
+# *** exports            ← __init__.py only
+```
 
-# *** classes                           ← base classes and concrete implementations
-# ** class: <snake_case_name>           ← individual class (ABCs and implementations)
-# * attribute: <name>                   ← instance attributes
-# * init                                ← constructor
-# * method: <name>                      ← instance methods
-# * method: <name> (static)             ← static methods
-# * method: <name> (class)              ← classmethods
+DI-specific labels:
 ```
+# *** functions                         ← artifact section: pure, stateless DI helpers
+# ** function: <snake_case_name>        ← artifact
+
+# *** classes                           ← artifact section: ABCs and implementations
+# ** class: <snake_case_name>           ← artifact
+# * attribute: <name>                   ← artifact member: instance attributes
+# * init                                ← artifact member: constructor
+# * method: <name>                      ← artifact member: instance methods
+# * method: <name> (static)            ← artifact member: static methods
+# * method: <name> (class)             ← artifact member: classmethods
+```
+
+Note: DI modules use `# *** classes` (not a construct-specific group) because the DI layer defines base classes, not domain constructs.
 
 ## Key conventions
 
-- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `RaiseError`, `TiferetError`, `a.const`, or any other event/asset.
+- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces.di` (`DIService`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `RaiseError`, `TiferetError`, `a.error`, or any other event/asset.
 - Raw exceptions surface from DI classes; callers with event access convert them to structured errors.
-- **`injectable_parameter_names(service_type)`** — returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Use in `build_factory` / `build_singleton` to wire sibling providers automatically.
+- **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** — there is no valid DI class that does not inherit from one of these two ABCs.
+- **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern — dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.
+- **`injectable_parameter_names(service_type)`** — returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Uninspectable types are treated as no-arg.
 - **`normalize_flags(*flags)`** — flattens mixed string/list/tuple input into a flat string list. Key for cache-key consistency.
-- **`ServiceContainer`** (engine): registers services as `Factory` providers (one new instance per resolution) or `Object` providers (scalars/callables). `add_service(id, dependency)` wires constructor kwargs to sibling providers.
-- **`ServiceResolver`** (provider): owns a per-flag `ServiceContainer` cache. Template-method `get_dependency(service_id, *flags)` normalizes flags, looks up or builds a container, then delegates. Only `build_container(flags)` is abstract.
+- **`ServiceContainer`** (ABC engine): abstract contract for registering and resolving dependencies. Methods: `add_service`, `add_constant`, `get_dependency`, `has_dependency`, `remove_dependency`, `load_container`.
+- **`ServiceResolver`** (ABC provider): owns a per-flag `ServiceContainer` cache. Provides `add_container`, `get_container`, `get_dependency` (template method); leaves `build_container(flags)` abstract for subclasses.
 - **App-level:** `DIAppServiceContainer` uses `Singleton` scope — one shared instance per app. Created via `from_dependencies(services, constants)` classmethod.
 - **Feature-level:** `DIDynamicServiceResolver` uses `Factory` scope — a new instance per resolution. Built per flag set by `build_container`.
 - Use `# *** classes` in all DI modules (no `# *** di` group). Use `# * method: <name> (class)` for `@classmethod` entries.
@@ -45,9 +60,7 @@ description: Apply DI layer conventions when adding or modifying ServiceContaine
 # ** core
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-
-# ** infra
-from dependency_injector import containers, providers
+import inspect
 
 # ** app
 from ..domain.core import ServiceDependency
@@ -59,7 +72,8 @@ def injectable_parameter_names(service_type: type) -> List[str]:
     '''
     Return the injectable constructor parameter names of a service type.
 
-    Excludes self and variadic parameters (*args, **kwargs).
+    Excludes self, *args, and **kwargs. Types whose constructor cannot be
+    inspected are treated as no-arg.
 
     :param service_type: The service class to inspect.
     :type service_type: type
@@ -67,12 +81,13 @@ def injectable_parameter_names(service_type: type) -> List[str]:
     :rtype: List[str]
     '''
 
-    import inspect
+    # Inspect the constructor signature; treat uninspectable types as no-arg.
+    try:
+        sig = inspect.signature(service_type.__init__)
+    except (ValueError, TypeError):
+        return []
 
-    # Inspect the constructor signature.
-    sig = inspect.signature(service_type.__init__)
-
-    # Collect injectable parameter names.
+    # Collect injectable parameter names, skipping self and variadic params.
     return [
         name for name, param in sig.parameters.items()
         if name != 'self'
@@ -85,86 +100,94 @@ def injectable_parameter_names(service_type: type) -> List[str]:
 # *** classes
 
 # ** class: service_container
-class ServiceContainer(object):
+class ServiceContainer(ABC):
     '''
-    Low-level dependency-injection engine backed by DynamicContainer.
+    Abstract DI container contract for the framework.
 
-    Event-free: missing or failing providers raise raw exceptions.
+    Defines core operations for registering service dependencies and constants,
+    resolving them, and removing them. All new DI containers must extend this ABC.
+
+    Event-free: raw exceptions surface; callers convert to structured errors.
     '''
 
-    # * attribute: container
-    container: containers.DynamicContainer
-
-    # * init
-    def __init__(self, services: Dict[str, type] = None):
+    # * method: add_service
+    @abstractmethod
+    def add_service(self, service_id: str, service: ServiceDependency):
         '''
-        Initialize the service container.
-
-        :param services: Optional initial service type mapping.
-        :type services: Dict[str, type]
-        '''
-
-        # Create the dynamic container.
-        self.container = containers.DynamicContainer()
-
-        # Bulk-load any initial services.
-        if services:
-            self.add_services(services)
-
-    # * method: add_services
-    def add_services(self, services: Dict[str, Any]):
-        '''
-        Bulk-register services: scalars as Object providers, types as Factories.
-
-        :param services: Mapping of service ID to type or scalar value.
-        :type services: Dict[str, Any]
-        '''
-
-        # Register scalars first so factories can wire to them.
-        for service_id, value in services.items():
-            if not isinstance(value, type):
-                self.container.set_provider(service_id, providers.Object(value))
-
-        # Register class types as Factory providers.
-        for service_id, value in services.items():
-            if isinstance(value, type):
-                factory = self._build_factory(value)
-                self.container.set_provider(service_id, factory)
-
-    # * method: get_service
-    def get_service(self, service_id: str) -> Any:
-        '''
-        Resolve and return a registered service instance.
+        Register a service dependency in the container.
 
         :param service_id: The service identifier.
         :type service_id: str
-        :return: The resolved service instance.
+        :param service: The core service dependency.
+        :type service: ServiceDependency
+        '''
+        raise NotImplementedError()
+
+    # * method: add_constant
+    @abstractmethod
+    def add_constant(self, constant_id: str, value: Any):
+        '''
+        Register a constant value in the container.
+
+        :param constant_id: The constant identifier.
+        :type constant_id: str
+        :param value: The constant value.
+        :type value: Any
+        '''
+        raise NotImplementedError()
+
+    # * method: get_dependency
+    @abstractmethod
+    def get_dependency(self, dependency_id: str) -> Any:
+        '''
+        Resolve a registered dependency by identifier.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: The resolved instance or value.
         :rtype: Any
         '''
+        raise NotImplementedError()
 
-        # Look up and invoke the provider; raises raw exception if missing.
-        provider = self.container.providers.get(service_id)
-        return provider()
-
-    # * method: _build_factory (static)
-    @staticmethod
-    def _build_factory(service_type: type) -> providers.Factory:
+    # * method: has_dependency
+    @abstractmethod
+    def has_dependency(self, dependency_id: str) -> bool:
         '''
-        Build a Factory provider with constructor kwargs wired to sibling providers.
+        Return True when a dependency is registered under the given identifier.
 
-        :param service_type: The class to wrap in a Factory provider.
-        :type service_type: type
-        :return: The configured Factory provider.
-        :rtype: providers.Factory
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: True when registered, False otherwise.
+        :rtype: bool
         '''
+        raise NotImplementedError()
 
-        # Wire each injectable parameter to a sibling provider.
-        kwargs = {}
-        for param_name in injectable_parameter_names(service_type):
-            sibling = ServiceContainer.container.providers.get(param_name)
-            if sibling is not None:
-                kwargs[param_name] = sibling
-        return providers.Factory(service_type, **kwargs)
+    # * method: remove_dependency
+    @abstractmethod
+    def remove_dependency(self, dependency_id: str):
+        '''
+        Remove a registered dependency from the container. Idempotent.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        '''
+        raise NotImplementedError()
+
+    # * method: load_container
+    @abstractmethod
+    def load_container(self,
+            services: Dict[str, ServiceDependency] = None,
+            constants: Dict[str, Any] = None,
+        ):
+        '''
+        Bulk-load the container from service dependencies and constants.
+
+        :param services: A mapping of service id to core service dependency.
+        :type services: Dict[str, ServiceDependency] | None
+        :param constants: A mapping of constant id to value.
+        :type constants: Dict[str, Any] | None
+        '''
+        raise NotImplementedError()
 ```
 
 ## Canonical source

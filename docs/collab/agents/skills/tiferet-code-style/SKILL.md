@@ -16,18 +16,18 @@ description: Apply the Tiferet structured code style during any implementation s
 Three structural tiers organize every module:
 
 ```
-# *** <section>          ← top-level (preamble or construct group)
-# ** <kind>: <name>      ← mid-level (category or individual component)
-# * <component>          ← low-level (attribute, init, method)
+# *** <section>          ← artifact section (preamble or construct group)
+# ** <kind>: <name>      ← artifact (category or individual component)
+# * <component>          ← artifact member (attribute, init, method)
 ```
 
-**Top-level sections — preamble groups** (available in any module, in this order when present):
+**Artifact sections — preamble groups** (available in any module, in this order when present):
 - `# *** imports` — all imports
 - `# *** constants` — module-level constants
 - `# *** functions` — side-effect-free module-level helpers (no `self`, no injected services, plain return values)
-- `# *** classes` — generic/base classes not tied to a construct type (used in `settings.py` files)
+- `# *** classes` — generic/base classes not tied to a construct type (used in `core.py` files)
 
-**Top-level sections — construct groups** (one per module, based on what it defines):
+**Artifact sections — construct groups** (one per module, based on what it defines):
 - `# *** models`, `# *** events`, `# *** contexts`, `# *** interfaces`, `# *** mappers`, `# *** repos`, `# *** utils`, `# *** blueprints`
 - `# *** exports` — only in `__init__.py`
 
@@ -46,7 +46,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
 **Mid-level labels by construct:** `# ** model: <name>`, `# ** event: <name>`, `# ** context: <name>`, `# ** mapper: <name>`, `# ** interface: <name>`, `# ** repo: <name>`, `# ** util: <name>`, `# ** blueprint: <name>`, `# ** function: <name>`, `# ** constant: <name>`, `# ** class: <name>`
 
-**Low-level labels within a class:**
+**Artifact member labels within a class:**
 - `# * attribute: <name>` — instance attributes
 - `# * init` — constructor
 - `# * method: <name>` — instance methods
@@ -55,7 +55,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
 ## Key conventions
 
-- **Spacing:** One empty line between top-level comment and first mid-level; one empty line between mid-level entries; one empty line between low-level (`# *`) sections; one empty line after docstrings; one empty line between code snippets within a method.
+- **Spacing:** One empty line between artifact section and first artifact; one empty line between artifacts; one empty line between artifact members (`# *`); one empty line after docstrings; one empty line between code snippets within a method.
 - **Docstrings:** RST format — include `:param`/`:type` for every parameter and `:return`/`:rtype` for every return value.
 - **Parameter indentation:** For methods with >3 parameters, align subsequent params to the opening parenthesis.
 - **Code snippets:** Each logical step is a separate snippet preceded by a 1–2 line comment describing intent.
@@ -73,7 +73,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 from typing import Any
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import Feature
 from ..interfaces import FeatureService
 
@@ -120,7 +120,7 @@ class GetFeature(DomainEvent):
         # Verify the feature exists; raise structured error if not.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
