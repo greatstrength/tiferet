@@ -50,7 +50,9 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
 |------------|-------------|
 
 ## 8. Related Code Style Documentation
-- Always link code_style.md; add component guides only for components actually touched.
+- `tiferet-code-style` — required for every story.
+- `tiferet-code-<component>` — include only for components this story modifies (domain, events, mappers, interfaces, contexts, repos, assets, blueprints, utils, di, testing). For multi-component stories, also include `tiferet-code-architecture`.
+- **Fallback** (if skills not installed): link to `docs/core/<component>.md` directly.
 ```
 
 ## Key rules
@@ -60,7 +62,7 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
   - **Main stream:** the milestone version. For a no-version domain-scoped parity milestone, use the milestone's descriptive name, e.g. `Core DDD Parity I — Domain Infrastructure (tracking milestone)`.
   - **RFP stream:** `Request for Prototype`.
   - **Doc stream:** the latest released version.
-- **Related Code Style Documentation** (section 8) is mandatory: always include `code_style.md`; include a component guide only when the story modifies that component. Link to `https://github.com/greatstrength/tiferet/blob/main/docs/core/<file>` — available guides: `code_style.md`, `domain.md`, `events.md`, `mappers.md`, `interfaces.md`, `contexts.md`, `repos.md`, `utils.md`.
+- **Related Code Style Documentation** (section 8) is mandatory: always include `tiferet-code-style`; include a `tiferet-code-<component>` skill for each component the story modifies. For multi-component stories, also include `tiferet-code-architecture`. If skills are not installed, fall back to repo-relative paths — available guides: `docs/core/code_style.md`, `docs/core/domain.md`, `docs/core/events.md`, `docs/core/mappers.md`, `docs/core/interfaces.md`, `docs/core/contexts.md`, `docs/core/repos.md`, `docs/core/assets.md`, `docs/core/blueprints.md`, `docs/core/utils.md`, `docs/core/di.md`, `docs/core/testing.md`.
 
 ## Artifact-based requirements
 Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# * method:` / `# ** <component>:` labels / `# *** <section>` headers per the structured code style — not prose or "copy from X". In §3 give each module an artifact-action summary; in §4 enumerate the named artifacts, using a `From (current)` → `To (target)` delta table for renames/migrations with an Add/Update/Remove legend (factor the shared pattern once, list per-module exceptions). In §5 assert target artifacts exist and retired ones are gone. Make cross-layer prerequisites, artifact-label corrections, and behavioral shifts explicit.

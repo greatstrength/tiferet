@@ -162,6 +162,30 @@ grep -rn "# ++\|# --" tiferet/
 
 Full grammar and resolution expectations: [`docs/core/code_style.md § Annotation Artifacts`](docs/core/code_style.md).
 
+### Code Style Skills
+
+The `tiferet-code-*` skill suite provides self-contained, offline-capable style guidance for each component layer. Skills embed key conventions and a working example — no external URLs required. Install them from `docs/collab/agents/skills/` (see that folder's README for activation instructions).
+
+**Read `tiferet-code-style` at the start of every implementation session** (same standing as `tiferet-annotation-artifacts`). **Read `tiferet-code-architecture` before any multi-component implementation.**
+
+| Skill | When to use |
+|---|---|
+| **`tiferet-code-architecture`** | Any multi-component task — layer graph, import rules, runtime flow |
+| **`tiferet-code-style`** | Every implementation session — read first |
+| **`tiferet-code-domain`** | Adding or modifying domain objects |
+| **`tiferet-code-events`** | Adding or modifying domain events |
+| **`tiferet-code-mappers`** | Adding or modifying aggregates or transfer objects |
+| **`tiferet-code-interfaces`** | Adding or modifying service interfaces |
+| **`tiferet-code-contexts`** | Adding or modifying contexts |
+| **`tiferet-code-repos`** | Adding or modifying repositories |
+| **`tiferet-code-assets`** | Adding or modifying assets constants, errors, or exceptions |
+| **`tiferet-code-blueprints`** | Adding or modifying blueprints |
+| **`tiferet-code-utils`** | Adding or modifying utilities |
+| **`tiferet-code-di`** | Adding or modifying DI layer classes or functions |
+| **`tiferet-code-testing`** | Writing or extending tests using the harness |
+
+**Fallback rule:** if a skill is not installed, read `docs/core/<component>.md` directly — the full-detail guides are the canonical source of truth.
+
 ## Domain Events
 
 Domain events are the primary operational units. Key patterns:

@@ -19,14 +19,23 @@ Applies to all Tiferet-family repositories (greatstrength/tiferet, and any tifer
 
 Source of truth (read when relevant): start at CONTRIBUTING.md, which indexes docs/collab/ (stream guides) and docs/core/ (code style). Inside the tiferet repo use those local paths; from any other repo use the GitHub URLs under https://github.com/greatstrength/tiferet/blob/main/.
 
-For these workflows, use the matching skill (each carries the detailed conventions): tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop), tiferet-pr-code-review (PR review against a source of truth).
+Navigation by task type:
+- Implementation work: orient with AGENTS.md (architecture, key concepts, code style) → read tiferet-code-style (mandatory every implementation session) → read the component skill(s) matching what you are modifying.
+- Multi-component implementation: also read tiferet-code-architecture before writing code.
+- Collaboration/process work (milestones, TRDs, PRs, reports): orient with CONTRIBUTING.md → Working with AI Agents → use the matching collaboration skill.
+
+For collaboration workflows, use the matching skill: tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop), tiferet-pr-code-review (PR review against a source of truth).
+
+For implementation sessions, read tiferet-code-style first, then the component skill(s) for what you are modifying: tiferet-code-domain (domain objects), tiferet-code-events (domain events), tiferet-code-mappers (aggregates/transfer objects), tiferet-code-interfaces (service interfaces), tiferet-code-contexts (contexts), tiferet-code-repos (repositories), tiferet-code-assets (constants/errors), tiferet-code-blueprints (blueprints), tiferet-code-utils (utilities), tiferet-code-di (DI layer), tiferet-code-testing (test harness). If a skill is not installed, read docs/core/<component>.md directly.
 
 Always: tie work to a GitHub issue; write a TRD before non-trivial changes; follow the structured code style (artifact comments, RST docstrings, spacing); keep functional vs docs/config commits separate; add a Co-Authored-By line when an AI agent collaborates; never commit or merge unless asked.
 ```
 
 ## Companion skills
 
-The workflows named in the rule are packaged as agent skills, with canonical copies kept in [agents/skills/](agents/skills/) (see that folder's README to activate them via `~/.agents/skills/` for global use, or a repo's `.agents/skills/` for one project):
+All skills have canonical copies in [agents/skills/](agents/skills/) (see that folder's README to activate them via `~/.agents/skills/` for global use, or a repo's `.agents/skills/` for one project).
+
+**Collaboration skills:**
 
 - `tiferet-create-milestone`
 - `tiferet-author-trd`
@@ -34,4 +43,20 @@ The workflows named in the rule are packaged as agent skills, with canonical cop
 - `tiferet-milestone-session`
 - `tiferet-pr-code-review`
 
-See the **Working with AI Agents** section of [CONTRIBUTING.md](../../CONTRIBUTING.md) for the overview.
+**Code style skills** (read `tiferet-code-style` every implementation session; read others as needed):
+
+- `tiferet-code-architecture` — layer graph, import rules, runtime flow
+- `tiferet-code-style` — artifact comments, spacing, docstrings (mandatory every session)
+- `tiferet-code-domain` — domain objects
+- `tiferet-code-events` — domain events
+- `tiferet-code-mappers` — aggregates and transfer objects
+- `tiferet-code-interfaces` — service interfaces
+- `tiferet-code-contexts` — contexts
+- `tiferet-code-repos` — repositories
+- `tiferet-code-assets` — constants, errors, exceptions
+- `tiferet-code-blueprints` — blueprints
+- `tiferet-code-utils` — utilities
+- `tiferet-code-di` — DI layer
+- `tiferet-code-testing` — test harness
+
+See the **Working with AI Agents** section of [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full overview.
