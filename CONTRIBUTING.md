@@ -48,15 +48,8 @@ Key points:
 
 ### Implement
 
-- Follow the [Structured Code Style](docs/core/code_style.md) — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase.
-- Consult the component-specific guides in `docs/core/` for the layers you're working in:
-  - [domain.md](docs/core/domain.md) — Domain objects
-  - [events.md](docs/core/events.md) — Domain events
-  - [mappers.md](docs/core/mappers.md) — Aggregates and transfer objects
-  - [interfaces.md](docs/core/interfaces.md) — Service interfaces
-  - [contexts.md](docs/core/contexts.md) — Application contexts
-  - [repos.md](docs/core/repos.md) — Repositories
-  - [utils.md](docs/core/utils.md) — Utilities
+- Read **`tiferet-code-style`** before writing any code — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase. If the skill is not installed, use [docs/core/code_style.md](docs/core/code_style.md) directly.
+- Read the **`tiferet-code-<component>`** skill for each layer you’re modifying (see the Code Style Skills list in **Working with AI Agents** above). If the skill is not installed, use the corresponding `docs/core/<component>.md` guide directly.
 - Write tests using `pytest`.
 
 ### Commit Hygiene
@@ -89,7 +82,9 @@ See the full report format guide:
 
 ## Working with AI Agents
 
-Warp/AI agents contributing to Tiferet follow the same conventions described above and in the [`docs/collab/`](docs/collab/) stream guides. The most common workflows are also packaged as reusable agent **skills** so they're applied consistently across all Tiferet-family repositories:
+Warp/AI agents contributing to Tiferet follow the same conventions described above and in the [`docs/collab/`](docs/collab/) stream guides. All common workflows and code style conventions are packaged as reusable agent **skills** so they're applied consistently across all Tiferet-family repositories.
+
+**Collaboration skills** handle process workflows:
 
 - **`tiferet-annotation-artifacts`** — scan, add, and resolve `# ++ todo:` / `# -- obsolete:` annotation artifacts; covers the pre-session scan, resolution procedure, and Collaboration Report integration ([code_style.md § Annotation Artifacts](docs/core/code_style.md)). **Use this at the start of every implementation session.**
 - **`tiferet-create-milestone`** — create or format a GitHub milestone (title and description conventions).
@@ -98,9 +93,25 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
 - **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
 
+**Code style skills** (`tiferet-code-*`) handle implementation conventions — read `tiferet-code-style` at the start of every implementation session, then the component skill(s) for what you’re modifying:
+
+- **`tiferet-code-architecture`** — layer graph, import rules, runtime flow; read for any multi-component task.
+- **`tiferet-code-style`** — artifact comment hierarchy, spacing, docstrings, annotation artifacts; read every session.
+- **`tiferet-code-domain`** — domain object conventions ([domain.md](docs/core/domain.md)).
+- **`tiferet-code-events`** — domain event conventions ([events.md](docs/core/events.md)).
+- **`tiferet-code-mappers`** — aggregate and transfer object conventions ([mappers.md](docs/core/mappers.md)).
+- **`tiferet-code-interfaces`** — service interface conventions ([interfaces.md](docs/core/interfaces.md)).
+- **`tiferet-code-contexts`** — context conventions ([contexts.md](docs/core/contexts.md)).
+- **`tiferet-code-repos`** — repository conventions ([repos.md](docs/core/repos.md)).
+- **`tiferet-code-assets`** — assets constants, errors, and exceptions ([assets.md](docs/core/assets.md)).
+- **`tiferet-code-blueprints`** — blueprint orchestration conventions ([blueprints.md](docs/core/blueprints.md)).
+- **`tiferet-code-utils`** — utility and infrastructure conventions ([utils.md](docs/core/utils.md)).
+- **`tiferet-code-di`** — DI layer conventions ([di.md](docs/core/di.md)).
+- **`tiferet-code-testing`** — test harness conventions ([testing.md](docs/core/testing.md)).
+
 A ready-to-apply **global agent rule** is preserved at [docs/collab/agent_rule.md](docs/collab/agent_rule.md) — copy it into your agent's global/user rules to apply these standards across every Tiferet repo.
 
-These skills and any AI rules treat `docs/collab/` and the [code style guides](docs/core/) as the **single source of truth** — they reference these documents rather than copying them, so the docs stay authoritative. The skills' canonical copies live in [docs/collab/agents/skills/](docs/collab/agents/skills/); follow that folder's README to copy them into `~/.agents/skills/` (global) or a repo's `.agents/skills/` (project) so your agent auto-discovers them.
+Skills and AI rules treat `docs/collab/` and the [code style guides](docs/core/) as the **single source of truth** — they reference these documents rather than copying them. The skills' canonical copies live in [docs/collab/agents/skills/](docs/collab/agents/skills/); follow that folder's README to copy them into `~/.agents/skills/` (global) or a repo's `.agents/skills/` (project) so your agent auto-discovers them.
 
 ## Code Style
 
