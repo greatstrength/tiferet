@@ -6,9 +6,9 @@
 from typing import Dict, Any
 import json
 
-# *** exceptions
+# *** classes
 
-# ** exception: tiferet_error
+# ** class: tiferet_error
 class TiferetError(Exception):
     '''
     The TiferetError is the base exception for all Tiferet-related errors.
@@ -47,7 +47,33 @@ class TiferetError(Exception):
             })
         )
 
-# ** exception: tiferet_api_error
+# ** class: raise_error
+class RaiseError:
+    '''
+    A static helper that raises structured ``TiferetError`` instances.
+
+    Defined here in the assets layer so blueprints can import it without
+    reaching into the events layer (which itself imports from assets).
+    '''
+
+    # * method: execute (static)
+    @staticmethod
+    def execute(error_code: str, message: str = None, **kwargs):
+        '''
+        Raise a TiferetError with the specified error code.
+
+        :param error_code: The error code to raise.
+        :type error_code: str
+        :param message: The error message to raise.
+        :type message: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        '''
+
+        # Raise an error with the specified code and arguments.
+        raise TiferetError(error_code, message, **kwargs)
+
+# ** class: tiferet_api_error
 class TiferetAPIError(TiferetError):
     '''
     The TiferetAPIError is the exception returned for all Tiferet API-related errors by default.

@@ -55,8 +55,8 @@ def create_service_provider(
 
 # ** blueprint: load_app_service
 def load_app_service(
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.core.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.core.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> Any:
     '''
@@ -94,7 +94,8 @@ def load_default_services() -> List[AppServiceDependency]:
             class_name=class_name,
             parameters=parameters or {},
         )
-        for service_id, module_path, class_name, parameters in a.bps.DEFAULT_SERVICES
+        # ++ todo: Parity III Story 6b — replace a.core.DEFAULT_SERVICES with a.app.CORE_DEFAULT_SERVICES
+        for service_id, module_path, class_name, parameters in a.core.DEFAULT_SERVICES
     ]
 
 
@@ -143,8 +144,8 @@ def load_app_instance(
 # ** blueprint: resolve_interface
 def resolve_interface(
     interface_id: str,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.core.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.core.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> tuple:
     '''
@@ -177,7 +178,8 @@ def resolve_interface(
         dependencies=dict(app_service=app_service),
         interface_id=interface_id,
         default_services=default_services,
-        default_constants=a.bps.DEFAULT_CONSTANTS,
+        # ++ todo: Parity III Story 6b — replace a.core.DEFAULT_CONSTANTS with a.app.CORE_DEFAULT_CONSTANTS
+        default_constants=a.core.DEFAULT_CONSTANTS,
     )
 
     # Return the resolved interface and default services.
@@ -221,8 +223,8 @@ def realize_interface(
 # ** blueprint: build_app
 def build_app(
     interface_id: str,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.core.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.core.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> AppInterfaceContext:
     '''

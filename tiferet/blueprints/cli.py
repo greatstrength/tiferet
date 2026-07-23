@@ -197,8 +197,8 @@ def derive_feature_request(
 def build_app(
     interface_id: str,
     argv: Optional[List[str]] = None,
-    module_path: str = a.bps.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.bps.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.core.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.core.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> Any:
     '''
@@ -228,7 +228,8 @@ def build_app(
     # Merge constants in priority order: defaults < interface < user parameters.
     merged_constants = {
         **{k: v for dep in default_services for k, v in dep.parameters.items()},
-        **a.bps.DEFAULT_CONSTANTS,
+        # ++ todo: Parity III Story 6b — replace a.core.DEFAULT_CONSTANTS with a.app.CORE_DEFAULT_CONSTANTS
+        **a.core.DEFAULT_CONSTANTS,
         **(app_interface.constants or {}),
         **parameters,
     }

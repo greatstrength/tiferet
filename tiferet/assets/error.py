@@ -8,7 +8,7 @@ domain events when not overridden by consumer configuration.
 # *** imports
 
 # ** app
-from .constants import (
+from .core import (
     APP_CONFIG_LOADING_FAILED_ID,
     APP_ERROR_ID,
     APP_INTERFACE_NOT_FOUND_ID,
