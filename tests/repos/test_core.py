@@ -1,4 +1,4 @@
-"""Tiferet Configuration Repository Settings Tests"""
+"""Tiferet Configuration Repository Core Tests"""
 
 # *** imports
 
@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.repos.settings import ConfigurationRepository
+from tiferet.repos.core import ConfigurationRepository
 from tiferet.utils import YamlLoader, JsonLoader
 from tiferet.assets import TiferetError
 

@@ -8,7 +8,7 @@ import pytest
 # ** app
 from tiferet.domain import AppServiceDependency
 from tiferet.assets import TiferetError, const
-from tiferet.mappers.settings import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
+from tiferet.mappers.core import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from tiferet.mappers.app import (
     AppInterfaceAggregate,
     AppInterfaceConfigObject,

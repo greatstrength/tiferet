@@ -22,7 +22,7 @@ from tiferet.events.feature import (
     RemoveFeatureStep,
     ReorderFeatureStep,
 )
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import Feature
 from tiferet.interfaces import FeatureService
 from tiferet.mappers import FeatureAggregate
