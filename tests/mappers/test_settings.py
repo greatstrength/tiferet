@@ -257,6 +257,56 @@ def test_transfer_object_map(test_data_object: type, test_aggregate: type):
     assert result.id == 'test_id'
     assert result.name == 'Test Data'
 
+# ** test: aggregate_to_dict_default
+def test_aggregate_to_dict_default(test_aggregate: type):
+    '''
+    Test that Aggregate.to_dict returns a dict with None-valued fields excluded by default.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Create an aggregate with a non-None name.
+    aggregate = test_aggregate(id='test_id', name='Test Aggregate')
+
+    # Serialize via to_dict with defaults.
+    result = aggregate.to_dict()
+
+    # Assert a dict is returned and None-valued fields are excluded.
+    assert isinstance(result, dict)
+    assert result['id'] == 'test_id'
+    assert result['name'] == 'Test Aggregate'
+
+# ** test: aggregate_to_dict_override_exclude_none
+def test_aggregate_to_dict_override_exclude_none(test_aggregate: type):
+    '''
+    Test that Aggregate.to_dict accepts exclude_none=False override to include None fields.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Define a subclass with a nullable field to exercise exclude_none=False.
+    from pydantic import Field as PydanticField
+    from tiferet.mappers.settings import Aggregate
+
+    class AggregateWithOptional(Aggregate):
+        id: str = PydanticField(..., description='The id.')
+        name: str = PydanticField(..., description='The name.')
+        optional_field: str | None = PydanticField(default=None, description='An optional field.')
+
+    # Create an instance where optional_field is None.
+    agg = AggregateWithOptional(id='x', name='Y')
+
+    # to_dict with default should exclude the None field.
+    default_result = agg.to_dict()
+    assert 'optional_field' not in default_result
+
+    # to_dict with exclude_none=False should include the None field.
+    full_result = agg.to_dict(exclude_none=False)
+    assert 'optional_field' in full_result
+    assert full_result['optional_field'] is None
+
 # ** test: transfer_object_to_primitive_with_role
 def test_transfer_object_to_primitive_with_role(test_data_object: type):
     '''
