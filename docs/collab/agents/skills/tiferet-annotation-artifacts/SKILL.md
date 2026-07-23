@@ -93,8 +93,8 @@ In the Collaboration Report (Section 2 — Code Components Touched or Section 3 
 - Any `# -- obsolete:` annotations introduced or retired (with the artifact and reason).
 
 Example log entry:
-> **AI** — Resolved `# ++ todo:` on `AppInterfaceAggregate.remove_service`: removed `attribute_id` parameter and updated all callers.
-> **AI** — Retired `# -- obsolete:` on `EventFeatureStep.return_to_data`: deleted attribute, updated `FeatureConfigObject` mapper, confirmed no remaining callers.
+> **AI** — Resolved `# ++ todo:` on `AppSessionAggregate.remove_service`: removed `attribute_id` parameter and updated all callers.
+> **AI** — Retired `# -- obsolete:` on `AppSessionAggregate.return_to_data`: deleted attribute, updated `AppSessionConfigObject` mapper, confirmed no remaining callers.
 
 ---
 

@@ -120,7 +120,7 @@ Finally, add a feature to read the history back:
           name: List recent calculations
 ```
 
-> **Tip:** `params_schema` (added in v2.0.0b12) validates and coerces request data before any step runs — that's why `a` and `b` arrive as real numbers.
+> **Tip:** `params_schema` validates and coerces request data before any step runs — that's why `a` and `b` arrive as real numbers.
 
 ### 7.4 Add a CLI command (optional)
 

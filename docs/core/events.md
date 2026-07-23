@@ -5,7 +5,7 @@
 
 ## Overview
 
-Domain events are the operational core of the Tiferet framework. Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet.events.settings`.
+Domain events are the operational core of the Tiferet framework. Every focused domain action — validation, service interaction, computation, or orchestration — is expressed as a class extending `DomainEvent` from `tiferet/events/core.py`.
 
 `DomainEvent` provides:
 - Core orchestration (`execute`, `handle`)
@@ -20,7 +20,7 @@ This class serves as the base for all domain event implementations. It centraliz
 `DomainEvent` extends `object` and provides the foundational methods for all domain operations:
 
 ```python
-# tiferet/events/settings.py
+# tiferet/events/core.py
 
 class DomainEvent(object):
     '''
@@ -129,7 +129,7 @@ The static utility events (`ParseParameter`, `ImportDependency`, `RaiseError` in
 
 Domain events follow the standard Tiferet artifact comment structure:
 
-- `# *** events` – top-level section (use `# *** classes` in `settings.py`).
+- `# *** events` – top-level section (use `# *** classes` in `core.py`).
 - `# ** event: <name>` – individual domain event (snake_case).
 - `# * attribute: <name>` – injected dependencies.
 - `# * init` – constructor.
@@ -152,7 +152,7 @@ Domain events follow the standard Tiferet artifact comment structure:
 # *** imports
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import Error
 from ..mappers import ErrorAggregate
 
@@ -232,7 +232,7 @@ Tests validate input validation, service interactions, and error handling using 
 
 ### Test Harness
 
-The domain event test harness (`tiferet/events/tests/settings.py`) provides two base classes that eliminate boilerplate and enforce consistency across all event test modules.
+The domain event test harness (`tiferet/testing/`) provides two base classes that eliminate boilerplate and enforce consistency across all event test modules.
 
 #### DomainEventTestBase
 
@@ -403,7 +403,7 @@ For built-in middleware, the `MiddlewareService` interface, ordering, `config.ym
 
 Domain events are defined in `tiferet/events/`:
 
-- `settings.py` – `DomainEvent` base class, `@parameters_required` decorator.
+- `core.py` – `DomainEvent` base class, `@parameters_required` decorator.
 - `static.py` – Static utility events (`ParseParameter`, `ImportDependency`, `RaiseError`).
 - `app.py` – `AppEvent` base + app interface management events.
 - `cli.py` – `CliEvent` base + CLI command management events.
@@ -414,11 +414,12 @@ Domain events are defined in `tiferet/events/`:
 - `sqlite.py` – `SqliteEvent` base + SQLite management events.
 - `__init__.py` – Public exports (`DomainEvent`, `TiferetError`, `a`).
 
-Tests live in `tiferet/events/tests/`:
+The test harness lives in `tiferet/testing/`:
 
-- `settings.py` – Test harness (`DomainEventTestBase`, `ServiceEventTestBase`).
-- `conftest.py` – `pytest_generate_tests` hook for auto-parametrization.
-- `test_app.py`, `test_cli.py`, `test_container.py`, etc. – Per-module test suites.
+- `tiferet/testing/mappers.py` – `AggregateTestBase`, `TransferObjectTestBase`, `MapperAssertions`.
+- `tiferet/testing/domain.py` – `DomainEventTestBase`, `ServiceEventTestBase`.
+- `tiferet/testing/hooks.py` – `register_mapper_hooks`, `register_event_hooks`.
+- Per-module test suites live in `tiferet/events/tests/` (e.g., `test_app.py`, `test_cli.py`, etc.).
 
 ## Conclusion
 

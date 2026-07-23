@@ -7,7 +7,7 @@ Contexts are a core component of the Tiferet framework, representing the structu
 A Context in Tiferet is a class that encapsulates a specific aspect of an application’s runtime behavior, such as user-facing interactions (e.g., CLI, web), feature execution, dependency injection, error handling, caching, or logging. Contexts form a graph-like structure during execution, defining how the application processes inputs, executes domain logic, and returns outputs. They align with Domain-Driven Design (DDD) principles, isolating concerns to ensure modularity and extensibility.
 
 ### Types of Contexts
-All contexts extend `BaseContext` (`tiferet/contexts/settings.py`), which provides a shared `services` slot and a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`). Caching is not part of the base; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) declare and wire it themselves.
+All contexts extend `BaseContext` (`tiferet/contexts/core.py`), which provides a `ContextMeta` registry mapping a domain object type (`domain_type`) to its context class. `BaseContext.for_domain(DomainType)` resolves the registered class, and `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context bound to a loaded domain object (exposed as `ctx.domain`). Caching is not part of the base; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) declare and wire it themselves.
 
 Tiferet recognizes two broad categories:
 
@@ -40,7 +40,7 @@ Contexts are organized under the `# *** contexts` top-level comment, with indivi
 # *** imports
 
 # ** app
-from .settings import BaseContext
+from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
@@ -49,26 +49,30 @@ from ..domain import AppSession
 
 # *** contexts
 
-# ** context: app_interface_context
+# ** context: app_session_context
 class AppSessionContext(BaseContext):
 
     # * attribute: domain_type
     domain_type = AppSession
 
     # * init
-    def __init__(self, get_feature_evt, get_error_evt, logging_list_all_evt,
-                 get_dependency, cache=None,
-                 default_features=None, default_commands=None):
+    def __init__(self,
+                 get_dependency,
+                 logging_context=None,
+                 cache=None,
+                 execute_feature_handler=None,
+                 create_request_handler=None,
+                 raise_error_handler=None,
+                 response_handler=None):
         '''
         Initialize the hub. The loaded AppSession is bound via from_domain as
-        self.domain, supplying the interface id and logger id on demand.
+        self.domain, supplying the session id and logger id on demand.
         '''
         super().__init__()
         self.cache = cache if cache is not None else CacheContext()
-        self.get_feature_evt = get_feature_evt
-        # ... store the remaining events and the injected get_dependency
-        # service-resolution handler, plus validated bootstrap defaults;
-        # sub-contexts are created lazily on first use ...
+        self.get_dependency = get_dependency
+        # ... store the injected handler callables and logging context;
+        # sub-contexts are built on demand via BaseContext.for_domain ...
 
     # * method: run
     def run(self, feature_id, headers=None, data=None, **kwargs):
@@ -152,31 +156,26 @@ Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `#
 ```python
 # *** fixtures
 
-# ** fixture: app_interface_context
+# ** fixture: app_session_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context, logging_context):
-    # Build the hub declaratively from a loaded interface with mock events.
+def app_session_context(app_session, logging_context):
+    # Build the hub declaratively from a loaded app session via from_domain.
     context = AppSessionContext.from_domain(
-        app_interface,
-        get_feature_evt=mock.Mock(),
-        get_error_evt=mock.Mock(),
-        logging_list_all_evt=mock.Mock(),
+        app_session,
         get_dependency=mock.Mock(),
+        logging_context=logging_context,
     )
-    # Inject the mock logging context via its cache; feature and error contexts
-    # are built on demand, so patch BaseContext.for_domain to return the mocks.
-    context._logging = logging_context
     return context
 
 # *** tests
 
-# ** test: app_interface_context_run_success
-def test_app_interface_context_run_success(app_interface_context, logging_context):
+# ** test: app_session_context_run_success
+def test_app_session_context_run_success(app_session_context, logging_context):
     # Arrange the logger.
     logging_context.build_logger.return_value = mock.Mock()
 
     # Act.
-    result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
+    result = app_session_context.run('calc.add', data={'a': 1, 'b': 2})
 
     # The feature context is built on demand inside execute_feature; assert the
     # run completed and produced a response.

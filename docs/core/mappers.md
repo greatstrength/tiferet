@@ -42,7 +42,7 @@ Together, these classes provide a clear separation of mutation (Aggregate) and s
 `Aggregate` extends `DomainObject` and provides mutation-safe attribute updates:
 
 ```python
-# tiferet/mappers/settings.py
+# tiferet/mappers/core.py
 
 class Aggregate(DomainObject):
     '''
@@ -114,7 +114,7 @@ Mapper classes follow the standard Tiferet artifact comment structure:
 - `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
 - `# * method: <name>` — instance or class methods.
 
-Use `# *** classes` in `settings.py` for the base classes themselves.
+Use `# *** classes` in `core.py` for the base classes themselves.
 
 **Spacing rules:**
 - One empty line between `# *** mappers` and first `# ** mapper`.
@@ -298,9 +298,9 @@ Harness-based test files follow this structure:
 import pytest
 
 # ** app
-from ..settings import TransferObject
+from ..core import TransferObject
 from ..<domain> import SomeAggregate, SomeConfigObject
-from .settings import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants
@@ -414,7 +414,7 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject
 
 Mappers are defined in `tiferet/mappers/`:
 
-- `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
+- `core.py` — `Aggregate` and `TransferObject` base classes + constants.
 - `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
 - `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
 - `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.

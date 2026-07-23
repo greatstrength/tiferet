@@ -41,7 +41,7 @@ This duality ensures a single source of truth for domain structure and behavior,
       # Inherits fields/validation from Error
       # Adds serialization roles and mapping logic
   ```
-  Configuration (`error.yml`) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
+  Configuration (`config.yml` errors section) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
 
 ## The DomainObject Base Class
 
