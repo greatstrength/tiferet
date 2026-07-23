@@ -1,7 +1,7 @@
 # Step 4: Configurations
 
 We've got the math events and a nice validation utility — now it's time to make everything come alive through configuration.  
-In Tiferet v2.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
+In Tiferet v2.0.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
 
 ### 4.1 config.yml – The complete wiring diagram
 
@@ -18,7 +18,7 @@ interfaces:
 
 # Dependency injection mappings
 # These map friendly names (used in features) to actual Python classes
-attrs:
+services:
   add_event:
     module_path: app.events.calc
     class_name: AddNumber
@@ -42,37 +42,37 @@ features:
       name: Addition
       description: Add two numbers
       steps:
-        - attribute_id: add_event
+        - service_id: add_event
 
     subtract:
       name: Subtraction
       description: Subtract second number from first
       steps:
-        - attribute_id: subtract_event
+        - service_id: subtract_event
 
     multiply:
       name: Multiplication
       description: Multiply two numbers
       steps:
-        - attribute_id: multiply_event
+        - service_id: multiply_event
 
     divide:
       name: Division
       description: Divide first number by second
       steps:
-        - attribute_id: divide_event
+        - service_id: divide_event
 
     exp:
       name: Exponentiation
       description: Raise first number to the power of second
       steps:
-        - attribute_id: exp_event
+        - service_id: exp_event
 
     sqrt:
       name: Square Root
       description: Calculates the square root of a number
       steps:
-        - attribute_id: exp_event
+        - service_id: exp_event
           params:
             b: 0.5    # fixed exponent for square root (a^(1/2))
 
@@ -80,7 +80,7 @@ features:
       name: Safe Divide
       description: Divides only when denominator is non-zero
       steps:
-        - attribute_id: divide_event
+        - service_id: divide_event
           condition: '$r.b != 0'    # skip when b is zero instead of raising
 
 # Structured error messages
@@ -103,7 +103,7 @@ errors:
 - **Simpler structure** — No more hunting through multiple files.
 - **Easier to manage** — Everything related to how the app behaves is in one place.
 - **Still fully flexible** — You can define multiple interfaces, complex features, and rich error handling.
-- Tiferet automatically loads `config.yml` from the project root when you create `App()`.
+- Pass `app_config='config.yml'` when calling `App('basic_calc', app_config='config.yml')`.
 
 ### 4.3 Conditional steps
 
@@ -116,12 +116,12 @@ Conditions support `$r.<key>` references for any value in the request data and s
 In this single `config.yml` file we defined:
 
 - **Interfaces** (`basic_calc`) — the entry point for our script runner
-- **Dependency mappings** (`attrs`) — links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
+- **Services** (`services`) — links friendly names like `add_event` to the actual Python classes in `app/events/calc.py`
 - **Features** (`calc.add`, `calc.sqrt`, `calc.safe_divide`, etc.) — defines the workflows and which event to run for each operation
 - **Conditional steps** — declarative `condition` expressions on feature steps for runtime branching
 - **Errors** — user-friendly, structured error messages with support for multiple languages
 
-When you run `app = App()`, Tiferet reads this `config.yml` and wires everything together automatically.
+When you run `app = App('basic_calc', app_config='config.yml')`, Tiferet reads this file and wires everything together automatically.
 
 No code changes needed here — just this one YAML file.
 

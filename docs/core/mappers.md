@@ -19,7 +19,7 @@ The mappers layer (`tiferet.mappers`) provides the bridge between persistent con
    - Provides `to_primitive(role)`, `map(target)`, and `from_model` classmethod for mapping and transformation.
    - Concrete transfer objects combine a domain object with `TransferObject` to add serialization roles (e.g., `ErrorConfigObject(Error, TransferObject)`).
 
-Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`) with a clearer separation of mutation (Aggregate) and serialization (TransferObject) concerns.
+Together, these classes provide a clear separation of mutation (Aggregate) and serialization (TransferObject) concerns.
 
 ### Example: Error Domain
 
@@ -42,7 +42,7 @@ Together, these classes replace the legacy `DataObject` (`tiferet.data.settings`
 `Aggregate` extends `DomainObject` and provides mutation-safe attribute updates:
 
 ```python
-# tiferet/mappers/settings.py
+# tiferet/mappers/core.py
 
 class Aggregate(DomainObject):
     '''
@@ -90,7 +90,7 @@ class ErrorConfigObject(Error, TransferObject):
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'message'}},
-        'to_data.yaml': {'by_alias': True, 'exclude': {'id'}},
+        'to_data': {'by_alias': True, 'exclude': {'id'}},
     }
 ```
 
@@ -114,7 +114,7 @@ Mapper classes follow the standard Tiferet artifact comment structure:
 - `# * attribute: <name>` — instance attributes (Pydantic `Field(...)` annotations or `ClassVar`).
 - `# * method: <name>` — instance or class methods.
 
-Use `# *** classes` in `settings.py` for the base classes themselves.
+Use `# *** classes` in `core.py` for the base classes themselves.
 
 **Spacing rules:**
 - One empty line between `# *** mappers` and first `# ** mapper`.
@@ -157,13 +157,13 @@ class FeatureAggregate(Feature, Aggregate):
 # ** mapper: feature_config_object
 class FeatureConfigObject(Feature, TransferObject):
     '''
-    YAML transfer object for the Feature domain object.
+    Configuration data representation of the Feature domain object.
     '''
 
     # * attribute: _ROLES
     _ROLES: ClassVar[Dict[str, Dict[str, Any]]] = {
         'to_model': {'exclude': {'steps'}},
-        'to_data.yaml': {
+        'to_data': {
             'by_alias': True,
             'exclude': {'feature_key', 'group_id', 'id'},
         },
@@ -219,7 +219,7 @@ Repositories use transfer objects to load from configuration and map to aggregat
 ### Best Practices
 - Use artifact comments consistently (`# *** mappers`, `# ** mapper:`, `# *`).
 - Keep aggregates focused on mutation; keep transfer objects focused on serialization.
-- Instantiate aggregates directly via the Pydantic constructor — there is no `Aggregate.new()` factory.
+- Instantiate aggregates directly via the Pydantic constructor.
 - Use `set_attribute` for validated mutations with unknown-field checking.
 - Define `_ROLES` ClassVar on all transfer objects for role-based serialization.
 - Use `model_dump` kwargs (`exclude`, `by_alias`, `include`) in `_ROLES` definitions.
@@ -298,9 +298,9 @@ Harness-based test files follow this structure:
 import pytest
 
 # ** app
-from ..settings import TransferObject
+from ..core import TransferObject
 from ..<domain> import SomeAggregate, SomeConfigObject
-from .settings import AggregateTestBase, TransferObjectTestBase
+from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
 
 # *** constants
@@ -414,7 +414,7 @@ Small leaf-level mappers without mutation logic (e.g., `ErrorMessageConfigObject
 
 Mappers are defined in `tiferet/mappers/`:
 
-- `settings.py` — `Aggregate` and `TransferObject` base classes + constants.
+- `core.py` — `Aggregate` and `TransferObject` base classes + constants.
 - `app.py` — `AppSessionAggregate`, `AppSessionConfigObject`.
 - `cli.py` — `CliArgumentAggregate`, `CliCommandAggregate`, `CliCommandConfigObject`.
 - `di.py` — `ServiceRegistrationAggregate`, `ServiceRegistrationConfigObject`.
