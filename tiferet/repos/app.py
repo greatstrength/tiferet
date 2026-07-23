@@ -11,7 +11,7 @@ from ..mappers import (
     AppInterfaceAggregate,
     AppInterfaceConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

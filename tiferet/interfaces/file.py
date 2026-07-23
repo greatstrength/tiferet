@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import IO, Any
 
 # ** app
-from .settings import Service
+from .core import Service
 
 # *** interfaces
 

@@ -6,7 +6,7 @@
 from typing import Any, Dict, List
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from .static import ParseParameter
 from ..domain import AppInterface, ServiceRegistration
 from ..di import ServiceResolver, injectable_parameter_names

@@ -6,7 +6,7 @@
 from typing import Tuple, List, Dict, Any, Optional
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain.di import ServiceRegistration
 from ..interfaces.di import DIService
 from ..mappers.di import ServiceRegistrationAggregate

@@ -10,7 +10,7 @@ from typing import (
 )
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..domain import Error
 from ..interfaces import ErrorService
 from ..mappers import ErrorAggregate

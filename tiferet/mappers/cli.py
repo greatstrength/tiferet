@@ -11,7 +11,7 @@ from pydantic import AliasChoices, Field
 # ** app
 from ..domain import CliArgument, CliCommand
 from ..events import RaiseError, a
-from .settings import Aggregate, TransferObject
+from .core import Aggregate, TransferObject
 
 # *** mappers
 

@@ -11,7 +11,7 @@ from ..mappers import (
     FeatureAggregate,
     FeatureConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

@@ -13,7 +13,7 @@ from typing import (
 
 # ** app
 from ..mappers.di import ServiceRegistrationAggregate
-from .settings import Service
+from .core import Service
 
 # *** interfaces
 

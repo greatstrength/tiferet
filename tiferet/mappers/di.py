@@ -10,7 +10,7 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import FlaggedDependency, ServiceRegistration
-from .settings import Aggregate, TransferObject
+from .core import Aggregate, TransferObject
 
 # *** mappers
 
