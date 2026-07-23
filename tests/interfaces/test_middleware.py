@@ -9,7 +9,7 @@ import inspect
 import pytest
 
 # ** app
-from tiferet.interfaces.settings import Service
+from tiferet.interfaces.core import Service
 from tiferet.interfaces.middleware import MiddlewareService
 
 # *** fixtures

@@ -1,4 +1,4 @@
-"""Tiferet Event Settings Tests"""
+"""Tiferet Event Core Tests"""
 
 # *** imports
 
@@ -7,7 +7,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.events.settings import DomainEvent, AsyncDomainEvent, TiferetError
+from tiferet.events.core import DomainEvent, AsyncDomainEvent, TiferetError
 
 # *** fixtures
 

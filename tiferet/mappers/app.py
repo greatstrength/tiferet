@@ -14,7 +14,7 @@ from ..domain import (
     AppInterface,
 )
 from ..events import RaiseError, a
-from .settings import (
+from .core import (
     Aggregate,
     TransferObject,
     DEFAULT_MODULE_PATH,

@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 # ** app
 from .file import FileLoader
 from ..events import RaiseError, a
-from ..events.settings import TiferetError
+from ..events.core import TiferetError
 
 # *** utils
 

@@ -11,7 +11,7 @@ from ..mappers import (
     ErrorAggregate,
     ErrorConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

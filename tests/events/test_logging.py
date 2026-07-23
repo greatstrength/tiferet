@@ -17,7 +17,7 @@ from tiferet.events.logging import (
     AddLogger,
     RemoveLogger,
 )
-from tiferet.events.settings import DomainEvent, a
+from tiferet.events.core import DomainEvent, a
 from tiferet.domain import Formatter, Handler, Logger
 from tiferet.interfaces import LoggingService
 from tiferet.mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate

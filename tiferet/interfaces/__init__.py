@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 # ** app
-from .settings import Service
+from .core import Service
 from .config import ConfigurationService
 from .file import FileService
 from .sqlite import SqliteService
