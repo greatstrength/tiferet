@@ -9,7 +9,7 @@ from typing import List, Tuple
 from ..domain import Formatter, Handler, Logger
 from ..interfaces import LoggingService
 from ..mappers import FormatterAggregate, HandlerAggregate, LoggerAggregate
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 
 # *** events
 

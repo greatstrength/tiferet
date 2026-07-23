@@ -8,7 +8,7 @@ import os
 from importlib import import_module
 
 # ** app
-from .settings import DomainEvent, TiferetError, a
+from .core import DomainEvent, TiferetError, a
 
 # *** events
 

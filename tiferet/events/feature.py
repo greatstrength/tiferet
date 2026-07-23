@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 from ..domain import Feature
 from ..interfaces import FeatureService
 from ..mappers import FeatureAggregate
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 
 # *** events
 

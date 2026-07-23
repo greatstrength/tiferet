@@ -1,0 +1,1 @@
+"""Tiferet Assets Tests"""

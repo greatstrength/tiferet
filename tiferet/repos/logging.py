@@ -19,7 +19,7 @@ from ..mappers import (
     LoggerAggregate,
     LoggerConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 

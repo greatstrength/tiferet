@@ -21,7 +21,7 @@ from tiferet.events.sqlite import (
     CreateTableSql,
     DropTableSql,
 )
-from tiferet.events.settings import DomainEvent, a, TiferetError
+from tiferet.events.core import DomainEvent, a, TiferetError
 from tiferet.interfaces import SqliteService
 from tiferet.testing import DomainEventTestBase
 

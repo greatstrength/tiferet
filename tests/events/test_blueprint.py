@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.events.blueprint import CreateServiceResolver
 from tiferet.di import ServiceResolver
 from tiferet.domain import AppInterface, AppServiceDependency, ServiceRegistration

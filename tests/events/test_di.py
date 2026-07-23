@@ -17,7 +17,7 @@ from tiferet.events.di import (
     SetServiceConstants,
     ListAllSettings,
 )
-from tiferet.events.settings import DomainEvent, TiferetError, a
+from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain.di import ServiceRegistration, FlaggedDependency
 from tiferet.mappers.di import (
     ServiceRegistrationAggregate,

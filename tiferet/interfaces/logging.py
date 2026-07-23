@@ -12,7 +12,7 @@ from ..mappers import (
     HandlerAggregate,
     LoggerAggregate,
 )
-from .settings import Service
+from .core import Service
 
 # *** interfaces
 
