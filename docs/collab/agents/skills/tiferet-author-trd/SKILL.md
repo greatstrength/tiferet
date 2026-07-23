@@ -79,3 +79,65 @@ For parity/migration work sourced from a prototype branch, keep the dev-facing T
 Verify: all sections present, tables well-formed, code blocks carry a language hint, acceptance criteria are verifiable, and no placeholder text remains. Keep it to ~1-3 pages.
 
 The TRD also feeds the issue's project fields: Components Affected, Acceptance Criteria, and Prerequisites drive **Size**/**Estimate**, and the Prerequisites table drives **Priority** — see [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md).
+
+## Super-TRDs and file naming
+
+**When to use a super-TRD:** any story sized XL (8 pts) or above with a natural seam (by layer, concern, or parallelizability). If no seam exists, proceed as a single XL issue.
+
+**Sizing session:** before creating GitHub issues for a milestone, size all TRDs using [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md), identify XL/XXL candidates, split into super-TRDs, encode field values in filenames, then create issues.
+
+**Super-TRD parent structure:**
+- H1 prefix: `Super-TRD: <Story Title>`
+- Header addition: `**Type:** Super-TRD | N child TRDs`
+- §3 → "Child Stories" (table: TRD filename, Size, Est, Prereqs, sequencing note)
+- §4 → "Story Sequencing" (ASCII dependency diagram)
+- §5 → "Combined Acceptance Criteria" (union of all child ACs)
+- §6–8: standard NFR, Prerequisites, Related Code Style Documentation
+
+**Child TRD addition:** `**Parent:** \`<parent-filename>\` (Child N of M)` in the header.
+
+**Child priority rule:** a child that is a prerequisite for sibling children → P0; all other children → parent's priority.
+
+**Super-TRD closing:** parent issue closes when all child sub-issues close. Rename parent TRD file to `.complete.md` and close the parent GitHub issue.
+
+**TRD file naming (save to `.trd/`):**
+```
+Draft (no issue):           <kebab-title>__<Size>_<Est>_<Priority>.md
+Active (issue, milestone):  m<milestone>_<issue>_<kebab-title>[_N]__<Size>_<Est>_<Priority>.md
+Active (issue, no m/s):     <issue>_<kebab-title>__<Size>_<Est>_<Priority>.md
+Complete:                   [m<N>_]<issue>_<kebab-title>[_N]__<Size>_<Est>_<Priority>.complete.md
+```
+
+`m<N>_` and the issue number are acquired simultaneously — a TRD cannot be assigned to a milestone without an issue. `.complete.md` is the only explicit state marker.
+
+## Creating GitHub issues
+
+**`gh issue create --milestone` silently fails** for milestones with en-dashes. Use the REST API:
+```bash
+gh api repos/greatstrength/tiferet/issues \
+  -f title="<Story title>" \
+  -f body="$(cat .trd/<filename>.md)" \
+  -F milestone=<integer-number> \
+  --jq '{number, node_id, html_url}'
+```
+
+After creating the issue, rename the TRD file to insert the issue number and `m<N>_` prefix.
+
+**Set project fields** via two-step GraphQL (`gh project item-add` does not return item ID):
+```bash
+ITEM_ID=$(gh api graphql -f query="mutation { addProjectV2ItemById(input: {projectId: \"PVT_kwDOCKXjws4A7Y85\", contentId: \"<node-id>\"}) { item { id } } }" --jq '.data.addProjectV2ItemById.item.id')
+gh api graphql -f query="mutation { updateProjectV2ItemFieldValue(input: { projectId: \"PVT_kwDOCKXjws4A7Y85\", itemId: \"$ITEM_ID\", fieldId: \"<field-id>\", value: {singleSelectOptionId: \"<option-id>\"} }) { projectV2Item { id } } }"
+```
+Set **Status=Ready** for all new issues. See [tech_requirements.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md) for stable project field IDs.
+
+**Wire blocked-by** (requires `gh` v2.94.0+):
+```bash
+gh issue edit <blocked> --add-blocked-by <blocker> --repo greatstrength/tiferet
+# Multiple blockers: --add-blocked-by 905,906,907
+```
+
+**Link super-TRD sub-issues:**
+```bash
+CHILD_ID=$(gh api repos/greatstrength/tiferet/issues/<child> --jq '.id')
+gh api repos/greatstrength/tiferet/issues/<parent>/sub_issues -X POST -F sub_issue_id=$CHILD_ID
+```

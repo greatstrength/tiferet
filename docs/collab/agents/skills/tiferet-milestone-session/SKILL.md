@@ -13,21 +13,30 @@ Canonical sources of truth:
 - https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md (Status Workflow, Priority/Size/Estimate fields, Start/End dates)
 
 ## Project status states (project #2)
-`Backlog → Ready → In Progress → In Review → Done`. Move each issue's status as it progresses.
+`Ready → In Progress → In Review → Done`. All new issues start at **Ready** — do not use Backlog. Blocked-by relationships communicate dependency ordering; Status does not reflect blocked state.
 
-At triage (Backlog → Ready) set the **Priority**, **Size**, and **Estimate** fields; set the **Start date** when work begins (In Progress) and the **End date** when the issue is Done — see [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md).
+Set **Priority**, **Size**, and **Estimate** at issue creation; set the **Start date** when work begins (In Progress) and the **End date** when the issue is Done — see [project_fields.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/project_fields.md).
+
+## Before starting: confirm issue setup
+
+Before beginning implementation, verify that all issues in the milestone:
+- Exist on GitHub with Status=Ready, Priority, Size, Estimate, and milestone set.
+- Have blocked-by relationships wired (`gh issue edit <n> --add-blocked-by <blocker>`).
+- Super-TRD children are linked to their parent via the sub_issues API.
+
+If any issues still need to be created or wired, follow the GitHub Issue Creation workflow in [tech_requirements.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md) before starting the per-issue loop.
 
 ## Per-issue loop
 For each issue in the milestone, in dependency-aware order:
 1. **Create a feature branch** from `main`: `<issue-number>-<lowercase-hyphenated-title>`.
 2. **Link** the branch to the issue, set the project status to **In Progress**, and set the **Start date**.
-3. **Implement and test** following the structured code style; write/port tests with `pytest`.
+3. **Read code-style skills, then implement and test.** Before writing any code, read `tiferet-code-style` (mandatory every session) and the `tiferet-code-<component>` skill(s) for the layers this issue touches; for multi-component issues, also read `tiferet-code-architecture`. Then implement following the structured code style; write/port tests with `pytest`.
 4. **Open a PR** targeting `main`, set status to **In Review**, and return the PR URL to the user.
 5. **If PR comments arrive:** set status back to **In Progress**, address the feedback, re-push, then set back to **In Review**.
 6. The **user squash-merges** the PR.
 7. **Post a Collaboration Report** as a comment on the issue (use the `tiferet-collab-report` skill).
 8. **Local cleanup:** check out `main`, pull latest, confirm the merge landed, delete the local feature branch.
-9. **Mark Done:** set the project status to **Done**, set the **End date**, **close the issue**, then repeat for the next one.
+9. **Mark Done:** set the project status to **Done**, set the **End date**, and close the issue. If the project has a `.trd/` folder containing a file matching `[m<N>_]<issue>_*.md`, rename it to `[m<N>_]<issue>_*.complete.md`. For child TRDs of a super-TRD parent: if all sibling children are now `.complete.md`, also rename the parent's TRD file and close the parent GitHub issue. Then repeat for the next issue.
 
 ## Guardrails
 - Never commit or merge unless the user asks — branch/PR work is yours; merging is the user's.
