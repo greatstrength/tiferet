@@ -42,11 +42,8 @@ class EventFeatureStep(FeatureStep):
     # * attribute: parameters
     parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
-    # * attribute: return_to_data (obsolete)
-    return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
-
     # * attribute: data_key
-    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in if Return to Data is True.')
+    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in.')
 
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')
@@ -55,6 +52,12 @@ class EventFeatureStep(FeatureStep):
     condition: str | None = Field(
         default=None,
         description='Optional boolean expression evaluated against request data. Step executes only when the expression resolves to True. When None, the step always executes.',
+    )
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs applied to this step. Outermost wrapper first.',
     )
 
 # ** model: parameter_specification
@@ -332,6 +335,18 @@ class Feature(DomainObject):
 
     # * attribute: steps
     steps: List[EventFeatureStep] = Field(default_factory=list, description='The step workflow for the feature.')
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs applied to every step in this feature. Outermost wrapper first.',
+    )
+
+    # * attribute: is_async
+    is_async: bool = Field(
+        default=False,
+        description='Whether the feature executes its steps asynchronously. Selects AsyncFeatureContext when True.',
+    )
 
     # * attribute: log_params
     log_params: Dict[str, str] = Field(default_factory=dict, description='The parameters to log for the feature.')
