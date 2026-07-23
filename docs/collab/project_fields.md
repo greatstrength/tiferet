@@ -11,7 +11,7 @@ This document defines the canonical GitHub Project field set used across all Tif
 
 ### Triage fields (set at triage / during the workflow)
 
-- **Status** — workflow state: Backlog → Ready → In progress → In review → Done (see [main.md](main.md)).
+- **Status** — workflow state: Ready → In progress → In review → Done (see [main.md](main.md)). All new issues start at **Ready**; use blocked-by relationships for dependency ordering rather than Backlog.
 - **Priority** — `P0`/`P1`/`P2`; sequence and criticality.
 - **Size** — `XS`–`XL`; fast t-shirt judgment.
 - **Estimate** — numeric story points on a Fibonacci scale; the additive rollup/velocity metric. Kept under GitHub's built-in **Estimate** field name (it stores the point value).
@@ -29,13 +29,12 @@ Milestone, Labels, Repository, Linked pull requests, Assignees, Reviewers, Creat
 
 Status tracks each issue through its lifecycle. Transitions are driven by branch, PR, and merge events and mirror the Per-Issue Workflow in [main.md](main.md):
 
-1. **Backlog** — issue created, not yet scheduled.
-2. **Ready** — triaged and ready to pick up. Assign **Priority**, **Size**, and **Estimate** (see below) before promoting to Ready.
-3. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
-4. **In review** — the PR is opened (targeting `main`). If review comments arrive, move back to **In progress**, address them, then return to **In review**.
-5. **Done** — the PR is merged. Set the **End date** and **close the issue**.
+1. **Ready** — issue created and ready to implement. Set **Priority**, **Size**, and **Estimate** at creation.
+2. **In progress** — work has started / the feature branch is cut. Set the **Start date**.
+3. **In review** — the PR is opened (targeting `main`). If review comments arrive, move back to **In progress**, address them, then return to **In review**.
+4. **Done** — the PR is merged. Set the **End date** and **close the issue**.
 
-In short: starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed. Triage (Backlog → Ready) is where the Priority/Size/Estimate fields below are assigned.
+In short: all new issues start at **Ready**; starting an issue → **In progress**; PR opened → **In review**; PR merged → **Done** + issue closed. **Backlog** is available but not used for new issues — blocked-by relationships communicate dependency ordering without reflecting it in Status.
 
 ## Priority
 

@@ -89,6 +89,37 @@ When a story moves work toward a prototype or other source branch (e.g., a parit
 - Record not-yet-satisfied cross-layer dependencies in **Prerequisites (§7)** with their current status in `main`.
 - The prototype/source-of-truth branch is reserved for the **review/reconciliation** step, handled separately by the [`tiferet-pr-code-review`](agents/skills/tiferet-pr-code-review/SKILL.md) skill — not the authoring or implementation step.
 
+## Super-TRD Format
+
+A **super-TRD** is required when a story is sized XL (8 points) or above and has a natural decomposition seam (by layer, concern, or parallelizability). If no seam exists, proceed as a single XL issue with clear acceptance criteria.
+
+**Sizing session:** Before creating GitHub issues for a milestone, run a sizing pass on all TRDs using the rubric in [project_fields.md](project_fields.md). Identify XL/XXL candidates and split them into super-TRDs. Encode field values in filenames before beginning issue creation.
+
+### Super-TRD document structure
+
+The super-TRD parent is both a local planning artifact and a GitHub issue (children are linked as GitHub sub-issues). Use the following structure:
+
+- **H1 prefix:** `Super-TRD: <Story Title>`
+- **Header addition:** `**Type:** Super-TRD | N child TRDs`
+- **§3 — Child Stories:** replaces Components Affected — a table with TRD filename, Size, Estimate, Prerequisites, and sequencing note.
+- **§4 — Story Sequencing:** replaces Detailed Requirements — an ASCII dependency diagram.
+- **§5 — Combined Acceptance Criteria:** union of all child ACs.
+- **§6–8:** standard Non-Functional Requirements, Prerequisites, Related Code Style Documentation.
+
+### Child TRD structure
+
+Each child TRD is a standard 8-section TRD with one header addition:
+
+- `**Parent:** \`<parent-filename>\` (Child N of M)`
+
+### Child priority rule
+
+A child that is a prerequisite for one or more sibling children carries **P0**. All other children carry the parent story's priority.
+
+### Super-TRD closing
+
+The parent issue closes when all child sub-issues are closed. When the last child's issue is closed, also rename the parent's TRD file to `.complete.md` and close the parent GitHub issue.
+
 ## Review Checklist
 Before finalizing:
 - [ ] All sections present.
@@ -103,22 +134,174 @@ These instructions ensure all TRDs remain uniform, readable, and actionable acro
 
 ## Related Code Style Documentation
 
-Every TRD must include a **"Related Code Style Documentation"** section at the end. This section provides targeted links to component-specific style guides based on the primary artifacts being modified in the story.
+Every TRD must include a **"Related Code Style Documentation"** section (§8) listing the code-style skills the implementation agent must read before starting work.
 
 **Rule for inclusion:**
-- Always include the general `code_style.md`.
-- Include a component-specific guide **only if the story directly adds, modifies, or refactors code in that component type**.
-- Do not include unrelated guides to avoid clutter.
+- `tiferet-code-style` — always required for every story.
+- `tiferet-code-<component>` — include for each component the story modifies.
+- `tiferet-code-architecture` — include for any story that modifies more than one component.
+- **Fallback** (if skills not installed): link to `docs/core/<component>.md` directly.
 
-Current available guides (located in `docs/core/` on the `main` branch):
-- **[code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md)** – General structured code style (artifact comments, spacing, docstrings, snippets).
-- **[domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md)** – Domain model and aggregate conventions.
-- **[events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md)** – Domain event patterns and usage.
-- **[mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md)** – Data mapping, DTOs, and transformation conventions.
-- **[contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md)** – Context-specific conventions (injection patterns, lifecycle methods, execution flow).
-- **[interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md)** – Interface / contract / service conventions.
+Available skills and their fallback docs:
+- **`tiferet-code-style`** / [code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — general structured code style (artifact comments, spacing, docstrings, snippets).
+- **`tiferet-code-domain`** / [domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — domain object and aggregate conventions.
+- **`tiferet-code-events`** / [events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — domain event patterns.
+- **`tiferet-code-mappers`** / [mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md) — aggregate and transfer object conventions.
+- **`tiferet-code-interfaces`** / [interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — service interface conventions.
+- **`tiferet-code-contexts`** / [contexts.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/contexts.md) — context conventions.
+- **`tiferet-code-repos`** / [repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md) — repository conventions.
+- **`tiferet-code-assets`** / [assets.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/assets.md) — constants, exceptions, and bootstrap defaults.
+- **`tiferet-code-blueprints`** / [blueprints.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/blueprints.md) — blueprint orchestration functions.
+- **`tiferet-code-utils`** / [utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — infrastructure utility conventions.
+- **`tiferet-code-di`** / [di.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/di.md) — dependency injection layer.
+- **`tiferet-code-testing`** / [testing.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/testing.md) — test harness conventions.
 
-Additional component-specific style guides will be added as the framework evolves. Always consult the relevant documents when implementing or extending components.
+## TRD File Lifecycle and Naming
+
+All TRDs are stored locally in `.trd/` (git-ignored). Milestone description payloads are stored in `.milestones/` (git-ignored). Neither folder is committed to the repository.
+
+### `.trd/` — flat file structure
+
+All TRDs live in `.trd/` as a flat list. The filename encodes milestone, issue number, state, and project field values.
+
+**Naming convention:**
+```
+[m<milestone>_]<issue>_<kebab-title>[_N]__<Size>_<Est>_<Priority>[.complete].md
+```
+
+- `m<milestone>_` — present when the issue is assigned to a milestone (e.g. `m30_`). Requires an issue number — never appears without one.
+- `<issue>_` — GitHub issue number (e.g. `895_`). Presence signals the TRD is active.
+- `<kebab-title>` — lowercase-hyphenated story title.
+- `[_N]` — child number for super-TRD children (e.g. `_1`, `_2`); omitted for standalone TRDs and super-TRD parents.
+- `__<Size>_<Est>_<Priority>` — project field suffix (e.g. `__L_5_P0`); omitted for unscoped RFP TRDs.
+- `.complete` — appended when the issue is closed and work is done; the only explicit state marker.
+
+**Lifecycle states (determined by filename structure):**
+
+| State | Filename shape | Rule |
+|-------|---------------|------|
+| Draft | `<kebab-title>__<fields>.md` | No issue number |
+| Active (no milestone) | `<issue>_<kebab-title>__<fields>.md` | Issue exists, no milestone |
+| Active (with milestone) | `m<N>_<issue>_<kebab-title>__<fields>.md` | Issue + milestone acquired together |
+| Complete | `[m<N>_]<issue>_<kebab-title>__<fields>.complete.md` | PR merged, issue closed |
+
+**Invariants:**
+- No issue number → draft. `m<N>_` always requires an issue number — both are added simultaneously when the GitHub issue is created and assigned to a milestone.
+- `.complete.md` requires an issue number; milestone is optional.
+
+**Transition: draft → active** — when the GitHub issue is created and assigned to a milestone:
+```bash
+mv .trd/assets-error-catalog-extraction__L_5_P0.md \
+   .trd/m30_895_assets-error-catalog-extraction__L_5_P0.md
+```
+
+**Transition: active → complete** — when the PR is merged and the issue is closed:
+```bash
+mv .trd/m30_895_assets-error-catalog-extraction__L_5_P0.md \
+   .trd/m30_895_assets-error-catalog-extraction__L_5_P0.complete.md
+```
+
+For **super-TRD parents**: when the last child issue closes, check if all sibling children are `.complete.md`; if so, also rename the parent and close the parent GitHub issue.
+
+### `.milestones/` — milestone description payloads
+
+`.milestones/` stores Markdown files used as `gh api` description payloads. The milestone number prefix is required:
+
+```
+m<milestone-number>_<kebab-milestone-title>.md
+```
+
+```bash
+# Create milestone
+gh api repos/greatstrength/tiferet/milestones \
+  -f title='<Title>' \
+  -F description=@.milestones/m<N>_<kebab-title>.md \
+  --jq '{number, title, state, html_url}'
+
+# PATCH to backfill issue numbers:
+gh api repos/greatstrength/tiferet/milestones/<number> \
+  -X PATCH \
+  -F description=@.milestones/m<N>_<kebab-title>.md
+```
+
+## GitHub Issue Creation
+
+### Creating an issue
+
+The `--milestone` flag on `gh issue create` silently fails for milestones with en-dashes or when an integer is passed. Use the REST API directly:
+
+```bash
+gh api repos/greatstrength/tiferet/issues \
+  -f title="<Story title>" \
+  -f body="$(cat .trd/<filename>.md)" \
+  -F milestone=<integer-number> \
+  --jq '{number, node_id, html_url}'
+```
+
+`gh api` does not support `--json` output — use `--jq` with a projection. After creating the issue, rename the TRD file to insert the issue number and `m<N>_` prefix (see TRD File Lifecycle above).
+
+### Setting project fields
+
+Use the two-step GraphQL pattern — `gh project item-add` does not return the item ID in machine-readable form:
+
+**Step 1 — Add to project:**
+```bash
+ITEM_ID=$(gh api graphql -f query="mutation {
+  addProjectV2ItemById(input: {projectId: \"PVT_kwDOCKXjws4A7Y85\", contentId: \"<issue-node-id>\"}) {
+    item { id }
+  }
+}" --jq '.data.addProjectV2ItemById.item.id')
+```
+
+**Step 2 — Set a field (repeat per field):**
+```bash
+gh api graphql -f query="mutation {
+  updateProjectV2ItemFieldValue(input: {
+    projectId: \"PVT_kwDOCKXjws4A7Y85\",
+    itemId: \"$ITEM_ID\",
+    fieldId: \"<field-node-id>\",
+    value: {singleSelectOptionId: \"<option-id>\"}
+  }) { projectV2Item { id } }
+}"
+```
+
+**Tiferet Framework project (#2) stable IDs:**
+- Project: `PVT_kwDOCKXjws4A7Y85`
+- Status (`PVTSSF_lADOCKXjws4A7Y85zgvs_j4`): Ready=`08afe404`, In Progress=`47fc9ee4`, In Review=`4cc61d42`, Done=`98236657`
+- Priority (`PVTSSF_lADOCKXjws4A7Y85zgvs_no`): P0=`79628723`, P1=`0a877460`, P2=`da944a9c`
+- Size (`PVTSSF_lADOCKXjws4A7Y85zgvs_ns`): XS=`eff732af`, S=`9592a5a3`, M=`9728cbdc`, L=`c53df028`, XL=`7b141a16`
+- Estimate (`PVTF_lADOCKXjws4A7Y85zgvs_nw`): number field — use `value: {number: N}`
+
+Set **Status=Ready** for all new issues. Blocked-by relationships communicate dependency ordering — do not use Backlog for blocked issues.
+
+### Wiring blocked-by dependencies
+
+Requires `gh` v2.94.0+:
+```bash
+# Single blocker
+gh issue edit <blocked-number> --add-blocked-by <blocker-number> --repo greatstrength/tiferet
+
+# Multiple blockers (comma-separated)
+gh issue edit <n> --add-blocked-by 905,906,907 --repo greatstrength/tiferet
+```
+
+REST fallback (gh < v2.94.0):
+```bash
+BLOCKER_ID=$(gh api repos/greatstrength/tiferet/issues/<N> --jq '.id')
+gh api repos/greatstrength/tiferet/issues/<blocked>/dependencies/blocked_by \
+  -X POST -f issue_id=$BLOCKER_ID
+```
+
+### Linking super-TRD sub-issues
+
+After creating parent and child issues, link each child as a GitHub sub-issue:
+```bash
+CHILD_ID=$(gh api repos/greatstrength/tiferet/issues/<child-number> --jq '.id')
+gh api repos/greatstrength/tiferet/issues/<parent-number>/sub_issues \
+  -X POST -F sub_issue_id=$CHILD_ID
+```
+
+`sub_issue_id` uses the integer `id` field (not the display number).
 
 ## Branch Naming and Workflow Conventions
 
