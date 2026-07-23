@@ -5,7 +5,7 @@ from typing import Callable, Any, List, Dict
 
 # ** app
 from .cache import CacheContext
-from ..assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
+from ..assets.core import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ..di import ServiceProvider, DynamicServiceProvider
 from ..domain import ServiceConfiguration
 from ..events import DomainEvent, RaiseError, ParseParameter

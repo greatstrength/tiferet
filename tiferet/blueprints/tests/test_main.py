@@ -43,7 +43,8 @@ def app_interface_aggregate() -> AppInterfaceAggregate:
         description='Test calculator interface',
         flags=['test'],
         services=load_default_services(),
-        constants=a.bps.DEFAULT_CONSTANTS,
+        # ++ todo: Parity III Story 6b — replace a.core.DEFAULT_CONSTANTS with a.app.CORE_DEFAULT_CONSTANTS
+        constants=a.core.DEFAULT_CONSTANTS,
     )
 
 # *** tests

@@ -8,7 +8,7 @@ from typing import Any, Callable
 from .di import DIContext
 from .cache import CacheContext
 from .request import RequestContext
-from ..assets.constants import (
+from ..assets.core import (
     FEATURE_COMMAND_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
     PARAMETER_NOT_FOUND_ID

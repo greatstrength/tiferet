@@ -9,7 +9,7 @@ from typing import Tuple, List, Dict
 from ..di import DIContext
 from ..cache import CacheContext
 from ...assets.exceptions import TiferetError
-from ...assets.constants import DEPENDENCY_TYPE_NOT_FOUND_ID
+from ...assets.core import DEPENDENCY_TYPE_NOT_FOUND_ID
 from ...di import ServiceProvider, DynamicServiceProvider
 from ...domain import (
     ServiceConfiguration,
