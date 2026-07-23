@@ -6,9 +6,9 @@
 from typing import Dict, Any
 import json
 
-# *** exceptions
+# *** classes
 
-# ** exception: tiferet_error
+# ** class: tiferet_error
 class TiferetError(Exception):
     '''
     The TiferetError is the base exception for all Tiferet-related errors.
@@ -73,7 +73,7 @@ class RaiseError:
         # Raise an error with the specified code and arguments.
         raise TiferetError(error_code, message, **kwargs)
 
-# ** exception: tiferet_api_error
+# ** class: tiferet_api_error
 class TiferetAPIError(TiferetError):
     '''
     The TiferetAPIError is the exception returned for all Tiferet API-related errors by default.
