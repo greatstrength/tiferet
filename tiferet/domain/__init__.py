@@ -7,6 +7,7 @@ from .core import DomainObject, ServiceDependency
 from .app import (
     AppInterface,
     AppServiceDependency,
+    AppSession,
 )
 from .di import (
     FlaggedDependency,
@@ -44,6 +45,7 @@ __all__ = [
     'ServiceDependency',
     'AppInterface',
     'AppServiceDependency',
+    'AppSession',
     'FlaggedDependency',
     'ServiceRegistration',
     'CliArgument',

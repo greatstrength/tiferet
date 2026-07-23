@@ -15,6 +15,7 @@ from .core import (
     APP_REPOSITORY_IMPORT_FAILED_ID,
     APP_SERVICE_IMPORT_FAILED_ID,
     APP_SERVICE_NOT_LOADED_ID,
+    APP_SESSION_NOT_FOUND_ID,
     ATTRIBUTE_ALREADY_EXISTS_ID,
     CLI_COMMAND_ALREADY_EXISTS_ID,
     CLI_COMMAND_NOT_FOUND_ID,
@@ -300,6 +301,13 @@ APP_SERVICE_NOT_LOADED = create_default_error(
     APP_SERVICE_NOT_LOADED_ID,
     'App Service Not Loaded',
     [(EN_US, 'App service must be loaded before loading interface {interface_id}.')],
+)
+
+# ** constant: app_session_not_found
+APP_SESSION_NOT_FOUND = create_default_error(
+    APP_SESSION_NOT_FOUND_ID,
+    'App Session Not Found',
+    [(EN_US, 'App session with ID {interface_id} not found.')],
 )
 
 # ** constant: app_interface_not_found
@@ -639,6 +647,7 @@ DEFAULT_ERRORS = {
     APP_REPOSITORY_IMPORT_FAILED_ID: APP_REPOSITORY_IMPORT_FAILED,
     APP_SERVICE_IMPORT_FAILED_ID: APP_SERVICE_IMPORT_FAILED,
     APP_SERVICE_NOT_LOADED_ID: APP_SERVICE_NOT_LOADED,
+    APP_SESSION_NOT_FOUND_ID: APP_SESSION_NOT_FOUND,
     APP_INTERFACE_NOT_FOUND_ID: APP_INTERFACE_NOT_FOUND,
     APP_ERROR_ID: APP_ERROR,
     CONFIG_FILE_NOT_FOUND_ID: CONFIG_FILE_NOT_FOUND,

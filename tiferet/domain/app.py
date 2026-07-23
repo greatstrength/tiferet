@@ -3,21 +3,21 @@
 # *** imports
 
 # ** core
-from importlib import import_module
 from typing import Dict, List
 
 # ** infra
 from pydantic import Field
 
 # ** app
-from .core import DomainObject
+from .core import DomainObject, ServiceDependency
 
 # *** models
 
 # ** model: app_service_dependency
-class AppServiceDependency(DomainObject):
+class AppServiceDependency(ServiceDependency):
     '''
-    An app service dependency that defines the service configuration for an app interface.
+    An app service dependency that defines the service configuration
+    for an app session.
     '''
 
     # * attribute: service_id
@@ -26,94 +26,52 @@ class AppServiceDependency(DomainObject):
         description='The service id for the application dependency.',
     )
 
-    # * attribute: module_path
-    module_path: str = Field(
-        ...,
-        description='The module path for the app dependency.',
-    )
-
-    # * attribute: class_name
-    class_name: str = Field(
-        ...,
-        description='The class name for the app dependency.',
-    )
-
-    # * attribute: parameters
-    parameters: Dict[str, str] = Field(
-        default_factory=dict,
-        description='The parameters for the application dependency.',
-    )
-
-    # * method: get_service_type
-    def get_service_type(self) -> type:
-        '''
-        Get the service type for this app service dependency.
-
-        :return: The service type.
-        :rtype: type
-        '''
-
-        # Import and return the service class type.
-        return getattr(import_module(self.module_path), self.class_name)
-
-# ** model: app_interface
-class AppInterface(DomainObject):
+# ** model: app_session
+class AppSession(DomainObject):
     '''
-    The base application interface object.
+    The base application session object.
     '''
 
     # * attribute: id
     id: str = Field(
         ...,
-        description='The unique identifier for the application interface.',
+        description='The unique identifier for the application session.',
     )
 
     # * attribute: name
     name: str = Field(
         ...,
-        description='The name of the application interface.',
+        description='The name of the application session.',
     )
 
     # * attribute: description
     description: str | None = Field(
         default=None,
-        description='The description of the application interface.',
-    )
-
-    # * attribute: module_path
-    module_path: str = Field(
-        ...,
-        description='The module path for the application instance context.',
-    )
-
-    # * attribute: class_name
-    class_name: str = Field(
-        ...,
-        description='The class name for the application instance context.',
+        description='The description of the application session.',
     )
 
     # * attribute: logger_id
     logger_id: str = Field(
         default='default',
-        description='The logger ID for the application instance.',
+        description='The logger ID for the application session.',
     )
 
     # * attribute: flags
     flags: List[str] = Field(
         default_factory=lambda: ['default'],
-        description='The flags for the application interface.',
+        description='The DI flags for the application session.',
     )
 
     # * attribute: services
     services: List[AppServiceDependency] = Field(
         default_factory=list,
-        description='The application instance service dependencies.',
+        description='The application session service dependencies.',
     )
 
     # * attribute: constants
     constants: Dict[str, str] = Field(
         default_factory=dict,
-        description='The application dependency constants.',
+        description='The application session dependency constants.',
     )
 
     # * method: get_service
@@ -127,10 +85,36 @@ class AppInterface(DomainObject):
         :rtype: AppServiceDependency | None
         '''
 
-        # Get the service dependency by service id.
+        # Return the first matching service dependency, or None.
         return next((dep for dep in self.services if dep.service_id == service_id), None)
 
+# ** model: app_interface
+# -- obsolete: AppInterface is superseded by AppSession. Retire in Parity V Story 13.
+class AppInterface(AppSession):
+    '''
+    Application interface definition.
+
+    .. deprecated::
+        Superseded by :class:`AppSession`. Retire in Parity V Story 13 when
+        contexts and blueprints are updated to consume AppSession directly.
+    '''
+
+    # * attribute: module_path
+    # -- obsolete: Context class location moved to runtime resolution. Retire in Parity V Story 13.
+    module_path: str | None = Field(
+        default=None,
+        description='The module path for the application interface context class. Obsolete.',
+    )
+
+    # * attribute: class_name
+    # -- obsolete: Context class name moved to runtime resolution. Retire in Parity V Story 13.
+    class_name: str | None = Field(
+        default=None,
+        description='The class name for the application interface context class. Obsolete.',
+    )
+
     # * method: apply_defaults
+    # -- obsolete: Default merging moved to blueprint layer. Retire in Parity V Story 17.
     def apply_defaults(self,
             default_services: List[AppServiceDependency] = None,
             default_constants: Dict[str, str] = None,
