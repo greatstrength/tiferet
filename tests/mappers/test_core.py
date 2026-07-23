@@ -1,6 +1,9 @@
-"""Mapper Settings Tests"""
+"""Tiferet Mapper Core Tests"""
 
 # *** imports
+
+# ** core
+from typing import Any, ClassVar, Dict
 
 # ** infra
 import pytest
@@ -8,7 +11,7 @@ from pydantic import Field, ValidationError
 
 # ** app
 from tiferet.domain import DomainObject
-from tiferet.mappers.settings import Aggregate, TransferObject
+from tiferet.mappers.core import Aggregate, TransferObject
 from tiferet.assets import TiferetError
 
 # *** fixtures
@@ -288,7 +291,7 @@ def test_aggregate_to_dict_override_exclude_none(test_aggregate: type):
 
     # Define a subclass with a nullable field to exercise exclude_none=False.
     from pydantic import Field as PydanticField
-    from tiferet.mappers.settings import Aggregate
+    from tiferet.mappers.core import Aggregate
 
     class AggregateWithOptional(Aggregate):
         id: str = PydanticField(..., description='The id.')

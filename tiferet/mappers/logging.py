@@ -10,7 +10,7 @@ from pydantic import Field
 
 # ** app
 from ..domain import Formatter, Handler, Logger
-from .settings import Aggregate, TransferObject
+from .core import Aggregate, TransferObject
 
 # *** mappers
 

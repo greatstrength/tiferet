@@ -42,11 +42,8 @@ class EventFeatureStep(FeatureStep):
     # * attribute: parameters
     parameters: Dict[str, str] = Field(default_factory=dict, description='The custom parameters for the event feature step.')
 
-    # * attribute: return_to_data (obsolete)
-    return_to_data: bool = Field(default=False, description='Whether to return the event feature step result to the feature data context.')
-
     # * attribute: data_key
-    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in if Return to Data is True.')
+    data_key: str | None = Field(default=None, description='The data key to store the event feature step result in.')
 
     # * attribute: pass_on_error
     pass_on_error: bool = Field(default=False, description='Whether to pass on the error if the event feature step fails.')

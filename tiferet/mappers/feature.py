@@ -14,7 +14,7 @@ from ..domain import (
     FeatureStep,
     EventFeatureStep,
 )
-from .settings import (
+from .core import (
     Aggregate,
     TransferObject,
 )
@@ -215,24 +215,6 @@ class FeatureAggregate(Feature, Aggregate):
         self.steps = steps
 
         return step
-
-    # * method: get_step
-    def get_step(self, position: int) -> FeatureStep | None:
-        '''
-        Get the feature step at the given position, or ``None`` if the
-        index is out of range or invalid.
-
-        :param position: The index of the step to retrieve.
-        :type position: int
-        :return: The FeatureStep at the position, or None.
-        :rtype: FeatureStep | None
-        '''
-
-        # Attempt to retrieve the step at the specified index.
-        try:
-            return self.steps[position]
-        except (IndexError, TypeError):
-            return None
 
     # * method: remove_step
     def remove_step(self, position: int) -> FeatureStep | None:
