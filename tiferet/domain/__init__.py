@@ -3,7 +3,7 @@
 # *** imports
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject, ServiceDependency
 from .app import (
     AppInterface,
     AppServiceDependency,
@@ -41,6 +41,7 @@ from .logging import (
 
 __all__ = [
     'DomainObject',
+    'ServiceDependency',
     'AppInterface',
     'AppServiceDependency',
     'FlaggedDependency',

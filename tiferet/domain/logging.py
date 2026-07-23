@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal
 from pydantic import Field
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject
 
 # *** models
 

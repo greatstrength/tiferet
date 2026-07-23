@@ -9,7 +9,7 @@ from typing import Any, List
 from pydantic import Field, model_validator
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject
 
 # *** models
 
