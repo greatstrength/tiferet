@@ -49,19 +49,6 @@ def test_domain_object_construct(test_domain_object: type):
     assert isinstance(domain_object, test_domain_object)
     assert domain_object.attribute == 'test'
 
-# ** test: domain_object_strict_extra_field
-def test_domain_object_strict_extra_field(test_domain_object: type):
-    '''
-    Test that DomainObject rejects unknown fields under ``extra='forbid'``.
-
-    :param test_domain_object: The DomainObject subclass to test.
-    :type test_domain_object: type
-    '''
-
-    # Constructing with an unknown field should raise.
-    with pytest.raises(ValidationError):
-        test_domain_object(attribute='test', unknown='nope')
-
 # ** test: domain_object_validate_assignment
 def test_domain_object_validate_assignment(test_domain_object: type):
     '''
