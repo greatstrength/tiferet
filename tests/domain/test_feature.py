@@ -371,6 +371,85 @@ def test_feature_params_schema_defaults_to_none() -> None:
     # Assert the schema defaults to None.
     assert feature.params_schema is None
 
+# ** test: event_feature_step_middleware_defaults_to_empty
+def test_event_feature_step_middleware_defaults_to_empty() -> None:
+    '''
+    Test that EventFeatureStep.middleware defaults to an empty list.
+    '''
+
+    # Create an EventFeatureStep without middleware.
+    event = EventFeatureStep(
+        name='Test Event',
+        service_id='test_event_service',
+    )
+
+    # Assert middleware defaults to empty list.
+    assert event.middleware == []
+
+# ** test: event_feature_step_middleware_preserves_value
+def test_event_feature_step_middleware_preserves_value() -> None:
+    '''
+    Test that EventFeatureStep.middleware preserves an explicitly provided value.
+    '''
+
+    # Create an EventFeatureStep with an explicit middleware list.
+    event = EventFeatureStep(
+        name='Test Event',
+        service_id='test_event_service',
+        middleware=['log', 'time'],
+    )
+
+    # Assert middleware is preserved.
+    assert event.middleware == ['log', 'time']
+
+# ** test: feature_middleware_defaults_to_empty
+def test_feature_middleware_defaults_to_empty() -> None:
+    '''
+    Test that Feature.middleware defaults to an empty list.
+    '''
+
+    # Create a Feature without middleware.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert middleware defaults to empty list.
+    assert feature.middleware == []
+
+# ** test: feature_middleware_preserves_value
+def test_feature_middleware_preserves_value() -> None:
+    '''
+    Test that Feature.middleware preserves an explicitly provided value.
+    '''
+
+    # Create a Feature with an explicit middleware list.
+    feature = Feature(id='calc.add', name='Add', middleware=['log'])
+
+    # Assert middleware is preserved.
+    assert feature.middleware == ['log']
+
+# ** test: feature_is_async_defaults_to_false
+def test_feature_is_async_defaults_to_false() -> None:
+    '''
+    Test that Feature.is_async defaults to False.
+    '''
+
+    # Create a Feature without is_async.
+    feature = Feature(id='calc.add', name='Add')
+
+    # Assert is_async defaults to False.
+    assert feature.is_async is False
+
+# ** test: feature_is_async_true
+def test_feature_is_async_true() -> None:
+    '''
+    Test that Feature.is_async accepts and preserves True.
+    '''
+
+    # Create a Feature with is_async set to True.
+    feature = Feature(id='calc.add', name='Add', is_async=True)
+
+    # Assert is_async is True.
+    assert feature.is_async is True
+
 # ** test: feature_params_schema_construction
 def test_feature_params_schema_construction() -> None:
     '''

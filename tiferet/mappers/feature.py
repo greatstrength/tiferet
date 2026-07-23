@@ -108,6 +108,12 @@ class EventFeatureStepConfigObject(EventFeatureStep, TransferObject):
         'to_data': {'by_alias': True, 'exclude': {'type'}},
     }
 
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of middleware service IDs for this step.',
+    )
+
     # * attribute: parameters
     parameters: Dict[str, str] = Field(
         default_factory=dict,
@@ -163,6 +169,7 @@ class FeatureAggregate(Feature, Aggregate):
         data_key: str | None = None,
         pass_on_error: bool = False,
         condition: str | None = None,
+        middleware: List[str] | None = None,
         position: int | None = None,
     ) -> EventFeatureStep:
         '''
@@ -180,6 +187,8 @@ class FeatureAggregate(Feature, Aggregate):
         :type pass_on_error: bool
         :param condition: Optional boolean expression for conditional execution.
         :type condition: str | None
+        :param middleware: Optional ordered list of middleware service IDs.
+        :type middleware: list[str] | None
         :param position: Insertion position (None to append).
         :type position: int | None
         :return: Created EventFeatureStep instance.
@@ -194,6 +203,7 @@ class FeatureAggregate(Feature, Aggregate):
             data_key=data_key,
             pass_on_error=pass_on_error,
             condition=condition,
+            middleware=middleware or [],
         )
 
         # Copy steps to a local list, insert or append, then reassign.
@@ -205,24 +215,6 @@ class FeatureAggregate(Feature, Aggregate):
         self.steps = steps
 
         return step
-
-    # * method: get_step
-    def get_step(self, position: int) -> FeatureStep | None:
-        '''
-        Get the feature step at the given position, or ``None`` if the
-        index is out of range or invalid.
-
-        :param position: The index of the step to retrieve.
-        :type position: int
-        :return: The FeatureStep at the position, or None.
-        :rtype: FeatureStep | None
-        '''
-
-        # Attempt to retrieve the step at the specified index.
-        try:
-            return self.steps[position]
-        except (IndexError, TypeError):
-            return None
 
     # * method: remove_step
     def remove_step(self, position: int) -> FeatureStep | None:
@@ -326,6 +318,12 @@ class FeatureConfigObject(Feature, TransferObject):
             'exclude': {'feature_key', 'group_id', 'id'},
         },
     }
+
+    # * attribute: middleware
+    middleware: List[str] = Field(
+        default_factory=list,
+        description='Ordered list of feature-level middleware service IDs.',
+    )
 
     # * attribute: steps
     steps: List[EventFeatureStepConfigObject] = Field(

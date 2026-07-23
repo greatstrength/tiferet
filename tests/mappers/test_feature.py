@@ -24,6 +24,7 @@ FEATURE_EVENT_AGGREGATE_SAMPLE_DATA = {
     'data_key': 'result',
     'pass_on_error': True,
     'condition': '$r.x > 0',
+    'middleware': [],
 }
 
 # ** constant: feature_event_equality_fields
@@ -34,6 +35,7 @@ FEATURE_EVENT_EQUALITY_FIELDS = [
     'data_key',
     'pass_on_error',
     'condition',
+    'middleware',
 ]
 
 # ** constant: feature_aggregate_sample_data
@@ -43,6 +45,8 @@ FEATURE_AGGREGATE_SAMPLE_DATA = {
     'feature_key': 'add_number',
     'id': 'calc.add_number',
     'description': 'Add Number',
+    'middleware': [],
+    'is_async': False,
 }
 
 # ** constant: feature_equality_fields
@@ -53,6 +57,8 @@ FEATURE_EQUALITY_FIELDS = [
     'feature_key',
     'description',
     'steps',
+    'middleware',
+    'is_async',
 ]
 
 # ** constant: step_tuple
@@ -99,6 +105,7 @@ class TestEventFeatureStepAggregate(AggregateTestBase):
         ('service_id', 'updated_handler', None),
         ('data_key', 'new_key', None),
         ('condition', '$r.y != 0', None),
+        ('middleware', ['log'], None),
     ]
 
     # *** domain-specific mutation tests
@@ -180,6 +187,8 @@ class TestFeatureAggregate(AggregateTestBase):
         # valid
         ('name', 'Updated Feature', None),
         ('description', 'Updated description', None),
+        ('middleware', ['log'], None),
+        ('is_async', True, None),
         # invalid
         ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
     ]
@@ -209,20 +218,22 @@ class TestFeatureAggregate(AggregateTestBase):
     # ** test: add_step
     def test_add_step(self, aggregate):
         '''
-        Verifies step append.
+        Verifies step append and middleware passthrough.
         '''
 
-        # Add a step.
+        # Add a step with middleware.
         step = aggregate.add_step(
             name='Step One',
             service_id='step_one_event',
+            middleware=['log'],
         )
 
-        # Assert the step was appended.
+        # Assert the step was appended with correct middleware.
         assert len(aggregate.steps) == 1
         assert aggregate.steps[0] is step
         assert step.name == 'Step One'
         assert step.service_id == 'step_one_event'
+        assert step.middleware == ['log']
 
     # ** test: add_step_position
     def test_add_step_position(self, aggregate):
@@ -328,6 +339,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         'group_id': 'calc',
         'feature_key': 'add',
         'description': 'Adds one number to another',
+        'middleware': [],
         'steps': [{
             'name': 'Add a and b',
             'service_id': 'add_number_event',
@@ -342,6 +354,8 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         'group_id': 'calc',
         'feature_key': 'add',
         'description': 'Adds one number to another',
+        'middleware': [],
+        'is_async': False,
         'steps': [{
             'name': 'Add a and b',
             'service_id': 'add_number_event',
@@ -384,6 +398,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         'data_key': 'result',
         'pass_on_error': True,
         'condition': '$r.x > 0',
+        'middleware': ['log'],
     }
 
     # ** test: feature_event_yaml_map_basic
@@ -405,6 +420,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         assert event.parameters == {'key': 'value'}
         assert event.data_key == 'result'
         assert event.pass_on_error is True
+        assert event.middleware == ['log']
 
     # ** test: feature_event_yaml_params_alias
     def test_feature_event_yaml_params_alias(self):
@@ -454,6 +470,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
             parameters={'key': 'value'},
             data_key='result',
             pass_on_error=True,
+            middleware=['log'],
         )
 
         # Create a YAML object from the model.
@@ -464,6 +481,7 @@ class TestFeatureConfigObject(TransferObjectTestBase):
         assert yaml_obj.name == model.name
         assert yaml_obj.service_id == model.service_id
         assert yaml_obj.parameters == model.parameters
+        assert yaml_obj.middleware == model.middleware
 
 
 # *** params_schema tests
