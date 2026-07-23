@@ -214,7 +214,7 @@ This gives an immediate picture of outstanding technical debt and deprecated cod
 # *** imports
 
 # ** app
-from .settings import DomainEvent, a
+from .core import DomainEvent, a
 from ..interfaces import FeatureService
 from ..domain import Feature
 
@@ -275,7 +275,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.events.settings import DomainEvent
+from tiferet.events.core import DomainEvent
 from tiferet.events.feature import GetFeature
 from tiferet.interfaces import FeatureService
 from tiferet.domain import Feature

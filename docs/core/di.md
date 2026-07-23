@@ -308,7 +308,7 @@ The older declarative-wiring path (`wire_services`, `load_app_instance`, `Create
 
 ## Structured Code Design
 
-The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consistent with other `settings.py` modules in the framework (e.g., `contexts/settings.py`).
+The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consistent with other `core.py` modules in the framework (e.g., `contexts/core.py`).
 
 ### Artifact Comments
 
@@ -328,10 +328,10 @@ The `di/` package uses `# *** classes` / `# ** class:` artifact comments, consis
 When a class type is registered via `add_service()`, it is wrapped in a `providers.Factory`. Each resolution creates a new instance with constructor kwargs wired to sibling providers:
 
 ```python
-container.add_constants({'feature_config': 'app/configs/feature.yml'})
+container.add_constants({'feature_config': 'config.yml'})
 container.add_service('feature_service', FeatureConfigRepository)
 
-# FeatureConfigRepository(feature_config='app/configs/feature.yml') is resolved:
+# FeatureConfigRepository(feature_config='config.yml') is resolved:
 repo = container.get_service('feature_service')  # ✓ new instance each time
 ```
 
@@ -340,10 +340,10 @@ repo = container.get_service('feature_service')  # ✓ new instance each time
 Non-type values registered via `add_services()` or `add_constants()` are wrapped in `providers.Object`. Each resolution returns the same value:
 
 ```python
-container.add_constants({'app_config': 'app/configs/app.yml'})
+container.add_constants({'app_config': 'config.yml'})
 
 # Direct scalar resolution works:
-path = container.get_service('app_config')  # ✓ returns 'app/configs/app.yml'
+path = container.get_service('app_config')  # ✓ returns 'config.yml'
 ```
 
 ## Customizing Parameter Parsing

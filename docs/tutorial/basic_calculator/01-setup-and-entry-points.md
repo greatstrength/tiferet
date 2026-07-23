@@ -37,7 +37,7 @@ basic-calculator/
         ├── __init__.py
         └── calc.py
 ```
-In Tiferet v2.0, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
+In Tiferet v2.0.0, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
 
 Don't worry about filling everything yet — we'll get there step by step.
 
@@ -50,7 +50,7 @@ These are the files people will actually use. Let's look at them now so you know
 ```python
 from tiferet import App, TiferetError
 
-app = App().load_app_service(app_config="config.yml")
+app = App('basic_calc', app_config='config.yml')
 
 # Some fun test cases
 tests = [
@@ -68,7 +68,7 @@ print("Running calculator tests...\n")
 
 for feature_id, data, fmt in tests:
     try:
-        result = app.run("basic_calc", feature_id, data=data)
+        result = app.run(feature_id, data=data)
         if "b" in data:
             print(fmt.format(data["a"], data["b"], result))
         else:
@@ -95,13 +95,10 @@ Error: Invalid number: 'hello'
 **calc_cli.py** — the interactive command-line version
 
 ```python
-from tiferet import App
-
-app = App().load_app_service(app_config="config.yml")
-cli = app.load_interface("calc_cli")   # reads the CLI settings from root config.yml
+from tiferet import CLI
 
 if __name__ == "__main__":
-    cli.run()
+    CLI('calc_cli', app_config='config.yml')
 ```
 
 **What using it feels like** (once everything's wired):

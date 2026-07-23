@@ -26,7 +26,7 @@ class ErrorConfigRepository(ErrorService, ConfigurationRepository):
 
 ## The ConfigurationRepository Base
 
-All concrete repositories inherit the shared `ConfigurationRepository` base (`tiferet/repos/settings.py`), which makes persistence format-agnostic. The base dispatches to a format-specific loader by the configuration file extension:
+All concrete repositories inherit the shared `ConfigurationRepository` base (`tiferet/repos/core.py`), which makes persistence format-agnostic. The base dispatches to a format-specific loader by the configuration file extension:
 
 - `.yaml` / `.yml` → `YamlLoader`
 - `.json` → `JsonLoader`
@@ -35,7 +35,7 @@ All concrete repositories inherit the shared `ConfigurationRepository` base (`ti
 It supplies three inherited attributes — `config_file`, `encoding`, and `default_role` (fixed to `'to_data'`) — and the inherited `_load` / `_save` helpers that concrete repositories call instead of instantiating a loader directly:
 
 ```python
-# tiferet/repos/settings.py
+# tiferet/repos/core.py
 
 # ** class: configuration_repository
 class ConfigurationRepository:
@@ -91,7 +91,7 @@ from ..mappers import (
     ErrorAggregate,
     ErrorConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 
@@ -167,7 +167,7 @@ from ..mappers import (                          # Transfer objects and aggregat
     ErrorAggregate,
     ErrorConfigObject,
 )
-from .settings import ConfigurationRepository    # Shared configuration base
+from .core import ConfigurationRepository    # Shared configuration base
 ```
 
 The `# ** app` section imports three categories:
@@ -276,7 +276,7 @@ from ..mappers.calculator import (
     CalculatorResultAggregate,
     CalculatorResultConfigObject,
 )
-from .settings import ConfigurationRepository
+from .core import ConfigurationRepository
 
 # *** repos
 
@@ -383,7 +383,7 @@ Standard test cases cover:
 Repositories are defined in `tiferet/repos/`:
 
 - `__init__.py` — Empty exports (repositories are never exported).
-- `settings.py` — `ConfigurationRepository` (shared format-dispatch base).
+- `core.py` — `ConfigurationRepository` (shared format-dispatch base).
 - `app.py` — `AppConfigRepository`.
 - `cli.py` — `CliConfigRepository`.
 - `di.py` — `DIConfigRepository`.

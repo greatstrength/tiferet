@@ -59,7 +59,7 @@ class Formula(DomainObject):
 
 ### 8.2 The mappers
 
-Domain objects are read-only. Mutation lives in an **Aggregate**, and serialization lives in a **ConfigObject** (this is the v2.0.0b13 naming — earlier betas called these `*YamlObject`).
+Domain objects are read-only. Mutation lives in an **Aggregate**, and serialization lives in a **ConfigObject**.
 
 **app/mappers/formula.py**
 
@@ -135,7 +135,7 @@ class FormulaService(Service):
 from pathlib import Path
 from typing import List
 
-from tiferet.repos.settings import ConfigurationRepository
+from tiferet.repos.core import ConfigurationRepository
 from ..interfaces.formula import FormulaService
 from ..mappers.formula import FormulaAggregate, FormulaConfigObject
 
@@ -178,7 +178,7 @@ formulas: {}
 
 ### 8.5 The events
 
-Each single-service event module defines a small **base event** that holds the shared service (this is the v2.0.0b13 per-module base-event pattern). Concrete events extend it and define only `execute`.
+Each single-service event module defines a small **base event** that holds the shared service. Concrete events extend it and define only `execute`.
 
 **app/events/formula.py** (highlights)
 

@@ -50,7 +50,7 @@ def __init__(self, error_config: str, encoding: str = 'utf-8') -> None:
     ConfigurationRepository.__init__(self, config_file=error_config, encoding=encoding)
 ```
 
-**`ConfigurationRepository` base** (inherited from `tiferet/repos/settings.py`):
+**`ConfigurationRepository` base** (inherited from `tiferet/repos/core.py`):
 - `config_file`, `encoding`, `default_role` (fixed to `'to_data'`)
 - `_load(start_node=..., data_factory=...)` — format-dispatched read (YAML or JSON based on file extension)
 - `_save(data)` — format-dispatched write

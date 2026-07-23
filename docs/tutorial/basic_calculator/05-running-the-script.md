@@ -12,7 +12,7 @@ This is the simple test runner we looked at way back in Step 1 — now it should
 ```python
 from tiferet import App, TiferetError
 
-app = App()  # loads everything from app/configs/
+app = App('basic_calc', app_config='config.yml')
 
 # Some fun test cases
 tests = [
@@ -30,7 +30,7 @@ print("Running calculator tests...\n")
 
 for feature_id, data, fmt in tests:
     try:
-        result = app.run("basic_calc", feature_id, data=data)
+        result = app.run(feature_id, data=data)
         if "b" in data:
             print(fmt.format(data["a"], data["b"], result))
         else:
@@ -71,8 +71,8 @@ Error: Invalid number: 'hello'
 
 ### 5.4 Quick troubleshooting tips
 
-- Error "No such feature" → double-check `feature.yml` keys match the `feature_id` in tests
-- Import error → make sure paths in `container.yml` point to `app.events.calc`
+- Error "No such feature" → double-check `features:` keys in `config.yml` match the `feature_id` in tests
+- Import error → make sure paths in `services:` section of `config.yml` point to `app.events.calc`
 - Validation not working → confirm `app/utils/calc.py` is importable (check the `__init__.py` files)
 
 If you see the output above (or very close), congratulations — your core calculator is fully functional!

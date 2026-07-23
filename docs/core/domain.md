@@ -27,9 +27,9 @@ This duality ensures a single source of truth for domain structure and behavior,
 - **Runtime Use** (`ErrorContext`):
   ```python
   # The hub loads the Error; the context formats the response from it.
-  error_message = error.format_message(lang, **getattr(exception, 'kwargs', {}))
+  error_message = error.format_message(lang, **exception.kwargs)
   ```
-  The `Error` domain object is retrieved via the hub's `load_error_domain` and used by `ErrorContext.format_response` to assemble the structured response.
+  The `Error` domain object is retrieved via the hub's `get_error` (cache-first) and used by `ErrorContext.format_response` to assemble the structured response.
 
 - **Mapper Layer Use** (`ErrorAggregate`, `ErrorConfigObject`):
   ```python
@@ -41,7 +41,7 @@ This duality ensures a single source of truth for domain structure and behavior,
       # Inherits fields/validation from Error
       # Adds serialization roles and mapping logic
   ```
-  Configuration (`error.yml`) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
+  Configuration (`config.yml` errors section) maps through `ErrorConfigObject` to `ErrorAggregate`, which converts to/from the runtime `Error`.
 
 ## The DomainObject Base Class
 
@@ -96,7 +96,7 @@ Domain objects follow a strict artifact comment structure for consistency and AI
 - Extend `DomainObject` from `tiferet.domain.core`.
 - Declare fields with Pydantic `Field(...)` annotations.
 - Instantiate directly via the constructor or `model_validate()`.
-- Use `@model_validator(mode='before')` for derivation logic that was previously in custom `new()` factories.
+- Use `@model_validator(mode='before')` for domain-specific derivation logic.
 
 **Example** – `CalculatorResult`:
 ```python
