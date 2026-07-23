@@ -1,7 +1,7 @@
 # Step 4: Configurations
 
 We've got the math events and a nice validation utility — now it's time to make everything come alive through configuration.  
-In Tiferet v2.0.0, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
+In Tiferet v2, everything is consolidated into a single root `config.yml` file. This one file defines interfaces, dependency mappings, features, and errors.
 
 ### 4.1 config.yml – The complete wiring diagram
 

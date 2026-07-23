@@ -37,7 +37,7 @@ basic-calculator/
         ├── __init__.py
         └── calc.py
 ```
-In Tiferet v2.0.0, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
+In Tiferet v2, configuration is consolidated into a single root `config.yml` file, which replaces the older split `app/configs/*.yml` layout.
 
 Don't worry about filling everything yet — we'll get there step by step.
 
