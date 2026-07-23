@@ -10,7 +10,7 @@ from uuid import uuid4
 from pydantic import Field, model_validator
 
 # ** app
-from .settings import DomainObject
+from .core import DomainObject
 
 # *** models
 

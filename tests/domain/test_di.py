@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.domain.settings import DomainObject
+from tiferet.domain.core import DomainObject
 from tiferet.domain.di import (
     FlaggedDependency,
     ServiceRegistration,
