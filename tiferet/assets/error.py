@@ -602,7 +602,7 @@ SQLITE_CONN_NOT_INITIALIZED = create_default_error(
 CONTEXT_NOT_FOUND = create_default_error(
     CONTEXT_NOT_FOUND_ID,
     'Context Not Found',
-    [(EN_US, 'No context registered for domain type {domain_type}.')],
+    [(EN_US, 'No context registered for domain type: {domain_type}.')],
 )
 
 # *** constants (groups)
