@@ -1,4 +1,4 @@
-"""Tests for tiferet.di.core — ABCs and pure DI helper functions."""
+"""Tiferet DI Core Tests"""
 
 # *** imports
 
@@ -62,6 +62,18 @@ def test_injectable_parameter_names_uninspectable():
     result = injectable_parameter_names(int)
 
     # Result should be an empty list, not an exception.
+    assert result == []
+
+# ** test: normalize_flags_empty
+def test_normalize_flags_empty():
+    '''
+    normalize_flags returns an empty list when called with no arguments.
+    '''
+
+    # Call with no arguments.
+    result = normalize_flags()
+
+    # Result should be an empty list.
     assert result == []
 
 # ** test: normalize_flags_strings
