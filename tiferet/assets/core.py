@@ -228,6 +228,9 @@ SQLITE_BACKUP_FAILED_ID = 'SQLITE_BACKUP_FAILED'
 # ** constant: sqlite_conn_not_initialized_id
 SQLITE_CONN_NOT_INITIALIZED_ID = 'SQLITE_CONN_NOT_INITIALIZED'
 
+# ** constant: app_session_not_found_id
+APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
+
 # ** constant: context_not_found_id
 CONTEXT_NOT_FOUND_ID = 'CONTEXT_NOT_FOUND'
 
