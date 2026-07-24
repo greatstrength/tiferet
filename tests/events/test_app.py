@@ -9,6 +9,8 @@ from unittest import mock
 # ** app
 from tiferet.events.app import (
     AppEvent,
+    AddAppSession,
+    GetAppSession,
     GetAppInterface,
     AddAppInterface,
     ListAppInterfaces,
@@ -21,10 +23,11 @@ from tiferet.events.app import (
 from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import (
     AppInterface,
+    AppSession,
     AppServiceDependency,
 )
 from tiferet.interfaces import AppService
-from tiferet.mappers import AppInterfaceAggregate
+from tiferet.mappers import AppInterfaceAggregate, AppSessionAggregate
 from tiferet.testing import DomainEventTestBase, ServiceEventTestBase
 
 # *** fixtures
@@ -81,6 +84,8 @@ class TestAppEvent:
 
         # Assert each concrete event extends the module base.
         for event_cls in (
+            AddAppSession,
+            GetAppSession,
             AddAppInterface,
             GetAppInterface,
             UpdateAppInterface,
@@ -874,3 +879,145 @@ class TestRemoveAppInterface(DomainEventTestBase):
         # Command should return the interface id and still call delete exactly once.
         assert result == 'missing.interface'
         mock_dependencies['app_service'].delete.assert_called_once_with('missing.interface')
+
+
+# ** test: TestAddAppSession
+class TestAddAppSession(DomainEventTestBase):
+    '''
+    Tests for AddAppSession using the domain event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = AddAppSession
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(
+        id='test.session',
+        name='Test Session',
+    )
+
+    # * attribute: required_params
+    required_params = ['id', 'name']
+
+    # * method: test_add_app_session_success
+    def test_add_app_session_success(self, mock_dependencies):
+        '''
+        Test that AddAppSession creates and persists an AppSession with required params.
+        '''
+
+        # Execute via the harness handle helper.
+        session = self.handle(mock_dependencies)
+
+        # Assert the result is an AppSession instance with expected values.
+        assert isinstance(session, AppSession)
+        assert session.id == 'test.session'
+        assert session.name == 'Test Session'
+        assert session.description is None
+        assert session.logger_id == 'default'
+        assert session.flags == ['default']
+        assert session.services == []
+        assert session.constants == {}
+
+        # Assert the session is persisted via the app service.
+        mock_dependencies['app_service'].save.assert_called_once_with(session)
+
+    # * method: test_add_app_session_full_parameters
+    def test_add_app_session_full_parameters(self, mock_dependencies):
+        '''
+        Test that AddAppSession passes through optional parameters correctly.
+        '''
+
+        # Execute with all optional parameters.
+        session = self.handle(
+            mock_dependencies,
+            description='A full session.',
+            logger_id='custom_logger',
+            flags=['flag_a', 'flag_b'],
+            services=[
+                {
+                    'service_id': 'svc1',
+                    'module_path': 'some.module',
+                    'class_name': 'SomeClass',
+                    'parameters': {},
+                }
+            ],
+            constants={'KEY': 'VAL'},
+        )
+
+        # Assert optional fields are set correctly.
+        assert session.description == 'A full session.'
+        assert session.logger_id == 'custom_logger'
+        assert session.flags == ['flag_a', 'flag_b']
+        assert session.constants == {'KEY': 'VAL'}
+        assert len(session.services) == 1
+        assert session.services[0].service_id == 'svc1'
+
+        # Assert the session is persisted.
+        mock_dependencies['app_service'].save.assert_called_once()
+
+
+# ** test: TestGetAppSession
+class TestGetAppSession(ServiceEventTestBase):
+    '''
+    Tests for GetAppSession using the domain event test harness.
+    '''
+
+    # * attribute: event_cls
+    event_cls = GetAppSession
+
+    # * attribute: dependencies
+    dependencies = {'app_service': AppService}
+
+    # * attribute: service_attr
+    service_attr = 'app_service'
+
+    # * attribute: sample_kwargs
+    sample_kwargs = dict(id='test.session')
+
+    # * attribute: required_params
+    required_params = ['id']
+
+    # * attribute: not_found_error_code
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
+
+    # * attribute: not_found_kwargs
+    not_found_kwargs = dict(id='nonexistent.session')
+
+    # * method: test_get_app_session_success
+    def test_get_app_session_success(self, mock_dependencies):
+        '''
+        Test successful retrieval of an app session.
+        '''
+
+        # Configure the service mock to return a session.
+        app_session = AppSessionAggregate(
+            id='test.session',
+            name='Test Session',
+        )
+        mock_dependencies['app_service'].get.return_value = app_session
+
+        # Execute via the harness handle helper.
+        result = self.handle(mock_dependencies)
+
+        # Assert the returned session matches expectations.
+        assert result is app_session
+        mock_dependencies['app_service'].get.assert_called_once_with('test.session')
+
+    # * method: test_get_app_session_not_found
+    def test_get_app_session_not_found(self, mock_dependencies):
+        '''
+        Test that GetAppSession raises APP_SESSION_NOT_FOUND_ID when the session is missing.
+        '''
+
+        # Configure the service mock to return None.
+        mock_dependencies['app_service'].get.return_value = None
+
+        # Execute and expect the not-found error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id='missing.session')
+
+        # Assert the correct error code.
+        assert exc_info.value.error_code == a.const.APP_SESSION_NOT_FOUND_ID

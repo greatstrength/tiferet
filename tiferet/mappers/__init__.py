@@ -5,6 +5,8 @@
 __all__ = [
     'Aggregate',
     'TransferObject',
+    'AppSessionAggregate',
+    'AppSessionConfigObject',
     'AppInterfaceAggregate',
     'AppInterfaceConfigObject',
     'ServiceRegistrationAggregate',
@@ -35,6 +37,8 @@ from .core import (
 )
 
 from .app import (
+    AppSessionAggregate,
+    AppSessionConfigObject,
     AppInterfaceAggregate,
     AppInterfaceConfigObject,
 )

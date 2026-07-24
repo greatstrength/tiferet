@@ -5,9 +5,9 @@ from typing import List, Dict, Any
 
 # ** app
 from .core import DomainEvent, a
-from ..domain import AppInterface
+from ..domain import AppInterface, AppSession
 from ..interfaces import AppService
-from ..mappers import AppInterfaceAggregate
+from ..mappers import AppInterfaceAggregate, AppSessionAggregate
 
 # *** events
 
@@ -32,7 +32,111 @@ class AppEvent(DomainEvent):
         # Set the app service dependency.
         self.app_service = app_service
 
+# ** event: add_app_session
+class AddAppSession(AppEvent):
+    '''
+    A domain event to add a new application session configuration via the AppService.
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id', 'name'])
+    def execute(
+        self,
+        id: str,
+        name: str,
+        description: str | None = None,
+        logger_id: str = 'default',
+        flags: List[str] = ['default'],
+        services: List[Dict[str, Any]] = [],
+        constants: Dict[str, str] = {},
+        **kwargs,
+    ) -> AppSession:
+        '''
+        Create and save a new AppSession using the injected AppService.
+
+        Required parameters: ``id``, ``name``.
+
+        :param id: Unique identifier for the app session.
+        :type id: str
+        :param name: Human readable name of the session.
+        :type name: str
+        :param description: Optional description.
+        :type description: str | None
+        :param logger_id: Optional logger identifier, defaults to ``'default'``.
+        :type logger_id: str
+        :param flags: Optional list of DI flags, defaults to ``['default']``.
+        :type flags: List[str]
+        :param services: Optional list of service dependency definitions.
+        :type services: List[Dict[str, Any]]
+        :param constants: Optional dictionary of constant values.
+        :type constants: Dict[str, str]
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The created AppSession.
+        :rtype: AppSession
+        '''
+
+        # Coerce optional arguments that argparse may pass as None to their defaults.
+        logger_id = logger_id or 'default'
+        flags = flags or ['default']
+        services = services or []
+        constants = constants or {}
+
+        # Create the AppSessionAggregate.
+        app_session = AppSessionAggregate(
+            id=id,
+            name=name,
+            description=description,
+            logger_id=logger_id,
+            flags=flags,
+            services=services,
+            constants=constants,
+        )
+
+        # Persist the new session via the app service.
+        self.app_service.save(app_session)
+
+        # Return the created AppSession instance.
+        return app_session
+
+
+# ** event: get_app_session
+class GetAppSession(AppEvent):
+    '''
+    A domain event to retrieve an app session using the ``AppService`` abstraction.
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id'])
+    def execute(self, id: str, **kwargs) -> AppSession:
+        '''
+        Execute the event to load the application session.
+
+        :param id: The ID of the application session to load.
+        :type id: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict
+        :return: The loaded application session.
+        :rtype: AppSession
+        :raises TiferetError: If the session cannot be found.
+        '''
+
+        # Retrieve the app session via the app service.
+        app_session = self.app_service.get(id)
+
+        # Verify the session exists; raise error if not found.
+        self.verify(
+            expression=app_session is not None,
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            id=id,
+        )
+
+        # Return the loaded application session.
+        return app_session
+
+
 # ** event: add_app_interface
+# -- obsolete: Superseded by AddAppSession. Retire in Parity V Story 13.
 class AddAppInterface(AppEvent):
     '''
     A domain event to add a new application interface configuration via the AppService.
@@ -111,6 +215,7 @@ class AddAppInterface(AppEvent):
         return interface
 
 # ** event: get_app_interface
+# -- obsolete: Superseded by GetAppSession. Retire in Parity V Story 13.
 class GetAppInterface(AppEvent):
     '''
     A domain event to retrieve an app interface using the ``AppService`` abstraction.
