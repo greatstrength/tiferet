@@ -9,6 +9,9 @@ from . import core
 from . import app
 from . import error
 from . import logging
+from . import cli as cli_app
+from . import feature as feat
+from . import di as cli_svc
 
 # Backward-compat alias: existing consumers use `a.const.*` for error constants.
 const = core
