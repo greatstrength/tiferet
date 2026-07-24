@@ -243,7 +243,6 @@ DEFAULT_APP_SERVICE_MODULE_PATH: str = 'tiferet.repos.app'
 DEFAULT_APP_SERVICE_CLASS_NAME: str = 'AppYamlRepository'
 
 # ** constant: default_constants
-# ++ todo: Parity III Story 6b — move to assets/app.py as CORE_DEFAULT_CONSTANTS
 DEFAULT_CONSTANTS: Dict[str, str] = {
     'cli_yaml_file': 'config.yml',
     'di_yaml_file': 'config.yml',
@@ -253,7 +252,6 @@ DEFAULT_CONSTANTS: Dict[str, str] = {
 }
 
 # ** constant: default_services
-# ++ todo: Parity III Story 6b — move to assets/app.py as CORE_DEFAULT_SERVICES
 DEFAULT_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] = [
     ('di_service', 'tiferet.repos.di', 'DIYamlRepository', None),
     ('error_service', 'tiferet.repos.error', 'ErrorYamlRepository', None),
