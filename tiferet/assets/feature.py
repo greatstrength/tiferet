@@ -12,34 +12,54 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
 
     # -- app group --
 
-    'app.list': {
-        'id': 'app.list',
-        'name': 'List App Interfaces',
-        'group_id': 'app',
-        'feature_key': 'list',
-        'description': 'List all configured application interfaces.',
-        'steps': [
-            {'service_id': 'list_app_interfaces_evt'},
-        ],
-    },
     'app.add': {
         'id': 'app.add',
-        'name': 'Add App Interface',
+        'name': 'Add App Session',
         'group_id': 'app',
         'feature_key': 'add',
-        'description': 'Add a new application interface configuration.',
+        'description': 'Add a new application session configuration.',
         'steps': [
-            {'service_id': 'add_app_interface_evt'},
+            {'service_id': 'add_app_session_evt'},
+        ],
+    },
+    'app.get': {
+        'id': 'app.get',
+        'name': 'Get App Session',
+        'group_id': 'app',
+        'feature_key': 'get',
+        'description': 'Retrieve an app session by ID.',
+        'steps': [
+            {'service_id': 'get_app_session_evt'},
+        ],
+    },
+    'app.list': {
+        'id': 'app.list',
+        'name': 'List App Sessions',
+        'group_id': 'app',
+        'feature_key': 'list',
+        'description': 'List all configured app sessions.',
+        'steps': [
+            {'service_id': 'list_app_sessions_evt'},
         ],
     },
     'app.update': {
         'id': 'app.update',
-        'name': 'Update App Interface',
+        'name': 'Update App Session',
         'group_id': 'app',
         'feature_key': 'update',
-        'description': 'Update a scalar attribute on an existing application interface.',
+        'description': 'Update a scalar attribute on an app session.',
         'steps': [
-            {'service_id': 'update_app_interface_evt'},
+            {'service_id': 'update_app_session_evt'},
+        ],
+    },
+    'app.set_constants': {
+        'id': 'app.set_constants',
+        'name': 'Set App Constants',
+        'group_id': 'app',
+        'feature_key': 'set_constants',
+        'description': 'Set or clear constants on an app session.',
+        'steps': [
+            {'service_id': 'set_app_constants_evt'},
         ],
     },
     'app.set_service': {
@@ -47,7 +67,7 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'name': 'Set App Service Dependency',
         'group_id': 'app',
         'feature_key': 'set_service',
-        'description': 'Set or update a service dependency on an application interface.',
+        'description': 'Set or update a service dependency on an app session.',
         'steps': [
             {'service_id': 'set_app_service_dependency_evt'},
         ],
@@ -57,29 +77,19 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'name': 'Remove App Service Dependency',
         'group_id': 'app',
         'feature_key': 'remove_service',
-        'description': 'Remove a service dependency from an application interface.',
+        'description': 'Remove a service dependency from an app session.',
         'steps': [
             {'service_id': 'remove_app_service_dependency_evt'},
         ],
     },
-    'app.set_constants': {
-        'id': 'app.set_constants',
-        'name': 'Set App Constants',
-        'group_id': 'app',
-        'feature_key': 'set_constants',
-        'description': 'Set or clear constants on an application interface.',
-        'steps': [
-            {'service_id': 'set_app_constants_evt'},
-        ],
-    },
     'app.remove': {
         'id': 'app.remove',
-        'name': 'Remove App Interface',
+        'name': 'Remove App Session',
         'group_id': 'app',
         'feature_key': 'remove',
-        'description': 'Remove an application interface configuration.',
+        'description': 'Remove an app session by ID.',
         'steps': [
-            {'service_id': 'remove_app_interface_evt'},
+            {'service_id': 'remove_app_session_evt'},
         ],
     },
 
@@ -136,6 +146,16 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'description': 'Add a new error definition.',
         'steps': [
             {'service_id': 'add_error_evt'},
+        ],
+    },
+    'error.get': {
+        'id': 'error.get',
+        'name': 'Get Error',
+        'group_id': 'error',
+        'feature_key': 'get',
+        'description': 'Retrieve an error by ID.',
+        'steps': [
+            {'service_id': 'get_error_evt'},
         ],
     },
     'error.rename': {
@@ -199,6 +219,16 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'description': 'Add a new feature workflow definition.',
         'steps': [
             {'service_id': 'add_feature_evt'},
+        ],
+    },
+    'feature.get': {
+        'id': 'feature.get',
+        'name': 'Get Feature',
+        'group_id': 'feature',
+        'feature_key': 'get',
+        'description': 'Retrieve a feature by ID.',
+        'steps': [
+            {'service_id': 'get_feature_evt'},
         ],
     },
     'feature.update': {
@@ -301,7 +331,7 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'feature_key': 'set_dependency',
         'description': 'Set or update a flagged dependency on a service registration.',
         'steps': [
-            {'service_id': 'set_service_dependency_evt'},
+            {'service_id': 'set_di_service_dependency_evt'},
         ],
     },
     'service.remove_dependency': {
@@ -311,7 +341,7 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
         'feature_key': 'remove_dependency',
         'description': 'Remove a flagged dependency from a service registration.',
         'steps': [
-            {'service_id': 'remove_service_dependency_evt'},
+            {'service_id': 'remove_di_service_dependency_evt'},
         ],
     },
     'service.set_constants': {
@@ -334,10 +364,80 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Dict[str, Any]] = {
             {'service_id': 'remove_service_registration_evt'},
         ],
     },
+
+    # -- logging group --
+
+    'logging.add_formatter': {
+        'id': 'logging.add_formatter',
+        'name': 'Add Formatter',
+        'group_id': 'logging',
+        'feature_key': 'add_formatter',
+        'description': 'Add a new logging formatter configuration.',
+        'steps': [
+            {'service_id': 'add_formatter_evt'},
+        ],
+    },
+    'logging.remove_formatter': {
+        'id': 'logging.remove_formatter',
+        'name': 'Remove Formatter',
+        'group_id': 'logging',
+        'feature_key': 'remove_formatter',
+        'description': 'Remove a logging formatter by ID.',
+        'steps': [
+            {'service_id': 'remove_formatter_evt'},
+        ],
+    },
+    'logging.add_handler': {
+        'id': 'logging.add_handler',
+        'name': 'Add Handler',
+        'group_id': 'logging',
+        'feature_key': 'add_handler',
+        'description': 'Add a new logging handler configuration.',
+        'steps': [
+            {'service_id': 'add_handler_evt'},
+        ],
+    },
+    'logging.remove_handler': {
+        'id': 'logging.remove_handler',
+        'name': 'Remove Handler',
+        'group_id': 'logging',
+        'feature_key': 'remove_handler',
+        'description': 'Remove a logging handler by ID.',
+        'steps': [
+            {'service_id': 'remove_handler_evt'},
+        ],
+    },
+    'logging.add_logger': {
+        'id': 'logging.add_logger',
+        'name': 'Add Logger',
+        'group_id': 'logging',
+        'feature_key': 'add_logger',
+        'description': 'Add a new logger configuration.',
+        'steps': [
+            {'service_id': 'add_logger_evt'},
+        ],
+    },
+    'logging.remove_logger': {
+        'id': 'logging.remove_logger',
+        'name': 'Remove Logger',
+        'group_id': 'logging',
+        'feature_key': 'remove_logger',
+        'description': 'Remove a logger by ID.',
+        'steps': [
+            {'service_id': 'remove_logger_evt'},
+        ],
+    },
+    'logging.list': {
+        'id': 'logging.list',
+        'name': 'List Logging Configs',
+        'group_id': 'logging',
+        'feature_key': 'list',
+        'description': 'List all logging configurations (formatters, handlers, loggers).',
+        'steps': [
+            {'service_id': 'logging_list_all_evt'},
+        ],
+    },
 }
 
 # ** constant: admin_default_features
-ADMIN_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = {
-    k: v for k, v in DEFAULT_TIFERET_CLI_FEATURES.items()
-    if v['group_id'] in ('app', 'service', 'cli')
-}
+ADMIN_DEFAULT_FEATURES: Dict[str, Dict[str, Any]] = DEFAULT_TIFERET_CLI_FEATURES

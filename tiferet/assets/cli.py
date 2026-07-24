@@ -20,6 +20,19 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
         'group_key': 'app',
         'arguments': [],
     },
+    'app.get': {
+        'id': 'app.get',
+        'name': 'Get App Interface',
+        'description': 'Retrieve an app interface by ID.',
+        'key': 'get',
+        'group_key': 'app',
+        'arguments': [
+            {
+                'name_or_flags': ['interface_id'],
+                'description': 'The interface identifier.',
+            },
+        ],
+    },
     'app.add': {
         'id': 'app.add',
         'name': 'Add App Interface',
@@ -30,42 +43,34 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique interface identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['name'],
                 'description': 'The human-readable interface name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['module_path'],
                 'description': 'The Python module path of the context class.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['class_name'],
                 'description': 'The context class name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--description'],
                 'description': 'Optional interface description.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--logger-id'],
                 'description': 'Optional logger identifier. Defaults to "default".',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--flags'],
                 'description': 'Optional JSON-encoded list of flags.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--constants'],
                 'description': 'Optional JSON-encoded constants dictionary.',
-                'type': 'str',
             },
         ],
     },
@@ -79,17 +84,14 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The interface identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['attribute'],
                 'description': 'The attribute to update.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['value'],
                 'description': 'The new value for the attribute.',
-                'type': 'str',
             },
         ],
     },
@@ -103,27 +105,22 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The interface identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['service_id'],
                 'description': 'The service dependency identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['module_path'],
                 'description': 'The module path of the service implementation.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['class_name'],
                 'description': 'The class name of the service implementation.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--parameters'],
                 'description': 'Optional JSON-encoded parameters dictionary.',
-                'type': 'str',
             },
         ],
     },
@@ -137,12 +134,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The interface identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['service_id'],
                 'description': 'The service dependency identifier to remove.',
-                'type': 'str',
             },
         ],
     },
@@ -156,12 +151,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The interface identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--constants'],
                 'description': 'Optional JSON-encoded constants dictionary. Omit to clear all constants.',
-                'type': 'str',
             },
         ],
     },
@@ -175,7 +168,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The interface identifier to remove.',
-                'type': 'str',
             },
         ],
     },
@@ -200,27 +192,22 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique command identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['name'],
                 'description': 'The human-readable command name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['key'],
                 'description': 'The command key used in the CLI.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['group_key'],
                 'description': 'The group key this command belongs to.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--description'],
                 'description': 'Optional command description.',
-                'type': 'str',
             },
         ],
     },
@@ -234,18 +221,15 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['command_id'],
                 'description': 'The CLI command identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--name-or-flags'],
                 'description': 'JSON-encoded list of argument names or flags.',
-                'type': 'str',
                 'required': True,
             },
             {
                 'name_or_flags': ['--description'],
                 'description': 'Optional argument description.',
-                'type': 'str',
             },
         ],
     },
@@ -266,6 +250,19 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             },
         ],
     },
+    'error.get': {
+        'id': 'error.get',
+        'name': 'Get Error',
+        'description': 'Retrieve an error by ID.',
+        'key': 'get',
+        'group_key': 'error',
+        'arguments': [
+            {
+                'name_or_flags': ['id'],
+                'description': 'The error identifier.',
+            },
+        ],
+    },
     'error.add': {
         'id': 'error.add',
         'name': 'Add Error',
@@ -276,22 +273,18 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique error identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['name'],
                 'description': 'The human-readable error name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['message'],
                 'description': 'The primary error message text.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--lang'],
                 'description': 'Language code for the message. Defaults to "en_US".',
-                'type': 'str',
             },
         ],
     },
@@ -305,12 +298,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique error identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['new_name'],
                 'description': 'The new error name.',
-                'type': 'str',
             },
         ],
     },
@@ -324,17 +315,14 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique error identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['message'],
                 'description': 'The new message text.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--lang'],
                 'description': 'Language code for the message. Defaults to "en_US".',
-                'type': 'str',
             },
         ],
     },
@@ -348,12 +336,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique error identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--lang'],
                 'description': 'Language code of the message to remove. Defaults to "en_US".',
-                'type': 'str',
             },
         ],
     },
@@ -367,7 +353,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique error identifier to remove.',
-                'type': 'str',
             },
         ],
     },
@@ -384,7 +369,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['--group-id'],
                 'description': 'Optional group identifier to filter results.',
-                'type': 'str',
             },
         ],
     },
@@ -398,22 +382,18 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['name'],
                 'description': 'The feature name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['group_id'],
                 'description': 'The group identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--feature-key'],
                 'description': 'Optional explicit feature key. Defaults to snake_case of name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--description'],
                 'description': 'Optional feature description.',
-                'type': 'str',
             },
         ],
     },
@@ -427,17 +407,14 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['attribute'],
                 'description': 'The attribute to update (name or description).',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['value'],
                 'description': 'The new value.',
-                'type': 'str',
             },
         ],
     },
@@ -451,27 +428,22 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['name'],
                 'description': 'The step name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['service_id'],
                 'description': 'The DI service registration identifier for this step.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--parameters'],
                 'description': 'Optional JSON-encoded step parameters.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--data-key'],
                 'description': 'Optional result data key.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--pass-on-error'],
@@ -495,7 +467,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['position'],
@@ -505,12 +476,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['attribute'],
                 'description': 'The step attribute to update.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--value'],
                 'description': 'The new value for the attribute.',
-                'type': 'str',
             },
         ],
     },
@@ -524,7 +493,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['position'],
@@ -543,7 +511,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['start_position'],
@@ -567,7 +534,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The feature identifier to remove.',
-                'type': 'str',
             },
         ],
     },
@@ -592,22 +558,18 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The unique service registration identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--module-path'],
                 'description': 'The module path of the service implementation.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--class-name'],
                 'description': 'The class name of the service implementation.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--parameters'],
                 'description': 'Optional JSON-encoded parameters dictionary.',
-                'type': 'str',
             },
         ],
     },
@@ -621,22 +583,18 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The service registration identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--module-path'],
                 'description': 'The new default module path.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--class-name'],
                 'description': 'The new default class name.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--parameters'],
                 'description': 'Optional JSON-encoded parameters dictionary.',
-                'type': 'str',
             },
         ],
     },
@@ -650,27 +608,22 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The service registration identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['flag'],
                 'description': 'The flag identifying this dependency.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['module_path'],
                 'description': 'The module path for the flagged dependency.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['class_name'],
                 'description': 'The class name for the flagged dependency.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['--parameters'],
                 'description': 'Optional JSON-encoded parameters dictionary.',
-                'type': 'str',
             },
         ],
     },
@@ -684,12 +637,10 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The service registration identifier.',
-                'type': 'str',
             },
             {
                 'name_or_flags': ['flag'],
                 'description': 'The flag identifying the dependency to remove.',
-                'type': 'str',
             },
         ],
     },
@@ -703,7 +654,6 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['--constants'],
                 'description': 'Optional JSON-encoded constants dictionary. Omit to clear all.',
-                'type': 'str',
             },
         ],
     },
@@ -717,14 +667,98 @@ DEFAULT_TIFERET_CLI_COMMANDS: Dict[str, Dict[str, Any]] = {
             {
                 'name_or_flags': ['id'],
                 'description': 'The service registration identifier to remove.',
-                'type': 'str',
             },
         ],
+    },
+
+    # -- logging group --
+
+    'logging.add_formatter': {
+        'id': 'logging.add_formatter',
+        'name': 'Add Formatter',
+        'description': 'Add a new logging formatter configuration.',
+        'key': 'add-formatter',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'Unique formatter identifier.'},
+            {'name_or_flags': ['name'], 'description': 'Formatter name.'},
+            {'name_or_flags': ['format'], 'description': 'Format string for log messages.'},
+            {'name_or_flags': ['--description'], 'description': 'Optional description.'},
+            {'name_or_flags': ['--datefmt'], 'description': 'Optional date format string.'},
+        ],
+    },
+    'logging.remove_formatter': {
+        'id': 'logging.remove_formatter',
+        'name': 'Remove Formatter',
+        'description': 'Remove a logging formatter by ID.',
+        'key': 'remove-formatter',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'The formatter identifier to remove.'},
+        ],
+    },
+    'logging.add_handler': {
+        'id': 'logging.add_handler',
+        'name': 'Add Handler',
+        'description': 'Add a new logging handler configuration.',
+        'key': 'add-handler',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'Unique handler identifier.'},
+            {'name_or_flags': ['name'], 'description': 'Handler name.'},
+            {'name_or_flags': ['module_path'], 'description': 'Module path of the handler class.'},
+            {'name_or_flags': ['class_name'], 'description': 'Handler class name.'},
+            {'name_or_flags': ['level'], 'description': 'Logging level.', 'choices': ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']},
+            {'name_or_flags': ['formatter'], 'description': 'Formatter ID to use.'},
+            {'name_or_flags': ['--description'], 'description': 'Optional description.'},
+            {'name_or_flags': ['--stream'], 'description': 'Optional stream specification.'},
+            {'name_or_flags': ['--filename'], 'description': 'Optional filename for FileHandler.'},
+        ],
+    },
+    'logging.remove_handler': {
+        'id': 'logging.remove_handler',
+        'name': 'Remove Handler',
+        'description': 'Remove a logging handler by ID.',
+        'key': 'remove-handler',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'The handler identifier to remove.'},
+        ],
+    },
+    'logging.add_logger': {
+        'id': 'logging.add_logger',
+        'name': 'Add Logger',
+        'description': 'Add a new logger configuration.',
+        'key': 'add-logger',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'Unique logger identifier.'},
+            {'name_or_flags': ['name'], 'description': 'Logger name.'},
+            {'name_or_flags': ['level'], 'description': 'Logging level.', 'choices': ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']},
+            {'name_or_flags': ['handlers'], 'description': 'Comma-separated list of handler IDs.'},
+            {'name_or_flags': ['--description'], 'description': 'Optional description.'},
+            {'name_or_flags': ['--no-propagate'], 'description': 'Disable message propagation.', 'action': 'store_true'},
+        ],
+    },
+    'logging.remove_logger': {
+        'id': 'logging.remove_logger',
+        'name': 'Remove Logger',
+        'description': 'Remove a logger by ID.',
+        'key': 'remove-logger',
+        'group_key': 'logging',
+        'arguments': [
+            {'name_or_flags': ['id'], 'description': 'The logger identifier to remove.'},
+        ],
+    },
+    'logging.list': {
+        'id': 'logging.list',
+        'name': 'List Logging Configs',
+        'description': 'List all logging configurations (formatters, handlers, loggers).',
+        'key': 'list',
+        'group_key': 'logging',
+        'arguments': [],
     },
 }
 
 # ** constant: admin_default_commands
-ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
-    k: v for k, v in DEFAULT_TIFERET_CLI_COMMANDS.items()
-    if v['group_key'] in ('app', 'service', 'cli')
-}
+ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = DEFAULT_TIFERET_CLI_COMMANDS
