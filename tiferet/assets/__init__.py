@@ -5,8 +5,8 @@
 # ** app
 from .exceptions import TiferetError, TiferetAPIError, RaiseError
 from .error import ERROR_NOT_FOUND_ID, DEFAULT_ERRORS
-from . import app
 from . import core
+from . import app
 from . import error
 from . import logging
 
