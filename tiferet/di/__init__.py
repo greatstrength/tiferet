@@ -23,6 +23,12 @@ from .settings import (
     merge_settings,
 )
 from .dynamic import DynamicServiceProvider
+from .core import (
+    ServiceContainer,
+    ServiceResolver,
+    injectable_parameter_names,
+    normalize_flags,
+)
 
 # Backward-compatible alias: downstream consumers importing
 # DependenciesServiceProvider will receive DynamicServiceProvider.
