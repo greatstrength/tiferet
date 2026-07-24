@@ -297,7 +297,7 @@ class UpdateAppInterface(AppEvent):
 # ** event: set_app_constants
 class SetAppConstants(AppEvent):
     '''
-    A domain event to set or clear constants on an app interface.
+    A domain event to set or clear constants on an app session.
     '''
 
     # * method: execute
@@ -309,27 +309,27 @@ class SetAppConstants(AppEvent):
             **kwargs,
         ) -> str:
         '''
-        Set constants on an app interface.
+        Set constants on an app session.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param constants: A mapping of constants to apply. ``None`` clears all constants.
         :type constants: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose constants were updated.
+        :return: The ID of the app session whose constants were updated.
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
-            interface_id=id,
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
+            id=id,
         )
 
         # Update constants via the model method.
@@ -364,7 +364,7 @@ class ListAppInterfaces(AppEvent):
 # ** event: set_service_dependency
 class SetServiceDependency(AppEvent):
     '''
-    A domain event to set or update a service dependency on an app interface.
+    A domain event to set or update a service dependency on an app session.
     '''
 
     # * method: execute
@@ -379,9 +379,9 @@ class SetServiceDependency(AppEvent):
             **kwargs,
         ) -> str:
         '''
-        Set or update a service dependency on an app interface.
+        Set or update a service dependency on an app session.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param service_id: The service dependency identifier.
         :type service_id: str
@@ -393,19 +393,19 @@ class SetServiceDependency(AppEvent):
         :type parameters: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose service dependency was set.
+        :return: The ID of the app session whose service dependency was set.
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
-            interface_id=id,
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
+            id=id,
         )
 
         # Set or update the service dependency on the interface.
@@ -425,7 +425,7 @@ class SetServiceDependency(AppEvent):
 # ** event: remove_service_dependency
 class RemoveServiceDependency(AppEvent):
     '''
-    A domain event to remove a service dependency from an app interface (idempotent).
+    A domain event to remove a service dependency from an app session (idempotent).
     '''
 
     # * method: execute
@@ -434,25 +434,25 @@ class RemoveServiceDependency(AppEvent):
         '''
         Remove a service dependency by service_id.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param service_id: The service dependency identifier to remove.
         :type service_id: str
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose service dependency was removed.
+        :return: The ID of the app session whose service dependency was removed.
         :rtype: str
         '''
 
-        # Retrieve the app interface via the app service.
+        # Retrieve the app session via the app service.
         interface = self.app_service.get(id)
 
-        # Verify that the interface exists.
+        # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
-            message=f'App interface with ID {id} not found.',
-            interface_id=id,
+            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
+            id=id,
         )
 
         # Remove the service dependency idempotently from the interface.

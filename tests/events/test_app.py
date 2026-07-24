@@ -386,7 +386,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id', 'module_path', 'class_name']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -633,7 +633,7 @@ class TestSetAppConstants(ServiceEventTestBase):
     required_params = ['id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -769,7 +769,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
     required_params = ['id', 'service_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.APP_INTERFACE_NOT_FOUND_ID
+    not_found_error_code = a.const.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(

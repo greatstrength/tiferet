@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import AppSessionConfigObject, AppInterfaceConfigObject
+from tiferet.mappers import AppSessionConfigObject
 from tiferet.repos.app import AppConfigRepository
 
 
@@ -23,20 +23,16 @@ ANOTHER_APP_ID = 'another.app'
 
 # ** constant: app_data
 APP_DATA: Dict[str, Dict] = {
-    'interfaces': {
+    'sessions': {
         TEST_APP_ID: {
             'name': 'Test App',
             'description': 'A test app interface.',
-            'module': 'tiferet.apps.test',
-            'class': 'TestApp',
             'attrs': {},
             'const': {},
         },
         ANOTHER_APP_ID: {
             'name': 'Another App',
             'description': 'Another test app interface.',
-            'module': 'tiferet.apps.another',
-            'class': 'AnotherApp',
             'attrs': {},
             'const': {},
         },

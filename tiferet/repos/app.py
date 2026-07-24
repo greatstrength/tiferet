@@ -2,9 +2,6 @@
 
 # *** imports
 
-# ++ todo: Update context type-hints (AppInterfaceContext hub, build_app blueprint)
-#          to consume AppSession instead of AppInterface in Parity V Story 13.
-
 # ** core
 from typing import List
 
@@ -13,12 +10,13 @@ from ..interfaces import AppService
 from ..mappers import (
     AppSessionAggregate,
     AppSessionConfigObject,
-    AppInterfaceAggregate,
-    AppInterfaceConfigObject,
 )
 from .core import ConfigurationRepository
 
 # *** repos
+
+# ++ todo: Update context type-hints (AppInterfaceContext hub, build_app blueprint)
+#          to consume AppSession instead of AppInterface in Parity V Story 13.
 
 # ** repo: app_config_repository
 class AppConfigRepository(AppService, ConfigurationRepository):
@@ -43,21 +41,21 @@ class AppConfigRepository(AppService, ConfigurationRepository):
     # * method: exists
     def exists(self, id: str) -> bool:
         '''
-        Check if an app interface exists by ID.
+        Check if an app session exists by ID.
 
-        :param id: The app interface identifier.
+        :param id: The app session identifier.
         :type id: str
-        :return: True if the app interface exists, otherwise False.
+        :return: True if the app session exists, otherwise False.
         :rtype: bool
         '''
 
-        # Load the interfaces mapping from the configuration file.
-        interfaces_data = self._load(
-            start_node=lambda data: data.get('interfaces', {})
+        # Load the sessions mapping from the configuration file.
+        sessions_data = self._load(
+            start_node=lambda data: data.get('sessions', {})
         )
 
-        # Return whether the interface id exists in the mapping.
-        return id in interfaces_data
+        # Return whether the session id exists in the mapping.
+        return id in sessions_data
 
     # * method: get
     def get(self, id: str) -> AppSessionAggregate | None:
@@ -72,7 +70,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
 
         # Load the specific session data from the configuration file.
         session_data = self._load(
-            start_node=lambda data: data.get('interfaces', {}).get(id)
+            start_node=lambda data: data.get('sessions', {}).get(id)
         )
 
         # If no data is found, return None.
@@ -95,7 +93,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
 
         # Load all session data from the configuration file.
         sessions_data = self._load(
-            start_node=lambda data: data.get('interfaces', {})
+            start_node=lambda data: data.get('sessions', {})
         )
 
         # Map each session entry to an AppSessionAggregate.
@@ -124,7 +122,7 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         full_data = self._load()
 
         # Update or insert the session entry.
-        full_data.setdefault('interfaces', {})[session.id] = session_data.to_primitive(self.default_role)
+        full_data.setdefault('sessions', {})[session.id] = session_data.to_primitive(self.default_role)
 
         # Persist the updated configuration file.
         self._save(full_data)
@@ -132,9 +130,9 @@ class AppConfigRepository(AppService, ConfigurationRepository):
     # * method: delete
     def delete(self, id: str) -> None:
         '''
-        Delete an app interface by ID. This operation is idempotent.
+        Delete an app session by ID. This operation is idempotent.
 
-        :param id: The app interface identifier.
+        :param id: The app session identifier.
         :type id: str
         :return: None
         :rtype: None
@@ -143,8 +141,8 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         # Load the full configuration file.
         full_data = self._load()
 
-        # Remove the interface entry if it exists (idempotent).
-        full_data.get('interfaces', {}).pop(id, None)
+        # Remove the session entry if it exists (idempotent).
+        full_data.get('sessions', {}).pop(id, None)
 
         # Persist the updated configuration file.
         self._save(full_data)
