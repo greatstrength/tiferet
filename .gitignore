@@ -166,5 +166,14 @@ test.py
 # VS Code
 .vscode/
 
+# TRD local copies
+.trd/
+
+# Milestone planning artifacts (local, do not commit)
+.milestones/
+
+# Handoff documents (local, do not commit)
+.handoff/
+
 # pytest
 pytest.ini
