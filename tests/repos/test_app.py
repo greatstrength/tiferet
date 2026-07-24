@@ -9,7 +9,7 @@ from typing import Dict
 import pytest, yaml
 
 # ** app
-from tiferet.mappers import AppInterfaceConfigObject
+from tiferet.mappers import AppSessionConfigObject
 from tiferet.repos.app import AppConfigRepository
 
 
@@ -23,20 +23,16 @@ ANOTHER_APP_ID = 'another.app'
 
 # ** constant: app_data
 APP_DATA: Dict[str, Dict] = {
-    'interfaces': {
+    'sessions': {
         TEST_APP_ID: {
             'name': 'Test App',
             'description': 'A test app interface.',
-            'module': 'tiferet.apps.test',
-            'class': 'TestApp',
             'attrs': {},
             'const': {},
         },
         ANOTHER_APP_ID: {
             'name': 'Another App',
             'description': 'Another test app interface.',
-            'module': 'tiferet.apps.another',
-            'class': 'AnotherApp',
             'attrs': {},
             'const': {},
         },
@@ -109,23 +105,19 @@ def test_int_app_config_repo_get(
     :type app_config_repo: AppConfigRepository
     '''
 
-    # Get app interfaces by id.
+    # Get app sessions by id.
     app = app_config_repo.get(TEST_APP_ID)
     another_app = app_config_repo.get(ANOTHER_APP_ID)
 
-    # Check the first app interface.
+    # Check the first app session.
     assert app
     assert app.id == TEST_APP_ID
     assert app.name == 'Test App'
-    assert app.module_path == 'tiferet.apps.test'
-    assert app.class_name == 'TestApp'
 
-    # Check the second app interface.
+    # Check the second app session.
     assert another_app
     assert another_app.id == ANOTHER_APP_ID
     assert another_app.name == 'Another App'
-    assert another_app.module_path == 'tiferet.apps.another'
-    assert another_app.class_name == 'AnotherApp'
 
 # ** test_int: app_config_repo_get_not_found
 def test_int_app_config_repo_get_not_found(
@@ -179,29 +171,24 @@ def test_int_app_config_repo_save(
     # Create constant for new test app interface.
     new_app_id = 'new.app'
 
-    # Create new app interface config data and map to an aggregate.
-    app = AppInterfaceConfigObject.model_validate(dict(
+    # Create new app session config data and map to an aggregate.
+    app = AppSessionConfigObject.model_validate(dict(
         id=new_app_id,
         name='New App',
-        description='A new test app interface.',
-        module_path='tiferet.apps.new',
-        class_name='NewApp',
-        attributes={},
+        description='A new test app session.',
         constants={},
     )).map()
 
-    # Save the new app interface.
+    # Save the new app session.
     app_config_repo.save(app)
 
-    # Reload the app interface to verify it was saved.
+    # Reload the app session to verify it was saved.
     new_app = app_config_repo.get(new_app_id)
 
-    # Check the new app interface.
+    # Check the new app session.
     assert new_app
     assert new_app.id == new_app_id
     assert new_app.name == 'New App'
-    assert new_app.module_path == 'tiferet.apps.new'
-    assert new_app.class_name == 'NewApp'
 
 # ** test_int: app_config_repo_delete
 def test_int_app_config_repo_delete(
