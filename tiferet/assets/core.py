@@ -13,7 +13,7 @@ EN_US = 'en_US'
 # ** constant: tiferet
 TIFERET = 'tiferet'
 
-# *** constants (paths): packages
+# *** constants (paths_packages)
 
 # ** constant: tiferet_events_path
 TIFERET_EVENTS_PATH = 'events'
@@ -24,7 +24,7 @@ TIFERET_REPOS_PATH = 'repos'
 # ** constant: tiferet_utils_path
 TIFERET_UTILS_PATH = 'utils'
 
-# *** constants (paths): domains
+# *** constants (paths_domains)
 
 # ** constant: feature_domain_path
 FEATURE_DOMAIN_PATH = 'feature'
