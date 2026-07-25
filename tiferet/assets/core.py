@@ -10,13 +10,21 @@ from typing import List, Tuple, Dict, Any
 # ** constant: en_us
 EN_US = 'en_US'
 
-# *** constants (paths)
+# ** constant: tiferet
+TIFERET = 'tiferet'
+
+# *** constants (paths): packages
 
 # ** constant: tiferet_events_path
-TIFERET_EVENTS_PATH = 'tiferet.events'
+TIFERET_EVENTS_PATH = 'events'
 
 # ** constant: tiferet_repos_path
-TIFERET_REPOS_PATH = 'tiferet.repos'
+TIFERET_REPOS_PATH = 'repos'
+
+# ** constant: tiferet_utils_path
+TIFERET_UTILS_PATH = 'utils'
+
+# *** constants (paths): domains
 
 # ** constant: feature_domain_path
 FEATURE_DOMAIN_PATH = 'feature'
@@ -35,6 +43,9 @@ LOGGING_DOMAIN_PATH = 'logging'
 
 # ** constant: cli_domain_path
 CLI_DOMAIN_PATH = 'cli'
+
+# ** constant: middleware_domain_path
+MIDDLEWARE_DOMAIN_PATH = 'middleware'
 
 # *** functions
 
@@ -61,21 +72,23 @@ def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) ->
     }
 
 # ** function: create_service_module_path
-def create_service_module_path(base_path: str, domain_path: str) -> str:
+def create_service_module_path(app_base_path: str, base_path: str, domain_path: str) -> str:
     '''
-    Build a fully-qualified service module path from a base path and a domain
-    path segment.
+    Build a fully-qualified service module path from an application base path,
+    a sub-package path, and a domain path segment.
 
-    :param base_path: The base module path (e.g. ``TIFERET_EVENTS_PATH``).
+    :param app_base_path: The application root path (e.g. ``TIFERET``).
+    :type app_base_path: str
+    :param base_path: The sub-package path segment (e.g. ``TIFERET_EVENTS_PATH``).
     :type base_path: str
-    :param domain_path: The domain path segment (e.g. ``FEATURE_DOMAIN_PATH``).
+    :param domain_path: The domain module path segment (e.g. ``FEATURE_DOMAIN_PATH``).
     :type domain_path: str
     :return: The fully-qualified module path.
     :rtype: str
     '''
 
     # Assemble and return the fully-qualified module path.
-    return f'{base_path}.{domain_path}'
+    return f'{app_base_path}.{base_path}.{domain_path}'
 
 # ** function: create_service_dependency
 def create_service_dependency(
@@ -207,6 +220,27 @@ def create_default_feature(
 
     # Return the assembled feature definition.
     return feature
+
+# ** function: create_params_schema
+def create_params_schema(**params: Any) -> Dict[str, Any]:
+    '''
+    Build a request parameter schema dict for use as ``params_schema`` in a
+    feature definition.
+
+    Each keyword argument names one expected request parameter. The value is
+    either a plain type string (``'str'``, ``'int'``, ``'bool'``, ``'float'``,
+    ``'list'``, ``'dict'``) for a required parameter, or a parameter-spec dict
+    with keys ``type``, ``required``, ``default``, and any additional
+    constraints recognised by ``RequestSpecification``.
+
+    :param params: Mapping of parameter names to type strings or spec dicts.
+    :type params: Any
+    :return: The assembled parameter schema dict.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Return the assembled parameter schema dict.
+    return dict(params)
 
 # ** function: create_default_app_session
 def create_default_app_session(

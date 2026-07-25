@@ -10,6 +10,8 @@ from tiferet.assets.core import (
     create_service_module_path,
     create_default_feature,
     create_default_app_session,
+    create_params_schema,
+    TIFERET,
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
     FEATURE_DOMAIN_PATH,
@@ -27,7 +29,7 @@ def test_create_service_module_path_returns_dotted_path() -> None:
     '''
 
     # Build the module path.
-    result = create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH)
+    result = create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH)
 
     # Assert the joined path is correct.
     assert result == 'tiferet.events.feature'
@@ -42,7 +44,7 @@ def test_create_service_module_path_repos_path() -> None:
     '''
 
     # Build a repos module path.
-    result = create_service_module_path(TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH)
+    result = create_service_module_path(TIFERET, TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH)
 
     # Assert the joined path is correct.
     assert result == 'tiferet.repos.feature'
@@ -237,6 +239,31 @@ def test_create_default_app_session_returns_required_fields() -> None:
 
     # Assert optional description is absent when not provided.
     assert 'description' not in result
+
+# ** test: create_params_schema_returns_expected_dict
+def test_create_params_schema_returns_expected_dict() -> None:
+    '''
+    Test that create_params_schema assembles a parameter schema dict from
+    keyword arguments, supporting both shorthand type strings and expanded
+    spec dicts.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a schema with a mix of shorthand and expanded entries.
+    result = create_params_schema(
+        id='str',
+        name='str',
+        description={'type': 'str', 'required': False},
+    )
+
+    # Assert the schema contains all provided parameters.
+    assert result == {
+        'id': 'str',
+        'name': 'str',
+        'description': {'type': 'str', 'required': False},
+    }
 
 # ** test: create_default_app_session_includes_description_when_provided
 def test_create_default_app_session_includes_description_when_provided() -> None:
