@@ -13,8 +13,8 @@ application bootstrapping and cache seeding.
 # *** imports
 
 # ** app
-from .core import create_app_service_dependency
-from .di import DEFAULT_TIFERET_CLI_SERVICES as _CLI_SERVICES_LIST
+from .core import create_app_service_dependency, create_default_app_session
+from .di import DEFAULT_TIFERET_CLI_SERVICES
 
 # *** constants (ids)
 
@@ -60,6 +60,12 @@ TIMING_MIDDLEWARE_ID = 'timing_middleware'
 # ** constant: cache_middleware_id
 CACHE_MIDDLEWARE_ID = 'cache_middleware'
 
+# ** constant: tiferet_admin_id
+TIFERET_ADMIN_ID = 'admin'
+
+# ** constant: tiferet_admin_cli_id
+TIFERET_ADMIN_CLI_ID = 'admin_cli'
+
 # ** constant: cli_config_id
 CLI_CONFIG_ID = 'cli_config'
 
@@ -78,18 +84,18 @@ FEATURE_CONFIG_ID = 'feature_config'
 # *** constants (models)
 
 # ** constant: default_admin_app_session
-DEFAULT_ADMIN_APP_SESSION = {
-    'id': 'tiferet_app',
-    'name': 'Admin App',
-    'description': 'Default built-in admin application session',
-}
+DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
+    TIFERET_ADMIN_ID,
+    'Admin App',
+    description='Default built-in admin application session',
+)
 
 # ** constant: default_admin_cli_session
-DEFAULT_ADMIN_CLI_SESSION = {
-    'id': 'tiferet_cli',
-    'name': 'Admin CLI',
-    'description': 'Built-in CLI for managing Tiferet application configurations',
-}
+DEFAULT_ADMIN_CLI_SESSION = create_default_app_session(
+    TIFERET_ADMIN_CLI_ID,
+    'Admin CLI',
+    description='Built-in CLI for managing Tiferet application configurations',
+)
 
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'
@@ -207,15 +213,16 @@ CORE_DEFAULT_CONSTANTS = {
 
 # ** constant: admin_default_services
 # Full service catalog for the admin layer: all core services plus admin domain
-# events (derived from the CLI services list) and the AppConfigRepository.
+# events (from the CLI services catalog) as app service dependencies.
 ADMIN_DEFAULT_SERVICES = {
     **CORE_DEFAULT_SERVICES,
-    'app_service': create_app_service_dependency(
-        'app_service', 'tiferet.repos.app', 'AppConfigRepository',
-    ),
     **{
-        sid: create_app_service_dependency(sid, mp, cn)
-        for sid, mp, cn, _p in _CLI_SERVICES_LIST
+        svc_id: create_app_service_dependency(
+            svc_id,
+            svc['module_path'],
+            svc['class_name'],
+        )
+        for svc_id, svc in DEFAULT_TIFERET_CLI_SERVICES.items()
     },
 }
 
@@ -230,6 +237,6 @@ ADMIN_DEFAULT_CONSTANTS = {
 # Built-in session definitions seeded into the cache by build_cache so the admin
 # paths can resolve them without a config-file entry or a separate fallback.
 CORE_DEFAULT_APP_SESSIONS = {
-    DEFAULT_ADMIN_APP_SESSION['id']: DEFAULT_ADMIN_APP_SESSION,
-    DEFAULT_ADMIN_CLI_SESSION['id']: DEFAULT_ADMIN_CLI_SESSION,
+    TIFERET_ADMIN_ID: DEFAULT_ADMIN_APP_SESSION,
+    TIFERET_ADMIN_CLI_ID: DEFAULT_ADMIN_CLI_SESSION,
 }
