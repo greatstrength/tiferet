@@ -10,6 +10,32 @@ from typing import List, Tuple, Dict, Any
 # ** constant: en_us
 EN_US = 'en_US'
 
+# *** constants (paths)
+
+# ** constant: tiferet_events_path
+TIFERET_EVENTS_PATH = 'tiferet.events'
+
+# ** constant: tiferet_repos_path
+TIFERET_REPOS_PATH = 'tiferet.repos'
+
+# ** constant: feature_domain_path
+FEATURE_DOMAIN_PATH = 'feature'
+
+# ** constant: error_domain_path
+ERROR_DOMAIN_PATH = 'error'
+
+# ** constant: di_domain_path
+DI_DOMAIN_PATH = 'di'
+
+# ** constant: app_domain_path
+APP_DOMAIN_PATH = 'app'
+
+# ** constant: logging_domain_path
+LOGGING_DOMAIN_PATH = 'logging'
+
+# ** constant: cli_domain_path
+CLI_DOMAIN_PATH = 'cli'
+
 # *** functions
 
 # ** function: create_default_error
@@ -33,6 +59,23 @@ def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) ->
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
+
+# ** function: create_service_module_path
+def create_service_module_path(base_path: str, domain_path: str) -> str:
+    '''
+    Build a fully-qualified service module path from a base path and a domain
+    path segment.
+
+    :param base_path: The base module path (e.g. ``TIFERET_EVENTS_PATH``).
+    :type base_path: str
+    :param domain_path: The domain path segment (e.g. ``FEATURE_DOMAIN_PATH``).
+    :type domain_path: str
+    :return: The fully-qualified module path.
+    :rtype: str
+    '''
+
+    # Assemble and return the fully-qualified module path.
+    return f'{base_path}.{domain_path}'
 
 # ** function: create_service_dependency
 def create_service_dependency(

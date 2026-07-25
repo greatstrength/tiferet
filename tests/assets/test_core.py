@@ -1,4 +1,4 @@
-"""Tests for tiferet.assets.core"""
+"""Tests for Core Assets"""
 
 # *** imports
 
@@ -7,11 +7,45 @@ from tiferet.assets.core import (
     create_service_dependency,
     create_app_service_dependency,
     create_service_registration,
+    create_service_module_path,
     create_default_feature,
     create_default_app_session,
+    TIFERET_EVENTS_PATH,
+    TIFERET_REPOS_PATH,
+    FEATURE_DOMAIN_PATH,
 )
 
 # *** tests
+
+# ** test: create_service_module_path_returns_dotted_path
+def test_create_service_module_path_returns_dotted_path() -> None:
+    '''
+    Test that create_service_module_path joins base and domain with a dot.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build the module path.
+    result = create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH)
+
+    # Assert the joined path is correct.
+    assert result == 'tiferet.events.feature'
+
+# ** test: create_service_module_path_repos_path
+def test_create_service_module_path_repos_path() -> None:
+    '''
+    Test that create_service_module_path works correctly for a repos base path.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a repos module path.
+    result = create_service_module_path(TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH)
+
+    # Assert the joined path is correct.
+    assert result == 'tiferet.repos.feature'
 
 # ** test: create_service_dependency_returns_expected_shape
 def test_create_service_dependency_returns_expected_shape() -> None:

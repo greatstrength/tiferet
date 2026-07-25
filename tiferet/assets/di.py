@@ -1,4 +1,4 @@
-"""Tiferet Assets Service
+"""Tiferet DI Assets
 
 Provides the default service registration catalog for the built-in Tiferet CLI
 management application. Each entry maps a service ID constant to a registration
@@ -15,7 +15,18 @@ Services already defined in ``app.CORE_DEFAULT_SERVICES`` (e.g.
 from typing import Any, Dict
 
 # ** app
-from .core import create_service_registration
+from .core import (
+    create_service_registration,
+    create_service_module_path,
+    TIFERET_EVENTS_PATH,
+    TIFERET_REPOS_PATH,
+    FEATURE_DOMAIN_PATH,
+    ERROR_DOMAIN_PATH,
+    DI_DOMAIN_PATH,
+    APP_DOMAIN_PATH,
+    LOGGING_DOMAIN_PATH,
+    CLI_DOMAIN_PATH,
+)
 
 # *** constants (ids)
 
@@ -135,259 +146,259 @@ REMOVE_LOGGER_EVT_ID = 'remove_logger_evt'
 # ** constant: app_service
 APP_SERVICE = create_service_registration(
     APP_SERVICE_ID,
-    'tiferet.repos.app',
+    create_service_module_path(TIFERET_REPOS_PATH, APP_DOMAIN_PATH),
     'AppConfigRepository',
 )
 
 # ** constant: add_feature_evt
 ADD_FEATURE_EVT = create_service_registration(
     ADD_FEATURE_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'AddFeature',
 )
 
 # ** constant: list_features_evt
 LIST_FEATURES_EVT = create_service_registration(
     LIST_FEATURES_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'ListFeatures',
 )
 
 # ** constant: remove_feature_evt
 REMOVE_FEATURE_EVT = create_service_registration(
     REMOVE_FEATURE_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'RemoveFeature',
 )
 
 # ** constant: update_feature_evt
 UPDATE_FEATURE_EVT = create_service_registration(
     UPDATE_FEATURE_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'UpdateFeature',
 )
 
 # ** constant: add_feature_step_evt
 ADD_FEATURE_STEP_EVT = create_service_registration(
     ADD_FEATURE_STEP_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'AddFeatureStep',
 )
 
 # ** constant: update_feature_step_evt
 UPDATE_FEATURE_STEP_EVT = create_service_registration(
     UPDATE_FEATURE_STEP_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'UpdateFeatureStep',
 )
 
 # ** constant: remove_feature_step_evt
 REMOVE_FEATURE_STEP_EVT = create_service_registration(
     REMOVE_FEATURE_STEP_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'RemoveFeatureStep',
 )
 
 # ** constant: reorder_feature_step_evt
 REORDER_FEATURE_STEP_EVT = create_service_registration(
     REORDER_FEATURE_STEP_EVT_ID,
-    'tiferet.events.feature',
+    create_service_module_path(TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
     'ReorderFeatureStep',
 )
 
 # ** constant: add_error_evt
 ADD_ERROR_EVT = create_service_registration(
     ADD_ERROR_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'AddError',
 )
 
 # ** constant: list_errors_evt
 LIST_ERRORS_EVT = create_service_registration(
     LIST_ERRORS_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'ListErrors',
 )
 
 # ** constant: rename_error_evt
 RENAME_ERROR_EVT = create_service_registration(
     RENAME_ERROR_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RenameError',
 )
 
 # ** constant: set_error_message_evt
 SET_ERROR_MESSAGE_EVT = create_service_registration(
     SET_ERROR_MESSAGE_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'SetErrorMessage',
 )
 
 # ** constant: remove_error_message_evt
 REMOVE_ERROR_MESSAGE_EVT = create_service_registration(
     REMOVE_ERROR_MESSAGE_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RemoveErrorMessage',
 )
 
 # ** constant: remove_error_evt
 REMOVE_ERROR_EVT = create_service_registration(
     REMOVE_ERROR_EVT_ID,
-    'tiferet.events.error',
+    create_service_module_path(TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
     'RemoveError',
 )
 
 # ** constant: add_service_registration_evt
 ADD_SERVICE_REGISTRATION_EVT = create_service_registration(
     ADD_SERVICE_REGISTRATION_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'AddServiceRegistration',
 )
 
 # ** constant: set_default_service_registration_evt
 SET_DEFAULT_SERVICE_REGISTRATION_EVT = create_service_registration(
     SET_DEFAULT_SERVICE_REGISTRATION_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetDefaultServiceRegistration',
 )
 
 # ** constant: set_di_service_dependency_evt
 SET_DI_SERVICE_DEPENDENCY_EVT = create_service_registration(
     SET_DI_SERVICE_DEPENDENCY_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetServiceDependency',
 )
 
 # ** constant: remove_di_service_dependency_evt
 REMOVE_DI_SERVICE_DEPENDENCY_EVT = create_service_registration(
     REMOVE_DI_SERVICE_DEPENDENCY_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'RemoveServiceDependency',
 )
 
 # ** constant: remove_service_registration_evt
 REMOVE_SERVICE_REGISTRATION_EVT = create_service_registration(
     REMOVE_SERVICE_REGISTRATION_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'RemoveServiceRegistration',
 )
 
 # ** constant: set_service_constants_evt
 SET_SERVICE_CONSTANTS_EVT = create_service_registration(
     SET_SERVICE_CONSTANTS_EVT_ID,
-    'tiferet.events.di',
+    create_service_module_path(TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
     'SetServiceConstants',
 )
 
 # ** constant: add_app_session_evt
 ADD_APP_SESSION_EVT = create_service_registration(
     ADD_APP_SESSION_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'AddAppSession',
 )
 
 # ** constant: get_app_session_evt
 GET_APP_SESSION_EVT = create_service_registration(
     GET_APP_SESSION_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'GetAppSession',
 )
 
 # ** constant: update_app_session_evt
 UPDATE_APP_SESSION_EVT = create_service_registration(
     UPDATE_APP_SESSION_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'UpdateAppSession',
 )
 
 # ** constant: set_app_constants_evt
 SET_APP_CONSTANTS_EVT = create_service_registration(
     SET_APP_CONSTANTS_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'SetAppConstants',
 )
 
 # ** constant: list_app_sessions_evt
 LIST_APP_SESSIONS_EVT = create_service_registration(
     LIST_APP_SESSIONS_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'ListAppSessions',
 )
 
 # ** constant: set_app_service_dependency_evt
 SET_APP_SERVICE_DEPENDENCY_EVT = create_service_registration(
     SET_APP_SERVICE_DEPENDENCY_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'SetServiceDependency',
 )
 
 # ** constant: remove_app_service_dependency_evt
 REMOVE_APP_SERVICE_DEPENDENCY_EVT = create_service_registration(
     REMOVE_APP_SERVICE_DEPENDENCY_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'RemoveServiceDependency',
 )
 
 # ** constant: remove_app_session_evt
 REMOVE_APP_SESSION_EVT = create_service_registration(
     REMOVE_APP_SESSION_EVT_ID,
-    'tiferet.events.app',
+    create_service_module_path(TIFERET_EVENTS_PATH, APP_DOMAIN_PATH),
     'RemoveAppSession',
 )
 
 # ** constant: add_cli_command_evt
 ADD_CLI_COMMAND_EVT = create_service_registration(
     ADD_CLI_COMMAND_EVT_ID,
-    'tiferet.events.cli',
+    create_service_module_path(TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'AddCliCommand',
 )
 
 # ** constant: add_cli_argument_evt
 ADD_CLI_ARGUMENT_EVT = create_service_registration(
     ADD_CLI_ARGUMENT_EVT_ID,
-    'tiferet.events.cli',
+    create_service_module_path(TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
     'AddCliArgument',
 )
 
 # ** constant: add_formatter_evt
 ADD_FORMATTER_EVT = create_service_registration(
     ADD_FORMATTER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddFormatter',
 )
 
 # ** constant: remove_formatter_evt
 REMOVE_FORMATTER_EVT = create_service_registration(
     REMOVE_FORMATTER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveFormatter',
 )
 
 # ** constant: add_handler_evt
 ADD_HANDLER_EVT = create_service_registration(
     ADD_HANDLER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddHandler',
 )
 
 # ** constant: remove_handler_evt
 REMOVE_HANDLER_EVT = create_service_registration(
     REMOVE_HANDLER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveHandler',
 )
 
 # ** constant: add_logger_evt
 ADD_LOGGER_EVT = create_service_registration(
     ADD_LOGGER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'AddLogger',
 )
 
 # ** constant: remove_logger_evt
 REMOVE_LOGGER_EVT = create_service_registration(
     REMOVE_LOGGER_EVT_ID,
-    'tiferet.events.logging',
+    create_service_module_path(TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
     'RemoveLogger',
 )
 
