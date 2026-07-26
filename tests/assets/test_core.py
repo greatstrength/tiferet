@@ -11,6 +11,11 @@ from tiferet.assets.core import (
     create_default_feature,
     create_default_app_session,
     create_params_schema,
+    create_default_formatter,
+    create_default_handler,
+    create_default_logger,
+    create_default_cli_argument,
+    create_default_cli_command,
     TIFERET,
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
@@ -284,3 +289,268 @@ def test_create_default_app_session_includes_description_when_provided() -> None
 
     # Assert the description is included.
     assert result['description'] == 'Built-in CLI for managing Tiferet application configurations'
+
+# ** test: create_default_formatter_returns_required_fields
+def test_create_default_formatter_returns_required_fields() -> None:
+    '''
+    Test that create_default_formatter returns a dict with the three required
+    fields and no optional fields when they are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a minimal formatter with no optional arguments.
+    result = create_default_formatter(
+        'default',
+        'Default Formatter',
+        '%(asctime)s - %(levelname)s - %(message)s',
+    )
+
+    # Assert required fields are present.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Formatter'
+    assert result['format'] == '%(asctime)s - %(levelname)s - %(message)s'
+
+    # Assert optional fields are absent when not provided.
+    assert 'description' not in result
+    assert 'datefmt' not in result
+
+# ** test: create_default_formatter_includes_optional_fields_when_provided
+def test_create_default_formatter_includes_optional_fields_when_provided() -> None:
+    '''
+    Test that create_default_formatter includes description and datefmt when
+    they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build with optional arguments.
+    result = create_default_formatter(
+        'default',
+        'Default Formatter',
+        '%(asctime)s - %(levelname)s - %(message)s',
+        description='The default logging formatter.',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
+
+    # Assert optional fields are included.
+    assert result['description'] == 'The default logging formatter.'
+    assert result['datefmt'] == '%Y-%m-%d %H:%M:%S'
+
+# ** test: create_default_handler_returns_required_fields
+def test_create_default_handler_returns_required_fields() -> None:
+    '''
+    Test that create_default_handler returns a dict with the six required
+    fields and no optional fields when they are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a minimal handler with no optional arguments.
+    result = create_default_handler(
+        'default',
+        'Default Handler',
+        'logging',
+        'StreamHandler',
+        'INFO',
+        'default',
+    )
+
+    # Assert required fields are present.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Handler'
+    assert result['module_path'] == 'logging'
+    assert result['class_name'] == 'StreamHandler'
+    assert result['level'] == 'INFO'
+    assert result['formatter'] == 'default'
+
+    # Assert optional fields are absent when not provided.
+    assert 'description' not in result
+    assert 'stream' not in result
+    assert 'filename' not in result
+
+# ** test: create_default_handler_includes_optional_fields_when_provided
+def test_create_default_handler_includes_optional_fields_when_provided() -> None:
+    '''
+    Test that create_default_handler includes description, stream, and
+    filename when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build with optional arguments.
+    result = create_default_handler(
+        'default',
+        'Default Handler',
+        'logging',
+        'StreamHandler',
+        'INFO',
+        'default',
+        description='The default logging handler.',
+        stream='ext://sys.stdout',
+        filename='app.log',
+    )
+
+    # Assert optional fields are included.
+    assert result['description'] == 'The default logging handler.'
+    assert result['stream'] == 'ext://sys.stdout'
+    assert result['filename'] == 'app.log'
+
+# ** test: create_default_logger_returns_required_fields
+def test_create_default_logger_returns_required_fields() -> None:
+    '''
+    Test that create_default_logger returns a dict with all required fields
+    and that propagate/is_root default to False.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a minimal logger with no optional arguments.
+    result = create_default_logger(
+        'default',
+        'Default Logger',
+        'INFO',
+        ['default'],
+    )
+
+    # Assert required fields are present.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Logger'
+    assert result['level'] == 'INFO'
+    assert result['handlers'] == ['default']
+    assert result['propagate'] is False
+    assert result['is_root'] is False
+
+    # Assert optional description is absent when not provided.
+    assert 'description' not in result
+
+# ** test: create_default_logger_includes_optional_fields_when_provided
+def test_create_default_logger_includes_optional_fields_when_provided() -> None:
+    '''
+    Test that create_default_logger includes description and respects explicit
+    propagate and is_root values when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build with optional and overridden arguments.
+    result = create_default_logger(
+        'root',
+        'Root Logger',
+        'WARNING',
+        ['default_root'],
+        propagate=False,
+        is_root=True,
+        description='The root logger.',
+    )
+
+    # Assert overridden booleans and optional description are included.
+    assert result['propagate'] is False
+    assert result['is_root'] is True
+    assert result['description'] == 'The root logger.'
+
+# ** test: create_default_cli_argument_returns_required_field
+def test_create_default_cli_argument_returns_required_field() -> None:
+    '''
+    Test that create_default_cli_argument returns a dict with only
+    name_or_flags when all optional arguments are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a minimal argument with no optional fields.
+    result = create_default_cli_argument(['--flag'])
+
+    # Assert the only key present is name_or_flags.
+    assert result == {'name_or_flags': ['--flag']}
+
+# ** test: create_default_cli_argument_includes_optional_fields_when_provided
+def test_create_default_cli_argument_includes_optional_fields_when_provided() -> None:
+    '''
+    Test that create_default_cli_argument includes all optional fields when
+    they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build with all optional fields supplied.
+    result = create_default_cli_argument(
+        ['level'],
+        'Logging level.',
+        type='str',
+        default='INFO',
+        required=True,
+        nargs='?',
+        choices=['DEBUG', 'INFO', 'WARNING'],
+        action='store',
+    )
+
+    # Assert all optional fields are present with correct values.
+    assert result['description'] == 'Logging level.'
+    assert result['type'] == 'str'
+    assert result['default'] == 'INFO'
+    assert result['required'] is True
+    assert result['nargs'] == '?'
+    assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
+    assert result['action'] == 'store'
+
+# ** test: create_default_cli_command_returns_required_fields
+def test_create_default_cli_command_returns_required_fields() -> None:
+    '''
+    Test that create_default_cli_command returns a dict with the four required
+    fields and no optional fields when they are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a minimal command with no optional arguments.
+    result = create_default_cli_command(
+        'feature.list',
+        'list',
+        'feature',
+        'List Features',
+    )
+
+    # Assert required fields are present.
+    assert result['id'] == 'feature.list'
+    assert result['key'] == 'list'
+    assert result['group_key'] == 'feature'
+    assert result['name'] == 'List Features'
+
+    # Assert optional fields are absent when not provided.
+    assert 'description' not in result
+    assert 'arguments' not in result
+
+# ** test: create_default_cli_command_includes_optional_fields_when_provided
+def test_create_default_cli_command_includes_optional_fields_when_provided() -> None:
+    '''
+    Test that create_default_cli_command includes description and arguments
+    when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build with optional arguments.
+    args = [create_default_cli_argument(['id'], 'The feature identifier.')]
+    result = create_default_cli_command(
+        'feature.get',
+        'get',
+        'feature',
+        'Get Feature',
+        description='Retrieve a feature by ID.',
+        arguments=args,
+    )
+
+    # Assert optional fields are included.
+    assert result['description'] == 'Retrieve a feature by ID.'
+    assert result['arguments'] == args
