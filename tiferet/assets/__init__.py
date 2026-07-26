@@ -34,6 +34,3 @@ from . import di as cli_svc
 from . import feature as cli_feat
 from . import cli
 from . import cli as cli_cmd
-
-# Backward-compat alias: existing consumers use `a.const.*` for error constants.
-const = core

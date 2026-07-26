@@ -7,7 +7,7 @@ import pytest
 
 # ** app
 from tiferet.domain import AppServiceDependency
-from tiferet.assets import TiferetError, const
+from tiferet.assets import TiferetError, error
 from tiferet.mappers.core import DEFAULT_MODULE_PATH, DEFAULT_CLASS_NAME
 from tiferet.mappers.app import (
     AppSessionAggregate,
@@ -154,9 +154,9 @@ class TestAppInterfaceAggregate(AggregateTestBase):
         ('logger_id',    'custom.logger.id',       None),
         ('flags',        ['flag1', 'flag2'],       None),
         # invalid
-        ('invalid_attr', 'value',                  const.INVALID_MODEL_ATTRIBUTE_ID),
-        ('module_path',  '',                       const.INVALID_APP_INTERFACE_TYPE_ID),
-        ('class_name',   '   ',                    const.INVALID_APP_INTERFACE_TYPE_ID),
+        ('invalid_attr', 'value',                  error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('module_path',  '',                       error.INVALID_APP_INTERFACE_TYPE_ID),
+        ('class_name',   '   ',                    error.INVALID_APP_INTERFACE_TYPE_ID),
     ]
 
     # * method: make_aggregate
@@ -503,7 +503,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         ('logger_id',    'custom.logger',      None),
         ('flags',        ['flag1', 'flag2'],   None),
         # invalid
-        ('invalid_attr', 'value',              const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value',              error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * fixture: aggr_factory
