@@ -104,7 +104,7 @@ class DomainEventTestBase:
             )
 
         # Assert the correct error code and that the parameter name is mentioned.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         assert required_param in str(exc_info.value)
 
 

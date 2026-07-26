@@ -189,7 +189,7 @@ class TestAddCliCommand(DomainEventTestBase):
             self.handle(mock_dependencies)
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.CLI_COMMAND_ALREADY_EXISTS_ID
+        assert exc_info.value.error_code == a.error.CLI_COMMAND_ALREADY_EXISTS_ID
 
     # * method: test_none_arguments_coerced
     def test_none_arguments_coerced(self, mock_dependencies):
@@ -232,7 +232,7 @@ class TestAddCliArgument(ServiceEventTestBase):
     required_params = ['command_id']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.CLI_COMMAND_NOT_FOUND_ID
+    not_found_error_code = a.error.CLI_COMMAND_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(

@@ -143,7 +143,7 @@ def test_file_loader_invalid_mode(temp_text_file):
         loader.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.INVALID_FILE_MODE_ID
+    assert exc_info.value.error_code == a.error.INVALID_FILE_MODE_ID
     assert exc_info.value.kwargs.get('mode') == 'z'
 
 # ** test: file_loader_missing_encoding_text_mode
@@ -163,7 +163,7 @@ def test_file_loader_missing_encoding_text_mode(temp_text_file):
         loader.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.INVALID_ENCODING_ID
+    assert exc_info.value.error_code == a.error.INVALID_ENCODING_ID
 
 # ** test: file_loader_already_open
 def test_file_loader_already_open(file_loader_read: FileLoader):
@@ -182,7 +182,7 @@ def test_file_loader_already_open(file_loader_read: FileLoader):
             file_loader_read.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.FILE_ALREADY_OPEN_ID
+    assert exc_info.value.error_code == a.error.FILE_ALREADY_OPEN_ID
     assert exc_info.value.kwargs.get('path') is not None
 
 # ** test: file_loader_file_not_found_read
@@ -202,7 +202,7 @@ def test_file_loader_file_not_found_read(tmp_path):
         loader.open_file()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
     assert 'does_not_exist.txt' in exc_info.value.kwargs.get('path', '')
 
 # ** test: file_loader_missing_parent_dir_write
@@ -226,7 +226,7 @@ def test_file_loader_missing_parent_dir_write(tmp_path):
         loader.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
 
 # ** test: file_loader_binary_mode_no_encoding
 def test_file_loader_binary_mode_no_encoding(temp_text_file):

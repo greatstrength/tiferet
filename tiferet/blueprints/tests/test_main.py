@@ -183,7 +183,7 @@ def test_build_app_invalid_context(app_interface_aggregate):
     with mock.patch('tiferet.blueprints.main.resolve_interface') as mock_resolve, \
          mock.patch('tiferet.blueprints.main.realize_interface') as mock_realize:
         mock_resolve.return_value = (app_interface_aggregate, load_default_services())
-        mock_realize.side_effect = TiferetError(a.const.INVALID_APP_INTERFACE_TYPE_ID, interface_id='invalid_interface')
+        mock_realize.side_effect = TiferetError(a.error.INVALID_APP_INTERFACE_TYPE_ID, interface_id='invalid_interface')
 
         # Assert invalid context raises expected error.
         with pytest.raises(TiferetError) as exc_info:
@@ -194,5 +194,5 @@ def test_build_app_invalid_context(app_interface_aggregate):
                 app_yaml_file='tiferet/assets/tests/test_calc.yml',
             )
 
-        assert exc_info.value.error_code == a.const.INVALID_APP_INTERFACE_TYPE_ID
+        assert exc_info.value.error_code == a.error.INVALID_APP_INTERFACE_TYPE_ID
         assert 'invalid_interface' in str(exc_info.value)

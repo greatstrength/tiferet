@@ -190,7 +190,7 @@ class TestFeatureAggregate(AggregateTestBase):
         ('middleware', ['log'], None),
         ('is_async', True, None),
         # invalid
-        ('invalid_attr', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate

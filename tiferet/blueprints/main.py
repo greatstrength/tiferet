@@ -127,7 +127,7 @@ def load_app_instance(
     # Raise a structured error if dependency mapping fails.
     except Exception as e:
         RaiseError.execute(
-            a.const.APP_SERVICE_IMPORT_FAILED_ID,
+            a.error.APP_SERVICE_IMPORT_FAILED_ID,
             exception=str(e),
         )
 
@@ -211,7 +211,7 @@ def realize_interface(
     # Verify that the resolved context is valid.
     if not isinstance(app_interface_context, AppInterfaceContext):
         RaiseError.execute(
-            a.const.INVALID_APP_INTERFACE_TYPE_ID,
+            a.error.INVALID_APP_INTERFACE_TYPE_ID,
             f'App context for interface is not valid: {interface_id}.',
             interface_id=interface_id,
         )

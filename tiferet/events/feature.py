@@ -91,7 +91,7 @@ class AddFeature(FeatureEvent):
         # Check for duplicate feature identifier.
         self.verify(
             expression=not self.feature_service.exists(feature.id),
-            error_code=a.const.FEATURE_ALREADY_EXISTS_ID,
+            error_code=a.error.FEATURE_ALREADY_EXISTS_ID,
             message=f'Feature with ID {feature.id} already exists.',
             id=feature.id,
         )
@@ -132,7 +132,7 @@ class GetFeature(FeatureEvent):
         # Verify that the feature exists; raise FEATURE_NOT_FOUND if it does not.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
@@ -229,7 +229,7 @@ class UpdateFeature(FeatureEvent):
         # Validate that the attribute is supported.
         self.verify(
             expression=attribute in ('name', 'description'),
-            error_code=a.const.INVALID_FEATURE_ATTRIBUTE_ID,
+            error_code=a.error.INVALID_FEATURE_ATTRIBUTE_ID,
             message=f'Invalid feature attribute: {attribute}',
             attribute=attribute,
         )
@@ -238,7 +238,7 @@ class UpdateFeature(FeatureEvent):
         if attribute == 'name':
             self.verify(
                 expression=isinstance(value, str) and bool(value.strip()),
-                error_code=a.const.FEATURE_NAME_REQUIRED_ID,
+                error_code=a.error.FEATURE_NAME_REQUIRED_ID,
                 message='A feature name is required when updating the name attribute.',
             )
 
@@ -248,7 +248,7 @@ class UpdateFeature(FeatureEvent):
         # Verify that the feature exists.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
@@ -310,7 +310,7 @@ class AddFeatureStep(FeatureEvent):
         feature = self.feature_service.get(id)
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             message=f'Feature not found: {id}',
             feature_id=id,
         )
@@ -383,7 +383,7 @@ class UpdateFeatureStep(FeatureEvent):
         }
         self.verify(
             expression=attribute in valid_attributes,
-            error_code=a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
+            error_code=a.error.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID,
             message=(
                 'Invalid feature step attribute: {attribute}. '
                 'Supported attributes are name, service_id, data_key, '
@@ -399,7 +399,7 @@ class UpdateFeatureStep(FeatureEvent):
                     value is not None
                     and (not isinstance(value, str) or bool(str(value).strip()))
                 ),
-                error_code=a.const.COMMAND_PARAMETER_REQUIRED_ID,
+                error_code=a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=(
                     f'The "value" parameter is required when updating the '
                     f'"{attribute}" attribute for the '
@@ -415,7 +415,7 @@ class UpdateFeatureStep(FeatureEvent):
         # Verify that the feature exists.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             feature_id=id,
         )
 
@@ -425,7 +425,7 @@ class UpdateFeatureStep(FeatureEvent):
         # Verify that the step exists at the given position.
         self.verify(
             expression=step is not None,
-            error_code=a.const.FEATURE_COMMAND_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_COMMAND_NOT_FOUND_ID,
             message=(
                 f'Feature step not found for feature {id} '
                 f'at position {position}.'
@@ -479,7 +479,7 @@ class RemoveFeatureStep(FeatureEvent):
         # Verify that the feature exists.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             message=f'Feature not found: {id}',
             feature_id=id,
         )
@@ -537,7 +537,7 @@ class ReorderFeatureStep(FeatureEvent):
         # Verify that the feature exists.
         self.verify(
             expression=feature is not None,
-            error_code=a.const.FEATURE_NOT_FOUND_ID,
+            error_code=a.error.FEATURE_NOT_FOUND_ID,
             message=f'Feature not found: {id}',
             feature_id=id,
         )

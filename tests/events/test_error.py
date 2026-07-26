@@ -198,7 +198,7 @@ class TestAddError(DomainEventTestBase):
             self.handle(mock_dependencies)
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.ERROR_ALREADY_EXISTS_ID
+        assert exc_info.value.error_code == a.error.ERROR_ALREADY_EXISTS_ID
 
 
 # ** test: TestGetError
@@ -217,7 +217,7 @@ class TestGetError(ServiceEventTestBase):
     service_attr = 'error_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(id='TEST_ERROR')
@@ -260,7 +260,7 @@ class TestGetError(ServiceEventTestBase):
         mock_dependencies['error_service'].get.return_value = None
 
         # Execute with include_defaults and a known default error ID.
-        error_id = a.const.ERROR_NOT_FOUND_ID
+        error_id = a.error.ERROR_NOT_FOUND_ID
         result = self.handle(
             mock_dependencies,
             id=error_id,
@@ -341,7 +341,7 @@ class TestListErrors(DomainEventTestBase):
 
         # Create a repo error that overrides the default ERROR_NOT_FOUND.
         overriding_error = ErrorAggregate(
-            id=a.const.ERROR_NOT_FOUND_ID,
+            id=a.error.ERROR_NOT_FOUND_ID,
             name='Overriding Not Found Error',
             message=[{
                 'lang': 'en_US',
@@ -355,7 +355,7 @@ class TestListErrors(DomainEventTestBase):
 
         # Assert the override replaces the default.
         expected_errors = [overriding_error] + [
-            err for err in default_errors if err.id != a.const.ERROR_NOT_FOUND_ID
+            err for err in default_errors if err.id != a.error.ERROR_NOT_FOUND_ID
         ]
         assert len(result) == len(expected_errors)
         for err in expected_errors:
@@ -395,7 +395,7 @@ class TestRenameError(ServiceEventTestBase):
     service_attr = 'error_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(id='TEST_ERROR', new_name='Renamed Error')
@@ -447,7 +447,7 @@ class TestSetErrorMessage(ServiceEventTestBase):
     service_attr = 'error_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(
@@ -503,7 +503,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
     service_attr = 'error_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.ERROR_NOT_FOUND_ID
+    not_found_error_code = a.error.ERROR_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(id='TEST_ERROR', lang='es_ES')
@@ -555,7 +555,7 @@ class TestRemoveErrorMessage(ServiceEventTestBase):
             self.handle(mock_dependencies, lang='en_US')
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.NO_ERROR_MESSAGES_ID
+        assert exc_info.value.error_code == a.error.NO_ERROR_MESSAGES_ID
 
 
 # ** test: TestRemoveError

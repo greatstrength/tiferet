@@ -208,7 +208,7 @@ class AppSessionAggregate(AppSession, Aggregate):
         # Validate the attribute name.
         if attribute not in supported:
             RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
                 message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
                 attribute=attribute,
                 supported=', '.join(sorted(supported)),
@@ -422,7 +422,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         # Validate the attribute name.
         if attribute not in supported:
             RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
                 message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
                 attribute=attribute,
                 supported=', '.join(sorted(supported)),
@@ -432,7 +432,7 @@ class AppInterfaceAggregate(AppInterface, Aggregate):
         if attribute in {'module_path', 'class_name'}:
             if not value or not str(value).strip():
                 RaiseError.execute(
-                    error_code=a.const.INVALID_APP_INTERFACE_TYPE_ID,
+                    error_code=a.error.INVALID_APP_INTERFACE_TYPE_ID,
                     message='{attribute} must be a non-empty string.',
                     attribute=attribute,
                 )

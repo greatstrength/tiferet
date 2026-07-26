@@ -50,7 +50,7 @@ class ParseParameter(DomainEvent):
         # Raise an error if the parameter parsing fails.
         except Exception as e:
             raise TiferetError(
-                a.const.PARAMETER_PARSING_FAILED_ID,
+                a.error.PARAMETER_PARSING_FAILED_ID,
                 parameter=parameter,
                 exception=str(e),
             )
@@ -84,7 +84,7 @@ class ImportDependency(DomainEvent):
         # Raise an error if the dependency import fails.
         except Exception as e:
             raise TiferetError(
-                a.const.IMPORT_DEPENDENCY_FAILED_ID,
+                a.error.IMPORT_DEPENDENCY_FAILED_ID,
                 module_path=module_path,
                 class_name=class_name,
                 exception=str(e),

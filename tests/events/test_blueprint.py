@@ -127,7 +127,7 @@ def test_create_service_resolver_missing_di_service():
         )
 
     # Assert the correct error code is raised.
-    assert exc_info.value.error_code == a.const.DI_SERVICE_NOT_CONFIGURED_ID
+    assert exc_info.value.error_code == a.error.DI_SERVICE_NOT_CONFIGURED_ID
 
 
 # ** test: create_service_resolver_requires_app_interface
@@ -145,7 +145,7 @@ def test_create_service_resolver_requires_app_interface():
         )
 
     # Assert the required-parameter error code is raised.
-    assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+    assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
 
 
 # ** test: create_service_resolver_merges_defaults

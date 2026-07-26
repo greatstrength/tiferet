@@ -69,7 +69,7 @@ class TomlLoader(FileLoader):
                 path = default_path
             else:
                 RaiseError.execute(
-                    error_code=a.const.INVALID_TOML_FILE_ID,
+                    error_code=a.error.INVALID_TOML_FILE_ID,
                     message="File must have .toml extension",
                     path=str(loader.path),
                 )
@@ -77,7 +77,7 @@ class TomlLoader(FileLoader):
         # Verify the resolved path exists.
         if not path.exists():
             RaiseError.execute(
-                error_code=a.const.TOML_FILE_NOT_FOUND_ID,
+                error_code=a.error.TOML_FILE_NOT_FOUND_ID,
                 path=str(path),
             )
 
@@ -121,7 +121,7 @@ class TomlLoader(FileLoader):
 
             # Wrap TOML parsing errors as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.TOML_FILE_LOAD_ERROR_ID,
+                error_code=a.error.TOML_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
             )

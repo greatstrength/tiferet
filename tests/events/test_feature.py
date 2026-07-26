@@ -200,7 +200,7 @@ class TestAddFeature(DomainEventTestBase):
             self.handle(mock_dependencies)
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.FEATURE_ALREADY_EXISTS_ID
+        assert exc_info.value.error_code == a.error.FEATURE_ALREADY_EXISTS_ID
 
         # Verify the feature was not saved.
         mock_dependencies['feature_service'].exists.assert_called_once()
@@ -241,7 +241,7 @@ class TestGetFeature(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(id='group.sample_feature')
@@ -310,7 +310,7 @@ class TestGetFeature(ServiceEventTestBase):
             )
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.FEATURE_NOT_FOUND_ID
+        assert exc_info.value.error_code == a.error.FEATURE_NOT_FOUND_ID
 
 
 # ** test: TestListFeatures
@@ -443,7 +443,7 @@ class TestUpdateFeature(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(
@@ -534,7 +534,7 @@ class TestUpdateFeature(ServiceEventTestBase):
             self.handle(mock_dependencies, attribute='invalid', value='ignored')
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.INVALID_FEATURE_ATTRIBUTE_ID
+        assert exc_info.value.error_code == a.error.INVALID_FEATURE_ATTRIBUTE_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
     # * method: test_missing_name_value
@@ -548,7 +548,7 @@ class TestUpdateFeature(ServiceEventTestBase):
             self.handle(mock_dependencies, attribute='name', value=' ')
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.FEATURE_NAME_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.FEATURE_NAME_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
 
@@ -568,7 +568,7 @@ class TestAddFeatureStep(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(
@@ -686,7 +686,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(
@@ -809,7 +809,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
             self.handle(mock_dependencies, attribute='invalid')
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
+        assert exc_info.value.error_code == a.error.INVALID_FEATURE_COMMAND_ATTRIBUTE_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
     # * method: test_missing_name_or_service_id_value
@@ -824,7 +824,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
             self.handle(mock_dependencies, attribute=attribute, value=' ')
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.COMMAND_PARAMETER_REQUIRED_ID
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
         mock_dependencies['feature_service'].get.assert_not_called()
 
     # * method: test_step_not_found
@@ -838,7 +838,7 @@ class TestUpdateFeatureStep(ServiceEventTestBase):
             self.handle(mock_dependencies, position=5)
 
         # Assert the correct error code.
-        assert exc_info.value.error_code == a.const.FEATURE_COMMAND_NOT_FOUND_ID
+        assert exc_info.value.error_code == a.error.FEATURE_COMMAND_NOT_FOUND_ID
 
 
 # ** test: TestRemoveFeatureStep
@@ -857,7 +857,7 @@ class TestRemoveFeatureStep(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(
@@ -953,7 +953,7 @@ class TestReorderFeatureStep(ServiceEventTestBase):
     service_attr = 'feature_service'
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.FEATURE_NOT_FOUND_ID
+    not_found_error_code = a.error.FEATURE_NOT_FOUND_ID
 
     # * attribute: sample_kwargs
     sample_kwargs = dict(

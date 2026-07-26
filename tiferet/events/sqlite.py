@@ -84,7 +84,7 @@ class MutateSql(SqliteEvent):
         clean_statement = statement.strip().upper()
         self.verify(
             any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
             parameter='statement',
             command='MutateSql'
@@ -135,7 +135,7 @@ class QuerySql(SqliteEvent):
         clean_query = query.strip().upper()
         self.verify(
             clean_query.startswith('SELECT') or clean_query.startswith('WITH'),
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Query must start with SELECT or WITH. Got: {query[:20]}...',
             parameter='query',
             command='QuerySql'
@@ -187,7 +187,7 @@ class BulkMutateSql(SqliteEvent):
         clean_statement = statement.strip().upper()
         self.verify(
             any(clean_statement.startswith(prefix) for prefix in ('INSERT', 'UPDATE', 'DELETE')),
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Statement must start with INSERT, UPDATE, or DELETE. Got: {statement[:20]}...',
             parameter='statement',
             command='BulkMutateSql'
@@ -196,7 +196,7 @@ class BulkMutateSql(SqliteEvent):
         # Validate parameters_list is not empty
         self.verify(
             len(parameters_list) > 0,
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message='Parameters list must not be empty.',
             parameter='parameters_list',
             command='BulkMutateSql'
@@ -295,7 +295,7 @@ class BackupSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                a.const.SQLITE_BACKUP_FAILED_ID,
+                a.error.SQLITE_BACKUP_FAILED_ID,
                 f'Backup to {target_path} failed: {str(e)}',
                 target_path=target_path,
                 original_error=str(e)
@@ -340,7 +340,7 @@ class CreateTableSql(SqliteEvent):
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and is_valid_identifier(table_name),
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
             command='CreateTableSql'
@@ -349,7 +349,7 @@ class CreateTableSql(SqliteEvent):
         # Validate columns is present and non-empty
         self.verify(
             isinstance(columns, dict) and len(columns) > 0,
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message='Columns must be a non-empty dictionary.',
             parameter='columns',
             command='CreateTableSql'
@@ -359,14 +359,14 @@ class CreateTableSql(SqliteEvent):
         for col_name, col_type in columns.items():
             self.verify(
                 col_name and isinstance(col_name, str),
-                a.const.COMMAND_PARAMETER_REQUIRED_ID,
+                a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Column name must be a non-empty string. Got: {col_name}',
                 parameter='columns',
                 command='CreateTableSql'
             )
             self.verify(
                 col_type and isinstance(col_type, str),
-                a.const.COMMAND_PARAMETER_REQUIRED_ID,
+                a.error.COMMAND_PARAMETER_REQUIRED_ID,
                 message=f'Column type for "{col_name}" must be a non-empty string. Got: {col_type}',
                 parameter='columns',
                 command='CreateTableSql'
@@ -445,7 +445,7 @@ class DropTableSql(SqliteEvent):
         # Validate table_name is a valid SQLite identifier (basic check)
         self.verify(
             table_name and isinstance(table_name, str) and is_valid_identifier(table_name),
-            a.const.COMMAND_PARAMETER_REQUIRED_ID,
+            a.error.COMMAND_PARAMETER_REQUIRED_ID,
             message=f'Invalid table name: {table_name}. Must be non-empty and contain only alphanumeric characters and underscores.',
             parameter='table_name',
             command='DropTableSql'
