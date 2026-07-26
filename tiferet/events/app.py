@@ -251,6 +251,7 @@ class GetAppInterface(AppEvent):
         return interface
 
 # ** event: update_app_interface
+# -- obsolete: Superseded by UpdateAppSession. Retire in Parity V Story 13 (#911).
 class UpdateAppInterface(AppEvent):
     '''
     A domain event to update scalar attributes of an existing app interface.
