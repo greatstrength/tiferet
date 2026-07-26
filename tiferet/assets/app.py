@@ -13,8 +13,22 @@ application bootstrapping and cache seeding.
 # *** imports
 
 # ** app
-from .core import create_app_service_dependency
-from .di import DEFAULT_TIFERET_CLI_SERVICES as _CLI_SERVICES_LIST
+from .core import (
+    create_app_service_dependency,
+    create_default_app_session,
+    create_service_module_path,
+    TIFERET,
+    TIFERET_EVENTS_PATH,
+    TIFERET_REPOS_PATH,
+    TIFERET_UTILS_PATH,
+    FEATURE_DOMAIN_PATH,
+    ERROR_DOMAIN_PATH,
+    DI_DOMAIN_PATH,
+    APP_DOMAIN_PATH,
+    LOGGING_DOMAIN_PATH,
+    CLI_DOMAIN_PATH,
+    MIDDLEWARE_DOMAIN_PATH,
+)
 
 # *** constants (ids)
 
@@ -60,6 +74,12 @@ TIMING_MIDDLEWARE_ID = 'timing_middleware'
 # ** constant: cache_middleware_id
 CACHE_MIDDLEWARE_ID = 'cache_middleware'
 
+# ** constant: tiferet_admin_id
+TIFERET_ADMIN_ID = 'admin'
+
+# ** constant: tiferet_admin_cli_id
+TIFERET_ADMIN_CLI_ID = 'admin_cli'
+
 # ** constant: cli_config_id
 CLI_CONFIG_ID = 'cli_config'
 
@@ -78,18 +98,18 @@ FEATURE_CONFIG_ID = 'feature_config'
 # *** constants (models)
 
 # ** constant: default_admin_app_session
-DEFAULT_ADMIN_APP_SESSION = {
-    'id': 'tiferet_app',
-    'name': 'Admin App',
-    'description': 'Default built-in admin application session',
-}
+DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
+    TIFERET_ADMIN_ID,
+    'Admin App',
+    description='Default built-in admin application session',
+)
 
 # ** constant: default_admin_cli_session
-DEFAULT_ADMIN_CLI_SESSION = {
-    'id': 'tiferet_cli',
-    'name': 'Admin CLI',
-    'description': 'Built-in CLI for managing Tiferet application configurations',
-}
+DEFAULT_ADMIN_CLI_SESSION = create_default_app_session(
+    TIFERET_ADMIN_CLI_ID,
+    'Admin CLI',
+    description='Built-in CLI for managing Tiferet application configurations',
+)
 
 # ** constant: default_config_file
 DEFAULT_CONFIG_FILE = 'config.yml'
@@ -98,7 +118,7 @@ DEFAULT_CONFIG_FILE = 'config.yml'
 DEFAULT_APP_CONFIG_FILE = DEFAULT_CONFIG_FILE
 
 # ** constant: default_app_service_module_path
-DEFAULT_APP_SERVICE_MODULE_PATH = 'tiferet.repos.app'
+DEFAULT_APP_SERVICE_MODULE_PATH = create_service_module_path(TIFERET, TIFERET_REPOS_PATH, APP_DOMAIN_PATH)
 
 # ** constant: default_app_service_class_name
 DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
@@ -108,72 +128,100 @@ DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
 
 # ** constant: di_service
 DI_SERVICE = create_app_service_dependency(
-    DI_SERVICE_ID, 'tiferet.repos.di', 'DIConfigRepository',
+    DI_SERVICE_ID,
+    create_service_module_path(TIFERET, TIFERET_REPOS_PATH, DI_DOMAIN_PATH),
+    'DIConfigRepository',
 )
 
 # ** constant: error_service
 ERROR_SERVICE = create_app_service_dependency(
-    ERROR_SERVICE_ID, 'tiferet.repos.error', 'ErrorConfigRepository',
+    ERROR_SERVICE_ID,
+    create_service_module_path(TIFERET, TIFERET_REPOS_PATH, ERROR_DOMAIN_PATH),
+    'ErrorConfigRepository',
 )
 
 # ** constant: logging_service
 LOGGING_SERVICE = create_app_service_dependency(
-    LOGGING_SERVICE_ID, 'tiferet.repos.logging', 'LoggingConfigRepository',
+    LOGGING_SERVICE_ID,
+    create_service_module_path(TIFERET, TIFERET_REPOS_PATH, LOGGING_DOMAIN_PATH),
+    'LoggingConfigRepository',
 )
 
 # ** constant: feature_service
 FEATURE_SERVICE = create_app_service_dependency(
-    FEATURE_SERVICE_ID, 'tiferet.repos.feature', 'FeatureConfigRepository',
+    FEATURE_SERVICE_ID,
+    create_service_module_path(TIFERET, TIFERET_REPOS_PATH, FEATURE_DOMAIN_PATH),
+    'FeatureConfigRepository',
 )
 
 # ** constant: get_error_evt
 GET_ERROR_EVT = create_app_service_dependency(
-    GET_ERROR_EVT_ID, 'tiferet.events.error', 'GetError',
+    GET_ERROR_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, ERROR_DOMAIN_PATH),
+    'GetError',
 )
 
 # ** constant: get_feature_evt
 GET_FEATURE_EVT = create_app_service_dependency(
-    GET_FEATURE_EVT_ID, 'tiferet.events.feature', 'GetFeature',
+    GET_FEATURE_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, FEATURE_DOMAIN_PATH),
+    'GetFeature',
 )
 
 # ** constant: logging_list_all_evt
 LOGGING_LIST_ALL_EVT = create_app_service_dependency(
-    LOGGING_LIST_ALL_EVT_ID, 'tiferet.events.logging', 'ListAllLoggingConfigs',
+    LOGGING_LIST_ALL_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, LOGGING_DOMAIN_PATH),
+    'ListAllLoggingConfigs',
 )
 
 # ** constant: cli_service
 CLI_SERVICE = create_app_service_dependency(
-    CLI_SERVICE_ID, 'tiferet.repos.cli', 'CliConfigRepository',
+    CLI_SERVICE_ID,
+    create_service_module_path(TIFERET, TIFERET_REPOS_PATH, CLI_DOMAIN_PATH),
+    'CliConfigRepository',
 )
 
 # ** constant: list_commands_evt
 LIST_COMMANDS_EVT = create_app_service_dependency(
-    LIST_COMMANDS_EVT_ID, 'tiferet.events.cli', 'ListCliCommands',
+    LIST_COMMANDS_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
+    'ListCliCommands',
 )
 
 # ** constant: get_parent_args_evt
 GET_PARENT_ARGS_EVT = create_app_service_dependency(
-    GET_PARENT_ARGS_EVT_ID, 'tiferet.events.cli', 'GetParentArguments',
+    GET_PARENT_ARGS_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, CLI_DOMAIN_PATH),
+    'GetParentArguments',
 )
 
 # ** constant: di_list_all_configs_evt
 DI_LIST_ALL_CONFIGS_EVT = create_app_service_dependency(
-    DI_LIST_ALL_CONFIGS_EVT_ID, 'tiferet.events.di', 'ListAllSettings',
+    DI_LIST_ALL_CONFIGS_EVT_ID,
+    create_service_module_path(TIFERET, TIFERET_EVENTS_PATH, DI_DOMAIN_PATH),
+    'ListAllSettings',
 )
 
 # ** constant: logging_middleware
 LOGGING_MIDDLEWARE = create_app_service_dependency(
-    LOGGING_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'LoggingMiddleware',
+    LOGGING_MIDDLEWARE_ID,
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    'LoggingMiddleware',
 )
 
 # ** constant: timing_middleware
 TIMING_MIDDLEWARE = create_app_service_dependency(
-    TIMING_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'TimingMiddleware',
+    TIMING_MIDDLEWARE_ID,
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    'TimingMiddleware',
 )
 
 # ** constant: cache_middleware
 CACHE_MIDDLEWARE = create_app_service_dependency(
-    CACHE_MIDDLEWARE_ID, 'tiferet.utils.middleware', 'CacheMiddleware',
+    CACHE_MIDDLEWARE_ID,
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    'CacheMiddleware',
 )
 
 # *** constants (groups)
@@ -206,17 +254,8 @@ CORE_DEFAULT_CONSTANTS = {
 }
 
 # ** constant: admin_default_services
-# Full service catalog for the admin layer: all core services plus admin domain
-# events (derived from the CLI services list) and the AppConfigRepository.
 ADMIN_DEFAULT_SERVICES = {
     **CORE_DEFAULT_SERVICES,
-    'app_service': create_app_service_dependency(
-        'app_service', 'tiferet.repos.app', 'AppConfigRepository',
-    ),
-    **{
-        sid: create_app_service_dependency(sid, mp, cn)
-        for sid, mp, cn, _p in _CLI_SERVICES_LIST
-    },
 }
 
 # ** constant: admin_default_constants
@@ -230,6 +269,6 @@ ADMIN_DEFAULT_CONSTANTS = {
 # Built-in session definitions seeded into the cache by build_cache so the admin
 # paths can resolve them without a config-file entry or a separate fallback.
 CORE_DEFAULT_APP_SESSIONS = {
-    DEFAULT_ADMIN_APP_SESSION['id']: DEFAULT_ADMIN_APP_SESSION,
-    DEFAULT_ADMIN_CLI_SESSION['id']: DEFAULT_ADMIN_CLI_SESSION,
+    TIFERET_ADMIN_ID: DEFAULT_ADMIN_APP_SESSION,
+    TIFERET_ADMIN_CLI_ID: DEFAULT_ADMIN_CLI_SESSION,
 }

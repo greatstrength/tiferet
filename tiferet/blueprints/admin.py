@@ -186,7 +186,7 @@ def build_admin_app_session_context(
 
 # ** blueprint: build_admin_app
 def build_admin_app(
-    interface_id: str = 'tiferet_app',
+    interface_id: str = a.app.TIFERET_ADMIN_ID,
     **parameters: Any,
 ) -> AppSessionContext:
     '''
@@ -199,7 +199,7 @@ def build_admin_app(
     falls back to :data:`~tiferet.assets.app.DEFAULT_ADMIN_APP_SESSION` so the
     built-in admin interface is always available without a config entry.
 
-    :param interface_id: The session ID to load; defaults to ``'tiferet_app'``.
+    :param interface_id: The session ID to load; defaults to ``'admin'``.
     :type interface_id: str
     :param parameters: Additional parameters forwarded to the app service
         constructor (e.g. ``app_config='config.yml'``).

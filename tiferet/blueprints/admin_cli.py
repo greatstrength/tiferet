@@ -232,7 +232,7 @@ def build_admin_cli(
 
     Parallel to the consumer-facing :func:`cli.build_app` but targeted at the
     built-in admin interface: uses the admin cache (full admin catalog plus CLI
-    commands), resolves the ``tiferet_cli`` session with a built-in fallback,
+    commands), resolves the ``admin_cli`` session with a built-in fallback,
     re-seeds the session constants so all config-file repos point to the
     consumer's ``app_config`` file, builds the admin CLI session context via
     :func:`build_admin_cli_session_context`, and delegates parsing, dispatch,
@@ -254,7 +254,7 @@ def build_admin_cli(
     cache = build_cache()
 
     # Resolve the session; built-in sessions are cache-seeded so no fallback needed.
-    app_session = core.get_app_session('tiferet_cli', cache, app_config=app_config)
+    app_session = core.get_app_session(a.app.TIFERET_ADMIN_CLI_ID, cache, app_config=app_config)
 
     # Re-seed the session constants so all config-file repos point to the
     # consumer's app_config file rather than the seeded 'config.yml' placeholders.
