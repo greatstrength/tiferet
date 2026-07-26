@@ -50,7 +50,7 @@ class CliArgumentAggregate(CliArgument, Aggregate):
         # Validate the attribute name.
         if attribute not in supported:
             RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
                 message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
                 attribute=attribute,
                 supported=', '.join(sorted(supported)),
@@ -146,7 +146,7 @@ class CliCommandAggregate(CliCommand, Aggregate):
         # Validate the attribute name.
         if attribute not in supported:
             RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
                 message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
                 attribute=attribute,
                 supported=', '.join(sorted(supported)),

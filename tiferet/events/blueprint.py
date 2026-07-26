@@ -53,7 +53,7 @@ class CreateServiceResolver(DomainEvent):
         # event layer, which has assets access.
         self.verify(
             dependency is not None,
-            a.const.DI_SERVICE_NOT_CONFIGURED_ID,
+            a.error.DI_SERVICE_NOT_CONFIGURED_ID,
             interface_id=app_interface.id,
         )
 

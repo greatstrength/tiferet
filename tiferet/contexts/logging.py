@@ -92,7 +92,7 @@ class LoggingContext(object):
             logging.config.dictConfig(logging_config)
         except Exception as e:
             RaiseError.execute(
-                a.const.LOGGING_CONFIG_FAILED_ID,
+                a.error.LOGGING_CONFIG_FAILED_ID,
                 f'Failed to configure logging: {e}.',
                 exception=str(e)
             )
@@ -102,7 +102,7 @@ class LoggingContext(object):
             logger = logging.getLogger(logger_id)
         except Exception as e:
             RaiseError.execute(
-                a.const.LOGGER_CREATION_FAILED_ID,
+                a.error.LOGGER_CREATION_FAILED_ID,
                 f'Failed to create logger with ID {logger_id}: {e}.',
                 logger_id=logger_id,
                 exception=str(e)

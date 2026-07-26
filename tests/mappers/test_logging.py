@@ -75,7 +75,7 @@ class TestFormatterAggregate(AggregateTestBase):
         ('name', 'Updated Formatter', None),
         ('format', '%(message)s', None),
         # invalid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
@@ -123,7 +123,7 @@ class TestHandlerAggregate(AggregateTestBase):
         ('name', 'Updated Handler', None),
         ('level', 'ERROR', None),
         # invalid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
@@ -198,7 +198,7 @@ class TestLoggerAggregate(AggregateTestBase):
         ('name', 'Updated Logger', None),
         ('level', 'ERROR', None),
         # invalid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate

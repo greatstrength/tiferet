@@ -248,7 +248,7 @@ class TestAddServiceRegistration(DomainEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies)
 
-        assert exc_info.value.error_code == a.const.SERVICE_REGISTRATION_ALREADY_EXISTS_ID
+        assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_ALREADY_EXISTS_ID
 
     # * method: test_no_type_source
     def test_no_type_source(self, mock_dependencies):
@@ -265,7 +265,7 @@ class TestAddServiceRegistration(DomainEventTestBase):
                 flagged_dependencies=[],
             )
 
-        assert exc_info.value.error_code == a.const.INVALID_SERVICE_REGISTRATION_ID
+        assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
 
 # ** test: TestSetDefaultServiceRegistration
@@ -292,7 +292,7 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
     )
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -384,7 +384,7 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
                 parameters={'param': 'value'},
             )
 
-        assert exc_info.value.error_code == a.const.INVALID_SERVICE_REGISTRATION_ID
+        assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
     # * method: test_not_found
     def test_not_found(self, mock_dependencies):
@@ -400,7 +400,7 @@ class TestSetDefaultServiceRegistration(ServiceEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, **self.not_found_kwargs)
 
-        assert exc_info.value.error_code == a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+        assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
 
 # ** test: TestSetServiceDependency
@@ -431,7 +431,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
     required_params = ['flag']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -517,7 +517,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
                 class_name='',
             )
 
-        assert exc_info.value.error_code == a.const.INVALID_FLAGGED_DEPENDENCY_ID
+        assert exc_info.value.error_code == a.error.INVALID_FLAGGED_DEPENDENCY_ID
 
     # * method: test_not_found
     def test_not_found(self, mock_dependencies):
@@ -533,7 +533,7 @@ class TestSetServiceDependency(ServiceEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, **self.not_found_kwargs)
 
-        assert exc_info.value.error_code == a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+        assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
 
 # ** test: TestRemoveServiceDependency
@@ -561,7 +561,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
     required_params = ['flag']
 
     # * attribute: not_found_error_code
-    not_found_error_code = a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+    not_found_error_code = a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
     not_found_kwargs = dict(
@@ -631,7 +631,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, id='svc_only_deps', flag='test_alpha')
 
-        assert exc_info.value.error_code == a.const.INVALID_SERVICE_REGISTRATION_ID
+        assert exc_info.value.error_code == a.error.INVALID_SERVICE_REGISTRATION_ID
 
     # * method: test_not_found
     def test_not_found(self, mock_dependencies):
@@ -647,7 +647,7 @@ class TestRemoveServiceDependency(ServiceEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, **self.not_found_kwargs)
 
-        assert exc_info.value.error_code == a.const.SERVICE_REGISTRATION_NOT_FOUND_ID
+        assert exc_info.value.error_code == a.error.SERVICE_REGISTRATION_NOT_FOUND_ID
 
 
 # ** test: TestRemoveServiceRegistration

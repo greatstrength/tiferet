@@ -51,7 +51,7 @@ class TestErrorAggregate(AggregateTestBase):
         ('name', 'Updated Error', None),
         ('description', 'A new description', None),
         # invalid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # *** domain-specific mutation tests

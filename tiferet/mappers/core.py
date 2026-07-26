@@ -49,7 +49,7 @@ class Aggregate(DomainObject):
         # Reject unknown attribute names by raising a structured error.
         if attribute not in type(self).model_fields:
             RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
                 attribute=attribute,
             )
 

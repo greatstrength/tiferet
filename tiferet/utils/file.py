@@ -91,7 +91,7 @@ class FileLoader(FileService):
         if any(c in mode for c in ('w', 'a', 'x')):
             if not path.parent.exists():
                 RaiseError.execute(
-                    error_code=a.const.FILE_NOT_FOUND_ID,
+                    error_code=a.error.FILE_NOT_FOUND_ID,
                     path=str(path),
                 )
 
@@ -99,7 +99,7 @@ class FileLoader(FileService):
         else:
             if not path.exists():
                 RaiseError.execute(
-                    error_code=a.const.FILE_NOT_FOUND_ID,
+                    error_code=a.error.FILE_NOT_FOUND_ID,
                     path=str(path),
                 )
 
@@ -120,7 +120,7 @@ class FileLoader(FileService):
         # Raise an error if the mode is not valid.
         if self.mode not in valid:
             RaiseError.execute(
-                error_code=a.const.INVALID_FILE_MODE_ID,
+                error_code=a.error.INVALID_FILE_MODE_ID,
                 mode=self.mode,
             )
 
@@ -135,7 +135,7 @@ class FileLoader(FileService):
         # Raise an error if encoding is missing for a text mode.
         if 'b' not in self.mode and self.encoding is None:
             RaiseError.execute(
-                error_code=a.const.INVALID_ENCODING_ID,
+                error_code=a.error.INVALID_ENCODING_ID,
                 encoding=None,
             )
 
@@ -153,7 +153,7 @@ class FileLoader(FileService):
         # Raise an error if the file is already open.
         if self.file is not None:
             RaiseError.execute(
-                error_code=a.const.FILE_ALREADY_OPEN_ID,
+                error_code=a.error.FILE_ALREADY_OPEN_ID,
                 path=str(self.path),
             )
 

@@ -66,7 +66,7 @@ class JsonLoader(FileLoader):
                 path = default_path
             else:
                 RaiseError.execute(
-                    error_code=a.const.INVALID_FILE_ID,
+                    error_code=a.error.INVALID_FILE_ID,
                     message="File must have .json extension",
                     path=str(loader.path),
                 )
@@ -74,7 +74,7 @@ class JsonLoader(FileLoader):
         # Verify the resolved path exists.
         if not path.exists():
             RaiseError.execute(
-                error_code=a.const.JSON_FILE_NOT_FOUND_ID,
+                error_code=a.error.JSON_FILE_NOT_FOUND_ID,
                 path=str(path),
             )
 
@@ -118,7 +118,7 @@ class JsonLoader(FileLoader):
 
             # Wrap JSON parsing errors as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.JSON_FILE_LOAD_ERROR_ID,
+                error_code=a.error.JSON_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
             )
@@ -127,7 +127,7 @@ class JsonLoader(FileLoader):
 
             # Wrap all other exceptions as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.JSON_FILE_LOAD_ERROR_ID,
+                error_code=a.error.JSON_FILE_LOAD_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
             )
@@ -168,7 +168,7 @@ class JsonLoader(FileLoader):
 
             # Wrap write errors as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.JSON_FILE_SAVE_ERROR_ID,
+                error_code=a.error.JSON_FILE_SAVE_ERROR_ID,
                 error=str(e),
                 path=str(self.path),
             )
@@ -203,7 +203,7 @@ class JsonLoader(FileLoader):
             # Raise on invalid navigation.
             else:
                 RaiseError.execute(
-                    error_code=a.const.INVALID_JSON_PATH_ID,
+                    error_code=a.error.INVALID_JSON_PATH_ID,
                     path=path,
                     part=part,
                 )

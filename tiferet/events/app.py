@@ -127,7 +127,7 @@ class GetAppSession(AppEvent):
         # Verify the session exists; raise error if not found.
         self.verify(
             expression=app_session is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             id=id,
         )
 
@@ -242,7 +242,7 @@ class GetAppInterface(AppEvent):
         # Raise an error if the interface is not found.
         if not interface:
             self.raise_error(
-                a.const.APP_INTERFACE_NOT_FOUND_ID,
+                a.error.APP_INTERFACE_NOT_FOUND_ID,
                 f'App interface with ID {interface_id} not found.',
                 interface_id=interface_id,
             )
@@ -280,7 +280,7 @@ class UpdateAppInterface(AppEvent):
         # Verify that the interface exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_INTERFACE_NOT_FOUND_ID,
+            error_code=a.error.APP_INTERFACE_NOT_FOUND_ID,
             message=f'App interface with ID {id} not found.',
             interface_id=id,
         )
@@ -327,7 +327,7 @@ class SetAppConstants(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             id=id,
         )
@@ -403,7 +403,7 @@ class SetServiceDependency(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             id=id,
         )
@@ -450,7 +450,7 @@ class RemoveServiceDependency(AppEvent):
         # Verify that the session exists.
         self.verify(
             expression=interface is not None,
-            error_code=a.const.APP_SESSION_NOT_FOUND_ID,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
             id=id,
         )

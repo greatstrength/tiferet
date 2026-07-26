@@ -84,7 +84,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Raise an error if the mode is not valid.
         if self.mode not in valid_modes:
             RaiseError.execute(
-                error_code=a.const.SQLITE_INVALID_MODE_ID,
+                error_code=a.error.SQLITE_INVALID_MODE_ID,
                 mode=self.mode,
             )
 
@@ -100,7 +100,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Raise an error if the connection is already open.
         if self.conn is not None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_ALREADY_OPEN_ID,
+                error_code=a.error.SQLITE_CONN_ALREADY_OPEN_ID,
                 path=str(self.path),
             )
 
@@ -131,7 +131,7 @@ class SqliteClient(FileLoader, SqliteService):
 
             # Wrap connection failures as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_FAILED_ID,
+                error_code=a.error.SQLITE_CONN_FAILED_ID,
                 original_error=str(e),
                 path=str(self.path),
             )
@@ -164,7 +164,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL statement and return the cursor.
@@ -186,7 +186,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL with multiple parameter sets and return the cursor.
@@ -206,7 +206,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized connection.
         if self.cursor is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Execute the SQL script and return the cursor.
@@ -259,7 +259,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized connection.
         if self.conn is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Commit the transaction.
@@ -274,7 +274,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized connection.
         if self.conn is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Roll back the transaction.
@@ -300,7 +300,7 @@ class SqliteClient(FileLoader, SqliteService):
         # Guard against uninitialized source connection.
         if self.conn is None:
             RaiseError.execute(
-                error_code=a.const.SQLITE_CONN_NOT_INITIALIZED_ID,
+                error_code=a.error.SQLITE_CONN_NOT_INITIALIZED_ID,
             )
 
         # Open a target connection for the backup.
@@ -323,7 +323,7 @@ class SqliteClient(FileLoader, SqliteService):
 
             # Wrap backup failures as structured TiferetError.
             RaiseError.execute(
-                error_code=a.const.SQLITE_BACKUP_FAILED_ID,
+                error_code=a.error.SQLITE_BACKUP_FAILED_ID,
                 original_error=str(e),
                 target_path=str(target_path),
             )

@@ -114,7 +114,7 @@ class AddCliCommand(CliEvent):
         # Check for existing command id.
         self.verify(
             not self.cli_service.exists(id),
-            a.const.CLI_COMMAND_ALREADY_EXISTS_ID,
+            a.error.CLI_COMMAND_ALREADY_EXISTS_ID,
             id=id,
         )
 
@@ -169,7 +169,7 @@ class AddCliArgument(CliEvent):
         # Verify that the command exists.
         self.verify(
             command is not None,
-            a.const.CLI_COMMAND_NOT_FOUND_ID,
+            a.error.CLI_COMMAND_NOT_FOUND_ID,
             command_id=command_id,
         )
 
