@@ -10,43 +10,88 @@ from typing import Any, Dict, List, Tuple
 # ** constant: en_us
 EN_US = 'en_US'
 
-# *** constants (bootstrap)
+# ** constant: tiferet
+TIFERET = 'tiferet'
 
-# ** constant: default_app_service_module_path
-DEFAULT_APP_SERVICE_MODULE_PATH: str = 'tiferet.repos.app'
+# *** constants (paths_packages)
 
-# ** constant: default_app_service_class_name
-DEFAULT_APP_SERVICE_CLASS_NAME: str = 'AppYamlRepository'
+# ** constant: tiferet_events_path
+TIFERET_EVENTS_PATH = 'events'
 
-# ** constant: default_constants
-DEFAULT_CONSTANTS: Dict[str, str] = {
-    'cli_yaml_file': 'config.yml',
-    'di_yaml_file': 'config.yml',
-    'error_yaml_file': 'config.yml',
-    'logging_yaml_file': 'config.yml',
-    'feature_yaml_file': 'config.yml',
-}
+# ** constant: tiferet_repos_path
+TIFERET_REPOS_PATH = 'repos'
 
-# ** constant: default_services
-DEFAULT_SERVICES: List[Tuple[str, str, str, Dict[str, Any] | None]] = [
-    ('di_service', 'tiferet.repos.di', 'DIYamlRepository', None),
-    ('error_service', 'tiferet.repos.error', 'ErrorYamlRepository', None),
-    ('logging_service', 'tiferet.repos.logging', 'LoggingYamlRepository', None),
-    ('feature_service', 'tiferet.repos.feature', 'FeatureYamlRepository', None),
-    ('get_error_evt', 'tiferet.events.error', 'GetError', None),
-    ('get_feature_evt', 'tiferet.events.feature', 'GetFeature', None),
-    ('logging_list_all_evt', 'tiferet.events.logging', 'ListAllLoggingConfigs', None),
-    ('cli_service', 'tiferet.repos.cli', 'CliYamlRepository', None),
-    ('list_commands_evt', 'tiferet.events.cli', 'ListCliCommands', None),
-    ('get_parent_args_evt', 'tiferet.events.cli', 'GetParentArguments', None),
-    ('di_list_all_configs_evt', 'tiferet.events.di', 'ListAllSettings', None),
-    ('services', 'tiferet.contexts.di', 'DIContext', None),
-    ('features', 'tiferet.contexts.feature', 'FeatureContext', None),
-    ('errors', 'tiferet.contexts.error', 'ErrorContext', None),
-    ('logging', 'tiferet.contexts.logging', 'LoggingContext', None),
-]
+# ** constant: tiferet_utils_path
+TIFERET_UTILS_PATH = 'utils'
+
+# *** constants (paths_domains)
+
+# ** constant: feature_domain_path
+FEATURE_DOMAIN_PATH = 'feature'
+
+# ** constant: error_domain_path
+ERROR_DOMAIN_PATH = 'error'
+
+# ** constant: di_domain_path
+DI_DOMAIN_PATH = 'di'
+
+# ** constant: app_domain_path
+APP_DOMAIN_PATH = 'app'
+
+# ** constant: logging_domain_path
+LOGGING_DOMAIN_PATH = 'logging'
+
+# ** constant: cli_domain_path
+CLI_DOMAIN_PATH = 'cli'
+
+# ** constant: middleware_domain_path
+MIDDLEWARE_DOMAIN_PATH = 'middleware'
 
 # *** functions
+
+# ** function: create_service_module_path
+def create_service_module_path(app_base_path: str,
+        base_path: str,
+        domain_path: str) -> str:
+    '''
+    Build a fully-qualified module path from three dot-joined segments.
+
+    :param app_base_path: The application base package path segment.
+    :type app_base_path: str
+    :param base_path: The sub-package path segment (e.g. events, repos, utils).
+    :type base_path: str
+    :param domain_path: The domain module path segment.
+    :type domain_path: str
+    :return: The fully-qualified module path.
+    :rtype: str
+    '''
+
+    # Assemble and return the fully-qualified module path.
+    return f'{app_base_path}.{base_path}.{domain_path}'
+
+# ** function: create_service_dependency
+def create_service_dependency(module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    '''
+    Build a base service dependency definition dictionary.
+
+    :param module_path: The module path of the service implementation.
+    :type module_path: str
+    :param class_name: The class name of the service implementation.
+    :type class_name: str
+    :param parameters: Optional DI parameters for the dependency.
+    :type parameters: Dict[str, Any]
+    :return: The base service dependency definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble and return the base service dependency definition dictionary.
+    return {
+        'module_path': module_path,
+        'class_name': class_name,
+        'parameters': parameters or {},
+    }
 
 # ** function: create_default_error
 def create_default_error(id: str,
