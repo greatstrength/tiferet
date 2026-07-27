@@ -4,6 +4,8 @@
 
 # ** app
 from tiferet.assets.core import (
+    create_default_feature,
+    create_params_schema,
     create_service_module_path,
     create_service_dependency,
     create_app_service_dependency,
@@ -297,6 +299,89 @@ def test_create_default_logger_returns_required_fields():
     assert result['propagate'] is False
     assert result['is_root'] is False
     assert 'description' not in result
+
+
+# ** test: create_default_feature_returns_required_fields
+def test_create_default_feature_returns_required_fields():
+    '''
+    Verify create_default_feature returns required fields and omits optional
+    fields when description and params_schema are not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only required arguments.
+    result = create_default_feature(
+        id='test.feature',
+        name='Test Feature',
+        group_id='test',
+        feature_key='feature',
+        steps=[{'service_id': 'test_evt'}],
+    )
+
+    # Assert all required fields are present with correct values.
+    assert result['id'] == 'test.feature'
+    assert result['name'] == 'Test Feature'
+    assert result['group_id'] == 'test'
+    assert result['feature_key'] == 'feature'
+    assert result['steps'] == [{'service_id': 'test_evt'}]
+
+    # Assert optional fields are absent when not provided.
+    assert 'description' not in result
+    assert 'params_schema' not in result
+
+
+# ** test: create_default_feature_includes_optional_fields_when_provided
+def test_create_default_feature_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_feature includes description and params_schema
+    when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a schema for use in the call.
+    schema = create_params_schema(name='str', count='int')
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_feature(
+        id='test.optional',
+        name='Test Optional',
+        group_id='test',
+        feature_key='optional',
+        steps=[{'service_id': 'optional_evt'}],
+        description='An optional test feature.',
+        params_schema=schema,
+    )
+
+    # Assert optional fields are present with correct values.
+    assert result['description'] == 'An optional test feature.'
+    assert result['params_schema'] == {'name': 'str', 'count': 'int'}
+
+
+# ** test: create_params_schema_returns_expected_dict
+def test_create_params_schema_returns_expected_dict():
+    '''
+    Verify create_params_schema assembles keyword arguments into a dict,
+    supporting both shorthand type strings and expanded spec dicts.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call with a mix of shorthand type strings and expanded spec dicts.
+    result = create_params_schema(
+        name='str',
+        count={'type': 'int', 'required': True},
+    )
+
+    # Assert the result is the expected assembled dict.
+    assert result == {
+        'name': 'str',
+        'count': {'type': 'int', 'required': True},
+    }
 
 
 # ** test: create_default_logger_includes_optional_fields_when_provided

@@ -49,6 +49,70 @@ MIDDLEWARE_DOMAIN_PATH = 'middleware'
 
 # *** functions
 
+# ** function: create_default_feature
+def create_default_feature(id: str,
+        name: str,
+        group_id: str,
+        feature_key: str,
+        steps: List[Dict[str, Any]],
+        description: str = None,
+        params_schema: Dict[str, Any] = None) -> Dict[str, Any]:
+    '''
+    Build a default feature definition dictionary.
+
+    :param id: The unique feature identifier.
+    :type id: str
+    :param name: The human-readable feature name.
+    :type name: str
+    :param group_id: The feature group identifier.
+    :type group_id: str
+    :param feature_key: The feature key within the group.
+    :type feature_key: str
+    :param steps: Ordered list of feature step dicts.
+    :type steps: List[Dict[str, Any]]
+    :param description: Optional feature description.
+    :type description: str
+    :param params_schema: Optional parameter schema dict.
+    :type params_schema: Dict[str, Any]
+    :return: The feature definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base feature definition.
+    feature = {
+        'id': id,
+        'name': name,
+        'group_id': group_id,
+        'feature_key': feature_key,
+        'steps': steps,
+    }
+
+    # Add optional fields when provided.
+    if description is not None:
+        feature['description'] = description
+    if params_schema is not None:
+        feature['params_schema'] = params_schema
+
+    # Return the assembled feature definition.
+    return feature
+
+# ** function: create_params_schema
+def create_params_schema(**params: Any) -> Dict[str, Any]:
+    '''
+    Build a parameter schema dictionary from keyword arguments.
+
+    Each keyword argument names one expected request parameter; the value
+    is either a plain type string or a parameter-spec dict.
+
+    :param params: Named parameter specifications.
+    :type params: Any
+    :return: The assembled parameter schema dict.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Return the assembled parameter schema dict.
+    return dict(params)
+
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str,
         base_path: str,
