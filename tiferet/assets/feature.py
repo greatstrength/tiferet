@@ -5,8 +5,8 @@ Each section follows the pattern established by ``assets/error.py``:
 - ``constants (ids)`` — 41 individually named feature ID string constants.
 - ``constants (features)`` — 41 individually named feature definition dicts,
   each built via ``create_default_feature``.
-- ``constants (groups)`` — the ``DEFAULT_TIFERET_CLI_FEATURES`` catalog dict
-  keyed by ID constants, plus the ``ADMIN_DEFAULT_FEATURES`` alias.
+- ``constants (groups)`` — the ``DEFAULT_ADMIN_FEATURES`` catalog dict
+  keyed by ID constants.
 """
 
 # *** imports
@@ -556,8 +556,8 @@ LOGGING_LIST = create_default_feature(
 
 # *** constants (groups)
 
-# ** constant: default_tiferet_cli_features
-DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Any] = {
+# ** constant: default_admin_features
+DEFAULT_ADMIN_FEATURES: Dict[str, Any] = {
     APP_ADD_ID: APP_ADD,
     APP_GET_ID: APP_GET,
     APP_LIST_ID: APP_LIST,
@@ -600,6 +600,3 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Any] = {
     LOGGING_REMOVE_LOGGER_ID: LOGGING_REMOVE_LOGGER,
     LOGGING_LIST_ID: LOGGING_LIST,
 }
-
-# ** constant: admin_default_features
-ADMIN_DEFAULT_FEATURES: Dict[str, Any] = DEFAULT_TIFERET_CLI_FEATURES
