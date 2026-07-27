@@ -8,6 +8,7 @@ from tiferet.assets.core import (
     create_params_schema,
     create_service_module_path,
     create_service_dependency,
+    create_service_registration,
     create_app_service_dependency,
     create_default_app_session,
     create_default_formatter,
@@ -382,6 +383,57 @@ def test_create_params_schema_returns_expected_dict():
         'name': 'str',
         'count': {'type': 'int', 'required': True},
     }
+
+
+# ** test: create_service_registration_returns_expected_shape
+def test_create_service_registration_returns_expected_shape():
+    '''
+    Verify create_service_registration returns a dict with keys
+    ``{'id', 'module_path', 'class_name', 'parameters'}``; ``id`` matches
+    the first argument; values match inputs; and ``parameters`` defaults
+    to an empty dict when omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a service registration without explicit parameters.
+    result = create_service_registration(
+        'feature_config_repo',
+        'tiferet.repos.feature',
+        'FeatureConfigRepository',
+    )
+
+    # Verify all expected keys are present.
+    assert set(result.keys()) == {'id', 'module_path', 'class_name', 'parameters'}
+
+    # Verify each value matches the input.
+    assert result['id'] == 'feature_config_repo'
+    assert result['module_path'] == 'tiferet.repos.feature'
+    assert result['class_name'] == 'FeatureConfigRepository'
+    assert result['parameters'] == {}
+
+
+# ** test: create_service_registration_omitting_parameters_yields_empty_dict
+def test_create_service_registration_omitting_parameters_yields_empty_dict():
+    '''
+    Verify omitting ``parameters`` in create_service_registration yields
+    an empty dict, not ``None``.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a registration without explicit parameters.
+    result = create_service_registration(
+        'test_service',
+        'tiferet.repos.test',
+        'TestRepository',
+    )
+
+    # Verify parameters is an empty dict, not None.
+    assert result['parameters'] == {}
+    assert result['parameters'] is not None
 
 
 # ** test: create_default_logger_includes_optional_fields_when_provided

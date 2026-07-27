@@ -157,6 +157,29 @@ def create_service_dependency(module_path: str,
         'parameters': parameters or {},
     }
 
+# ** function: create_service_registration
+def create_service_registration(id: str,
+        module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    '''
+    Build a service registration definition dictionary.
+
+    :param id: The unique service registration identifier.
+    :type id: str
+    :param module_path: The module path of the service implementation.
+    :type module_path: str
+    :param class_name: The class name of the service implementation.
+    :type class_name: str
+    :param parameters: Optional DI parameters for the registration.
+    :type parameters: Dict[str, Any]
+    :return: The service registration definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble and return the service registration definition dictionary.
+    return {'id': id, **create_service_dependency(module_path, class_name, parameters)}
+
 # ** function: create_default_error
 def create_default_error(id: str,
         name: str,
