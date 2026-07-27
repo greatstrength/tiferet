@@ -8,6 +8,9 @@ from tiferet.assets.core import (
     create_service_dependency,
     create_app_service_dependency,
     create_default_app_session,
+    create_default_formatter,
+    create_default_handler,
+    create_default_logger,
     TIFERET,
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
@@ -172,3 +175,151 @@ def test_create_default_app_session_includes_description_when_provided():
 
     # Verify the description is present and correct.
     assert result['description'] == 'Default built-in admin application session'
+
+
+# ** test: create_default_formatter_returns_required_fields
+def test_create_default_formatter_returns_required_fields():
+    '''
+    Verify create_default_formatter returns a dict with id, name, and format;
+    description and datefmt are absent when not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a formatter with required fields only.
+    result = create_default_formatter('default', 'Default Formatter', '%(message)s')
+
+    # Verify required fields are present and optional fields are absent.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Formatter'
+    assert result['format'] == '%(message)s'
+    assert 'description' not in result
+    assert 'datefmt' not in result
+
+
+# ** test: create_default_formatter_includes_optional_fields_when_provided
+def test_create_default_formatter_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_formatter includes description and datefmt when supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a formatter with all optional fields.
+    result = create_default_formatter(
+        'default',
+        'Default Formatter',
+        '%(message)s',
+        description='A test formatter.',
+        datefmt='%Y-%m-%d',
+    )
+
+    # Verify optional fields are present and correct.
+    assert result['description'] == 'A test formatter.'
+    assert result['datefmt'] == '%Y-%m-%d'
+
+
+# ** test: create_default_handler_returns_required_fields
+def test_create_default_handler_returns_required_fields():
+    '''
+    Verify create_default_handler returns a dict with the six required fields;
+    description, stream, and filename are absent when not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a handler with required fields only.
+    result = create_default_handler(
+        'default', 'Default Handler', 'logging', 'StreamHandler', 'INFO', 'default'
+    )
+
+    # Verify required fields are present and optional fields are absent.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Handler'
+    assert result['module_path'] == 'logging'
+    assert result['class_name'] == 'StreamHandler'
+    assert result['level'] == 'INFO'
+    assert result['formatter'] == 'default'
+    assert 'description' not in result
+    assert 'stream' not in result
+    assert 'filename' not in result
+
+
+# ** test: create_default_handler_includes_optional_fields_when_provided
+def test_create_default_handler_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_handler includes description, stream, and filename when supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a handler with all optional fields.
+    result = create_default_handler(
+        'default',
+        'Default Handler',
+        'logging',
+        'StreamHandler',
+        'INFO',
+        'default',
+        description='A test handler.',
+        stream='ext://sys.stdout',
+        filename='app.log',
+    )
+
+    # Verify optional fields are present and correct.
+    assert result['description'] == 'A test handler.'
+    assert result['stream'] == 'ext://sys.stdout'
+    assert result['filename'] == 'app.log'
+
+
+# ** test: create_default_logger_returns_required_fields
+def test_create_default_logger_returns_required_fields():
+    '''
+    Verify create_default_logger returns a dict with all required fields; propagate and
+    is_root default to False; description is absent when not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a logger with required fields only.
+    result = create_default_logger('default', 'Default Logger', 'INFO', ['default'])
+
+    # Verify required fields are present with correct defaults.
+    assert result['id'] == 'default'
+    assert result['name'] == 'Default Logger'
+    assert result['level'] == 'INFO'
+    assert result['handlers'] == ['default']
+    assert result['propagate'] is False
+    assert result['is_root'] is False
+    assert 'description' not in result
+
+
+# ** test: create_default_logger_includes_optional_fields_when_provided
+def test_create_default_logger_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_logger preserves explicit propagate, is_root, and description values.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a logger with all optional fields supplied.
+    result = create_default_logger(
+        'root',
+        'Root Logger',
+        'WARNING',
+        ['default_root'],
+        propagate=False,
+        is_root=True,
+        description='The root logger.',
+    )
+
+    # Verify explicit values are preserved.
+    assert result['propagate'] is False
+    assert result['is_root'] is True
+    assert result['description'] == 'The root logger.'

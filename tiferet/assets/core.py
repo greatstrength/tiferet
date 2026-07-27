@@ -171,3 +171,140 @@ def create_default_app_session(id: str,
 
     # Return the assembled session definition.
     return session
+
+# ** function: create_default_formatter
+def create_default_formatter(id: str,
+        name: str,
+        format: str,
+        description: str = None,
+        datefmt: str = None) -> Dict[str, Any]:
+    '''
+    Build a default logging formatter definition dictionary.
+
+    :param id: The unique formatter identifier.
+    :type id: str
+    :param name: The human-readable formatter name.
+    :type name: str
+    :param format: The log format string.
+    :type format: str
+    :param description: Optional formatter description.
+    :type description: str
+    :param datefmt: Optional date format string.
+    :type datefmt: str
+    :return: The formatter definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base formatter definition.
+    formatter = {'id': id, 'name': name, 'format': format}
+
+    # Add optional fields when provided.
+    if description is not None:
+        formatter['description'] = description
+    if datefmt is not None:
+        formatter['datefmt'] = datefmt
+
+    # Return the assembled formatter definition.
+    return formatter
+
+# ** function: create_default_handler
+def create_default_handler(id: str,
+        name: str,
+        module_path: str,
+        class_name: str,
+        level: str,
+        formatter: str,
+        description: str = None,
+        stream: str = None,
+        filename: str = None) -> Dict[str, Any]:
+    '''
+    Build a default logging handler definition dictionary.
+
+    :param id: The unique handler identifier.
+    :type id: str
+    :param name: The human-readable handler name.
+    :type name: str
+    :param module_path: The module path of the handler class.
+    :type module_path: str
+    :param class_name: The class name of the handler.
+    :type class_name: str
+    :param level: The logging level string (e.g. \'INFO\', \'DEBUG\').
+    :type level: str
+    :param formatter: The ID of the formatter to use.
+    :type formatter: str
+    :param description: Optional handler description.
+    :type description: str
+    :param stream: Optional stream target (e.g. \'ext://sys.stdout\').
+    :type stream: str
+    :param filename: Optional log file path for file-based handlers.
+    :type filename: str
+    :return: The handler definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base handler definition.
+    handler = {
+        'id': id,
+        'name': name,
+        'module_path': module_path,
+        'class_name': class_name,
+        'level': level,
+        'formatter': formatter,
+    }
+
+    # Add optional fields when provided.
+    if description is not None:
+        handler['description'] = description
+    if stream is not None:
+        handler['stream'] = stream
+    if filename is not None:
+        handler['filename'] = filename
+
+    # Return the assembled handler definition.
+    return handler
+
+# ** function: create_default_logger
+def create_default_logger(id: str,
+        name: str,
+        level: str,
+        handlers: List[str],
+        propagate: bool = False,
+        is_root: bool = False,
+        description: str = None) -> Dict[str, Any]:
+    '''
+    Build a default logging logger definition dictionary.
+
+    :param id: The unique logger identifier.
+    :type id: str
+    :param name: The human-readable logger name.
+    :type name: str
+    :param level: The logging level string (e.g. \'INFO\', \'DEBUG\').
+    :type level: str
+    :param handlers: List of handler IDs attached to this logger.
+    :type handlers: List[str]
+    :param propagate: Whether log records propagate to parent loggers.
+    :type propagate: bool
+    :param is_root: Whether this logger is the root logger.
+    :type is_root: bool
+    :param description: Optional logger description.
+    :type description: str
+    :return: The logger definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base logger definition.
+    logger = {
+        'id': id,
+        'name': name,
+        'level': level,
+        'handlers': handlers,
+        'propagate': propagate,
+        'is_root': is_root,
+    }
+
+    # Add the optional description when provided.
+    if description is not None:
+        logger['description'] = description
+
+    # Return the assembled logger definition.
+    return logger
