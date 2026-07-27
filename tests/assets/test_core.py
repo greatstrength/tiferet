@@ -4,6 +4,8 @@
 
 # ** app
 from tiferet.assets.core import (
+    create_default_cli_argument,
+    create_default_cli_command,
     create_default_feature,
     create_params_schema,
     create_service_module_path,
@@ -434,6 +436,115 @@ def test_create_service_registration_omitting_parameters_yields_empty_dict():
     # Verify parameters is an empty dict, not None.
     assert result['parameters'] == {}
     assert result['parameters'] is not None
+
+
+# ** test: create_default_cli_argument_returns_required_field
+def test_create_default_cli_argument_returns_required_field():
+    '''
+    Verify create_default_cli_argument returns only the ``name_or_flags`` key
+    when all optional arguments are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only the required argument.
+    result = create_default_cli_argument(name_or_flags=['id'])
+
+    # Assert only name_or_flags is present.
+    assert set(result.keys()) == {'name_or_flags'}
+    assert result['name_or_flags'] == ['id']
+
+
+# ** test: create_default_cli_argument_includes_optional_fields_when_provided
+def test_create_default_cli_argument_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_cli_argument includes all optional fields when supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_cli_argument(
+        name_or_flags=['--level'],
+        description='The logging level.',
+        type='str',
+        default='INFO',
+        required=True,
+        nargs='?',
+        choices=['DEBUG', 'INFO', 'WARNING'],
+        action='store',
+    )
+
+    # Assert all optional fields are present with correct values.
+    assert result['name_or_flags'] == ['--level']
+    assert result['description'] == 'The logging level.'
+    assert result['type'] == 'str'
+    assert result['default'] == 'INFO'
+    assert result['required'] is True
+    assert result['nargs'] == '?'
+    assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
+    assert result['action'] == 'store'
+
+
+# ** test: create_default_cli_command_returns_required_fields
+def test_create_default_cli_command_returns_required_fields():
+    '''
+    Verify create_default_cli_command returns a dict with ``id``, ``key``,
+    ``group_key``, and ``name``; ``description`` and ``arguments`` are absent
+    when not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only the required arguments.
+    result = create_default_cli_command(
+        id='app.list',
+        key='list',
+        group_key='app',
+        name='List App Interfaces',
+    )
+
+    # Assert required fields are present and optional fields are absent.
+    assert result['id'] == 'app.list'
+    assert result['key'] == 'list'
+    assert result['group_key'] == 'app'
+    assert result['name'] == 'List App Interfaces'
+    assert 'description' not in result
+    assert 'arguments' not in result
+
+
+# ** test: create_default_cli_command_includes_optional_fields_when_provided
+def test_create_default_cli_command_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_cli_command includes ``description`` and ``arguments``
+    when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a sample argument for use in the call.
+    arg = create_default_cli_argument(
+        name_or_flags=['id'],
+        description='The identifier.',
+    )
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_cli_command(
+        id='app.get',
+        key='get',
+        group_key='app',
+        name='Get App Interface',
+        description='Retrieve an app interface by ID.',
+        arguments=[arg],
+    )
+
+    # Assert optional fields are present with correct values.
+    assert result['description'] == 'Retrieve an app interface by ID.'
+    assert result['arguments'] == [arg]
 
 
 # ** test: create_default_logger_includes_optional_fields_when_provided
