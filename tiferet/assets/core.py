@@ -142,7 +142,32 @@ def create_app_service_dependency(
     # Assemble and return the default app service dependency definition dictionary.
     return {
         'service_id': service_id,
-        'module_path': module_path,
-        'class_name': class_name,
-        'parameters': parameters or {},
+        **create_service_dependency(module_path, class_name, parameters),
     }
+
+# ** function: create_default_app_session
+def create_default_app_session(id: str,
+        name: str,
+        description: str = None) -> Dict[str, Any]:
+    '''
+    Build a default app session definition dictionary.
+
+    :param id: The unique session identifier.
+    :type id: str
+    :param name: The human-readable session name.
+    :type name: str
+    :param description: Optional session description.
+    :type description: str
+    :return: The app session definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base session definition.
+    session = {'id': id, 'name': name}
+
+    # Add the optional description when provided.
+    if description is not None:
+        session['description'] = description
+
+    # Return the assembled session definition.
+    return session
