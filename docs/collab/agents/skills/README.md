@@ -9,6 +9,10 @@ Canonical, version-controlled copies of the reusable agent **skills** for Tifere
 - **`tiferet-collab-report`** — generate a Collaboration Report when an issue is confirmed complete.
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop.
 - **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments.
+- **`tiferet-super-trd`** — dispatch skill for Super-TRD parent issues; evaluates the state machine to identify role (Starter/Implementor/Reviewer/Closer) and points to the matching role skill.
+- **`tiferet-super-trd-implementor`** — Starter and Implementor roles for Super-TRD child sub-issues: branch creation, artifact-driven implementation, human-in-the-loop PR gate, post-PR protocol, and addressing review comments.
+- **`tiferet-super-trd-reviewer`** — Reviewer role for Super-TRD combined PRs: AC-first verification of named artifacts, optional prototype-branch diffs restricted to AC scope, consolidated review posting.
+- **`tiferet-super-trd-closer`** — Closer role: address Reviewer findings, post Collaboration Report, rename parent TRD to `.complete.md`, verify GitHub automation, update handoff.
 
 Collaboration skills are thin wrappers that reference `docs/collab/` and `docs/core/` as the source of truth — they don't copy that content, so the docs stay authoritative.
 

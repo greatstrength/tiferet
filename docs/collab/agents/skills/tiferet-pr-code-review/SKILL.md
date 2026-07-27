@@ -28,6 +28,7 @@ https://github.com/greatstrength/tiferet/blob/main/docs/collab/code_review.md
 Comment on naming inconsistencies from incomplete renames, docstring/description drift, test assertions or structure that change what's verified, duplicated/missing/shadowed tests, and changes to the importable surface. **Do not** comment on acknowledged out-of-scope differences, formatting that already matches the code style, or cases where the branch is correct and the reference is stale (note that once, in the body).
 
 ## Guardrails
+- **Super-TRD PRs:** Read `tiferet-super-trd-reviewer` before starting any review of a Super-TRD combined PR. That skill defines the AC-first framework; the mechanics here serve it. Prototype-branch diffs are restricted to AC-referenced artifacts only.
 - Actionable only — a noisy review is worse than a short one.
 - Never recommend reverting a branch that is more correct than the source of truth.
 - Verify behavior-dependent findings (imports, test resolution, identity) in the code before claiming them.

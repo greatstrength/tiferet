@@ -26,6 +26,15 @@ Before beginning implementation, verify that all issues in the milestone:
 
 If any issues still need to be created or wired, follow the GitHub Issue Creation workflow in [tech_requirements.md](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md) before starting the per-issue loop.
 
+## Super-TRD issues — role dispatch
+
+When the next issue in the milestone is a **Super-TRD parent** (it has child sub-issues linked via GitHub), do **not** enter the standard per-issue loop below. Instead:
+
+1. Read `tiferet-super-trd` to evaluate the state machine and identify your role.
+2. Follow the pointer to the matching role skill (`tiferet-super-trd-implementor`, `tiferet-super-trd-reviewer`, or `tiferet-super-trd-closer`).
+
+The standard per-issue loop (steps 1–9 below) applies only to **leaf issues** — issues with no child sub-issues. Step 9's TRD rename and parent sibling-check applies to standard child TRDs; Super-TRD file renaming is owned by the Implementor and Closer role skills.
+
 ## Per-issue loop
 For each issue in the milestone, in dependency-aware order:
 1. **Create a feature branch** from `main`: `<issue-number>-<lowercase-hyphenated-title>`.

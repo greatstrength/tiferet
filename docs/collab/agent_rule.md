@@ -24,7 +24,7 @@ Navigation by task type:
 - Multi-component implementation: also read tiferet-code-architecture before writing code.
 - Collaboration/process work (milestones, TRDs, PRs, reports): orient with CONTRIBUTING.md → Working with AI Agents → use the matching collaboration skill.
 
-For collaboration workflows, use the matching skill: tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop), tiferet-pr-code-review (PR review against a source of truth).
+For collaboration workflows, use the matching skill: tiferet-create-milestone (GitHub milestones), tiferet-author-trd (TRDs), tiferet-collab-report (completion reports), tiferet-milestone-session (per-issue release loop), tiferet-pr-code-review (PR review against a source of truth). For Super-TRD parent issues (issues with child sub-issues), use tiferet-super-trd first to identify your role, then the matching role skill: tiferet-super-trd-implementor (Starter/Implementor), tiferet-super-trd-reviewer (Reviewer), tiferet-super-trd-closer (Closer).
 
 For implementation sessions, read tiferet-code-style first, then the component skill(s) for what you are modifying: tiferet-code-domain (domain objects), tiferet-code-events (domain events), tiferet-code-mappers (aggregates/transfer objects), tiferet-code-interfaces (service interfaces), tiferet-code-contexts (contexts), tiferet-code-repos (repositories), tiferet-code-assets (constants/errors), tiferet-code-blueprints (blueprints), tiferet-code-utils (utilities), tiferet-code-di (DI layer), tiferet-code-testing (test harness). If a skill is not installed, read docs/core/<component>.md directly.
 
@@ -42,6 +42,10 @@ All skills have canonical copies in [agents/skills/](agents/skills/) (see that f
 - `tiferet-collab-report`
 - `tiferet-milestone-session`
 - `tiferet-pr-code-review`
+- `tiferet-super-trd` — dispatch skill for Super-TRD parent issues; read first to identify role
+- `tiferet-super-trd-implementor` — Starter and Implementor roles (branch, implement, PR gate)
+- `tiferet-super-trd-reviewer` — Reviewer role (AC-first review of combined Super-TRD PR)
+- `tiferet-super-trd-closer` — Closer role (address review findings, merge cleanup, collab report)
 
 **Code style skills** (read `tiferet-code-style` every implementation session; read others as needed):
 

@@ -126,6 +126,14 @@ This completeness requirement means the same table can serve as the input to a c
 
 Map each `# *** constants (<name>)` code section directly to a `####` sub-heading in §4, using the exact code section label as the heading text (e.g. `#### Add: # *** constants (ids)`). An implementation agent works section-by-section; the heading correspondence eliminates ambiguity about which part of the file each table governs.
 
+### Constant Section Subgroups
+
+When a module contains many constants of a given type, organize them into named `# *** constants (<subgroup>)` sections — not a flat `# *** constants` block. The subgroup label is semantic: it names what the group *represents*.
+
+Canonical subgroup labels: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`, etc.
+
+The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `#### Add: # *** constants (<subgroup>)` heading in §4. A flat `# *** constants` block where subgroups apply is a defect — assert the correct structure in §5 AC. The Reviewer verifies both the section label and entry count exactly. Issues #935 and #939 are the canonical reference examples of correct subgroup structure.
+
 ### "Update Constant" and "Remove Constant"
 
 - **Update**: use a delta table with columns for the current value and the target value (or target expression). Identify each constant by name in the first column. State unchanged fields only if they provide disambiguation context.
@@ -169,7 +177,19 @@ A child that is a prerequisite for one or more sibling children carries **P0**. 
 
 ### Super-TRD closing
 
-The parent issue closes when all child sub-issues are closed. When the last child's issue is closed, also rename the parent's TRD file to `.complete.md` and close the parent GitHub issue.
+The parent issue closes when all child sub-issues are closed. The **Closer** agent renames the parent's TRD file to `.complete.md` after posting the Collaboration Report and verifying the PR has been merged. GitHub automation typically closes the parent issue and sets project status to Done when the PR squash-merges via the `Closes #<parent>` line — verify before acting manually.
+
+### Child TRD size cap
+
+A child TRD covers exactly **one primary module**, its test file (if applicable), and at most **1–2 non-testable dependency touches** (e.g. a factory in `core.py` the primary module uses, or an `__init__.py` export). Maximum size is **Medium (3 pts)**.
+
+| Scope | Size |
+|---|---|
+| Single file only | XS (1 pt) |
+| Primary module + tests | S (2 pts) |
+| Primary module + tests + 1–2 dependency touches | M (3 pts) |
+
+If a child would exceed M (3 pts), split it into additional children. Issues #935 and #939 are the canonical reference examples of correct child scoping.
 
 ## Review Checklist
 Before finalizing:

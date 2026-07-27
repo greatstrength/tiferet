@@ -83,6 +83,39 @@ For each issue in the milestone:
 8. **Local cleanup:** pull latest from `main` and delete the local feature branch.
 9. **Repeat** for remaining issues in the milestone.
 
+## Super-TRD Workflow
+
+A **Super-TRD** is an oversized issue (XL or above) decomposed into child sub-issues, all implemented on a **single combined feature branch** named after the parent issue (e.g. `930-assets-error-id-migration`). This keeps the full migration atomic and avoids cross-branch dependency noise.
+
+### Single-branch strategy
+All child implementations land on the same branch, cut from `main` at the start of the Starter session. The branch is not merged until all children are complete and the PR is approved.
+
+### Roles and trigger conditions
+
+| Role | Trigger |
+|---|---|
+| **Starter** | No feature branch exists yet |
+| **Implementor** | Branch exists; active child is In Progress, or In Review with unresolved PR comments |
+| **Reviewer** | All children closed; no unresolved PR comments on the open PR |
+| **Closer** | All children closed; unresolved PR review comments exist |
+
+To self-identify your role, read `tiferet-super-trd` and evaluate its state machine. Then follow the pointer to the matching role skill.
+
+### GitHub automation and parent project status
+The Super-TRD parent project status is managed by **GitHub automation**, not by agents directly:
+- Agents set **only the child sub-issue** status when work begins (never the parent).
+- GitHub automation sets the parent to **In Progress** when the PR is created and linked (`Closes #<parent>`) and the first sub-issue moves to In Review.
+- The parent remains **In Progress** for the entire duration of all child implementations.
+- The parent moves to **Done** automatically when the PR is squash-merged (via the `Closes` line).
+
+### PR→issue linking convention
+The PR body's `Closes` reference points to the **Super-TRD parent only** (e.g. `Closes #930`). Child sub-issues are closed **manually** at the developer's direction after each child's changes are approved — never via PR auto-close. The `Closes #<parent>` line is written once at PR creation and must never be altered by any subsequent session.
+
+### Project status per child
+- When a child's work begins: set that child sub-issue to **In Progress**.
+- After a child is approved and closed: set it to **Done**.
+- The Super-TRD parent status is not touched by agents during this time.
+
 ## Closing the Milestone
 
 Once all issues in the milestone are complete and merged, mark the milestone as **closed**.
