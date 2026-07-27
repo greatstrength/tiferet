@@ -122,14 +122,14 @@ DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
 DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
     TIFERET_ADMIN_ID,
     'Admin App',
-    'Default built-in admin application session',
+    description='Default built-in admin application session',
 )
 
 # ** constant: default_admin_cli_session
 DEFAULT_ADMIN_CLI_SESSION = create_default_app_session(
     TIFERET_ADMIN_CLI_ID,
     'Admin CLI',
-    'Built-in CLI for managing Tiferet application configurations',
+    description='Built-in CLI for managing Tiferet application configurations',
 )
 
 # *** constants (services)
