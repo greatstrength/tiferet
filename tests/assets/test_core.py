@@ -4,8 +4,13 @@
 
 # ** app
 from tiferet.assets.core import (
+    create_default_cli_argument,
+    create_default_cli_command,
+    create_default_feature,
+    create_params_schema,
     create_service_module_path,
     create_service_dependency,
+    create_service_registration,
     create_app_service_dependency,
     create_default_app_session,
     create_default_formatter,
@@ -297,6 +302,249 @@ def test_create_default_logger_returns_required_fields():
     assert result['propagate'] is False
     assert result['is_root'] is False
     assert 'description' not in result
+
+
+# ** test: create_default_feature_returns_required_fields
+def test_create_default_feature_returns_required_fields():
+    '''
+    Verify create_default_feature returns required fields and omits optional
+    fields when description and params_schema are not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only required arguments.
+    result = create_default_feature(
+        id='test.feature',
+        name='Test Feature',
+        group_id='test',
+        feature_key='feature',
+        steps=[{'service_id': 'test_evt'}],
+    )
+
+    # Assert all required fields are present with correct values.
+    assert result['id'] == 'test.feature'
+    assert result['name'] == 'Test Feature'
+    assert result['group_id'] == 'test'
+    assert result['feature_key'] == 'feature'
+    assert result['steps'] == [{'service_id': 'test_evt'}]
+
+    # Assert optional fields are absent when not provided.
+    assert 'description' not in result
+    assert 'params_schema' not in result
+
+
+# ** test: create_default_feature_includes_optional_fields_when_provided
+def test_create_default_feature_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_feature includes description and params_schema
+    when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a schema for use in the call.
+    schema = create_params_schema(name='str', count='int')
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_feature(
+        id='test.optional',
+        name='Test Optional',
+        group_id='test',
+        feature_key='optional',
+        steps=[{'service_id': 'optional_evt'}],
+        description='An optional test feature.',
+        params_schema=schema,
+    )
+
+    # Assert optional fields are present with correct values.
+    assert result['description'] == 'An optional test feature.'
+    assert result['params_schema'] == {'name': 'str', 'count': 'int'}
+
+
+# ** test: create_params_schema_returns_expected_dict
+def test_create_params_schema_returns_expected_dict():
+    '''
+    Verify create_params_schema assembles keyword arguments into a dict,
+    supporting both shorthand type strings and expanded spec dicts.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call with a mix of shorthand type strings and expanded spec dicts.
+    result = create_params_schema(
+        name='str',
+        count={'type': 'int', 'required': True},
+    )
+
+    # Assert the result is the expected assembled dict.
+    assert result == {
+        'name': 'str',
+        'count': {'type': 'int', 'required': True},
+    }
+
+
+# ** test: create_service_registration_returns_expected_shape
+def test_create_service_registration_returns_expected_shape():
+    '''
+    Verify create_service_registration returns a dict with keys
+    ``{'id', 'module_path', 'class_name', 'parameters'}``; ``id`` matches
+    the first argument; values match inputs; and ``parameters`` defaults
+    to an empty dict when omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a service registration without explicit parameters.
+    result = create_service_registration(
+        'feature_config_repo',
+        'tiferet.repos.feature',
+        'FeatureConfigRepository',
+    )
+
+    # Verify all expected keys are present.
+    assert set(result.keys()) == {'id', 'module_path', 'class_name', 'parameters'}
+
+    # Verify each value matches the input.
+    assert result['id'] == 'feature_config_repo'
+    assert result['module_path'] == 'tiferet.repos.feature'
+    assert result['class_name'] == 'FeatureConfigRepository'
+    assert result['parameters'] == {}
+
+
+# ** test: create_service_registration_omitting_parameters_yields_empty_dict
+def test_create_service_registration_omitting_parameters_yields_empty_dict():
+    '''
+    Verify omitting ``parameters`` in create_service_registration yields
+    an empty dict, not ``None``.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Create a registration without explicit parameters.
+    result = create_service_registration(
+        'test_service',
+        'tiferet.repos.test',
+        'TestRepository',
+    )
+
+    # Verify parameters is an empty dict, not None.
+    assert result['parameters'] == {}
+    assert result['parameters'] is not None
+
+
+# ** test: create_default_cli_argument_returns_required_field
+def test_create_default_cli_argument_returns_required_field():
+    '''
+    Verify create_default_cli_argument returns only the ``name_or_flags`` key
+    when all optional arguments are omitted.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only the required argument.
+    result = create_default_cli_argument(name_or_flags=['id'])
+
+    # Assert only name_or_flags is present.
+    assert set(result.keys()) == {'name_or_flags'}
+    assert result['name_or_flags'] == ['id']
+
+
+# ** test: create_default_cli_argument_includes_optional_fields_when_provided
+def test_create_default_cli_argument_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_cli_argument includes all optional fields when supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_cli_argument(
+        name_or_flags=['--level'],
+        description='The logging level.',
+        type='str',
+        default='INFO',
+        required=True,
+        nargs='?',
+        choices=['DEBUG', 'INFO', 'WARNING'],
+        action='store',
+    )
+
+    # Assert all optional fields are present with correct values.
+    assert result['name_or_flags'] == ['--level']
+    assert result['description'] == 'The logging level.'
+    assert result['type'] == 'str'
+    assert result['default'] == 'INFO'
+    assert result['required'] is True
+    assert result['nargs'] == '?'
+    assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
+    assert result['action'] == 'store'
+
+
+# ** test: create_default_cli_command_returns_required_fields
+def test_create_default_cli_command_returns_required_fields():
+    '''
+    Verify create_default_cli_command returns a dict with ``id``, ``key``,
+    ``group_key``, and ``name``; ``description`` and ``arguments`` are absent
+    when not provided.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Call the factory with only the required arguments.
+    result = create_default_cli_command(
+        id='app.list',
+        key='list',
+        group_key='app',
+        name='List App Interfaces',
+    )
+
+    # Assert required fields are present and optional fields are absent.
+    assert result['id'] == 'app.list'
+    assert result['key'] == 'list'
+    assert result['group_key'] == 'app'
+    assert result['name'] == 'List App Interfaces'
+    assert 'description' not in result
+    assert 'arguments' not in result
+
+
+# ** test: create_default_cli_command_includes_optional_fields_when_provided
+def test_create_default_cli_command_includes_optional_fields_when_provided():
+    '''
+    Verify create_default_cli_command includes ``description`` and ``arguments``
+    when they are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a sample argument for use in the call.
+    arg = create_default_cli_argument(
+        name_or_flags=['id'],
+        description='The identifier.',
+    )
+
+    # Call the factory with all optional arguments supplied.
+    result = create_default_cli_command(
+        id='app.get',
+        key='get',
+        group_key='app',
+        name='Get App Interface',
+        description='Retrieve an app interface by ID.',
+        arguments=[arg],
+    )
+
+    # Assert optional fields are present with correct values.
+    assert result['description'] == 'Retrieve an app interface by ID.'
+    assert result['arguments'] == [arg]
 
 
 # ** test: create_default_logger_includes_optional_fields_when_provided

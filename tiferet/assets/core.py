@@ -49,6 +49,70 @@ MIDDLEWARE_DOMAIN_PATH = 'middleware'
 
 # *** functions
 
+# ** function: create_default_feature
+def create_default_feature(id: str,
+        name: str,
+        group_id: str,
+        feature_key: str,
+        steps: List[Dict[str, Any]],
+        description: str = None,
+        params_schema: Dict[str, Any] = None) -> Dict[str, Any]:
+    '''
+    Build a default feature definition dictionary.
+
+    :param id: The unique feature identifier.
+    :type id: str
+    :param name: The human-readable feature name.
+    :type name: str
+    :param group_id: The feature group identifier.
+    :type group_id: str
+    :param feature_key: The feature key within the group.
+    :type feature_key: str
+    :param steps: Ordered list of feature step dicts.
+    :type steps: List[Dict[str, Any]]
+    :param description: Optional feature description.
+    :type description: str
+    :param params_schema: Optional parameter schema dict.
+    :type params_schema: Dict[str, Any]
+    :return: The feature definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base feature definition.
+    feature = {
+        'id': id,
+        'name': name,
+        'group_id': group_id,
+        'feature_key': feature_key,
+        'steps': steps,
+    }
+
+    # Add optional fields when provided.
+    if description is not None:
+        feature['description'] = description
+    if params_schema is not None:
+        feature['params_schema'] = params_schema
+
+    # Return the assembled feature definition.
+    return feature
+
+# ** function: create_params_schema
+def create_params_schema(**params: Any) -> Dict[str, Any]:
+    '''
+    Build a parameter schema dictionary from keyword arguments.
+
+    Each keyword argument names one expected request parameter; the value
+    is either a plain type string or a parameter-spec dict.
+
+    :param params: Named parameter specifications.
+    :type params: Any
+    :return: The assembled parameter schema dict.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Return the assembled parameter schema dict.
+    return dict(params)
+
 # ** function: create_service_module_path
 def create_service_module_path(app_base_path: str,
         base_path: str,
@@ -92,6 +156,121 @@ def create_service_dependency(module_path: str,
         'class_name': class_name,
         'parameters': parameters or {},
     }
+
+# ** function: create_service_registration
+def create_service_registration(id: str,
+        module_path: str,
+        class_name: str,
+        parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    '''
+    Build a service registration definition dictionary.
+
+    :param id: The unique service registration identifier.
+    :type id: str
+    :param module_path: The module path of the service implementation.
+    :type module_path: str
+    :param class_name: The class name of the service implementation.
+    :type class_name: str
+    :param parameters: Optional DI parameters for the registration.
+    :type parameters: Dict[str, Any]
+    :return: The service registration definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble and return the service registration definition dictionary.
+    return {'id': id, **create_service_dependency(module_path, class_name, parameters)}
+
+# ** function: create_default_cli_argument
+def create_default_cli_argument(name_or_flags: List[str],
+        description: str = None,
+        type: str = None,
+        default: Any = None,
+        required: bool = None,
+        nargs: str = None,
+        choices: List[str] = None,
+        action: str = None) -> Dict[str, Any]:
+    '''
+    Build a default CLI argument definition dictionary.
+
+    :param name_or_flags: List of argument names or option strings.
+    :type name_or_flags: List[str]
+    :param description: Optional argument description.
+    :type description: str
+    :param type: Optional argument type string (e.g. 'int', 'str').
+    :type type: str
+    :param default: Optional default value for the argument.
+    :type default: Any
+    :param required: Optional flag indicating whether the argument is required.
+    :type required: bool
+    :param nargs: Optional number-of-arguments specifier.
+    :type nargs: str
+    :param choices: Optional list of allowed values.
+    :type choices: List[str]
+    :param action: Optional argparse action string (e.g. 'store_true').
+    :type action: str
+    :return: The argument definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base argument definition.
+    argument = {'name_or_flags': name_or_flags}
+
+    # Add optional fields when provided.
+    if description is not None:
+        argument['description'] = description
+    if type is not None:
+        argument['type'] = type
+    if default is not None:
+        argument['default'] = default
+    if required is not None:
+        argument['required'] = required
+    if nargs is not None:
+        argument['nargs'] = nargs
+    if choices is not None:
+        argument['choices'] = choices
+    if action is not None:
+        argument['action'] = action
+
+    # Return the assembled argument definition.
+    return argument
+
+# ** function: create_default_cli_command
+def create_default_cli_command(id: str,
+        key: str,
+        group_key: str,
+        name: str,
+        description: str = None,
+        arguments: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+    '''
+    Build a default CLI command definition dictionary.
+
+    :param id: The unique command identifier.
+    :type id: str
+    :param key: The command key used in the CLI.
+    :type key: str
+    :param group_key: The group key this command belongs to.
+    :type group_key: str
+    :param name: The human-readable command name.
+    :type name: str
+    :param description: Optional command description.
+    :type description: str
+    :param arguments: Optional list of argument definition dicts.
+    :type arguments: List[Dict[str, Any]]
+    :return: The command definition dictionary.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Assemble the base command definition.
+    command = {'id': id, 'key': key, 'group_key': group_key, 'name': name}
+
+    # Add optional fields when provided.
+    if description is not None:
+        command['description'] = description
+    if arguments:
+        command['arguments'] = arguments
+
+    # Return the assembled command definition.
+    return command
 
 # ** function: create_default_error
 def create_default_error(id: str,
