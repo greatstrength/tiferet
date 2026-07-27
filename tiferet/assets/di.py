@@ -5,7 +5,7 @@ Each section follows the pattern established by ``assets/error.py``:
 - ``constants (ids)`` — 37 individually named service ID string constants.
 - ``constants (services)`` — 37 individually named service registration
   dicts, each built via ``create_service_registration``.
-- ``constants (groups)`` — the ``DEFAULT_TIFERET_CLI_SERVICES`` catalog dict
+- ``constants (groups)`` — the ``DEFAULT_ADMIN_SERVICES`` catalog dict
   keyed by ID constants.
 """
 
@@ -405,8 +405,8 @@ REMOVE_LOGGER_EVT = create_service_registration(
 
 # *** constants (groups)
 
-# ** constant: default_tiferet_cli_services
-DEFAULT_TIFERET_CLI_SERVICES: Dict[str, Dict] = {
+# ** constant: default_admin_services
+DEFAULT_ADMIN_SERVICES: Dict[str, Dict] = {
     APP_SERVICE_ID: APP_SERVICE,
     ADD_FEATURE_EVT_ID: ADD_FEATURE_EVT,
     LIST_FEATURES_EVT_ID: LIST_FEATURES_EVT,
