@@ -65,21 +65,6 @@ GET_PARENT_ARGS_EVT_ID = 'get_parent_args_evt'
 # ** constant: di_list_all_configs_evt_id
 DI_LIST_ALL_CONFIGS_EVT_ID = 'di_list_all_configs_evt'
 
-# ** constant: logging_middleware_id
-LOGGING_MIDDLEWARE_ID = 'logging_middleware'
-
-# ** constant: timing_middleware_id
-TIMING_MIDDLEWARE_ID = 'timing_middleware'
-
-# ** constant: cache_middleware_id
-CACHE_MIDDLEWARE_ID = 'cache_middleware'
-
-# ** constant: tiferet_admin_id
-TIFERET_ADMIN_ID = 'admin'
-
-# ** constant: tiferet_admin_cli_id
-TIFERET_ADMIN_CLI_ID = 'admin_cli'
-
 # ** constant: cli_config_id
 CLI_CONFIG_ID = 'cli_config'
 
@@ -95,7 +80,45 @@ LOGGING_CONFIG_ID = 'logging_config'
 # ** constant: feature_config_id
 FEATURE_CONFIG_ID = 'feature_config'
 
-# *** constants (models)
+# ** constant: logging_middleware_id
+LOGGING_MIDDLEWARE_ID = 'logging_middleware'
+
+# ** constant: timing_middleware_id
+TIMING_MIDDLEWARE_ID = 'timing_middleware'
+
+# ** constant: cache_middleware_id
+CACHE_MIDDLEWARE_ID = 'cache_middleware'
+
+# ** constant: tiferet_admin_id
+TIFERET_ADMIN_ID = 'admin'
+
+# ** constant: tiferet_admin_cli_id
+TIFERET_ADMIN_CLI_ID = 'admin_cli'
+
+# *** constants (paths)
+
+# ** constant: default_config_file
+DEFAULT_CONFIG_FILE = 'config.yml'
+
+# ** constant: default_app_config_file
+DEFAULT_APP_CONFIG_FILE = DEFAULT_CONFIG_FILE
+
+# *** constants (app_service)
+
+# ** constant: default_app_service_module_path
+DEFAULT_APP_SERVICE_MODULE_PATH = create_service_module_path(
+    TIFERET,
+    TIFERET_REPOS_PATH,
+    APP_DOMAIN_PATH,
+)
+
+# ** constant: default_app_service_class_name
+DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
+
+# ** constant: default_app_service_parameters
+DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
+
+# *** constants (sessions)
 
 # ** constant: default_admin_app_session
 DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
@@ -111,20 +134,7 @@ DEFAULT_ADMIN_CLI_SESSION = create_default_app_session(
     description='Built-in CLI for managing Tiferet application configurations',
 )
 
-# ** constant: default_config_file
-DEFAULT_CONFIG_FILE = 'config.yml'
-
-# ** constant: default_app_config_file
-DEFAULT_APP_CONFIG_FILE = DEFAULT_CONFIG_FILE
-
-# ** constant: default_app_service_module_path
-DEFAULT_APP_SERVICE_MODULE_PATH = create_service_module_path(TIFERET, TIFERET_REPOS_PATH, APP_DOMAIN_PATH)
-
-# ** constant: default_app_service_class_name
-DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
-
-# ** constant: default_app_service_parameters
-DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
+# *** constants (services)
 
 # ** constant: di_service
 DI_SERVICE = create_app_service_dependency(
