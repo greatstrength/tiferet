@@ -67,6 +67,26 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
 ## Artifact-based requirements
 Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# * method:` / `# ** <component>:` labels / `# *** <section>` headers per the structured code style — not prose or "copy from X". In §3 give each module an artifact-action summary; in §4 enumerate the named artifacts, using a `From (current)` → `To (target)` delta table for renames/migrations with an Add/Update/Remove legend (factor the shared pattern once, list per-module exceptions). In §5 assert target artifacts exist and retired ones are gone. Make cross-layer prerequisites, artifact-label corrections, and behavioral shifts explicit.
 
+
+## Operation-level artifact notation in §4
+
+Every requirement in §4 is an **operation** (Add / Update / Remove) on a named artifact. Tables must be **informationally complete** — an agent reading a row must be able to produce the artifact without any other source. Each `# *** constants (<subgroup>)` section in the code maps 1:1 to a `#### Add/Update/Remove: # *** constants (<subgroup>)` heading in §4.
+
+For full notation syntax, scalar and factory-built table expressions, supplementary notes conventions, and the informational completeness requirement, see [`docs/collab/tech_requirements.md`](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md).
+
+### Constant section subgroups
+
+When a module contains many constants of a given type, organize them into named `# *** constants (<subgroup>)` sections — not a flat `# *** constants` block. The subgroup label is semantic: it names what the group *represents*.
+
+Canonical subgroup labels: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`, etc.
+
+The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `#### Add: # *** constants (<subgroup>)` heading in §4. A flat `# *** constants` block where subgroups apply is a defect — assert the correct section structure in §5.
+
+### "Update Constant" and "Remove Constant"
+
+- **Update**: use a delta table with columns for the current value and the target value (or target expression). Identify each constant by name in the first column. State unchanged fields only if they provide disambiguation context.
+- **Remove**: a plain list of artifact labels is sufficient. Assert removal in §5.
+
 ## Migration / parity stories (branch-agnostic)
 For parity/migration work sourced from a prototype branch, keep the dev-facing TRD **branch-agnostic and in the target ubiquitous language**. Do not tell the implementation agent to read, diff, or copy a prototype/source branch — extract the terminology and artifacts into the TRD. Record not-yet-met cross-layer dependencies in §7 Prerequisites with their status in `main`. The prototype source-of-truth comparison belongs to the separate `tiferet-pr-code-review` skill, not authoring or implementation.
 
@@ -97,6 +117,25 @@ The TRD also feeds the issue's project fields: Components Affected, Acceptance C
 **Child TRD addition:** `**Parent:** \`<parent-filename>\` (Child N of M)` in the header.
 
 **Child priority rule:** a child that is a prerequisite for sibling children → P0; all other children → parent's priority.
+
+**Semantic scoping principles (issues #935 and #939 are canonical references):**
+- Super-TRDs are scoped around a **semantic concern** — a named domain problem — not around a file, layer label, or count of changes.
+- Children are divided by **semantic ownership**: each child owns a bounded domain area that can be read and verified independently.
+- Child TRD titles name the **actual artifacts delivered** (e.g. "Path Constants, Service Dependency Factory, and Module Path Factory"), not generic descriptions.
+- Every §4 requirement names a specific artifact (section header, constant name, factory function, count).
+- Every §5 AC line is a binary assertion on a named artifact — true or false given the code, no interpretation required.
+- §6 NFR states artifact comment requirements per entry (`# ** constant: <snake_case_name>` per named constant, etc.).
+
+**Child TRD size cap (hard constraint):**
+A child TRD covers exactly **one primary module**, its test file (if applicable), and at most **1–2 non-testable dependency touches** (e.g. a factory in `core.py` the primary module uses, or an `__init__.py` export). Maximum size is **Medium (3 pts)**.
+
+| Scope | Size |
+|---|---|
+| Single file only | XS (1 pt) |
+| Primary module + tests | S (2 pts) |
+| Primary module + tests + 1–2 dependency touches | M (3 pts) |
+
+If a child would exceed M (3 pts), split it into additional children. The TRD author takes creative latitude in how work is divided — but the size cap is a hard constraint.
 
 **Super-TRD closing:** parent issue closes when all child sub-issues close. Rename parent TRD file to `.complete.md` and close the parent GitHub issue.
 

@@ -292,7 +292,7 @@ class TestGetError(ServiceEventTestBase):
 
 #### Conftest Hook
 
-The `pytest_generate_tests` hook in `tiferet/events/tests/conftest.py` dynamically parametrizes `test_missing_required_params` over the `required_params` list for any `DomainEventTestBase` subclass:
+The `pytest_generate_tests` hook in `tests/events/conftest.py` dynamically parametrizes `test_missing_required_params` over the `required_params` list for any `DomainEventTestBase` subclass:
 
 ```python
 def pytest_generate_tests(metafunc):
@@ -419,8 +419,8 @@ The test harness lives in `tiferet/testing/`:
 - `tiferet/testing/mappers.py` – `AggregateTestBase`, `TransferObjectTestBase`, `MapperAssertions`.
 - `tiferet/testing/domain.py` – `DomainEventTestBase`, `ServiceEventTestBase`.
 - `tiferet/testing/hooks.py` – `register_mapper_hooks`, `register_event_hooks`.
-- Per-module test suites live in `tiferet/events/tests/` (e.g., `test_app.py`, `test_cli.py`, etc.).
+- Per-module test suites live in `tests/events/` (e.g., `test_app.py`, `test_cli.py`, etc.).
 
 ## Conclusion
 
-Domain events are the operational core of Tiferet applications, providing validated, injectable domain operations. Their structured design ensures consistency, testability, and extensibility. The test harness (`DomainEventTestBase` / `ServiceEventTestBase`) eliminates boilerplate while enforcing consistent coverage of required-parameter validation and not-found error paths. Developers can create new events by following the artifact pattern and new tests by extending the harness. Explore `tiferet/events/` for source and `tiferet/events/tests/` for test examples.
+Domain events are the operational core of Tiferet applications, providing validated, injectable domain operations. Their structured design ensures consistency, testability, and extensibility. The test harness (`DomainEventTestBase` / `ServiceEventTestBase`) eliminates boilerplate while enforcing consistent coverage of required-parameter validation and not-found error paths. Developers can create new events by following the artifact pattern and new tests by extending the harness. Explore `tiferet/events/` for source and `tests/events/` for test examples.

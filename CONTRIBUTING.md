@@ -86,11 +86,19 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 
 **Collaboration skills** handle process workflows:
 
+- **`tiferet-annotation-artifacts`** — scan, add, and resolve `# ++ todo:` / `# -- obsolete:` annotation artifacts; covers the pre-session scan, resolution procedure, and Collaboration Report integration ([code_style.md § Annotation Artifacts](docs/core/code_style.md)). **Use this at the start of every implementation session.**
 - **`tiferet-create-milestone`** — create or format a GitHub milestone (title and description conventions).
 - **`tiferet-author-trd`** — author a TRD in the standard structure ([tech_requirements.md](docs/collab/tech_requirements.md)).
 - **`tiferet-collab-report`** — generate a Collaboration Report once an issue is confirmed complete ([collab_report.md](docs/collab/collab_report.md)).
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
 - **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
+
+**Super-TRD skills** handle multi-child implementation workflows (XL+ issues decomposed into sequenced children). See [docs/collab/super_trd_workflow.md](docs/collab/super_trd_workflow.md) for the complete workflow reference.
+
+- **`tiferet-super-trd`** — dispatch skill; read first to self-identify your role via the state machine.
+- **`tiferet-super-trd-implementor`** — Starter and Implementor roles: branch creation, implementation, human-in-the-loop PR gate, review comment addressing.
+- **`tiferet-super-trd-reviewer`** — Reviewer role: AC-first verification of the combined PR, before-posting checklist, AC update authority.
+- **`tiferet-super-trd-closer`** — Closer role: address Reviewer findings, post Collaboration Report, rename parent TRD, verify automation.
 
 **Code style skills** (`tiferet-code-*`) handle implementation conventions — read `tiferet-code-style` at the start of every implementation session, then the component skill(s) for what you’re modifying:
 

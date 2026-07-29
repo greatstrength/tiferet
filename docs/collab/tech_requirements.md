@@ -80,6 +80,65 @@ TRDs specify work as **artifacts to add, update, or remove** — never as prose 
 
 The goal: an implementation agent can satisfy the TRD by acting on named artifacts, and a reviewer can verify each one independently.
 
+
+## Operation-Level Artifact Notation in §4
+
+Every requirement in §4 is expressed as an **operation** on an **artifact type**: Add, Update, or Remove applied to a constant, function, method, section header, import, or file. The notation for each combination is standardized and must be **informationally complete** — an agent reading the table must be able to produce the artifact without consulting any other source, and a DSL compiler must be able to parse the same table as input to generate the code directly.
+
+### "Add Constant" Notation
+
+The canonical notation for the **Add Constant** operation is a table, regardless of whether one constant or one hundred are being added. The operation, not the count, determines the form.
+
+There are two primary expressions — use either, or combine both in sequence when a section mixes scalar IDs and factory-built objects:
+
+**Expression 1 — scalar or literal value:**
+```
+| Artifact label | Constant | Value |
+|---|---|---|
+| `# ** constant: tiferet_events_path` | `TIFERET_EVENTS_PATH` | `'events'` |
+| `# ** constant: tiferet_repos_path`  | `TIFERET_REPOS_PATH`  | `'repos'`  |
+```
+
+**Expression 2 — factory-built object:**
+State the shared factory invocation pattern in a prefix sentence; table columns carry only the variable parameters. This keeps the table compact and keeps the factory name out of every row.
+```
+Each constant uses `create_service_registration(ID_CONST, create_service_module_path(TIFERET, <base>, <domain>), 'ClassName')`.
+
+| Constant | ID Constant | base | domain | class_name |
+|---|---|---|---|---|
+| `ADD_FEATURE_EVT` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
+```
+
+**Combining both expressions** — when a code section contains scalar ID constants followed by factory-built object constants (the three-section catalog pattern), produce two tables in sequence under the same `####` heading. The second table references constant names from the first (not bare string values), making the dependency between sections explicit and verifiable.
+
+**Supplementary notes** serve three purposes within an Add Constant block: ordering (which subsection must land before another), naming conventions that apply across all rows (state once rather than repeat per row), and invariants such as optional-field omission rules. Place them as a bold or italic note immediately before or after the table they govern.
+
+### Informational Completeness Requirement
+
+A table row must contain every parameter needed to produce the artifact:
+- For scalar constants: the constant name and its exact value.
+- For factory-built constants: all factory arguments, including which previously-defined constant is passed where. Reference prior constants by their constant name (e.g. `ROOT_LOGGER_ID`), not by their string value (`'root'`), so the dependency chain is derivable.
+- For optional fields: if a field is conditionally included, the condition must be resolvable from the table alone (e.g. a column whose cell is blank when the field is omitted).
+
+This completeness requirement means the same table can serve as the input to a code-generating agent, a test-generating agent, or a future declarative DSL compiler — the notation is the specification, not a summary of it.
+
+### Section-Mirroring in §4
+
+Map each `# *** constants (<name>)` code section directly to a `####` sub-heading in §4, using the exact code section label as the heading text (e.g. `#### Add: # *** constants (ids)`). An implementation agent works section-by-section; the heading correspondence eliminates ambiguity about which part of the file each table governs.
+
+### Constant Section Subgroups
+
+When a module contains many constants of a given type, organize them into named `# *** constants (<subgroup>)` sections — not a flat `# *** constants` block. The subgroup label is semantic: it names what the group *represents*.
+
+Canonical subgroup labels: `(ids)`, `(paths_packages)`, `(paths_domains)`, `(features)`, `(services)`, `(commands)`, `(formatters)`, `(handlers)`, `(loggers)`, `(groups)`, etc.
+
+The section-mirroring rule extends to subgroup level: each `# *** constants (<subgroup>)` code section maps 1:1 to a `#### Add: # *** constants (<subgroup>)` heading in §4. A flat `# *** constants` block where subgroups apply is a defect — assert the correct structure in §5 AC. The Reviewer verifies both the section label and entry count exactly. Issues #935 and #939 are the canonical reference examples of correct subgroup structure.
+
+### "Update Constant" and "Remove Constant"
+
+- **Update**: use a delta table with columns for the current value and the target value (or target expression). Identify each constant by name in the first column. State unchanged fields only if they provide disambiguation context.
+- **Remove**: a plain list of artifact labels is sufficient. Assert removal in §5.
+
 ## Migration and Parity Stories (implementation-source-agnostic)
 
 When a story moves work toward a prototype or other source branch (e.g., a parity milestone), the **dev-facing TRD must be branch-agnostic and written in the target ubiquitous language**. Extract the domain terminology and artifacts from the source and specify them directly.
@@ -118,7 +177,19 @@ A child that is a prerequisite for one or more sibling children carries **P0**. 
 
 ### Super-TRD closing
 
-The parent issue closes when all child sub-issues are closed. When the last child's issue is closed, also rename the parent's TRD file to `.complete.md` and close the parent GitHub issue.
+The parent issue closes when all child sub-issues are closed. The **Closer** agent renames the parent's TRD file to `.complete.md` after posting the Collaboration Report and verifying the PR has been merged. GitHub automation typically closes the parent issue and sets project status to Done when the PR squash-merges via the `Closes #<parent>` line — verify before acting manually.
+
+### Child TRD size cap
+
+A child TRD covers exactly **one primary module**, its test file (if applicable), and at most **1–2 non-testable dependency touches** (e.g. a factory in `core.py` the primary module uses, or an `__init__.py` export). Maximum size is **Medium (3 pts)**.
+
+| Scope | Size |
+|---|---|
+| Single file only | XS (1 pt) |
+| Primary module + tests | S (2 pts) |
+| Primary module + tests + 1–2 dependency touches | M (3 pts) |
+
+If a child would exceed M (3 pts), split it into additional children. Issues #935 and #939 are the canonical reference examples of correct child scoping.
 
 ## Review Checklist
 Before finalizing:
@@ -203,6 +274,8 @@ mv .trd/m30_895_assets-error-catalog-extraction__L_5_P0.md \
 
 For **super-TRD parents**: when the last child issue closes, check if all sibling children are `.complete.md`; if so, also rename the parent and close the parent GitHub issue.
 
+**`git mv` vs `mv`:** When transitioning a TRD file to `.complete.md` during the implementation phase, prefer `git mv` if the file is tracked in a commit. If `.trd/` is listed in `.gitignore` (exit code 128: "not under version control"), use plain `mv` instead — the rename is still a meaningful local signal regardless of whether it is tracked.
+
 ### `.milestones/` — milestone description payloads
 
 `.milestones/` stores Markdown files used as `gh api` description payloads. The milestone number prefix is required:
@@ -225,6 +298,16 @@ gh api repos/greatstrength/tiferet/milestones/<number> \
 ```
 
 ## GitHub Issue Creation
+
+### Impact analysis before creating issues
+
+Before creating GitHub issues from TRD files, verify that no recently merged PRs **and no in-flight feature branches** invalidate the TRD content:
+
+- Check the latest merged PRs: `gh pr list --repo greatstrength/tiferet --state merged --json number,title,mergedAt`
+- Check any active feature branches (e.g. an in-progress Super-TRD): `git branch -r | grep -v HEAD` — read the current state of touched files on those branches, not just on `main`.
+- If a landed PR or a sibling TRD already on an in-flight feature branch has applied changes the TRD expects to find (or removed things the TRD intends to remove), the TRD may need updating before it goes live.
+
+This is especially important for Super-TRDs with sequenced children: the "current state" of a file for Child 2 is the feature branch after Child 1 has landed, not `main`.
 
 ### Creating an issue
 
