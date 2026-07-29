@@ -63,7 +63,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
   - `# ++ todo: <message>` — deferred work; remove when done.
   - `# -- obsolete: <reason>` — deprecated artifact; remove with the artifact. Shorthand: `# * method: foo (obsolete)`.
 - **Pre-session scan:** Before editing, run `grep -rn "# ++\|# --" tiferet/` to find open annotations.
-- **Constants in `assets/` modules:** All dict- and list-typed constants must use the multi-line hanging-indent style with a trailing comma, even for simple spreads. Never `{ **OTHER_DICT }` inline.
+- **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma, wherever they appear. Short constants are just as mandatory as long ones. Never `{ **OTHER_DICT }` inline.
 
 ## Example
 

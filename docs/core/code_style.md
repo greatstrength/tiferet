@@ -192,9 +192,9 @@ def load_feature(self, feature_id: str) -> Feature:
   - Methods/attributes within a class.
   - Classes within a component group.
 
-### Constants in `assets/` modules
+### Constant declaration style
 
-All list- and dictionary-typed constants in `assets/` modules must use the multi-line hanging-indent style with a trailing comma, even when the content fits on one line:
+All list- and dictionary-typed constants must use the multi-line hanging-indent style with a trailing comma, wherever they appear in the codebase. Short constants are just as mandatory as long ones — uniformity eliminates line-length judgment calls and prevents drift as catalogs grow.
 
 ```python
 # Correct — multi-line with trailing comma
@@ -208,11 +208,9 @@ ADMIN_DEFAULT_SERVICES = {
     **CORE_DEFAULT_SERVICES,
 }
 
-# Incorrect — never single-line in assets/
+# Incorrect — never single-line
 ADMIN_DEFAULT_SERVICES = {**CORE_DEFAULT_SERVICES}
 ```
-
-This eliminates line-length judgment calls and prevents drift as catalogs grow.
 
 ## Annotation Artifacts
 

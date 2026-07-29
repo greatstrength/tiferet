@@ -74,7 +74,8 @@ The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline gro
 - **Layer boundary — valid `# ** app` imports:** none. `assets` is the root layer; it has no framework imports. Only `# ** core` (stdlib) and `# ** infra` (minimal third-party, e.g. `json`) are valid. Never import from any other framework layer.
 - **Constants:** `SCREAMING_SNAKE_CASE`. Each constant has its own `# ** constant: <snake_case>` label. Do not group multiple constants under a single `# ** constants: <group>` mid-level label — use a top-level sub-group instead.
 - **Structured defaults:** Build structured default data from a factory function (e.g. `create_default_error`), not inline dicts. Define each entry as a named constant, then assemble the catalog dict as a separate constant.
-- **Multi-line constants:** All dict- and list-typed constants in `assets/` modules use the multi-line hanging-indent style with a trailing comma, even for simple one-element spreads. Never `{ **OTHER_DICT }` inline — always expand to multi-line.
+- **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma everywhere. This is especially important in `assets/` modules: unlike `# *** events`, `# *** mappers`, and other construct groups, the assets layer has no unique construct-level section designation — it is a pure repository of constants, functions, and classes, making constant formatting the primary quality signal. Never `{ **OTHER_DICT }` inline — always expand to multi-line.
+- **Factory function constants:** Constants whose value is a factory function call (e.g. `create_default_error`, `create_app_service_dependency`) must list each argument on its own line with hanging indent and a trailing comma. Never collapse a factory call to a single line.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
 - **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import constants as const`).
@@ -96,14 +97,14 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_already_exists_id
 FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
 
-# *** constants (errors)
+# *** constants (models)
 
 # ** constant: feature_not_found
-FEATURE_NOT_FOUND = {
-    'id': FEATURE_NOT_FOUND_ID,
-    'name': 'Feature Not Found',
-    'message': [{'lang': 'en_US', 'text': 'Feature not found: {feature_id}.'}],
-}
+FEATURE_NOT_FOUND = create_default_error(
+    FEATURE_NOT_FOUND_ID,
+    'Feature Not Found',
+    [('en_US', 'Feature not found: {feature_id}.')],
+)
 
 # *** constants (groups)
 
