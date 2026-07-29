@@ -416,7 +416,7 @@ class AppSessionContext(BaseContext):
         return DomainEvent.handle(
             GetAppSession,
             dependencies=dict(app_service=app_service),
-            interface_id=interface_id,
+            id=interface_id,
         )
 
     # * method: load_logging_context

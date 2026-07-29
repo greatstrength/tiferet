@@ -204,6 +204,29 @@ def parse_cli_args_handler(
         # Derive the feature id and headers from the parsed dict.
         feature_id, headers = derive_feature_request(parsed)
 
+        # Resolve the active command for type-aware value interpretation.
+        active_command = next(
+            (
+                cmd for cmd in cli_commands
+                if cmd.group_key == parsed.get('group', '')
+                and cmd.key == parsed.get('command', '')
+            ),
+            None,
+        )
+
+        # Apply parse_value to each active command argument.
+        if active_command:
+            for arg in active_command.arguments:
+                dest = arg.get_dest()
+                if dest in parsed:
+                    parsed[dest] = arg.parse_value(parsed[dest])
+
+        # Apply parse_value to each parent argument.
+        for arg in parent_arguments:
+            dest = arg.get_dest()
+            if dest in parsed:
+                parsed[dest] = arg.parse_value(parsed[dest])
+
         # Return the feature request tuple.
         return feature_id, headers, parsed
 

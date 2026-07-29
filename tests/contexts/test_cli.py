@@ -145,7 +145,7 @@ def test_build_parser_merges_parent_args_and_skips_collisions():
 
     # Arrange parent arguments including one that collides with the command arg.
     parent_arguments = [
-        CliArgument(name_or_flags=['--verbose'], action='store_true'),
+        CliArgument(name_or_flags=['--verbose'], type='bool'),
         CliArgument(name_or_flags=['a']),
     ]
 

@@ -430,7 +430,6 @@ def create_default_cli_argument(
         required: bool = None,
         nargs: str = None,
         choices: List[str] = None,
-        action: str = None,
     ) -> Dict[str, Any]:
     '''
     Build a default CLI argument definition dictionary.
@@ -439,18 +438,19 @@ def create_default_cli_argument(
     :type name_or_flags: List[str]
     :param description: Optional argument description surfaced as help text.
     :type description: str
-    :param type: Optional argument type string (``'str'``, ``'int'``, ``'float'``).
+    :param type: Optional argument type string (``'str'``, ``'int'``, ``'float'``,
+        ``'bool'``, ``'json'``, ``'list'``, or ``'dict'``).
     :type type: str
     :param default: Optional default value when the argument is not provided.
     :type default: Any
     :param required: Optional flag indicating whether the argument is required.
     :type required: bool
-    :param nargs: Optional argument count specifier (``'?'``, ``'*'``, ``'+'``).
+    :param nargs: Optional argument count specifier (``'?'``, ``'*'``, ``'+'``,
+        or an integer).  For ``'list'`` and ``'dict'`` types this defaults to
+        ``'*'`` automatically; only set when a different count is required.
     :type nargs: str
     :param choices: Optional list of allowed values for the argument.
     :type choices: List[str]
-    :param action: Optional argparse action string (e.g. ``'store_true'``).
-    :type action: str
     :return: The default CLI argument definition.
     :rtype: Dict[str, Any]
     '''
@@ -471,8 +471,6 @@ def create_default_cli_argument(
         argument['nargs'] = nargs
     if choices is not None:
         argument['choices'] = choices
-    if action is not None:
-        argument['action'] = action
 
     # Return the assembled argument definition.
     return argument
