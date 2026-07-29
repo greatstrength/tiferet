@@ -12,6 +12,9 @@ application bootstrapping and cache seeding.
 
 # *** imports
 
+# ** core
+from typing import Any, Dict
+
 # ** app
 from .core import (
     create_app_service_dependency,
@@ -237,7 +240,7 @@ CACHE_MIDDLEWARE = create_app_service_dependency(
 # *** constants (groups)
 
 # ** constant: core_default_services
-CORE_DEFAULT_SERVICES = {
+CORE_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
     DI_SERVICE_ID: DI_SERVICE,
     ERROR_SERVICE_ID: ERROR_SERVICE,
     LOGGING_SERVICE_ID: LOGGING_SERVICE,
@@ -255,7 +258,7 @@ CORE_DEFAULT_SERVICES = {
 }
 
 # ** constant: core_default_constants
-CORE_DEFAULT_CONSTANTS = {
+CORE_DEFAULT_CONSTANTS: Dict[str, str] = {
     CLI_CONFIG_ID: DEFAULT_CONFIG_FILE,
     DI_CONFIG_ID: DEFAULT_CONFIG_FILE,
     ERROR_CONFIG_ID: DEFAULT_CONFIG_FILE,
