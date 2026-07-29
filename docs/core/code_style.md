@@ -158,6 +158,26 @@ def execute(self,
             **kwargs):
 ```
 
+### Keyword Arguments for Optional Parameters
+
+When calling a function or factory that has optional parameters, those parameters **must** be passed as keyword arguments. Required positional parameters may continue to be passed positionally, as their role is unambiguous by position. Optional parameters passed positionally lose their self-documenting value and silently conflict with the optional-field-omission pattern.
+
+```python
+# Correct — optional 'description' passed as keyword argument
+DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
+    TIFERET_ADMIN_ID,
+    'Admin App',
+    description='Default built-in admin application session',
+)
+
+# Incorrect — optional 'description' passed positionally; do not use
+DEFAULT_ADMIN_APP_SESSION = create_default_app_session(
+    TIFERET_ADMIN_ID,
+    'Admin App',
+    'Default built-in admin application session',
+)
+```
+
 ### Code Snippets
 - Each logical step is a separate snippet.
 - Precede with 1–2 comment lines describing intent.

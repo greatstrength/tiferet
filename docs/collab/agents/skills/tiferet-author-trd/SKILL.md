@@ -70,48 +70,9 @@ Specify work as artifacts to **Add / Update / Remove** — modules, classes, `# 
 
 ## Operation-level artifact notation in §4
 
-Every requirement in §4 is expressed as an **operation** on an **artifact type**: Add, Update, or Remove applied to a constant, function, method, section header, import, or file. The notation for each combination is standardized and must be **informationally complete** — an agent reading the table must be able to produce the artifact without consulting any other source, and a DSL compiler must be able to parse the same table as input to generate the code directly.
+Every requirement in §4 is an **operation** (Add / Update / Remove) on a named artifact. Tables must be **informationally complete** — an agent reading a row must be able to produce the artifact without any other source. Each `# *** constants (<subgroup>)` section in the code maps 1:1 to a `#### Add/Update/Remove: # *** constants (<subgroup>)` heading in §4.
 
-### "Add Constant" notation
-
-The canonical notation for the **Add Constant** operation is a table, regardless of whether one constant or one hundred are being added. The operation, not the count, determines the form.
-
-There are two primary expressions — use either, or combine both in sequence when a section mixes scalar IDs and factory-built objects:
-
-**Expression 1 — scalar or literal value:**
-```
-| Artifact label | Constant | Value |
-|---|---|---|
-| `# ** constant: tiferet_events_path` | `TIFERET_EVENTS_PATH` | `'events'` |
-| `# ** constant: tiferet_repos_path`  | `TIFERET_REPOS_PATH`  | `'repos'`  |
-```
-
-**Expression 2 — factory-built object:**
-State the shared factory invocation pattern in a prefix sentence; table columns carry only the variable parameters. This keeps the table compact and keeps the factory name out of every row.
-```
-Each constant uses `create_service_registration(ID_CONST, create_service_module_path(TIFERET, <base>, <domain>), 'ClassName')`.
-
-| Constant | ID Constant | base | domain | class_name |
-|---|---|---|---|---|
-| `ADD_FEATURE_EVT` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
-```
-
-**Combining both expressions** — when a code section contains scalar ID constants followed by factory-built object constants (the three-section catalog pattern), produce two tables in sequence under the same `####` heading. The second table references constant names from the first (not bare string values), making the dependency between sections explicit and verifiable.
-
-**Supplementary notes** serve three purposes within an Add Constant block: ordering (which subsection must land before another), naming conventions that apply across all rows (state once rather than repeat per row), and invariants such as optional-field omission rules. Place them as a bold or italic note immediately before or after the table they govern.
-
-### Informational completeness requirement
-
-A table row must contain every parameter needed to produce the artifact:
-- For scalar constants: the constant name and its exact value.
-- For factory-built constants: all factory arguments, including which previously-defined constant is passed where. Reference prior constants by their constant name (e.g. `ROOT_LOGGER_ID`), not by their string value (`'root'`), so the dependency chain is derivable.
-- For optional fields: if a field is conditionally included, the condition must be resolvable from the table alone (e.g. a column whose cell is blank when the field is omitted).
-
-This completeness requirement means the same table can serve as the input to a code-generating agent, a test-generating agent, or a future declarative DSL compiler — the notation is the specification, not a summary of it.
-
-### Section-mirroring in §4
-
-Map each `# *** constants (<name>)` code section directly to a `####` sub-heading in §4, using the exact code section label as the heading text (e.g. `#### Add: # *** constants (ids)`). An implementation agent works section-by-section; the heading correspondence eliminates ambiguity about which part of the file each table governs.
+For full notation syntax, scalar and factory-built table expressions, supplementary notes conventions, and the informational completeness requirement, see [`docs/collab/tech_requirements.md`](https://github.com/greatstrength/tiferet/blob/main/docs/collab/tech_requirements.md).
 
 ### Constant section subgroups
 

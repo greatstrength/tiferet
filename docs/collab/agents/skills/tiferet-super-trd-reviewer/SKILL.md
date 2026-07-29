@@ -11,7 +11,7 @@ Read this after `tiferet-super-trd` identifies your role as **REVIEWER**. Trigge
 **Guardrail:** For any Super-TRD PR, read this skill before starting. The `tiferet-pr-code-review` skill provides diff mechanics and comment-posting API that serve the AC-first analysis below — those mechanics do not replace it.
 
 Canonical source of truth:
-- `.handoff/trd-authoring-implementation-process.handoff.md` §2.5 (live process authority)
+- https://github.com/greatstrength/tiferet/blob/main/docs/collab/super_trd_workflow.md
 
 ## Review procedure
 
@@ -50,13 +50,32 @@ Read both sides when the diff is ambiguous. Map relocated files to their counter
 ### 4. Present findings first — wait for go-ahead
 Summarize all findings to the developer and **await explicit approval before posting** anything to GitHub.
 
-### 5. Post one consolidated review
+### 5. Before-posting checklist
+
+Before posting the review to GitHub, confirm **all three** of the following are present in the global review body — all are mandatory, not afterthoughts:
+
+- [ ] **Conversation link** (`https://app.warp.dev/conversation/...`) — the durable record that lets the Closer and future maintainers trace every finding back to its reasoning.
+- [ ] **Findings summary** — all AC failures and actionable behind-diffs listed clearly.
+- [ ] **`Co-Authored-By: Oz <oz-agent@warp.dev>`** line.
+
+### 6. Post one consolidated review
 Use the GitHub reviews API (position-based, **not** line-based — the `line` API returns 422 errors):
 ```bash
 gh api --method POST /repos/greatstrength/tiferet/pulls/<pr-number>/reviews \
   --input review.json
 ```
-`review.json` contains `commit_id`, `event: "COMMENT"`, a global `body`, and a `comments[]` array using `path` + `position` (not `line`). The global body must include a `Co-Authored-By: Oz <oz-agent@warp.dev>` line and your Warp conversation link.
+`review.json` contains `commit_id`, `event: "COMMENT"`, a global `body`, and a `comments[]` array using `path` + `position` (not `line`).
+
+## Reviewer AC Update Authority
+
+When a discrepancy between the code and an AC line is **intentional** (a deliberate developer decision made after the TRD was authored) and the developer confirms this:
+
+1. Edit the relevant AC line(s) in the `.trd/` source file — every section naming the artifact (§1, §4, §5, §6).
+2. Publish the updated body: `gh issue edit <n> --repo greatstrength/tiferet --body-file <path>`.
+3. Add a **"Reviewer AC Updates"** section in the review body with a one-sentence rationale per change. State the updates were applied before posting so the Closer sees only passing AC.
+4. Do **not** leave old AC language in the issue or `.trd/` file. Do **not** flag the deviation as an open finding.
+
+This authority belongs to the Reviewer, not the Implementor. An Implementor that discovers a naming change should note it in its PR comment ("AC deviation") and defer the update to the Reviewer.
 
 ## Post-review actions
 

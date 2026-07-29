@@ -8,9 +8,8 @@ description: Implement child sub-issues on a Super-TRD feature branch. Covers bo
 ## When to use
 Read this after `tiferet-super-trd` identifies your role as **STARTER** (no branch yet) or **IMPLEMENTOR** (branch exists, child is In Progress or In Review with unresolved comments).
 
-Canonical sources of truth:
-- `.handoff/trd-authoring-implementation-process.handoff.md` §2.3–2.4 (live process authority)
-- https://github.com/greatstrength/tiferet/blob/main/docs/collab/main.md
+Canonical source of truth:
+- https://github.com/greatstrength/tiferet/blob/main/docs/collab/super_trd_workflow.md
 
 ## Starter rituals (first child only)
 
@@ -30,7 +29,13 @@ Before writing any code, read `tiferet-code-style` (mandatory every session) and
 
 Implement the child by working through its TRD **section-by-section**: read the child TRD's §4, match each `#### Add/Update/Remove: # *** <section> (<subgroup>)` heading to the corresponding code section, and execute the artifact table row-by-row. The child TRD is the complete and sufficient specification — execute it directly without paraphrasing.
 
-Run tests (`pytest tiferet/`) after implementing. Verify the changes compile with no syntax errors.
+Run tests (`pytest tests/`) after implementing. Verify the changes compile with no syntax errors.
+
+## PR Body as Full Template — Starter-Gate Requirement
+
+The PR body must be written by the **Starter** and must cover **all children up front**: a Changes sub-section and Acceptance Criteria sub-section for every child (in order), with unchecked AC boxes for pending children. The `Closes #<parent-issue-number>` line goes in the Related Issues section.
+
+As each child is implemented and pushed, the active Implementor checks off that child's AC rows, marks the Changes section ✅, and adds its bullet list of changes. The `Closes` line is never touched after PR creation. A PR body that covers only Child 1 forces subsequent Implementors to invent the format — this is a **Starter-gate requirement**, not a post-hoc best practice.
 
 ## Human-in-the-loop PR gate (Starter only)
 
@@ -70,7 +75,9 @@ Whenever you are asked to mark a child sub-issue as complete, also rename its `.
 git mv .trd/<name>.md .trd/<name>.complete.md
 ```
 
-Preserve the full existing filename and only append the extension. The rename is tracked by git.
+Preserve the full existing filename and only append the extension.
+
+**Fallback:** If `.trd/` is listed in `.gitignore` (exit code 128: "not under version control"), use plain `mv` instead — the rename is still a meaningful local signal regardless of whether it is tracked.
 
 ## PR-already-open procedure (subsequent children)
 
@@ -82,6 +89,10 @@ When you are implementing a child on a Super-TRD whose PR is **already open** (S
 4. **Set the child sub-issue to In Review** on the project board.
 
 **Skip** all other Starter-gate steps: do not create a new PR, do not add the PR to the project board again, and do not post an implementor comment unless the developer explicitly requests one.
+
+## Implementor comment convention — same-session continuation
+
+The "skip unless explicitly requested" guidance applies when a **different** Implementor agent takes over a PR already in flight. When the **same session** continues to implement multiple children, a per-child implementor comment is appropriate — each comment contextualizes the distinct scope of work and provides a durable per-child record.
 
 ## Orienting on resume — identifying active work
 
@@ -95,6 +106,16 @@ When spun up against an in-flight Super-TRD (branch already exists, some childre
 4. **Act based on sub-issue status:**
    - *In Progress* — implementation has not yet been pushed. Proceed with implementation.
    - *In Review* — changes are on origin and the PR is open. Fetch and address all review comments before proceeding.
+
+## Impact analysis for in-flight sibling branches
+
+Before starting a child's implementation, verify the current state of the **in-flight feature branch** — not only recently merged PRs. When a sibling child has just been implemented, confirm:
+
+- The code on the branch reflects the sibling's changes.
+- The current child's TRD prerequisites (§7) are satisfied on the branch.
+- Any constants, factories, or imports the current child depends on already exist on the branch.
+
+Use `git log` and direct file inspection to confirm. If a prerequisite is listed as "Not yet started" in the TRD but is now complete on the branch, treat it as satisfied and proceed.
 
 ## PR comment retrieval — when and how
 

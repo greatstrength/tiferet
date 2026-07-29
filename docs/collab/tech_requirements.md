@@ -274,6 +274,8 @@ mv .trd/m30_895_assets-error-catalog-extraction__L_5_P0.md \
 
 For **super-TRD parents**: when the last child issue closes, check if all sibling children are `.complete.md`; if so, also rename the parent and close the parent GitHub issue.
 
+**`git mv` vs `mv`:** When transitioning a TRD file to `.complete.md` during the implementation phase, prefer `git mv` if the file is tracked in a commit. If `.trd/` is listed in `.gitignore` (exit code 128: "not under version control"), use plain `mv` instead — the rename is still a meaningful local signal regardless of whether it is tracked.
+
 ### `.milestones/` — milestone description payloads
 
 `.milestones/` stores Markdown files used as `gh api` description payloads. The milestone number prefix is required:
@@ -296,6 +298,16 @@ gh api repos/greatstrength/tiferet/milestones/<number> \
 ```
 
 ## GitHub Issue Creation
+
+### Impact analysis before creating issues
+
+Before creating GitHub issues from TRD files, verify that no recently merged PRs **and no in-flight feature branches** invalidate the TRD content:
+
+- Check the latest merged PRs: `gh pr list --repo greatstrength/tiferet --state merged --json number,title,mergedAt`
+- Check any active feature branches (e.g. an in-progress Super-TRD): `git branch -r | grep -v HEAD` — read the current state of touched files on those branches, not just on `main`.
+- If a landed PR or a sibling TRD already on an in-flight feature branch has applied changes the TRD expects to find (or removed things the TRD intends to remove), the TRD may need updating before it goes live.
+
+This is especially important for Super-TRDs with sequenced children: the "current state" of a file for Child 2 is the feature branch after Child 1 has landed, not `main`.
 
 ### Creating an issue
 

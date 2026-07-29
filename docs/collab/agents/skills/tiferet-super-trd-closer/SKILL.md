@@ -9,7 +9,7 @@ description: Close out a Super-TRD after the Reviewer posts findings: address re
 Read this after `tiferet-super-trd` identifies your role as **CLOSER**. Trigger: Super-TRD project status is In Progress **and** all child sub-issues are closed **and** the linked PR has open/unresolved review comments. This combination means the Reviewer has finished and the branch needs final fixes before merge.
 
 Canonical source of truth:
-- `.handoff/trd-authoring-implementation-process.handoff.md` §2.6 (live process authority)
+- https://github.com/greatstrength/tiferet/blob/main/docs/collab/super_trd_workflow.md
 
 ## Closing procedure
 
@@ -49,8 +49,18 @@ git checkout main && git pull origin main
 git branch -d <branch-name>
 ```
 
-### 6. Post the Collaboration Report
-Use the `tiferet-collab-report` skill to post a Collaboration Report as a comment on the Super-TRD parent issue. Consult all implementor and reviewer Warp conversation links from the PR comments to reconstruct the full session history.
+### 6. Retrieve conversation links before drafting the Collaboration Report
+
+Before drafting **any** part of the Collaboration Report:
+
+1. Retrieve all PR comments: `pr-comments` skill or `gh api /repos/greatstrength/tiferet/pulls/<n>/reviews` + `/comments`.
+2. Extract every `https://app.warp.dev/conversation/...` link present — one per Implementor comment, one in the Reviewer's review body.
+3. Search each conversation for the AI↔Human exchange.
+4. Only then begin drafting any part of the Collaboration Report.
+
+A collaboration log written without consulting these conversations will be incomplete or inaccurate.
+
+Use the `tiferet-collab-report` skill to post the Collaboration Report as a comment on the Super-TRD parent issue.
 
 ### 7. Rename the parent TRD file
 Rename the Super-TRD parent's `.trd/` file to carry the `.complete.md` extension, signaling the entire Super-TRD workflow is done:
