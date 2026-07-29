@@ -18,134 +18,134 @@ from .core import create_default_cli_argument, create_default_cli_command
 
 # *** constants (ids)
 
-# ** constant: feature_add_command_id
-FEATURE_ADD_COMMAND_ID = 'feature.add'
+# ** constant: feature_add_cli_cmd_id
+FEATURE_ADD_CLI_CMD_ID = 'feature.add'
 
-# ** constant: feature_get_command_id
-FEATURE_GET_COMMAND_ID = 'feature.get'
+# ** constant: feature_get_cli_cmd_id
+FEATURE_GET_CLI_CMD_ID = 'feature.get'
 
-# ** constant: feature_list_command_id
-FEATURE_LIST_COMMAND_ID = 'feature.list'
+# ** constant: feature_list_cli_cmd_id
+FEATURE_LIST_CLI_CMD_ID = 'feature.list'
 
-# ** constant: feature_remove_command_id
-FEATURE_REMOVE_COMMAND_ID = 'feature.remove'
+# ** constant: feature_remove_cli_cmd_id
+FEATURE_REMOVE_CLI_CMD_ID = 'feature.remove'
 
-# ** constant: feature_update_command_id
-FEATURE_UPDATE_COMMAND_ID = 'feature.update'
+# ** constant: feature_update_cli_cmd_id
+FEATURE_UPDATE_CLI_CMD_ID = 'feature.update'
 
-# ** constant: feature_add_step_command_id
-FEATURE_ADD_STEP_COMMAND_ID = 'feature.add_step'
+# ** constant: feature_add_step_cli_cmd_id
+FEATURE_ADD_STEP_CLI_CMD_ID = 'feature.add_step'
 
-# ** constant: feature_update_step_command_id
-FEATURE_UPDATE_STEP_COMMAND_ID = 'feature.update_step'
+# ** constant: feature_update_step_cli_cmd_id
+FEATURE_UPDATE_STEP_CLI_CMD_ID = 'feature.update_step'
 
-# ** constant: feature_remove_step_command_id
-FEATURE_REMOVE_STEP_COMMAND_ID = 'feature.remove_step'
+# ** constant: feature_remove_step_cli_cmd_id
+FEATURE_REMOVE_STEP_CLI_CMD_ID = 'feature.remove_step'
 
-# ** constant: feature_reorder_step_command_id
-FEATURE_REORDER_STEP_COMMAND_ID = 'feature.reorder_step'
+# ** constant: feature_reorder_step_cli_cmd_id
+FEATURE_REORDER_STEP_CLI_CMD_ID = 'feature.reorder_step'
 
-# ** constant: error_add_command_id
-ERROR_ADD_COMMAND_ID = 'error.add'
+# ** constant: error_add_cli_cmd_id
+ERROR_ADD_CLI_CMD_ID = 'error.add'
 
-# ** constant: error_get_command_id
-ERROR_GET_COMMAND_ID = 'error.get'
+# ** constant: error_get_cli_cmd_id
+ERROR_GET_CLI_CMD_ID = 'error.get'
 
-# ** constant: error_list_command_id
-ERROR_LIST_COMMAND_ID = 'error.list'
+# ** constant: error_list_cli_cmd_id
+ERROR_LIST_CLI_CMD_ID = 'error.list'
 
-# ** constant: error_rename_command_id
-ERROR_RENAME_COMMAND_ID = 'error.rename'
+# ** constant: error_rename_cli_cmd_id
+ERROR_RENAME_CLI_CMD_ID = 'error.rename'
 
-# ** constant: error_set_message_command_id
-ERROR_SET_MESSAGE_COMMAND_ID = 'error.set_message'
+# ** constant: error_set_message_cli_cmd_id
+ERROR_SET_MESSAGE_CLI_CMD_ID = 'error.set_message'
 
-# ** constant: error_remove_message_command_id
-ERROR_REMOVE_MESSAGE_COMMAND_ID = 'error.remove_message'
+# ** constant: error_remove_message_cli_cmd_id
+ERROR_REMOVE_MESSAGE_CLI_CMD_ID = 'error.remove_message'
 
-# ** constant: error_remove_command_id
-ERROR_REMOVE_COMMAND_ID = 'error.remove'
+# ** constant: error_remove_cli_cmd_id
+ERROR_REMOVE_CLI_CMD_ID = 'error.remove'
 
-# ** constant: service_add_command_id
-SERVICE_ADD_COMMAND_ID = 'service.add'
+# ** constant: service_add_cli_cmd_id
+SERVICE_ADD_CLI_CMD_ID = 'service.add'
 
-# ** constant: service_list_command_id
-SERVICE_LIST_COMMAND_ID = 'service.list'
+# ** constant: service_list_cli_cmd_id
+SERVICE_LIST_CLI_CMD_ID = 'service.list'
 
-# ** constant: service_set_default_command_id
-SERVICE_SET_DEFAULT_COMMAND_ID = 'service.set_default'
+# ** constant: service_set_default_cli_cmd_id
+SERVICE_SET_DEFAULT_CLI_CMD_ID = 'service.set_default'
 
-# ** constant: service_set_dependency_command_id
-SERVICE_SET_DEPENDENCY_COMMAND_ID = 'service.set_dependency'
+# ** constant: service_set_dependency_cli_cmd_id
+SERVICE_SET_DEPENDENCY_CLI_CMD_ID = 'service.set_dependency'
 
-# ** constant: service_remove_dependency_command_id
-SERVICE_REMOVE_DEPENDENCY_COMMAND_ID = 'service.remove_dependency'
+# ** constant: service_remove_dependency_cli_cmd_id
+SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID = 'service.remove_dependency'
 
-# ** constant: service_remove_command_id
-SERVICE_REMOVE_COMMAND_ID = 'service.remove'
+# ** constant: service_remove_cli_cmd_id
+SERVICE_REMOVE_CLI_CMD_ID = 'service.remove'
 
-# ** constant: service_set_constants_command_id
-SERVICE_SET_CONSTANTS_COMMAND_ID = 'service.set_constants'
+# ** constant: service_set_constants_cli_cmd_id
+SERVICE_SET_CONSTANTS_CLI_CMD_ID = 'service.set_constants'
 
-# ** constant: app_add_command_id
-APP_ADD_COMMAND_ID = 'app.add'
+# ** constant: app_add_cli_cmd_id
+APP_ADD_CLI_CMD_ID = 'app.add'
 
-# ** constant: app_get_command_id
-APP_GET_COMMAND_ID = 'app.get'
+# ** constant: app_get_cli_cmd_id
+APP_GET_CLI_CMD_ID = 'app.get'
 
-# ** constant: app_list_command_id
-APP_LIST_COMMAND_ID = 'app.list'
+# ** constant: app_list_cli_cmd_id
+APP_LIST_CLI_CMD_ID = 'app.list'
 
-# ** constant: app_update_command_id
-APP_UPDATE_COMMAND_ID = 'app.update'
+# ** constant: app_update_cli_cmd_id
+APP_UPDATE_CLI_CMD_ID = 'app.update'
 
-# ** constant: app_set_constants_command_id
-APP_SET_CONSTANTS_COMMAND_ID = 'app.set_constants'
+# ** constant: app_set_constants_cli_cmd_id
+APP_SET_CONSTANTS_CLI_CMD_ID = 'app.set_constants'
 
-# ** constant: app_set_service_command_id
-APP_SET_SERVICE_COMMAND_ID = 'app.set_service'
+# ** constant: app_set_service_cli_cmd_id
+APP_SET_SERVICE_CLI_CMD_ID = 'app.set_service'
 
-# ** constant: app_remove_service_command_id
-APP_REMOVE_SERVICE_COMMAND_ID = 'app.remove_service'
+# ** constant: app_remove_service_cli_cmd_id
+APP_REMOVE_SERVICE_CLI_CMD_ID = 'app.remove_service'
 
-# ** constant: app_remove_command_id
-APP_REMOVE_COMMAND_ID = 'app.remove'
+# ** constant: app_remove_cli_cmd_id
+APP_REMOVE_CLI_CMD_ID = 'app.remove'
 
-# ** constant: cli_add_command_command_id
-CLI_ADD_COMMAND_COMMAND_ID = 'cli.add_command'
+# ** constant: cli_add_command_cli_cmd_id
+CLI_ADD_COMMAND_CLI_CMD_ID = 'cli.add_command'
 
-# ** constant: cli_list_commands_command_id
-CLI_LIST_COMMANDS_COMMAND_ID = 'cli.list_commands'
+# ** constant: cli_list_commands_cli_cmd_id
+CLI_LIST_COMMANDS_CLI_CMD_ID = 'cli.list_commands'
 
-# ** constant: cli_add_argument_command_id
-CLI_ADD_ARGUMENT_COMMAND_ID = 'cli.add_argument'
+# ** constant: cli_add_argument_cli_cmd_id
+CLI_ADD_ARGUMENT_CLI_CMD_ID = 'cli.add_argument'
 
-# ** constant: logging_add_formatter_command_id
-LOGGING_ADD_FORMATTER_COMMAND_ID = 'logging.add_formatter'
+# ** constant: logging_add_formatter_cli_cmd_id
+LOGGING_ADD_FORMATTER_CLI_CMD_ID = 'logging.add_formatter'
 
-# ** constant: logging_remove_formatter_command_id
-LOGGING_REMOVE_FORMATTER_COMMAND_ID = 'logging.remove_formatter'
+# ** constant: logging_remove_formatter_cli_cmd_id
+LOGGING_REMOVE_FORMATTER_CLI_CMD_ID = 'logging.remove_formatter'
 
-# ** constant: logging_add_handler_command_id
-LOGGING_ADD_HANDLER_COMMAND_ID = 'logging.add_handler'
+# ** constant: logging_add_handler_cli_cmd_id
+LOGGING_ADD_HANDLER_CLI_CMD_ID = 'logging.add_handler'
 
-# ** constant: logging_remove_handler_command_id
-LOGGING_REMOVE_HANDLER_COMMAND_ID = 'logging.remove_handler'
+# ** constant: logging_remove_handler_cli_cmd_id
+LOGGING_REMOVE_HANDLER_CLI_CMD_ID = 'logging.remove_handler'
 
-# ** constant: logging_add_logger_command_id
-LOGGING_ADD_LOGGER_COMMAND_ID = 'logging.add_logger'
+# ** constant: logging_add_logger_cli_cmd_id
+LOGGING_ADD_LOGGER_CLI_CMD_ID = 'logging.add_logger'
 
-# ** constant: logging_remove_logger_command_id
-LOGGING_REMOVE_LOGGER_COMMAND_ID = 'logging.remove_logger'
+# ** constant: logging_remove_logger_cli_cmd_id
+LOGGING_REMOVE_LOGGER_CLI_CMD_ID = 'logging.remove_logger'
 
-# ** constant: logging_list_command_id
-LOGGING_LIST_COMMAND_ID = 'logging.list'
+# ** constant: logging_list_cli_cmd_id
+LOGGING_LIST_CLI_CMD_ID = 'logging.list'
 
 # *** constants (commands)
 
-# ** constant: feature_add_command
-FEATURE_ADD_COMMAND = create_default_cli_command(
-    FEATURE_ADD_COMMAND_ID,
+# ** constant: feature_add_cli_cmd
+FEATURE_ADD_CLI_CMD = create_default_cli_command(
+    FEATURE_ADD_CLI_CMD_ID,
     'add',
     'feature',
     'Add Feature',
@@ -158,9 +158,9 @@ FEATURE_ADD_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_get_command
-FEATURE_GET_COMMAND = create_default_cli_command(
-    FEATURE_GET_COMMAND_ID,
+# ** constant: feature_get_cli_cmd
+FEATURE_GET_CLI_CMD = create_default_cli_command(
+    FEATURE_GET_CLI_CMD_ID,
     'get',
     'feature',
     'Get Feature',
@@ -170,9 +170,9 @@ FEATURE_GET_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_list_command
-FEATURE_LIST_COMMAND = create_default_cli_command(
-    FEATURE_LIST_COMMAND_ID,
+# ** constant: feature_list_cli_cmd
+FEATURE_LIST_CLI_CMD = create_default_cli_command(
+    FEATURE_LIST_CLI_CMD_ID,
     'list',
     'feature',
     'List Features',
@@ -182,9 +182,9 @@ FEATURE_LIST_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_remove_command
-FEATURE_REMOVE_COMMAND = create_default_cli_command(
-    FEATURE_REMOVE_COMMAND_ID,
+# ** constant: feature_remove_cli_cmd
+FEATURE_REMOVE_CLI_CMD = create_default_cli_command(
+    FEATURE_REMOVE_CLI_CMD_ID,
     'remove',
     'feature',
     'Remove Feature',
@@ -194,9 +194,9 @@ FEATURE_REMOVE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_update_command
-FEATURE_UPDATE_COMMAND = create_default_cli_command(
-    FEATURE_UPDATE_COMMAND_ID,
+# ** constant: feature_update_cli_cmd
+FEATURE_UPDATE_CLI_CMD = create_default_cli_command(
+    FEATURE_UPDATE_CLI_CMD_ID,
     'update',
     'feature',
     'Update Feature',
@@ -208,9 +208,9 @@ FEATURE_UPDATE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_add_step_command
-FEATURE_ADD_STEP_COMMAND = create_default_cli_command(
-    FEATURE_ADD_STEP_COMMAND_ID,
+# ** constant: feature_add_step_cli_cmd
+FEATURE_ADD_STEP_CLI_CMD = create_default_cli_command(
+    FEATURE_ADD_STEP_CLI_CMD_ID,
     'add-step',
     'feature',
     'Add Feature Step',
@@ -225,9 +225,9 @@ FEATURE_ADD_STEP_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_update_step_command
-FEATURE_UPDATE_STEP_COMMAND = create_default_cli_command(
-    FEATURE_UPDATE_STEP_COMMAND_ID,
+# ** constant: feature_update_step_cli_cmd
+FEATURE_UPDATE_STEP_CLI_CMD = create_default_cli_command(
+    FEATURE_UPDATE_STEP_CLI_CMD_ID,
     'update-step',
     'feature',
     'Update Feature Step',
@@ -244,9 +244,9 @@ FEATURE_UPDATE_STEP_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_remove_step_command
-FEATURE_REMOVE_STEP_COMMAND = create_default_cli_command(
-    FEATURE_REMOVE_STEP_COMMAND_ID,
+# ** constant: feature_remove_step_cli_cmd
+FEATURE_REMOVE_STEP_CLI_CMD = create_default_cli_command(
+    FEATURE_REMOVE_STEP_CLI_CMD_ID,
     'remove-step',
     'feature',
     'Remove Feature Step',
@@ -257,9 +257,9 @@ FEATURE_REMOVE_STEP_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: feature_reorder_step_command
-FEATURE_REORDER_STEP_COMMAND = create_default_cli_command(
-    FEATURE_REORDER_STEP_COMMAND_ID,
+# ** constant: feature_reorder_step_cli_cmd
+FEATURE_REORDER_STEP_CLI_CMD = create_default_cli_command(
+    FEATURE_REORDER_STEP_CLI_CMD_ID,
     'reorder-step',
     'feature',
     'Reorder Feature Step',
@@ -271,9 +271,9 @@ FEATURE_REORDER_STEP_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_add_command
-ERROR_ADD_COMMAND = create_default_cli_command(
-    ERROR_ADD_COMMAND_ID,
+# ** constant: error_add_cli_cmd
+ERROR_ADD_CLI_CMD = create_default_cli_command(
+    ERROR_ADD_CLI_CMD_ID,
     'add',
     'error',
     'Add Error',
@@ -286,9 +286,9 @@ ERROR_ADD_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_get_command
-ERROR_GET_COMMAND = create_default_cli_command(
-    ERROR_GET_COMMAND_ID,
+# ** constant: error_get_cli_cmd
+ERROR_GET_CLI_CMD = create_default_cli_command(
+    ERROR_GET_CLI_CMD_ID,
     'get',
     'error',
     'Get Error',
@@ -298,9 +298,9 @@ ERROR_GET_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_list_command
-ERROR_LIST_COMMAND = create_default_cli_command(
-    ERROR_LIST_COMMAND_ID,
+# ** constant: error_list_cli_cmd
+ERROR_LIST_CLI_CMD = create_default_cli_command(
+    ERROR_LIST_CLI_CMD_ID,
     'list',
     'error',
     'List Errors',
@@ -310,9 +310,9 @@ ERROR_LIST_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_rename_command
-ERROR_RENAME_COMMAND = create_default_cli_command(
-    ERROR_RENAME_COMMAND_ID,
+# ** constant: error_rename_cli_cmd
+ERROR_RENAME_CLI_CMD = create_default_cli_command(
+    ERROR_RENAME_CLI_CMD_ID,
     'rename',
     'error',
     'Rename Error',
@@ -323,9 +323,9 @@ ERROR_RENAME_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_set_message_command
-ERROR_SET_MESSAGE_COMMAND = create_default_cli_command(
-    ERROR_SET_MESSAGE_COMMAND_ID,
+# ** constant: error_set_message_cli_cmd
+ERROR_SET_MESSAGE_CLI_CMD = create_default_cli_command(
+    ERROR_SET_MESSAGE_CLI_CMD_ID,
     'set-message',
     'error',
     'Set Error Message',
@@ -337,9 +337,9 @@ ERROR_SET_MESSAGE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_remove_message_command
-ERROR_REMOVE_MESSAGE_COMMAND = create_default_cli_command(
-    ERROR_REMOVE_MESSAGE_COMMAND_ID,
+# ** constant: error_remove_message_cli_cmd
+ERROR_REMOVE_MESSAGE_CLI_CMD = create_default_cli_command(
+    ERROR_REMOVE_MESSAGE_CLI_CMD_ID,
     'remove-message',
     'error',
     'Remove Error Message',
@@ -350,9 +350,9 @@ ERROR_REMOVE_MESSAGE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: error_remove_command
-ERROR_REMOVE_COMMAND = create_default_cli_command(
-    ERROR_REMOVE_COMMAND_ID,
+# ** constant: error_remove_cli_cmd
+ERROR_REMOVE_CLI_CMD = create_default_cli_command(
+    ERROR_REMOVE_CLI_CMD_ID,
     'remove',
     'error',
     'Remove Error',
@@ -362,9 +362,9 @@ ERROR_REMOVE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_add_command
-SERVICE_ADD_COMMAND = create_default_cli_command(
-    SERVICE_ADD_COMMAND_ID,
+# ** constant: service_add_cli_cmd
+SERVICE_ADD_CLI_CMD = create_default_cli_command(
+    SERVICE_ADD_CLI_CMD_ID,
     'add',
     'service',
     'Add Service Configuration',
@@ -378,18 +378,18 @@ SERVICE_ADD_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_list_command
-SERVICE_LIST_COMMAND = create_default_cli_command(
-    SERVICE_LIST_COMMAND_ID,
+# ** constant: service_list_cli_cmd
+SERVICE_LIST_CLI_CMD = create_default_cli_command(
+    SERVICE_LIST_CLI_CMD_ID,
     'list',
     'service',
     'List All Settings',
     description='List all service configurations and constants.',
 )
 
-# ** constant: service_set_default_command
-SERVICE_SET_DEFAULT_COMMAND = create_default_cli_command(
-    SERVICE_SET_DEFAULT_COMMAND_ID,
+# ** constant: service_set_default_cli_cmd
+SERVICE_SET_DEFAULT_CLI_CMD = create_default_cli_command(
+    SERVICE_SET_DEFAULT_CLI_CMD_ID,
     'set-default',
     'service',
     'Set Default Service Configuration',
@@ -402,9 +402,9 @@ SERVICE_SET_DEFAULT_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_set_dependency_command
-SERVICE_SET_DEPENDENCY_COMMAND = create_default_cli_command(
-    SERVICE_SET_DEPENDENCY_COMMAND_ID,
+# ** constant: service_set_dependency_cli_cmd
+SERVICE_SET_DEPENDENCY_CLI_CMD = create_default_cli_command(
+    SERVICE_SET_DEPENDENCY_CLI_CMD_ID,
     'set-dependency',
     'service',
     'Set Service Dependency',
@@ -418,9 +418,9 @@ SERVICE_SET_DEPENDENCY_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_remove_dependency_command
-SERVICE_REMOVE_DEPENDENCY_COMMAND = create_default_cli_command(
-    SERVICE_REMOVE_DEPENDENCY_COMMAND_ID,
+# ** constant: service_remove_dependency_cli_cmd
+SERVICE_REMOVE_DEPENDENCY_CLI_CMD = create_default_cli_command(
+    SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID,
     'remove-dependency',
     'service',
     'Remove Service Dependency',
@@ -431,9 +431,9 @@ SERVICE_REMOVE_DEPENDENCY_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_remove_command
-SERVICE_REMOVE_COMMAND = create_default_cli_command(
-    SERVICE_REMOVE_COMMAND_ID,
+# ** constant: service_remove_cli_cmd
+SERVICE_REMOVE_CLI_CMD = create_default_cli_command(
+    SERVICE_REMOVE_CLI_CMD_ID,
     'remove',
     'service',
     'Remove Service Configuration',
@@ -443,9 +443,9 @@ SERVICE_REMOVE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: service_set_constants_command
-SERVICE_SET_CONSTANTS_COMMAND = create_default_cli_command(
-    SERVICE_SET_CONSTANTS_COMMAND_ID,
+# ** constant: service_set_constants_cli_cmd
+SERVICE_SET_CONSTANTS_CLI_CMD = create_default_cli_command(
+    SERVICE_SET_CONSTANTS_CLI_CMD_ID,
     'set-constants',
     'service',
     'Set Service Constants',
@@ -455,9 +455,9 @@ SERVICE_SET_CONSTANTS_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_add_command
-APP_ADD_COMMAND = create_default_cli_command(
-    APP_ADD_COMMAND_ID,
+# ** constant: app_add_cli_cmd
+APP_ADD_CLI_CMD = create_default_cli_command(
+    APP_ADD_CLI_CMD_ID,
     'add',
     'app',
     'Add App Interface',
@@ -474,9 +474,9 @@ APP_ADD_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_get_command
-APP_GET_COMMAND = create_default_cli_command(
-    APP_GET_COMMAND_ID,
+# ** constant: app_get_cli_cmd
+APP_GET_CLI_CMD = create_default_cli_command(
+    APP_GET_CLI_CMD_ID,
     'get',
     'app',
     'Get App Interface',
@@ -486,18 +486,18 @@ APP_GET_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_list_command
-APP_LIST_COMMAND = create_default_cli_command(
-    APP_LIST_COMMAND_ID,
+# ** constant: app_list_cli_cmd
+APP_LIST_CLI_CMD = create_default_cli_command(
+    APP_LIST_CLI_CMD_ID,
     'list',
     'app',
     'List App Interfaces',
     description='List all configured app interfaces.',
 )
 
-# ** constant: app_update_command
-APP_UPDATE_COMMAND = create_default_cli_command(
-    APP_UPDATE_COMMAND_ID,
+# ** constant: app_update_cli_cmd
+APP_UPDATE_CLI_CMD = create_default_cli_command(
+    APP_UPDATE_CLI_CMD_ID,
     'update',
     'app',
     'Update App Interface',
@@ -509,9 +509,9 @@ APP_UPDATE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_set_constants_command
-APP_SET_CONSTANTS_COMMAND = create_default_cli_command(
-    APP_SET_CONSTANTS_COMMAND_ID,
+# ** constant: app_set_constants_cli_cmd
+APP_SET_CONSTANTS_CLI_CMD = create_default_cli_command(
+    APP_SET_CONSTANTS_CLI_CMD_ID,
     'set-constants',
     'app',
     'Set App Constants',
@@ -522,9 +522,9 @@ APP_SET_CONSTANTS_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_set_service_command
-APP_SET_SERVICE_COMMAND = create_default_cli_command(
-    APP_SET_SERVICE_COMMAND_ID,
+# ** constant: app_set_service_cli_cmd
+APP_SET_SERVICE_CLI_CMD = create_default_cli_command(
+    APP_SET_SERVICE_CLI_CMD_ID,
     'set-service',
     'app',
     'Set App Service Dependency',
@@ -538,9 +538,9 @@ APP_SET_SERVICE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_remove_service_command
-APP_REMOVE_SERVICE_COMMAND = create_default_cli_command(
-    APP_REMOVE_SERVICE_COMMAND_ID,
+# ** constant: app_remove_service_cli_cmd
+APP_REMOVE_SERVICE_CLI_CMD = create_default_cli_command(
+    APP_REMOVE_SERVICE_CLI_CMD_ID,
     'remove-service',
     'app',
     'Remove App Service Dependency',
@@ -551,9 +551,9 @@ APP_REMOVE_SERVICE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: app_remove_command
-APP_REMOVE_COMMAND = create_default_cli_command(
-    APP_REMOVE_COMMAND_ID,
+# ** constant: app_remove_cli_cmd
+APP_REMOVE_CLI_CMD = create_default_cli_command(
+    APP_REMOVE_CLI_CMD_ID,
     'remove',
     'app',
     'Remove App Interface',
@@ -563,9 +563,9 @@ APP_REMOVE_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: cli_add_command_command
-CLI_ADD_COMMAND_COMMAND = create_default_cli_command(
-    CLI_ADD_COMMAND_COMMAND_ID,
+# ** constant: cli_add_command_cli_cmd
+CLI_ADD_COMMAND_CLI_CMD = create_default_cli_command(
+    CLI_ADD_COMMAND_CLI_CMD_ID,
     'add-command',
     'cli',
     'Add CLI Command',
@@ -579,18 +579,18 @@ CLI_ADD_COMMAND_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: cli_list_commands_command
-CLI_LIST_COMMANDS_COMMAND = create_default_cli_command(
-    CLI_LIST_COMMANDS_COMMAND_ID,
+# ** constant: cli_list_commands_cli_cmd
+CLI_LIST_COMMANDS_CLI_CMD = create_default_cli_command(
+    CLI_LIST_COMMANDS_CLI_CMD_ID,
     'list-commands',
     'cli',
     'List CLI Commands',
     description='List all CLI command definitions.',
 )
 
-# ** constant: cli_add_argument_command
-CLI_ADD_ARGUMENT_COMMAND = create_default_cli_command(
-    CLI_ADD_ARGUMENT_COMMAND_ID,
+# ** constant: cli_add_argument_cli_cmd
+CLI_ADD_ARGUMENT_CLI_CMD = create_default_cli_command(
+    CLI_ADD_ARGUMENT_CLI_CMD_ID,
     'add-argument',
     'cli',
     'Add CLI Argument',
@@ -605,9 +605,9 @@ CLI_ADD_ARGUMENT_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_formatter_command
-LOGGING_ADD_FORMATTER_COMMAND = create_default_cli_command(
-    LOGGING_ADD_FORMATTER_COMMAND_ID,
+# ** constant: logging_add_formatter_cli_cmd
+LOGGING_ADD_FORMATTER_CLI_CMD = create_default_cli_command(
+    LOGGING_ADD_FORMATTER_CLI_CMD_ID,
     'add-formatter',
     'logging',
     'Add Formatter',
@@ -621,9 +621,9 @@ LOGGING_ADD_FORMATTER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_formatter_command
-LOGGING_REMOVE_FORMATTER_COMMAND = create_default_cli_command(
-    LOGGING_REMOVE_FORMATTER_COMMAND_ID,
+# ** constant: logging_remove_formatter_cli_cmd
+LOGGING_REMOVE_FORMATTER_CLI_CMD = create_default_cli_command(
+    LOGGING_REMOVE_FORMATTER_CLI_CMD_ID,
     'remove-formatter',
     'logging',
     'Remove Formatter',
@@ -633,9 +633,9 @@ LOGGING_REMOVE_FORMATTER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_handler_command
-LOGGING_ADD_HANDLER_COMMAND = create_default_cli_command(
-    LOGGING_ADD_HANDLER_COMMAND_ID,
+# ** constant: logging_add_handler_cli_cmd
+LOGGING_ADD_HANDLER_CLI_CMD = create_default_cli_command(
+    LOGGING_ADD_HANDLER_CLI_CMD_ID,
     'add-handler',
     'logging',
     'Add Handler',
@@ -657,9 +657,9 @@ LOGGING_ADD_HANDLER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_handler_command
-LOGGING_REMOVE_HANDLER_COMMAND = create_default_cli_command(
-    LOGGING_REMOVE_HANDLER_COMMAND_ID,
+# ** constant: logging_remove_handler_cli_cmd
+LOGGING_REMOVE_HANDLER_CLI_CMD = create_default_cli_command(
+    LOGGING_REMOVE_HANDLER_CLI_CMD_ID,
     'remove-handler',
     'logging',
     'Remove Handler',
@@ -669,9 +669,9 @@ LOGGING_REMOVE_HANDLER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_add_logger_command
-LOGGING_ADD_LOGGER_COMMAND = create_default_cli_command(
-    LOGGING_ADD_LOGGER_COMMAND_ID,
+# ** constant: logging_add_logger_cli_cmd
+LOGGING_ADD_LOGGER_CLI_CMD = create_default_cli_command(
+    LOGGING_ADD_LOGGER_CLI_CMD_ID,
     'add-logger',
     'logging',
     'Add Logger',
@@ -690,9 +690,9 @@ LOGGING_ADD_LOGGER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_remove_logger_command
-LOGGING_REMOVE_LOGGER_COMMAND = create_default_cli_command(
-    LOGGING_REMOVE_LOGGER_COMMAND_ID,
+# ** constant: logging_remove_logger_cli_cmd
+LOGGING_REMOVE_LOGGER_CLI_CMD = create_default_cli_command(
+    LOGGING_REMOVE_LOGGER_CLI_CMD_ID,
     'remove-logger',
     'logging',
     'Remove Logger',
@@ -702,9 +702,9 @@ LOGGING_REMOVE_LOGGER_COMMAND = create_default_cli_command(
     ],
 )
 
-# ** constant: logging_list_command
-LOGGING_LIST_COMMAND = create_default_cli_command(
-    LOGGING_LIST_COMMAND_ID,
+# ** constant: logging_list_cli_cmd
+LOGGING_LIST_CLI_CMD = create_default_cli_command(
+    LOGGING_LIST_CLI_CMD_ID,
     'list',
     'logging',
     'List Logging Configs',
@@ -715,46 +715,46 @@ LOGGING_LIST_COMMAND = create_default_cli_command(
 
 # ** constant: admin_default_commands
 ADMIN_DEFAULT_COMMANDS: Dict[str, Dict[str, Any]] = {
-    FEATURE_ADD_COMMAND_ID:           FEATURE_ADD_COMMAND,
-    FEATURE_GET_COMMAND_ID:           FEATURE_GET_COMMAND,
-    FEATURE_LIST_COMMAND_ID:          FEATURE_LIST_COMMAND,
-    FEATURE_REMOVE_COMMAND_ID:        FEATURE_REMOVE_COMMAND,
-    FEATURE_UPDATE_COMMAND_ID:        FEATURE_UPDATE_COMMAND,
-    FEATURE_ADD_STEP_COMMAND_ID:      FEATURE_ADD_STEP_COMMAND,
-    FEATURE_UPDATE_STEP_COMMAND_ID:   FEATURE_UPDATE_STEP_COMMAND,
-    FEATURE_REMOVE_STEP_COMMAND_ID:   FEATURE_REMOVE_STEP_COMMAND,
-    FEATURE_REORDER_STEP_COMMAND_ID:  FEATURE_REORDER_STEP_COMMAND,
-    ERROR_ADD_COMMAND_ID:             ERROR_ADD_COMMAND,
-    ERROR_GET_COMMAND_ID:             ERROR_GET_COMMAND,
-    ERROR_LIST_COMMAND_ID:            ERROR_LIST_COMMAND,
-    ERROR_RENAME_COMMAND_ID:          ERROR_RENAME_COMMAND,
-    ERROR_SET_MESSAGE_COMMAND_ID:     ERROR_SET_MESSAGE_COMMAND,
-    ERROR_REMOVE_MESSAGE_COMMAND_ID:  ERROR_REMOVE_MESSAGE_COMMAND,
-    ERROR_REMOVE_COMMAND_ID:          ERROR_REMOVE_COMMAND,
-    SERVICE_ADD_COMMAND_ID:           SERVICE_ADD_COMMAND,
-    SERVICE_LIST_COMMAND_ID:          SERVICE_LIST_COMMAND,
-    SERVICE_SET_DEFAULT_COMMAND_ID:   SERVICE_SET_DEFAULT_COMMAND,
-    SERVICE_SET_DEPENDENCY_COMMAND_ID: SERVICE_SET_DEPENDENCY_COMMAND,
-    SERVICE_REMOVE_DEPENDENCY_COMMAND_ID: SERVICE_REMOVE_DEPENDENCY_COMMAND,
-    SERVICE_REMOVE_COMMAND_ID:        SERVICE_REMOVE_COMMAND,
-    SERVICE_SET_CONSTANTS_COMMAND_ID: SERVICE_SET_CONSTANTS_COMMAND,
-    APP_ADD_COMMAND_ID:               APP_ADD_COMMAND,
-    APP_GET_COMMAND_ID:               APP_GET_COMMAND,
-    APP_LIST_COMMAND_ID:              APP_LIST_COMMAND,
-    APP_UPDATE_COMMAND_ID:            APP_UPDATE_COMMAND,
-    APP_SET_CONSTANTS_COMMAND_ID:     APP_SET_CONSTANTS_COMMAND,
-    APP_SET_SERVICE_COMMAND_ID:       APP_SET_SERVICE_COMMAND,
-    APP_REMOVE_SERVICE_COMMAND_ID:    APP_REMOVE_SERVICE_COMMAND,
-    APP_REMOVE_COMMAND_ID:            APP_REMOVE_COMMAND,
-    CLI_ADD_COMMAND_COMMAND_ID:       CLI_ADD_COMMAND_COMMAND,
-    CLI_LIST_COMMANDS_COMMAND_ID:     CLI_LIST_COMMANDS_COMMAND,
-    CLI_ADD_ARGUMENT_COMMAND_ID:      CLI_ADD_ARGUMENT_COMMAND,
-    LOGGING_ADD_FORMATTER_COMMAND_ID:    LOGGING_ADD_FORMATTER_COMMAND,
-    LOGGING_REMOVE_FORMATTER_COMMAND_ID: LOGGING_REMOVE_FORMATTER_COMMAND,
-    LOGGING_ADD_HANDLER_COMMAND_ID:      LOGGING_ADD_HANDLER_COMMAND,
-    LOGGING_REMOVE_HANDLER_COMMAND_ID:   LOGGING_REMOVE_HANDLER_COMMAND,
-    LOGGING_ADD_LOGGER_COMMAND_ID:       LOGGING_ADD_LOGGER_COMMAND,
-    LOGGING_REMOVE_LOGGER_COMMAND_ID:    LOGGING_REMOVE_LOGGER_COMMAND,
-    LOGGING_LIST_COMMAND_ID:             LOGGING_LIST_COMMAND,
+    FEATURE_ADD_CLI_CMD_ID:           FEATURE_ADD_CLI_CMD,
+    FEATURE_GET_CLI_CMD_ID:           FEATURE_GET_CLI_CMD,
+    FEATURE_LIST_CLI_CMD_ID:          FEATURE_LIST_CLI_CMD,
+    FEATURE_REMOVE_CLI_CMD_ID:        FEATURE_REMOVE_CLI_CMD,
+    FEATURE_UPDATE_CLI_CMD_ID:        FEATURE_UPDATE_CLI_CMD,
+    FEATURE_ADD_STEP_CLI_CMD_ID:      FEATURE_ADD_STEP_CLI_CMD,
+    FEATURE_UPDATE_STEP_CLI_CMD_ID:   FEATURE_UPDATE_STEP_CLI_CMD,
+    FEATURE_REMOVE_STEP_CLI_CMD_ID:   FEATURE_REMOVE_STEP_CLI_CMD,
+    FEATURE_REORDER_STEP_CLI_CMD_ID:  FEATURE_REORDER_STEP_CLI_CMD,
+    ERROR_ADD_CLI_CMD_ID:             ERROR_ADD_CLI_CMD,
+    ERROR_GET_CLI_CMD_ID:             ERROR_GET_CLI_CMD,
+    ERROR_LIST_CLI_CMD_ID:            ERROR_LIST_CLI_CMD,
+    ERROR_RENAME_CLI_CMD_ID:          ERROR_RENAME_CLI_CMD,
+    ERROR_SET_MESSAGE_CLI_CMD_ID:     ERROR_SET_MESSAGE_CLI_CMD,
+    ERROR_REMOVE_MESSAGE_CLI_CMD_ID:  ERROR_REMOVE_MESSAGE_CLI_CMD,
+    ERROR_REMOVE_CLI_CMD_ID:          ERROR_REMOVE_CLI_CMD,
+    SERVICE_ADD_CLI_CMD_ID:           SERVICE_ADD_CLI_CMD,
+    SERVICE_LIST_CLI_CMD_ID:          SERVICE_LIST_CLI_CMD,
+    SERVICE_SET_DEFAULT_CLI_CMD_ID:   SERVICE_SET_DEFAULT_CLI_CMD,
+    SERVICE_SET_DEPENDENCY_CLI_CMD_ID: SERVICE_SET_DEPENDENCY_CLI_CMD,
+    SERVICE_REMOVE_DEPENDENCY_CLI_CMD_ID: SERVICE_REMOVE_DEPENDENCY_CLI_CMD,
+    SERVICE_REMOVE_CLI_CMD_ID:        SERVICE_REMOVE_CLI_CMD,
+    SERVICE_SET_CONSTANTS_CLI_CMD_ID: SERVICE_SET_CONSTANTS_CLI_CMD,
+    APP_ADD_CLI_CMD_ID:               APP_ADD_CLI_CMD,
+    APP_GET_CLI_CMD_ID:               APP_GET_CLI_CMD,
+    APP_LIST_CLI_CMD_ID:              APP_LIST_CLI_CMD,
+    APP_UPDATE_CLI_CMD_ID:            APP_UPDATE_CLI_CMD,
+    APP_SET_CONSTANTS_CLI_CMD_ID:     APP_SET_CONSTANTS_CLI_CMD,
+    APP_SET_SERVICE_CLI_CMD_ID:       APP_SET_SERVICE_CLI_CMD,
+    APP_REMOVE_SERVICE_CLI_CMD_ID:    APP_REMOVE_SERVICE_CLI_CMD,
+    APP_REMOVE_CLI_CMD_ID:            APP_REMOVE_CLI_CMD,
+    CLI_ADD_COMMAND_CLI_CMD_ID:       CLI_ADD_COMMAND_CLI_CMD,
+    CLI_LIST_COMMANDS_CLI_CMD_ID:     CLI_LIST_COMMANDS_CLI_CMD,
+    CLI_ADD_ARGUMENT_CLI_CMD_ID:      CLI_ADD_ARGUMENT_CLI_CMD,
+    LOGGING_ADD_FORMATTER_CLI_CMD_ID:    LOGGING_ADD_FORMATTER_CLI_CMD,
+    LOGGING_REMOVE_FORMATTER_CLI_CMD_ID: LOGGING_REMOVE_FORMATTER_CLI_CMD,
+    LOGGING_ADD_HANDLER_CLI_CMD_ID:      LOGGING_ADD_HANDLER_CLI_CMD,
+    LOGGING_REMOVE_HANDLER_CLI_CMD_ID:   LOGGING_REMOVE_HANDLER_CLI_CMD,
+    LOGGING_ADD_LOGGER_CLI_CMD_ID:       LOGGING_ADD_LOGGER_CLI_CMD,
+    LOGGING_REMOVE_LOGGER_CLI_CMD_ID:    LOGGING_REMOVE_LOGGER_CLI_CMD,
+    LOGGING_LIST_CLI_CMD_ID:             LOGGING_LIST_CLI_CMD,
 }
 
