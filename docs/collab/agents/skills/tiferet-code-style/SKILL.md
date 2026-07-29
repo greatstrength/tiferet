@@ -63,6 +63,8 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
   - `# ++ todo: <message>` — deferred work; remove when done.
   - `# -- obsolete: <reason>` — deprecated artifact; remove with the artifact. Shorthand: `# * method: foo (obsolete)`.
 - **Pre-session scan:** Before editing, run `grep -rn "# ++\|# --" tiferet/` to find open annotations.
+- **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma, wherever they appear. Short constants are just as mandatory as long ones. Never `{ **OTHER_DICT }` inline.
+- **Optional parameters in function/factory calls:** must be passed as keyword arguments — not positionally. Required positional parameters may continue to be passed positionally. Correct: `create_default_app_session(TIFERET_ADMIN_ID, 'Admin App', description='...')`. Incorrect: `create_default_app_session(TIFERET_ADMIN_ID, 'Admin App', '...')` (the optional `description` passed positionally loses its self-documenting value).
 
 ## Example
 
