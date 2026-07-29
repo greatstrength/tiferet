@@ -245,16 +245,16 @@ class TestGetAppSession(ServiceEventTestBase):
     service_attr = 'app_service'
 
     # * attribute: sample_kwargs
-    sample_kwargs = dict(interface_id='test')
+    sample_kwargs = dict(id='test')
 
     # * attribute: required_params
-    required_params = ['interface_id']
+    required_params = ['id']
 
     # * attribute: not_found_error_code
     not_found_error_code = a.error.APP_SESSION_NOT_FOUND_ID
 
     # * attribute: not_found_kwargs
-    not_found_kwargs = dict(interface_id='non_existent_id')
+    not_found_kwargs = dict(id='non_existent_id')
 
     # * method: test_success
     def test_success(self, mock_dependencies, app_interface):
@@ -285,7 +285,7 @@ class TestGetAppSession(ServiceEventTestBase):
         mock_dependencies['app_service'].get.return_value = domain_interface
 
         # Execute via the harness handle helper.
-        result = self.handle(mock_dependencies, interface_id='test.interface')
+        result = self.handle(mock_dependencies, id='test.interface')
 
         # Assert the stored interface is returned unchanged (no aggregate re-wrap).
         assert result is domain_interface
