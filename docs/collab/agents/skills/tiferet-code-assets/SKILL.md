@@ -29,26 +29,52 @@ Artifact labels:
 # ** class: <snake_case_name>       ← individual class
 ```
 
-**Sub-groups** — partition a large `# *** constants` section with a parenthetical qualifier. The framework convention (e.g. `assets/error.py`) uses three sub-groups:
+**Sub-groups** — partition a large `# *** constants` section with a parenthetical qualifier. The framework convention (e.g. `assets/error.py`) uses three correlated sub-group layers:
 ```python
-# *** constants (ids)               ← raw error-code identifier strings
+# *** constants (ids)               ← raw error-code identifier strings (core group)
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
-# *** constants (errors)            ← assembled default definition dicts
+# *** constants (models)            ← assembled default definition constants (core group)
 # ** constant: feature_not_found
-FEATURE_NOT_FOUND = { 'id': FEATURE_NOT_FOUND_ID, 'name': 'Feature Not Found', ... }
+FEATURE_NOT_FOUND = create_default_error(...)
 
-# *** constants (groups)            ← catalog dicts grouping the above
-# ** constant: default_errors
-DEFAULT_ERRORS = { FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND }
+# *** constants (groups)            ← catalog dicts aggregating the above
+# ** constant: core_default_errors
+CORE_DEFAULT_ERRORS = {
+    FEATURE_NOT_FOUND_ID: FEATURE_NOT_FOUND,
+}
 ```
+
+**Multi-group catalogs** — when a module defines additional capability groups (e.g., `admin`, `sqlite`, `csv`), each group name is a shared key across all three layers: `(ids_<group>)`, `(models_<group>)`, and a named dict entry in `(groups)`. Adding an entry to a capability group always requires touching all three locations:
+```python
+# *** constants (ids_sqlite)
+# ** constant: sqlite_conn_failed_id
+SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+
+# *** constants (models_sqlite)
+# ** constant: sqlite_conn_failed
+SQLITE_CONN_FAILED = create_default_error(
+    SQLITE_CONN_FAILED_ID,
+    'SQLite Connection Failed',
+    [(EN_US, 'Failed to connect: {original_error}')],
+)
+
+# *** constants (groups)
+# ** constant: sqlite_default_errors
+SQLITE_DEFAULT_ERRORS = {
+    SQLITE_CONN_FAILED_ID: SQLITE_CONN_FAILED,
+}
+```
+
+The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline group. All additional groups use the `_<group>` suffix consistently.
 
 ## Key conventions
 
 - **Layer boundary — valid `# ** app` imports:** none. `assets` is the root layer; it has no framework imports. Only `# ** core` (stdlib) and `# ** infra` (minimal third-party, e.g. `json`) are valid. Never import from any other framework layer.
 - **Constants:** `SCREAMING_SNAKE_CASE`. Each constant has its own `# ** constant: <snake_case>` label. Do not group multiple constants under a single `# ** constants: <group>` mid-level label — use a top-level sub-group instead.
 - **Structured defaults:** Build structured default data from a factory function (e.g. `create_default_error`), not inline dicts. Define each entry as a named constant, then assemble the catalog dict as a separate constant.
+- **Multi-line constants:** All dict- and list-typed constants in `assets/` modules use the multi-line hanging-indent style with a trailing comma, even for simple one-element spreads. Never `{ **OTHER_DICT }` inline — always expand to multi-line.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
 - **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import constants as const`).
