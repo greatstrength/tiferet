@@ -47,12 +47,12 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load the sessions mapping from the configuration file.
-        interfaces_data = self._load(
+        sessions_data = self._load(
             start_node=lambda data: data.get('sessions', {})
         )
 
-        # Return whether the interface id exists in the mapping.
-        return id in interfaces_data
+        # Return whether the session id exists in the mapping.
+        return id in sessions_data
 
     # * method: get
     def get(self, id: str) -> AppSessionAggregate | None:
@@ -66,17 +66,17 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load the specific session data from the configuration file.
-        interface_data = self._load(
+        session_data = self._load(
             start_node=lambda data: data.get('sessions', {}).get(id)
         )
 
         # If no data is found, return None.
-        if not interface_data:
+        if not session_data:
             return None
 
         # Map the data to an AppSessionAggregate and return it.
         return AppSessionConfigObject.model_validate(
-            {**interface_data, 'id': id}
+            {**session_data, 'id': id}
         ).map()
 
     # * method: list
@@ -89,16 +89,16 @@ class AppConfigRepository(AppService, ConfigurationRepository):
         '''
 
         # Load all sessions data from the configuration file.
-        interfaces_data = self._load(
+        sessions_data = self._load(
             start_node=lambda data: data.get('sessions', {})
         )
 
         # Map each session entry to an AppSessionAggregate.
         return [
             AppSessionConfigObject.model_validate(
-                {**interface_data, 'id': interface_id}
+                {**session_data, 'id': session_id}
             ).map()
-            for interface_id, interface_data in interfaces_data.items()
+            for session_id, session_data in sessions_data.items()
         ]
 
     # * method: save
