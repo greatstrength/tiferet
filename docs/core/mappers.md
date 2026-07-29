@@ -423,7 +423,7 @@ Mappers are defined in `tiferet/mappers/`:
 - `logging.py` — `FormatterAggregate`, `HandlerAggregate`, `LoggerAggregate`, and their ConfigObject counterparts.
 - `__init__.py` — Public exports.
 
-Tests live in `tiferet/mappers/tests/`.
+Tests live in `tests/mappers/`.
 
 ## Conclusion
 
@@ -431,4 +431,4 @@ The mappers layer provides the structural bridge between persistent configuratio
 - Validated, mutation-safe domain updates.
 - Role-based serialization for multiple output formats.
 
-Explore source in `tiferet/mappers/` and tests in `tiferet/mappers/tests/` for implementation details.
+Explore source in `tiferet/mappers/` and tests in `tests/mappers/` for implementation details.

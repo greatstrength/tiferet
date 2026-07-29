@@ -83,6 +83,31 @@ For each issue in the milestone:
 8. **Local cleanup:** pull latest from `main` and delete the local feature branch.
 9. **Repeat** for remaining issues in the milestone.
 
+## Super-TRD Workflow
+
+A **Super-TRD** is an oversized issue (XL or above) decomposed into sequenced child sub-issues, all implemented on a **single combined feature branch** named after the parent issue (e.g. `930-assets-error-id-migration`). This keeps the full migration atomic and avoids cross-branch dependency noise.
+
+### Roles and trigger conditions
+
+| Role | Trigger |
+|---|---|
+| **Starter** | No feature branch exists yet |
+| **Implementor** | Branch exists; active child is In Progress, or In Review with unresolved PR comments |
+| **Reviewer** | All children closed; no unresolved PR comments on the open PR |
+| **Closer** | All children closed; unresolved PR review comments exist |
+
+To self-identify your role, read `tiferet-super-trd` and evaluate its state machine. Then follow the pointer to the matching role skill. For the complete workflow reference — branch strategy, PR gate, status lifecycle, review and closing procedures — see **[docs/collab/super_trd_workflow.md](super_trd_workflow.md)**.
+
+### GitHub automation and parent project status
+The Super-TRD parent project status is managed by **GitHub automation**, not by agents directly:
+- Agents set **only the child sub-issue** status when work begins (never the parent).
+- GitHub automation sets the parent to **In Progress** when the PR is created and linked (`Closes #<parent>`) and the first sub-issue moves to In Review.
+- The parent remains **In Progress** for the entire duration of all child implementations.
+- The parent moves to **Done** automatically when the PR is squash-merged (via the `Closes` line).
+
+### PR→issue linking convention
+The PR body's `Closes` reference points to the **Super-TRD parent only** (e.g. `Closes #930`). Child sub-issues are closed **manually** at the developer's direction after each child's changes are approved — never via PR auto-close. The `Closes #<parent>` line is written once at PR creation and must never be altered by any subsequent session.
+
 ## Closing the Milestone
 
 Once all issues in the milestone are complete and merged, mark the milestone as **closed**.

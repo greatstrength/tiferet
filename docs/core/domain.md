@@ -169,7 +169,7 @@ Domain objects are defined in `tiferet/domain/`:
 - `logging.py` – `Formatter`, `Handler`, `Logger`, `LoggingSettings`.
 - `__init__.py` – Public exports for all domain objects.
 
-Tests live in `tiferet/domain/tests/`.
+Tests live in `tests/domain/`.
 
 ## Conclusion
 
@@ -178,4 +178,4 @@ Domain objects provide the **structural foundation** for the entire Tiferet fram
 - Reliable persistent configuration via Aggregate and TransferObject extensions.
 - A single source of truth shared across all layers.
 
-Explore source in `tiferet/domain/` and tests in `tiferet/domain/tests/` for implementation details.
+Explore source in `tiferet/domain/` and tests in `tests/domain/` for implementation details.

@@ -307,9 +307,9 @@ Applications are configured in a consolidated root `config.yml` file:
 ## Testing
 
 - **Framework:** `pytest` (with `pytest_env` for environment variables).
-- **Test location:** Co-located in `<package>/tests/` directories (e.g., `domain/tests/`, `events/tests/`, `mappers/tests/`).
+- **Test location:** `tests/<component>/` at the repository root (e.g., `tests/domain/`, `tests/events/`, `tests/mappers/`).
 - **Integration tests:** `tiferet/tests_int/`.
-- **Run tests:** `pytest tiferet/` from project root (with venv activated).
+- **Run tests:** `pytest tests/` (or plain `pytest` per `pyproject.toml`) from project root (with venv activated).
 - **Test structure:** Uses artifact comments (`# *** fixtures`, `# ** fixture: <name>`, `# *** tests`, `# ** test: <name>`).
 - **Mocking:** Use `unittest.mock`. Mock injected services. Verify calls and return values.
 - **Event testing:** Always invoke via `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)`.
