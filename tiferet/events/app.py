@@ -109,13 +109,13 @@ class GetAppSession(AppEvent):
     '''
 
     # * method: execute
-    @DomainEvent.parameters_required(['interface_id'])
-    def execute(self, interface_id: str, **kwargs) -> AppSession:
+    @DomainEvent.parameters_required(['id'])
+    def execute(self, id: str, **kwargs) -> AppSession:
         '''
         Retrieve an application session by ID from the app service.
 
-        :param interface_id: The ID of the application session to load.
-        :type interface_id: str
+        :param id: The ID of the application session to load.
+        :type id: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
         :return: The loaded application session.
@@ -124,18 +124,18 @@ class GetAppSession(AppEvent):
         '''
 
         # Retrieve the session from the app service.
-        interface = self.app_service.get(interface_id)
+        session = self.app_service.get(id)
 
         # Raise an error if the session is not found.
-        if not interface:
+        if not session:
             self.raise_error(
                 a.error.APP_SESSION_NOT_FOUND_ID,
-                f'App session with ID {interface_id} not found.',
-                interface_id=interface_id,
+                f'App session with ID {id} not found.',
+                id=id,
             )
 
         # Return the loaded application session.
-        return interface
+        return session
 
 # ** event: update_app_session
 class UpdateAppSession(AppEvent):
