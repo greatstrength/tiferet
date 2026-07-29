@@ -12,6 +12,11 @@ from pydantic import Field, model_validator
 # ** app
 from .core import DomainObject
 
+# *** constants
+
+# ** constant: dict_argument_delimiter
+DICT_ARGUMENT_DELIMITER = '='
+
 # *** models
 
 # ** model: cli_record
@@ -328,7 +333,11 @@ class CliArgument(DomainObject):
 
         # Dict-typed arguments arrive as a list of key=value strings; assemble into a mapping.
         if self.type == 'dict' and isinstance(value, list):
-            return dict(kv.split('=', 1) for kv in value if '=' in kv)
+            return dict(
+                kv.split(DICT_ARGUMENT_DELIMITER, 1)
+                for kv in value
+                if DICT_ARGUMENT_DELIMITER in kv
+            )
 
         # All other types are already in their correct form from argparse.
         return value
