@@ -88,6 +88,39 @@ The most common use is grouping unit tests by the class or method under test, so
 
 **Spacing**: One empty line between a sub-group comment and its first mid-level comment, the same as any top-level section.
 
+**Multi-group asset catalogs** — When an `assets/` module defines multiple capability groups (e.g., `admin`, `sqlite`, `csv`), apply a three-layer sub-group structure. Each capability group name is a shared key across all three layers:
+
+1. `# *** constants (ids_<group>)` — raw string ID constants for the group.
+2. `# *** constants (models_<group>)` — assembled model constants (e.g., via `create_default_error`) in the same order as the corresponding `(ids_<group>)` section.
+3. A named dict entry under `# *** constants (groups)` — aggregates the group's models.
+
+When adding an entry to a capability group, touch all three locations: `(ids_<group>)`, `(models_<group>)`, and the group dict in `(groups)`. See `tiferet/assets/error.py` for the canonical reference.
+
+```python
+# *** constants (ids_sqlite)
+
+# ** constant: sqlite_conn_failed_id
+SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+
+# *** constants (models_sqlite)
+
+# ** constant: sqlite_conn_failed
+SQLITE_CONN_FAILED = create_default_error(
+    SQLITE_CONN_FAILED_ID,
+    'SQLite Connection Failed',
+    [(EN_US, 'Failed to connect: {original_error}')],
+)
+
+# *** constants (groups)
+
+# ** constant: sqlite_default_errors
+SQLITE_DEFAULT_ERRORS = {
+    SQLITE_CONN_FAILED_ID: SQLITE_CONN_FAILED,
+}
+```
+
+The plain `(ids)` and `(models)` sub-groups (no suffix) hold the core/baseline group. All additional capability groups use the `_<group>` suffix consistently.
+
 ### Mid-Level (`# **`)
 Specifies categories or individual components:
 - For imports: `# ** core`, `# ** infra`, `# ** app`.
@@ -158,6 +191,28 @@ def load_feature(self, feature_id: str) -> Feature:
   - Code snippets within a method.
   - Methods/attributes within a class.
   - Classes within a component group.
+
+### Constants in `assets/` modules
+
+All list- and dictionary-typed constants in `assets/` modules must use the multi-line hanging-indent style with a trailing comma, even when the content fits on one line:
+
+```python
+# Correct — multi-line with trailing comma
+ADMIN_DEFAULT_ERRORS = {
+    **CORE_DEFAULT_ERRORS,
+    CLI_COMMAND_ALREADY_EXISTS_ID: CLI_COMMAND_ALREADY_EXISTS,
+}
+
+# Correct even for a simple spread
+ADMIN_DEFAULT_SERVICES = {
+    **CORE_DEFAULT_SERVICES,
+}
+
+# Incorrect — never single-line in assets/
+ADMIN_DEFAULT_SERVICES = {**CORE_DEFAULT_SERVICES}
+```
+
+This eliminates line-length judgment calls and prevents drift as catalogs grow.
 
 ## Annotation Artifacts
 
