@@ -34,19 +34,19 @@ class AppSession(DomainObject):
     # * attribute: id
     id: str = Field(
         ...,
-        description='The unique identifier for the application interface.',
+        description='The unique identifier for the application session.',
     )
 
     # * attribute: name
     name: str = Field(
         ...,
-        description='The name of the application interface.',
+        description='The name of the application session.',
     )
 
     # * attribute: description
     description: str | None = Field(
         default=None,
-        description='The description of the application interface.',
+        description='The description of the application session.',
     )
 
     # * attribute: logger_id
@@ -58,7 +58,7 @@ class AppSession(DomainObject):
     # * attribute: flags
     flags: List[str] = Field(
         default_factory=lambda: ['default'],
-        description='The flags for the application interface.',
+        description='The flags for the application session.',
     )
 
     # * attribute: services
