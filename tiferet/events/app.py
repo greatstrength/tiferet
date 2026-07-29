@@ -149,7 +149,7 @@ class UpdateAppSession(AppEvent):
         '''
         Update a scalar attribute on an existing app session.
 
-        :param id: The unique identifier for the app interface to update.
+        :param id: The unique identifier for the app session to update.
         :type id: str
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -157,7 +157,7 @@ class UpdateAppSession(AppEvent):
         :type value: Any
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the updated app interface.
+        :return: The ID of the updated app session.
         :rtype: str
         '''
 
@@ -184,7 +184,7 @@ class UpdateAppSession(AppEvent):
 # ** event: set_app_constants
 class SetAppConstants(AppEvent):
     '''
-    A domain event to set or clear constants on an app interface.
+    A domain event to set or clear constants on an app session.
     '''
 
     # * method: execute
@@ -196,15 +196,15 @@ class SetAppConstants(AppEvent):
             **kwargs,
         ) -> str:
         '''
-        Set constants on an app interface.
+        Set constants on an app session.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param constants: A mapping of constants to apply. ``None`` clears all constants.
         :type constants: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose constants were updated.
+        :return: The ID of the app session whose constants were updated.
         :rtype: str
         '''
 
@@ -245,13 +245,13 @@ class ListAppSessions(AppEvent):
         :rtype: List[AppSession]
         '''
 
-        # Delegate to the app service to retrieve all interfaces.
+        # Delegate to the app service to retrieve all sessions.
         return self.app_service.list()
 
 # ** event: set_service_dependency
 class SetServiceDependency(AppEvent):
     '''
-    A domain event to set or update a service dependency on an app interface.
+    A domain event to set or update a service dependency on an app session.
     '''
 
     # * method: execute
@@ -266,9 +266,9 @@ class SetServiceDependency(AppEvent):
             **kwargs,
         ) -> str:
         '''
-        Set or update a service dependency on an app interface.
+        Set or update a service dependency on an app session.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param service_id: The service dependency identifier.
         :type service_id: str
@@ -280,7 +280,7 @@ class SetServiceDependency(AppEvent):
         :type parameters: dict[str, Any] | None
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose service dependency was set.
+        :return: The ID of the app session whose service dependency was set.
         :rtype: str
         '''
 
@@ -303,16 +303,16 @@ class SetServiceDependency(AppEvent):
             parameters=parameters,
         )
 
-        # Persist the updated interface.
+        # Persist the updated session.
         self.app_service.save(interface)
 
-        # Return the interface ID.
+        # Return the session ID.
         return id
 
 # ** event: remove_service_dependency
 class RemoveServiceDependency(AppEvent):
     '''
-    A domain event to remove a service dependency from an app interface (idempotent).
+    A domain event to remove a service dependency from an app session (idempotent).
     '''
 
     # * method: execute
@@ -321,13 +321,13 @@ class RemoveServiceDependency(AppEvent):
         '''
         Remove a service dependency by service_id.
 
-        :param id: The unique identifier for the app interface.
+        :param id: The unique identifier for the app session.
         :type id: str
         :param service_id: The service dependency identifier to remove.
         :type service_id: str
         :param kwargs: Additional keyword arguments (unused).
         :type kwargs: dict
-        :return: The ID of the app interface whose service dependency was removed.
+        :return: The ID of the app session whose service dependency was removed.
         :rtype: str
         '''
 
@@ -345,10 +345,10 @@ class RemoveServiceDependency(AppEvent):
         # Remove the service dependency idempotently from the session.
         interface.remove_service(service_id=service_id)
 
-        # Persist the updated interface.
+        # Persist the updated session.
         self.app_service.save(interface)
 
-        # Return the interface ID.
+        # Return the session ID.
         return id
 
 # ** event: remove_app_session
