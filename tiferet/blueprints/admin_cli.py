@@ -3,9 +3,7 @@
 # *** imports
 
 # ** core
-import json
-import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # ** app
 from .. import assets as a
@@ -27,91 +25,6 @@ from ..contexts.cli import (
     get_default_cli_commands,
 )
 from ..di import injectable_parameter_names
-
-# *** functions
-
-# ** function: _decode_json_arguments
-def _decode_json_arguments(parsed: Dict[str, Any]) -> Dict[str, Any]:
-    '''
-    Decode JSON-valued CLI arguments in place.
-
-    Complex arguments (``parameters``, ``constants``, ``services``, and
-    ``flagged_dependencies``) arrive from argparse as raw strings.  This helper
-    parses each present string value with ``json.loads`` so domain events
-    receive structured data.  Malformed JSON results in a controlled CLI exit
-    rather than an unhandled traceback.
-
-    :param parsed: The parsed argument namespace as a dictionary.
-    :type parsed: Dict[str, Any]
-    :return: The parsed dictionary with JSON-valued arguments decoded.
-    :rtype: Dict[str, Any]
-    '''
-
-    # The complex argument keys whose string values carry JSON payloads.
-    json_keys = ('parameters', 'constants', 'services', 'flagged_dependencies')
-
-    # Decode each present string value, failing cleanly on malformed JSON.
-    for key in json_keys:
-        value = parsed.get(key)
-        if isinstance(value, str):
-            try:
-                parsed[key] = json.loads(value)
-            except json.JSONDecodeError as e:
-                print(
-                    f"Invalid JSON for argument '--{key.replace('_', '-')}': {e}",
-                    file=sys.stderr,
-                )
-                sys.exit(2)
-
-    # Return the parsed dictionary with decoded values.
-    return parsed
-
-
-# ** function: _admin_parse_cli_args_handler
-def _admin_parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        default_commands_list=None,
-    ) -> Callable:
-    '''
-    Build a CLI arg-parser closure that includes JSON decoding for admin arguments.
-
-    Wraps the standard :func:`parse_cli_args_handler` and post-processes the
-    parsed data dict through :func:`_decode_json_arguments` so complex admin CLI
-    arguments (``--parameters``, ``--constants``, etc.) are decoded from raw
-    JSON strings into structured Python objects before feature dispatch.
-
-    :param list_commands_evt: The event used to list CLI commands.
-    :param get_parent_args_evt: The event used to retrieve parent-level CLI arguments.
-    :param default_commands_list: Bootstrap default commands used when the
-        repository returns no results.
-    :type default_commands_list: List | None
-    :return: A closure that parses argv and returns (feature_id, headers, data)
-        with JSON-valued arguments decoded.
-    :rtype: Callable
-    '''
-
-    # Build the standard parse handler and wrap it with JSON decoding.
-    base_handler = parse_cli_args_handler(
-        list_commands_evt,
-        get_parent_args_evt,
-        default_commands_list,
-    )
-
-    # Return the wrapping handler closure.
-    def handler(argv=None) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
-
-        # Delegate to the standard handler to parse argv.
-        feature_id, headers, data = base_handler(argv)
-
-        # Decode JSON-valued arguments before returning.
-        data = _decode_json_arguments(data)
-
-        # Return the feature request tuple with decoded data.
-        return feature_id, headers, data
-
-    return handler
-
 
 # *** blueprints
 
@@ -175,8 +88,8 @@ def build_admin_cli_session_context(
     list_commands_evt = app_container.get_dependency('list_commands_evt')
     get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
 
-    # Build the _parse_cli_args closure with admin JSON-decoding support.
-    parse_cli_args = _admin_parse_cli_args_handler(
+    # Build the _parse_cli_args closure via the standard type-aware handler.
+    parse_cli_args = parse_cli_args_handler(
         list_commands_evt,
         get_parent_args_evt,
         get_default_cli_commands(cache),

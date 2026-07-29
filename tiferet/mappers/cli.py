@@ -26,7 +26,7 @@ class CliArgumentAggregate(CliArgument, Aggregate):
         '''
         Update a supported attribute on the CLI argument aggregate.
 
-        Supported attributes: description, type, required, default, choices, nargs, action.
+        Supported attributes: description, type, required, default, choices, nargs.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -44,7 +44,6 @@ class CliArgumentAggregate(CliArgument, Aggregate):
             'default',
             'choices',
             'nargs',
-            'action',
         }
 
         # Validate the attribute name.
@@ -74,7 +73,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
             default: str = None,
             choices: list = None,
             nargs: str = None,
-            action: str = None,
         ) -> None:
         '''
         Add an argument to the command.
@@ -83,7 +81,8 @@ class CliCommandAggregate(CliCommand, Aggregate):
         :type name_or_flags: list
         :param description: A brief description of the argument.
         :type description: str
-        :param type: The type of the argument (str, int, float).
+        :param type: The type of the argument (``'str'``, ``'int'``, ``'float'``,
+            ``'bool'``, ``'json'``, ``'list'``, or ``'dict'``).
         :type type: str
         :param required: Whether the argument is required.
         :type required: bool
@@ -93,8 +92,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
         :type choices: list
         :param nargs: The number of arguments to consume.
         :type nargs: str
-        :param action: The action to take when the argument is encountered.
-        :type action: str
         :return: None
         :rtype: None
         '''
@@ -111,7 +108,6 @@ class CliCommandAggregate(CliCommand, Aggregate):
                 default=default,
                 choices=choices,
                 nargs=nargs,
-                action=action,
             ).items()
             if v is not None
         }

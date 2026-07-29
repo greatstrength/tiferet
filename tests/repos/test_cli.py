@@ -71,7 +71,7 @@ CLI_DATA: Dict = {
             {
                 'name_or_flags': ['--verbose', '-v'],
                 'description': 'Enable verbose output.',
-                'action': 'store_true',
+                'type': 'bool',
             },
             {
                 'name_or_flags': ['--config', '-c'],
@@ -207,7 +207,7 @@ def test_int_cli_config_repo_get_parent_arguments(
     assert len(parent_args) == 2
     assert parent_args[0].name_or_flags == ['--verbose', '-v']
     assert parent_args[0].description == 'Enable verbose output.'
-    assert parent_args[0].action == 'store_true'
+    assert parent_args[0].type == 'bool'
     assert parent_args[1].name_or_flags == ['--config', '-c']
     assert parent_args[1].description == 'Path to configuration file.'
 
@@ -318,7 +318,7 @@ def test_int_cli_config_repo_save_parent_arguments(
         CliArgumentAggregate(
             name_or_flags=['--debug', '-d'],
             description='Enable debug mode.',
-            action='store_true',
+            type='bool',
         ),
         CliArgumentAggregate(
             name_or_flags=['--output', '-o'],
@@ -338,6 +338,6 @@ def test_int_cli_config_repo_save_parent_arguments(
     assert len(reloaded_args) == 2
     assert reloaded_args[0].name_or_flags == ['--debug', '-d']
     assert reloaded_args[0].description == 'Enable debug mode.'
-    assert reloaded_args[0].action == 'store_true'
+    assert reloaded_args[0].type == 'bool'
     assert reloaded_args[1].name_or_flags == ['--output', '-o']
     assert reloaded_args[1].description == 'Output file path.'
