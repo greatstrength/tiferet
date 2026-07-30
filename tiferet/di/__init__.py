@@ -6,6 +6,9 @@ __all__ = [
     'DependenciesServiceProvider',
     'ServiceContainer',
     'ServiceResolver',
+    'DIAppServiceContainer',
+    'DIDynamicServiceContainer',
+    'DIDynamicServiceResolver',
     'injectable_parameter_names',
     'normalize_flags',
     'create_cache_key',
@@ -24,6 +27,11 @@ from .core import (
     ServiceResolver,
     injectable_parameter_names,
     normalize_flags,
+)
+from .dependency_injector import (
+    DIAppServiceContainer,
+    DIDynamicServiceContainer,
+    DIDynamicServiceResolver,
 )
 
 # Backward-compatible alias: downstream consumers importing
