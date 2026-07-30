@@ -11,6 +11,7 @@ import inspect
 from dependency_injector import containers, providers
 
 # ** app
+from .core import ServiceContainer as _ServiceContainerABC, ServiceResolver as _ServiceResolverABC
 from ..domain import ServiceRegistration
 from ..interfaces.di import DIService
 
@@ -141,6 +142,7 @@ def merge_settings(
 # *** classes
 
 # ** class: service_provider
+# -- obsolete: Superseded by core.ServiceContainer ABC. Retire in Parity V Story 17.
 class ServiceProvider(ABC):
     '''
     Service provider for app context dependencies.
@@ -211,11 +213,14 @@ class ServiceProvider(ABC):
         pass
 
 # ** class: service_container
-class ServiceContainer(object):
+class ServiceContainer(_ServiceContainerABC):
     '''
     A low-level dependency-injection engine backed by the dependency_injector
     DynamicContainer. Registers service types and constants and instantiates
     services with their constructor parameters wired to sibling registrations.
+
+    Inherits from core.ServiceContainer (the ABC), aligning this legacy,
+    dependency_injector-backed engine with the framework's DI contract.
     '''
 
     # * attribute: container
@@ -291,6 +296,21 @@ class ServiceContainer(object):
         for name, value in constants.items():
             self.container.set_provider(name, providers.Object(value))
 
+    # * method: add_constant
+    def add_constant(self, constant_id: str, value: Any):
+        '''
+        Register a single constant value in the container. Satisfies the
+        core.ServiceContainer ABC contract by delegating to add_constants.
+
+        :param constant_id: The constant identifier.
+        :type constant_id: str
+        :param value: The constant value.
+        :type value: Any
+        '''
+
+        # Delegate to the bulk registration method for a single entry.
+        self.add_constants({constant_id: value})
+
     # * method: get_service
     def get_service(self, service_id: str) -> Any:
         '''
@@ -309,6 +329,35 @@ class ServiceContainer(object):
         provider = self.container.providers.get(service_id)
         return provider()
 
+    # * method: get_dependency
+    def get_dependency(self, dependency_id: str) -> Any:
+        '''
+        Resolve a registered dependency by identifier. Satisfies the
+        core.ServiceContainer ABC contract by delegating to get_service.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: The resolved instance or value.
+        :rtype: Any
+        '''
+
+        # Delegate to the existing resolution method.
+        return self.get_service(dependency_id)
+
+    # * method: has_dependency
+    def has_dependency(self, dependency_id: str) -> bool:
+        '''
+        Return True when a dependency is registered under the given identifier.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        :return: True when registered, False otherwise.
+        :rtype: bool
+        '''
+
+        # Check the underlying container's provider registry.
+        return self.container.providers.get(dependency_id) is not None
+
     # * method: remove_service
     def remove_service(self, service_id: str):
         '''
@@ -321,6 +370,43 @@ class ServiceContainer(object):
         # Remove the provider if it exists; no-op for nonexistent IDs.
         if service_id in self.container.providers:
             delattr(self.container, service_id)
+
+    # * method: remove_dependency
+    def remove_dependency(self, dependency_id: str):
+        '''
+        Remove a registered dependency from the container. Idempotent.
+        Satisfies the core.ServiceContainer ABC contract by delegating to
+        remove_service.
+
+        :param dependency_id: The dependency identifier.
+        :type dependency_id: str
+        '''
+
+        # Delegate to the existing removal method.
+        self.remove_service(dependency_id)
+
+    # * method: load_container
+    def load_container(self,
+            services: Dict[str, type] = None,
+            constants: Dict[str, Any] = None,
+        ):
+        '''
+        Bulk-load the container from services and constants. Satisfies the
+        core.ServiceContainer ABC contract by delegating to add_constants and
+        add_services; constants are registered first so scalar parameter
+        values are available when factory kwargs are wired.
+
+        :param services: A mapping of service id to type or scalar value.
+        :type services: Dict[str, type] | None
+        :param constants: A mapping of constant id to value.
+        :type constants: Dict[str, Any] | None
+        '''
+
+        # Register constants first, then services.
+        if constants:
+            self.add_constants(constants)
+        if services:
+            self.add_services(services)
 
     # * method: build_factory
     def build_factory(self, service_type: type) -> providers.Factory:
@@ -344,11 +430,14 @@ class ServiceContainer(object):
         return providers.Factory(service_type, **kwargs)
 
 # ** class: service_resolver
-class ServiceResolver(object):
+class ServiceResolver(_ServiceResolverABC):
     '''
     The application service provider. Reads service registrations and constants
     from a DIService, merges typed bootstrap defaults beneath the repository's
     settings, and builds and caches a per-flag ServiceContainer.
+
+    Inherits from core.ServiceResolver (the ABC); build_container is already
+    implemented below and satisfies the abstract contract.
     '''
 
     # * attribute: di_service
@@ -383,6 +472,9 @@ class ServiceResolver(object):
         :type default_di_constants: Dict[str, Any] | None
         '''
 
+        # Initialize the per-flag container cache via the ABC base.
+        super().__init__()
+
         # Assign the DI service.
         self.di_service = di_service
 
@@ -392,9 +484,6 @@ class ServiceResolver(object):
         # Coerce optional default collections to empty dicts.
         self.default_config_index = default_config_index if default_config_index is not None else {}
         self.default_di_constants = default_di_constants if default_di_constants is not None else {}
-
-        # Initialize the per-flag container cache.
-        self._containers: Dict[str, ServiceContainer] = {}
 
     # * method: normalize_flags (static)
     @staticmethod
