@@ -1,11 +1,11 @@
 # *** exports
 
 __all__ = [
-    'ServiceProvider',
-    'DynamicServiceProvider',
-    'DependenciesServiceProvider',
     'ServiceContainer',
     'ServiceResolver',
+    'DIAppServiceContainer',
+    'DIDynamicServiceContainer',
+    'DIDynamicServiceResolver',
     'injectable_parameter_names',
     'normalize_flags',
     'create_cache_key',
@@ -13,19 +13,21 @@ __all__ = [
 ]
 
 # ** app
+# ServiceContainer / ServiceResolver here are the concrete, dependency_injector-
+# backed classes from .settings (now ABC-conformant), not the raw .core ABCs.
+# Import tiferet.di.core directly for the domain-only ABCs.
 from .settings import (
-    ServiceProvider,
+    ServiceContainer,
+    ServiceResolver,
     create_cache_key,
     merge_settings,
 )
-from .dynamic import DynamicServiceProvider
 from .core import (
-    ServiceContainer,
-    ServiceResolver,
     injectable_parameter_names,
     normalize_flags,
 )
-
-# Backward-compatible alias: downstream consumers importing
-# DependenciesServiceProvider will receive DynamicServiceProvider.
-DependenciesServiceProvider = DynamicServiceProvider
+from .dependency_injector import (
+    DIAppServiceContainer,
+    DIDynamicServiceContainer,
+    DIDynamicServiceResolver,
+)

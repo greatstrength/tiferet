@@ -10,6 +10,7 @@ from unittest import mock
 from tiferet.assets.exceptions import TiferetError
 from tiferet.domain import FlaggedDependency, ServiceRegistration
 from tiferet.interfaces.di import DIService
+from tiferet.di.core import ServiceContainer as ServiceContainerABC, ServiceResolver as ServiceResolverABC
 from tiferet.di.settings import (
     ServiceContainer,
     ServiceResolver,
@@ -408,6 +409,118 @@ def test_service_container_add_services_two_pass():
     assert isinstance(service, ConfigurableService)
     assert service.config_value == 'test_config'
 
+# ** test: add_services_two_pass_scalar_after_type
+def test_add_services_two_pass_scalar_after_type():
+    '''
+    Test that add_services resolves correctly when the scalar parameter is
+    listed AFTER the dependent type in dict insertion order (resolves #827).
+    '''
+
+    # Register the type BEFORE its scalar dependency in insertion order.
+    container = ServiceContainer()
+    container.add_services({
+        'configurable_service': ConfigurableService,
+        'config_value': 'test_config',
+    })
+
+    # Assert the service still resolves with the scalar injected.
+    service = container.get_service('configurable_service')
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'test_config'
+
+# ** test: service_container_is_core_abc_instance
+def test_service_container_is_core_abc_instance():
+    '''
+    Test that ServiceContainer satisfies the core.ServiceContainer ABC contract.
+    '''
+
+    # Assert the concrete container is an instance of the domain-only ABC.
+    assert isinstance(ServiceContainer(), ServiceContainerABC)
+
+# ** test: add_constant_alias
+def test_add_constant_alias():
+    '''
+    Test that add_constant registers a single value resolvable via get_dependency.
+    '''
+
+    # Register a constant via the singular ABC-aligned alias.
+    container = ServiceContainer()
+    container.add_constant('k', 'v')
+
+    # Assert the constant resolves via both the legacy and ABC-aligned accessors.
+    assert container.get_service('k') == 'v'
+    assert container.get_dependency('k') == 'v'
+
+# ** test: get_dependency_alias
+def test_get_dependency_alias():
+    '''
+    Test that get_dependency returns the same result as get_service.
+    '''
+
+    # Register a service and resolve it through both accessors.
+    container = ServiceContainer(services={'simple_service': SimpleService})
+
+    # Assert both accessors resolve to the expected type.
+    assert isinstance(container.get_service('simple_service'), SimpleService)
+    assert isinstance(container.get_dependency('simple_service'), SimpleService)
+
+# ** test: has_dependency_registered
+def test_has_dependency_registered():
+    '''
+    Test that has_dependency returns True for a registered id.
+    '''
+
+    # Register a constant and verify its presence.
+    container = ServiceContainer()
+    container.add_constant('k', 'v')
+
+    assert container.has_dependency('k') is True
+
+# ** test: has_dependency_unregistered
+def test_has_dependency_unregistered():
+    '''
+    Test that has_dependency returns False for an unknown id.
+    '''
+
+    # An empty container has no registrations.
+    container = ServiceContainer()
+
+    assert container.has_dependency('missing') is False
+
+# ** test: load_container
+def test_load_container():
+    '''
+    Test that load_container registers both services and constants, with the
+    constant available during service construction regardless of dict order.
+    '''
+
+    # Load a service and its dependent constant in a single call.
+    container = ServiceContainer()
+    container.load_container(
+        services={'configurable_service': ConfigurableService},
+        constants={'config_value': 'loaded_value'},
+    )
+
+    # Assert the service resolves with the constant wired in.
+    service = container.get_dependency('configurable_service')
+    assert isinstance(service, ConfigurableService)
+    assert service.config_value == 'loaded_value'
+
+# ** test: remove_dependency_alias
+def test_remove_dependency_alias():
+    '''
+    Test that remove_dependency deregisters a service, mirroring remove_service.
+    '''
+
+    # Remove the registered service via the ABC-aligned alias.
+    container = ServiceContainer(services={'simple_service': SimpleService})
+    container.remove_dependency('simple_service')
+
+    # Assert it was removed and is no longer resolvable.
+    assert container.has_dependency('simple_service') is False
+    with pytest.raises(Exception):
+        container.get_service('simple_service')
+
 # ** test: service_container_get_service_not_found
 def test_service_container_get_service_not_found():
     '''
@@ -717,3 +830,43 @@ def test_service_resolver_parse_parameter_injection(make_di_service):
     # Assert constant values are transformed by the injected parser.
     result = parsing_resolver.load_constants(constants={'key': 'value'})
     assert result == {'key': 'parsed:value'}
+
+# ** test: service_resolver_is_core_abc_instance
+def test_service_resolver_is_core_abc_instance(resolver: ServiceResolver):
+    '''
+    Test that ServiceResolver satisfies the core.ServiceResolver ABC contract.
+
+    :param resolver: The resolver fixture.
+    :type resolver: ServiceResolver
+    '''
+
+    # Assert the concrete resolver is an instance of the domain-only ABC.
+    assert isinstance(resolver, ServiceResolverABC)
+
+# ** test: service_resolver_build_container_renamed
+def test_service_resolver_build_container_renamed(resolver: ServiceResolver):
+    '''
+    Test that build_container exists (renamed from build_type_map) and is
+    called by get_dependency to resolve a service.
+
+    :param resolver: The resolver fixture.
+    :type resolver: ServiceResolver
+    '''
+
+    # Call build_container directly and assert it returns a valid container.
+    container = resolver.build_container([])
+    assert isinstance(container, ServiceContainer)
+
+    # Assert get_dependency (which delegates to build_container) resolves correctly.
+    assert isinstance(resolver.get_dependency('simple_service'), SimpleService)
+
+# ** test: dynamic_service_provider_import_removed
+def test_dynamic_service_provider_import_removed():
+    '''
+    Test that DynamicServiceProvider is no longer importable from tiferet.di,
+    confirming the legacy dynamic.py module has been retired.
+    '''
+
+    # Assert the import raises ImportError now that dynamic.py is retired.
+    with pytest.raises(ImportError):
+        from tiferet.di import DynamicServiceProvider  # noqa: F401

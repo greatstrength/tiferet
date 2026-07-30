@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 
 # ** app
 from ..contexts.app import AppInterfaceContext
-from ..di import ServiceProvider, DynamicServiceProvider
+from ..di import ServiceContainer
 from .. import assets as a
 from ..domain import (
     AppInterface,
@@ -24,10 +24,10 @@ from ..events.app import GetAppInterface
 
 # ** blueprint: create_service_provider
 def create_service_provider(
-    provider_type: type = DynamicServiceProvider,
+    provider_type: type = ServiceContainer,
     type_map: Dict[str, type] = None,
     **constants
-) -> ServiceProvider:
+) -> ServiceContainer:
     '''
     Create a service provider from a type map and constants.
 
@@ -38,7 +38,7 @@ def create_service_provider(
     :param constants: Constant parameters to register in the provider.
     :type constants: dict
     :return: The configured service provider instance.
-    :rtype: ServiceProvider
+    :rtype: ServiceContainer
     '''
 
     # Create the provider and register constants first so that
@@ -102,7 +102,7 @@ def load_default_services() -> List[AppServiceDependency]:
 # ** blueprint: load_app_instance
 def load_app_instance(
     app_interface: AppInterface,
-    service_provider: ServiceProvider = None,
+    service_provider: ServiceContainer = None,
 ) -> Any:
     '''
     Load the concrete app interface context instance.
@@ -111,7 +111,7 @@ def load_app_instance(
     :type app_interface: AppInterface
     :param service_provider: The service provider to use for resolution.
         When None, a fresh provider is created.
-    :type service_provider: ServiceProvider
+    :type service_provider: ServiceContainer
     :return: The resolved app interface context.
     :rtype: Any
     '''
@@ -190,7 +190,7 @@ def resolve_interface(
 def realize_interface(
     app_interface: AppInterface,
     interface_id: str,
-    service_provider: ServiceProvider = None,
+    service_provider: ServiceContainer = None,
 ) -> AppInterfaceContext:
     '''
     Build and validate the concrete app interface context from a resolved interface.
@@ -200,7 +200,7 @@ def realize_interface(
     :param interface_id: The interface ID (used in error messages).
     :type interface_id: str
     :param service_provider: Optional service provider; a fresh one is created if None.
-    :type service_provider: ServiceProvider
+    :type service_provider: ServiceContainer
     :return: The validated app interface context.
     :rtype: AppInterfaceContext
     '''
