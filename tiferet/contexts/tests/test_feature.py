@@ -9,11 +9,11 @@ from unittest import mock
 
 # ** app
 from ..feature import (
-    DIContext,
     FeatureContext,
     RequestContext,
 )
 from ...assets import TiferetError
+from ...di import ServiceResolver
 from ...events import DomainEvent
 from ...domain import (
     Feature,
@@ -36,15 +36,15 @@ def get_feature_evt() -> DomainEvent:
 # ** fixture: services_context
 @pytest.fixture
 def services_context(test_command):
-    """Fixture to provide a mock DI context."""
+    """Fixture to provide a mock service resolver."""
 
-    # Create a mock DI context.
-    services_context = mock.Mock(spec=DIContext)
+    # Create a mock service resolver.
+    services_context = mock.Mock(spec=ServiceResolver)
 
-    # Set the DI service to return the test command when requested.
+    # Set the service resolver to return the test command when requested.
     services_context.get_dependency.return_value = test_command
 
-    # Return the mock DI context.
+    # Return the mock service resolver.
     return services_context
 
 # ** fixture: feature_context
@@ -245,7 +245,7 @@ def test_feature_context_load_feature_step_without_flags(feature_context, servic
 
 # ** test: feature_context_load_feature_step_failed
 def test_feature_context_load_feature_step_failed(feature_context, services_context):
-    """Test loading a feature step that does not exist in the DIContext."""
+    """Test loading a feature step that does not exist in the service resolver."""
 
     # Add a side effect to raise an exception when the service is not found.
     services_context.get_dependency.side_effect = TiferetError(

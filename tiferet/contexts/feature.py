@@ -5,9 +5,9 @@ import re
 from typing import Any, Callable
 
 # ** app
-from .di import DIContext
 from .cache import CacheContext
 from .request import RequestContext
+from ..di import ServiceResolver
 from ..assets.error import (
     FEATURE_COMMAND_LOADING_FAILED_ID,
     REQUEST_NOT_FOUND_ID,
@@ -26,7 +26,7 @@ from ..domain import Feature, FeatureEvent
 class FeatureContext(object):
 
     # * attribute: services
-    services: DIContext
+    services: ServiceResolver
 
     # * attribute: cache
     cache: CacheContext
@@ -37,15 +37,15 @@ class FeatureContext(object):
     # * init
     def __init__(self,
             get_feature_evt: DomainEvent,
-            services: DIContext,
+            services: ServiceResolver,
             cache: CacheContext = None):
         '''
         Initialize the feature context.
 
         :param get_feature_evt: The event used to retrieve features.
         :type get_feature_evt: DomainEvent
-        :param services: The DI context for dependency injection.
-        :type services: DIContext
+        :param services: The service resolver for dependency injection.
+        :type services: ServiceResolver
         :param cache: The cache context to use for caching feature data.
         :type cache: CacheContext
         '''
