@@ -54,6 +54,9 @@ INVALID_FEATURE_COMMAND_ATTRIBUTE_ID = 'INVALID_FEATURE_COMMAND_ATTRIBUTE'
 # ** constant: feature_command_not_found_id
 FEATURE_COMMAND_NOT_FOUND_ID = 'FEATURE_COMMAND_NOT_FOUND'
 
+# ** constant: feature_step_loading_failed_id
+FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
+
 # ** constant: app_session_not_found_id
 APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
 
@@ -220,9 +223,6 @@ INVALID_APP_INTERFACE_TYPE_ID = 'INVALID_APP_INTERFACE_TYPE'
 # -- obsolete: Retire in Parity V Story 13 (#911)
 APP_INTERFACE_NOT_FOUND_ID = 'APP_INTERFACE_NOT_FOUND'
 
-# ** constant: feature_command_loading_failed_id
-FEATURE_COMMAND_LOADING_FAILED_ID = 'FEATURE_COMMAND_LOADING_FAILED'
-
 # ** constant: app_repository_import_failed_id
 APP_REPOSITORY_IMPORT_FAILED_ID = 'APP_REPOSITORY_IMPORT_FAILED'
 
@@ -305,11 +305,11 @@ FEATURE_COMMAND_NOT_FOUND = create_default_error(
     [(EN_US, 'Feature command not found for feature {feature_id} at position {position}.')],
 )
 
-# ** constant: feature_command_loading_failed
-FEATURE_COMMAND_LOADING_FAILED = create_default_error(
-    FEATURE_COMMAND_LOADING_FAILED_ID,
-    'Feature Command Loading Failed',
-    [(EN_US, 'Failed to load feature command attribute: {service_id}. Error: {exception}.')],
+# ** constant: feature_step_loading_failed
+FEATURE_STEP_LOADING_FAILED = create_default_error(
+    FEATURE_STEP_LOADING_FAILED_ID,
+    'Feature Step Loading Failed',
+    [(EN_US, 'Failed to load feature step: {service_id}. Error: {exception}.')],
 )
 
 # ** constant: invalid_model_attribute
@@ -779,7 +779,7 @@ DEFAULT_ERRORS = {
     INVALID_FEATURE_ATTRIBUTE_ID: INVALID_FEATURE_ATTRIBUTE,
     INVALID_FEATURE_COMMAND_ATTRIBUTE_ID: INVALID_FEATURE_COMMAND_ATTRIBUTE,
     FEATURE_COMMAND_NOT_FOUND_ID: FEATURE_COMMAND_NOT_FOUND,
-    FEATURE_COMMAND_LOADING_FAILED_ID: FEATURE_COMMAND_LOADING_FAILED,
+    FEATURE_STEP_LOADING_FAILED_ID: FEATURE_STEP_LOADING_FAILED,
     INVALID_MODEL_ATTRIBUTE_ID: INVALID_MODEL_ATTRIBUTE,
     INVALID_APP_INTERFACE_TYPE_ID: INVALID_APP_INTERFACE_TYPE,
     ATTRIBUTE_ALREADY_EXISTS_ID: ATTRIBUTE_ALREADY_EXISTS,
