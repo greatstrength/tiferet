@@ -47,7 +47,7 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
             for error_id, error_data in errors.items():
                 cache.set(
                     error_id,
-                    Error.model_validate({**error_data, 'id': error_id}),
+                    Error.model_validate(error_data),
                     *ERROR_CACHE_PREFIX,
                 )
 
