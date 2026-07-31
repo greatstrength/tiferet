@@ -11,6 +11,10 @@ from typing import Any, Dict, Tuple
 class CacheContext(object):
     '''
     A context for managing namespaced cache operations within Tiferet applications.
+
+    Items are stored in namespaces addressed by a prefix; omitting the prefix
+    addresses the root namespace, preserving backward compatibility for callers
+    that pass only a key.
     '''
 
     # * attribute: cache (private)

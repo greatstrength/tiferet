@@ -27,7 +27,7 @@ class ContextMeta(type):
     registry: ClassVar[Dict[Type[DomainObject], Type['BaseContext']]] = {}
 
     # * method: __new__
-    def __new__(mcs, name, bases, namespace):
+    def __new__(mcs, name, bases, namespace, **kwargs):
         '''
         Create the class and register it when ``domain_type`` is declared in
         the class's own namespace.
@@ -38,12 +38,14 @@ class ContextMeta(type):
         :type bases: tuple
         :param namespace: The class's own namespace (not the inherited one).
         :type namespace: dict
+        :param kwargs: Additional class keyword arguments.
+        :type kwargs: dict
         :return: The newly created class.
         :rtype: type
         '''
 
         # Create the class via the standard metaclass machinery.
-        cls = super().__new__(mcs, name, bases, namespace)
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
 
         # Register the class only when domain_type is declared in its own namespace.
         domain_type = namespace.get('domain_type')
