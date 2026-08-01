@@ -99,7 +99,6 @@ class AddAppSession(AppEvent):
         # Return the created AppSession instance.
         return app_session
 
-
 # ** event: get_app_session
 class GetAppSession(AppEvent):
     '''
@@ -133,7 +132,6 @@ class GetAppSession(AppEvent):
 
         # Return the loaded application session.
         return app_session
-
 
 # ** event: update_app_session
 class UpdateAppSession(AppEvent):
@@ -193,7 +191,6 @@ class UpdateAppSession(AppEvent):
         # Return the updated app session.
         return app_session
 
-
 # ** event: list_app_sessions
 class ListAppSessions(AppEvent):
     '''
@@ -213,7 +210,6 @@ class ListAppSessions(AppEvent):
 
         # Delegate to the app service to retrieve all sessions.
         return self.app_service.list()
-
 
 # ** event: remove_app_session
 class RemoveAppSession(AppEvent):
@@ -237,7 +233,6 @@ class RemoveAppSession(AppEvent):
 
         # Delegate deletion to the app service (idempotent operation).
         self.app_service.delete(id)
-
 
 # ** event: add_app_interface
 # -- obsolete: Superseded by AddAppSession. Retire in Parity V Story 13.

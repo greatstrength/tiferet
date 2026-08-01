@@ -116,7 +116,6 @@ class TestAppEvent:
         assert AppEvent(app_service=service).app_service is service
         assert GetAppInterface(app_service=service).app_service is service
 
-
 # ** test: TestAddAppInterface
 class TestAddAppInterface(DomainEventTestBase):
     '''
@@ -245,7 +244,6 @@ class TestAddAppInterface(DomainEventTestBase):
         assert interface.constants == {}
         mock_dependencies['app_service'].save.assert_called_once_with(interface)
 
-
 # ** test: TestGetAppInterface
 class TestGetAppInterface(ServiceEventTestBase):
     '''
@@ -310,7 +308,6 @@ class TestGetAppInterface(ServiceEventTestBase):
         assert result is domain_interface
         mock_dependencies['app_service'].get.assert_called_once_with('test.interface')
 
-
 # ** test: TestListAppInterfaces
 class TestListAppInterfaces(DomainEventTestBase):
     '''
@@ -363,7 +360,6 @@ class TestListAppInterfaces(DomainEventTestBase):
         # Assert that the returned list matches the configured interfaces.
         assert result == [app_interface, another_interface]
         mock_dependencies['app_service'].list.assert_called_once_with()
-
 
 # ** test: TestSetServiceDependency
 class TestSetServiceDependency(ServiceEventTestBase):
@@ -749,7 +745,6 @@ class TestSetAppConstants(ServiceEventTestBase):
         # The updated interface should be saved.
         mock_dependencies['app_service'].save.assert_called_once_with(app_interface)
 
-
 # ** test: TestRemoveServiceDependency
 class TestRemoveServiceDependency(ServiceEventTestBase):
     '''
@@ -886,7 +881,6 @@ class TestRemoveAppInterface(DomainEventTestBase):
         assert result == 'missing.interface'
         mock_dependencies['app_service'].delete.assert_called_once_with('missing.interface')
 
-
 # ** test: TestAddAppSession
 class TestAddAppSession(DomainEventTestBase):
     '''
@@ -964,7 +958,6 @@ class TestAddAppSession(DomainEventTestBase):
         # Assert the session is persisted.
         mock_dependencies['app_service'].save.assert_called_once()
 
-
 # ** test: TestGetAppSession
 class TestGetAppSession(ServiceEventTestBase):
     '''
@@ -1027,7 +1020,6 @@ class TestGetAppSession(ServiceEventTestBase):
 
         # Assert the correct error code.
         assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
-
 
 # ** test: TestUpdateAppSession
 class TestUpdateAppSession(ServiceEventTestBase):
@@ -1106,7 +1098,6 @@ class TestUpdateAppSession(ServiceEventTestBase):
         assert result.name == 'Only Name Updated'
         assert result.logger_id == 'default'
 
-
 # ** test: TestListAppSessions
 class TestListAppSessions(DomainEventTestBase):
     '''
@@ -1138,7 +1129,6 @@ class TestListAppSessions(DomainEventTestBase):
         # Assert the returned list matches the configured sessions.
         assert result == sessions
         mock_dependencies['app_service'].list.assert_called_once_with()
-
 
 # ** test: TestRemoveAppSession
 class TestRemoveAppSession(DomainEventTestBase):
