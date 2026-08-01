@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict
 
 # ** app
-from ..contexts.app import get_default_app_constants, get_default_app_services
+from ..contexts.app import AppSession, get_default_app_constants, get_default_app_services
 from ..contexts.cache import CacheContext
 from ..di import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
@@ -33,7 +33,7 @@ def parse_parameter(parameter: Any) -> Any:
 
 # ** blueprint: build_app_service_container
 def build_app_service_container(cache,
-        app_instance: Any = None,
+        app_instance: AppSession = None,
         service_container: type = DIAppServiceContainer) -> DIAppServiceContainer:
     '''
     Build the singleton app service container from cache-seeded defaults
@@ -47,7 +47,7 @@ def build_app_service_container(cache,
     :type cache: CacheContext
     :param app_instance: The loaded app session whose own services and
         constants override the cache defaults.
-    :type app_instance: Any
+    :type app_instance: AppSession
     :param service_container: The concrete DI app service container class.
     :type service_container: type
     :return: The built app service container.
@@ -59,8 +59,8 @@ def build_app_service_container(cache,
     default_constants = get_default_app_constants(cache)
 
     # Retrieve the session's own service and constant overrides.
-    session_services = list(getattr(app_instance, 'services', None) or [])
-    session_constants = dict(getattr(app_instance, 'constants', None) or {})
+    session_services = app_instance.services if app_instance is not None else []
+    session_constants = app_instance.constants if app_instance is not None else {}
 
     # Merge session services over defaults, keyed by service_id.
     merged_services_by_id = {service.service_id: service for service in default_services}
