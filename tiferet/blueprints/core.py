@@ -25,9 +25,54 @@ from ..contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from ..contexts.logging import LoggingContext, add_default_logging_settings, get_default_logging_settings
 from ..contexts.request import RequestContext
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
-from ..di.core import ServiceResolver
+from ..di.core import ServiceResolver, injectable_parameter_names
 from ..domain import Error, Feature, LoggingSettings, ServiceDependency
 from ..events import ParseParameter
+
+# *** constants
+
+# ** constant: reserved_context_parameters
+# Constructor parameters supplied explicitly by build_app_session_context, and
+# therefore excluded from generic collaborator resolution.
+RESERVED_CONTEXT_PARAMETERS = (
+    'get_dependency',
+    'cache',
+    'logging_context',
+    'execute_feature_handler',
+    'create_request_handler',
+    'raise_error_handler',
+    'response_handler',
+)
+
+# *** functions
+
+# ** function: resolve_collaborators
+def resolve_collaborators(context_cls: type, app_container: DIAppServiceContainer) -> Dict[str, Any]:
+    '''
+    Resolve a context class's remaining injectable collaborators from the app container.
+
+    Inspects the realized context class's constructor and resolves every
+    injectable parameter that is registered on the app container, skipping the
+    parameters build_app_session_context supplies explicitly and the bootstrap
+    ``default_*`` parameters. This is the seam that lets a context subclass
+    declare extra collaborators and have them wired declaratively.
+
+    :param context_cls: The realized context class to inspect.
+    :type context_cls: type
+    :param app_container: The built app service container to resolve against.
+    :type app_container: DIAppServiceContainer
+    :return: A mapping of collaborator name to resolved instance.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Resolve each injectable parameter that is neither reserved nor a bootstrap default.
+    return {
+        name: app_container.get_dependency(name)
+        for name in injectable_parameter_names(context_cls)
+        if name not in RESERVED_CONTEXT_PARAMETERS
+        and not name.startswith('default_')
+        and app_container.has_dependency(name)
+    }
 
 # *** blueprints
 
@@ -282,7 +327,8 @@ def create_app_service(module_path: str,
     :type module_path: str
     :param class_name: The class name of the app service implementation.
     :type class_name: str
-    :param parameters: Optional constructor parameters for the app service.
+    :param parameters: Optional constructor parameters for the app service;
+        defaults to the framework app service parameters when omitted.
     :type parameters: Dict[str, Any] | None
     :param service_container: The DI container class used to resolve the service.
     :type service_container: type
@@ -290,12 +336,15 @@ def create_app_service(module_path: str,
     :rtype: Any
     '''
 
+    # Fall back to the framework default parameters when none are supplied.
+    parameters = parameters if parameters else a.app.DEFAULT_APP_SERVICE_PARAMETERS
+
     # Build a function-scoped container describing the single app service.
     container = service_container(services={
         'app_service': ServiceDependency(
             module_path=module_path,
             class_name=class_name,
-            parameters=parameters or {},
+            parameters=parameters,
         ),
     })
 
@@ -509,6 +558,9 @@ def build_app_session_context(app_session: AppSession, cache: CacheContext, **co
     execute_feature = execute_feature_handler(resolver.get_dependency, cache)
     raise_error = raise_error_handler(get_error(cache, resolver.get_dependency))
 
+    # Resolve any remaining injectable collaborators the context class declares.
+    collaborators = resolve_collaborators(AppSessionContext, app_container)
+
     # Construct and return the wired app session context.
     return AppSessionContext.from_domain(
         app_session,
@@ -519,6 +571,7 @@ def build_app_session_context(app_session: AppSession, cache: CacheContext, **co
         raise_error_handler=raise_error,
         response_handler=response_handler,
         create_request_handler=create_session_request,
+        **collaborators,
         **context_kwargs,
     )
 

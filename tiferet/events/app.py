@@ -173,7 +173,7 @@ class UpdateAppSession(AppEvent):
             expression=app_session is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            id=id,
+            interface_id=id,
         )
 
         # Update each provided scalar attribute via the aggregate method.

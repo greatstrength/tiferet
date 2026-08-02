@@ -1085,6 +1085,45 @@ class TestUpdateAppSession(ServiceEventTestBase):
         # Assert the updated session was persisted.
         mock_dependencies['app_service'].save.assert_called_once_with(result)
 
+    # * method: test_update_app_session_not_found
+    def test_update_app_session_not_found(self, mock_dependencies):
+        '''
+        Test that UpdateAppSession raises APP_SESSION_NOT_FOUND_ID when the session is missing.
+        '''
+
+        # Configure the service mock to report the session as missing.
+        mock_dependencies['app_service'].get.return_value = None
+
+        # Execute and expect the not-found error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id='missing.session')
+
+        # Assert the correct error code was raised.
+        assert exc_info.value.error_code == a.error.APP_SESSION_NOT_FOUND_ID
+
+        # Assert the error carries the interface_id kwarg the message template formats on.
+        assert exc_info.value.kwargs.get('interface_id') == 'missing.session'
+
+        # Assert no save was attempted for a missing session.
+        mock_dependencies['app_service'].save.assert_not_called()
+
+    # * method: test_update_app_session_missing_id
+    def test_update_app_session_missing_id(self, mock_dependencies):
+        '''
+        Test that UpdateAppSession enforces the required id parameter.
+        '''
+
+        # Execute without an id and expect the required-parameter error.
+        with pytest.raises(TiferetError) as exc_info:
+            self.handle(mock_dependencies, id=None)
+
+        # Assert the correct error code names the missing parameter.
+        assert exc_info.value.error_code == a.error.COMMAND_PARAMETER_REQUIRED_ID
+        assert 'id' in str(exc_info.value)
+
+        # Assert the service was never consulted.
+        mock_dependencies['app_service'].get.assert_not_called()
+
     # * method: test_update_app_session_partial_leaves_unset_fields_unchanged
     def test_update_app_session_partial_leaves_unset_fields_unchanged(self, mock_dependencies):
         '''

@@ -535,10 +535,12 @@ class AppSessionContext(BaseContext):
         logger = self.load_logging_context().build_logger()
 
         # Build the request context.
-        request = self.build_request(feature_id, headers, data)
+        logger.debug(f'Building request for feature: {feature_id}')
+        request = self.build_request(feature_id, headers or {}, data or {})
 
         # Execute the feature, handling any structured error.
         try:
+            logger.debug(f'Executing feature: {feature_id} with request: {request.data}')
             self.execute_feature(feature_id, request, logger=logger, **kwargs)
 
         # Handle the error and return the error response if one is raised.
@@ -550,6 +552,7 @@ class AppSessionContext(BaseContext):
         duration_ms = round((time.perf_counter() - start_time) * 1000)
 
         # Log successful execution with timing.
+        logger.debug(f'Feature {feature_id} executed successfully, building response.')
         logger.info(f'Executed Feature - {feature_id} ({duration_ms}ms)')
 
         # Build and return the response.

@@ -102,15 +102,15 @@ TEST_CALC_CONFIG = {
             },
         },
     },
-    'interfaces': {
+    'sessions': {
         'test_calc': {
             'name': 'Integration Test - Basic Int Calculator',
-            'description': 'The interface instance for testing the calculator features.',
+            'description': 'The session instance for testing the calculator features.',
             'constants': {
-                'feature_yaml_file': None,
-                'error_yaml_file': None,
-                'di_yaml_file': None,
-                'logging_yaml_file': None,
+                'feature_config': None,
+                'error_config': None,
+                'di_config': None,
+                'logging_config': None,
             },
         },
     },
@@ -134,10 +134,10 @@ def test_calc_yaml_file(tmp_path):
     # Define the temporary file path.
     file_path = tmp_path / 'test_calc.yml'
 
-    # Deep copy the config and set all yaml file paths to the temp file.
+    # Deep copy the config and set all config file paths to the temp file.
     config = copy.deepcopy(TEST_CALC_CONFIG)
-    for key in ('feature_yaml_file', 'error_yaml_file', 'di_yaml_file', 'logging_yaml_file'):
-        config['interfaces']['test_calc']['constants'][key] = str(file_path)
+    for key in ('feature_config', 'error_config', 'di_config', 'logging_config'):
+        config['sessions']['test_calc']['constants'][key] = str(file_path)
 
     # Write the configuration to the temporary YAML file.
     with open(str(file_path), 'w', encoding='utf-8') as f:
@@ -154,12 +154,12 @@ def basic_calc(test_calc_yaml_file):
 
     :param test_calc_yaml_file: The path to the temporary test calculator YAML file.
     :type test_calc_yaml_file: str
-    :return: The loaded basic calculator interface context.
-    :rtype: AppInterfaceContext
+    :return: The loaded basic calculator app session context.
+    :rtype: AppSessionContext
     '''
 
-    # Build and return the test_calc interface context.
-    return App('test_calc', app_yaml_file=test_calc_yaml_file)
+    # Build and return the test_calc app session context.
+    return App('test_calc', app_config=test_calc_yaml_file)
 
 # *** tests
 

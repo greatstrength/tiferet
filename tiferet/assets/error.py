@@ -858,6 +858,9 @@ DEFAULT_ERRORS = {
 }
 
 # ** constant: core_default_errors
-# Alias matching the CORE_DEFAULT_* naming convention used by other bootstrap
-# catalogs (assets/app.py, assets/logging.py) for the build_cache decorator stack.
+# ++ todo: Stopgap alias only. CORE_DEFAULT_ERRORS is intended to be the core
+# tier of a tiered catalog, with DEFAULT_ERRORS derived from it alongside the
+# admin/sqlite/toml/csv tiers. Aliasing it to the full catalog here inverts that
+# relationship and seeds every error into the core app cache. Retire this alias
+# when the tiered restructure lands in #947.
 CORE_DEFAULT_ERRORS = DEFAULT_ERRORS

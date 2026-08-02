@@ -18,6 +18,7 @@ __all__ = [
     'SqliteClient',
     'Sqlite',
     'LoggingMiddleware',
+    'CacheMiddleware',
     'TimingMiddleware',
 ]
 
@@ -28,4 +29,4 @@ from .yaml import YamlLoader, YamlLoader as Yaml
 from .toml import TomlLoader, TomlLoader as Toml
 from .csv import CsvLoader, CsvLoader as Csv, CsvDictLoader, CsvDictLoader as CsvDict
 from .sqlite import SqliteClient, SqliteClient as Sqlite
-from .middleware import LoggingMiddleware, TimingMiddleware
+from .core import LoggingMiddleware, CacheMiddleware, TimingMiddleware
