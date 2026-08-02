@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Tuple
 from ..assets import TiferetAPIError
 from ..domain import (
     DomainObject,
+    CliArgument,
     CliCommand,
     CliRecord,
     CliOutputRecord,

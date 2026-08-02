@@ -537,7 +537,6 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
         required=True,
         nargs='?',
         choices=['DEBUG', 'INFO', 'WARNING'],
-        action='store',
     )
 
     # Assert all optional fields are present with correct values.
@@ -548,7 +547,6 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
     assert result['required'] is True
     assert result['nargs'] == '?'
     assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
-    assert result['action'] == 'store'
 
 # ** test: create_default_cli_command_returns_required_fields
 def test_create_default_cli_command_returns_required_fields():

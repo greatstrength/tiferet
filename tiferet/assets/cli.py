@@ -195,10 +195,12 @@ APP_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--flags'],
             description='Optional JSON-encoded list of flags.',
+            type='json',
         ),
         create_default_cli_argument(
             name_or_flags=['--constants'],
             description='Optional JSON-encoded constants dictionary.',
+            type='json',
         ),
     ],
 )
@@ -253,6 +255,7 @@ APP_SET_SERVICE_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--parameters'],
             description='Optional JSON-encoded parameters dictionary.',
+            type='json',
         ),
     ],
 )
@@ -291,6 +294,7 @@ APP_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--constants'],
             description='Optional JSON-encoded constants dictionary. Omit to clear all constants.',
+            type='json',
         ),
     ],
 )
@@ -365,6 +369,7 @@ CLI_ADD_ARGUMENT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--name-or-flags'],
             description='JSON-encoded list of argument names or flags.',
+            type='json',
             required=True,
         ),
         create_default_cli_argument(
@@ -385,7 +390,7 @@ ERROR_LIST_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--include-defaults'],
             description='Include built-in default error definitions.',
-            action='store_true',
+            type='bool',
         ),
     ],
 )
@@ -596,6 +601,7 @@ FEATURE_ADD_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--parameters'],
             description='Optional JSON-encoded step parameters.',
+            type='json',
         ),
         create_default_cli_argument(
             name_or_flags=['--data-key'],
@@ -604,7 +610,7 @@ FEATURE_ADD_STEP_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--pass-on-error'],
             description='Continue execution if this step raises an error.',
-            action='store_true',
+            type='bool',
         ),
         create_default_cli_argument(
             name_or_flags=['--position'],
@@ -734,6 +740,7 @@ SERVICE_ADD_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--parameters'],
             description='Optional JSON-encoded parameters dictionary.',
+            type='json',
         ),
     ],
 )
@@ -761,6 +768,7 @@ SERVICE_SET_DEFAULT_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--parameters'],
             description='Optional JSON-encoded parameters dictionary.',
+            type='json',
         ),
     ],
 )
@@ -792,6 +800,7 @@ SERVICE_SET_DEPENDENCY_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--parameters'],
             description='Optional JSON-encoded parameters dictionary.',
+            type='json',
         ),
     ],
 )
@@ -826,6 +835,7 @@ SERVICE_SET_CONSTANTS_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--constants'],
             description='Optional JSON-encoded constants dictionary. Omit to clear all.',
+            type='json',
         ),
     ],
 )
@@ -986,7 +996,7 @@ LOGGING_ADD_LOGGER_CLI_CMD: Dict[str, Any] = create_default_cli_command(
         create_default_cli_argument(
             name_or_flags=['--no-propagate'],
             description='Disable message propagation.',
-            action='store_true',
+            type='bool',
         ),
     ],
 )
