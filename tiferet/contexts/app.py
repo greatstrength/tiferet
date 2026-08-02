@@ -431,9 +431,12 @@ class AppSessionContext(BaseContext):
         )
 
     # * method: execute_feature
-    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs) -> Any:
+    def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
         '''
         Execute a feature against the given request.
+
+        The execution result is accumulated on the request context; result
+        extraction is the responsibility of the response step.
 
         :param feature_id: The identifier of the feature to execute.
         :type feature_id: str
@@ -441,20 +444,19 @@ class AppSessionContext(BaseContext):
         :type request: RequestContext
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: The result of the feature execution.
-        :rtype: Any
         '''
 
         # Delegate to the injected feature-execution handler when wired.
         if self._execute_feature:
-            return self._execute_feature(feature_id, request, **kwargs)
+            self._execute_feature(feature_id, request, **kwargs)
+            return
 
         # Otherwise resolve the registered FeatureContext and drive it directly
         # against a feature pre-seeded on the shared cache.
         feature_context_cls = BaseContext.for_domain(Feature)
         feature_context = feature_context_cls(get_dependency=self.get_dependency, cache=self.cache)
         feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
-        return feature_context.execute_feature(feature, request, **kwargs)
+        feature_context.execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:

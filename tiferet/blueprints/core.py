@@ -470,16 +470,19 @@ def execute_feature_handler(get_dependency: Callable, cache: CacheContext) -> Ca
     :type get_dependency: Callable
     :param cache: The bootstrap cache used for lazy feature caching.
     :type cache: CacheContext
-    :return: A handler closure executing a feature against a request.
+    :return: A void handler closure executing a feature against a request.
     :rtype: Callable
     '''
 
     # Return the handler closure bound to the resolver and cache.
-    def handler(feature_id: str, request: RequestContext, **kwargs) -> Any:
+    def handler(feature_id: str, request: RequestContext, *flags, **kwargs) -> None:
 
-        # Resolve the feature and its bound context, then execute the feature.
+        # Resolve the feature and its bound context.
         feature, feature_context = create_feature_context(get_dependency, cache, feature_id)
-        return feature_context.execute_feature(feature, request, **kwargs)
+
+        # Drive execution; the result is accumulated on the request context and
+        # result extraction is the responsibility of the response step.
+        feature_context.execute_feature(feature, request, *flags, **kwargs)
 
     # Return the closure.
     return handler

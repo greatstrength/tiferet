@@ -496,10 +496,34 @@ def test_execute_feature_handler_drives_feature_context():
     handler = execute_feature_handler(get_dependency, cache)
     request = RequestContext(feature_id='test.feature')
     with mock.patch.object(FeatureContext, 'execute_feature') as mock_execute:
-        handler('test.feature', request)
+        result = handler('test.feature', request)
 
     # Assert the feature context was driven with the resolved feature.
     mock_execute.assert_called_once_with(feature, request)
+
+    # Assert the handler is void; the result accrues on the request context.
+    assert result is None
+
+# ** test: execute_feature_handler_forwards_flags
+def test_execute_feature_handler_forwards_flags():
+    '''
+    Test that the execute_feature_handler closure forwards execution flags to FeatureContext.execute_feature.
+    '''
+
+    # Seed the cache with a Feature domain object.
+    cache = CacheContext()
+    feature = Feature(id='test.feature', name='Test Feature')
+    cache.set('test.feature', feature, *FEATURE_CACHE_PREFIX)
+    get_dependency = mock.Mock()
+
+    # Build the handler and execute it with execution flags.
+    handler = execute_feature_handler(get_dependency, cache)
+    request = RequestContext(feature_id='test.feature')
+    with mock.patch.object(FeatureContext, 'execute_feature') as mock_execute:
+        handler('test.feature', request, 'flag_one', 'flag_two', logger=None)
+
+    # Assert the execution flags were forwarded positionally to the feature context.
+    mock_execute.assert_called_once_with(feature, request, 'flag_one', 'flag_two', logger=None)
 
 # ** test: raise_error_handler_formats_and_raises
 def test_raise_error_handler_formats_and_raises():
