@@ -845,3 +845,8 @@ DEFAULT_ERRORS = {
     SQLITE_CONN_NOT_INITIALIZED_ID: SQLITE_CONN_NOT_INITIALIZED,
     CONTEXT_NOT_FOUND_ID: CONTEXT_NOT_FOUND,
 }
+
+# ** constant: core_default_errors
+# Alias matching the CORE_DEFAULT_* naming convention used by other bootstrap
+# catalogs (assets/app.py, assets/logging.py) for the build_cache decorator stack.
+CORE_DEFAULT_ERRORS = DEFAULT_ERRORS
