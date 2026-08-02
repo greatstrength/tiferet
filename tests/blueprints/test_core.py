@@ -3,10 +3,12 @@
 # *** imports
 
 # ** infra
+import pytest
 from unittest import mock
 
 # ** app
 from tiferet import assets as a
+from tiferet.assets import TiferetAPIError, TiferetError
 from tiferet.blueprints.core import (
     parse_parameter,
     build_app_service_container,
@@ -18,6 +20,14 @@ from tiferet.blueprints.core import (
     build_logging_context,
     create_app_service,
     get_app_session,
+    create_request_context,
+    create_feature_context,
+    create_session_request,
+    execute_feature_handler,
+    raise_error_handler,
+    response_handler,
+    build_app_session_context,
+    build_app,
 )
 from tiferet.contexts.app import (
     add_default_app_services,
@@ -28,7 +38,7 @@ from tiferet.contexts.app import (
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
-from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
+from tiferet.contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from tiferet.contexts.logging import LoggingContext, add_default_logging_settings, get_default_logging_settings
 from tiferet.contexts.request import RequestContext
 from tiferet.di import DIAppServiceContainer, DIDynamicServiceResolver
@@ -358,3 +368,184 @@ def test_get_app_session_from_config():
     mock_load.assert_called_once()
     assert mock_load.call_args.args[0] == 'test.session'
     assert isinstance(mock_load.call_args.args[1], AppConfigRepository)
+
+# ** test: create_request_context_sets_interface_id_header
+def test_create_request_context_sets_interface_id_header():
+    '''
+    Test that create_request_context stamps the interface id onto the request headers.
+    '''
+
+    # Build the request context and assert the stamped fields.
+    request = create_request_context('test.session', 'test.feature', headers={'X-Test': '1'}, data={'k': 'v'})
+    assert request.headers.get('interface_id') == 'test.session'
+    assert request.headers.get('X-Test') == '1'
+    assert request.data == {'k': 'v'}
+    assert request.feature_id == 'test.feature'
+
+# ** test: create_feature_context_resolves_and_binds
+def test_create_feature_context_resolves_and_binds():
+    '''
+    Test that create_feature_context resolves the feature and binds a FeatureContext.
+    '''
+
+    # Seed the cache with a Feature domain object.
+    cache = CacheContext()
+    feature = Feature(id='test.feature', name='Test Feature')
+    cache.set('test.feature', feature, *FEATURE_CACHE_PREFIX)
+    get_dependency = mock.Mock()
+
+    # Resolve the feature and its bound context.
+    resolved_feature, feature_context = create_feature_context(get_dependency, cache, 'test.feature')
+
+    # Assert the resolved feature and bound context.
+    assert resolved_feature is feature
+    assert isinstance(feature_context, FeatureContext)
+    assert feature_context.domain is feature
+
+# ** test: create_session_request_sets_interface_id_header
+def test_create_session_request_sets_interface_id_header():
+    '''
+    Test that create_session_request delegates to create_request_context.
+    '''
+
+    # Build the request via the alias and assert the stamped interface id.
+    request = create_session_request('test.session', 'test.feature', headers={'X-Test': '1'}, data={'k': 'v'})
+    assert request.headers.get('interface_id') == 'test.session'
+    assert request.headers.get('X-Test') == '1'
+
+# ** test: execute_feature_handler_drives_feature_context
+def test_execute_feature_handler_drives_feature_context():
+    '''
+    Test that the execute_feature_handler closure calls FeatureContext.execute_feature with the resolved feature.
+    '''
+
+    # Seed the cache with a Feature domain object.
+    cache = CacheContext()
+    feature = Feature(id='test.feature', name='Test Feature')
+    cache.set('test.feature', feature, *FEATURE_CACHE_PREFIX)
+    get_dependency = mock.Mock()
+
+    # Build the handler and execute it against a request.
+    handler = execute_feature_handler(get_dependency, cache)
+    request = RequestContext(feature_id='test.feature')
+    with mock.patch.object(FeatureContext, 'execute_feature') as mock_execute:
+        handler('test.feature', request)
+
+    # Assert the feature context was driven with the resolved feature.
+    mock_execute.assert_called_once_with(feature, request)
+
+# ** test: raise_error_handler_formats_and_raises
+def test_raise_error_handler_formats_and_raises():
+    '''
+    Test that raise_error_handler formats a TiferetError into a TiferetAPIError with correct fields.
+    '''
+
+    # Build the error domain object and the lazy error resolver.
+    error_domain = Error(
+        id='SOME_CODE',
+        name='Some Code',
+        message=[{'lang': 'en_US', 'text': 'Something went wrong: {foo}.'}],
+    )
+    get_error_handler = mock.Mock(return_value=error_domain)
+
+    # Build the handler and handle a structured error.
+    handler = raise_error_handler(get_error_handler)
+    exception = TiferetError('SOME_CODE', 'msg', foo='bar')
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(exception)
+
+    # Assert the error was resolved by code and the raised error is correctly formatted.
+    get_error_handler.assert_called_once_with('SOME_CODE')
+    assert exc_info.value.error_code == 'SOME_CODE'
+    assert exc_info.value.name == 'Some Code'
+    assert 'bar' in exc_info.value.message
+
+# ** test: raise_error_handler_wraps_bare_exception
+def test_raise_error_handler_wraps_bare_exception():
+    '''
+    Test that raise_error_handler wraps a bare Exception into a TiferetError before formatting.
+    '''
+
+    # Build the generic app error domain object and the lazy error resolver.
+    error_domain = Error(
+        id='APP_ERROR',
+        name='App Error',
+        message=[{'lang': 'en_US', 'text': 'An error occurred in the app: {error}.'}],
+    )
+    get_error_handler = mock.Mock(return_value=error_domain)
+
+    # Build the handler and handle a bare exception.
+    handler = raise_error_handler(get_error_handler)
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(Exception('boom'))
+
+    # Assert the bare exception was wrapped and resolved under the generic app error code.
+    get_error_handler.assert_called_once_with('APP_ERROR')
+    assert exc_info.value.error_code == 'APP_ERROR'
+
+# ** test: build_app_session_context_wires_handlers
+def test_build_app_session_context_wires_handlers():
+    '''
+    Test that build_app_session_context returns an AppSessionContext with all FE4 handlers wired.
+    '''
+
+    # Seed the cache with a minimal di_service default.
+    cache = add_default_app_services({
+        'di_service': {
+            'service_id': 'di_service',
+            'module_path': 'tiferet.contexts.cache',
+            'class_name': 'CacheContext',
+        },
+    })(lambda: CacheContext())()
+    app_session = AppSession(id='test.session', name='Test Session')
+
+    # Bypass the real logging pipeline; this test targets handler wiring only.
+    fake_logging_context = mock.Mock(spec=LoggingContext)
+    with mock.patch('tiferet.blueprints.core.build_logging_context', return_value=fake_logging_context):
+        context = build_app_session_context(app_session, cache)
+
+    # Assert the context is fully wired with all four FE4 handlers.
+    assert isinstance(context, AppSessionContext)
+    assert context._logging is fake_logging_context
+    assert context._execute_feature is not None
+    assert context._raise_error is not None
+    assert context._build_response is response_handler
+    assert context._create_request is create_session_request
+
+# ** test: build_app_returns_app_session_context
+def test_build_app_returns_app_session_context():
+    '''
+    Test that build_app returns a fully wired AppSessionContext.
+    '''
+
+    # Isolate build_app from the cache/session/context composition chain.
+    with mock.patch('tiferet.blueprints.core.get_app_session') as mock_get_session, \
+         mock.patch('tiferet.blueprints.core.build_app_session_context') as mock_build_ctx:
+        mock_get_session.return_value = AppSession(id='test.session', name='Test Session')
+        mock_ctx = mock.Mock(spec=AppSessionContext)
+        mock_build_ctx.return_value = mock_ctx
+
+        # Invoke build_app.
+        result = build_app('test.session')
+
+    # Assert the wired context is returned unchanged.
+    assert result is mock_ctx
+
+# ** test: build_app_invalid_type
+def test_build_app_invalid_type():
+    '''
+    Test that build_app raises INVALID_APP_SESSION_TYPE_ID when the resolved context type is invalid.
+    '''
+
+    # Isolate build_app and force an invalid context type.
+    with mock.patch('tiferet.blueprints.core.get_app_session') as mock_get_session, \
+         mock.patch('tiferet.blueprints.core.build_app_session_context') as mock_build_ctx:
+        mock_get_session.return_value = AppSession(id='test.session', name='Test Session')
+        mock_build_ctx.return_value = object()
+
+        # Invoke build_app and expect the structured type error.
+        with pytest.raises(TiferetError) as exc_info:
+            build_app('test.session')
+
+    # Assert the structured invalid-type error is raised.
+    assert exc_info.value.error_code == a.error.INVALID_APP_SESSION_TYPE_ID

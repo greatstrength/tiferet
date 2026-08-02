@@ -60,6 +60,9 @@ FEATURE_STEP_LOADING_FAILED_ID = 'FEATURE_STEP_LOADING_FAILED'
 # ** constant: app_session_not_found_id
 APP_SESSION_NOT_FOUND_ID = 'APP_SESSION_NOT_FOUND'
 
+# ** constant: invalid_app_session_type_id
+INVALID_APP_SESSION_TYPE_ID = 'INVALID_APP_SESSION_TYPE'
+
 # ** constant: app_error_id
 APP_ERROR_ID = 'APP_ERROR'
 
@@ -462,6 +465,13 @@ APP_SESSION_NOT_FOUND = create_default_error(
     [(EN_US, 'App session with ID {interface_id} not found.')],
 )
 
+# ** constant: invalid_app_session_type
+INVALID_APP_SESSION_TYPE = create_default_error(
+    INVALID_APP_SESSION_TYPE_ID,
+    'Invalid App Session Type',
+    [(EN_US, 'App context for interface is not valid: {interface_id}.')],
+)
+
 # ** constant: app_interface_not_found
 # -- obsolete: Retire in Parity V Story 13 (#911)
 APP_INTERFACE_NOT_FOUND = create_default_error(
@@ -801,6 +811,7 @@ DEFAULT_ERRORS = {
     APP_SERVICE_IMPORT_FAILED_ID: APP_SERVICE_IMPORT_FAILED,
     APP_SERVICE_NOT_LOADED_ID: APP_SERVICE_NOT_LOADED,
     APP_SESSION_NOT_FOUND_ID: APP_SESSION_NOT_FOUND,
+    INVALID_APP_SESSION_TYPE_ID: INVALID_APP_SESSION_TYPE,
     APP_INTERFACE_NOT_FOUND_ID: APP_INTERFACE_NOT_FOUND,
     APP_ERROR_ID: APP_ERROR,
     CONFIG_FILE_NOT_FOUND_ID: CONFIG_FILE_NOT_FOUND,

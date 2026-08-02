@@ -3,10 +3,11 @@
 # *** imports
 
 # ** core
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 # ** app
 from .. import assets as a
+from ..assets import RaiseError, TiferetAPIError, TiferetError
 from ..contexts.app import (
     AppSession,
     AppSessionContext,
@@ -18,12 +19,14 @@ from ..contexts.app import (
     get_default_app_session,
 )
 from ..contexts.cache import CacheContext
+from ..contexts.core import BaseContext
 from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX
-from ..contexts.feature import FEATURE_CACHE_PREFIX
+from ..contexts.feature import FeatureContext, FEATURE_CACHE_PREFIX
 from ..contexts.logging import LoggingContext, add_default_logging_settings, get_default_logging_settings
+from ..contexts.request import RequestContext
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
-from ..domain import LoggingSettings, ServiceDependency
+from ..domain import Error, Feature, LoggingSettings, ServiceDependency
 from ..events import ParseParameter
 
 # *** blueprints
@@ -332,3 +335,232 @@ def get_app_session(interface_id: str,
     # On a cache miss, compose the app service and load the session through it.
     app_service = create_app_service(module_path, class_name, parameters)
     return AppSessionContext.load(interface_id, app_service)
+
+# ** blueprint: create_request_context
+def create_request_context(interface_id: str,
+        feature_id: str,
+        headers: Dict[str, str] = None,
+        data: Dict[str, Any] = None) -> RequestContext:
+    '''
+    Pure factory constructing a request context stamped with the interface id.
+
+    :param interface_id: The identifier of the app session issuing the request.
+    :type interface_id: str
+    :param feature_id: The identifier of the feature to execute.
+    :type feature_id: str
+    :param headers: The request headers.
+    :type headers: Dict[str, str] | None
+    :param data: The request data.
+    :type data: Dict[str, Any] | None
+    :return: The constructed request context.
+    :rtype: RequestContext
+    '''
+
+    # Construct the request context, stamping the interface id onto the headers.
+    return RequestContext(
+        headers={**(headers or {}), 'interface_id': interface_id},
+        data=data or {},
+        feature_id=feature_id,
+    )
+
+# ** blueprint: create_feature_context
+def create_feature_context(get_dependency: Callable,
+        cache: CacheContext,
+        feature_id: str) -> Tuple[Feature, FeatureContext]:
+    '''
+    Resolve a Feature domain object and bind it to a fresh FeatureContext.
+
+    :param get_dependency: The DI resolution handler.
+    :type get_dependency: Callable
+    :param cache: The bootstrap cache used for lazy feature caching.
+    :type cache: CacheContext
+    :param feature_id: The identifier of the feature to resolve.
+    :type feature_id: str
+    :return: A tuple of the resolved feature and its bound feature context.
+    :rtype: Tuple[Feature, FeatureContext]
+    '''
+
+    # Resolve the feature via the lazy-caching get_feature handler.
+    feature = get_feature(cache, get_dependency)(feature_id)
+
+    # Construct and bind the feature context in a single step.
+    feature_context = FeatureContext.from_domain(feature, get_dependency=get_dependency, cache=cache)
+
+    # Return the resolved feature and its bound context.
+    return feature, feature_context
+
+# ** blueprint: create_session_request
+def create_session_request(interface_id: str,
+        feature_id: str,
+        headers: Dict[str, str] = None,
+        data: Dict[str, Any] = None) -> RequestContext:
+    '''
+    Convenience alias for create_request_context, kept for backward compatibility.
+
+    :param interface_id: The identifier of the app session issuing the request.
+    :type interface_id: str
+    :param feature_id: The identifier of the feature to execute.
+    :type feature_id: str
+    :param headers: The request headers.
+    :type headers: Dict[str, str] | None
+    :param data: The request data.
+    :type data: Dict[str, Any] | None
+    :return: The constructed request context.
+    :rtype: RequestContext
+    '''
+
+    # Delegate to the request context factory.
+    return create_request_context(interface_id, feature_id, headers, data)
+
+# ** blueprint: execute_feature_handler
+def execute_feature_handler(get_dependency: Callable, cache: CacheContext) -> Callable:
+    '''
+    Build the FE4 feature-execution handler closure.
+
+    :param get_dependency: The DI resolution handler.
+    :type get_dependency: Callable
+    :param cache: The bootstrap cache used for lazy feature caching.
+    :type cache: CacheContext
+    :return: A handler closure executing a feature against a request.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure bound to the resolver and cache.
+    def handler(feature_id: str, request: RequestContext, **kwargs) -> Any:
+
+        # Resolve the feature and its bound context, then execute the feature.
+        feature, feature_context = create_feature_context(get_dependency, cache, feature_id)
+        return feature_context.execute_feature(feature, request, **kwargs)
+
+    # Return the closure.
+    return handler
+
+# ** blueprint: raise_error_handler
+def raise_error_handler(get_error_handler: Callable) -> Callable:
+    '''
+    Build the FE4 error-handling handler closure.
+
+    :param get_error_handler: The lazy-caching error-resolution handler.
+    :type get_error_handler: Callable
+    :return: A handler closure formatting and raising a structured API error.
+    :rtype: Callable
+    '''
+
+    # Return the handler closure bound to the error resolver.
+    def handler(error: Exception, **kwargs) -> Any:
+
+        # Wrap bare exceptions in a TiferetError before processing.
+        if not isinstance(error, TiferetError):
+            error = TiferetError(
+                'APP_ERROR',
+                f'An error occurred in the app: {str(error)}',
+                error=str(error),
+            )
+
+        # Resolve the Error domain object and the registered ErrorContext.
+        error_domain = get_error_handler(error.error_code)
+        error_context_cls = BaseContext.for_domain(Error)
+        error_context = error_context_cls()
+
+        # Format the structured response and raise the API error.
+        formatted = error_context.format_response(error_domain, error)
+        raise TiferetAPIError(**formatted)
+
+    # Return the closure.
+    return handler
+
+# ** blueprint: response_handler
+def response_handler(request: RequestContext) -> Any:
+    '''
+    Pure FE4 response-building function delegating to the request context.
+
+    :param request: The request context object.
+    :type request: RequestContext
+    :return: The response.
+    :rtype: Any
+    '''
+
+    # Delegate directly to the request context.
+    return request.handle_response()
+
+# ** blueprint: build_app_session_context
+def build_app_session_context(app_session: AppSession, cache: CacheContext, **context_kwargs) -> AppSessionContext:
+    '''
+    Compose a fully wired AppSessionContext from a loaded app session.
+
+    :param app_session: The loaded app session domain object.
+    :type app_session: AppSession
+    :param cache: The bootstrap cache.
+    :type cache: CacheContext
+    :param context_kwargs: Additional keyword arguments forwarded to the context constructor.
+    :type context_kwargs: dict
+    :return: The fully wired app session context.
+    :rtype: AppSessionContext
+    '''
+
+    # Build the app service container and compose the service resolver.
+    app_container = build_app_service_container(cache, app_session)
+    resolver = build_service_resolver(app_container)
+
+    # Build the logging context bound to the session's logger id.
+    logging_ctx = build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
+
+    # Build the four FE4 template-method handlers.
+    execute_feature = execute_feature_handler(resolver.get_dependency, cache)
+    raise_error = raise_error_handler(get_error(cache, resolver.get_dependency))
+
+    # Construct and return the wired app session context.
+    return AppSessionContext.from_domain(
+        app_session,
+        get_dependency=resolver.get_dependency,
+        cache=cache,
+        logging_context=logging_ctx,
+        execute_feature_handler=execute_feature,
+        raise_error_handler=raise_error,
+        response_handler=response_handler,
+        create_request_handler=create_session_request,
+        **context_kwargs,
+    )
+
+# ** blueprint: build_app
+def build_app(interface_id: str,
+        module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+        class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
+        **parameters) -> AppSessionContext:
+    '''
+    Build a fully resolved application session context in a single call.
+
+    No apply_defaults call occurs on this path; all framework defaults come
+    from the cache seeded by build_cache. Raises APP_SESSION_NOT_FOUND when
+    the session is absent (via get_app_session), never resolve_default_interface.
+
+    :param interface_id: The interface identifier to load.
+    :type interface_id: str
+    :param module_path: The module path of the app service implementation.
+    :type module_path: str
+    :param class_name: The class name of the app service implementation.
+    :type class_name: str
+    :param parameters: Additional parameters to pass to the app service constructor.
+    :type parameters: dict
+    :return: The fully wired application session context.
+    :rtype: AppSessionContext
+    '''
+
+    # Build the bootstrap cache pre-seeded with all framework defaults.
+    cache = build_cache()
+
+    # Resolve the app session, preferring a cache-seeded default.
+    app_session = get_app_session(interface_id, cache, module_path=module_path, class_name=class_name, **parameters)
+
+    # Build the fully wired app session context.
+    context = build_app_session_context(app_session, cache)
+
+    # Verify the resolved context is a valid AppSessionContext.
+    if not isinstance(context, AppSessionContext):
+        RaiseError.execute(
+            a.error.INVALID_APP_SESSION_TYPE_ID,
+            interface_id=interface_id,
+        )
+
+    # Return the validated app session context.
+    return context
