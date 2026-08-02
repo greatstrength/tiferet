@@ -35,11 +35,10 @@ def add_default_cli_commands(commands: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``commands`` is reconstituted into a ``CliCommand`` domain
-    object (with its id re-injected) and stored in the cache under the
-    ``CLI_COMMAND_CACHE_PREFIX`` namespace keyed by command id.
+    object and stored in the cache under the ``CLI_COMMAND_CACHE_PREFIX``
+    namespace keyed by command id.
 
-    :param commands: An id-keyed mapping of command records, each value being
-        the record without its id.
+    :param commands: A mapping of command IDs to raw command definition dicts.
     :type commands: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -55,11 +54,11 @@ def add_default_cli_commands(commands: Dict[str, Any]) -> Callable:
             cache = build_fn(*args, **kwargs)
 
             # Reconstitute each raw command dict into a CliCommand domain object
-            # (re-injecting the id) and cache it under the commands namespace.
+            # and cache it under the commands namespace keyed by command id.
             for command_id, command_data in commands.items():
                 cache.set(
                     command_id,
-                    CliCommand.model_validate({**command_data, 'id': command_id}),
+                    CliCommand.model_validate(command_data),
                     *CLI_COMMAND_CACHE_PREFIX,
                 )
 

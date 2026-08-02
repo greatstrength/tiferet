@@ -214,10 +214,10 @@ def test_add_default_cli_commands():
     :rtype: None
     '''
 
-    # Define an id-keyed command catalog.
+    # Define an id-keyed command catalog carrying an explicit id per record.
     commands = {
-        'calc.add': {'name': 'Add', 'key': 'add', 'group_key': 'calc'},
-        'calc.sub': {'name': 'Sub', 'key': 'sub', 'group_key': 'calc'},
+        'calc.add': {'id': 'calc.add', 'name': 'Add', 'key': 'add', 'group_key': 'calc'},
+        'calc.sub': {'id': 'calc.sub', 'name': 'Sub', 'key': 'sub', 'group_key': 'calc'},
     }
 
     # Wrap a bare cache-builder with the decorator and build the cache.
