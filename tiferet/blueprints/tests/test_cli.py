@@ -9,7 +9,6 @@ from unittest import mock
 
 # ** app
 from ...assets import TiferetAPIError
-from ...contexts.app import AppInterfaceContext
 from ...domain import CliCommand, CliArgument
 from ...events.cli import ListCliCommands, GetParentArguments
 from ..cli import (
@@ -72,11 +71,11 @@ def get_parent_args_evt():
     evt.execute.return_value = []
     return evt
 
-# ** fixture: mock_service_provider
+# ** fixture: mock_get_dependency
 @pytest.fixture
-def mock_service_provider(list_commands_evt, get_parent_args_evt):
+def mock_get_dependency(list_commands_evt, get_parent_args_evt):
     '''
-    Fixture to create a mock service provider wired with CLI events.
+    Fixture to create a mock get_dependency handler wired with CLI events.
     '''
 
     # Map service IDs to the mocked events.
@@ -85,26 +84,24 @@ def mock_service_provider(list_commands_evt, get_parent_args_evt):
         'get_parent_args_evt': get_parent_args_evt,
     }
 
-    # Build and return the mock provider.
-    provider = mock.Mock()
-    provider.get_service.side_effect = lambda sid: service_map[sid]
-    return provider
+    # Build and return the mock get_dependency callable.
+    return mock.Mock(side_effect=lambda sid, *flags: service_map[sid])
 
 # *** tests
 
 # ** test: get_commands_groups_by_key
-def test_get_commands_groups_by_key(mock_service_provider, list_commands_evt):
+def test_get_commands_groups_by_key(mock_get_dependency, list_commands_evt):
     '''
     Test that get_commands groups CLI commands by group_key.
 
-    :param mock_service_provider: The mock service provider fixture.
-    :type mock_service_provider: mock.Mock
+    :param mock_get_dependency: The mock get_dependency fixture.
+    :type mock_get_dependency: mock.Mock
     :param list_commands_evt: The mock ListCliCommands event.
     :type list_commands_evt: ListCliCommands
     '''
 
-    # Invoke get_commands with the mock provider.
-    command_map = get_commands(mock_service_provider)
+    # Invoke get_commands with the mock get_dependency handler.
+    command_map = get_commands(mock_get_dependency)
 
     # Assert the list_commands_evt was invoked once.
     list_commands_evt.execute.assert_called_once()
@@ -115,18 +112,18 @@ def test_get_commands_groups_by_key(mock_service_provider, list_commands_evt):
     assert command_map['test-group'][0].key == 'test-feature'
 
 # ** test: get_parent_arguments_delegates
-def test_get_parent_arguments_delegates(mock_service_provider, get_parent_args_evt):
+def test_get_parent_arguments_delegates(mock_get_dependency, get_parent_args_evt):
     '''
     Test that get_parent_arguments delegates to the resolved event.
 
-    :param mock_service_provider: The mock service provider fixture.
-    :type mock_service_provider: mock.Mock
+    :param mock_get_dependency: The mock get_dependency fixture.
+    :type mock_get_dependency: mock.Mock
     :param get_parent_args_evt: The mock GetParentArguments event.
     :type get_parent_args_evt: GetParentArguments
     '''
 
-    # Invoke get_parent_arguments with the mock provider.
-    parent_arguments = get_parent_arguments(mock_service_provider)
+    # Invoke get_parent_arguments with the mock get_dependency handler.
+    parent_arguments = get_parent_arguments(mock_get_dependency)
 
     # Assert event delegation and expected result.
     get_parent_args_evt.execute.assert_called_once()
@@ -207,28 +204,23 @@ def test_derive_feature_request_normalizes():
     )
 
 # ** test: build_app_success
-def test_build_app_success(mock_service_provider, capsys):
+def test_build_app_success(mock_get_dependency, capsys):
     '''
-    Test the happy-path build_app flow dispatches to interface_context.run.
+    Test the happy-path build_app flow dispatches to the app session context's run.
 
-    :param mock_service_provider: The mock service provider fixture.
-    :type mock_service_provider: mock.Mock
+    :param mock_get_dependency: The mock get_dependency fixture.
+    :type mock_get_dependency: mock.Mock
     :param capsys: Pytest capsys fixture.
     :type capsys: pytest.CaptureFixture
     '''
 
-    # Create a mock interface context.
-    mock_context = mock.Mock(spec=AppInterfaceContext)
+    # Create a mock app session context wired with the mock get_dependency handler.
+    mock_context = mock.Mock()
+    mock_context.get_dependency = mock_get_dependency
     mock_context.run.return_value = 'test-response'
 
-    # Mock a minimal app interface with constants.
-    mock_interface = mock.Mock()
-    mock_interface.constants = {}
-
-    # Patch internal dependencies to isolate build_app.
-    with mock.patch('tiferet.blueprints.cli.resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch('tiferet.blueprints.cli.create_service_provider', return_value=mock_service_provider), \
-         mock.patch('tiferet.blueprints.cli.realize_interface', return_value=mock_context):
+    # Patch the core build_app entry point to isolate the CLI blueprint.
+    with mock.patch('tiferet.blueprints.cli._core_build_app', return_value=mock_context):
 
         # Invoke build_app.
         response = build_app(
@@ -236,7 +228,7 @@ def test_build_app_success(mock_service_provider, capsys):
             argv=['test-group', 'test-feature', '--arg1', 'hello'],
         )
 
-    # Assert the interface context was invoked with the correct arguments.
+    # Assert the app session context was invoked with the correct arguments.
     mock_context.run.assert_called_once()
     call_kwargs = mock_context.run.call_args.kwargs
     assert call_kwargs['feature_id'] == 'test_group.test_feature'
@@ -252,30 +244,25 @@ def test_build_app_success(mock_service_provider, capsys):
     assert 'test-response' in captured.out
 
 # ** test: build_app_feature_error
-def test_build_app_feature_error(mock_service_provider):
+def test_build_app_feature_error(mock_get_dependency):
     '''
-    Test that a TiferetAPIError from interface_context.run triggers sys.exit(1).
+    Test that a TiferetAPIError from the app session context's run triggers sys.exit(1).
 
-    :param mock_service_provider: The mock service provider fixture.
-    :type mock_service_provider: mock.Mock
+    :param mock_get_dependency: The mock get_dependency fixture.
+    :type mock_get_dependency: mock.Mock
     '''
 
-    # Create a mock interface context that raises a TiferetAPIError.
-    mock_context = mock.Mock(spec=AppInterfaceContext)
+    # Create a mock app session context that raises a TiferetAPIError.
+    mock_context = mock.Mock()
+    mock_context.get_dependency = mock_get_dependency
     mock_context.run.side_effect = TiferetAPIError(
         error_code='FEATURE_EXECUTION_FAILED',
         name='Feature Execution Failed',
         message='Feature execution failed',
     )
 
-    # Mock a minimal app interface with constants.
-    mock_interface = mock.Mock()
-    mock_interface.constants = {}
-
-    # Patch internal dependencies to isolate build_app.
-    with mock.patch('tiferet.blueprints.cli.resolve_interface', return_value=(mock_interface, [])), \
-         mock.patch('tiferet.blueprints.cli.create_service_provider', return_value=mock_service_provider), \
-         mock.patch('tiferet.blueprints.cli.realize_interface', return_value=mock_context):
+    # Patch the core build_app entry point to isolate the CLI blueprint.
+    with mock.patch('tiferet.blueprints.cli._core_build_app', return_value=mock_context):
 
         # Invoke build_app and expect SystemExit with code 1.
         with pytest.raises(SystemExit) as exc_info:

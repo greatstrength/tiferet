@@ -1,41 +1,38 @@
 """Tiferet CLI Blueprints"""
 
+# ++ todo: This module is a minimal compatibility retrofit onto the new
+#          blueprints/core.py app-session architecture (ST4 Child 5). The full
+#          CliContext-based reincorporation (argparse ownership, CLI domain
+#          models) is ST5 Child 2 (#915).
+
 # *** imports
 
 # ** core
 import sys
 import argparse
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # ** app
 from ..assets import TiferetAPIError
-from ..di import ServiceProvider
 from ..domain import CliCommand
 from .. import assets as a
-from ..events import DomainEvent
-from ..events.app import GetAppInterface
-from .main import (
-    create_service_provider,
-    load_default_services,
-    resolve_interface,
-    realize_interface,
-)
+from .core import build_app as _core_build_app
 
 # *** blueprints
 
 # ** blueprint: get_commands
-def get_commands(service_provider: ServiceProvider) -> Dict[str, List[CliCommand]]:
+def get_commands(get_dependency: Callable) -> Dict[str, List[CliCommand]]:
     '''
     Retrieve the CLI commands grouped by their group_key.
 
-    :param service_provider: The service provider to resolve CLI events from.
-    :type service_provider: ServiceProvider
+    :param get_dependency: The DI resolution handler bound to the app session.
+    :type get_dependency: Callable
     :return: A dictionary mapping group keys to lists of CLI commands.
     :rtype: Dict[str, List[CliCommand]]
     '''
 
     # Resolve the list CLI commands event and execute it.
-    list_commands_evt = service_provider.get_service('list_commands_evt')
+    list_commands_evt = get_dependency('list_commands_evt', 'app')
     cli_commands = list_commands_evt.execute()
 
     # Group the commands by group_key.
@@ -51,18 +48,18 @@ def get_commands(service_provider: ServiceProvider) -> Dict[str, List[CliCommand
 
 
 # ** blueprint: get_parent_arguments
-def get_parent_arguments(service_provider: ServiceProvider) -> List:
+def get_parent_arguments(get_dependency: Callable) -> List:
     '''
     Retrieve the parent-level CLI arguments.
 
-    :param service_provider: The service provider to resolve CLI events from.
-    :type service_provider: ServiceProvider
+    :param get_dependency: The DI resolution handler bound to the app session.
+    :type get_dependency: Callable
     :return: A list of parent-level CLI arguments.
     :rtype: List
     '''
 
     # Resolve the parent arguments event and execute it.
-    get_parent_args_evt = service_provider.get_service('get_parent_args_evt')
+    get_parent_args_evt = get_dependency('get_parent_args_evt', 'app')
     return get_parent_args_evt.execute()
 
 
@@ -197,15 +194,16 @@ def derive_feature_request(
 def build_app(
     interface_id: str,
     argv: Optional[List[str]] = None,
-    module_path: str = a.core.DEFAULT_APP_SERVICE_MODULE_PATH,
-    class_name: str = a.core.DEFAULT_APP_SERVICE_CLASS_NAME,
+    module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
+    class_name: str = a.app.DEFAULT_APP_SERVICE_CLASS_NAME,
     **parameters
 ) -> Any:
     '''
     Build the CLI application, parse arguments, and dispatch to the interface feature.
 
-    Loads the app service, resolves the interface, builds the CLI parser from
-    configured commands, parses argv, and executes the corresponding feature.
+    Builds the app session context via the core blueprint entry point, builds
+    the CLI parser from configured commands, parses argv, and executes the
+    corresponding feature.
 
     :param interface_id: The CLI interface identifier.
     :type interface_id: str
@@ -221,29 +219,17 @@ def build_app(
     :rtype: Any
     '''
 
-    # Resolve the interface definition in a single pass.
-    app_interface, default_services = resolve_interface(
-        interface_id, module_path, class_name, **parameters)
-
-    # Merge constants in priority order: defaults < interface < user parameters.
-    merged_constants = {
-        **{k: v for dep in default_services for k, v in dep.parameters.items()},
-        # ++ todo: Parity III Story 6b — replace a.core.DEFAULT_CONSTANTS with a.app.CORE_DEFAULT_CONSTANTS
-        **a.core.DEFAULT_CONSTANTS,
-        **(app_interface.constants or {}),
+    # Build the app session context via the core blueprint entry point.
+    app_session_context = _core_build_app(
+        interface_id,
+        module_path=module_path,
+        class_name=class_name,
         **parameters,
-    }
-
-    # Build a service provider seeded with default service dependencies
-    # and the merged constants so CLI events can resolve.
-    service_provider = create_service_provider(
-        type_map={dep.service_id: dep.get_service_type() for dep in default_services},
-        **merged_constants,
     )
 
     # Build the CLI parser from the resolved commands and parent arguments.
-    cli_commands = get_commands(service_provider)
-    parent_arguments = get_parent_arguments(service_provider)
+    cli_commands = get_commands(app_session_context.get_dependency)
+    parent_arguments = get_parent_arguments(app_session_context.get_dependency)
     parser = build_parser(cli_commands, parent_arguments)
 
     # Parse the CLI arguments.
@@ -252,12 +238,9 @@ def build_app(
     # Derive the feature id and headers from the parsed arguments.
     feature_id, headers = derive_feature_request(parsed)
 
-    # Realize the app interface context from the already-resolved definition.
-    interface_context = realize_interface(app_interface, interface_id)
-
-    # Execute the feature via the interface context; on API error, exit 1.
+    # Execute the feature via the app session context; on API error, exit 1.
     try:
-        response = interface_context.run(
+        response = app_session_context.run(
             feature_id=feature_id,
             headers=headers,
             data=parsed,

@@ -1,4 +1,4 @@
-"""Tiferet Middleware Utility Tests"""
+"""Tiferet Utils Core Tests"""
 
 # *** imports
 
@@ -10,7 +10,7 @@ import re
 import pytest
 
 # ** app
-from tiferet.utils.middleware import LoggingMiddleware, TimingMiddleware
+from tiferet.utils.core import CacheMiddleware, LoggingMiddleware, TimingMiddleware
 from tiferet.interfaces.middleware import MiddlewareService
 
 
@@ -44,14 +44,17 @@ def test_middleware_conformance():
 
     # Assert class-level conformance to the MiddlewareService contract.
     assert issubclass(LoggingMiddleware, MiddlewareService)
+    assert issubclass(CacheMiddleware, MiddlewareService)
     assert issubclass(TimingMiddleware, MiddlewareService)
 
-    # Instantiate both utilities with the default logger_id.
+    # Instantiate the utilities with their default constructor arguments.
     logging_mw = LoggingMiddleware()
+    cache_mw = CacheMiddleware()
     timing_mw = TimingMiddleware()
 
     # Assert instance-level conformance to the MiddlewareService contract.
     assert isinstance(logging_mw, MiddlewareService)
+    assert isinstance(cache_mw, MiddlewareService)
     assert isinstance(timing_mw, MiddlewareService)
 
     # Assert the default logger_id resolves a logger named 'root'.
@@ -166,6 +169,90 @@ def test_logging_middleware_failure(sample_event: object, caplog):
     debug_messages = [r.getMessage() for r in caplog.records if r.levelno == logging.DEBUG]
     assert 'Executing SampleEvent' in debug_messages
     assert 'Completed SampleEvent' not in debug_messages
+
+
+# ** test: cache_middleware_injects_snapshot
+def test_cache_middleware_injects_snapshot(sample_event: object):
+    '''
+    Test that CacheMiddleware injects the loaded snapshot as the 'cache' kwarg.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build the middleware with a loader returning a sentinel snapshot.
+    snapshot = {'seeded': 'value'}
+    middleware = CacheMiddleware(load_cache=lambda: snapshot)
+
+    # Provide a kwargs dict that carries no cache entry.
+    kwargs = {'a': 1}
+
+    # Execute the middleware around a chain returning a sentinel result.
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned unchanged.
+    assert result == 'result'
+
+    # Assert the snapshot was injected alongside the untouched original kwargs.
+    assert kwargs['cache'] is snapshot
+    assert kwargs['a'] == 1
+
+
+# ** test: cache_middleware_preserves_existing_cache
+def test_cache_middleware_preserves_existing_cache(sample_event: object):
+    '''
+    Test that CacheMiddleware never overwrites a cache value already in kwargs.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build a loader that records whether it was invoked.
+    calls = []
+
+    def load_cache():
+        calls.append(1)
+        return {'seeded': 'value'}
+
+    # Build the middleware and provide a kwargs dict already carrying a cache.
+    middleware = CacheMiddleware(load_cache=load_cache)
+    existing = {'existing': 'cache'}
+    kwargs = {'cache': existing}
+
+    # Execute the middleware around a chain returning a sentinel result.
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned unchanged.
+    assert result == 'result'
+
+    # Assert the pre-existing cache survived and the loader was never invoked.
+    assert kwargs['cache'] is existing
+    assert calls == []
+
+
+# ** test: cache_middleware_no_loader_is_noop
+def test_cache_middleware_no_loader_is_noop(sample_event: object):
+    '''
+    Test that CacheMiddleware is a transparent no-op when no loader is supplied.
+
+    :param sample_event: The stub event instance.
+    :type sample_event: object
+    '''
+
+    # Build the middleware without a cache loader.
+    middleware = CacheMiddleware()
+
+    # Provide a kwargs dict that carries no cache entry.
+    kwargs = {'a': 1}
+
+    # Execute the middleware around a chain returning a sentinel result.
+    result = middleware(sample_event, kwargs, lambda: 'result')
+
+    # Assert the chain result is returned unchanged.
+    assert result == 'result'
+
+    # Assert the kwargs dict was left entirely untouched.
+    assert kwargs == {'a': 1}
 
 
 # ** test: timing_middleware_success

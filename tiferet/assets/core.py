@@ -44,8 +44,8 @@ LOGGING_DOMAIN_PATH = 'logging'
 # ** constant: cli_domain_path
 CLI_DOMAIN_PATH = 'cli'
 
-# ** constant: middleware_domain_path
-MIDDLEWARE_DOMAIN_PATH = 'middleware'
+# ** constant: core_domain_path
+CORE_DOMAIN_PATH = 'core'
 
 # *** functions
 

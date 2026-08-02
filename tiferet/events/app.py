@@ -99,7 +99,6 @@ class AddAppSession(AppEvent):
         # Return the created AppSession instance.
         return app_session
 
-
 # ** event: get_app_session
 class GetAppSession(AppEvent):
     '''
@@ -134,6 +133,106 @@ class GetAppSession(AppEvent):
         # Return the loaded application session.
         return app_session
 
+# ** event: update_app_session
+class UpdateAppSession(AppEvent):
+    '''
+    A domain event to update scalar attributes of an existing app session.
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id'])
+    def execute(self,
+            id: str,
+            name: str | None = None,
+            description: str | None = None,
+            logger_id: str | None = None,
+            **kwargs,
+        ) -> AppSession:
+        '''
+        Update scalar attributes of an existing app session.
+
+        :param id: The unique identifier for the app session to update.
+        :type id: str
+        :param name: The new name value, or None to leave unchanged.
+        :type name: str | None
+        :param description: The new description value, or None to leave unchanged.
+        :type description: str | None
+        :param logger_id: The new logger id value, or None to leave unchanged.
+        :type logger_id: str | None
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The updated AppSession.
+        :rtype: AppSession
+        '''
+
+        # Retrieve the app session via the app service.
+        app_session = self.app_service.get(id)
+
+        # Verify that the session exists.
+        self.verify(
+            expression=app_session is not None,
+            error_code=a.error.APP_SESSION_NOT_FOUND_ID,
+            message=f'App session with ID {id} not found.',
+            interface_id=id,
+        )
+
+        # Update each provided scalar attribute via the aggregate method.
+        for attribute, value in (
+            ('name', name),
+            ('description', description),
+            ('logger_id', logger_id),
+        ):
+            if value is not None:
+                app_session.set_attribute(attribute, value)
+
+        # Persist the updated session.
+        self.app_service.save(app_session)
+
+        # Return the updated app session.
+        return app_session
+
+# ** event: list_app_sessions
+class ListAppSessions(AppEvent):
+    '''
+    A domain event to list all configured application sessions.
+    '''
+
+    # * method: execute
+    def execute(self, **kwargs) -> List[AppSession]:
+        '''
+        List all configured application sessions.
+
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: The list of configured AppSession objects.
+        :rtype: List[AppSession]
+        '''
+
+        # Delegate to the app service to retrieve all sessions.
+        return self.app_service.list()
+
+# ** event: remove_app_session
+class RemoveAppSession(AppEvent):
+    '''
+    A domain event to remove an app session configuration by ID (idempotent).
+    '''
+
+    # * method: execute
+    @DomainEvent.parameters_required(['id'])
+    def execute(self, id: str, **kwargs) -> None:
+        '''
+        Remove an app session by ID (idempotent).
+
+        :param id: The unique identifier for the app session to remove.
+        :type id: str
+        :param kwargs: Additional keyword arguments (unused).
+        :type kwargs: dict
+        :return: None
+        :rtype: None
+        '''
+
+        # Delegate deletion to the app service (idempotent operation).
+        self.app_service.delete(id)
 
 # ** event: add_app_interface
 # -- obsolete: Superseded by AddAppSession. Retire in Parity V Story 13.
@@ -343,6 +442,7 @@ class SetAppConstants(AppEvent):
         return id
 
 # ** event: list_app_interfaces
+# -- obsolete: Superseded by ListAppSessions. Retire in Parity V Story 13.
 class ListAppInterfaces(AppEvent):
     '''
     A domain event to list all configured app interfaces.
@@ -363,6 +463,7 @@ class ListAppInterfaces(AppEvent):
         return self.app_service.list()
 
 # ** event: set_service_dependency
+# -- obsolete: Retire in Parity V Story 13.
 class SetServiceDependency(AppEvent):
     '''
     A domain event to set or update a service dependency on an app session.
@@ -424,6 +525,7 @@ class SetServiceDependency(AppEvent):
         return id
 
 # ** event: remove_service_dependency
+# -- obsolete: Retire in Parity V Story 13.
 class RemoveServiceDependency(AppEvent):
     '''
     A domain event to remove a service dependency from an app session (idempotent).
@@ -466,6 +568,7 @@ class RemoveServiceDependency(AppEvent):
         return id
 
 # ** event: remove_app_interface
+# -- obsolete: Superseded by RemoveAppSession. Retire in Parity V Story 13.
 class RemoveAppInterface(AppEvent):
     '''
     A domain event to remove an entire app interface configuration by ID (idempotent).
