@@ -9,12 +9,11 @@ from pathlib import Path
 # ** app
 from tiferet.utils.toml import TomlLoader
 from tiferet.assets.exceptions import TiferetError
-from tiferet.assets.constants import (
+from tiferet.assets.error import (
     TOML_FILE_NOT_FOUND_ID,
     TOML_FILE_LOAD_ERROR_ID,
     INVALID_TOML_FILE_ID,
 )
-
 
 # *** fixtures
 
@@ -39,7 +38,6 @@ def sample_toml_file(tmp_path) -> Path:
     )
     return file_path
 
-
 # ** fixture: invalid_toml_file
 @pytest.fixture
 def invalid_toml_file(tmp_path) -> Path:
@@ -56,7 +54,6 @@ def invalid_toml_file(tmp_path) -> Path:
     file_path = tmp_path / 'bad.toml'
     file_path.write_bytes(b'[invalid\nkey = ???')
     return file_path
-
 
 # *** tests
 
@@ -79,7 +76,6 @@ def test_toml_loader_load_basic(sample_toml_file: Path):
     assert data['project']['options']['debug'] is True
     assert data['project']['options']['count'] == 42
 
-
 # ** test: toml_loader_load_with_start_node
 def test_toml_loader_load_with_start_node(sample_toml_file: Path):
     '''
@@ -96,7 +92,6 @@ def test_toml_loader_load_with_start_node(sample_toml_file: Path):
     # Assert the start_node transformation was applied.
     assert data['name'] == 'tiferet'
     assert data['version'] == '2.0.0'
-
 
 # ** test: toml_loader_load_with_data_factory
 def test_toml_loader_load_with_data_factory(sample_toml_file: Path):
@@ -117,7 +112,6 @@ def test_toml_loader_load_with_data_factory(sample_toml_file: Path):
     # Assert the factory result.
     assert result == 'tiferet'
 
-
 # ** test: toml_loader_load_file_not_found
 def test_toml_loader_load_file_not_found(tmp_path: Path):
     '''
@@ -135,7 +129,6 @@ def test_toml_loader_load_file_not_found(tmp_path: Path):
     # Assert the correct error code.
     assert exc_info.value.error_code == 'FILE_NOT_FOUND'
 
-
 # ** test: toml_loader_load_invalid_toml
 def test_toml_loader_load_invalid_toml(invalid_toml_file: Path):
     '''
@@ -152,7 +145,6 @@ def test_toml_loader_load_invalid_toml(invalid_toml_file: Path):
 
     # Assert the correct error code.
     assert exc_info.value.error_code == TOML_FILE_LOAD_ERROR_ID
-
 
 # ** test: toml_loader_verify_toml_file_wrong_extension
 def test_toml_loader_verify_toml_file_wrong_extension(tmp_path: Path):
@@ -175,7 +167,6 @@ def test_toml_loader_verify_toml_file_wrong_extension(tmp_path: Path):
     # Assert the correct error code.
     assert exc_info.value.error_code == INVALID_TOML_FILE_ID
 
-
 # ** test: toml_loader_verify_toml_file_not_found
 def test_toml_loader_verify_toml_file_not_found(tmp_path: Path):
     '''
@@ -192,7 +183,6 @@ def test_toml_loader_verify_toml_file_not_found(tmp_path: Path):
 
     # Assert the correct error code.
     assert exc_info.value.error_code == TOML_FILE_NOT_FOUND_ID
-
 
 # ** test: toml_loader_defaults_to_binary_mode
 def test_toml_loader_defaults_to_binary_mode():
