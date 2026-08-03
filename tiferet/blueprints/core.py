@@ -32,12 +32,13 @@ from ..events import ParseParameter
 # *** constants
 
 # ** constant: reserved_context_parameters
-# Constructor parameters supplied explicitly by build_app_session_context, and
-# therefore excluded from generic collaborator resolution.
+# Constructor parameters supplied explicitly by the session context builders,
+# and therefore excluded from generic collaborator resolution.
 RESERVED_CONTEXT_PARAMETERS = (
     'get_dependency',
     'cache',
     'logging_context',
+    'parse_cli_args',
     'execute_feature_handler',
     'create_request_handler',
     'raise_error_handler',

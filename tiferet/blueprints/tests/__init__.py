@@ -1,1 +1,0 @@
-"""Tiferet Blueprint Tests"""
