@@ -6,6 +6,7 @@
 from tiferet.assets.core import (
     create_default_cli_argument,
     create_default_cli_command,
+    create_default_error,
     create_default_feature,
     create_params_schema,
     create_service_module_path,
@@ -16,6 +17,7 @@ from tiferet.assets.core import (
     create_default_formatter,
     create_default_handler,
     create_default_logger,
+    EN_US,
     TIFERET,
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
@@ -23,6 +25,86 @@ from tiferet.assets.core import (
 )
 
 # *** tests
+
+# ** test: en_us_constant
+def test_en_us_constant():
+    '''
+    Verify EN_US equals the expected locale string.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Verify the constant carries the expected locale.
+    assert EN_US == 'en_US'
+
+# ** test: create_default_error_single_message
+def test_create_default_error_single_message():
+    '''
+    Verify create_default_error returns the expected structure for a single message pair.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build a default error with one message.
+    result = create_default_error(
+        'TEST_ERROR',
+        'Test Error',
+        [(EN_US, 'Something went wrong: {detail}.')],
+    )
+
+    # Verify the top-level fields.
+    assert result['id'] == 'TEST_ERROR'
+    assert result['name'] == 'Test Error'
+
+    # Verify the message list shape.
+    assert len(result['message']) == 1
+    assert result['message'][0] == {'lang': 'en_US', 'text': 'Something went wrong: {detail}.'}
+
+# ** test: create_default_error_preserves_message_order
+def test_create_default_error_preserves_message_order():
+    '''
+    Verify create_default_error preserves the order of multiple message pairs.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Define ordered message pairs.
+    messages = [
+        ('en_US', 'First message.'),
+        ('fr_FR', 'Deuxième message.'),
+        ('de_DE', 'Dritte Nachricht.'),
+    ]
+
+    # Build the error.
+    result = create_default_error('MULTI_LANG', 'Multi-Language Error', messages)
+
+    # Verify the messages are emitted in the supplied order.
+    assert len(result['message']) == 3
+    assert result['message'][0] == {'lang': 'en_US', 'text': 'First message.'}
+    assert result['message'][1] == {'lang': 'fr_FR', 'text': 'Deuxième message.'}
+    assert result['message'][2] == {'lang': 'de_DE', 'text': 'Dritte Nachricht.'}
+
+# ** test: create_default_error_empty_messages
+def test_create_default_error_empty_messages():
+    '''
+    Verify create_default_error yields an empty message list when no pairs are supplied.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build an error with no messages.
+    result = create_default_error('EMPTY_ERROR', 'Empty Error', [])
+
+    # Verify id and name are retained.
+    assert result['id'] == 'EMPTY_ERROR'
+    assert result['name'] == 'Empty Error'
+
+    # Verify the message list is empty.
+    assert result['message'] == []
 
 # ** test: create_service_module_path_returns_dotted_path
 def test_create_service_module_path_returns_dotted_path():
@@ -39,7 +121,6 @@ def test_create_service_module_path_returns_dotted_path():
     # Verify the result equals the expected dotted path.
     assert result == 'tiferet.events.feature'
 
-
 # ** test: create_service_module_path_repos_path
 def test_create_service_module_path_repos_path():
     '''
@@ -54,7 +135,6 @@ def test_create_service_module_path_repos_path():
 
     # Verify the result equals the expected dotted path.
     assert result == 'tiferet.repos.feature'
-
 
 # ** test: create_service_dependency_returns_expected_shape
 def test_create_service_dependency_returns_expected_shape():
@@ -75,7 +155,6 @@ def test_create_service_dependency_returns_expected_shape():
     assert result['class_name'] == 'FeatureConfigRepository'
     assert result['parameters'] == {}
 
-
 # ** test: create_service_dependency_with_parameters
 def test_create_service_dependency_with_parameters():
     '''
@@ -95,7 +174,6 @@ def test_create_service_dependency_with_parameters():
 
     # Verify the parameters dict is preserved unchanged.
     assert result['parameters'] == {'feature_config': 'config.yml'}
-
 
 # ** test: create_app_service_dependency_returns_expected_shape
 def test_create_app_service_dependency_returns_expected_shape():
@@ -121,7 +199,6 @@ def test_create_app_service_dependency_returns_expected_shape():
     assert result['class_name'] == 'TestRepository'
     assert result['parameters'] == {}
 
-
 # ** test: create_app_service_dependency_omitting_parameters_yields_empty_dict
 def test_create_app_service_dependency_omitting_parameters_yields_empty_dict():
     '''
@@ -142,7 +219,6 @@ def test_create_app_service_dependency_omitting_parameters_yields_empty_dict():
     assert result['parameters'] == {}
     assert result['parameters'] is not None
 
-
 # ** test: create_default_app_session_returns_required_fields
 def test_create_default_app_session_returns_required_fields():
     '''
@@ -160,7 +236,6 @@ def test_create_default_app_session_returns_required_fields():
     assert result['id'] == 'admin'
     assert result['name'] == 'Admin App'
     assert 'description' not in result
-
 
 # ** test: create_default_app_session_includes_description_when_provided
 def test_create_default_app_session_includes_description_when_provided():
@@ -181,7 +256,6 @@ def test_create_default_app_session_includes_description_when_provided():
     # Verify the description is present and correct.
     assert result['description'] == 'Default built-in admin application session'
 
-
 # ** test: create_default_formatter_returns_required_fields
 def test_create_default_formatter_returns_required_fields():
     '''
@@ -201,7 +275,6 @@ def test_create_default_formatter_returns_required_fields():
     assert result['format'] == '%(message)s'
     assert 'description' not in result
     assert 'datefmt' not in result
-
 
 # ** test: create_default_formatter_includes_optional_fields_when_provided
 def test_create_default_formatter_includes_optional_fields_when_provided():
@@ -224,7 +297,6 @@ def test_create_default_formatter_includes_optional_fields_when_provided():
     # Verify optional fields are present and correct.
     assert result['description'] == 'A test formatter.'
     assert result['datefmt'] == '%Y-%m-%d'
-
 
 # ** test: create_default_handler_returns_required_fields
 def test_create_default_handler_returns_required_fields():
@@ -251,7 +323,6 @@ def test_create_default_handler_returns_required_fields():
     assert 'description' not in result
     assert 'stream' not in result
     assert 'filename' not in result
-
 
 # ** test: create_default_handler_includes_optional_fields_when_provided
 def test_create_default_handler_includes_optional_fields_when_provided():
@@ -280,7 +351,6 @@ def test_create_default_handler_includes_optional_fields_when_provided():
     assert result['stream'] == 'ext://sys.stdout'
     assert result['filename'] == 'app.log'
 
-
 # ** test: create_default_logger_returns_required_fields
 def test_create_default_logger_returns_required_fields():
     '''
@@ -302,7 +372,6 @@ def test_create_default_logger_returns_required_fields():
     assert result['propagate'] is False
     assert result['is_root'] is False
     assert 'description' not in result
-
 
 # ** test: create_default_feature_returns_required_fields
 def test_create_default_feature_returns_required_fields():
@@ -334,7 +403,6 @@ def test_create_default_feature_returns_required_fields():
     assert 'description' not in result
     assert 'params_schema' not in result
 
-
 # ** test: create_default_feature_includes_optional_fields_when_provided
 def test_create_default_feature_includes_optional_fields_when_provided():
     '''
@@ -363,7 +431,6 @@ def test_create_default_feature_includes_optional_fields_when_provided():
     assert result['description'] == 'An optional test feature.'
     assert result['params_schema'] == {'name': 'str', 'count': 'int'}
 
-
 # ** test: create_params_schema_returns_expected_dict
 def test_create_params_schema_returns_expected_dict():
     '''
@@ -385,7 +452,6 @@ def test_create_params_schema_returns_expected_dict():
         'name': 'str',
         'count': {'type': 'int', 'required': True},
     }
-
 
 # ** test: create_service_registration_returns_expected_shape
 def test_create_service_registration_returns_expected_shape():
@@ -415,7 +481,6 @@ def test_create_service_registration_returns_expected_shape():
     assert result['class_name'] == 'FeatureConfigRepository'
     assert result['parameters'] == {}
 
-
 # ** test: create_service_registration_omitting_parameters_yields_empty_dict
 def test_create_service_registration_omitting_parameters_yields_empty_dict():
     '''
@@ -437,7 +502,6 @@ def test_create_service_registration_omitting_parameters_yields_empty_dict():
     assert result['parameters'] == {}
     assert result['parameters'] is not None
 
-
 # ** test: create_default_cli_argument_returns_required_field
 def test_create_default_cli_argument_returns_required_field():
     '''
@@ -454,7 +518,6 @@ def test_create_default_cli_argument_returns_required_field():
     # Assert only name_or_flags is present.
     assert set(result.keys()) == {'name_or_flags'}
     assert result['name_or_flags'] == ['id']
-
 
 # ** test: create_default_cli_argument_includes_optional_fields_when_provided
 def test_create_default_cli_argument_includes_optional_fields_when_provided():
@@ -474,7 +537,6 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
         required=True,
         nargs='?',
         choices=['DEBUG', 'INFO', 'WARNING'],
-        action='store',
     )
 
     # Assert all optional fields are present with correct values.
@@ -485,8 +547,6 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided():
     assert result['required'] is True
     assert result['nargs'] == '?'
     assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
-    assert result['action'] == 'store'
-
 
 # ** test: create_default_cli_command_returns_required_fields
 def test_create_default_cli_command_returns_required_fields():
@@ -514,7 +574,6 @@ def test_create_default_cli_command_returns_required_fields():
     assert result['name'] == 'List App Interfaces'
     assert 'description' not in result
     assert 'arguments' not in result
-
 
 # ** test: create_default_cli_command_includes_optional_fields_when_provided
 def test_create_default_cli_command_includes_optional_fields_when_provided():
@@ -545,7 +604,6 @@ def test_create_default_cli_command_includes_optional_fields_when_provided():
     # Assert optional fields are present with correct values.
     assert result['description'] == 'Retrieve an app interface by ID.'
     assert result['arguments'] == [arg]
-
 
 # ** test: create_default_logger_includes_optional_fields_when_provided
 def test_create_default_logger_includes_optional_fields_when_provided():

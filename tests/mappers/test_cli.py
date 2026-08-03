@@ -18,7 +18,6 @@ ARGUMENT_AGGREGATE_SAMPLE_DATA = {
     'type': 'str',
     'required': False,
     'default': 'false',
-    'action': 'store_true',
 }
 
 # ** constant: command_aggregate_sample_data
@@ -49,7 +48,6 @@ ARGUMENT_EQUALITY_FIELDS = [
     'type',
     'required',
     'default',
-    'action',
 ]
 
 # ** constant: command_equality_fields
@@ -106,7 +104,6 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('type', 'int', None),
         ('required', True, None),
         ('default', 'new_default', None),
-        ('action', 'store_false', None),
         # invalid
         ('name_or_flags', ['b'], a.error.INVALID_MODEL_ATTRIBUTE_ID),
         ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
@@ -173,7 +170,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         aggregate.add_argument(
             name_or_flags=['-v', '--verbose'],
             description='Enable verbose output.',
-            action='store_true',
+            type='bool',
         )
 
         # Assert both arguments were added.
@@ -181,7 +178,7 @@ class TestCliCommandAggregate(AggregateTestBase):
         assert aggregate.arguments[-2].name_or_flags == ['c']
         assert aggregate.arguments[-2].type == 'float'
         assert aggregate.arguments[-1].name_or_flags == ['-v', '--verbose']
-        assert aggregate.arguments[-1].action == 'store_true'
+        assert aggregate.arguments[-1].type == 'bool'
 
     # ** test: add_argument_to_empty
     def test_add_argument_to_empty(self):

@@ -1,0 +1,298 @@
+"""Tiferet CLI Contexts"""
+
+# *** imports
+
+# ** core
+import sys
+from typing import Any, Callable, Dict, List, Tuple
+
+# ** app
+from ..assets import TiferetAPIError
+from ..domain import (
+    DomainObject,
+    CliArgument,
+    CliCommand,
+    CliRecord,
+    CliOutputRecord,
+    CliRecordList,
+)
+from .app import AppSessionContext
+from .cache import CacheContext
+from .logging import LoggingContext
+from .request import RequestContext
+
+# *** constants
+
+# ** constant: cli_command_cache_prefix
+CLI_COMMAND_CACHE_PREFIX: Tuple[str, ...] = ('cli', 'commands')
+
+# *** functions
+
+# ** function: add_default_cli_commands
+def add_default_cli_commands(commands: Dict[str, Any]) -> Callable:
+    '''
+    Decorator factory that pre-seeds a cache context with default CLI command
+    domain objects.
+
+    Wraps a cache-builder callable so that, after the cache is constructed,
+    each entry in ``commands`` is reconstituted into a ``CliCommand`` domain
+    object and stored in the cache under the ``CLI_COMMAND_CACHE_PREFIX``
+    namespace keyed by command id.
+
+    :param commands: A mapping of command IDs to raw command definition dicts.
+    :type commands: Dict[str, Any]
+    :return: A decorator that wraps a cache-builder callable.
+    :rtype: Callable
+    '''
+
+    # Return the decorator that wraps the cache-builder.
+    def decorator(build_fn: Callable) -> Callable:
+
+        # Build the cache, then populate it with the default command domain objects.
+        def wrapper(*args, **kwargs) -> CacheContext:
+
+            # Delegate to the wrapped cache-builder.
+            cache = build_fn(*args, **kwargs)
+
+            # Reconstitute each raw command dict into a CliCommand domain object
+            # and cache it under the commands namespace keyed by command id.
+            for command_id, command_data in commands.items():
+                cache.set(
+                    command_id,
+                    CliCommand.model_validate(command_data),
+                    *CLI_COMMAND_CACHE_PREFIX,
+                )
+
+            # Return the populated cache context.
+            return cache
+
+        # Return the cache-builder wrapper.
+        return wrapper
+
+    # Return the decorator.
+    return decorator
+
+# ** function: get_default_cli_commands
+def get_default_cli_commands(cache: CacheContext) -> List[CliCommand]:
+    '''
+    Return the default CLI command domain objects seeded on the cache.
+
+    :param cache: The cache context to read.
+    :type cache: CacheContext
+    :return: The seeded default CLI command domain objects.
+    :rtype: List[CliCommand]
+    '''
+
+    # Return the seeded CLI commands as a list.
+    return list(cache.get_by_prefix(*CLI_COMMAND_CACHE_PREFIX).values())
+
+# ** function: build_cli_record
+def build_cli_record(result: Any) -> CliRecord:
+    '''
+    Build a ``CliRecord`` by extracting fields from a raw domain result.
+
+    Handles three shapes: a ``DomainObject`` is serialised via ``model_dump()``
+    with ``None`` values omitted and all remaining values coerced to ``str``; a
+    ``dict`` is iterated directly with each value coerced to ``str``; any other
+    value is wrapped as ``{'value': str(result)}``.
+
+    This factory lives in the context layer rather than on the domain object so
+    that ``CliRecord`` remains a pure data structure with no knowledge of how
+    results are produced by domain events.
+
+    :param result: The raw result produced by a domain event.
+    :type result: Any
+    :return: A CliRecord populated from the result.
+    :rtype: CliRecord
+    '''
+
+    # Serialise DomainObject instances via model_dump, omitting None values.
+    if isinstance(result, DomainObject):
+        fields = {
+            k: str(v)
+            for k, v in result.model_dump().items()
+            if v is not None
+        }
+
+    # Iterate dict items directly, coercing each value to str.
+    elif isinstance(result, dict):
+        fields = {k: str(v) for k, v in result.items()}
+
+    # Wrap primitives as a single-field record keyed by "value".
+    else:
+        fields = {'value': str(result)}
+
+    # Construct and return the record.
+    return CliRecord(fields=fields)
+
+# *** contexts
+
+# ** context: cli_request_context
+class CliRequestContext(RequestContext):
+    '''
+    A CLI-specific request context that converts raw feature results into typed
+    CLI output models on ``handle_response``.
+
+    Does not declare ``domain_type`` so it is not registered in ``ContextMeta``
+    and does not shadow the base ``RequestContext``. It is constructed directly
+    by the CLI blueprint.
+    '''
+
+    # * method: handle_response
+    def handle_response(self) -> Any:
+        '''
+        Convert the raw result into a typed CLI output model.
+
+        A list result becomes a ``CliRecordList``; a dict or ``DomainObject``
+        result becomes a ``CliOutputRecord``; any other value passes through
+        unchanged so the caller can print it directly.
+
+        :return: A CliRecordList, a CliOutputRecord, or the raw primitive.
+        :rtype: Any
+        '''
+
+        # Retrieve the raw result from the request context.
+        result = self.result
+
+        # Convert a list to a CliRecordList by mapping each item to a CliRecord.
+        if isinstance(result, list):
+            records = [build_cli_record(item) for item in result]
+            return CliRecordList(records=records)
+
+        # Convert a single dict or DomainObject to a CliOutputRecord.
+        elif isinstance(result, (dict, DomainObject)):
+            cli_record = build_cli_record(result)
+            return CliOutputRecord(record=cli_record)
+
+        # Pass through primitives unchanged.
+        else:
+            return result
+
+# ** context: cli_session_context
+class CliSessionContext(AppSessionContext):
+    '''
+    The CLI session context extends the application session hub with
+    command-line concerns.
+
+    Receives an injected ``_parse_cli_args`` closure (built by the CLI
+    blueprint) that encapsulates argparse command discovery, parser
+    construction, and request derivation. ``run(argv=None)`` invokes this
+    closure, delegates execution to the inherited hub, and handles exit codes.
+    ``build_response`` formats and prints the response when the request context
+    is a ``CliRequestContext``.
+
+    It intentionally omits ``domain_type`` so the ``ContextMeta`` registry keeps
+    mapping ``AppSession`` to ``AppSessionContext``.
+    '''
+
+    # * attribute: parse_cli_args (private)
+    _parse_cli_args: Callable
+
+    # * init
+    def __init__(self,
+            get_dependency: Callable,
+            logging_context: LoggingContext = None,
+            parse_cli_args: Callable = None,
+            cache: CacheContext = None,
+            execute_feature_handler: Callable = None,
+            create_request_handler: Callable = None,
+            raise_error_handler: Callable = None,
+            response_handler: Callable = None):
+        '''
+        Initialize the CLI session context.
+
+        :param get_dependency: The DI resolution handler injected by the blueprint.
+        :type get_dependency: Callable
+        :param logging_context: The logging context bound at bootstrap.
+        :type logging_context: LoggingContext
+        :param parse_cli_args: The injected callable that parses argv and returns
+            a (feature_id, headers, data) tuple.
+        :type parse_cli_args: Callable
+        :param cache: The shared bootstrap cache.
+        :type cache: CacheContext
+        :param execute_feature_handler: The FE4 feature-execution handler.
+        :type execute_feature_handler: Callable
+        :param create_request_handler: The FE4 request-construction handler.
+        :type create_request_handler: Callable
+        :param raise_error_handler: The FE4 error-handling handler.
+        :type raise_error_handler: Callable
+        :param response_handler: The FE4 response-building handler.
+        :type response_handler: Callable
+        '''
+
+        # Initialize the base application session hub.
+        super().__init__(
+            get_dependency=get_dependency,
+            logging_context=logging_context,
+            cache=cache,
+            execute_feature_handler=execute_feature_handler,
+            create_request_handler=create_request_handler,
+            raise_error_handler=raise_error_handler,
+            response_handler=response_handler,
+        )
+
+        # Store the injected CLI arg-parsing callable.
+        self._parse_cli_args = parse_cli_args
+
+    # * method: build_response
+    def build_response(self, request: RequestContext) -> Any:
+        '''
+        Build and, when appropriate, print the CLI response.
+
+        Delegates to the injected response handler when one is wired in,
+        otherwise falls back to the request context directly. The formatted or
+        stringified result is printed only when the request is a
+        ``CliRequestContext``; the legacy path leaves printing to the caller.
+
+        :param request: The completed request context.
+        :type request: RequestContext
+        :return: The handled feature response.
+        :rtype: Any
+        '''
+
+        # Use the injected response handler when available, otherwise fall through.
+        if self._build_response is not None:
+            model = self._build_response(request)
+        else:
+            model = request.handle_response()
+
+        # Only print when using the CLI request context.
+        if isinstance(request, CliRequestContext):
+            if hasattr(model, 'format_output'):
+                print(model.format_output())
+            elif model is not None:
+                print(str(model))
+
+        # Return the model, formatted or raw.
+        return model
+
+    # * method: run
+    def run(self, argv: List[str] = None, **kwargs) -> Any:
+        '''
+        Parse CLI arguments and dispatch execution through the inherited run.
+
+        Parses argv via the injected parsing callable, then delegates to the
+        application session hub. Argparse failures exit with code 2; a
+        ``TiferetAPIError`` exits with code 1.
+
+        :param argv: The argument list; defaults to sys.argv[1:] when None.
+        :type argv: List[str]
+        :param kwargs: Not used; present for signature compatibility.
+        :type kwargs: dict
+        :return: The feature response.
+        :rtype: Any
+        '''
+
+        # Parse argv via the injected callable, exiting with code 2 on failure.
+        try:
+            feature_id, headers, data = self._parse_cli_args(argv)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            sys.exit(2)
+
+        # Dispatch the feature, exiting with code 1 on a structured API error.
+        try:
+            return super().run(feature_id, headers=headers, data=data)
+        except TiferetAPIError as e:
+            print(e, file=sys.stderr)
+            sys.exit(1)

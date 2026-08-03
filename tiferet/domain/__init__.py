@@ -16,6 +16,9 @@ from .di import (
 from .cli import (
     CliArgument,
     CliCommand,
+    CliRecord,
+    CliOutputRecord,
+    CliRecordList,
 )
 from .error import (
     Error,
@@ -50,6 +53,9 @@ __all__ = [
     'ServiceRegistration',
     'CliArgument',
     'CliCommand',
+    'CliRecord',
+    'CliOutputRecord',
+    'CliRecordList',
     'Error',
     'ErrorMessage',
     'Feature',
