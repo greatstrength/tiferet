@@ -114,7 +114,9 @@ DEFAULT_APP_SERVICE_MODULE_PATH = create_service_module_path(
 DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
 
 # ** constant: default_app_service_parameters
-DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
+DEFAULT_APP_SERVICE_PARAMETERS = {
+    'app_config': DEFAULT_APP_CONFIG_FILE,
+}
 
 # *** constants (sessions)
 
@@ -262,11 +264,16 @@ CORE_DEFAULT_CONSTANTS: Dict[str, str] = {
 }
 
 # ** constant: admin_default_services
-ADMIN_DEFAULT_SERVICES = {**CORE_DEFAULT_SERVICES}
+ADMIN_DEFAULT_SERVICES = {
+    **CORE_DEFAULT_SERVICES,
+}
 
 # ** constant: admin_default_constants
 # Core constants plus the app_config key that the admin layer exposes directly.
-ADMIN_DEFAULT_CONSTANTS = {**CORE_DEFAULT_CONSTANTS, 'app_config': DEFAULT_CONFIG_FILE}
+ADMIN_DEFAULT_CONSTANTS = {
+    **CORE_DEFAULT_CONSTANTS,
+    'app_config': DEFAULT_CONFIG_FILE,
+}
 
 # ** constant: core_default_app_sessions
 # Built-in session definitions seeded into the cache by build_cache.
