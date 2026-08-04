@@ -130,7 +130,6 @@ class AppSessionAggregate(AppSession, Aggregate):
                     for key, value in merged.items()
                     if value is not None
                 }
-            return
 
             # Return early after in-place update.
             return
@@ -175,8 +174,7 @@ class AppSessionAggregate(AppSession, Aggregate):
         '''
         Update a supported scalar attribute on the app session aggregate.
 
-        Supported attributes: name, description, module_path, class_name,
-        logger_id, flags.
+        Supported attributes: name, description, logger_id, flags.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -205,7 +203,6 @@ class AppSessionAggregate(AppSession, Aggregate):
 
         # Apply the update; validate_assignment=True handles re-validation.
         setattr(self, attribute, value)
-
 
 
 # ** mapper: app_service_dependency_config_object
