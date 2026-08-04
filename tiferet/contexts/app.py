@@ -313,31 +313,37 @@ def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession 
 # ** context: app_session_context
 class AppSessionContext(BaseContext):
     '''
-    The application session context is a minimal hub that builds operational
-    sub-contexts on demand from a loaded ``AppSession`` domain object and
-    orchestrates feature execution, error handling, and logging.
+    The application session hub binds a loaded ``AppSession`` domain object
+    and delegates feature execution, error handling, request construction,
+    and response building to four injected FE4 template-method handlers.
+
+    The legacy fallback paths build operational sub-contexts on demand; they
+    are reached only when a handler is not wired.
     '''
 
     # * attribute: domain_type
     domain_type = AppSession
-
-    # * attribute: _execute_feature
-    _execute_feature: Callable
-
-    # * attribute: _create_request
-    _create_request: Callable
-
-    # * attribute: _raise_error
-    _raise_error: Callable
-
-    # * attribute: _build_response
-    _build_response: Callable
 
     # * attribute: get_dependency
     get_dependency: Callable
 
     # * attribute: cache
     cache: CacheContext
+
+    # * attribute: logging (private)
+    _logging: LoggingContext
+
+    # * attribute: execute_feature (private)
+    _execute_feature: Callable
+
+    # * attribute: create_request (private)
+    _create_request: Callable
+
+    # * attribute: raise_error (private)
+    _raise_error: Callable
+
+    # * attribute: build_response (private)
+    _build_response: Callable
 
     # * init
     def __init__(self,
@@ -572,7 +578,7 @@ class AppSessionContext(BaseContext):
             data: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
-        Run the application interface by executing the feature.
+        Run the application session by executing the feature.
 
         Pure orchestrator that calls the four template methods in order:
         ``build_request`` → ``execute_feature`` → ``handle_error`` (on error)
@@ -593,7 +599,7 @@ class AppSessionContext(BaseContext):
         # Start timing immediately.
         start_time = time.perf_counter()
 
-        # Create the logger for the app interface context.
+        # Build the logger for this session run.
         logger = self.load_logging_context().build_logger()
 
         # Build request via the template method.
