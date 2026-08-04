@@ -17,7 +17,7 @@ from ..events.app import GetAppSession
 from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext
+from .feature import FeatureContext, FEATURE_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
 
@@ -489,11 +489,18 @@ class AppSessionContext(BaseContext):
 
         # Fallback: execute directly (should not normally be reached when blueprints wire handlers).
         feature_context_cls = BaseContext.for_domain(Feature)
-        feature_context = feature_context_cls(
+
+        # Resolve the feature from the shared cache under the feature namespace.
+        feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
+
+        # Bind the resolved feature to the context via the registry factory.
+        feature_context = feature_context_cls.from_domain(
+            feature,
             get_dependency=self.get_dependency,
             cache=self.cache,
         )
-        feature = self.cache.get(feature_id)
+
+        # Drive execution against the resolved feature.
         feature_context.execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
@@ -523,12 +530,15 @@ class AppSessionContext(BaseContext):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
-                error=str(error)
+                error=str(error),
             )
+
+        # Raise the structured API error, propagating the error's context kwargs.
         raise TiferetAPIError(
             error_code=error.error_code,
             name=error.error_code,
             message=str(error),
+            **error.kwargs,
         )
 
     # * method: build_response

@@ -31,6 +31,7 @@ from tiferet.contexts.app import (
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ErrorContext, ERROR_CACHE_PREFIX
+from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
 
 # *** fixtures
 
@@ -648,6 +649,74 @@ def test_app_session_context_build_response_fallback(app_interface):
     # Assert build_response returns the request's handled response.
     result = context.build_response(request)
     assert result == 'the_result'
+
+
+# ** test: app_session_context_execute_feature_fallback_reads_feature_namespace
+def test_app_session_context_execute_feature_fallback_reads_feature_namespace(app_interface):
+    """
+    Test that the legacy execute_feature fallback resolves the feature from the
+    feature cache namespace rather than the cache root namespace.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Seed a feature into the shared cache under the feature namespace.
+    feature = Feature(
+        id='group.feat',
+        group_id='group',
+        feature_key='feat',
+        name='Test Feature',
+    )
+    cache = CacheContext()
+    cache.set('group.feat', feature, *FEATURE_CACHE_PREFIX)
+
+    # Construct the hub without an execute_feature_handler to force the fallback.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+        cache=cache,
+    )
+
+    # Drive the fallback with the real FeatureContext execution patched out.
+    request = RequestContext(data={})
+    with mock.patch.object(FeatureContext, 'execute_feature') as execute_mock:
+        context.execute_feature('group.feat', request)
+
+    # Assert the seeded feature was resolved and forwarded rather than None.
+    assert execute_mock.call_args.args[0] is feature
+
+
+# ** test: app_session_context_handle_error_fallback_preserves_error_kwargs
+def test_app_session_context_handle_error_fallback_preserves_error_kwargs(app_interface):
+    """
+    Test that the legacy handle_error fallback propagates the structured error
+    kwargs onto the raised TiferetAPIError.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Construct the hub without a raise_error_handler to force the fallback.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+    )
+
+    # Arrange a structured error carrying additional context kwargs.
+    error = TiferetError(
+        'TEST_ERROR',
+        'Test error message.',
+        feature_id='group.feat',
+    )
+
+    # Invoke the fallback and capture the raised API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.handle_error(error)
+
+    # Assert the structured context survived onto the raised API error.
+    assert exc_info.value.error_code == 'TEST_ERROR'
+    assert exc_info.value.kwargs.get('feature_id') == 'group.feat'
 
 
 # ** test: app_interface_context_handle_response
