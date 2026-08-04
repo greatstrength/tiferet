@@ -4,6 +4,7 @@
 
 # ** core
 import asyncio
+import re
 import threading
 from typing import Any, Callable, Generator, List, Tuple, Dict
 
@@ -266,8 +267,6 @@ def evaluate_condition(condition: str, request: RequestContext) -> bool:
     :return: The boolean result of the evaluated expression.
     :rtype: bool
     '''
-
-    import re
 
     # Return True if condition is None or empty (unconditional step).
     if not condition or not condition.strip():
