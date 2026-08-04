@@ -33,9 +33,10 @@ from ..contexts.app import (
     get_default_app_constants,
     get_default_app_session,
 )
-from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names, ParseParameter
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
+from ..events import ParseParameter
 from .. import assets as a
 
 # *** blueprints
