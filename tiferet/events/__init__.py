@@ -7,11 +7,9 @@ __all__ = [
     'AsyncDomainEvent',
     'TiferetError',
     'a',
-    'ParseParameter',
-    'ImportDependency',
     'RaiseError',
 ]
 
 # ** app
 from .core import DomainEvent, AsyncDomainEvent, TiferetError, a
-from .static import ParseParameter, ImportDependency, RaiseError
+from .static import RaiseError

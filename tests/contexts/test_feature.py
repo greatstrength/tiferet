@@ -20,7 +20,6 @@ from tiferet.contexts.feature import (
     merge_step_kwargs,
     build_step_chain,
     compose_step_middleware,
-    parse_request_parameter,
     evaluate_condition,
     validate_request,
 )
@@ -1055,31 +1054,31 @@ def test_build_step_chain_with_middleware(test_command):
     assert order == ['pre', 'post']
 
 # ** test: parse_request_parameter_request_ref_success
-def test_parse_request_parameter_request_ref_success():
+def test_parse_request_parameter_request_ref_success(feature_context):
     """Test that parse_request_parameter extracts a $r.-prefixed value from request data."""
 
     # Create a request containing the referenced key.
     request = RequestContext(data={'key': 'value'})
 
     # Parse the request-backed parameter.
-    result = parse_request_parameter('$r.key', request)
+    result = feature_context.parse_request_parameter('$r.key', request)
 
     # Assert the extracted value is returned.
     assert result == 'value'
 
 # ** test: parse_request_parameter_request_not_found
-def test_parse_request_parameter_request_not_found():
+def test_parse_request_parameter_request_not_found(feature_context):
     """Test that parse_request_parameter raises REQUEST_NOT_FOUND when no request is given."""
 
     # Assert the structured error is raised when no request is provided.
     with pytest.raises(TiferetError) as exc_info:
-        parse_request_parameter('$r.key', None)
+        feature_context.parse_request_parameter('$r.key', None)
 
     assert exc_info.value.error_code == 'REQUEST_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.key'
 
 # ** test: parse_request_parameter_key_missing
-def test_parse_request_parameter_key_missing():
+def test_parse_request_parameter_key_missing(feature_context):
     """Test that parse_request_parameter raises PARAMETER_NOT_FOUND when the key is absent."""
 
     # Create a request that does not contain the referenced key.
@@ -1087,30 +1086,40 @@ def test_parse_request_parameter_key_missing():
 
     # Assert the structured error is raised when the key is missing.
     with pytest.raises(TiferetError) as exc_info:
-        parse_request_parameter('$r.missing', request)
+        feature_context.parse_request_parameter('$r.missing', request)
 
     assert exc_info.value.error_code == 'PARAMETER_NOT_FOUND'
     assert exc_info.value.kwargs.get('parameter') == '$r.missing'
 
-# ** test: parse_request_parameter_delegates_to_parse_parameter
-def test_parse_request_parameter_delegates_to_parse_parameter(monkeypatch):
-    """Test that non-$r. parameters are forwarded to ParseParameter.execute."""
+# ** test: parse_request_parameter_delegates_to_injected_parser
+def test_parse_request_parameter_delegates_to_injected_parser(services_context):
+    """Test that non-$r. parameters are forwarded to the injected parse_parameter callable."""
 
-    from tiferet.events import static as static_events
-
+    # Arrange a spy parser to capture the delegated parameter.
     called = {}
 
-    def fake_execute(parameter: str):
+    def spy_parser(parameter: str) -> str:
         called['parameter'] = parameter
         return 'parsed-value'
 
-    monkeypatch.setattr(static_events.ParseParameter, 'execute', staticmethod(fake_execute))
+    # Build a context wired with the spy parser.
+    ctx = FeatureContext(
+        get_dependency=services_context.get_dependency,
+        parse_parameter=spy_parser,
+    )
 
-    # A non-$r. parameter should delegate to ParseParameter.execute.
-    result = parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
+    # A non-$r. parameter should delegate to the injected parser.
+    result = ctx.parse_request_parameter('$env.MY_VAR', RequestContext(data={}))
 
     assert result == 'parsed-value'
     assert called['parameter'] == '$env.MY_VAR'
+
+# ** test: parse_request_parameter_defaults_to_identity
+def test_parse_request_parameter_defaults_to_identity(feature_context):
+    """Test that a context built without a parser passes non-$r. values through unchanged."""
+
+    # Assert the identity default returns the parameter verbatim.
+    assert feature_context.parse_request_parameter('plain_value', RequestContext(data={})) == 'plain_value'
 
 # ** test: evaluate_condition_none_returns_true
 def test_evaluate_condition_none_returns_true():

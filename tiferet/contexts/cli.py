@@ -4,7 +4,7 @@
 
 # ** core
 import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 # ** app
 from ..assets import TiferetAPIError
@@ -18,6 +18,7 @@ from ..domain import (
 )
 from .app import AppSessionContext
 from .cache import CacheContext
+from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
@@ -197,7 +198,7 @@ class CliSessionContext(AppSessionContext):
     # * init
     def __init__(self,
             get_dependency: Callable,
-            logging_context = None,
+            logging_context: LoggingContext = None,
             parse_cli_args: Callable = None,
             cache: CacheContext = None,
             execute_feature_handler: Callable = None,
@@ -277,7 +278,7 @@ class CliSessionContext(AppSessionContext):
         return model
 
     # * method: run
-    def run(self, argv=None, **kwargs) -> Any:
+    def run(self, argv: List[str] = None, **kwargs) -> Any:
         '''
         Parse CLI arguments and dispatch execution through the inherited run.
 
@@ -287,7 +288,7 @@ class CliSessionContext(AppSessionContext):
 
         :param argv: Optional argument list; defaults to ``sys.argv[1:]`` when
             ``None``.
-        :type argv: Optional[List[str]]
+        :type argv: List[str]
         :param kwargs: Not used; present for signature compatibility.
         :type kwargs: dict
         :return: The feature response.

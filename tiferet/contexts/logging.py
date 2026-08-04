@@ -58,14 +58,14 @@ def add_default_logging_settings(settings: Dict[str, Any]) -> Callable:
     return decorator
 
 # ** function: get_default_logging_settings
-def get_default_logging_settings(cache: CacheContext) -> LoggingSettings:
+def get_default_logging_settings(cache: CacheContext) -> LoggingSettings | None:
     '''
     Return the default LoggingSettings seeded on the cache.
 
     :param cache: The cache context to read.
     :type cache: CacheContext
-    :return: The default LoggingSettings domain object.
-    :rtype: LoggingSettings
+    :return: The default LoggingSettings domain object, or None when absent.
+    :rtype: LoggingSettings | None
     '''
 
     # Retrieve the default LoggingSettings from the logging namespace.

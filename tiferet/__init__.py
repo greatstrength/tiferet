@@ -10,7 +10,6 @@ __all__ = [
     'DomainObject',
     'DomainEvent',
     'AsyncDomainEvent',
-    'ParseParameter',
     'Service',
     'MiddlewareService',
     'Aggregate',
@@ -44,7 +43,6 @@ try:
     from .events import (
         DomainEvent,
         AsyncDomainEvent,
-        ParseParameter,
     )
     from .interfaces import Service, MiddlewareService
     from .mappers import (

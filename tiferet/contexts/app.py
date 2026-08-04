@@ -17,7 +17,7 @@ from ..events.app import GetAppSession
 from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext
+from .feature import FeatureContext, FEATURE_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
 
@@ -313,31 +313,37 @@ def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession 
 # ** context: app_session_context
 class AppSessionContext(BaseContext):
     '''
-    The application session context is a minimal hub that builds operational
-    sub-contexts on demand from a loaded ``AppSession`` domain object and
-    orchestrates feature execution, error handling, and logging.
+    The application session hub binds a loaded ``AppSession`` domain object
+    and delegates feature execution, error handling, request construction,
+    and response building to four injected FE4 template-method handlers.
+
+    The legacy fallback paths build operational sub-contexts on demand; they
+    are reached only when a handler is not wired.
     '''
 
     # * attribute: domain_type
     domain_type = AppSession
-
-    # * attribute: _execute_feature
-    _execute_feature: Callable
-
-    # * attribute: _create_request
-    _create_request: Callable
-
-    # * attribute: _raise_error
-    _raise_error: Callable
-
-    # * attribute: _build_response
-    _build_response: Callable
 
     # * attribute: get_dependency
     get_dependency: Callable
 
     # * attribute: cache
     cache: CacheContext
+
+    # * attribute: logging (private)
+    _logging: LoggingContext
+
+    # * attribute: execute_feature (private)
+    _execute_feature: Callable
+
+    # * attribute: create_request (private)
+    _create_request: Callable
+
+    # * attribute: raise_error (private)
+    _raise_error: Callable
+
+    # * attribute: build_response (private)
+    _build_response: Callable
 
     # * init
     def __init__(self,
@@ -489,11 +495,18 @@ class AppSessionContext(BaseContext):
 
         # Fallback: execute directly (should not normally be reached when blueprints wire handlers).
         feature_context_cls = BaseContext.for_domain(Feature)
-        feature_context = feature_context_cls(
+
+        # Resolve the feature from the shared cache under the feature namespace.
+        feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
+
+        # Bind the resolved feature to the context via the registry factory.
+        feature_context = feature_context_cls.from_domain(
+            feature,
             get_dependency=self.get_dependency,
             cache=self.cache,
         )
-        feature = self.cache.get(feature_id)
+
+        # Drive execution against the resolved feature.
         feature_context.execute_feature(feature, request, **kwargs)
 
     # * method: handle_error
@@ -523,12 +536,15 @@ class AppSessionContext(BaseContext):
             error = TiferetError(
                 'APP_ERROR',
                 f'An error occurred in the app: {str(error)}',
-                error=str(error)
+                error=str(error),
             )
+
+        # Raise the structured API error, propagating the error's context kwargs.
         raise TiferetAPIError(
             error_code=error.error_code,
             name=error.error_code,
             message=str(error),
+            **error.kwargs,
         )
 
     # * method: build_response
@@ -562,7 +578,7 @@ class AppSessionContext(BaseContext):
             data: Dict[str, Any] = {},
             **kwargs) -> Any:
         '''
-        Run the application interface by executing the feature.
+        Run the application session by executing the feature.
 
         Pure orchestrator that calls the four template methods in order:
         ``build_request`` → ``execute_feature`` → ``handle_error`` (on error)
@@ -583,7 +599,7 @@ class AppSessionContext(BaseContext):
         # Start timing immediately.
         start_time = time.perf_counter()
 
-        # Create the logger for the app interface context.
+        # Build the logger for this session run.
         logger = self.load_logging_context().build_logger()
 
         # Build request via the template method.

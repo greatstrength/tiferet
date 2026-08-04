@@ -119,7 +119,9 @@ DEFAULT_APP_SERVICE_MODULE_PATH = create_service_module_path(
 DEFAULT_APP_SERVICE_CLASS_NAME = 'AppConfigRepository'
 
 # ** constant: default_app_service_parameters
-DEFAULT_APP_SERVICE_PARAMETERS = {'app_config': DEFAULT_APP_CONFIG_FILE}
+DEFAULT_APP_SERVICE_PARAMETERS = {
+    'app_config': DEFAULT_APP_CONFIG_FILE,
+}
 
 # *** constants (sessions)
 

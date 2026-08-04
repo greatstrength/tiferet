@@ -60,7 +60,7 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
 class ErrorContext(BaseContext):
     '''
     The error context formats structured error responses from loaded ``Error``
-    domain objects. Error retrieval is owned by the application interface hub.
+    domain objects. Error retrieval is owned by the application session hub.
     '''
 
     # * attribute: domain_type

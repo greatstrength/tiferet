@@ -130,6 +130,6 @@ DEBUG_LOGGER = create_default_logger(
 # ** constant: core_default_logging_settings
 CORE_DEFAULT_LOGGING_SETTINGS: Dict[str, Any] = {
     'formatters': [DEFAULT_FORMATTER],
-    'handlers':   [DEFAULT_ROOT_HANDLER, DEFAULT_HANDLER, DEBUG_HANDLER],
-    'loggers':    [ROOT_LOGGER, DEFAULT_LOGGER, DEBUG_LOGGER],
+    'handlers': [DEFAULT_ROOT_HANDLER, DEFAULT_HANDLER, DEBUG_HANDLER],
+    'loggers': [ROOT_LOGGER, DEFAULT_LOGGER, DEBUG_LOGGER],
 }

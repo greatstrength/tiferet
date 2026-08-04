@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import os
 from typing import Any, Callable, Dict
 
 # ** app
@@ -13,12 +14,12 @@ from ..contexts.feature import (
     Feature,
     FeatureContext,
     FEATURE_CACHE_PREFIX,
-    add_default_features,
 )
 from ..contexts.logging import (
     add_default_logging_settings,
     get_default_logging_settings,
     LoggingContext,
+    LoggingSettings,
 )
 from ..contexts.request import RequestContext
 from ..contexts.core import BaseContext
@@ -33,7 +34,7 @@ from ..contexts.app import (
     get_default_app_constants,
     get_default_app_session,
 )
-from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names, ParseParameter
+from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
@@ -266,10 +267,11 @@ def build_logging_context(
 
     Resolves the ``logging_list_all_evt`` from the app-scoped service container,
     calls it once to fetch any repository-specific logging configurations, merges
-    the result over the cache-seeded ``LoggingSettings`` defaults (empty sections
-    fall back to defaults), and constructs a ``LoggingContext`` via
+    the result over the cache-seeded ``LoggingSettings`` defaults **by id** (a
+    repository entry overrides the default sharing its id, while unmatched
+    defaults survive), and constructs a ``LoggingContext`` via
     ``LoggingContext.from_domain`` with the assembled ``LoggingSettings`` bound
-    as the domain object.
+    as the domain object. A cache with no seeded defaults is tolerated.
 
     :param cache: The shared cache context pre-seeded with default LoggingSettings.
     :type cache: CacheContext
@@ -287,15 +289,26 @@ def build_logging_context(
     # Fetch repo-specific configs; empty sections signal no config file present.
     formatters, handlers, loggers = logging_list_all_evt.execute()
 
-    # Load the cache-seeded defaults as the fallback for any missing section.
+    # Load the cache-seeded defaults, tolerating a cache with none seeded.
     defaults = get_default_logging_settings(cache)
+    default_formatters = defaults.formatters if defaults else []
+    default_handlers = defaults.handlers if defaults else []
+    default_loggers = defaults.loggers if defaults else []
 
-    # Build the LoggingSettings domain object, merging repo data over defaults.
-    from ..domain import LoggingSettings
+    # Merge the retrieved configs over the defaults keyed by id, so a repository
+    # entry overrides only the default sharing its id.
+    merged_formatters = {formatter.id: formatter for formatter in default_formatters}
+    merged_formatters.update({formatter.id: formatter for formatter in (formatters or [])})
+    merged_handlers = {handler.id: handler for handler in default_handlers}
+    merged_handlers.update({handler.id: handler for handler in (handlers or [])})
+    merged_loggers = {logger.id: logger for logger in default_loggers}
+    merged_loggers.update({logger.id: logger for logger in (loggers or [])})
+
+    # Build the merged LoggingSettings domain object.
     settings = LoggingSettings(
-        formatters=formatters or defaults.formatters,
-        handlers=handlers or defaults.handlers,
-        loggers=loggers or defaults.loggers,
+        formatters=list(merged_formatters.values()),
+        handlers=list(merged_handlers.values()),
+        loggers=list(merged_loggers.values()),
     )
 
     # Construct the LoggingContext via the BaseContext factory, injecting logger_id.
@@ -365,9 +378,10 @@ def parse_parameter(parameter: str) -> Any:
     '''
     Parse a configuration parameter value, resolving environment references.
 
-    Thin blueprint-layer wrapper over the ParseParameter static event so the DI
-    resolver receives its parser from the blueprint layer rather than importing
-    the event directly.
+    Resolves ``$env.``-prefixed values from the process environment and returns
+    any other value unchanged. Parameter parsing is owned by the blueprint layer
+    and injected into both the DI resolver and the FeatureContext, so neither
+    reaches into the events layer to parse a parameter.
 
     :param parameter: The parameter value to parse.
     :type parameter: str
@@ -375,8 +389,30 @@ def parse_parameter(parameter: str) -> Any:
     :rtype: Any
     '''
 
-    # Delegate to the ParseParameter static event.
-    return ParseParameter.execute(parameter)
+    # Resolve the parameter, wrapping any failure in a structured error.
+    try:
+
+        # Resolve an environment reference from the process environment.
+        if parameter.startswith('$env.'):
+            result = os.getenv(parameter[5:])
+
+            # Treat an unset or empty environment variable as a failure.
+            if not result:
+                raise Exception('Environment variable not found.')
+
+            # Return the resolved environment value.
+            return result
+
+        # Return any non-environment parameter unchanged.
+        return parameter
+
+    # Raise a structured error when parsing fails.
+    except Exception as e:
+        RaiseError.execute(
+            a.error.PARAMETER_PARSING_FAILED_ID,
+            parameter=parameter,
+            exception=str(e),
+        )
 
 # ** blueprint: build_service_resolver
 def build_service_resolver(
@@ -507,8 +543,13 @@ def create_feature_context(
     if feature is None:
         feature = get_feature(cache, get_dependency)(feature_id)
 
-    # Compose the feature context with the resolver handler and shared cache.
-    feature_context = FeatureContext(get_dependency=get_dependency, cache=cache)
+    # Compose the feature context with the resolver handler, shared cache, and
+    # the blueprint-owned parameter parser.
+    feature_context = FeatureContext(
+        get_dependency=get_dependency,
+        cache=cache,
+        parse_parameter=parse_parameter,
+    )
 
     # Return the feature and its composed context.
     return feature, feature_context

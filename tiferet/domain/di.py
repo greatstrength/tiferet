@@ -96,9 +96,9 @@ class ServiceRegistration(DomainObject):
         '''
         Gets the service type based on the provided flags.
 
-        Delegates to ``resolve_service`` so the flagged-override -> default
-        precedence lives in exactly one place, then imports the effective
-        dependency's service type.
+        Delegates to :meth:`resolve_service` so the flagged-override
+        → default precedence lives in exactly one place, then imports
+        the effective service type.
 
         :param flags: The flags for the flagged dependency.
         :type flags: Tuple[str, ...]
@@ -115,9 +115,9 @@ class ServiceRegistration(DomainObject):
         '''
         Resolve the effective core service dependency for the given flags.
 
-        Prefers a matching flagged override (in flag priority order), then falls
-        back to the registration's own default definition, and returns None when
-        no service is defined.
+        Prefers a matching flagged override (in flag priority order), then
+        falls back to the registration's own default definition, and returns
+        ``None`` when no service is defined.
 
         :param flags: The flags to match against flagged dependencies.
         :type flags: Tuple[str, ...]

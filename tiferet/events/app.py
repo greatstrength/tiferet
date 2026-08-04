@@ -169,7 +169,7 @@ class UpdateAppSession(AppEvent):
             expression=interface is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            interface_id=id,
+            id=id,
         )
 
         # Update the attribute via the model method.
@@ -216,7 +216,7 @@ class SetAppConstants(AppEvent):
             expression=interface is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            interface_id=id,
+            id=id,
         )
 
         # Update constants via the model method.
@@ -292,7 +292,7 @@ class SetServiceDependency(AppEvent):
             expression=interface is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            interface_id=id,
+            id=id,
         )
 
         # Set or update the service dependency on the session.
@@ -339,7 +339,7 @@ class RemoveServiceDependency(AppEvent):
             expression=interface is not None,
             error_code=a.error.APP_SESSION_NOT_FOUND_ID,
             message=f'App session with ID {id} not found.',
-            interface_id=id,
+            id=id,
         )
 
         # Remove the service dependency idempotently from the session.

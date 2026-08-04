@@ -4,6 +4,7 @@
 
 # ** core
 import asyncio
+import re
 import threading
 from typing import Any, Callable, Generator, List, Tuple, Dict
 
@@ -19,8 +20,7 @@ from ..assets.error import (
 )
 from ..events import (
     DomainEvent,
-    RaiseError,
-    ParseParameter
+    RaiseError
 )
 from ..domain import Feature, EventFeatureStep
 
@@ -249,50 +249,6 @@ def compose_step_middleware(
     # Concatenate feature-level (outer) and step-level (inner) middleware.
     return (feature_middleware or []) + (step_middleware or [])
 
-# ** function: parse_request_parameter
-def parse_request_parameter(parameter: str, request: RequestContext = None) -> str:
-    '''
-    Parse a request-aware parameter value.
-
-    Delegates non-prefixed parameters to :func:`ParseParameter.execute`. For
-    ``$r.``-prefixed references, extracts the value keyed by the suffix from
-    ``request.data``, raising a structured error when the request is absent or
-    the key is missing.
-
-    :param parameter: The parameter value to parse.
-    :type parameter: str
-    :param request: The request context object containing data for parameter parsing.
-    :type request: RequestContext
-    :return: The parsed parameter value.
-    :rtype: str
-    '''
-
-    # Delegate non-prefixed parameters to the ParseParameter static event.
-    if not parameter.startswith('$r.'):
-        return ParseParameter.execute(parameter)
-
-    # Raise an error if the request is not provided for a request-backed parameter.
-    if not request:
-        RaiseError.execute(
-            REQUEST_NOT_FOUND_ID,
-            'Request data is not available for parameter parsing.',
-            parameter=parameter
-        )
-
-    # Extract the value from the request data using the key after the $r. prefix.
-    result = request.data.get(parameter[3:], None)
-
-    # Raise an error if the parameter key is not found in the request data.
-    if result is None:
-        RaiseError.execute(
-            PARAMETER_NOT_FOUND_ID,
-            f'Parameter {parameter} not found in request data.',
-            parameter=parameter
-        )
-
-    # Return the parsed parameter value.
-    return result
-
 # ** function: evaluate_condition
 def evaluate_condition(condition: str, request: RequestContext) -> bool:
     '''
@@ -311,8 +267,6 @@ def evaluate_condition(condition: str, request: RequestContext) -> bool:
     :return: The boolean result of the evaluated expression.
     :rtype: bool
     '''
-
-    import re
 
     # Return True if condition is None or empty (unconditional step).
     if not condition or not condition.strip():
@@ -390,11 +344,15 @@ class FeatureContext(BaseContext):
     # * attribute: context_data
     context_data: Dict[str, Any]
 
+    # * attribute: parse_parameter
+    parse_parameter: Callable
+
     # * init
     def __init__(self,
             get_dependency: Callable,
             cache: CacheContext = None,
-            context_data: Dict[str, Any] = None):
+            context_data: Dict[str, Any] = None,
+            parse_parameter: Callable = None):
         '''
         Initialize the feature context.
 
@@ -406,6 +364,10 @@ class FeatureContext(BaseContext):
         :param context_data: Lowest-priority context defaults merged into every
             command execution.
         :type context_data: Dict[str, Any]
+        :param parse_parameter: The injected parameter parser applied to
+            non-request-backed step parameters; defaults to an identity pass-through
+            so the context stays usable without a blueprint-supplied parser.
+        :type parse_parameter: Callable
         '''
 
         # Initialize the base context.
@@ -419,6 +381,9 @@ class FeatureContext(BaseContext):
 
         # Store the context-level execution defaults.
         self.context_data = context_data if context_data is not None else {}
+
+        # Store the injected parameter parser, defaulting to identity.
+        self.parse_parameter = parse_parameter if parse_parameter is not None else lambda parameter: parameter
 
     # * method: resolve_step_event
     def resolve_step_event(self, step: EventFeatureStep, feature_flags: List[str] = None) -> DomainEvent:
@@ -489,6 +454,50 @@ class FeatureContext(BaseContext):
 
         # Return the resolved middleware instances.
         return middleware
+
+    # * method: parse_request_parameter
+    def parse_request_parameter(self, parameter: str, request: RequestContext = None) -> str:
+        '''
+        Parse a request-aware parameter value.
+
+        Delegates non-prefixed parameters to the injected ``parse_parameter``
+        callable. For ``$r.``-prefixed references, extracts the value keyed by
+        the suffix from ``request.data``, raising a structured error when the
+        request is absent or the key is missing.
+
+        :param parameter: The parameter value to parse.
+        :type parameter: str
+        :param request: The request context object containing data for parameter parsing.
+        :type request: RequestContext
+        :return: The parsed parameter value.
+        :rtype: str
+        '''
+
+        # Delegate non-prefixed parameters to the injected parameter parser.
+        if not parameter.startswith('$r.'):
+            return self.parse_parameter(parameter)
+
+        # Raise an error if the request is not provided for a request-backed parameter.
+        if not request:
+            RaiseError.execute(
+                REQUEST_NOT_FOUND_ID,
+                'Request data is not available for parameter parsing.',
+                parameter=parameter
+            )
+
+        # Extract the value from the request data using the key after the $r. prefix.
+        result = request.data.get(parameter[3:], None)
+
+        # Raise an error if the parameter key is not found in the request data.
+        if result is None:
+            RaiseError.execute(
+                PARAMETER_NOT_FOUND_ID,
+                f'Parameter {parameter} not found in request data.',
+                parameter=parameter
+            )
+
+        # Return the parsed parameter value.
+        return result
 
     # * method: execute_step
     def execute_step(self,
@@ -683,7 +692,7 @@ class FeatureContext(BaseContext):
 
             # Parse the step parameters.
             params = {
-                param: parse_request_parameter(value, request)
+                param: self.parse_request_parameter(value, request)
                 for param, value in step.parameters.items()
             }
 

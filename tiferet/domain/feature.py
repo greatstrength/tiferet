@@ -3,7 +3,7 @@
 # *** imports
 
 # ** core
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 # ** infra
 from pydantic import ConfigDict, Field, ValidationError, create_model, model_validator
@@ -110,7 +110,7 @@ class ParameterSpecification(DomainObject):
     choices: List[Any] | None = Field(default=None, description='Enumerated set of valid values.')
 
     # * method: get_type
-    def get_type(self) -> Type:
+    def get_type(self) -> type:
         '''
         Map the declared type string to a Python type.
 
