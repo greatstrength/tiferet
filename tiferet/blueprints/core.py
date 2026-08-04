@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import os
 from typing import Any, Callable, Dict
 
 # ** app
@@ -37,7 +38,6 @@ from ..contexts.app import (
 from ..di import DIAppServiceContainer, DIDynamicServiceContainer, injectable_parameter_names
 from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
-from ..events import ParseParameter
 from .. import assets as a
 
 # *** blueprints
@@ -379,9 +379,10 @@ def parse_parameter(parameter: str) -> Any:
     '''
     Parse a configuration parameter value, resolving environment references.
 
-    Thin blueprint-layer wrapper over the ParseParameter static event so the DI
-    resolver receives its parser from the blueprint layer rather than importing
-    the event directly.
+    Resolves ``$env.``-prefixed values from the process environment and returns
+    any other value unchanged. Parameter parsing is owned by the blueprint layer
+    and injected into both the DI resolver and the FeatureContext, so neither
+    reaches into the events layer to parse a parameter.
 
     :param parameter: The parameter value to parse.
     :type parameter: str
@@ -389,8 +390,30 @@ def parse_parameter(parameter: str) -> Any:
     :rtype: Any
     '''
 
-    # Delegate to the ParseParameter static event.
-    return ParseParameter.execute(parameter)
+    # Resolve the parameter, wrapping any failure in a structured error.
+    try:
+
+        # Resolve an environment reference from the process environment.
+        if parameter.startswith('$env.'):
+            result = os.getenv(parameter[5:])
+
+            # Treat an unset or empty environment variable as a failure.
+            if not result:
+                raise Exception('Environment variable not found.')
+
+            # Return the resolved environment value.
+            return result
+
+        # Return any non-environment parameter unchanged.
+        return parameter
+
+    # Raise a structured error when parsing fails.
+    except Exception as e:
+        RaiseError.execute(
+            a.error.PARAMETER_PARSING_FAILED_ID,
+            parameter=parameter,
+            exception=str(e),
+        )
 
 # ** blueprint: build_service_resolver
 def build_service_resolver(
@@ -521,8 +544,13 @@ def create_feature_context(
     if feature is None:
         feature = get_feature(cache, get_dependency)(feature_id)
 
-    # Compose the feature context with the resolver handler and shared cache.
-    feature_context = FeatureContext(get_dependency=get_dependency, cache=cache)
+    # Compose the feature context with the resolver handler, shared cache, and
+    # the blueprint-owned parameter parser.
+    feature_context = FeatureContext(
+        get_dependency=get_dependency,
+        cache=cache,
+        parse_parameter=parse_parameter,
+    )
 
     # Return the feature and its composed context.
     return feature, feature_context

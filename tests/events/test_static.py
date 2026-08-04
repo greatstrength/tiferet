@@ -4,60 +4,12 @@
 
 # ** infra
 import pytest
-import os
 
 # ** app
-from tiferet.events.static import ParseParameter, RaiseError
-from tiferet.events.core import TiferetError, a
+from tiferet.events.static import RaiseError
+from tiferet.events.core import TiferetError
 
 # *** tests
-
-# ** test: test_parse_parameter_env_variable
-def test_parse_parameter_env_variable():
-    '''
-    Test that ParseParameter resolves an existing environment variable.
-    '''
-
-    # Set a test environment variable.
-    os.environ['TIFERET_TEST_VAR'] = 'hello_world'
-
-    # Parse the environment variable parameter.
-    result = ParseParameter.execute('$env.TIFERET_TEST_VAR')
-
-    # Verify the resolved value.
-    assert result == 'hello_world', 'Should resolve the environment variable value'
-
-    # Clean up.
-    del os.environ['TIFERET_TEST_VAR']
-
-# ** test: test_parse_parameter_missing_env_variable
-def test_parse_parameter_missing_env_variable():
-    '''
-    Test that ParseParameter raises on a missing environment variable.
-    '''
-
-    # Ensure the variable does not exist.
-    os.environ.pop('TIFERET_NONEXISTENT_VAR', None)
-
-    # Attempt to parse a missing env variable, expect TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        ParseParameter.execute('$env.TIFERET_NONEXISTENT_VAR')
-
-    # Verify error code and kwargs.
-    assert exc_info.value.error_code == a.error.PARAMETER_PARSING_FAILED_ID, 'Should raise PARAMETER_PARSING_FAILED'
-    assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR', 'Should include the parameter'
-
-# ** test: test_parse_parameter_non_env_string
-def test_parse_parameter_non_env_string():
-    '''
-    Test that ParseParameter passes through a plain string unchanged.
-    '''
-
-    # Parse a non-environment variable string.
-    result = ParseParameter.execute('plain_value')
-
-    # Verify the value is returned unchanged.
-    assert result == 'plain_value', 'Should return the plain string unchanged'
 
 # ** test: test_raise_error_basic
 def test_raise_error_basic():

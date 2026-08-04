@@ -563,6 +563,28 @@ def test_parse_parameter_resolves_env(monkeypatch):
     assert parse_parameter('$env.TIFERET_TEST_VAR') == 'resolved_value'
 
 
+# ** test: parse_parameter_missing_env_raises
+def test_parse_parameter_missing_env_raises(monkeypatch):
+    '''
+    Test that parse_parameter raises PARAMETER_PARSING_FAILED when the referenced
+    environment variable is unset.
+
+    :param monkeypatch: The pytest monkeypatch fixture.
+    :type monkeypatch: pytest.MonkeyPatch
+    '''
+
+    # Ensure the environment variable is absent.
+    monkeypatch.delenv('TIFERET_NONEXISTENT_VAR', raising=False)
+
+    # Attempt to resolve the missing reference and capture the structured error.
+    with pytest.raises(TiferetError) as exc_info:
+        parse_parameter('$env.TIFERET_NONEXISTENT_VAR')
+
+    # Assert the error code and parameter context are reported.
+    assert exc_info.value.error_code == a.error.PARAMETER_PARSING_FAILED_ID
+    assert exc_info.value.kwargs.get('parameter') == '$env.TIFERET_NONEXISTENT_VAR'
+
+
 # ** test: load_cache_returns_root_snapshot_callable
 def test_load_cache_returns_root_snapshot_callable():
     '''
@@ -633,6 +655,9 @@ def test_create_feature_context_with_preloaded_feature():
     assert feature_context.get_dependency is get_dependency
     assert feature_context.cache is cache
     get_dependency.assert_not_called()
+
+    # Assert the blueprint-owned parameter parser was injected.
+    assert feature_context.parse_parameter is parse_parameter
 
 
 # ** test: create_feature_context_loads_by_feature_id
