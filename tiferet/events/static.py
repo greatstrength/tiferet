@@ -5,7 +5,6 @@
 # ** core
 from typing import Any
 import os
-from importlib import import_module
 
 # ** app
 from .core import DomainEvent, TiferetError, a
@@ -52,41 +51,6 @@ class ParseParameter(DomainEvent):
             raise TiferetError(
                 a.error.PARAMETER_PARSING_FAILED_ID,
                 parameter=parameter,
-                exception=str(e),
-            )
-
-# ** event: import_dependency
-class ImportDependency(DomainEvent):
-    '''
-    A static domain event to import a dependency from a module.
-    '''
-
-    # * method: execute (static)
-    @staticmethod
-    def execute(module_path: str, class_name: str, **kwargs) -> Any:
-        '''
-        Import a class from a module path.
-
-        :param module_path: The module path to import from.
-        :type module_path: str
-        :param class_name: The class name to import.
-        :type class_name: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict
-        :return: The imported class.
-        :rtype: Any
-        '''
-
-        # Import module.
-        try:
-            return getattr(import_module(module_path), class_name)
-
-        # Raise an error if the dependency import fails.
-        except Exception as e:
-            raise TiferetError(
-                a.error.IMPORT_DEPENDENCY_FAILED_ID,
-                module_path=module_path,
-                class_name=class_name,
                 exception=str(e),
             )
 

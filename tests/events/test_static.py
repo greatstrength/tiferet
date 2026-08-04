@@ -7,7 +7,7 @@ import pytest
 import os
 
 # ** app
-from tiferet.events.static import ParseParameter, ImportDependency, RaiseError
+from tiferet.events.static import ParseParameter, RaiseError
 from tiferet.events.core import TiferetError, a
 
 # *** tests
@@ -58,33 +58,6 @@ def test_parse_parameter_non_env_string():
 
     # Verify the value is returned unchanged.
     assert result == 'plain_value', 'Should return the plain string unchanged'
-
-# ** test: test_import_dependency_success
-def test_import_dependency_success():
-    '''
-    Test that ImportDependency successfully imports a known class.
-    '''
-
-    # Import os.getenv via ImportDependency.
-    result = ImportDependency.execute('os', 'getenv')
-
-    # Verify the imported attribute is os.getenv.
-    assert result is os.getenv, 'Should import os.getenv successfully'
-
-# ** test: test_import_dependency_failure
-def test_import_dependency_failure():
-    '''
-    Test that ImportDependency raises on an invalid module/class.
-    '''
-
-    # Attempt to import a nonexistent module, expect TiferetError.
-    with pytest.raises(TiferetError) as exc_info:
-        ImportDependency.execute('nonexistent.module', 'FakeClass')
-
-    # Verify error code and kwargs.
-    assert exc_info.value.error_code == a.error.IMPORT_DEPENDENCY_FAILED_ID, 'Should raise IMPORT_DEPENDENCY_FAILED'
-    assert exc_info.value.kwargs.get('module_path') == 'nonexistent.module', 'Should include module_path'
-    assert exc_info.value.kwargs.get('class_name') == 'FakeClass', 'Should include class_name'
 
 # ** test: test_raise_error_basic
 def test_raise_error_basic():
