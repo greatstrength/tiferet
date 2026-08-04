@@ -35,7 +35,8 @@ class DomainObject(BaseModel):
 # ** model: service_dependency
 class ServiceDependency(DomainObject):
     '''
-    A core service dependency that defines the module, class, and parameters for a service.
+    A core service dependency that defines the module, class, and parameters
+    for a service implementation.
     '''
 
     # * attribute: module_path
@@ -59,11 +60,11 @@ class ServiceDependency(DomainObject):
     # * method: get_service_type
     def get_service_type(self) -> type:
         '''
-        Get the service type for this service dependency.
+        Import and return the service class identified by this dependency.
 
-        :return: The service type.
+        :return: The service class type.
         :rtype: type
         '''
 
-        # Import and return the service class type.
+        # Import the module and return the named class.
         return getattr(import_module(self.module_path), self.class_name)

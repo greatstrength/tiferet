@@ -547,7 +547,7 @@ FEATURE_NAME_REQUIRED = create_default_error(
 INVALID_FEATURE_ATTRIBUTE = create_default_error(
     INVALID_FEATURE_ATTRIBUTE_ID,
     'Invalid Feature Attribute',
-    [(EN_US, 'Invalid feature attribute: {attribute}')],
+    [(EN_US, 'Invalid feature attribute: {attribute}. Supported attributes are name and description.')],
 )
 
 # ** constant: invalid_feature_command_attribute
