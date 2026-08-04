@@ -950,15 +950,17 @@ def test_build_logging_context_uses_defaults_when_evt_returns_empty():
     assert len(result.domain.loggers) > 0
 
 
-# ** test: build_logging_context_uses_repo_data_when_provided
-def test_build_logging_context_uses_repo_data_when_provided():
+# ** test: build_logging_context_merges_repo_data_over_defaults_by_id
+def test_build_logging_context_merges_repo_data_over_defaults_by_id():
     '''
-    Test that build_logging_context uses repo-supplied sections over cache
-    defaults when the event returns non-empty data.
+    Test that build_logging_context merges repo-supplied sections over the
+    cache-seeded defaults by id: an entry sharing a default's id replaces it,
+    while defaults the repo does not redeclare survive.
     '''
     from tiferet.domain.logging import Formatter, Handler, Logger
 
-    # Arrange cache and an event that returns concrete domain objects.
+    # Arrange cache and an event returning one new formatter, one new handler,
+    # and a logger whose id collides with the seeded 'root' default.
     cache = build_cache()
     repo_formatter = Formatter(
         id='repo', name='Repo Formatter', format='%(message)s'
@@ -980,10 +982,41 @@ def test_build_logging_context_uses_repo_data_when_provided():
     # Build the logging context.
     result = build_logging_context(cache, get_dependency, logger_id='default')
 
-    # Assert the domain uses the repo-supplied data, not the defaults.
-    assert result.domain.formatters == [repo_formatter]
-    assert result.domain.handlers == [repo_handler]
-    assert result.domain.loggers == [repo_logger]
+    # Assert the repo entries are present alongside the surviving defaults.
+    assert repo_formatter in result.domain.formatters
+    assert repo_handler in result.domain.handlers
+    assert {'default', 'repo'} == {f.id for f in result.domain.formatters}
+    assert {'default_root', 'default', 'debug', 'repo_h'} == {h.id for h in result.domain.handlers}
+
+    # Assert the id collision replaced only the matching default logger.
+    assert {'root', 'default', 'debug'} == {l.id for l in result.domain.loggers}
+    assert next(l for l in result.domain.loggers if l.id == 'root') is repo_logger
+
+
+# ** test: build_logging_context_tolerates_unseeded_cache
+def test_build_logging_context_tolerates_unseeded_cache():
+    '''
+    Test that build_logging_context does not fail when the cache carries no
+    seeded logging defaults, using the repo-supplied sections alone.
+    '''
+    from tiferet.domain.logging import Formatter
+
+    # Arrange a bare cache with no seeded logging settings.
+    cache = CacheContext()
+    repo_formatter = Formatter(
+        id='repo', name='Repo Formatter', format='%(message)s'
+    )
+    logging_evt = mock.Mock()
+    logging_evt.execute.return_value = ([repo_formatter], [], [])
+    get_dependency = mock.Mock(return_value=logging_evt)
+
+    # Build the logging context against the unseeded cache.
+    result = build_logging_context(cache, get_dependency, logger_id='default')
+
+    # Assert only the repo-supplied formatter is present and no error was raised.
+    assert [f.id for f in result.domain.formatters] == ['repo']
+    assert result.domain.handlers == []
+    assert result.domain.loggers == []
 
 
 # ** test: build_app_session_context_returns_app_session_context

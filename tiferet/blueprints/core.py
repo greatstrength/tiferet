@@ -19,6 +19,7 @@ from ..contexts.logging import (
     add_default_logging_settings,
     get_default_logging_settings,
     LoggingContext,
+    LoggingSettings,
 )
 from ..contexts.request import RequestContext
 from ..contexts.core import BaseContext
@@ -267,10 +268,11 @@ def build_logging_context(
 
     Resolves the ``logging_list_all_evt`` from the app-scoped service container,
     calls it once to fetch any repository-specific logging configurations, merges
-    the result over the cache-seeded ``LoggingSettings`` defaults (empty sections
-    fall back to defaults), and constructs a ``LoggingContext`` via
+    the result over the cache-seeded ``LoggingSettings`` defaults **by id** (a
+    repository entry overrides the default sharing its id, while unmatched
+    defaults survive), and constructs a ``LoggingContext`` via
     ``LoggingContext.from_domain`` with the assembled ``LoggingSettings`` bound
-    as the domain object.
+    as the domain object. A cache with no seeded defaults is tolerated.
 
     :param cache: The shared cache context pre-seeded with default LoggingSettings.
     :type cache: CacheContext
@@ -288,15 +290,26 @@ def build_logging_context(
     # Fetch repo-specific configs; empty sections signal no config file present.
     formatters, handlers, loggers = logging_list_all_evt.execute()
 
-    # Load the cache-seeded defaults as the fallback for any missing section.
+    # Load the cache-seeded defaults, tolerating a cache with none seeded.
     defaults = get_default_logging_settings(cache)
+    default_formatters = defaults.formatters if defaults else []
+    default_handlers = defaults.handlers if defaults else []
+    default_loggers = defaults.loggers if defaults else []
 
-    # Build the LoggingSettings domain object, merging repo data over defaults.
-    from ..domain import LoggingSettings
+    # Merge the retrieved configs over the defaults keyed by id, so a repository
+    # entry overrides only the default sharing its id.
+    merged_formatters = {formatter.id: formatter for formatter in default_formatters}
+    merged_formatters.update({formatter.id: formatter for formatter in (formatters or [])})
+    merged_handlers = {handler.id: handler for handler in default_handlers}
+    merged_handlers.update({handler.id: handler for handler in (handlers or [])})
+    merged_loggers = {logger.id: logger for logger in default_loggers}
+    merged_loggers.update({logger.id: logger for logger in (loggers or [])})
+
+    # Build the merged LoggingSettings domain object.
     settings = LoggingSettings(
-        formatters=formatters or defaults.formatters,
-        handlers=handlers or defaults.handlers,
-        loggers=loggers or defaults.loggers,
+        formatters=list(merged_formatters.values()),
+        handlers=list(merged_handlers.values()),
+        loggers=list(merged_loggers.values()),
     )
 
     # Construct the LoggingContext via the BaseContext factory, injecting logger_id.
