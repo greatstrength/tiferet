@@ -237,6 +237,47 @@ class TestAppSessionAggregate(AggregateTestBase):
         # Verify the remaining services.
         assert [s.service_id for s in aggr.services] == expected_remaining
 
+    # ** test: add_service_appends_with_service_id_first
+    def test_add_service_appends_with_service_id_first(self, aggregate):
+        '''
+        Test that add_service appends a dependency, taking service_id first so
+        its positional order matches set_service.
+        '''
+
+        # Verify the service does not exist yet.
+        assert aggregate.get_service('added_svc') is None
+
+        # Add the service positionally to pin the parameter order.
+        aggregate.add_service(
+            'added_svc',
+            'pkg.added.module',
+            'AddedService',
+            parameters={'p1': 'v1'},
+        )
+
+        # Verify the dependency was appended with each value in the right field.
+        svc = aggregate.get_service('added_svc')
+        assert svc is not None
+        assert svc.module_path == 'pkg.added.module'
+        assert svc.class_name == 'AddedService'
+        assert svc.parameters == {'p1': 'v1'}
+
+    # ** test: add_service_defaults_parameters_to_empty
+    def test_add_service_defaults_parameters_to_empty(self, aggregate):
+        '''
+        Test that add_service defaults parameters to an empty dict when omitted.
+        '''
+
+        # Add a service without parameters.
+        aggregate.add_service(
+            service_id='no_params_svc',
+            module_path='pkg.noparams',
+            class_name='NoParamsService',
+        )
+
+        # Verify parameters defaulted to an empty dict.
+        assert aggregate.get_service('no_params_svc').parameters == {}
+
     # ** test: set_service_update_existing_merge_params
     def test_set_service_update_existing_merge_params(self, aggregate):
         '''

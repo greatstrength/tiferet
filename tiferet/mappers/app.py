@@ -30,20 +30,20 @@ class AppSessionAggregate(AppSession, Aggregate):
     # * method: add_service
     def add_service(
         self,
+        service_id: str,
         module_path: str,
         class_name: str,
-        service_id: str,
         parameters: Dict[str, str] | None = None,
     ) -> None:
         '''
-        Add a service dependency to the app interface.
+        Add a service dependency to the app session.
 
+        :param service_id: The id for the service dependency.
+        :type service_id: str
         :param module_path: The module path for the service dependency.
         :type module_path: str
         :param class_name: The class name for the service dependency.
         :type class_name: str
-        :param service_id: The id for the service dependency.
-        :type service_id: str
         :param parameters: Additional parameters for the service dependency.
         :type parameters: Dict[str, str] | None
         :return: None
@@ -52,9 +52,9 @@ class AppSessionAggregate(AppSession, Aggregate):
 
         # Create a new AppServiceDependency object.
         dependency = AppServiceDependency(
+            service_id=service_id,
             module_path=module_path,
             class_name=class_name,
-            service_id=service_id,
             parameters=parameters or {},
         )
 
