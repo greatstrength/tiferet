@@ -14,7 +14,6 @@ from ..contexts.feature import (
     Feature,
     FeatureContext,
     FEATURE_CACHE_PREFIX,
-    add_default_features,
 )
 from ..contexts.logging import (
     add_default_logging_settings,
