@@ -39,6 +39,53 @@ from ..di.core import ServiceResolver
 from ..di.dependency_injector import DIDynamicServiceResolver
 from .. import assets as a
 
+# *** constants
+
+# ** constant: reserved_context_parameters
+# Constructor parameters supplied explicitly by the session context builders,
+# and therefore excluded from generic collaborator resolution.
+RESERVED_CONTEXT_PARAMETERS = (
+    'get_dependency',
+    'cache',
+    'logging_context',
+    'parse_cli_args',
+    'execute_feature_handler',
+    'create_request_handler',
+    'raise_error_handler',
+    'response_handler',
+)
+
+# *** functions
+
+# ** function: resolve_collaborators
+def resolve_collaborators(context_cls: type, app_container: DIAppServiceContainer) -> Dict[str, Any]:
+    '''
+    Resolve a context class's remaining injectable collaborators from the app container.
+
+    Inspects the realized context class's constructor and resolves every
+    injectable parameter that is registered on the app container, skipping the
+    parameters the session context builders supply explicitly
+    (``RESERVED_CONTEXT_PARAMETERS``) and the bootstrap ``default_*``
+    parameters. This is the seam that lets a context subclass declare extra
+    collaborators and have them wired declaratively.
+
+    :param context_cls: The realized context class to inspect.
+    :type context_cls: type
+    :param app_container: The built app service container to resolve against.
+    :type app_container: DIAppServiceContainer
+    :return: A mapping of collaborator name to resolved instance.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Resolve each injectable parameter that is neither reserved nor a bootstrap default.
+    return {
+        name: app_container.get_dependency(name)
+        for name in injectable_parameter_names(context_cls)
+        if name not in RESERVED_CONTEXT_PARAMETERS
+        and not name.startswith('default_')
+        and app_container.has_dependency(name)
+    }
+
 # *** blueprints
 
 # ** blueprint: build_cache
@@ -737,24 +784,7 @@ def build_app_session_context(
     context_cls = AppSessionContext
 
     # Resolve the context's collaborators from the app container by id.
-    # Skip the explicitly supplied resolver, cache, logging_context, handler
-    # params, and bootstrap defaults.
-    reserved = {
-        'get_dependency',
-        'cache',
-        'logging_context',
-        'execute_feature_handler',
-        'create_request_handler',
-        'raise_error_handler',
-        'response_handler',
-    }
-    collaborators = {
-        name: app_container.get_dependency(name)
-        for name in injectable_parameter_names(context_cls)
-        if name not in reserved
-        and not name.startswith('default_')
-        and app_container.has_dependency(name)
-    }
+    collaborators = resolve_collaborators(context_cls, app_container)
 
     # Build the four FE4 template-method handlers.
     handlers = dict(
