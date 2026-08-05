@@ -606,28 +606,54 @@ def test_load_cache_returns_root_snapshot_callable():
     assert snapshot == {'root_key': 'root_value'}
 
 
-# ** test: create_request_context_seeds_feature_id
-def test_create_request_context_seeds_feature_id():
+# ** test: create_request_context_stamps_interface_id
+def test_create_request_context_stamps_interface_id():
     '''
-    Test that create_request_context builds a RequestContext seeded with the
-    feature id and the supplied data and headers.
+    Test that create_request_context stamps the interface id onto the request
+    headers and seeds the feature id, headers, and data.
     '''
 
-    # Build a feature and compose a request context around it.
-    feature = Feature(
-        id='group.feat', group_id='group', feature_key='feat', name='Feat'
-    )
+    # Compose a request context from the scalar session and feature ids.
     request = create_request_context(
-        feature,
-        data={'a': 1},
+        'test_interface',
+        'group.feat',
         headers={'h': 'v'},
+        data={'a': 1},
     )
 
-    # Assert the request is shaped from the feature and inputs.
+    # Assert the request is shaped from the supplied scalars and inputs.
     assert isinstance(request, RequestContext)
     assert request.feature_id == 'group.feat'
+    assert request.headers.get('interface_id') == 'test_interface'
+    assert request.headers.get('h') == 'v'
     assert request.data == {'a': 1}
-    assert request.headers == {'h': 'v'}
+
+
+# ** test: create_session_request_delegates_to_create_request_context
+def test_create_session_request_delegates_to_create_request_context():
+    '''
+    Test that create_session_request is a backward-compatible alias producing
+    a request context identical to create_request_context's.
+    '''
+
+    # Compose the same request through both entry points.
+    canonical = create_request_context(
+        'iface',
+        'g.f',
+        headers={'h': 'v'},
+        data={'a': 1},
+    )
+    aliased = create_session_request(
+        'iface',
+        'g.f',
+        headers={'h': 'v'},
+        data={'a': 1},
+    )
+
+    # Assert both produce equivalent request state.
+    assert aliased.headers == canonical.headers
+    assert aliased.data == canonical.data
+    assert aliased.feature_id == canonical.feature_id
 
 
 # ** test: create_feature_context_with_preloaded_feature
