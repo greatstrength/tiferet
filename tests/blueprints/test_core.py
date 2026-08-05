@@ -35,7 +35,7 @@ from tiferet.contexts.logging import LoggingContext, LoggingSettings, LOGGING_CA
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX, AppSessionContext
 from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
-from tiferet.utils.middleware import CacheMiddleware
+from tiferet.utils.core import CacheMiddleware
 from tiferet.repos.app import AppConfigRepository
 from tiferet.repos.di import DIConfigRepository
 from tiferet.repos.error import ErrorConfigRepository

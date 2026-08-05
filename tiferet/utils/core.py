@@ -1,4 +1,4 @@
-"""Tiferet Middleware Utilities"""
+"""Tiferet Utils Core"""
 
 # *** imports
 
