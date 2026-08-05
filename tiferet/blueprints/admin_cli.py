@@ -24,7 +24,6 @@ from ..contexts.cli import (
     add_default_cli_commands,
     get_default_cli_commands,
 )
-from ..di import injectable_parameter_names
 
 # *** blueprints
 
@@ -95,25 +94,10 @@ def build_admin_cli_session_context(
         get_default_cli_commands(cache),
     )
 
-    # Resolve the context's other collaborators from the app container by id,
-    # skipping the explicitly supplied handler params, resolver, cache, and
-    # the CLI arg-parser (injected separately below).
-    reserved = {
-        'get_dependency',
-        'cache',
-        'execute_feature_handler',
-        'create_request_handler',
-        'raise_error_handler',
-        'response_handler',
-        'parse_cli_args',
-    }
-    collaborators = {
-        name: app_container.get_dependency(name)
-        for name in injectable_parameter_names(CliSessionContext)
-        if name not in reserved
-        and not name.startswith('default_')
-        and app_container.has_dependency(name)
-    }
+    # Resolve the context's other collaborators from the app container by id;
+    # the resolver, cache, handler params, and the CLI arg-parser are all
+    # reserved and supplied explicitly.
+    collaborators = core.resolve_collaborators(CliSessionContext, app_container)
 
     # Build the four FE4 handlers, overriding the request and response slots
     # with CLI-specific implementations.

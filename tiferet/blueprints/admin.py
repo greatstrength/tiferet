@@ -20,7 +20,6 @@ from ..contexts.app import (
     get_default_admin_services,
     get_default_admin_constants,
 )
-from ..di import injectable_parameter_names
 from ..di.dependency_injector import DIAppServiceContainer, DIDynamicServiceResolver
 from ..di.core import ServiceResolver
 from .. import assets as a
@@ -149,21 +148,7 @@ def build_admin_app_session_context(
     context_cls = AppSessionContext
 
     # Resolve the context's collaborators from the app container by id.
-    reserved = {
-        'get_dependency',
-        'cache',
-        'execute_feature_handler',
-        'create_request_handler',
-        'raise_error_handler',
-        'response_handler',
-    }
-    collaborators = {
-        name: app_container.get_dependency(name)
-        for name in injectable_parameter_names(context_cls)
-        if name not in reserved
-        and not name.startswith('default_')
-        and app_container.has_dependency(name)
-    }
+    collaborators = core.resolve_collaborators(context_cls, app_container)
 
     # Build the four FE4 template-method handlers.
     handlers = dict(

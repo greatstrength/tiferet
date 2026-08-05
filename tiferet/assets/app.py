@@ -30,7 +30,7 @@ from .core import (
     APP_DOMAIN_PATH,
     LOGGING_DOMAIN_PATH,
     CLI_DOMAIN_PATH,
-    MIDDLEWARE_DOMAIN_PATH,
+    CORE_DOMAIN_PATH,
 )
 
 # *** constants (ids)
@@ -221,21 +221,21 @@ DI_LIST_ALL_CONFIGS_EVT = create_app_service_dependency(
 # ** constant: logging_middleware
 LOGGING_MIDDLEWARE = create_app_service_dependency(
     LOGGING_MIDDLEWARE_ID,
-    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'LoggingMiddleware',
 )
 
 # ** constant: timing_middleware
 TIMING_MIDDLEWARE = create_app_service_dependency(
     TIMING_MIDDLEWARE_ID,
-    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'TimingMiddleware',
 )
 
 # ** constant: cache_middleware
 CACHE_MIDDLEWARE = create_app_service_dependency(
     CACHE_MIDDLEWARE_ID,
-    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, MIDDLEWARE_DOMAIN_PATH),
+    create_service_module_path(TIFERET, TIFERET_UTILS_PATH, CORE_DOMAIN_PATH),
     'CacheMiddleware',
 )
 

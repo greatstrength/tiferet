@@ -1,4 +1,4 @@
-"""Tiferet Middleware Utility Tests"""
+"""Tiferet Utils Core Tests"""
 
 # *** imports
 
@@ -10,7 +10,7 @@ import re
 import pytest
 
 # ** app
-from tiferet.utils.middleware import LoggingMiddleware, TimingMiddleware, CacheMiddleware
+from tiferet.utils.core import LoggingMiddleware, TimingMiddleware, CacheMiddleware
 from tiferet.interfaces.middleware import MiddlewareService
 
 

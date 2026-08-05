@@ -2,7 +2,7 @@
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Module:** `tiferet/utils/middleware.py`  
+**Module:** `tiferet/utils/core.py`  
 **Version:** 2.0.0
 
 ## Overview
@@ -15,14 +15,14 @@ See the [Middleware Support](../core/events.md#middleware-support) section of th
 
 ## Built-in Middleware
 
-Two infrastructure middleware ship in `tiferet.utils.middleware`. Each is a `MiddlewareService` subclass that takes a single `logger_id: str` parameter (default `'root'`) and resolves the matching stdlib logger via `logging.getLogger(logger_id)`. They rely on `LoggingContext` having configured Python logging at application startup; on their own they emit records to whichever logger `logger_id` names.
+Two infrastructure middleware ship in `tiferet.utils.core`. Each is a `MiddlewareService` subclass that takes a single `logger_id: str` parameter (default `'root'`) and resolves the matching stdlib logger via `logging.getLogger(logger_id)`. They rely on `LoggingContext` having configured Python logging at application startup; on their own they emit records to whichever logger `logger_id` names.
 
 - **`LoggingMiddleware`** — emits a `DEBUG` record before execution and after success, and an `ERROR` record (with traceback via `exc_info=True`) when the chain raises. The exception is always re-raised.
 - **`TimingMiddleware`** — measures elapsed wall-clock time with `time.perf_counter` and emits a single `DEBUG` record reporting the duration in milliseconds on both the success and exception paths. The exception is always re-raised.
 
 ```python
 from tiferet.events import DomainEvent
-from tiferet.utils.middleware import LoggingMiddleware, TimingMiddleware
+from tiferet.utils.core import LoggingMiddleware, TimingMiddleware
 
 result = DomainEvent.handle(
     GetError,
@@ -126,17 +126,17 @@ When middleware is resolved from configuration, feature-level middleware is comp
 
 ## Registering Middleware in config.yml
 
-Middleware can also be declared in `config.yml` and resolved from the DI container by `FeatureContext` during `execute_feature` / `execute_feature_async`. First register the middleware as a service, pointing `module_path` at `tiferet.utils.middleware` (or your own module):
+Middleware can also be declared in `config.yml` and resolved from the DI container by `FeatureContext` during `execute_feature` / `execute_feature_async`. First register the middleware as a service, pointing `module_path` at `tiferet.utils.core` (or your own module):
 
 ```yaml
 services:
   logging_middleware:
-    module_path: tiferet.utils.middleware
+    module_path: tiferet.utils.core
     class_name: LoggingMiddleware
     parameters:
       logger_id: root
   timing_middleware:
-    module_path: tiferet.utils.middleware
+    module_path: tiferet.utils.core
     class_name: TimingMiddleware
     parameters:
       logger_id: root
@@ -240,7 +240,7 @@ import pytest
 from unittest import mock
 
 # ** app
-from tiferet.utils.middleware import LoggingMiddleware
+from tiferet.utils.core import LoggingMiddleware
 
 # *** tests
 
