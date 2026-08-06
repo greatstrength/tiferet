@@ -898,6 +898,58 @@ def test_raise_error_handler_wraps_plain_exception(monkeypatch):
     get_error_mock.assert_called_once_with('APP_ERROR')
 
 
+# ** test: raise_error_handler_formats_wrapped_app_error_end_to_end
+def test_raise_error_handler_formats_wrapped_app_error_end_to_end():
+    '''
+    Test that a plain Exception wrapped as APP_ERROR formats through the real
+    ErrorContext against the cache-seeded catalog definition, rather than
+    raising KeyError on an unsupplied message-template placeholder.
+    '''
+
+    # Build the seeded cache and the handler over the real error retrieval path;
+    # APP_ERROR resolves from the cache, so the resolver is never consulted.
+    cache = build_cache()
+    handler = raise_error_handler(get_error(cache, mock.Mock()))
+
+    # Invoke the handler with a plain exception.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(Exception('something went wrong'))
+
+    # Assert the catalog template formatted with the supplied error message.
+    assert exc_info.value.error_code == a.error.APP_ERROR_ID
+    assert exc_info.value.name == 'App Error'
+    assert exc_info.value.message == 'An error occurred in the app: something went wrong.'
+
+
+# ** test: raise_error_handler_formats_event_raised_app_error
+def test_raise_error_handler_formats_event_raised_app_error():
+    '''
+    Test that an APP_ERROR raised as a genuine TiferetError by a domain event
+    formats through the real ErrorContext. This is the reachable arm: the
+    SQLite events raise APP_ERROR, AppSessionContext.run catches it, and the
+    handler must format rather than fail on the template placeholder.
+    '''
+
+    # Build the seeded cache and the handler over the real error retrieval path.
+    cache = build_cache()
+    handler = raise_error_handler(get_error(cache, mock.Mock()))
+
+    # Arrange an APP_ERROR shaped exactly as the SQLite events raise it.
+    error = TiferetError(
+        a.error.APP_ERROR_ID,
+        'SQLite execution failed: no such table: users',
+        error_message='no such table: users',
+    )
+
+    # Invoke the handler with the event-raised error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        handler(error)
+
+    # Assert the catalog template formatted with the event's error message.
+    assert exc_info.value.error_code == a.error.APP_ERROR_ID
+    assert exc_info.value.message == 'An error occurred in the app: no such table: users.'
+
+
 # ** test: response_handler_delegates_to_request
 def test_response_handler_delegates_to_request():
     '''

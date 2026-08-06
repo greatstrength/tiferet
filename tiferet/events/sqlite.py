@@ -100,9 +100,9 @@ class MutateSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )
 
 # ** event: query_sql
@@ -151,9 +151,9 @@ class QuerySql(SqliteEvent):
                     return sql.fetch_all(query, parameters)
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )
 
 # ** event: bulk_mutate_sql
@@ -212,9 +212,9 @@ class BulkMutateSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )
 
 # ** event: execute_script_sql
@@ -251,9 +251,9 @@ class ExecuteScriptSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )
 
 # ** event: backup_sql
@@ -407,9 +407,9 @@ class CreateTableSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )
 
 # ** event: drop_table_sql
@@ -467,7 +467,7 @@ class DropTableSql(SqliteEvent):
                 }
         except sqlite3.Error as e:
             self.raise_error(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'SQLite execution failed: {str(e)}',
-                original_error=str(e)
+                error_message=str(e)
             )

@@ -11,6 +11,7 @@ from ..assets import (
     TiferetError,
     TiferetAPIError,
 )
+from ..assets.error import APP_ERROR_ID
 from ..domain import AppSession, AppServiceDependency, Feature
 from ..events import DomainEvent
 from ..events.app import GetAppSession
@@ -534,9 +535,9 @@ class AppSessionContext(BaseContext):
         # Fallback: wrap plain exceptions and raise a generic API error.
         if not isinstance(error, TiferetError):
             error = TiferetError(
-                'APP_ERROR',
+                APP_ERROR_ID,
                 f'An error occurred in the app: {str(error)}',
-                error=str(error),
+                error_message=str(error),
             )
 
         # Raise the structured API error, propagating the error's context kwargs.
