@@ -267,9 +267,9 @@ class TestQuerySql(SqliteEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, query="SELECT * FROM invalid_table")
 
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "no such table: invalid_table"
+        # Assert the error code and the formatting-ready error message.
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
+        assert exc_info.value.kwargs.get('error_message') == "no such table: invalid_table"
 
 
 # ** test: TestMutateSql
@@ -388,7 +388,7 @@ class TestMutateSql(SqliteEventTestBase):
             self.handle(mock_dependencies, statement="INSERT INTO users VALUES (1)")
 
         # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
 
 
 # ** test: TestBulkMutateSql
@@ -490,7 +490,7 @@ class TestBulkMutateSql(SqliteEventTestBase):
             self.handle(mock_dependencies)
 
         # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
 
 
 # ** test: TestExecuteScriptSql
@@ -551,7 +551,7 @@ class TestExecuteScriptSql(SqliteEventTestBase):
             self.handle(mock_dependencies, script="INVALID SQL;")
 
         # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
 
 
 # ** test: TestBackupSql
@@ -736,7 +736,7 @@ class TestCreateTableSql(SqliteEventTestBase):
             )
 
         # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
 
     # * method: test_invalid_table_name
     def test_invalid_table_name(self, mock_dependencies):
@@ -812,7 +812,7 @@ class TestCreateTableSql(SqliteEventTestBase):
             self.handle(mock_dependencies, columns={'id': 'INVALID_TYPE'})
 
         # Assert the error code.
-        assert exc_info.value.error_code == 'APP_ERROR'
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
 
 
 # ** test: TestDropTableSql
@@ -889,9 +889,9 @@ class TestDropTableSql(SqliteEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='non_existent_table', if_exists=False)
 
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "no such table: non_existent_table"
+        # Assert the error code and the formatting-ready error message.
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
+        assert exc_info.value.kwargs.get('error_message') == "no such table: non_existent_table"
 
     # * method: test_invalid_table_name
     def test_invalid_table_name(self, mock_dependencies):
@@ -936,6 +936,6 @@ class TestDropTableSql(SqliteEventTestBase):
         with pytest.raises(TiferetError) as exc_info:
             self.handle(mock_dependencies, table_name='test_table')
 
-        # Assert the error code and original error.
-        assert exc_info.value.error_code == 'APP_ERROR'
-        assert exc_info.value.kwargs.get('original_error') == "database is locked"
+        # Assert the error code and the formatting-ready error message.
+        assert exc_info.value.error_code == a.error.APP_ERROR_ID
+        assert exc_info.value.kwargs.get('error_message') == "database is locked"

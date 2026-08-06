@@ -693,9 +693,9 @@ def raise_error_handler(
         # Wrap plain exceptions in a TiferetError before formatting.
         if not isinstance(error, TiferetError):
             error = TiferetError(
-                'APP_ERROR',
+                a.error.APP_ERROR_ID,
                 f'An error occurred: {str(error)}',
-                error=str(error),
+                error_message=str(error),
             )
 
         # Retrieve the error domain object via the error retrieval handler.
