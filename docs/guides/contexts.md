@@ -169,6 +169,8 @@ Feature-step services are resolved by `ServiceResolver`, whose bound `get_depend
 
 The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.
 
+Error formatting itself is owned by the injected `raise_error_handler`, which the hub's `handle_error` delegates to. A `TiferetAPIError` is re-raised verbatim rather than delegated, since it is already the formatted, consumer-facing representation. All four injected handlers are required — an unwired one raises `APP_ERROR` naming the missing slot rather than falling back to a hub-local implementation.
+
 ### CacheContext
 
 A simple keyed in-memory cache. `AppInterfaceContext` creates one `CacheContext` per interface and shares it with the `FeatureContext` it builds (the error and logging contexts no longer take a cache). Treat it as a per-interface cache — it is not shared across interfaces.

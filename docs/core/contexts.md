@@ -99,6 +99,12 @@ The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseConte
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
+### Required FE4 Handler Wiring
+
+The hub's four template methods — `build_request`, `execute_feature`, `handle_error`, and `build_response` — each delegate to an injected handler callable supplied by the blueprint layer (`create_request_handler`, `execute_feature_handler`, `raise_error_handler`, `response_handler`). None of them has a fallback implementation: an unwired handler raises `APP_ERROR` naming the missing slot via the module-level `raise_unwired_handler_error` helper, since a hub that cannot complete the `run` pipeline is a composition bug rather than a condition to degrade around.
+
+`handle_error` re-raises a `TiferetAPIError` verbatim before consulting its handler. The API error is already the formatted, consumer-facing representation, so routing it through `raise_error_handler` would re-derive its name and message from the error catalog. This pass-through also runs *before* the unwired-handler check, so an unwired `execute_feature_handler` surfaces as itself rather than being masked by a missing `raise_error_handler`. When the error handler is the missing one, the original error's code and message are carried as `original_error_code` / `original_error_message` kwargs.
+
 ### Cache Context and Default Catalogs
 
 The `CacheContext` (`tiferet/contexts/cache.py`) exposes `get`, `set`, `delete`, `clear`, and `get_by_prefix(prefix)` — the last returns all entries whose keys start with the given prefix as a `Dict[str, Any]`. This backs enumeration of the framework catalogs that `build_cache` seeds under namespaced key prefixes.
