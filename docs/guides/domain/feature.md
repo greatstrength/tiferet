@@ -87,8 +87,8 @@ step = feature.get_step('x')  # None (invalid type)
 
 The Feature domain objects participate in runtime workflow execution through the following flow:
 
-1. `FeatureContext.execute_feature(feature_id, data)` receives a feature ID from the application interface.
-2. The `Feature` is loaded from the `FeatureService` (backed by `feature.yml` configuration).
+1. The `Feature` is loaded from the `FeatureService` (backed by the configuration file) and bound to a `FeatureContext` via `from_domain`.
+2. `FeatureContext.execute_feature(request)` reads that bound feature from `self.domain`.
 3. `FeatureContext` iterates over `feature.steps`, resolving each `EventFeatureStep.service_id` via the injected `get_dependency` handler.
 4. Each resolved domain event is executed with the merged request data and step parameters.
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.

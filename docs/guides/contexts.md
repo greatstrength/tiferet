@@ -109,9 +109,9 @@ A consumer CLI interface opts in by pointing its config at `module_path: tiferet
 
 ### FeatureContext
 
-`FeatureContext.execute_feature` drives the core feature pipeline:
+`FeatureContext.execute_feature(request)` drives the core feature pipeline. The context is registry-bound: it is always constructed via `BaseContext.from_domain(feature, ...)` and reads the bound `Feature` from `self.domain` rather than receiving one per call, so `resolve_feature_steps` and the async loop operate on the same feature the context was composed against.
 
-1. Load the feature (cached when possible) via `get_feature_handler`.
+1. Read the bound feature from `self.domain` (loading is owned by the caller — `create_feature_context` in the blueprint layer, or the hub's cache lookup on the legacy fallback).
 2. For each configured step:
    - Evaluate the step's `condition` expression (if present) via `evaluate_condition`. If the condition resolves to `False`, the step is silently skipped.
    - Resolve the domain event via the injected `get_dependency(service_id, *flags)` handler.

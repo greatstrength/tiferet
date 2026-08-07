@@ -71,6 +71,7 @@ Side-effect-free helpers (pure input→output transforms with no I/O, instantiat
    - `build_app_service_container` — build the singleton app service container from cache defaults merged with the session's overrides
    - `build_service_resolver` — compose the feature-level `ServiceResolver`, caching the app container under the `app` flag
    - `build_app_session_context` — import the declared context class, resolve its collaborators, wire the FE4 handlers, and construct the context
+   - `create_feature_context` — load the feature when only an id is given and return a `FeatureContext` with that feature bound as its `domain`
    - `build_app` — high-level single-call entry point chaining the above
 
 ### Key Patterns
@@ -100,6 +101,17 @@ The core `build_cache` blueprint (`tiferet/blueprints/core.py`) pre-seeds a `Cac
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(cache=None) -> CacheContext:
     return CacheContext(cache=cache)
+```
+
+**Blueprint-owned callables as container constants**  
+Callables the blueprint layer owns are registered by `build_app_service_container` as app-container constants so lower layers receive them through constructor injection instead of importing `blueprints`. The cache loader is registered as `'load_cache'` (wired into `CacheMiddleware`), and the parameter parser as `'parse_parameter'` — the latter reaches any context declaring a `parse_parameter` constructor parameter through `resolve_collaborators`, which is how `AppSessionContext` forwards it to the `FeatureContext` built by its legacy execution fallback.
+
+**Feature context binding**  
+`create_feature_context` composes the `FeatureContext` via `FeatureContext.from_domain(feature, ...)` and returns the context alone; the feature is reachable as `feature_context.domain`. `execute_feature_handler` therefore calls `feature_context.execute_feature(request, *flags, **kwargs)` without threading the feature through the call:
+
+```python
+feature_context = create_feature_context(get_dependency, cache, feature_id=feature_id)
+feature_context.execute_feature(request, *flags, **kwargs)
 ```
 
 **Service resolver injection**  

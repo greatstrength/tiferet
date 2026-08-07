@@ -122,7 +122,7 @@ App('interface_id')                               # blueprints/core.py: build_ap
        └─ AppSessionContext.run(feature_id, data)
             ├─ build_request()                   # → RequestContext
             ├─ execute_feature()
-            │    └─ FeatureContext.execute_feature(feature, request)
+            │    └─ FeatureContext.execute_feature(request)   # feature bound as .domain
             │         └─ for each step:
             │              get_dependency(service_id, *flags)
             │                  └─ DomainEvent.handle(EventCls, dependencies, **kwargs)
