@@ -99,7 +99,7 @@ The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseConte
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
-### Required FE4 Handler Wiring
+### Required Handler Wiring
 
 The hub's four template methods — `build_request`, `execute_feature`, `handle_error`, and `build_response` — each delegate to an injected handler callable supplied by the blueprint layer (`create_request_handler`, `execute_feature_handler`, `raise_error_handler`, `response_handler`). None of them has a fallback implementation: an unwired handler raises `APP_ERROR` naming the missing slot via the module-level `raise_unwired_handler_error` helper, since a hub that cannot complete the `run` pipeline is a composition bug rather than a condition to degrade around.
 
