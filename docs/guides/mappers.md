@@ -174,16 +174,19 @@ Some aggregates override `set_attribute` with a gated version that restricts whi
 
 ```python
 def set_attribute(self, attribute: str, value: Any) -> None:
-    supported = {'name', 'description', 'module_path', 'class_name', 'logger_id', 'flags'}
+    supported = {'name', 'description', 'logger_id', 'flags'}
     if attribute not in supported:
-        RaiseError.execute(
-            error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+        supported_names = ', '.join(sorted(supported))
+        ModelError.raise_error(
+            ATTRIBUTE_NOT_SETTABLE_ID,
+            message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
             attribute=attribute,
-            supported=', '.join(sorted(supported)),
+            supported=supported_names,
         )
     setattr(self, attribute, value)
-    self.validate()
 ```
+
+The gate raises `ATTRIBUTE_NOT_SETTABLE_ID`, not `INVALID_MODEL_ATTRIBUTE_ID`: the field usually **does** exist on the model, so the refusal expresses mutation policy rather than a model inconsistency. The whitelist is deliberately narrower than `model_fields`, which is why Pydantic cannot subsume the check.
 
 **When to gate:** when the aggregate has fields that should only change through dedicated methods (e.g., `services` via `add_service`/`remove_service`, `constants` via `set_constants`).
 

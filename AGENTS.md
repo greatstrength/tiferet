@@ -37,10 +37,11 @@ A working calculator application is provided in `examples/basic_calculator/`.
 **Key Concepts**:
 
 - **DomainObject** (`domain/core.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
+- **ModelError** (`domain/core.py`): Standalone `Exception` (deliberately **not** a `TiferetError`) describing an inconsistency within a single model. Classmethod raisers `raise_error(error_code, message=None, **kwargs)` and `raise_for_validation(error, ...)`, the latter classifying a Pydantic `ValidationError` as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID` and chaining the cause. Uncatalogued, never formatted as a `TiferetAPIError`, and never skippable via `pass_on_error` — a model defect is a consumer bug that leaks. `ATTRIBUTE_NOT_SETTABLE_ID` covers mutation-policy refusals. The pure `unpack_validation_error` helper flattens violations for both the mutation and request-validation paths.
 - **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests. Each single-service event module defines a per-module base event (e.g., `ErrorEvent`, `FeatureEvent`) that holds the shared service injection; concrete events extend the base and define only `execute`.
 - **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
-- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`.
+- **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`, converting the resulting Pydantic `ValidationError` into a `ModelError`. The `mappers` layer imports `domain` only.
 - **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
 - **BaseContext** (`contexts/settings.py`): Base class for all contexts, with a `ContextMeta` metaclass registry keyed by `domain_type`. `BaseContext.for_domain(DomainType)` resolves the registered context class; `BaseContext.from_domain(domain_obj, **kwargs)` constructs a context and binds the domain object as `ctx.domain`. The base holds no cache; contexts that need a `CacheContext` (e.g., `AppSessionContext`, `FeatureContext`) wire it themselves. The `AppSessionContext` hub binds the loaded `AppSession` and builds its sub-contexts on demand.
 
@@ -232,12 +233,12 @@ result = DomainEvent.handle(
 
 ### Domain Modules
 
-- `domain/core.py` — `DomainObject`, `ServiceDependency`
+- `domain/core.py` — `DomainObject`, `ServiceDependency`, `ModelError`, `unpack_validation_error`, `INVALID_MODEL_ATTRIBUTE_ID` / `INVALID_MODEL_VALUE_ID` / `ATTRIBUTE_NOT_SETTABLE_ID`
 - `domain/app.py` — `AppSession`, `AppServiceDependency`
 - `domain/cli.py` — `CliCommand`, `CliArgument`
 - `domain/di.py` — `ServiceRegistration` (with `resolve_service` / `get_service_type`), `FlaggedDependency`
 - `domain/error.py` — `Error`, `ErrorMessage`
-- `domain/feature.py` — `Feature`, `FeatureStep`, `EventFeatureStep`
+- `domain/feature.py` — `Feature`, `FeatureStep`, `EventFeatureStep`, `ParameterSpecification`, `RequestSpecification` (with `coerce` / `is_satisfied_by`)
 - `domain/logging.py` — `Formatter`, `Handler`, `Logger`, `LoggingSettings`
 
 ## Interfaces (Services)
@@ -251,7 +252,7 @@ result = DomainEvent.handle(
 
 Split into two classes:
 
-- **Aggregate** — Extends domain object + `Aggregate`. Adds mutation methods (`rename()`, `add_command()`, `set_attribute()`). Inherits `validate_assignment=True` from `DomainObject`, so direct `setattr` triggers Pydantic field validation. `set_attribute()` checks `model_fields` for existence before assignment.
+- **Aggregate** — Extends domain object + `Aggregate`. Adds mutation methods (`rename()`, `add_command()`, `set_attribute()`). Inherits `validate_assignment=True` from `DomainObject`, so direct `setattr` triggers Pydantic field validation. `set_attribute()` wraps that `setattr` and converts a `ValidationError` via `ModelError.raise_for_validation`; subclasses with a narrower settable set override it and raise `ATTRIBUTE_NOT_SETTABLE`.
 - **TransferObject** — Extends domain object + `TransferObject`. Uses lenient config (`extra='ignore'`, `validate_assignment=False`). Role-based serialization via `_ROLES` ClassVar mapping role names to `model_dump` kwargs. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model(model)`.
 
 ### Naming Convention
@@ -283,6 +284,8 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 - Error constants defined in `assets/constants.py` (e.g., `FEATURE_NOT_FOUND_ID`, `COMMAND_PARAMETER_REQUIRED_ID`).
 - Default error definitions in `assets/constants.py::DEFAULT_ERRORS` dict.
 - Access constants via `from .. import assets as a` then `a.const.ERROR_CODE_ID`.
+- `ModelError` (`domain/core.py`) is the one error class **outside** this hierarchy: model error codes are not catalogued and never resolved through `Error`. See Key Concepts.
+- `pass_on_error` on a feature step passes on **domain** errors only — both step executors catch `TiferetError`, so a `ModelError` or any other exception propagates instead of resolving to `None`.
 
 ### Error Constants (v2.0.0b3)
 
@@ -368,7 +371,7 @@ The top-level `tiferet/__init__.py` exports:
 ## Key Files for Orientation
 
 - `tiferet/__init__.py` — Version and public exports
-- `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`) and `ServiceDependency` core model
+- `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`), the `ServiceDependency` core model, and the model error protocol (`ModelError`, `unpack_validation_error`, model error constants)
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
 - `tiferet/interfaces/settings.py` — `Service` (ABC) base class
@@ -390,6 +393,19 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### Model Error Protocol & Mapper Layer Independence
+
+This cycle gives `domain` its own error vocabulary and removes the two layer-rule violations that depended on borrowing the Actor tier's:
+
+- **`domain/core.py` owns the model error protocol** — New `# *** constants` (`INVALID_MODEL_ATTRIBUTE_ID`, `INVALID_MODEL_VALUE_ID`, `ATTRIBUTE_NOT_SETTABLE_ID`), a `# *** functions` helper (`unpack_validation_error`), and the `ModelError` class, all exported from `domain/__init__.py`. `ModelError` is a standalone `Exception`; `raise_for_validation` derives its own code from the Pydantic violation type rather than accepting one from the caller.
+- **`Aggregate.set_attribute` converts instead of pre-checking** — The hand-rolled `model_fields` membership test is gone; `setattr` is wrapped and the `ValidationError` converted, so an invalid *value* is now caught as well as an unknown field. The three whitelist overrides (`CliArgumentAggregate`, `CliCommandAggregate`, `AppSessionAggregate`) raise `ATTRIBUTE_NOT_SETTABLE` and now substitute their message placeholders, which the unformatted brace template never did.
+- **`mappers` imports `domain` only** — The `mappers` → `events` (`RaiseError`, `a`) and `mappers` → `assets` edges are removed with no replacement, eliminating the layer graph's only Infrastructure→Actor edge.
+- **Request validation relocated** — `RequestSpecification.validate` becomes `coerce(data)`, which lets Pydantic's `ValidationError` propagate untouched (the rename also retires a shadow of Pydantic's deprecated `BaseModel.validate`); `is_satisfied_by` catches `ValidationError`. Naming the failure `REQUEST_VALIDATION_FAILED` moves to `contexts/feature.py::validate_request`, which flattens violations via `unpack_validation_error`. `REQUEST_VALIDATION_FAILED` stays a catalogued `TiferetError`. **`domain` now has zero framework imports**, making its documented rule true for the first time; `contexts/feature.py` gains the first pydantic import in the `contexts` layer (`# ** infra`).
+- **Catalog deletion** — `INVALID_MODEL_ATTRIBUTE`'s id constant, data constant, and `CORE_DEFAULT_ERRORS` entry are removed from `assets/error.py` (propagating to `DEFAULT_ERRORS` / `ADMIN_DEFAULT_ERRORS`). Safe because a `ModelError` never reaches `get_error_handler`, so no masked `ERROR_NOT_FOUND` lookup is possible — and any future attempt to format one now fails loudly.
+- **`pass_on_error` narrowed** — `FeatureContext.execute_step` and `_execute_step_async` catch `TiferetError` instead of `Exception`. `pass_on_error` passes on **domain** errors only; a `ModelError` (and, later, a `ServiceError`) propagates, as does any arbitrary bug in an event that previously vanished into `result = None`.
+- **Harness** — `AggregateTestBase.test_set_attribute` expects `ModelError` and `tiferet/testing/mappers.py` drops its `assets` dependency. The `set_attribute_params` tuple shape `(attr, value, expect_error_code | None)` is deliberately unchanged, so consumer parametrization rows still bind; consumer subclasses with invalid-case rows must update the expected exception type (the `INVALID_MODEL_ATTRIBUTE` code *value* is unchanged).
+- **Deferred** — Formatting a `ModelError` as a `TiferetAPIError` (settled: it leaks); a request-specific error type; strict assignment validation (`coerce_numbers_to_str=True` keeps assignment lax and coercing); replacing the three whitelists with dispatch-to-mutator or a shared `_settable_attributes` ClassVar; the mirrored cleanup on `main`.
 
 ### Chapter M: Retire `main.py`, promote `core.build_app`
 

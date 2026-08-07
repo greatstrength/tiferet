@@ -37,7 +37,7 @@ Concrete step type that extends `FeatureStep`. Represents the execution of a dom
 | `parameters`     | `Dict[str, str]`        | No       | `{}`    | Custom parameters for the event.                                   |
 | `return_to_data` | `bool`                  | No       | `False` | Whether to return the result to the feature data context (obsolete). |
 | `data_key`       | `str \| None`           | No       | `None`  | Data key to store the result in.                                   |
-| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event fails.               |
+| `pass_on_error`  | `bool`                  | No       | `False` | Whether to continue the workflow if the event raises a **domain** error (`TiferetError`). Model and infrastructure defects always propagate. |
 | `condition`      | `str \| None`           | No       | `None`  | Boolean expression evaluated against request data before execution. If `False`, the step is silently skipped. |
 | `middleware`     | `List[str]`             | No       | `[]`    | Ordered middleware service IDs applied to this step.               |
 
@@ -92,7 +92,7 @@ The Feature domain objects participate in runtime workflow execution through the
 3. `FeatureContext` iterates over `feature.steps`, resolving each `EventFeatureStep.service_id` via the injected `get_dependency` handler.
 4. Each resolved domain event is executed with the merged request data and step parameters.
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
-6. If `pass_on_error` is `True`, errors from that step are caught and the workflow continues.
+6. If `pass_on_error` is `True`, a `TiferetError` from that step is caught, the step result resolves to `None`, and the workflow continues. The flag passes on **domain** errors only: a `ModelError` or any other non-`TiferetError` exception is a defect rather than a domain outcome and propagates regardless.
 
 When `feature.is_async` is `True`, the application interface hub selects the `AsyncFeatureContext` (a subclass of `FeatureContext`) and awaits each step via `execute_feature_async`; otherwise the synchronous `FeatureContext` is used. The public `run()` entry point remains synchronous in both cases.
 

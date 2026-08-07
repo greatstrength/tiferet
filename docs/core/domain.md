@@ -75,6 +75,48 @@ Key characteristics:
 - For input from untrusted/external sources, use `model_validate(data_dict)` which applies all validators.
 - Domain-specific derivation logic uses `@model_validator(mode='before')` instead of custom factory methods (e.g., `Error._derive_error_code` computes `error_code` from `id`).
 
+## The Model Error Protocol
+
+`tiferet/domain/core.py` also owns the framework's **model error protocol** — the vocabulary for describing an inconsistency *within* a single model. It lives in `domain` rather than `assets` so that lower layers extending domain objects (notably `mappers`) can report a bad mutation without importing an upper layer. This is what makes `domain`'s "no framework dependencies" rule literally true and removes the layer graph's only Infrastructure→Actor edge.
+
+### Constants (`# *** constants`)
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `INVALID_MODEL_ATTRIBUTE_ID` | `'INVALID_MODEL_ATTRIBUTE'` | No such field on the model. |
+| `INVALID_MODEL_VALUE_ID` | `'INVALID_MODEL_VALUE'` | The field exists but the assigned value failed field validation. |
+| `ATTRIBUTE_NOT_SETTABLE_ID` | `'ATTRIBUTE_NOT_SETTABLE'` | The field exists but is not directly settable; a dedicated mutator owns it. |
+
+### `unpack_validation_error` (`# *** functions`)
+
+A pure helper flattening Pydantic's `error.errors()` into `{'field', 'type', 'message'}` dicts, so violations can travel as structured error context without exposing the Pydantic error object:
+
+```python
+violations = unpack_validation_error(error)
+# [{'field': 'name', 'type': 'string_type', 'message': 'Input should be a valid string'}]
+```
+
+It is shared by the mutation path (`Aggregate.set_attribute`) and the request-validation path (`contexts/feature.py::validate_request`).
+
+### `ModelError` (`# *** classes`)
+
+```python
+class ModelError(Exception):
+    def __init__(self, error_code, message=None, violations=None, **kwargs): ...
+
+    @classmethod
+    def raise_error(cls, error_code, message=None, **kwargs) -> None: ...
+
+    @classmethod
+    def raise_for_validation(cls, error, message=None, **kwargs) -> None: ...
+```
+
+`ModelError` is a **standalone `Exception`, deliberately not a `TiferetError`**. A model inconsistency is a consumer defect, not a domain outcome, so it is not catalogued in `assets/error.py`, never resolved through the `Error` catalog, never formatted as a `TiferetAPIError`, and not skippable by a feature step's `pass_on_error`. It carries its own message and leaks to the top as the intended defect signal.
+
+Both raisers follow the classmethod-constructor convention. `raise_for_validation` takes **no** `error_code`: it flattens the violations, then classifies the failure itself — `INVALID_MODEL_ATTRIBUTE_ID` when any violation reports Pydantic's `no_such_attribute` type, otherwise `INVALID_MODEL_VALUE_ID` — and chains the original `ValidationError` as the exception cause. No call site ever chooses between the two codes.
+
+> **Note on assignment strictness.** `DomainObject` sets `coerce_numbers_to_str=True`, so assignment validation is coercing rather than strict: `setattr(obj, 'name', 123)` succeeds as `'123'`. "Validated on mutation" is therefore weaker than it sounds — the value branch fires only for genuinely non-coercible values.
+
 ## Structured Code Design
 
 Domain objects follow a strict artifact comment structure for consistency and AI/human readability:
@@ -160,7 +202,7 @@ Tests validate instantiation, behavior, and edge cases using `pytest`.
 
 Domain objects are defined in `tiferet/domain/`:
 
-- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`) and the shared `ServiceDependency` core model.
+- `core.py` – `DomainObject` base class (extends `pydantic.BaseModel` with `ConfigDict`), the shared `ServiceDependency` core model, and the model error protocol (`ModelError`, `unpack_validation_error`, and the three model error constants).
 - `app.py` – `AppSession`, `AppServiceDependency`.
 - `cli.py` – `CliCommand`, `CliArgument`.
 - `di.py` – `ServiceRegistration`, `FlaggedDependency`.

@@ -83,9 +83,13 @@ Tiferet provides built-in error definitions in `assets/constants.py::DEFAULT_ERR
 
 - `COMMAND_PARAMETER_REQUIRED` — missing required parameters
 - `FEATURE_NOT_FOUND` — unknown feature ID
-- `INVALID_MODEL_ATTRIBUTE` — invalid attribute on a domain object
+- `REQUEST_VALIDATION_FAILED` — request data that fails a feature's `params_schema`
 
 Application-specific errors are defined in the `errors` section of the configuration file (typically `config.yml`, though per-file configs such as `error.yml` are also supported) and loaded via `ErrorService`.
+
+### What the catalog deliberately excludes
+
+Only catalogued errors are user-facing. Model errors are not catalogued: `INVALID_MODEL_ATTRIBUTE`, `INVALID_MODEL_VALUE`, and `ATTRIBUTE_NOT_SETTABLE` are `ModelError` codes owned by `tiferet/domain/core.py`, and a `ModelError` is not a `TiferetError`. It never reaches `handle_error`, so it is never looked up here and never formatted as a `TiferetAPIError` — a model inconsistency is a consumer defect and leaks as an unhandled exception. See [docs/core/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/mappers.md).
 
 ## Configuration Mapping
 

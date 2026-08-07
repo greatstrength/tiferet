@@ -17,7 +17,7 @@ Tiferet v2 packages sit in three layers. **Upper layers depend on lower ones; lo
 
 ```
 ┌─────────────── Accessor ────────────────┐
-│   assets       contexts     blueprints  │
+│   contexts     assets       blueprints  │
 └─────────────────────────────────────────┘
            ↓           ↓           ↓
 ┌─────────────── Actor ───────────────────┐
@@ -33,8 +33,8 @@ Tiferet v2 packages sit in three layers. **Upper layers depend on lower ones; lo
 ```mermaid
 flowchart TD
   subgraph Accessor
-    assets
     contexts
+    assets
     blueprints
   end
   subgraph Actor
@@ -53,7 +53,7 @@ flowchart TD
   blueprints --> assets & contexts & di & events
   events --> assets & domain & interfaces & mappers & di
   di --> domain & interfaces
-  mappers --> domain & events
+  mappers --> domain
   interfaces --> domain
   utils --> interfaces & mappers
   repos --> interfaces & mappers & utils
@@ -61,7 +61,8 @@ flowchart TD
 
 **Key notes on position:**
 - `assets` is the **root node** of the Accessor layer — it has no framework imports, but every other layer may import from it.
-- `domain` has **no framework dependencies** — it is pure Pydantic model definitions only.
+- `domain` has **no framework dependencies** — pure Pydantic model definitions plus the self-contained model error protocol (`ModelError`, `unpack_validation_error`, and the three model error constants in `domain/core.py`).
+- `mappers` depends on `domain` alone. There is no Infrastructure→Actor edge to `events`: the mutation error vocabulary that once required it now lives in `domain`.
 - `blueprints` accesses domain models via `contexts` and wires DI through blueprint-injected handler functions; it never imports `domain` or `mappers` directly.
 - `contexts` receive DI resolution through blueprint-injected handler callables — they do not import `di` or `mappers` directly.
 - `di` is **event-free and asset-free** — it imports only from `domain` and `interfaces`.
@@ -76,7 +77,7 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: any other framework layer.
 
 **`domain`** — structural definitions
-- `# ** app`: none. Pure Pydantic model definitions; no framework imports.
+- `# ** app`: sibling `domain` modules only. Pure Pydantic model definitions; no framework imports. Owns the model error protocol, so it never needs the `assets` error vocabulary.
 - ✗ Never: `assets`, `events`, `mappers`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`interfaces`** — abstract service contracts
@@ -88,8 +89,8 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: `repos`, `utils`, `contexts`, `blueprints`.
 
 **`mappers`** — mutation and serialization bridge
-- `# ** app`: `domain` (the domain object being extended), `events` (`RaiseError`, `a`).
-- ✗ Never: `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
+- `# ** app`: `domain` only (the domain object being extended, plus `ModelError` and the model error constants).
+- ✗ Never: `events`, `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`di`** — dependency injection (event-free, asset-free)
 - `# ** app`: `domain` (`ServiceDependency`), `interfaces.di` (`DIService`).
