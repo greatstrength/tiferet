@@ -27,8 +27,10 @@ from tiferet.contexts.cache import CacheContext
 from tiferet.assets import TiferetError
 from tiferet.events import DomainEvent, AsyncDomainEvent
 from tiferet.domain import (
+    INVALID_MODEL_ATTRIBUTE_ID,
     Feature,
     EventFeatureStep,
+    ModelError,
 )
 
 # *** fixtures
@@ -366,6 +368,58 @@ def test_feature_context_execute_step_with_pass_on_error(feature_context, test_c
 
     # Assert that the request result is falsy (None set on error).
     assert not request.handle_response()
+
+# ** test: feature_context_execute_step_pass_on_error_propagates_model_error
+def test_feature_context_execute_step_pass_on_error_propagates_model_error(feature_context):
+    '''Test that a ModelError propagates through a pass_on_error step.
+
+    A model inconsistency is a consumer defect rather than a domain outcome, so
+    it must not resolve to None the way a skippable domain error does.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build an event that fails with a model error rather than a domain error.
+    class ModelDefectEvent(DomainEvent):
+        def execute(self, **kwargs):
+            ModelError.raise_error(INVALID_MODEL_ATTRIBUTE_ID, attribute='nope')
+
+    # Create a request and execute the defective step with pass_on_error set.
+    request = RequestContext(data={'key': 'value'})
+    with pytest.raises(ModelError) as exc_info:
+        feature_context.execute_step(
+            ModelDefectEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
+
+    # Assert the model defect surfaced rather than being suppressed.
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
+
+# ** test: feature_context_execute_step_pass_on_error_propagates_plain_exception
+def test_feature_context_execute_step_pass_on_error_propagates_plain_exception(feature_context):
+    '''Test that an arbitrary exception propagates through a pass_on_error step.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build an event that fails with a plain exception.
+    class BuggyEvent(DomainEvent):
+        def execute(self, **kwargs):
+            raise ValueError('buggy event')
+
+    # Create a request and execute the buggy step with pass_on_error set.
+    request = RequestContext(data={'key': 'value'})
+    with pytest.raises(ValueError):
+        feature_context.execute_step(
+            BuggyEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
 
 # ** test: feature_context_execute_feature
 def test_feature_context_execute_feature(feature_context, feature):
@@ -779,6 +833,33 @@ async def test_feature_context_execute_step_async_pass_on_error(async_feature_co
 
     # Assert that the request result is falsy (None set on error).
     assert not request.handle_response()
+
+# ** test: feature_context_execute_step_async_pass_on_error_propagates_model_error
+@pytest.mark.asyncio
+async def test_feature_context_execute_step_async_pass_on_error_propagates_model_error(async_feature_context):
+    '''Test that a ModelError propagates through an async pass_on_error step.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Build an async event that fails with a model error.
+    class AsyncModelDefectEvent(AsyncDomainEvent):
+        async def execute(self, **kwargs):
+            ModelError.raise_error(INVALID_MODEL_ATTRIBUTE_ID, attribute='nope')
+
+    # Create a request and execute the defective step with pass_on_error set.
+    request = RequestContext(data={'key': 'value'})
+    with pytest.raises(ModelError) as exc_info:
+        await async_feature_context._execute_step_async(
+            AsyncModelDefectEvent(),
+            request,
+            request.data,
+            pass_on_error=True,
+        )
+
+    # Assert the model defect surfaced rather than being suppressed.
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
 
 # ** test: feature_context_execute_feature_async_basic
 def test_feature_context_execute_feature_async_basic(async_feature_context, feature):
@@ -1265,6 +1346,48 @@ def test_validate_request_invalid_data_raises():
         validate_request(feature, request)
 
     assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+
+# ** test: validate_request_missing_required_carries_context
+def test_validate_request_missing_required_carries_context():
+    """Test that a missing required parameter reports the feature and violations."""
+
+    # Build a feature requiring a single parameter.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int'},
+        steps=[],
+    )
+    request = RequestContext(data={})
+
+    # Assert the structured validation error is raised.
+    with pytest.raises(TiferetError) as exc_info:
+        validate_request(feature, request)
+
+    # Assert the feature id and the single flattened violation travel as context.
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert exc_info.value.kwargs.get('feature_id') == 'calc.add'
+    assert len(exc_info.value.kwargs.get('violations')) == 1
+
+# ** test: validate_request_aggregates_multiple_violations
+def test_validate_request_aggregates_multiple_violations():
+    """Test that multiple field failures are aggregated into one raised error."""
+
+    # Build a feature requiring two int parameters.
+    feature = Feature(
+        id='calc.add',
+        name='Add',
+        params_schema={'a': 'int', 'b': 'int'},
+        steps=[],
+    )
+    request = RequestContext(data={'a': 'x', 'b': 'y'})
+
+    # Assert a single error carries both violations.
+    with pytest.raises(TiferetError) as exc_info:
+        validate_request(feature, request)
+
+    assert exc_info.value.error_code == 'REQUEST_VALIDATION_FAILED'
+    assert len(exc_info.value.kwargs.get('violations')) == 2
 
 # ** test: compose_step_middleware_both_empty
 def test_compose_step_middleware_both_empty():

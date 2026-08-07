@@ -9,8 +9,12 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import AliasChoices, Field
 
 # ** app
-from ..domain import CliArgument, CliCommand
-from ..events import RaiseError, a
+from ..domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
+    CliArgument,
+    CliCommand,
+    ModelError,
+)
 from .core import Aggregate, TransferObject
 
 # *** mappers
@@ -27,6 +31,8 @@ class CliArgumentAggregate(CliArgument, Aggregate):
         Update a supported attribute on the CLI argument aggregate.
 
         Supported attributes: description, type, required, default, choices, nargs.
+        The ``name_or_flags`` identity field is refused as a mutation-policy
+        violation rather than a model inconsistency.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -46,13 +52,14 @@ class CliArgumentAggregate(CliArgument, Aggregate):
             'nargs',
         }
 
-        # Validate the attribute name.
+        # Reject any attribute the mutation policy does not expose.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True triggers field validation.
@@ -121,7 +128,10 @@ class CliCommandAggregate(CliCommand, Aggregate):
         '''
         Update a supported scalar attribute on the CLI command aggregate.
 
-        Supported attributes: name, description, key, group_key.
+        Supported attributes: name, description, key, group_key. The ``id``
+        identity field and the ``arguments`` collection owned by
+        :meth:`add_argument` are refused as mutation-policy violations rather
+        than model inconsistencies.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -139,13 +149,14 @@ class CliCommandAggregate(CliCommand, Aggregate):
             'group_key',
         }
 
-        # Validate the attribute name.
+        # Reject any attribute the mutation policy does not expose.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True triggers field validation.

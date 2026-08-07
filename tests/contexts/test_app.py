@@ -12,7 +12,14 @@ from unittest import mock
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
 from tiferet.assets.error import APP_ERROR_ID
-from tiferet.domain import AppSession, AppServiceDependency, CliCommand, Error
+from tiferet.domain import (
+    INVALID_MODEL_ATTRIBUTE_ID,
+    AppSession,
+    AppServiceDependency,
+    CliCommand,
+    Error,
+    ModelError,
+)
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
@@ -1078,6 +1085,47 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
 
     # Assert error was logged.
     logger.error.assert_called_once()
+
+
+# ** test: app_interface_context_run_leaks_model_error
+def test_app_interface_context_run_leaks_model_error(app_interface_context, feature_context, error_context, logging_context):
+    """
+    Test that a ModelError raised during feature execution leaks out of run
+    unformatted. run catches only TiferetError, so a model defect — a consumer
+    bug rather than a domain outcome — never reaches handle_error and is never
+    resolved through the error catalog.
+
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock feature execution to fail with a model defect.
+    feature_context.execute_feature.side_effect = ModelError(
+        INVALID_MODEL_ATTRIBUTE_ID,
+        message='Invalid attribute: nope.',
+        attribute='nope',
+    )
+
+    # Run the session and capture the surfaced error.
+    with pytest.raises(ModelError) as exc_info:
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'},
+        )
+
+    # Assert the model error surfaced verbatim rather than as an API error.
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
+    assert not isinstance(exc_info.value, TiferetError)
+
+    # Assert the error was never routed through error formatting.
+    error_context.format_response.assert_not_called()
 
 
 # ** test: app_interface_context_run_timing_zero_duration
