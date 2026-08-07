@@ -183,16 +183,10 @@ def app_interface_context(app_interface, feature_context, error_context, logging
     :rtype: AppSessionContext
     """
 
-    # Build execute_feature_handler that delegates to the mock feature_context.
+    # Build execute_feature_handler that delegates to the mock feature_context,
+    # which is bound to its feature rather than receiving one per call.
     def _execute_feature_handler(feature_id, request, **kwargs):
-        feature = Feature(
-            id=feature_id,
-            group_id=feature_id.split('.')[0],
-            feature_key=feature_id.split('.')[-1],
-            name='Test Feature',
-            is_async=False,
-        )
-        feature_context.execute_feature(feature, request, **kwargs)
+        feature_context.execute_feature(request, **kwargs)
 
     # Build raise_error_handler that delegates to the mock error_context.
     def _raise_error_handler(error, **kwargs):
@@ -678,13 +672,14 @@ def test_app_session_context_execute_feature_fallback_reads_feature_namespace(ap
         cache=cache,
     )
 
-    # Drive the fallback with the real FeatureContext execution patched out.
+    # Drive the fallback with the real FeatureContext execution patched out,
+    # capturing the context instance so its bound domain can be inspected.
     request = RequestContext(data={})
-    with mock.patch.object(FeatureContext, 'execute_feature') as execute_mock:
+    with mock.patch.object(FeatureContext, 'execute_feature', autospec=True) as execute_mock:
         context.execute_feature('group.feat', request)
 
-    # Assert the seeded feature was resolved and forwarded rather than None.
-    assert execute_mock.call_args.args[0] is feature
+    # Assert the seeded feature was resolved and bound to the context rather than None.
+    assert execute_mock.call_args.args[0].domain is feature
 
 
 # ** test: app_session_context_handle_error_fallback_preserves_error_kwargs

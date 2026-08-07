@@ -205,6 +205,7 @@ class CliSessionContext(AppSessionContext):
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
             response_handler: Callable = None,
+            parse_parameter: Callable = None,
         ):
         '''
         Initialize the CLI session context.
@@ -228,6 +229,9 @@ class CliSessionContext(AppSessionContext):
         :type raise_error_handler: Callable
         :param response_handler: The response-extraction callable (FE4).
         :type response_handler: Callable
+        :param parse_parameter: The blueprint-owned parameter parser forwarded to
+            the hub for its legacy execution fallback.
+        :type parse_parameter: Callable
         '''
 
         # Initialize the base application session hub.
@@ -239,6 +243,7 @@ class CliSessionContext(AppSessionContext):
             create_request_handler=create_request_handler,
             raise_error_handler=raise_error_handler,
             response_handler=response_handler,
+            parse_parameter=parse_parameter,
         )
 
         # Store the injected CLI arg-parser callable.

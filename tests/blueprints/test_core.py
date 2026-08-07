@@ -659,7 +659,7 @@ def test_create_session_request_delegates_to_create_request_context():
 # ** test: create_feature_context_with_preloaded_feature
 def test_create_feature_context_with_preloaded_feature():
     '''
-    Test that create_feature_context returns the given feature unchanged and a
+    Test that create_feature_context binds the given feature to a wired
     FeatureContext, without loading via get_dependency.
     '''
 
@@ -671,13 +671,13 @@ def test_create_feature_context_with_preloaded_feature():
     cache = CacheContext()
 
     # Compose the feature context from the pre-loaded feature.
-    loaded, feature_context = create_feature_context(
+    feature_context = create_feature_context(
         get_dependency, cache, feature=feature
     )
 
-    # Assert the same feature is returned with a wired FeatureContext.
-    assert loaded is feature
+    # Assert the feature is bound as the context domain and the context is wired.
     assert isinstance(feature_context, FeatureContext)
+    assert feature_context.domain is feature
     assert feature_context.get_dependency is get_dependency
     assert feature_context.cache is cache
     get_dependency.assert_not_called()
@@ -703,13 +703,13 @@ def test_create_feature_context_loads_by_feature_id():
     cache = CacheContext()
 
     # Compose the feature context by id.
-    loaded, feature_context = create_feature_context(
+    feature_context = create_feature_context(
         get_dependency, cache, feature_id='group.feat'
     )
 
-    # Assert the feature was loaded via the app-scoped GetFeature event.
-    assert loaded is expected_feature
+    # Assert the feature was loaded via the app-scoped GetFeature event and bound.
     assert isinstance(feature_context, FeatureContext)
+    assert feature_context.domain is expected_feature
     get_dependency.assert_called_once_with('get_feature_evt', 'app')
     get_feature_evt.execute.assert_called_once_with(id='group.feat')
 
@@ -772,33 +772,31 @@ def test_execute_feature_handler_returns_callable():
 # ** test: execute_feature_handler_drives_feature_context
 def test_execute_feature_handler_drives_feature_context(monkeypatch):
     '''
-    Test that the callable returned by execute_feature_handler loads the
-    feature via create_feature_context and drives FeatureContext.execute_feature.
-    The handler is void — it does not call handle_response.
+    Test that the callable returned by execute_feature_handler composes the
+    feature-bound context via create_feature_context and drives
+    FeatureContext.execute_feature. The handler is void — it does not call
+    handle_response.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
     '''
 
-    # Arrange a feature and a stub feature context.
-    feature = Feature(
-        id='group.feat', group_id='group', feature_key='feat', name='Feat'
-    )
+    # Arrange a request and a stub feature context.
     request = RequestContext(data={})
     feature_context = mock.Mock()
 
-    # Patch create_feature_context to return the stubbed pair.
+    # Patch create_feature_context to return the stubbed context.
     monkeypatch.setattr(
         'tiferet.blueprints.core.create_feature_context',
-        lambda *args, **kwargs: (feature, feature_context),
+        lambda *args, **kwargs: feature_context,
     )
 
     # Build the handler and invoke it with a flag.
     handler = execute_feature_handler(mock.Mock(), CacheContext())
     result = handler('group.feat', request, 'flag_a')
 
-    # Assert the feature context was driven with the feature, request, and flag.
-    feature_context.execute_feature.assert_called_once_with(feature, request, 'flag_a')
+    # Assert the feature context was driven with the request and flag only.
+    feature_context.execute_feature.assert_called_once_with(request, 'flag_a')
 
     # Assert the handler is void (returns None, not the response).
     assert result is None

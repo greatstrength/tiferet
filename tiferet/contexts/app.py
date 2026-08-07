@@ -346,6 +346,9 @@ class AppSessionContext(BaseContext):
     # * attribute: build_response (private)
     _build_response: Callable
 
+    # * attribute: parse_parameter (private)
+    _parse_parameter: Callable
+
     # * init
     def __init__(self,
             get_dependency: Callable,
@@ -355,6 +358,7 @@ class AppSessionContext(BaseContext):
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
             response_handler: Callable = None,
+            parse_parameter: Callable = None,
         ):
         '''
         Initialize the application session hub.
@@ -382,6 +386,11 @@ class AppSessionContext(BaseContext):
         :param response_handler: The response-extraction callable produced by the
             ``response_handler`` blueprint.
         :type response_handler: Callable
+        :param parse_parameter: The blueprint-owned parameter parser, resolved as
+            an app-container constant and forwarded to the ``FeatureContext``
+            built by the legacy execution fallback so ``$env.``-prefixed step
+            parameters resolve there too.
+        :type parse_parameter: Callable
         '''
 
         # Initialize the base context.
@@ -401,6 +410,9 @@ class AppSessionContext(BaseContext):
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
         self._build_response = response_handler
+
+        # Store the injected parameter parser for the legacy execution fallback.
+        self._parse_parameter = parse_parameter
 
     # * method: load (static)
     @classmethod
@@ -500,15 +512,17 @@ class AppSessionContext(BaseContext):
         # Resolve the feature from the shared cache under the feature namespace.
         feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
 
-        # Bind the resolved feature to the context via the registry factory.
+        # Bind the resolved feature to the context via the registry factory,
+        # forwarding the injected parser so step parameters resolve here too.
         feature_context = feature_context_cls.from_domain(
             feature,
             get_dependency=self.get_dependency,
             cache=self.cache,
+            parse_parameter=self._parse_parameter,
         )
 
-        # Drive execution against the resolved feature.
-        feature_context.execute_feature(feature, request, **kwargs)
+        # Drive execution against the bound feature.
+        feature_context.execute_feature(request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:
