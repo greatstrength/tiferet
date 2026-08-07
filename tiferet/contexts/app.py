@@ -308,6 +308,40 @@ def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession 
     # Pull the session from the sessions namespace by id.
     return cache.get(session_id, *APP_SESSION_CACHE_PREFIX)
 
+# ** function: raise_unwired_handler_error
+def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
+    '''
+    Raise the structured API error for an unwired FE4 template-method handler.
+
+    An absent handler is a composition bug rather than a condition to degrade
+    around, so the hub raises instead of reimplementing the handler's work. The
+    error is raised as a ``TiferetAPIError`` — already the formatted,
+    consumer-facing representation — so it passes through ``handle_error``
+    verbatim. The function always raises; it never returns, echoing the
+    ``RaiseError`` convention.
+
+    :param handler_name: The name of the handler slot the blueprint failed to supply.
+    :type handler_name: str
+    :param session_id: The id of the app session the handler was expected on.
+    :type session_id: str
+    :param kwargs: Additional context kwargs carried on the error.
+    :type kwargs: dict
+    '''
+
+    # Compose the message naming the missing handler and the session it belongs to.
+    message = (
+        f'No {handler_name} is wired on the app session context for session '
+        f'{session_id}; the blueprint must supply {handler_name}.'
+    )
+
+    # Raise the formatted API error naming the missing handler.
+    raise TiferetAPIError(
+        error_code=APP_ERROR_ID,
+        name='App Error',
+        message=message,
+        **kwargs,
+    )
+
 # *** contexts
 
 # ** context: app_session_context
@@ -317,8 +351,10 @@ class AppSessionContext(BaseContext):
     and delegates feature execution, error handling, request construction,
     and response building to four injected FE4 template-method handlers.
 
-    The legacy fallback paths build operational sub-contexts on demand; they
-    are reached only when a handler is not wired.
+    All four handlers are required: an unwired handler is a composition bug,
+    so each template method raises ``APP_ERROR`` naming the missing handler
+    rather than degrading to a fallback implementation. Because that error is
+    already a ``TiferetAPIError``, ``handle_error`` passes it through verbatim.
     '''
 
     # * attribute: domain_type
@@ -443,9 +479,9 @@ class AppSessionContext(BaseContext):
         Build the request context for a feature execution.
 
         Template method override point. Delegates to the injected
-        ``_create_request`` callable when available; falls back to
-        constructing the request directly, enriching headers with the
-        interface id sourced from the bound domain object.
+        ``_create_request`` callable, which the blueprint layer wires from
+        ``create_session_request``. An unwired handler raises ``APP_ERROR``
+        naming the missing ``create_request_handler``.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -457,16 +493,16 @@ class AppSessionContext(BaseContext):
         :rtype: RequestContext
         '''
 
-        # Delegate to the injected create-request handler when available (new path).
-        if self._create_request is not None:
-            return self._create_request(self.domain.id, feature_id, headers, data)
+        # Fail loudly when the blueprint-supplied request factory is absent.
+        if self._create_request is None:
+            raise_unwired_handler_error(
+                'create_request_handler',
+                self.domain.id,
+                feature_id=feature_id,
+            )
 
-        # Legacy fallback: enrich headers with the interface id and construct directly.
-        return RequestContext(
-            headers={**(headers or {}), 'interface_id': self.domain.id},
-            data=data,
-            feature_id=feature_id,
-        )
+        # Delegate request construction to the injected handler.
+        return self._create_request(self.domain.id, feature_id, headers, data)
 
     # * method: execute_feature
     def execute_feature(self, feature_id: str, request: RequestContext, **kwargs):
@@ -481,8 +517,8 @@ class AppSessionContext(BaseContext):
 
         An unwired handler is a composition bug rather than a condition to
         degrade around, so it raises ``APP_ERROR`` instead of executing the
-        feature by some other route. The message is also supplied as
-        ``error_message`` so it survives the ``APP_ERROR`` template when ``run``
+        feature by some other route. That error is already a
+        ``TiferetAPIError``, so it reaches the caller verbatim when ``run``
         routes the failure through ``handle_error``.
 
         :param feature_id: The feature identifier.
@@ -495,15 +531,9 @@ class AppSessionContext(BaseContext):
 
         # Fail loudly when the blueprint-supplied execution handler is absent.
         if self._execute_feature is None:
-            message = (
-                f'No execute_feature handler is wired on the app session context for session '
-                f'{self.domain.id}; the blueprint must supply execute_feature_handler.'
-            )
-            raise TiferetAPIError(
-                error_code=APP_ERROR_ID,
-                name='App Error',
-                message=message,
-                error_message=message,
+            raise_unwired_handler_error(
+                'execute_feature_handler',
+                self.domain.id,
                 feature_id=feature_id,
             )
 
@@ -515,10 +545,14 @@ class AppSessionContext(BaseContext):
         '''
         Handle the error.
 
-        Template method override point. Delegates to the injected
-        ``_raise_error`` callable when available; falls back to the legacy path
-        that formats the error via an ``ErrorContext`` and raises
-        ``TiferetAPIError``.
+        Template method override point. A ``TiferetAPIError`` is already the
+        formatted, consumer-facing representation, so it is re-raised verbatim
+        rather than round-tripped through the handler, which would re-derive
+        its name and message from the error catalog. Every other error is
+        delegated to the injected ``_raise_error`` callable, which the
+        blueprint layer wires from ``raise_error_handler``; an unwired handler
+        raises ``APP_ERROR`` naming it, carrying the original error's code and
+        message so the wiring bug does not destroy the underlying failure.
 
         :param error: The error to handle.
         :type error: Exception
@@ -528,25 +562,22 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # Delegate to the injected handler when available (new path).
-        if self._raise_error is not None:
-            return self._raise_error(error, **kwargs)
+        # Pass a formatted API error straight through to the caller.
+        if isinstance(error, TiferetAPIError):
+            raise error
 
-        # Fallback: wrap plain exceptions and raise a generic API error.
-        if not isinstance(error, TiferetError):
-            error = TiferetError(
-                APP_ERROR_ID,
-                f'An error occurred in the app: {str(error)}',
-                error_message=str(error),
+        # Fail loudly when the blueprint-supplied error handler is absent,
+        # preserving the original failure as error context.
+        if self._raise_error is None:
+            raise_unwired_handler_error(
+                'raise_error_handler',
+                self.domain.id,
+                original_error_code=getattr(error, 'error_code', None),
+                original_error_message=str(error),
             )
 
-        # Raise the structured API error, propagating the error's context kwargs.
-        raise TiferetAPIError(
-            error_code=error.error_code,
-            name=error.error_code,
-            message=str(error),
-            **error.kwargs,
-        )
+        # Delegate error handling to the injected handler.
+        return self._raise_error(error, **kwargs)
 
     # * method: build_response
     def build_response(self, request: RequestContext) -> Any:
@@ -554,10 +585,11 @@ class AppSessionContext(BaseContext):
         Build the response from a completed request context.
 
         Template method override point. Delegates to the injected
-        ``_build_response`` callable when available; falls back to
-        ``request.handle_response()`` directly. Subclasses override this
-        method to produce context-specific output (e.g. a ``CliContext``
-        serialises to stdout; a ``FlaskApiContext`` wraps in a JSON response).
+        ``_build_response`` callable, which the blueprint layer wires from
+        ``response_handler``; an unwired handler raises ``APP_ERROR`` naming it.
+        Subclasses override this method to produce context-specific output
+        (e.g. a ``CliSessionContext`` serialises to stdout; a
+        ``FlaskApiContext`` wraps in a JSON response).
 
         :param request: The completed request context.
         :type request: RequestContext
@@ -565,12 +597,15 @@ class AppSessionContext(BaseContext):
         :rtype: Any
         '''
 
-        # Delegate to the injected response handler when available (new path).
-        if self._build_response is not None:
-            return self._build_response(request)
+        # Fail loudly when the blueprint-supplied response handler is absent.
+        if self._build_response is None:
+            raise_unwired_handler_error(
+                'response_handler',
+                self.domain.id,
+            )
 
-        # Default: delegate to the request context's response handler.
-        return request.handle_response()
+        # Delegate response extraction to the injected handler.
+        return self._build_response(request)
 
     # * method: run
     def run(self,
