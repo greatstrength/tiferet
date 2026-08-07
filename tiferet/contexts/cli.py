@@ -220,13 +220,17 @@ class CliSessionContext(AppSessionContext):
         :type parse_cli_args: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
-        :param execute_feature_handler: The feature-execution callable (FE4).
+        :param execute_feature_handler: The feature-execution callable; one of the
+            four handlers the hub requires.
         :type execute_feature_handler: Callable
-        :param create_request_handler: The request-creation callable (FE4).
+        :param create_request_handler: The request-creation callable; one of the
+            four handlers the hub requires.
         :type create_request_handler: Callable
-        :param raise_error_handler: The error-raising callable (FE4).
+        :param raise_error_handler: The error-raising callable; one of the four
+            handlers the hub requires.
         :type raise_error_handler: Callable
-        :param response_handler: The response-extraction callable (FE4).
+        :param response_handler: The response-extraction callable; one of the four
+            handlers the hub requires.
         :type response_handler: Callable
         '''
 

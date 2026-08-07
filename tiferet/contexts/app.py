@@ -311,7 +311,7 @@ def get_default_app_session(cache: CacheContext, session_id: str) -> AppSession 
 # ** function: raise_unwired_handler_error
 def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) -> None:
     '''
-    Raise the structured API error for an unwired FE4 template-method handler.
+    Raise the structured API error for an unwired template-method handler.
 
     An absent handler is a composition bug rather than a condition to degrade
     around, so the hub raises instead of reimplementing the handler's work. The
@@ -349,7 +349,7 @@ class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object
     and delegates feature execution, error handling, request construction,
-    and response building to four injected FE4 template-method handlers.
+    and response building to four injected template-method handlers.
 
     All four handlers are required: an unwired handler is a composition bug,
     so each template method raises ``APP_ERROR`` naming the missing handler
@@ -431,7 +431,7 @@ class AppSessionContext(BaseContext):
         # Store the pre-built logging context.
         self._logging = logging_context
 
-        # Store the injected FE4 handler callables.
+        # Store the four injected handler callables.
         self._execute_feature = execute_feature_handler
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler

@@ -345,7 +345,7 @@ def test_cli_request_context_handle_response_primitive(
 def cli_session_context(app_interface):
     '''
     Fixture for a minimal CliSessionContext with neither parse_cli_args nor any
-    FE4 handler injected; tests wire ``_build_response`` themselves.
+    hub handler injected; tests wire ``_build_response`` themselves.
 
     :return: A CliSessionContext instance.
     :rtype: CliSessionContext

@@ -1216,10 +1216,10 @@ def test_build_app_session_context_injects_logging_context_via_build_logging_con
     assert result._logging is logging_ctx
 
 
-# ** test: build_app_session_context_wires_four_fe4_handlers
-def test_build_app_session_context_wires_four_fe4_handlers(monkeypatch):
+# ** test: build_app_session_context_wires_four_handlers
+def test_build_app_session_context_wires_four_handlers(monkeypatch):
     '''
-    Test that build_app_session_context wires all four FE4 template-method
+    Test that build_app_session_context wires all four template-method
     handler callables onto the resulting hub.
 
     :param monkeypatch: The pytest monkeypatch fixture.
@@ -1252,7 +1252,7 @@ def test_build_app_session_context_wires_four_fe4_handlers(monkeypatch):
     )
     result = build_app_session_context(app_session, CacheContext())
 
-    # Assert all four FE4 handler attributes are callable.
+    # Assert all four handler attributes are callable.
     assert callable(result._execute_feature)
     assert callable(result._create_request)
     assert callable(result._raise_error)

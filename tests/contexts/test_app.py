@@ -177,7 +177,7 @@ def logging_context():
 def app_interface_context(app_interface, feature_context, error_context, logging_context):
     """
     Fixture to create an AppSessionContext hub bound to the test interface,
-    with all four FE4 handlers wired — execution and error handling delegate to
+    with all four handlers wired — execution and error handling delegate to
     the mock feature and error contexts, while request construction and response
     extraction mirror the blueprint handlers. All four are required, so tests
     that exercise run() need every slot filled.
@@ -209,7 +209,7 @@ def app_interface_context(app_interface, feature_context, error_context, logging
     def _response_handler(request):
         return request.handle_response()
 
-    # Construct the hub declaratively from the loaded interface with all four FE4
+    # Construct the hub declaratively from the loaded interface with all four
     # handlers wired, passing the pre-built mock logging context directly.
     return AppSessionContext.from_domain(
         app_interface,
@@ -465,7 +465,7 @@ def test_app_interface_context_execute_feature(app_interface_context, feature_co
     """
     Test that execute_feature via the injected handler delegates to the mock feature context.
 
-    :param app_interface_context: The AppSessionContext instance (FE4 handlers wired).
+    :param app_interface_context: The AppSessionContext instance (all four handlers wired).
     :type app_interface_context: AppSessionContext
     :param feature_context: The mock FeatureContext instance.
     :type feature_context: FeatureContext
@@ -488,7 +488,7 @@ def test_app_interface_context_handle_error(app_interface_context, error_context
     """
     Test that handle_error via the injected handler delegates to the mock error context.
 
-    :param app_interface_context: The AppSessionContext instance (FE4 handlers wired).
+    :param app_interface_context: The AppSessionContext instance (all four handlers wired).
     :type app_interface_context: AppSessionContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext

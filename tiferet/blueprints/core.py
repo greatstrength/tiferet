@@ -746,7 +746,7 @@ def build_app_session_context(
     and interface overrides, composes the feature-level resolver, builds the
     logging context once at session startup via :func:`build_logging_context`,
     resolves any remaining event collaborators from the app container, wires
-    the four FE4 template-method handlers, and constructs the context via the
+    the four template-method handlers, and constructs the context via the
     ``BaseContext.from_domain`` factory (inherited by any context subclass).
 
     ``logging_list_all_evt`` remains in ``CORE_DEFAULT_SERVICES`` but is no
@@ -781,7 +781,7 @@ def build_app_session_context(
     # Resolve the context's collaborators from the app container by id.
     collaborators = resolve_collaborators(context_cls, app_container)
 
-    # Build the four FE4 template-method handlers.
+    # Build the four template-method handlers.
     handlers = dict(
         execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=create_session_request,
@@ -790,7 +790,7 @@ def build_app_session_context(
     )
 
     # Construct the context via from_domain, injecting the resolver handler,
-    # cache, the pre-built logging context, all collaborators, and the four FE4 handlers.
+    # cache, the pre-built logging context, all collaborators, and the four handlers.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,
