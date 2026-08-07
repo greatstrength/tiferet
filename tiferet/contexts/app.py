@@ -12,13 +12,12 @@ from ..assets import (
     TiferetAPIError,
 )
 from ..assets.error import APP_ERROR_ID
-from ..domain import AppSession, AppServiceDependency, Feature
+from ..domain import AppSession, AppServiceDependency
 from ..events import DomainEvent
 from ..events.app import GetAppSession
 from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
-from .feature import FeatureContext, FEATURE_CACHE_PREFIX
 from .logging import LoggingContext
 from .request import RequestContext
 
@@ -346,9 +345,6 @@ class AppSessionContext(BaseContext):
     # * attribute: build_response (private)
     _build_response: Callable
 
-    # * attribute: parse_parameter (private)
-    _parse_parameter: Callable
-
     # * init
     def __init__(self,
             get_dependency: Callable,
@@ -358,7 +354,6 @@ class AppSessionContext(BaseContext):
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
             response_handler: Callable = None,
-            parse_parameter: Callable = None,
         ):
         '''
         Initialize the application session hub.
@@ -386,11 +381,6 @@ class AppSessionContext(BaseContext):
         :param response_handler: The response-extraction callable produced by the
             ``response_handler`` blueprint.
         :type response_handler: Callable
-        :param parse_parameter: The blueprint-owned parameter parser, resolved as
-            an app-container constant and forwarded to the ``FeatureContext``
-            built by the legacy execution fallback so ``$env.``-prefixed step
-            parameters resolve there too.
-        :type parse_parameter: Callable
         '''
 
         # Initialize the base context.
@@ -410,9 +400,6 @@ class AppSessionContext(BaseContext):
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
         self._build_response = response_handler
-
-        # Store the injected parameter parser for the legacy execution fallback.
-        self._parse_parameter = parse_parameter
 
     # * method: load (static)
     @classmethod
@@ -487,11 +474,16 @@ class AppSessionContext(BaseContext):
         Execute the feature request.
 
         Template method override point. Delegates to the injected
-        ``_execute_feature`` callable when available; falls back to the legacy
-        path that loads the feature domain object and drives a ``FeatureContext``
-        directly. Sync/async dispatch is handled internally by
+        ``_execute_feature`` callable, which the blueprint layer wires from
+        ``execute_feature_handler``. Sync/async dispatch is handled internally by
         ``FeatureContext.execute_feature`` based on ``feature.is_async`` and
         ``step.is_async``.
+
+        An unwired handler is a composition bug rather than a condition to
+        degrade around, so it raises ``APP_ERROR`` instead of executing the
+        feature by some other route. The message is also supplied as
+        ``error_message`` so it survives the ``APP_ERROR`` template when ``run``
+        routes the failure through ``handle_error``.
 
         :param feature_id: The feature identifier.
         :type feature_id: str
@@ -501,28 +493,22 @@ class AppSessionContext(BaseContext):
         :type kwargs: dict
         '''
 
-        # Delegate to the injected handler when available (new path).
-        if self._execute_feature is not None:
-            self._execute_feature(feature_id, request, **kwargs)
-            return
+        # Fail loudly when the blueprint-supplied execution handler is absent.
+        if self._execute_feature is None:
+            message = (
+                f'No execute_feature handler is wired on the app session context for session '
+                f'{self.domain.id}; the blueprint must supply execute_feature_handler.'
+            )
+            raise TiferetAPIError(
+                error_code=APP_ERROR_ID,
+                name='App Error',
+                message=message,
+                error_message=message,
+                feature_id=feature_id,
+            )
 
-        # Fallback: execute directly (should not normally be reached when blueprints wire handlers).
-        feature_context_cls = BaseContext.for_domain(Feature)
-
-        # Resolve the feature from the shared cache under the feature namespace.
-        feature = self.cache.get(feature_id, *FEATURE_CACHE_PREFIX)
-
-        # Bind the resolved feature to the context via the registry factory,
-        # forwarding the injected parser so step parameters resolve here too.
-        feature_context = feature_context_cls.from_domain(
-            feature,
-            get_dependency=self.get_dependency,
-            cache=self.cache,
-            parse_parameter=self._parse_parameter,
-        )
-
-        # Drive execution against the bound feature.
-        feature_context.execute_feature(request, **kwargs)
+        # Delegate execution to the injected handler.
+        self._execute_feature(feature_id, request, **kwargs)
 
     # * method: handle_error
     def handle_error(self, error: Exception, **kwargs) -> Any:

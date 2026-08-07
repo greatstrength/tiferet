@@ -11,11 +11,11 @@ from unittest import mock
 
 # ** app
 from tiferet.assets import TiferetError, TiferetAPIError
-from tiferet.domain import AppSession, AppServiceDependency, Feature, CliCommand, Error
+from tiferet.assets.error import APP_ERROR_ID
+from tiferet.domain import AppSession, AppServiceDependency, CliCommand, Error
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
-    FeatureContext,
     LoggingContext,
     RequestContext,
     AppSessionContext,
@@ -31,7 +31,7 @@ from tiferet.contexts.app import (
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ErrorContext, ERROR_CACHE_PREFIX
-from tiferet.contexts.feature import FEATURE_CACHE_PREFIX
+from tiferet.contexts.feature import FeatureContext
 
 # *** fixtures
 
@@ -645,41 +645,62 @@ def test_app_session_context_build_response_fallback(app_interface):
     assert result == 'the_result'
 
 
-# ** test: app_session_context_execute_feature_fallback_reads_feature_namespace
-def test_app_session_context_execute_feature_fallback_reads_feature_namespace(app_interface):
+# ** test: app_session_context_execute_feature_unwired_handler_raises
+def test_app_session_context_execute_feature_unwired_handler_raises(app_interface):
     """
-    Test that the legacy execute_feature fallback resolves the feature from the
-    feature cache namespace rather than the cache root namespace.
+    Test that execute_feature raises APP_ERROR when no execute_feature_handler is
+    wired, rather than executing the feature by some other route.
 
     :param app_interface: The test AppSessionAggregate.
     :type app_interface: AppSessionAggregate
     """
 
-    # Seed a feature into the shared cache under the feature namespace.
-    feature = Feature(
-        id='group.feat',
-        group_id='group',
-        feature_key='feat',
-        name='Test Feature',
-    )
-    cache = CacheContext()
-    cache.set('group.feat', feature, *FEATURE_CACHE_PREFIX)
-
-    # Construct the hub without an execute_feature_handler to force the fallback.
+    # Construct the hub without an execute_feature_handler.
     context = AppSessionContext.from_domain(
         app_interface,
         get_dependency=mock.Mock(),
-        cache=cache,
     )
 
-    # Drive the fallback with the real FeatureContext execution patched out,
-    # capturing the context instance so its bound domain can be inspected.
+    # Assert the unwired handler surfaces as a structured API error.
     request = RequestContext(data={})
-    with mock.patch.object(FeatureContext, 'execute_feature', autospec=True) as execute_mock:
+    with pytest.raises(TiferetAPIError) as exc_info:
         context.execute_feature('group.feat', request)
 
-    # Assert the seeded feature was resolved and bound to the context rather than None.
-    assert execute_mock.call_args.args[0].domain is feature
+    # Assert the generic app error code and a handler-specific message.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'execute_feature_handler' in exc_info.value.message
+    assert exc_info.value.kwargs.get('feature_id') == 'group.feat'
+
+
+# ** test: app_session_context_execute_feature_unwired_handler_formats_through_run
+def test_app_session_context_execute_feature_unwired_handler_formats_through_run(app_interface, logging_context):
+    """
+    Test that the unwired-handler error survives the APP_ERROR template when run
+    routes it through the legacy handle_error fallback.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Construct the hub with neither an execution nor an error handler wired.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+        logging_context=logging_context,
+    )
+
+    # Run the session and capture the surfaced API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.run('group.feat')
+
+    # Assert the error code survives and the message names the missing handler.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'execute_feature_handler' in exc_info.value.message
+
+    # Assert the failure was logged as an error rather than passing silently.
+    logging_context.build_logger.return_value.error.assert_called_once()
 
 
 # ** test: app_session_context_handle_error_fallback_preserves_error_kwargs

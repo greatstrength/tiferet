@@ -382,11 +382,8 @@ def build_app_service_container(
     built does not propagate to it; see the handoff wiring finding). The
     general-purpose cache loader is registered as the ``'load_cache'`` constant
     so ``build_singleton`` can wire it into ``CacheMiddleware`` via constructor
-    inspection, and the blueprint-owned parameter parser is registered as the
-    ``'parse_parameter'`` constant on the same principle so contexts declaring
-    it receive it through generic collaborator resolution rather than importing
-    the blueprint layer. When ``app_instance`` is ``None``, a defaults-only
-    container is returned.
+    inspection. When ``app_instance`` is ``None``, a defaults-only container is
+    returned.
 
     :param cache: The shared cache context seeded with default services/constants.
     :type cache: CacheContext
@@ -400,12 +397,10 @@ def build_app_service_container(
 
     # Merge default constants with the interface's own (interface wins), adding
     # the general-purpose cache loader so build_singleton can wire it into
-    # CacheMiddleware by constructor inspection, and the blueprint-owned
-    # parameter parser so contexts declaring it resolve it as a collaborator.
+    # CacheMiddleware by constructor inspection.
     constants = {
         **get_default_app_constants(cache),
         'load_cache': load_cache(cache),
-        'parse_parameter': parse_parameter,
     }
     if app_instance is not None:
         constants.update(app_instance.constants or {})
