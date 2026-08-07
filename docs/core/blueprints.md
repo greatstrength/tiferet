@@ -104,7 +104,10 @@ def build_cache(cache=None) -> CacheContext:
 ```
 
 **Blueprint-owned callables as container constants**  
-Callables the blueprint layer owns are registered by `build_app_service_container` as app-container constants so lower layers receive them through constructor injection instead of importing `blueprints`. The cache loader is registered as `'load_cache'` (wired into `CacheMiddleware`), and the parameter parser as `'parse_parameter'` — the latter reaches any context declaring a `parse_parameter` constructor parameter through `resolve_collaborators`, which is how `AppSessionContext` forwards it to the `FeatureContext` built by its legacy execution fallback.
+Callables the blueprint layer owns are registered by `build_app_service_container` as app-container constants so lower layers receive them through constructor injection instead of importing `blueprints`. The cache loader is registered as `'load_cache'`, which `build_singleton` wires into `CacheMiddleware` by constructor inspection.
+
+**Required feature-execution wiring**  
+`execute_feature_handler` is not optional. `AppSessionContext.execute_feature` has no fallback path: an unwired handler raises `APP_ERROR` naming the missing `execute_feature_handler`, because a hub that cannot execute features is a composition bug rather than a condition to degrade around. Every context builder — `build_app_session_context`, `build_cli_session_context`, and the admin equivalents — must wire it.
 
 **Feature context binding**  
 `create_feature_context` composes the `FeatureContext` via `FeatureContext.from_domain(feature, ...)` and returns the context alone; the feature is reachable as `feature_context.domain`. `execute_feature_handler` therefore calls `feature_context.execute_feature(request, *flags, **kwargs)` without threading the feature through the call:
