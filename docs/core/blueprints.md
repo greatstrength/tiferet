@@ -70,7 +70,8 @@ Side-effect-free helpers (pure input→output transforms with no I/O, instantiat
    - `get_app_session` — resolve the app session via the `GetAppSession` event
    - `build_app_service_container` — build the singleton app service container from cache defaults merged with the session's overrides
    - `build_service_resolver` — compose the feature-level `ServiceResolver`, caching the app container under the `app` flag
-   - `build_app_session_context` — import the declared context class, resolve its collaborators, wire the FE4 handlers, and construct the context
+   - `build_app_session_context` — import the declared context class, resolve its collaborators, wire the four template-method handlers, and construct the context
+   - `create_feature_context` — load the feature when only an id is given and return a `FeatureContext` with that feature bound as its `domain`
    - `build_app` — high-level single-call entry point chaining the above
 
 ### Key Patterns
@@ -100,6 +101,22 @@ The core `build_cache` blueprint (`tiferet/blueprints/core.py`) pre-seeds a `Cac
 @add_default_errors(a.error.CORE_DEFAULT_ERRORS)
 def build_cache(cache=None) -> CacheContext:
     return CacheContext(cache=cache)
+```
+
+**Blueprint-owned callables as container constants**  
+Callables the blueprint layer owns are registered by `build_app_service_container` as app-container constants so lower layers receive them through constructor injection instead of importing `blueprints`. The cache loader is registered as `'load_cache'`, which `build_singleton` wires into `CacheMiddleware` by constructor inspection.
+
+**Required feature-execution wiring**  
+None of the hub's four template-method handlers is optional. `AppSessionContext.build_request`, `execute_feature`, `handle_error`, and `build_response` have no fallback paths: an unwired handler raises `APP_ERROR` naming the missing slot (`create_request_handler`, `execute_feature_handler`, `raise_error_handler`, or `response_handler`) via the `raise_unwired_handler_error` helper in `contexts/app.py`, because a hub that cannot complete the `run` pipeline is a composition bug rather than a condition to degrade around. Every context builder — `build_app_session_context`, `build_cli_session_context`, and the admin equivalents — must wire all four.
+
+Because the unwired-handler error is raised as a `TiferetAPIError`, it reaches the caller verbatim: `handle_error` passes an already-formatted API error straight through instead of round-tripping it through `raise_error_handler`, so an unwired `execute_feature_handler` is reported as such even when `raise_error_handler` is also missing. `handle_error` attaches the original error's code and message as `original_error_code` / `original_error_message` kwargs so a missing `raise_error_handler` does not destroy the underlying failure.
+
+**Feature context binding**  
+`create_feature_context` composes the `FeatureContext` via `FeatureContext.from_domain(feature, ...)` and returns the context alone; the feature is reachable as `feature_context.domain`. `execute_feature_handler` therefore calls `feature_context.execute_feature(request, *flags, **kwargs)` without threading the feature through the call:
+
+```python
+feature_context = create_feature_context(get_dependency, cache, feature_id=feature_id)
+feature_context.execute_feature(request, *flags, **kwargs)
 ```
 
 **Service resolver injection**  

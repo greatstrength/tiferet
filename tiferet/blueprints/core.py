@@ -565,15 +565,16 @@ def create_feature_context(
     cache: CacheContext,
     feature: Feature = None,
     feature_id: str = None,
-) -> tuple[Feature, FeatureContext]:
+) -> FeatureContext:
     '''
-    Compose a feature context, loading the feature when only an id is given.
+    Compose a feature context bound to its feature, loading the feature when
+    only an id is given.
 
     Accepts either a pre-loaded ``Feature`` or a ``feature_id``; when only the
     id is supplied the feature is loaded via the ``get_feature`` handler bound
-    to the shared cache and service resolver. Returns the ``(feature,
-    feature_context)`` pair so callers get both without knowing the loading
-    internals.
+    to the shared cache and service resolver. The resolved feature is bound to
+    the context as ``ctx.domain`` via ``FeatureContext.from_domain``, so callers
+    reach it through the returned context rather than receiving it alongside.
 
     :param get_dependency: The service-resolution handler from the ServiceResolver.
     :type get_dependency: Callable
@@ -583,24 +584,23 @@ def create_feature_context(
     :type feature: Feature | None
     :param feature_id: The feature id to load when no feature is supplied.
     :type feature_id: str | None
-    :return: The loaded feature and its composed feature context.
-    :rtype: tuple[Feature, FeatureContext]
+    :return: The composed feature context with the feature bound as its domain.
+    :rtype: FeatureContext
     '''
 
     # Load the feature via the get_feature handler when only an id is given.
     if feature is None:
         feature = get_feature(cache, get_dependency)(feature_id)
 
-    # Compose the feature context with the resolver handler, shared cache, and
-    # the blueprint-owned parameter parser.
-    feature_context = FeatureContext(
+    # Compose the feature context via the registry factory, binding the resolved
+    # feature as the context domain and wiring the resolver handler, shared
+    # cache, and the blueprint-owned parameter parser.
+    return FeatureContext.from_domain(
+        feature,
         get_dependency=get_dependency,
         cache=cache,
         parse_parameter=parse_parameter,
     )
-
-    # Return the feature and its composed context.
-    return feature, feature_context
 
 # ** blueprint: create_session_request
 def create_session_request(
@@ -639,7 +639,7 @@ def execute_feature_handler(
     Build the hub's feature-execution callable, bound to the service resolver
     and shared cache.
 
-    Returns a void callable that loads the feature via
+    Returns a void callable that composes a feature-bound context via
     :func:`create_feature_context` and drives
     ``FeatureContext.execute_feature``, accumulating the result on the
     request context. The handler is void — result extraction is the
@@ -656,13 +656,14 @@ def execute_feature_handler(
     # Return the handler closure with the resolver and cache wired in.
     def handler(feature_id: str, request: RequestContext, *flags, **kwargs) -> None:
 
-        # Load the feature and compose the feature context.
-        feature, feature_context = create_feature_context(
+        # Compose the feature context with the loaded feature bound as its domain.
+        feature_context = create_feature_context(
             get_dependency, cache, feature_id=feature_id
         )
 
-        # Drive execution; result is accumulated on the request context.
-        feature_context.execute_feature(feature, request, *flags, **kwargs)
+        # Drive execution against the bound feature; the result is accumulated
+        # on the request context.
+        feature_context.execute_feature(request, *flags, **kwargs)
 
     return handler
 
@@ -745,7 +746,7 @@ def build_app_session_context(
     and interface overrides, composes the feature-level resolver, builds the
     logging context once at session startup via :func:`build_logging_context`,
     resolves any remaining event collaborators from the app container, wires
-    the four FE4 template-method handlers, and constructs the context via the
+    the four template-method handlers, and constructs the context via the
     ``BaseContext.from_domain`` factory (inherited by any context subclass).
 
     ``logging_list_all_evt`` remains in ``CORE_DEFAULT_SERVICES`` but is no
@@ -780,7 +781,7 @@ def build_app_session_context(
     # Resolve the context's collaborators from the app container by id.
     collaborators = resolve_collaborators(context_cls, app_container)
 
-    # Build the four FE4 template-method handlers.
+    # Build the four template-method handlers.
     handlers = dict(
         execute_feature_handler=execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=create_session_request,
@@ -789,7 +790,7 @@ def build_app_session_context(
     )
 
     # Construct the context via from_domain, injecting the resolver handler,
-    # cache, the pre-built logging context, all collaborators, and the four FE4 handlers.
+    # cache, the pre-built logging context, all collaborators, and the four handlers.
     return context_cls.from_domain(
         app_session,
         get_dependency=resolver.get_dependency,

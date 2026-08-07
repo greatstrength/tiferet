@@ -220,13 +220,17 @@ class CliSessionContext(AppSessionContext):
         :type parse_cli_args: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
-        :param execute_feature_handler: The feature-execution callable (FE4).
+        :param execute_feature_handler: The feature-execution callable; one of the
+            four handlers the hub requires.
         :type execute_feature_handler: Callable
-        :param create_request_handler: The request-creation callable (FE4).
+        :param create_request_handler: The request-creation callable; one of the
+            four handlers the hub requires.
         :type create_request_handler: Callable
-        :param raise_error_handler: The error-raising callable (FE4).
+        :param raise_error_handler: The error-raising callable; one of the four
+            handlers the hub requires.
         :type raise_error_handler: Callable
-        :param response_handler: The response-extraction callable (FE4).
+        :param response_handler: The response-extraction callable; one of the four
+            handlers the hub requires.
         :type response_handler: Callable
         '''
 
@@ -249,11 +253,12 @@ class CliSessionContext(AppSessionContext):
         '''
         Build and (when appropriate) print the CLI response.
 
-        Delegates to the injected ``_build_response`` handler when one is
-        wired in, otherwise falls back to ``request.handle_response()``
-        directly. The formatted or stringified result is printed only when the
-        request is a :class:`CliRequestContext` (new path); the legacy path
-        leaves printing to the caller (e.g. ``build_tiferet_cli``).
+        Extends the hub's response step with printing rather than reimplementing
+        it: ``super().build_response`` delegates to the injected
+        ``response_handler`` and raises ``APP_ERROR`` when it is unwired. The
+        formatted or stringified result is printed only when the request is a
+        :class:`CliRequestContext`; a plain :class:`RequestContext` leaves
+        printing to the caller.
 
         :param request: The completed request context.
         :type request: RequestContext
@@ -261,11 +266,8 @@ class CliSessionContext(AppSessionContext):
         :rtype: Any
         '''
 
-        # Use the injected handler when available, otherwise fall through.
-        if self._build_response is not None:
-            model = self._build_response(request)
-        else:
-            model = request.handle_response()
+        # Extract the response via the hub, which owns the handler wiring.
+        model = super().build_response(request)
 
         # Only print when using the CLI request context (new path).
         if isinstance(request, CliRequestContext):

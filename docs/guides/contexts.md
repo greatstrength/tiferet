@@ -109,9 +109,9 @@ A consumer CLI interface opts in by pointing its config at `module_path: tiferet
 
 ### FeatureContext
 
-`FeatureContext.execute_feature` drives the core feature pipeline:
+`FeatureContext.execute_feature(request)` drives the core feature pipeline. The context is registry-bound: it is always constructed via `BaseContext.from_domain(feature, ...)` and reads the bound `Feature` from `self.domain` rather than receiving one per call, so `resolve_feature_steps` and the async loop operate on the same feature the context was composed against.
 
-1. Load the feature (cached when possible) via `get_feature_handler`.
+1. Read the bound feature from `self.domain` (loading is owned by the caller — `create_feature_context` in the blueprint layer).
 2. For each configured step:
    - Evaluate the step's `condition` expression (if present) via `evaluate_condition`. If the condition resolves to `False`, the step is silently skipped.
    - Resolve the domain event via the injected `get_dependency(service_id, *flags)` handler.
@@ -168,6 +168,8 @@ Feature-step services are resolved by `ServiceResolver`, whose bound `get_depend
 - `LoggingContext.build_logger` wraps the configured formatters, handlers, and loggers in a `LoggingSettings` value object (which owns the `dictConfig` assembly) and creates a ready-to-use logger instance.
 
 The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.
+
+Error formatting itself is owned by the injected `raise_error_handler`, which the hub's `handle_error` delegates to. A `TiferetAPIError` is re-raised verbatim rather than delegated, since it is already the formatted, consumer-facing representation. All four injected handlers are required — an unwired one raises `APP_ERROR` naming the missing slot rather than falling back to a hub-local implementation.
 
 ### CacheContext
 

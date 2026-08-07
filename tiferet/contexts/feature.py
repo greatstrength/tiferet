@@ -603,9 +603,11 @@ class FeatureContext(BaseContext):
         request.set_result(result, data_key)
 
     # * method: _execute_async
-    async def _execute_async(self, feature: Feature, request: RequestContext, *flags, **kwargs):
+    async def _execute_async(self, request: RequestContext, *flags, **kwargs):
         '''
-        Execute a pre-loaded async feature, awaiting each step in turn.
+        Execute the bound async feature, awaiting each step in turn.
+
+        Reads the feature bound as ``self.domain`` by ``from_domain``.
 
         Supports mixed sync/async step chains: each step is dispatched through
         ``_execute_step_async``, which detects and awaits coroutine-based
@@ -613,10 +615,8 @@ class FeatureContext(BaseContext):
 
         This method is a genuine async coroutine and stays awaitable for any
         future async host. From synchronous code it is driven via
-        ``run_coroutine(self._execute_async(feature, request, ...))``.
+        ``run_coroutine(self._execute_async(request, ...))``.
 
-        :param feature: The pre-loaded feature domain object.
-        :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
         :param flags: Execution flags combined additively with feature-level
@@ -626,11 +626,14 @@ class FeatureContext(BaseContext):
         :type kwargs: dict
         '''
 
+        # Read the feature bound to this context.
+        feature = self.domain
+
         # Resolve feature-level middleware once for all steps.
         feature_middleware = self.resolve_middleware(feature.middleware)
 
         # Resolve and execute each step, awaiting async commands as needed.
-        for event, step, params in self.resolve_feature_steps(feature, request, *flags):
+        for event, step, params in self.resolve_feature_steps(request, *flags):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
             step_middleware = self.resolve_middleware(step.middleware)
@@ -650,12 +653,13 @@ class FeatureContext(BaseContext):
 
     # * method: resolve_feature_steps
     def resolve_feature_steps(self,
-            feature: Feature,
             request: RequestContext,
             *execution_flags: str,
         ) -> Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]:
         '''
-        Resolve and yield executable steps for a pre-loaded feature.
+        Resolve and yield executable steps for the bound feature.
+
+        Reads the feature bound as ``self.domain`` by ``from_domain``.
 
         Evaluates step conditions, resolves each step's domain event from the
         DI context, and parses its parameters. Yields tuples of
@@ -666,8 +670,6 @@ class FeatureContext(BaseContext):
         the service resolver receives the full combined flag set. No subset
         validation is performed — the resolver is authoritative.
 
-        :param feature: The pre-loaded feature domain object.
-        :type feature: Feature
         :param request: The request context for condition evaluation and parameter parsing.
         :type request: RequestContext
         :param execution_flags: Caller-supplied execution flags combined with
@@ -676,6 +678,9 @@ class FeatureContext(BaseContext):
         :return: A generator yielding (event, step, params) tuples.
         :rtype: Generator[Tuple[DomainEvent, EventFeatureStep, Dict[str, str]], None, None]
         '''
+
+        # Read the feature bound to this context.
+        feature = self.domain
 
         # Build the combined feature-level flag set: execution flags + feature flags.
         combined_feature_flags = list(execution_flags) + (feature.flags or [])
@@ -700,9 +705,13 @@ class FeatureContext(BaseContext):
             yield event, step, params
 
     # * method: execute_feature
-    def execute_feature(self, feature: Feature, request: RequestContext, *flags, **kwargs):
+    def execute_feature(self, request: RequestContext, *flags, **kwargs):
         '''
-        Execute a pre-loaded feature with the provided request.
+        Execute the bound feature with the provided request.
+
+        Reads the feature bound as ``self.domain`` by ``from_domain``, so the
+        context executes the feature it was constructed against rather than one
+        supplied per call.
 
         Handles three dispatch cases based on ``is_async`` flags:
 
@@ -714,8 +723,6 @@ class FeatureContext(BaseContext):
         3. Both flags ``False`` — fully synchronous ``execute_step``
            execution.
 
-        :param feature: The pre-loaded feature domain object.
-        :type feature: Feature
         :param request: The request context object.
         :type request: RequestContext
         :param flags: Execution flags combined additively with feature-level
@@ -725,19 +732,22 @@ class FeatureContext(BaseContext):
         :type kwargs: dict
         '''
 
+        # Read the feature bound to this context.
+        feature = self.domain
+
         # Validate and coerce request data against the feature schema first,
         # failing fast before any step executes.
         validate_request(feature, request)
 
         # Case 1: entire feature is async — drive the full loop via run_coroutine.
         if feature.is_async:
-            run_coroutine(self._execute_async(feature, request, *flags, **kwargs))
+            run_coroutine(self._execute_async(request, *flags, **kwargs))
             return
 
         # Cases 2 & 3: synchronous feature loop with per-step async detection.
         feature_middleware = self.resolve_middleware(feature.middleware)
 
-        for event, step, params in self.resolve_feature_steps(feature, request, *flags):
+        for event, step, params in self.resolve_feature_steps(request, *flags):
 
             # Compose feature-level (outer) + step-level (inner) middleware.
             step_middleware = self.resolve_middleware(step.middleware)
