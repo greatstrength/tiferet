@@ -344,8 +344,8 @@ def test_cli_request_context_handle_response_primitive(
 @pytest.fixture
 def cli_session_context(app_interface):
     '''
-    Fixture for a minimal CliSessionContext with no parse_cli_args injected
-    (legacy-compatible mode) and a no-op response handler.
+    Fixture for a minimal CliSessionContext with neither parse_cli_args nor any
+    FE4 handler injected; tests wire ``_build_response`` themselves.
 
     :return: A CliSessionContext instance.
     :rtype: CliSessionContext
@@ -445,6 +445,35 @@ def test_cli_session_context_build_response_legacy_no_print(
     # Assert nothing was printed and the result was returned as-is.
     assert capsys.readouterr().out == ''
     assert result == 'legacy-result'
+
+# ** test: cli_session_context_build_response_unwired_handler_raises
+def test_cli_session_context_build_response_unwired_handler_raises(
+        cli_session_context: CliSessionContext,
+        capsys,
+) -> None:
+    '''
+    Test that build_response defers to the hub's required-wiring guard rather
+    than falling back to request.handle_response() itself.
+
+    :param cli_session_context: The CliSessionContext fixture.
+    :type cli_session_context: CliSessionContext
+    :param capsys: The pytest stdout/stderr capture fixture.
+    :type capsys: pytest.CaptureFixture
+    '''
+
+    # Arrange a CLI request carrying a result the retired fallback would have printed.
+    request = CliRequestContext(feature_id='test.feature')
+    request.set_result('the_result')
+
+    # Assert the unwired handler surfaces as a structured API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        cli_session_context.build_response(request)
+
+    # Assert the hub's message names the missing response handler.
+    assert 'response_handler' in exc_info.value.message
+
+    # Assert nothing was printed on the failure path.
+    assert capsys.readouterr().out == ''
 
 # ** test: cli_session_context_run_new_path
 def test_cli_session_context_run_new_path(
