@@ -14,7 +14,7 @@ Use `TomlLoader` (or its alias `Toml`) directly when you need to read TOML files
 
 **TOML is read-only in this utility** — the `tomllib` / `tomli` library only provides parsing, so there is no `save()` method. Use a third-party library (e.g., `tomlkit`) if you need to write TOML files.
 
-`TomlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer. The `ConfigurationService` interface that once described this shape had no implementers and no consumers, and has been retired; format dispatch is owned by `ConfigurationRepository` instead.
+`TomlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## When to Use TomlLoader vs. Injected Service
 

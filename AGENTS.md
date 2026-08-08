@@ -247,7 +247,7 @@ result = DomainEvent.handle(
 - Extend `Service` (ABC) from `tiferet/interfaces/core.py`.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
-- Services: `AppService`, `CliService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`. (`ConfigurationService` was **retired** — zero implementers and zero consumers; the config loaders declare only `FileLoader` and format dispatch belongs to `ConfigurationRepository`.)
+- Services: `AppService`, `CliService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`. A Service class outside `interfaces/core.py` with zero subclasses is suspect for removal; the config loaders declare only `FileLoader` and format dispatch belongs to `ConfigurationRepository`.
 - **`ServiceError`** (`interfaces/core.py`, in a `# *** classes` section) is the exception every service raises for an infrastructural failure. See Error Handling.
 
 ## Mappers

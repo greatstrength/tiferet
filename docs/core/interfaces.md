@@ -27,7 +27,7 @@ A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.s
 - **Swappable implementations**: Consumers depend only on the Service contract, so concrete implementations can be substituted without changing domain logic.
 - **Extensibility**: New concerns (e.g., authentication, logging, rate limiting) can be added as new Service interfaces or layered inside existing ones.
 
-In the error domain, `ErrorService` is the vertical contract that all error-related commands depend on. Configuration handling has **no** Service contract: format dispatch is owned by the concrete `ConfigurationRepository` mixin (`repos/core.py`), and the loaders it dispatches to declare only `FileLoader`. A `ConfigurationService` interface previously described that shape but had zero implementers and zero consumers, and has been retired — an unimplemented ABC is an artifact without a consumer.
+In the error domain, `ErrorService` is the vertical contract that all error-related commands depend on. Configuration handling has **no** Service contract: format dispatch is owned by the concrete `ConfigurationRepository` mixin (`repos/core.py`), and the loaders it dispatches to declare only `FileLoader`. A Service class outside the abstract core with zero subclasses is an artifact without a consumer and should not exist — this is why no configuration Service is defined.
 
 ## Structured Code Design of Services
 

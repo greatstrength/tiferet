@@ -341,7 +341,7 @@ Some utilities implement Services from `tiferet/interfaces/`:
 
 - `FileLoader` → `FileService` (`interfaces/file.py`)
 - `SqliteClient` → `SqliteService` (`interfaces/sqlite.py`) + `FileService` (via `FileLoader`)
-- `YamlLoader` / `JsonLoader` / `TomlLoader` / `CsvLoader` declare **only** `FileLoader`. They implement no configuration contract, and this is deliberate: the `ConfigurationService` interface that once described their shape had zero implementers and zero consumers, and has been retired. Format dispatch is owned by `ConfigurationRepository` (`repos/core.py`), so the loaders need no contract of their own.
+- `YamlLoader` / `JsonLoader` / `TomlLoader` / `CsvLoader` declare **only** `FileLoader`. They implement no configuration contract, and this is deliberate: format dispatch is owned by `ConfigurationRepository` (`repos/core.py`), so the loaders need no contract of their own.
 
 A utility needs a Service interface when it must be resolved from the DI container. Where one exists, follow the same pattern: define the interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export it with an alias.
 

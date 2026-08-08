@@ -14,7 +14,7 @@ Both extend `FileLoader` (`tiferet/utils/file.py`), inheriting full context-mana
 
 Use `CsvLoader` (or its alias `Csv`) for positional row data and `CsvDictLoader` (or its alias `CsvDict`) for header-based dict data. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-Neither class implements a configuration contract — both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer. The `ConfigurationService` interface that once described this shape had no implementers and no consumers, and has been retired; format dispatch is owned by `ConfigurationRepository` instead.
+Neither class implements a configuration contract — both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## When to Use CsvLoader vs. CsvDictLoader vs. Injected Service
 

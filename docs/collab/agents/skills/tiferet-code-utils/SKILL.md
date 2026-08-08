@@ -62,7 +62,7 @@ Util-specific labels:
 | `CacheMiddleware` | — | `MiddlewareService` | — |
 
 The config loaders declare only `FileLoader`; they implement no configuration
-contract. `ConfigurationService` was retired for having no implementers.
+contract, since no consumer or implementer needs one.
 
 ## Example
 
