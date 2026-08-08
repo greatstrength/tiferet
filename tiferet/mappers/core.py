@@ -6,11 +6,10 @@
 from typing import Any, ClassVar, Dict
 
 # ** infra
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 # ** app
-from ..domain import DomainObject
-from ..events import RaiseError, a
+from ..domain import DomainObject, ModelError
 
 # *** constants
 
@@ -28,15 +27,17 @@ class Aggregate(DomainObject):
     A mutable, validated representation of a domain aggregate.
 
     Aggregates inherit the strict ``extra='forbid'`` and ``validate_assignment=True``
-    config from :class:`DomainObject`. Mutation goes through :meth:`set_attribute`
-    for an explicit existence check, but any direct ``setattr`` will still trigger
-    Pydantic field validation.
+    config from :class:`DomainObject`. Mutation goes through :meth:`set_attribute`,
+    which converts the resulting Pydantic failure into a :class:`ModelError`;
+    any direct ``setattr`` still triggers Pydantic field validation, raising a
+    ``ValidationError`` unconverted.
     '''
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
         '''
-        Update an attribute on the aggregate, raising an error if it is unknown.
+        Update an attribute on the aggregate, converting a validation failure
+        into a structured model error.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -46,15 +47,19 @@ class Aggregate(DomainObject):
         :rtype: None
         '''
 
-        # Reject unknown attribute names by raising a structured error.
-        if attribute not in type(self).model_fields:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
+        # Apply the update, converting validation failures into a model error.
+        try:
+            setattr(self, attribute, value)
+
+        # An unknown attribute or an invalid value both surface here; the
+        # raiser classifies which of the two occurred and describes this
+        # aggregate as the offending instance.
+        except ValidationError as error:
+            ModelError.raise_for_validation(
+                error,
+                model=self,
                 attribute=attribute,
             )
-
-        # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
 
     # * method: to_dict
     def to_dict(self, role: str = None, **overrides) -> Dict[str, Any]:

@@ -2,9 +2,17 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
-from tiferet.domain import CliArgument, CliCommand, DomainObject
-from tiferet.events import a
+from tiferet.domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
+    CliArgument,
+    CliCommand,
+    DomainObject,
+    ModelError,
+)
 from tiferet.mappers.cli import CliArgumentAggregate, CliCommandAggregate, CliCommandConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -105,8 +113,8 @@ class TestCliArgumentAggregate(AggregateTestBase):
         ('required', True, None),
         ('default', 'new_default', None),
         # invalid
-        ('name_or_flags', ['b'], a.error.INVALID_MODEL_ATTRIBUTE_ID),
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('name_or_flags', ['b'], ATTRIBUTE_NOT_SETTABLE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
 
@@ -131,8 +139,25 @@ class TestCliCommandAggregate(AggregateTestBase):
         ('key', 'subtract', None),
         ('group_key', 'math', None),
         # invalid
-        ('invalid_attr', 'value', a.error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value', ATTRIBUTE_NOT_SETTABLE_ID),
     ]
+
+    # ** test: set_attribute_not_settable_describes_model
+    def test_set_attribute_not_settable_describes_model(self, aggregate):
+        '''
+        Test that the mutation-policy guard describes the command that refused
+        the mutation, alongside the attribute and supported set.
+        '''
+
+        # Attempt to set an attribute the mutation policy does not expose.
+        with pytest.raises(ModelError) as exc_info:
+            aggregate.set_attribute('id', 'calc.subtract')
+
+        # Assert the refusal names the offending command instance.
+        assert exc_info.value.error_code == ATTRIBUTE_NOT_SETTABLE_ID
+        assert exc_info.value.model['type'] == 'CliCommandAggregate'
+        assert exc_info.value.model['id'] == 'calc.add'
+        assert exc_info.value.kwargs.get('attribute') == 'id'
 
     # ** test: add_argument_appends
     def test_add_argument_appends(self, aggregate):

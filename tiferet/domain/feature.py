@@ -10,8 +10,6 @@ from pydantic import ConfigDict, Field, ValidationError, create_model, model_val
 
 # ** app
 from .core import DomainObject
-from .. import assets as a
-from ..assets import TiferetError
 
 # *** models
 
@@ -255,17 +253,19 @@ class RequestSpecification(DomainObject):
             **field_definitions,
         )
 
-    # * method: validate
-    def validate(self, data: Dict[str, Any], feature_id: str = None) -> Dict[str, Any]:
+    # * method: coerce
+    def coerce(self, data: Dict[str, Any]) -> Dict[str, Any]:
         '''
         Validate and coerce ``data`` against the schema, returning the original
         request data merged with coerced schema-covered fields and defaults.
         Unspecified extra request keys are preserved.
 
-        :param data: The request data to validate.
+        Pydantic's ``ValidationError`` propagates untouched: naming the failure
+        is the orchestration layer's concern, so the domain carries no framework
+        error vocabulary.
+
+        :param data: The request data to coerce.
         :type data: Dict[str, Any]
-        :param feature_id: The feature id used for error context.
-        :type feature_id: str
         :return: The merged, coerced request data.
         :rtype: Dict[str, Any]
         '''
@@ -274,25 +274,7 @@ class RequestSpecification(DomainObject):
         model_cls = self.build_model()
 
         # Validate and coerce the request data, aggregating all field errors.
-        try:
-            validated = model_cls(**(data or {}))
-
-        # Convert Pydantic validation errors into a single structured error.
-        except ValidationError as error:
-            violations = [
-                {
-                    'field': '.'.join(str(loc) for loc in err.get('loc', ())),
-                    'type': err.get('type'),
-                    'message': err.get('msg'),
-                }
-                for err in error.errors()
-            ]
-            raise TiferetError(
-                a.error.REQUEST_VALIDATION_FAILED_ID,
-                f'Request validation failed for feature {feature_id}: {violations}.',
-                feature_id=feature_id,
-                violations=violations,
-            )
+        validated = model_cls(**(data or {}))
 
         # Merge coerced schema fields and defaults over the original data.
         return {**(data or {}), **validated.model_dump()}
@@ -308,11 +290,11 @@ class RequestSpecification(DomainObject):
         :rtype: bool
         '''
 
-        # Attempt validation, treating a validation error as not satisfied.
+        # Attempt coercion, treating a validation error as not satisfied.
         try:
-            self.validate(data)
+            self.coerce(data)
             return True
-        except TiferetError:
+        except ValidationError:
             return False
 
 # ** model: feature

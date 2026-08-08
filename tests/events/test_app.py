@@ -20,8 +20,10 @@ from tiferet.events.app import (
 )
 from tiferet.events.core import DomainEvent, TiferetError, a
 from tiferet.domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
     AppSession,
     AppServiceDependency,
+    ModelError,
 )
 from tiferet.interfaces import AppService
 from tiferet.mappers import AppSessionAggregate
@@ -565,16 +567,30 @@ class TestUpdateAppSession(ServiceEventTestBase):
     # * method: test_invalid_attribute_raises_model_error
     def test_invalid_attribute_raises_model_error(self, mock_dependencies, app_interface):
         '''
-        Test that an invalid attribute name raises INVALID_MODEL_ATTRIBUTE.
+        Test that an unsupported attribute name raises ATTRIBUTE_NOT_SETTABLE.
         '''
 
         # Execute the command with an unsupported attribute name.
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ModelError) as exc_info:
             self.handle(mock_dependencies, id=app_interface.id, attribute='invalid_attribute', value='value')
 
-        # The underlying model validation should raise INVALID_MODEL_ATTRIBUTE.
-        assert exc_info.value.error_code == a.error.INVALID_MODEL_ATTRIBUTE_ID
+        # The aggregate's mutation policy should refuse the attribute.
+        assert exc_info.value.error_code == ATTRIBUTE_NOT_SETTABLE_ID
         mock_dependencies['app_service'].save.assert_not_called()
+
+    # * method: test_model_error_is_not_a_domain_error
+    def test_model_error_is_not_a_domain_error(self, mock_dependencies, app_interface):
+        '''
+        Test that the surfaced ModelError is not a TiferetError, so a model
+        defect leaks rather than being formatted as an API response.
+        '''
+
+        # Execute the command with an unsupported attribute name.
+        with pytest.raises(ModelError) as exc_info:
+            self.handle(mock_dependencies, id=app_interface.id, attribute='invalid_attribute', value='value')
+
+        # Assert the error is outside the domain-error hierarchy.
+        assert not isinstance(exc_info.value, TiferetError)
 
 # ** test: TestSetAppConstants
 class TestSetAppConstants(ServiceEventTestBase):

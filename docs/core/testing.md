@@ -62,7 +62,15 @@ Base class for testing Aggregate components. Declare class attributes; the harne
 **Inherited tests:**
 
 - `test_new` — Verifies direct constructor instantiation and field values against `sample_data`.
-- `test_set_attribute` — Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `register_mapper_hooks` in `conftest.py`.
+- `test_set_attribute` — Parametrized test for valid and invalid attribute mutations. Parametrization is driven by `register_mapper_hooks` in `conftest.py`. An invalid row asserts a `ModelError` is raised carrying the expected `error_code`.
+
+**Expected error codes:**
+
+Invalid rows expect one of the three model error codes exported from `tiferet.domain`:
+
+- `INVALID_MODEL_ATTRIBUTE_ID` — the attribute is not a field on the model. Reaches the base `Aggregate.set_attribute` and surfaces as a Pydantic `no_such_attribute` violation.
+- `INVALID_MODEL_VALUE_ID` — the field exists but the assigned value fails field validation.
+- `ATTRIBUTE_NOT_SETTABLE_ID` — the aggregate overrides `set_attribute` with a narrower whitelist and refuses the attribute as a mutation-policy violation, before Pydantic is reached. Use this for `CliArgumentAggregate`, `CliCommandAggregate`, and `AppSessionAggregate`.
 
 **Override hook:**
 
@@ -71,7 +79,7 @@ Base class for testing Aggregate components. Declare class attributes; the harne
 **Example:**
 
 ```python
-from tiferet.events import a
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.error import ErrorAggregate
 from tiferet.testing import AggregateTestBase
 
@@ -88,8 +96,8 @@ class TestErrorAggregate(AggregateTestBase):
     equality_fields = ['id', 'name', 'error_code']
 
     set_attribute_params = [
-        ('name', 'Updated Error', None),                                  # valid
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),  # invalid
+        ('name', 'Updated Error', None),                                # valid
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),      # invalid
     ]
 
     # Domain-specific tests beyond the harness:
@@ -270,6 +278,7 @@ Harness-based test files follow this general structure:
 """Tiferet <Domain> <Component> Tests"""
 
 # *** imports
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase  # or DomainEventTestBase
 
 # *** constants
@@ -285,7 +294,7 @@ class TestSomeAggregate(AggregateTestBase):
     equality_fields = EQUALITY_FIELDS
     set_attribute_params = [
         ('name', 'Updated', None),
-        ('invalid', 'value', 'INVALID_MODEL_ATTRIBUTE'),
+        ('invalid', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # Domain-specific mutation tests go here.

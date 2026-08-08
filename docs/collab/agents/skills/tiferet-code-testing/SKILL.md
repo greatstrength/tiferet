@@ -49,6 +49,7 @@ Repository integration tests use `# ** test_int: <name>`.
 **Mapper harnesses** (`tiferet.testing`):
 - `MapperAssertions` — shared comparison helpers.
 - `AggregateTestBase` — required attrs: `aggregate_cls`, `sample_data`, `equality_fields`, `set_attribute_params`; optional `field_normalizers`.
+- `set_attribute_params` rows are `(attr, value, expect_error_code | None)`. An invalid row asserts a `ModelError` carrying that code: `INVALID_MODEL_ATTRIBUTE_ID` (no such field), `INVALID_MODEL_VALUE_ID` (bad value), or `ATTRIBUTE_NOT_SETTABLE_ID` (refused by a subclass whitelist). Import all three from `tiferet.domain`.
 - `TransferObjectTestBase` — required attrs: `transfer_cls`, `aggregate_cls`, `sample_data`, `aggregate_sample_data`, `equality_fields`; optional `field_normalizers`, `map_kwargs`.
 - Put reusable dicts and normalizer functions under `# *** constants`.
 - For nested collections, define normalizer functions that accept dicts or domain objects and return comparable tuples.
@@ -79,7 +80,7 @@ Repository integration tests use `# ** test_int: <name>`.
 import pytest
 
 # ** app
-from tiferet.events import a
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from tiferet.mappers.error import ErrorAggregate, ErrorConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
 
@@ -144,7 +145,7 @@ class TestErrorAggregate(AggregateTestBase):
     # * attribute: set_attribute_params
     set_attribute_params = [
         ('name', 'Updated Error', None),
-        ('invalid_attribute', 'value', a.const.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attribute', 'value', INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: test_rename

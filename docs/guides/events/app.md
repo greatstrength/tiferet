@@ -124,7 +124,7 @@ Updates a single scalar attribute on an existing app interface. The attribute is
 
 **Errors:**
 - `APP_INTERFACE_NOT_FOUND` if the interface does not exist.
-- `INVALID_MODEL_ATTRIBUTE` if the attribute name is not in the supported set.
+- `ATTRIBUTE_NOT_SETTABLE` if the attribute name is not in the supported set. This is a `ModelError`, not a `TiferetError`, so it leaks to the caller unformatted rather than being resolved through the error catalog.
 - `INVALID_APP_INTERFACE_TYPE` if `module_path` or `class_name` is set to an empty string.
 
 **Supported attributes:** `name`, `description`, `module_path`, `class_name`, `logger_id`, `flags`.

@@ -10,10 +10,11 @@ from pydantic import AliasChoices, Field
 
 # ** app
 from ..domain import (
+    ATTRIBUTE_NOT_SETTABLE_ID,
     AppServiceDependency,
     AppSession,
+    ModelError,
 )
-from ..events import RaiseError, a
 from .core import (
     Aggregate,
     TransferObject,
@@ -174,7 +175,10 @@ class AppSessionAggregate(AppSession, Aggregate):
         '''
         Update a supported scalar attribute on the app session aggregate.
 
-        Supported attributes: name, description, logger_id, flags.
+        Supported attributes: name, description, logger_id, flags. The ``id``
+        identity field and the ``services`` / ``constants`` collections owned by
+        :meth:`add_service`, :meth:`set_service`, and :meth:`set_constants` are
+        refused as mutation-policy violations rather than model inconsistencies.
 
         :param attribute: The attribute name to update.
         :type attribute: str
@@ -192,13 +196,15 @@ class AppSessionAggregate(AppSession, Aggregate):
             'flags',
         }
 
-        # Validate the attribute name.
+        # Reject any attribute the mutation policy does not expose.
         if attribute not in supported:
-            RaiseError.execute(
-                error_code=a.error.INVALID_MODEL_ATTRIBUTE_ID,
-                message='Invalid attribute: {attribute}. Supported attributes are {supported}.',
+            supported_names = ', '.join(sorted(supported))
+            ModelError.raise_error(
+                ATTRIBUTE_NOT_SETTABLE_ID,
+                message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
-                supported=', '.join(sorted(supported)),
+                supported=supported_names,
             )
 
         # Apply the update; validate_assignment=True handles re-validation.

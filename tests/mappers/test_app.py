@@ -6,8 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.domain import AppServiceDependency
-from tiferet.assets import TiferetError, error
+from tiferet.domain import ATTRIBUTE_NOT_SETTABLE_ID, AppServiceDependency
 from tiferet.mappers.app import (
     AppSessionAggregate,
     AppSessionConfigObject,
@@ -108,7 +107,7 @@ class TestAppSessionAggregate(AggregateTestBase):
         ('logger_id',    'custom.logger.id',       None),
         ('flags',        ['flag1', 'flag2'],       None),
         # invalid
-        ('invalid_attr', 'value',                  error.INVALID_MODEL_ATTRIBUTE_ID),
+        ('invalid_attr', 'value',                  ATTRIBUTE_NOT_SETTABLE_ID),
     ]
 
     # * method: make_aggregate

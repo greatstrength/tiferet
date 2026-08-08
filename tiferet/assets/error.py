@@ -88,9 +88,6 @@ INVALID_JSON_FILE_ID = 'INVALID_JSON_FILE'
 # ** constant: invalid_json_path_id
 INVALID_JSON_PATH_ID = 'INVALID_JSON_PATH'
 
-# ** constant: invalid_model_attribute_id
-INVALID_MODEL_ATTRIBUTE_ID = 'INVALID_MODEL_ATTRIBUTE'
-
 # ** constant: invalid_yaml_file_id
 INVALID_YAML_FILE_ID = 'INVALID_YAML_FILE'
 
@@ -392,13 +389,6 @@ INVALID_JSON_PATH = create_default_error(
     INVALID_JSON_PATH_ID,
     'Invalid JSON Path',
     [(EN_US, 'Invalid JSON path: {path}. Failed at segment: {part}.')],
-)
-
-# ** constant: invalid_model_attribute
-INVALID_MODEL_ATTRIBUTE = create_default_error(
-    INVALID_MODEL_ATTRIBUTE_ID,
-    'Invalid Model Attribute',
-    [(EN_US, 'Invalid attribute: {attribute}. Supported attributes are {supported}.')],
 )
 
 # ** constant: invalid_yaml_file
@@ -744,7 +734,6 @@ CORE_DEFAULT_ERRORS = {
     INVALID_FILE_MODE_ID: INVALID_FILE_MODE,
     INVALID_JSON_FILE_ID: INVALID_JSON_FILE,
     INVALID_JSON_PATH_ID: INVALID_JSON_PATH,
-    INVALID_MODEL_ATTRIBUTE_ID: INVALID_MODEL_ATTRIBUTE,
     INVALID_YAML_FILE_ID: INVALID_YAML_FILE,
     JSON_FILE_LOAD_ERROR_ID: JSON_FILE_LOAD_ERROR,
     JSON_FILE_NOT_FOUND_ID: JSON_FILE_NOT_FOUND,

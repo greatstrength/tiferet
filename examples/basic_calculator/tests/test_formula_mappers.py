@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet import TiferetError
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID, ModelError
 from app.mappers.formula import FormulaAggregate, FormulaConfigObject
 
 # *** tests
@@ -45,11 +45,11 @@ def test_aggregate_set_attribute_invalid():
 
     # Attempt to set an unknown attribute.
     formula = FormulaAggregate(name='Rectangle Area', expression='width * height')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ModelError) as exc_info:
         formula.set_attribute('not_a_field', 'value')
 
     # The error code identifies the invalid attribute.
-    assert exc_info.value.error_code == 'INVALID_MODEL_ATTRIBUTE'
+    assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
 
 # ** test: config_object_map
 def test_config_object_map():

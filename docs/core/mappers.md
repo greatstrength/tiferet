@@ -10,7 +10,7 @@ The mappers layer (`tiferet.mappers`) provides the bridge between persistent con
 1. **Aggregate**  
    - Extends `DomainObject` (which extends `pydantic.BaseModel`).
    - Inherits the strict `extra='forbid'` and `validate_assignment=True` config from `DomainObject`.
-   - Provides mutation-safe attribute updates via `set_attribute` with validation using `model_fields` and `RaiseError`.
+   - Provides mutation-safe attribute updates via `set_attribute`, converting a Pydantic `ValidationError` into a `ModelError`.
    - Concrete aggregates combine a domain object with `Aggregate` to add mutation logic (e.g., `ErrorAggregate(Error, Aggregate)`).
 
 2. **TransferObject**  
@@ -51,23 +51,35 @@ class Aggregate(DomainObject):
 
     # * method: set_attribute
     def set_attribute(self, attribute: str, value: Any) -> None:
-        '''Update an attribute, raising an error if it is unknown.'''
+        '''Update an attribute, converting a validation failure into a model error.'''
 
-        # Reject unknown attribute names by raising a structured error.
-        if attribute not in type(self).model_fields:
-            RaiseError.execute(
-                error_code=a.const.INVALID_MODEL_ATTRIBUTE_ID,
+        # Apply the update, converting validation failures into a model error.
+        try:
+            setattr(self, attribute, value)
+
+        # An unknown attribute or an invalid value both surface here; the
+        # raiser classifies which of the two occurred and describes this
+        # aggregate as the offending instance.
+        except ValidationError as error:
+            ModelError.raise_for_validation(
+                error,
+                model=self,
                 attribute=attribute,
             )
-
-        # Apply the update; validate_assignment=True triggers field validation.
-        setattr(self, attribute, value)
 ```
 
 Key characteristics:
 - Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
-- **`set_attribute`** checks `model_fields` to verify the attribute exists before mutation; `validate_assignment=True` (inherited from `DomainObject`) triggers field validation on every `setattr`.
-- Invalid attribute mutations raise `TiferetError` via `RaiseError.execute` with `INVALID_MODEL_ATTRIBUTE_ID`.
+- **`set_attribute`** relies on Pydantic rather than a hand-rolled existence check: `extra='forbid'` and `validate_assignment=True` (both inherited from `DomainObject`) reject an unknown field and an invalid value alike, and the resulting `ValidationError` is converted.
+- Invalid attribute mutations raise `ModelError` — **not** a `TiferetError`. `ModelError.raise_for_validation` selects the code itself: `INVALID_MODEL_ATTRIBUTE_ID` when Pydantic reports a `no_such_attribute` violation, otherwise `INVALID_MODEL_VALUE_ID`. The original `ValidationError` is preserved as the exception cause.
+- Passing `model=self` describes the offending aggregate onto the error (`type`, `module`, and any declared `id` / `name` / `key`), so the leaked defect names *which* aggregate refused the mutation and not merely which attribute. The gated `set_attribute` overrides pass the same. See [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) for `describe_model`.
+- The error vocabulary lives in `tiferet/domain/core.py`, so the `mappers` layer imports only `domain` — there is no `mappers` → `events` or `mappers` → `assets` edge.
+
+### Why `ModelError` and not `TiferetError`
+
+A model inconsistency is a **consumer defect**, not a domain outcome. `ModelError` is therefore a standalone `Exception`: it is not catalogued in `assets/error.py`, not localized, not formatted into a `TiferetAPIError`, and not skippable via a step's `pass_on_error` flag. It carries its own message and leaks to the top of the call stack as the intended defect signal.
+
+A third constant, `ATTRIBUTE_NOT_SETTABLE_ID`, covers the distinct case where a field exists but a dedicated mutator owns it — see the gated `set_attribute` pattern in [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md).
 
 ## The TransferObject Base Class
 
@@ -220,7 +232,7 @@ Repositories use transfer objects to load from configuration and map to aggregat
 - Use artifact comments consistently (`# *** mappers`, `# ** mapper:`, `# *`).
 - Keep aggregates focused on mutation; keep transfer objects focused on serialization.
 - Instantiate aggregates directly via the Pydantic constructor.
-- Use `set_attribute` for validated mutations with unknown-field checking.
+- Use `set_attribute` for validated mutations; it converts a Pydantic failure into a `ModelError`.
 - Define `_ROLES` ClassVar on all transfer objects for role-based serialization.
 - Use `model_dump` kwargs (`exclude`, `by_alias`, `include`) in `_ROLES` definitions.
 
@@ -298,6 +310,7 @@ Harness-based test files follow this structure:
 import pytest
 
 # ** app
+from tiferet.domain import INVALID_MODEL_ATTRIBUTE_ID
 from ..core import TransferObject
 from ..<domain> import SomeAggregate, SomeConfigObject
 from tiferet.testing import AggregateTestBase, TransferObjectTestBase
@@ -335,7 +348,7 @@ class TestSomeAggregate(AggregateTestBase):
 
     set_attribute_params = [
         ('name',         'Updated Name',  None),
-        ('invalid_attr', 'value',         'INVALID_MODEL_ATTRIBUTE'),
+        ('invalid_attr', 'value',         INVALID_MODEL_ATTRIBUTE_ID),
     ]
 
     # * method: make_aggregate
