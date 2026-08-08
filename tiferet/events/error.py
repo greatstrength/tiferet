@@ -98,14 +98,12 @@ class GetError(ErrorEvent):
     '''
 
     # * method: execute
-    def execute(self, id: str, include_defaults: bool = False, **kwargs) -> Error:
+    def execute(self, id: str, **kwargs) -> Error:
         '''
         Retrieve an Error by its ID.
 
         :param id: The unique identifier of the error.
         :type id: str
-        :param include_defaults: If True, search DEFAULT_ERRORS if not found in repository.
-        :type include_defaults: bool
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
         :return: The Error domain model instance.
@@ -119,14 +117,7 @@ class GetError(ErrorEvent):
         if error:
             return error
 
-        # Resolve the built-in default for this id when defaults are requested.
-        error_data = a.DEFAULT_ERRORS.get(id) if include_defaults else None
-
-        # Return the default as an error aggregate when one was found.
-        if error_data:
-            return ErrorAggregate(**error_data)
-
-        # If still not found and defaults not included, raise structured error.
+        # If not found, raise structured error.
         self.raise_error(
             error_code=a.error.ERROR_NOT_FOUND_ID,
             message=f'Error not found: {id}.',
@@ -140,29 +131,18 @@ class ListErrors(ErrorEvent):
     '''
 
     # * method: execute
-    def execute(self, include_defaults: bool = False, **kwargs) -> List[Error]:
+    def execute(self, **kwargs) -> List[Error]:
         '''
         List all Errors.
 
-        :param include_defaults: If True, include DEFAULT_ERRORS in the list.
-        :type include_defaults: bool
         :param kwargs: Additional context (passed to error if raised).
         :type kwargs: dict
         :return: The list of Error domain model instances.
         :rtype: List[Error]
         '''
 
-        # If defaults are not included, retrieve from repository only.
-        if not include_defaults:
-            return self.error_service.list()
-
-        # If defaults are included, merge repository and default errors.
-        errors = {id: ErrorAggregate(**data) for id, data in a.DEFAULT_ERRORS.items()}
-        repo_errors = self.error_service.list()
-        errors.update({error.id: error for error in repo_errors})
-
-        # Return the merged list of errors.
-        return list(errors.values())
+        # Retrieve all errors from the repository.
+        return self.error_service.list()
 
 # ** event: rename_error
 class RenameError(ErrorEvent):

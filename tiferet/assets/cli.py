@@ -327,9 +327,6 @@ ERROR_LIST_CLI_CMD = create_default_cli_command(
     'error',
     'List Errors',
     description='List all error definitions.',
-    arguments=[
-        create_default_cli_argument(['--include-defaults'], 'Include built-in default errors.', type='bool'),
-    ],
 )
 
 # ** constant: error_rename_cli_cmd
