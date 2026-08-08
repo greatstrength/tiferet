@@ -67,47 +67,46 @@ EN_US = 'en_US'
 ERROR_NOT_FOUND_ID = 'ERROR_NOT_FOUND'
 ```
 
-Structured data is built from a factory rather than annotated inline. `DEFAULT_ERRORS` keys each error-id constant to a definition produced by `create_default_error`, and each definition is itself a named constant:
+Structured data is built from a factory rather than annotated inline. `DEFAULT_ERRORS` keys each error-id constant to a definition produced by `create_default_error_data`, and each definition is itself a named constant. The factory deliberately does not take an `id` parameter: the definition is always stored under its owning `*_ID` constant as the group-dict key, so embedding the id a second time inside the value would restate it. The consuming `add_default_errors` decorator reinjects the id from that key when reconstituting the `Error` domain object:
 
 ```python
-# ** constant: error_not_found
-ERROR_NOT_FOUND = create_default_error(
-    ERROR_NOT_FOUND_ID,
+# ** constant: error_not_found_data
+ERROR_NOT_FOUND_DATA = create_default_error_data(
     'Error Not Found',
     [(EN_US, 'Error not found: {id}.')],
 )
 
 # ** constant: default_errors
 DEFAULT_ERRORS = {
-    ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND,
+    ERROR_NOT_FOUND_ID: ERROR_NOT_FOUND_DATA,
 }
 ```
 
 ### Functions
 
-Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error` (in `constants.py`) builds a default error definition from ordered `(lang, text)` message pairs:
+Assets functions are small, stateless helpers with no framework dependencies. For example, `create_default_error_data` (in `core.py`) builds a default error definition from ordered `(lang, text)` message pairs, without an `id` parameter:
 
 ```python
 # *** functions
 
-# ** function: create_default_error
-def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
+# ** function: create_default_error_data
+def create_default_error_data(
+        name: str,
+        messages: List[Tuple[str, str]],
+    ) -> Dict[str, Any]:
     '''
     Build a default error definition dictionary.
 
-    :param id: The unique identifier of the error.
-    :type id: str
     :param name: The human-readable error name.
     :type name: str
     :param messages: Ordered (lang, text) message pairs.
     :type messages: List[Tuple[str, str]]
-    :return: The default error definition.
+    :return: The default error definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble and return the default error definition dictionary.
     return {
-        'id': id,
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }

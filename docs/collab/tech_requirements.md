@@ -102,11 +102,11 @@ There are two primary expressions — use either, or combine both in sequence wh
 **Expression 2 — factory-built object:**
 State the shared factory invocation pattern in a prefix sentence; table columns carry only the variable parameters. This keeps the table compact and keeps the factory name out of every row.
 ```
-Each constant uses `create_service_registration(ID_CONST, create_service_module_path(TIFERET, <base>, <domain>), 'ClassName')`.
+Each constant uses `create_service_registration_data(create_service_module_path(TIFERET, <base>, <domain>), 'ClassName')`. The factory omits an `id` parameter — the group-dict key (the ID Constant column) is the sole source of the id, reinjected by the consuming `add_default_*` decorator.
 
 | Constant | ID Constant | base | domain | class_name |
 |---|---|---|---|---|
-| `ADD_FEATURE_EVT` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
+| `ADD_FEATURE_EVT_DATA` | `ADD_FEATURE_EVT_ID` | `TIFERET_EVENTS_PATH` | `FEATURE_DOMAIN_PATH` | `'AddFeature'` |
 ```
 
 **Combining both expressions** — when a code section contains scalar ID constants followed by factory-built object constants (the three-section catalog pattern), produce two tables in sequence under the same `####` heading. The second table references constant names from the first (not bare string values), making the dependency between sections explicit and verifiable.
