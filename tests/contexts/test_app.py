@@ -20,6 +20,7 @@ from tiferet.domain import (
     Error,
     ModelError,
 )
+from tiferet.interfaces.core import ServiceError
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
@@ -1123,6 +1124,53 @@ def test_app_interface_context_run_leaks_model_error(app_interface_context, feat
     # Assert the model error surfaced verbatim rather than as an API error.
     assert exc_info.value.error_code == INVALID_MODEL_ATTRIBUTE_ID
     assert not isinstance(exc_info.value, TiferetError)
+
+    # Assert the error was never routed through error formatting.
+    error_context.format_response.assert_not_called()
+
+
+# ** test: app_interface_context_run_leaks_service_error
+def test_app_interface_context_run_leaks_service_error(app_interface_context, feature_context, error_context, logging_context):
+    """
+    Test that a ServiceError raised during feature execution leaks out of run
+    unformatted. run catches only TiferetError, so an infrastructural failure —
+    faulty configuration or a lost connection rather than a domain outcome —
+    never reaches handle_error and is never resolved through the error catalog.
+    This needs no production change; the test exists to keep it that way.
+
+    :param app_interface_context: The AppSessionContext instance.
+    :type app_interface_context: AppSessionContext
+    :param feature_context: The mock FeatureContext instance.
+    :type feature_context: FeatureContext
+    :param error_context: The mock ErrorContext instance.
+    :type error_context: ErrorContext
+    :param logging_context: The mock LoggingContext instance.
+    :type logging_context: LoggingContext
+    """
+
+    # Mock feature execution to fail with an infrastructural failure.
+    feature_context.execute_feature.side_effect = ServiceError(
+        'YAML_FILE_LOAD_ERROR',
+        message='Failed to parse YAML file.',
+        module_path='tiferet.utils.yaml',
+        class_name='YamlLoader',
+        target_method='load',
+    )
+
+    # Run the session and capture the surfaced error.
+    with pytest.raises(ServiceError) as exc_info:
+        app_interface_context.run(
+            'test_group.test_feature',
+            headers={'Content-Type': 'application/json'},
+            data={'key': 'value'},
+        )
+
+    # Assert the service error surfaced verbatim rather than as an API error.
+    assert exc_info.value.error_code == 'YAML_FILE_LOAD_ERROR'
+    assert not isinstance(exc_info.value, TiferetError)
+
+    # Assert the provenance of the failing service survived to the boundary.
+    assert exc_info.value.class_name == 'YamlLoader'
 
     # Assert the error was never routed through error formatting.
     error_context.format_response.assert_not_called()

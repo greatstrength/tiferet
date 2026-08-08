@@ -11,7 +11,13 @@ from dependency_injector import containers, providers
 # ** app
 from .core import ServiceContainer, ServiceResolver, injectable_parameter_names
 from ..domain import ServiceDependency, AppServiceDependency
+from ..interfaces.core import ServiceError
 from ..interfaces.di import DIService
+
+# *** constants
+
+# ** constant: di_dependency_not_registered_id
+DI_DEPENDENCY_NOT_REGISTERED_ID = 'DI_DEPENDENCY_NOT_REGISTERED'
 
 # *** classes
 
@@ -96,17 +102,30 @@ class DIDynamicServiceContainer(ServiceContainer):
         '''
         Resolve a registered dependency (service or constant) by its identifier.
 
-        A missing or failing provider raises a raw exception, leaving structured
+        An unregistered identifier raises a service error naming it; a provider
+        that fails while constructing raises a raw exception, leaving structured
         error handling to the caller (which has event access).
 
         :param dependency_id: The identifier of the dependency to resolve.
         :type dependency_id: str
         :return: The resolved dependency instance or value.
         :rtype: Any
+        :raises ServiceError: If no provider is registered under the identifier.
         '''
 
-        # Look up the provider and invoke it; a missing provider raises a raw error.
+        # Look up the provider for the requested identifier.
         provider = self.container.providers.get(dependency_id)
+
+        # Raise a service error naming the identifier when none is registered.
+        if provider is None:
+            ServiceError.raise_for(
+                self,
+                DI_DEPENDENCY_NOT_REGISTERED_ID,
+                f'No dependency is registered under the id: {dependency_id}.',
+                dependency_id=dependency_id,
+            )
+
+        # Invoke the provider to resolve the dependency.
         return provider()
 
     # * method: has_dependency

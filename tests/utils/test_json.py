@@ -10,9 +10,14 @@ from pathlib import Path
 import pytest
 
 # ** app
-from tiferet.utils.json import JsonLoader
-from tiferet.events import a
-from tiferet.events.core import TiferetError
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.file import FILE_NOT_FOUND_ID, INVALID_FILE_ID
+from tiferet.utils.json import (
+    JsonLoader,
+    INVALID_JSON_PATH_ID,
+    JSON_FILE_LOAD_ERROR_ID,
+    JSON_FILE_NOT_FOUND_ID,
+)
 
 # *** fixtures
 
@@ -187,11 +192,11 @@ def test_json_loader_load_file_not_found(tmp_path):
     loader = JsonLoader(path=tmp_path / 'missing.json', mode='r')
 
     # Attempt to load; expect FILE_NOT_FOUND error from FileLoader.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.load()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
 # ** test: json_loader_load_malformed_json
 def test_json_loader_load_malformed_json(tmp_path):
@@ -208,11 +213,11 @@ def test_json_loader_load_malformed_json(tmp_path):
 
     # Attempt to load the malformed JSON.
     loader = JsonLoader(path=file_path, mode='r')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.load()
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.error.JSON_FILE_LOAD_ERROR_ID
+    assert exc_info.value.error_code == JSON_FILE_LOAD_ERROR_ID
     assert 'path' in exc_info.value.kwargs
 
 # ** test: json_loader_save_write_failure
@@ -229,11 +234,11 @@ def test_json_loader_save_write_failure(tmp_path):
     saver = JsonLoader(path=file_path, mode='w')
 
     # Attempt to save; expect an error due to missing parent directory.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         saver.save({'key': 'value'})
 
     # Verify the error code (FILE_NOT_FOUND propagates from FileLoader).
-    assert exc_info.value.error_code == a.error.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 
 # ** test: json_loader_parse_json_path_dict
 def test_json_loader_parse_json_path_dict(nested_json_data: dict):
@@ -290,11 +295,11 @@ def test_json_loader_parse_json_path_invalid(nested_json_data: dict):
     '''
 
     # Attempt to navigate through a non-dict/non-list value.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         JsonLoader.parse_json_path(nested_json_data, 'metadata.total.invalid')
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.INVALID_JSON_PATH_ID
+    assert exc_info.value.error_code == INVALID_JSON_PATH_ID
 
 # ** test: json_loader_verify_json_file_success
 def test_json_loader_verify_json_file_success(temp_json_file: Path):
@@ -324,11 +329,11 @@ def test_json_loader_verify_json_file_invalid_extension(tmp_path):
 
     # Verify raises INVALID_FILE error.
     loader = JsonLoader(path=file_path, mode='r')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         JsonLoader.verify_json_file(loader)
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.INVALID_FILE_ID
+    assert exc_info.value.error_code == INVALID_FILE_ID
 
 # ** test: json_loader_verify_json_file_not_found
 def test_json_loader_verify_json_file_not_found(tmp_path):
@@ -343,11 +348,11 @@ def test_json_loader_verify_json_file_not_found(tmp_path):
     loader = JsonLoader(path=tmp_path / 'missing.json', mode='r')
 
     # Verify raises JSON_FILE_NOT_FOUND error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         JsonLoader.verify_json_file(loader)
 
     # Verify the error code and kwargs.
-    assert exc_info.value.error_code == a.error.JSON_FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == JSON_FILE_NOT_FOUND_ID
     assert 'missing.json' in exc_info.value.kwargs.get('path', '')
 
 # ** test: json_loader_verify_json_file_fallback
@@ -384,7 +389,7 @@ def test_json_loader_context_manager_closes_on_error(tmp_path):
 
     # Attempt to load, which should raise.
     loader = JsonLoader(path=file_path, mode='r')
-    with pytest.raises(TiferetError):
+    with pytest.raises(ServiceError):
         loader.load()
 
     # Verify the file stream is closed after the error.

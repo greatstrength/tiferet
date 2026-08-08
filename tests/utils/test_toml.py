@@ -7,9 +7,10 @@ import pytest
 from pathlib import Path
 
 # ** app
-from tiferet.utils.toml import TomlLoader
-from tiferet.assets.exceptions import TiferetError
-from tiferet.assets.error import (
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.file import FILE_NOT_FOUND_ID
+from tiferet.utils.toml import (
+    TomlLoader,
     TOML_FILE_NOT_FOUND_ID,
     TOML_FILE_LOAD_ERROR_ID,
     INVALID_TOML_FILE_ID,
@@ -129,7 +130,7 @@ def test_toml_loader_load_file_not_found(tmp_path: Path):
 
     # Attempt to load a nonexistent file.
     loader = TomlLoader(path=tmp_path / 'missing.toml')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.load()
 
     # Assert the correct error code.
@@ -147,7 +148,7 @@ def test_toml_loader_load_invalid_toml(invalid_toml_file: Path):
 
     # Attempt to load the invalid file.
     loader = TomlLoader(path=invalid_toml_file)
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.load()
 
     # Assert the correct error code.
@@ -169,7 +170,7 @@ def test_toml_loader_verify_toml_file_wrong_extension(tmp_path: Path):
 
     # Create a loader and verify.
     loader = TomlLoader(path=file_path)
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         TomlLoader.verify_toml_file(loader)
 
     # Assert the correct error code.
@@ -187,7 +188,7 @@ def test_toml_loader_verify_toml_file_not_found(tmp_path: Path):
 
     # Create a loader pointing to a non-existent .toml file.
     loader = TomlLoader(path=tmp_path / 'missing.toml')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         TomlLoader.verify_toml_file(loader)
 
     # Assert the correct error code.
