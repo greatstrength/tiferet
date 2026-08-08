@@ -76,19 +76,18 @@ def test_core_default_services_keys_match_service_ids() -> None:
 # ** test: core_default_services_entries_have_expected_shape
 def test_core_default_services_entries_have_expected_shape() -> None:
     '''
-    Test that each CORE_DEFAULT_SERVICES value carries the four dependency keys
-    and that its key matches the embedded service_id.
+    Test that each CORE_DEFAULT_SERVICES value carries the three base
+    dependency keys, with no embedded service_id — the group-dict key is the
+    sole source of the service id.
     '''
 
-    # Assert each entry carries the four expected keys with a matching service_id.
-    for service_id, record in CORE_DEFAULT_SERVICES.items():
+    # Assert each entry carries only the three base dependency keys.
+    for record in CORE_DEFAULT_SERVICES.values():
         assert set(record.keys()) == {
-            'service_id',
             'module_path',
             'class_name',
             'parameters',
         }
-        assert record['service_id'] == service_id
 
 # ** test: core_default_constants_keys_match_config_ids
 def test_core_default_constants_keys_match_config_ids() -> None:

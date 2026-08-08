@@ -78,8 +78,9 @@ def error() -> Error:
     :rtype: Error
     '''
 
-    # Build and return the ERROR_NOT_FOUND error.
-    return Error(**CORE_DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+    # Build and return the ERROR_NOT_FOUND error, re-injecting its id since
+    # the catalog entry no longer embeds it.
+    return Error(id=ERROR_NOT_FOUND_ID, **CORE_DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
 
 # *** tests
 

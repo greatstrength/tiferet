@@ -39,11 +39,12 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
     Decorator factory that pre-seeds a cache context with default feature domain objects.
 
     Wraps a cache-builder callable so that, after the cache is constructed,
-    each entry in ``features`` is reconstituted into a ``Feature`` domain object
-    and stored in the cache under the ``FEATURE_CACHE_PREFIX`` namespace keyed
-    by feature id.
+    each entry in ``features`` is reconstituted into a ``Feature`` domain
+    object (with its id re-injected) and stored in the cache under the
+    ``FEATURE_CACHE_PREFIX`` namespace keyed by feature id.
 
-    :param features: A mapping of feature IDs to raw feature definition dicts.
+    :param features: A mapping of feature IDs to raw feature definition dicts
+        (each value is the definition without its id).
     :type features: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -58,10 +59,14 @@ def add_default_features(features: Dict[str, Any]) -> Callable:
             # Delegate to the wrapped cache-builder.
             cache = build_fn(*args, **kwargs)
 
-            # Reconstitute each raw feature dict into a Feature domain object and
-            # cache it under the feature namespace keyed by feature id.
+            # Reconstitute each raw feature dict into a Feature domain object
+            # (re-injecting the id) and cache it under the feature namespace.
             for feature_id, feature_data in features.items():
-                cache.set(feature_id, Feature.model_validate(feature_data), *FEATURE_CACHE_PREFIX)
+                cache.set(
+                    feature_id,
+                    Feature.model_validate({**feature_data, 'id': feature_id}),
+                    *FEATURE_CACHE_PREFIX,
+                )
 
             # Return the populated cache context.
             return cache

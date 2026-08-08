@@ -8,17 +8,17 @@ import pytest
 # ** app
 from tiferet.assets.core import (
     create_service_dependency,
-    create_app_service_dependency,
-    create_service_registration,
+    create_app_service_dependency_data,
+    create_service_registration_data,
     create_service_module_path,
-    create_default_feature,
-    create_default_app_session,
+    create_default_feature_data,
+    create_default_app_session_data,
     create_params_schema,
     create_default_formatter,
     create_default_handler,
     create_default_logger,
     create_default_cli_argument,
-    create_default_cli_command,
+    create_default_cli_command_data,
     TiferetError,
     TiferetAPIError,
     TIFERET,
@@ -93,91 +93,89 @@ def test_create_service_dependency_with_parameters() -> None:
     # Assert parameters are preserved.
     assert result['parameters'] == params
 
-# ** test: create_app_service_dependency_returns_expected_shape
-def test_create_app_service_dependency_returns_expected_shape() -> None:
+# ** test: create_app_service_dependency_data_returns_expected_shape
+def test_create_app_service_dependency_data_returns_expected_shape() -> None:
     '''
-    Test that create_app_service_dependency returns a dict with the four
-    dependency keys and that service_id matches the first argument.
+    Test that create_app_service_dependency_data returns a dict with the
+    three base dependency keys and no id (dropped in favor of the owning
+    group-dict key).
 
     :return: None
     :rtype: None
     '''
 
     # Build the app service dependency dict.
-    result = create_app_service_dependency(
-        'error_service',
+    result = create_app_service_dependency_data(
         'tiferet.repos.error',
         'ErrorConfigRepository',
     )
 
     # Assert the shape and values.
-    assert set(result.keys()) == {'service_id', 'module_path', 'class_name', 'parameters'}
-    assert result['service_id'] == 'error_service'
+    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
     assert result['module_path'] == 'tiferet.repos.error'
     assert result['class_name'] == 'ErrorConfigRepository'
     assert result['parameters'] == {}
 
-# ** test: create_app_service_dependency_omitting_parameters_yields_empty_dict
-def test_create_app_service_dependency_omitting_parameters_yields_empty_dict() -> None:
+# ** test: create_app_service_dependency_data_omitting_parameters_yields_empty_dict
+def test_create_app_service_dependency_data_omitting_parameters_yields_empty_dict() -> None:
     '''
-    Test that omitting parameters in create_app_service_dependency yields an
-    empty dict rather than None.
+    Test that omitting parameters in create_app_service_dependency_data yields
+    an empty dict rather than None.
 
     :return: None
     :rtype: None
     '''
 
     # Build without explicit parameters.
-    result = create_app_service_dependency('svc', 'tiferet.mod', 'Cls')
+    result = create_app_service_dependency_data('tiferet.mod', 'Cls')
 
     # Assert parameters default to an empty dict.
     assert result['parameters'] == {}
 
-# ** test: create_service_registration_returns_expected_shape
-def test_create_service_registration_returns_expected_shape() -> None:
+# ** test: create_service_registration_data_returns_expected_shape
+def test_create_service_registration_data_returns_expected_shape() -> None:
     '''
-    Test that create_service_registration returns a dict with the four
-    registration keys and that id matches the first argument.
+    Test that create_service_registration_data returns a dict with the three
+    base registration keys and no id (dropped in favor of the owning
+    group-dict key).
 
     :return: None
     :rtype: None
     '''
 
     # Build the service registration dict.
-    result = create_service_registration(
-        'add_feature_evt',
+    result = create_service_registration_data(
         'tiferet.events.feature',
         'AddFeature',
     )
 
     # Assert the shape and values.
-    assert set(result.keys()) == {'id', 'module_path', 'class_name', 'parameters'}
-    assert result['id'] == 'add_feature_evt'
+    assert set(result.keys()) == {'module_path', 'class_name', 'parameters'}
     assert result['module_path'] == 'tiferet.events.feature'
     assert result['class_name'] == 'AddFeature'
     assert result['parameters'] == {}
 
-# ** test: create_service_registration_omitting_parameters_yields_empty_dict
-def test_create_service_registration_omitting_parameters_yields_empty_dict() -> None:
+# ** test: create_service_registration_data_omitting_parameters_yields_empty_dict
+def test_create_service_registration_data_omitting_parameters_yields_empty_dict() -> None:
     '''
-    Test that omitting parameters in create_service_registration yields an
-    empty dict rather than None.
+    Test that omitting parameters in create_service_registration_data yields
+    an empty dict rather than None.
 
     :return: None
     :rtype: None
     '''
 
     # Build without explicit parameters.
-    result = create_service_registration('svc', 'tiferet.mod', 'Cls')
+    result = create_service_registration_data('tiferet.mod', 'Cls')
 
     # Assert parameters default to an empty dict.
     assert result['parameters'] == {}
 
-# ** test: create_default_feature_returns_required_fields
-def test_create_default_feature_returns_required_fields() -> None:
+# ** test: create_default_feature_data_returns_required_fields
+def test_create_default_feature_data_returns_required_fields() -> None:
     '''
-    Test that create_default_feature returns a dict with all five required
-    fields populated and no optional fields when omitted.
+    Test that create_default_feature_data returns a dict with all four base
+    fields populated (no id) and no optional fields when omitted.
 
     :return: None
     :rtype: None
@@ -185,8 +183,7 @@ def test_create_default_feature_returns_required_fields() -> None:
 
     # Build a minimal feature with no optional arguments.
     steps = [{'service_id': 'get_feature_evt', 'name': 'Get feature'}]
-    result = create_default_feature(
-        'feature.get',
+    result = create_default_feature_data(
         'Get Feature',
         'feature',
         'get',
@@ -194,21 +191,21 @@ def test_create_default_feature_returns_required_fields() -> None:
     )
 
     # Assert required fields are present.
-    assert result['id'] == 'feature.get'
     assert result['name'] == 'Get Feature'
     assert result['group_id'] == 'feature'
     assert result['feature_key'] == 'get'
     assert result['steps'] == steps
 
-    # Assert optional fields are absent when not provided.
+    # Assert id and optional fields are absent.
+    assert 'id' not in result
     assert 'description' not in result
     assert 'params_schema' not in result
 
-# ** test: create_default_feature_includes_optional_fields_when_provided
-def test_create_default_feature_includes_optional_fields_when_provided() -> None:
+# ** test: create_default_feature_data_includes_optional_fields_when_provided
+def test_create_default_feature_data_includes_optional_fields_when_provided() -> None:
     '''
-    Test that create_default_feature includes description and params_schema
-    when they are supplied.
+    Test that create_default_feature_data includes description and
+    params_schema when they are supplied.
 
     :return: None
     :rtype: None
@@ -216,8 +213,7 @@ def test_create_default_feature_includes_optional_fields_when_provided() -> None
 
     # Build with optional arguments.
     schema = {'id': 'str'}
-    result = create_default_feature(
-        'feature.get',
+    result = create_default_feature_data(
         'Get Feature',
         'feature',
         'get',
@@ -230,22 +226,22 @@ def test_create_default_feature_includes_optional_fields_when_provided() -> None
     assert result['description'] == 'Retrieve a feature by ID.'
     assert result['params_schema'] == schema
 
-# ** test: create_default_app_session_returns_required_fields
-def test_create_default_app_session_returns_required_fields() -> None:
+# ** test: create_default_app_session_data_returns_required_fields
+def test_create_default_app_session_data_returns_required_fields() -> None:
     '''
-    Test that create_default_app_session returns a dict with id and name and
-    no description field when omitted.
+    Test that create_default_app_session_data returns a dict with only name
+    (no id) and no description field when omitted.
 
     :return: None
     :rtype: None
     '''
 
     # Build a minimal session with no optional arguments.
-    result = create_default_app_session('admin', 'Admin App')
+    result = create_default_app_session_data('Admin App')
 
-    # Assert required fields are present.
-    assert result['id'] == 'admin'
+    # Assert required fields are present and id is absent.
     assert result['name'] == 'Admin App'
+    assert 'id' not in result
 
     # Assert optional description is absent when not provided.
     assert 'description' not in result
@@ -275,19 +271,18 @@ def test_create_params_schema_returns_expected_dict() -> None:
         'description': {'type': 'str', 'required': False},
     }
 
-# ** test: create_default_app_session_includes_description_when_provided
-def test_create_default_app_session_includes_description_when_provided() -> None:
+# ** test: create_default_app_session_data_includes_description_when_provided
+def test_create_default_app_session_data_includes_description_when_provided() -> None:
     '''
-    Test that create_default_app_session includes the description field when
-    it is supplied.
+    Test that create_default_app_session_data includes the description field
+    when it is supplied.
 
     :return: None
     :rtype: None
     '''
 
     # Build with an optional description.
-    result = create_default_app_session(
-        'admin_cli',
+    result = create_default_app_session_data(
         'Admin CLI',
         description='Built-in CLI for managing Tiferet application configurations',
     )
@@ -505,39 +500,38 @@ def test_create_default_cli_argument_includes_optional_fields_when_provided() ->
     assert result['nargs'] == '?'
     assert result['choices'] == ['DEBUG', 'INFO', 'WARNING']
 
-# ** test: create_default_cli_command_returns_required_fields
-def test_create_default_cli_command_returns_required_fields() -> None:
+# ** test: create_default_cli_command_data_returns_required_fields
+def test_create_default_cli_command_data_returns_required_fields() -> None:
     '''
-    Test that create_default_cli_command returns a dict with the four required
-    fields and no optional fields when they are omitted.
+    Test that create_default_cli_command_data returns a dict with the three
+    base fields (no id) and no optional fields when they are omitted.
 
     :return: None
     :rtype: None
     '''
 
     # Build a minimal command with no optional arguments.
-    result = create_default_cli_command(
-        'feature.list',
+    result = create_default_cli_command_data(
         'list',
         'feature',
         'List Features',
     )
 
     # Assert required fields are present.
-    assert result['id'] == 'feature.list'
     assert result['key'] == 'list'
     assert result['group_key'] == 'feature'
     assert result['name'] == 'List Features'
 
-    # Assert optional fields are absent when not provided.
+    # Assert id and optional fields are absent when not provided.
+    assert 'id' not in result
     assert 'description' not in result
     assert 'arguments' not in result
 
-# ** test: create_default_cli_command_includes_optional_fields_when_provided
-def test_create_default_cli_command_includes_optional_fields_when_provided() -> None:
+# ** test: create_default_cli_command_data_includes_optional_fields_when_provided
+def test_create_default_cli_command_data_includes_optional_fields_when_provided() -> None:
     '''
-    Test that create_default_cli_command includes description and arguments
-    when they are supplied.
+    Test that create_default_cli_command_data includes description and
+    arguments when they are supplied.
 
     :return: None
     :rtype: None
@@ -545,8 +539,7 @@ def test_create_default_cli_command_includes_optional_fields_when_provided() -> 
 
     # Build with optional arguments.
     args = [create_default_cli_argument(['id'], 'The feature identifier.')]
-    result = create_default_cli_command(
-        'feature.get',
+    result = create_default_cli_command_data(
         'get',
         'feature',
         'Get Feature',

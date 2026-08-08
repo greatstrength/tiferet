@@ -560,10 +560,11 @@ def test_app_container_from_dependencies_core_catalog_resolves():
     Test that the full core service catalog resolves through the app container.
     '''
 
-    # Reconstitute the core catalog into app service dependencies and constants.
+    # Reconstitute the core catalog into app service dependencies (re-injecting
+    # service_id from the group-dict key) and constants.
     services = [
-        AppServiceDependency.model_validate(record)
-        for record in a.app.CORE_DEFAULT_SERVICES.values()
+        AppServiceDependency.model_validate({**record, 'service_id': service_id})
+        for service_id, record in a.app.CORE_DEFAULT_SERVICES.items()
     ]
     constants = dict(a.app.CORE_DEFAULT_CONSTANTS)
 

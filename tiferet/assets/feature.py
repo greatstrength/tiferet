@@ -14,7 +14,7 @@ at startup — they are not loaded from the consumer's config file.
 from typing import Any, Dict
 
 # ** app
-from .core import create_default_feature, create_params_schema
+from .core import create_default_feature_data, create_params_schema
 
 # *** constants (ids)
 
@@ -143,9 +143,8 @@ LOGGING_LIST_ID = 'logging.list'
 
 # *** constants (features)
 
-# ** constant: app_add
-APP_ADD = create_default_feature(
-    APP_ADD_ID,
+# ** constant: app_add_data
+APP_ADD_DATA = create_default_feature_data(
     'Add App Session',
     'app',
     'add',
@@ -164,9 +163,8 @@ APP_ADD = create_default_feature(
     ),
 )
 
-# ** constant: app_get
-APP_GET = create_default_feature(
-    APP_GET_ID,
+# ** constant: app_get_data
+APP_GET_DATA = create_default_feature_data(
     'Get App Session',
     'app',
     'get',
@@ -175,9 +173,8 @@ APP_GET = create_default_feature(
     params_schema=create_params_schema(interface_id='str'),
 )
 
-# ** constant: app_list
-APP_LIST = create_default_feature(
-    APP_LIST_ID,
+# ** constant: app_list_data
+APP_LIST_DATA = create_default_feature_data(
     'List App Sessions',
     'app',
     'list',
@@ -185,9 +182,8 @@ APP_LIST = create_default_feature(
     description='List all configured app sessions.',
 )
 
-# ** constant: app_update
-APP_UPDATE = create_default_feature(
-    APP_UPDATE_ID,
+# ** constant: app_update_data
+APP_UPDATE_DATA = create_default_feature_data(
     'Update App Session',
     'app',
     'update',
@@ -196,9 +192,8 @@ APP_UPDATE = create_default_feature(
     params_schema=create_params_schema(id='str', attribute='str'),
 )
 
-# ** constant: app_set_constants
-APP_SET_CONSTANTS = create_default_feature(
-    APP_SET_CONSTANTS_ID,
+# ** constant: app_set_constants_data
+APP_SET_CONSTANTS_DATA = create_default_feature_data(
     'Set App Constants',
     'app',
     'set_constants',
@@ -210,9 +205,8 @@ APP_SET_CONSTANTS = create_default_feature(
     ),
 )
 
-# ** constant: app_set_service
-APP_SET_SERVICE = create_default_feature(
-    APP_SET_SERVICE_ID,
+# ** constant: app_set_service_data
+APP_SET_SERVICE_DATA = create_default_feature_data(
     'Set App Service Dependency',
     'app',
     'set_service',
@@ -227,9 +221,8 @@ APP_SET_SERVICE = create_default_feature(
     ),
 )
 
-# ** constant: app_remove_service
-APP_REMOVE_SERVICE = create_default_feature(
-    APP_REMOVE_SERVICE_ID,
+# ** constant: app_remove_service_data
+APP_REMOVE_SERVICE_DATA = create_default_feature_data(
     'Remove App Service Dependency',
     'app',
     'remove_service',
@@ -238,9 +231,8 @@ APP_REMOVE_SERVICE = create_default_feature(
     params_schema=create_params_schema(id='str', service_id='str'),
 )
 
-# ** constant: app_remove
-APP_REMOVE = create_default_feature(
-    APP_REMOVE_ID,
+# ** constant: app_remove_data
+APP_REMOVE_DATA = create_default_feature_data(
     'Remove App Session',
     'app',
     'remove',
@@ -249,9 +241,8 @@ APP_REMOVE = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: cli_add_command
-CLI_ADD_COMMAND = create_default_feature(
-    CLI_ADD_COMMAND_ID,
+# ** constant: cli_add_command_data
+CLI_ADD_COMMAND_DATA = create_default_feature_data(
     'Add CLI Command',
     'cli',
     'add_command',
@@ -267,9 +258,8 @@ CLI_ADD_COMMAND = create_default_feature(
     ),
 )
 
-# ** constant: cli_list_commands
-CLI_LIST_COMMANDS = create_default_feature(
-    CLI_LIST_COMMANDS_ID,
+# ** constant: cli_list_commands_data
+CLI_LIST_COMMANDS_DATA = create_default_feature_data(
     'List CLI Commands',
     'cli',
     'list_commands',
@@ -277,9 +267,8 @@ CLI_LIST_COMMANDS = create_default_feature(
     description='List all CLI command definitions.',
 )
 
-# ** constant: cli_add_argument
-CLI_ADD_ARGUMENT = create_default_feature(
-    CLI_ADD_ARGUMENT_ID,
+# ** constant: cli_add_argument_data
+CLI_ADD_ARGUMENT_DATA = create_default_feature_data(
     'Add CLI Argument',
     'cli',
     'add_argument',
@@ -291,9 +280,8 @@ CLI_ADD_ARGUMENT = create_default_feature(
     ),
 )
 
-# ** constant: error_add
-ERROR_ADD = create_default_feature(
-    ERROR_ADD_ID,
+# ** constant: error_add_data
+ERROR_ADD_DATA = create_default_feature_data(
     'Add Error',
     'error',
     'add',
@@ -308,9 +296,8 @@ ERROR_ADD = create_default_feature(
     ),
 )
 
-# ** constant: error_get
-ERROR_GET = create_default_feature(
-    ERROR_GET_ID,
+# ** constant: error_get_data
+ERROR_GET_DATA = create_default_feature_data(
     'Get Error',
     'error',
     'get',
@@ -319,9 +306,8 @@ ERROR_GET = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: error_list
-ERROR_LIST = create_default_feature(
-    ERROR_LIST_ID,
+# ** constant: error_list_data
+ERROR_LIST_DATA = create_default_feature_data(
     'List Errors',
     'error',
     'list',
@@ -329,9 +315,8 @@ ERROR_LIST = create_default_feature(
     description='List all error definitions.',
 )
 
-# ** constant: error_rename
-ERROR_RENAME = create_default_feature(
-    ERROR_RENAME_ID,
+# ** constant: error_rename_data
+ERROR_RENAME_DATA = create_default_feature_data(
     'Rename Error',
     'error',
     'rename',
@@ -340,9 +325,8 @@ ERROR_RENAME = create_default_feature(
     params_schema=create_params_schema(id='str', new_name='str'),
 )
 
-# ** constant: error_set_message
-ERROR_SET_MESSAGE = create_default_feature(
-    ERROR_SET_MESSAGE_ID,
+# ** constant: error_set_message_data
+ERROR_SET_MESSAGE_DATA = create_default_feature_data(
     'Set Error Message',
     'error',
     'set_message',
@@ -355,9 +339,8 @@ ERROR_SET_MESSAGE = create_default_feature(
     ),
 )
 
-# ** constant: error_remove_message
-ERROR_REMOVE_MESSAGE = create_default_feature(
-    ERROR_REMOVE_MESSAGE_ID,
+# ** constant: error_remove_message_data
+ERROR_REMOVE_MESSAGE_DATA = create_default_feature_data(
     'Remove Error Message',
     'error',
     'remove_message',
@@ -369,9 +352,8 @@ ERROR_REMOVE_MESSAGE = create_default_feature(
     ),
 )
 
-# ** constant: error_remove
-ERROR_REMOVE = create_default_feature(
-    ERROR_REMOVE_ID,
+# ** constant: error_remove_data
+ERROR_REMOVE_DATA = create_default_feature_data(
     'Remove Error',
     'error',
     'remove',
@@ -380,9 +362,8 @@ ERROR_REMOVE = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: feature_add
-FEATURE_ADD = create_default_feature(
-    FEATURE_ADD_ID,
+# ** constant: feature_add_data
+FEATURE_ADD_DATA = create_default_feature_data(
     'Add Feature',
     'feature',
     'add',
@@ -399,9 +380,8 @@ FEATURE_ADD = create_default_feature(
     ),
 )
 
-# ** constant: feature_get
-FEATURE_GET = create_default_feature(
-    FEATURE_GET_ID,
+# ** constant: feature_get_data
+FEATURE_GET_DATA = create_default_feature_data(
     'Get Feature',
     'feature',
     'get',
@@ -410,9 +390,8 @@ FEATURE_GET = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: feature_list
-FEATURE_LIST = create_default_feature(
-    FEATURE_LIST_ID,
+# ** constant: feature_list_data
+FEATURE_LIST_DATA = create_default_feature_data(
     'List Features',
     'feature',
     'list',
@@ -421,9 +400,8 @@ FEATURE_LIST = create_default_feature(
     params_schema=create_params_schema(group_id={'type': 'str', 'required': False}),
 )
 
-# ** constant: feature_remove
-FEATURE_REMOVE = create_default_feature(
-    FEATURE_REMOVE_ID,
+# ** constant: feature_remove_data
+FEATURE_REMOVE_DATA = create_default_feature_data(
     'Remove Feature',
     'feature',
     'remove',
@@ -432,9 +410,8 @@ FEATURE_REMOVE = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: feature_update
-FEATURE_UPDATE = create_default_feature(
-    FEATURE_UPDATE_ID,
+# ** constant: feature_update_data
+FEATURE_UPDATE_DATA = create_default_feature_data(
     'Update Feature',
     'feature',
     'update',
@@ -443,9 +420,8 @@ FEATURE_UPDATE = create_default_feature(
     params_schema=create_params_schema(id='str', attribute='str'),
 )
 
-# ** constant: feature_add_step
-FEATURE_ADD_STEP = create_default_feature(
-    FEATURE_ADD_STEP_ID,
+# ** constant: feature_add_step_data
+FEATURE_ADD_STEP_DATA = create_default_feature_data(
     'Add Feature Step',
     'feature',
     'add_step',
@@ -462,9 +438,8 @@ FEATURE_ADD_STEP = create_default_feature(
     ),
 )
 
-# ** constant: feature_update_step
-FEATURE_UPDATE_STEP = create_default_feature(
-    FEATURE_UPDATE_STEP_ID,
+# ** constant: feature_update_step_data
+FEATURE_UPDATE_STEP_DATA = create_default_feature_data(
     'Update Feature Step',
     'feature',
     'update_step',
@@ -473,9 +448,8 @@ FEATURE_UPDATE_STEP = create_default_feature(
     params_schema=create_params_schema(id='str', position='int', attribute='str'),
 )
 
-# ** constant: feature_remove_step
-FEATURE_REMOVE_STEP = create_default_feature(
-    FEATURE_REMOVE_STEP_ID,
+# ** constant: feature_remove_step_data
+FEATURE_REMOVE_STEP_DATA = create_default_feature_data(
     'Remove Feature Step',
     'feature',
     'remove_step',
@@ -484,9 +458,8 @@ FEATURE_REMOVE_STEP = create_default_feature(
     params_schema=create_params_schema(id='str', position='int'),
 )
 
-# ** constant: feature_reorder_step
-FEATURE_REORDER_STEP = create_default_feature(
-    FEATURE_REORDER_STEP_ID,
+# ** constant: feature_reorder_step_data
+FEATURE_REORDER_STEP_DATA = create_default_feature_data(
     'Reorder Feature Step',
     'feature',
     'reorder_step',
@@ -495,9 +468,8 @@ FEATURE_REORDER_STEP = create_default_feature(
     params_schema=create_params_schema(id='str', start_position='int', end_position='int'),
 )
 
-# ** constant: service_add
-SERVICE_ADD = create_default_feature(
-    SERVICE_ADD_ID,
+# ** constant: service_add_data
+SERVICE_ADD_DATA = create_default_feature_data(
     'Add Service Configuration',
     'service',
     'add',
@@ -512,9 +484,8 @@ SERVICE_ADD = create_default_feature(
     ),
 )
 
-# ** constant: service_list
-SERVICE_LIST = create_default_feature(
-    SERVICE_LIST_ID,
+# ** constant: service_list_data
+SERVICE_LIST_DATA = create_default_feature_data(
     'List All Settings',
     'service',
     'list',
@@ -522,9 +493,8 @@ SERVICE_LIST = create_default_feature(
     description='List all service configurations and constants.',
 )
 
-# ** constant: service_set_default
-SERVICE_SET_DEFAULT = create_default_feature(
-    SERVICE_SET_DEFAULT_ID,
+# ** constant: service_set_default_data
+SERVICE_SET_DEFAULT_DATA = create_default_feature_data(
     'Set Default Service Configuration',
     'service',
     'set_default',
@@ -538,9 +508,8 @@ SERVICE_SET_DEFAULT = create_default_feature(
     ),
 )
 
-# ** constant: service_set_dependency
-SERVICE_SET_DEPENDENCY = create_default_feature(
-    SERVICE_SET_DEPENDENCY_ID,
+# ** constant: service_set_dependency_data
+SERVICE_SET_DEPENDENCY_DATA = create_default_feature_data(
     'Set Service Dependency',
     'service',
     'set_dependency',
@@ -555,9 +524,8 @@ SERVICE_SET_DEPENDENCY = create_default_feature(
     ),
 )
 
-# ** constant: service_remove_dependency
-SERVICE_REMOVE_DEPENDENCY = create_default_feature(
-    SERVICE_REMOVE_DEPENDENCY_ID,
+# ** constant: service_remove_dependency_data
+SERVICE_REMOVE_DEPENDENCY_DATA = create_default_feature_data(
     'Remove Service Dependency',
     'service',
     'remove_dependency',
@@ -566,9 +534,8 @@ SERVICE_REMOVE_DEPENDENCY = create_default_feature(
     params_schema=create_params_schema(id='str', flag='str'),
 )
 
-# ** constant: service_remove
-SERVICE_REMOVE = create_default_feature(
-    SERVICE_REMOVE_ID,
+# ** constant: service_remove_data
+SERVICE_REMOVE_DATA = create_default_feature_data(
     'Remove Service Configuration',
     'service',
     'remove',
@@ -577,9 +544,8 @@ SERVICE_REMOVE = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: service_set_constants
-SERVICE_SET_CONSTANTS = create_default_feature(
-    SERVICE_SET_CONSTANTS_ID,
+# ** constant: service_set_constants_data
+SERVICE_SET_CONSTANTS_DATA = create_default_feature_data(
     'Set Service Constants',
     'service',
     'set_constants',
@@ -588,9 +554,8 @@ SERVICE_SET_CONSTANTS = create_default_feature(
     params_schema=create_params_schema(constants={'type': 'dict', 'required': False, 'default': {}}),
 )
 
-# ** constant: logging_add_formatter
-LOGGING_ADD_FORMATTER = create_default_feature(
-    LOGGING_ADD_FORMATTER_ID,
+# ** constant: logging_add_formatter_data
+LOGGING_ADD_FORMATTER_DATA = create_default_feature_data(
     'Add Formatter',
     'logging',
     'add_formatter',
@@ -605,9 +570,8 @@ LOGGING_ADD_FORMATTER = create_default_feature(
     ),
 )
 
-# ** constant: logging_remove_formatter
-LOGGING_REMOVE_FORMATTER = create_default_feature(
-    LOGGING_REMOVE_FORMATTER_ID,
+# ** constant: logging_remove_formatter_data
+LOGGING_REMOVE_FORMATTER_DATA = create_default_feature_data(
     'Remove Formatter',
     'logging',
     'remove_formatter',
@@ -616,9 +580,8 @@ LOGGING_REMOVE_FORMATTER = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: logging_add_handler
-LOGGING_ADD_HANDLER = create_default_feature(
-    LOGGING_ADD_HANDLER_ID,
+# ** constant: logging_add_handler_data
+LOGGING_ADD_HANDLER_DATA = create_default_feature_data(
     'Add Handler',
     'logging',
     'add_handler',
@@ -637,9 +600,8 @@ LOGGING_ADD_HANDLER = create_default_feature(
     ),
 )
 
-# ** constant: logging_remove_handler
-LOGGING_REMOVE_HANDLER = create_default_feature(
-    LOGGING_REMOVE_HANDLER_ID,
+# ** constant: logging_remove_handler_data
+LOGGING_REMOVE_HANDLER_DATA = create_default_feature_data(
     'Remove Handler',
     'logging',
     'remove_handler',
@@ -648,9 +610,8 @@ LOGGING_REMOVE_HANDLER = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: logging_add_logger
-LOGGING_ADD_LOGGER = create_default_feature(
-    LOGGING_ADD_LOGGER_ID,
+# ** constant: logging_add_logger_data
+LOGGING_ADD_LOGGER_DATA = create_default_feature_data(
     'Add Logger',
     'logging',
     'add_logger',
@@ -665,9 +626,8 @@ LOGGING_ADD_LOGGER = create_default_feature(
     ),
 )
 
-# ** constant: logging_remove_logger
-LOGGING_REMOVE_LOGGER = create_default_feature(
-    LOGGING_REMOVE_LOGGER_ID,
+# ** constant: logging_remove_logger_data
+LOGGING_REMOVE_LOGGER_DATA = create_default_feature_data(
     'Remove Logger',
     'logging',
     'remove_logger',
@@ -676,9 +636,8 @@ LOGGING_REMOVE_LOGGER = create_default_feature(
     params_schema=create_params_schema(id='str'),
 )
 
-# ** constant: logging_list
-LOGGING_LIST = create_default_feature(
-    LOGGING_LIST_ID,
+# ** constant: logging_list_data
+LOGGING_LIST_DATA = create_default_feature_data(
     'List Logging Configs',
     'logging',
     'list',
@@ -690,47 +649,47 @@ LOGGING_LIST = create_default_feature(
 
 # ** constant: default_tiferet_cli_features
 DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Any] = {
-    APP_ADD_ID: APP_ADD,
-    APP_GET_ID: APP_GET,
-    APP_LIST_ID: APP_LIST,
-    APP_UPDATE_ID: APP_UPDATE,
-    APP_SET_CONSTANTS_ID: APP_SET_CONSTANTS,
-    APP_SET_SERVICE_ID: APP_SET_SERVICE,
-    APP_REMOVE_SERVICE_ID: APP_REMOVE_SERVICE,
-    APP_REMOVE_ID: APP_REMOVE,
-    CLI_ADD_COMMAND_ID: CLI_ADD_COMMAND,
-    CLI_LIST_COMMANDS_ID: CLI_LIST_COMMANDS,
-    CLI_ADD_ARGUMENT_ID: CLI_ADD_ARGUMENT,
-    ERROR_ADD_ID: ERROR_ADD,
-    ERROR_GET_ID: ERROR_GET,
-    ERROR_LIST_ID: ERROR_LIST,
-    ERROR_RENAME_ID: ERROR_RENAME,
-    ERROR_SET_MESSAGE_ID: ERROR_SET_MESSAGE,
-    ERROR_REMOVE_MESSAGE_ID: ERROR_REMOVE_MESSAGE,
-    ERROR_REMOVE_ID: ERROR_REMOVE,
-    FEATURE_ADD_ID: FEATURE_ADD,
-    FEATURE_GET_ID: FEATURE_GET,
-    FEATURE_LIST_ID: FEATURE_LIST,
-    FEATURE_REMOVE_ID: FEATURE_REMOVE,
-    FEATURE_UPDATE_ID: FEATURE_UPDATE,
-    FEATURE_ADD_STEP_ID: FEATURE_ADD_STEP,
-    FEATURE_UPDATE_STEP_ID: FEATURE_UPDATE_STEP,
-    FEATURE_REMOVE_STEP_ID: FEATURE_REMOVE_STEP,
-    FEATURE_REORDER_STEP_ID: FEATURE_REORDER_STEP,
-    SERVICE_ADD_ID: SERVICE_ADD,
-    SERVICE_LIST_ID: SERVICE_LIST,
-    SERVICE_SET_DEFAULT_ID: SERVICE_SET_DEFAULT,
-    SERVICE_SET_DEPENDENCY_ID: SERVICE_SET_DEPENDENCY,
-    SERVICE_REMOVE_DEPENDENCY_ID: SERVICE_REMOVE_DEPENDENCY,
-    SERVICE_REMOVE_ID: SERVICE_REMOVE,
-    SERVICE_SET_CONSTANTS_ID: SERVICE_SET_CONSTANTS,
-    LOGGING_ADD_FORMATTER_ID: LOGGING_ADD_FORMATTER,
-    LOGGING_REMOVE_FORMATTER_ID: LOGGING_REMOVE_FORMATTER,
-    LOGGING_ADD_HANDLER_ID: LOGGING_ADD_HANDLER,
-    LOGGING_REMOVE_HANDLER_ID: LOGGING_REMOVE_HANDLER,
-    LOGGING_ADD_LOGGER_ID: LOGGING_ADD_LOGGER,
-    LOGGING_REMOVE_LOGGER_ID: LOGGING_REMOVE_LOGGER,
-    LOGGING_LIST_ID: LOGGING_LIST,
+    APP_ADD_ID: APP_ADD_DATA,
+    APP_GET_ID: APP_GET_DATA,
+    APP_LIST_ID: APP_LIST_DATA,
+    APP_UPDATE_ID: APP_UPDATE_DATA,
+    APP_SET_CONSTANTS_ID: APP_SET_CONSTANTS_DATA,
+    APP_SET_SERVICE_ID: APP_SET_SERVICE_DATA,
+    APP_REMOVE_SERVICE_ID: APP_REMOVE_SERVICE_DATA,
+    APP_REMOVE_ID: APP_REMOVE_DATA,
+    CLI_ADD_COMMAND_ID: CLI_ADD_COMMAND_DATA,
+    CLI_LIST_COMMANDS_ID: CLI_LIST_COMMANDS_DATA,
+    CLI_ADD_ARGUMENT_ID: CLI_ADD_ARGUMENT_DATA,
+    ERROR_ADD_ID: ERROR_ADD_DATA,
+    ERROR_GET_ID: ERROR_GET_DATA,
+    ERROR_LIST_ID: ERROR_LIST_DATA,
+    ERROR_RENAME_ID: ERROR_RENAME_DATA,
+    ERROR_SET_MESSAGE_ID: ERROR_SET_MESSAGE_DATA,
+    ERROR_REMOVE_MESSAGE_ID: ERROR_REMOVE_MESSAGE_DATA,
+    ERROR_REMOVE_ID: ERROR_REMOVE_DATA,
+    FEATURE_ADD_ID: FEATURE_ADD_DATA,
+    FEATURE_GET_ID: FEATURE_GET_DATA,
+    FEATURE_LIST_ID: FEATURE_LIST_DATA,
+    FEATURE_REMOVE_ID: FEATURE_REMOVE_DATA,
+    FEATURE_UPDATE_ID: FEATURE_UPDATE_DATA,
+    FEATURE_ADD_STEP_ID: FEATURE_ADD_STEP_DATA,
+    FEATURE_UPDATE_STEP_ID: FEATURE_UPDATE_STEP_DATA,
+    FEATURE_REMOVE_STEP_ID: FEATURE_REMOVE_STEP_DATA,
+    FEATURE_REORDER_STEP_ID: FEATURE_REORDER_STEP_DATA,
+    SERVICE_ADD_ID: SERVICE_ADD_DATA,
+    SERVICE_LIST_ID: SERVICE_LIST_DATA,
+    SERVICE_SET_DEFAULT_ID: SERVICE_SET_DEFAULT_DATA,
+    SERVICE_SET_DEPENDENCY_ID: SERVICE_SET_DEPENDENCY_DATA,
+    SERVICE_REMOVE_DEPENDENCY_ID: SERVICE_REMOVE_DEPENDENCY_DATA,
+    SERVICE_REMOVE_ID: SERVICE_REMOVE_DATA,
+    SERVICE_SET_CONSTANTS_ID: SERVICE_SET_CONSTANTS_DATA,
+    LOGGING_ADD_FORMATTER_ID: LOGGING_ADD_FORMATTER_DATA,
+    LOGGING_REMOVE_FORMATTER_ID: LOGGING_REMOVE_FORMATTER_DATA,
+    LOGGING_ADD_HANDLER_ID: LOGGING_ADD_HANDLER_DATA,
+    LOGGING_REMOVE_HANDLER_ID: LOGGING_REMOVE_HANDLER_DATA,
+    LOGGING_ADD_LOGGER_ID: LOGGING_ADD_LOGGER_DATA,
+    LOGGING_REMOVE_LOGGER_ID: LOGGING_REMOVE_LOGGER_DATA,
+    LOGGING_LIST_ID: LOGGING_LIST_DATA,
 }
 
 # ** constant: admin_default_features
