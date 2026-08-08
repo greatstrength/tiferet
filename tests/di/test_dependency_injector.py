@@ -8,7 +8,7 @@ from unittest import mock
 
 # ** app
 from tiferet import assets as a
-from tiferet.assets.exceptions import TiferetError
+from tiferet.assets import TiferetError
 from tiferet.interfaces.core import ServiceError
 from tiferet.domain import (
     ServiceDependency,

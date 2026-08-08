@@ -46,7 +46,7 @@ Both sections may appear in the same module. `# *** functions` must appear first
   3. `build_app_session_context(app_session, cache)` — build the app service container, compose the `ServiceResolver`, import the context class, and construct via `from_domain`
 - `build_cli` is a thin entrypoint: call `core.build_app(...)` then `cli_context.run_cli(argv)`.
 - Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in single-call entry points.
-- Use `RaiseError.execute()` for all error paths.
+- Use `TiferetError.raise_error()` for all error paths.
 - Module-private helpers are underscore-prefixed (`_resolve_bootstrap_session`).
 
 ## Example
@@ -59,7 +59,7 @@ from typing import Any
 
 # ** app
 from .core import build_app as _core_build_app
-from ..events.static import RaiseError
+from ..assets import TiferetError
 from .. import assets as a
 
 # *** functions

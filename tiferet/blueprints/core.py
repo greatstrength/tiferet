@@ -7,7 +7,7 @@ import os
 from typing import Any, Callable, Dict
 
 # ** app
-from ..assets import TiferetError, TiferetAPIError, RaiseError
+from ..assets import TiferetError, TiferetAPIError
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors, ERROR_CACHE_PREFIX, Error
 from ..contexts.feature import (
@@ -455,7 +455,7 @@ def parse_parameter(parameter: str) -> Any:
 
     # Raise a structured error when parsing fails.
     except Exception as e:
-        RaiseError.execute(
+        TiferetError.raise_error(
             a.error.PARAMETER_PARSING_FAILED_ID,
             parameter=parameter,
             exception=str(e),
@@ -679,7 +679,7 @@ def raise_error_handler(
     supplied ``get_error_handler``, formats the response through an
     ``ErrorContext``, and raises ``TiferetAPIError``. Plain exceptions are
     wrapped in a ``TiferetError`` before formatting. The callable always
-    raises — it never returns, echoing the ``RaiseError`` convention.
+    raises — it never returns, echoing the ``TiferetError.raise_error`` convention.
 
     :param get_error_handler: An error-retrieval callable produced by
         :func:`get_error`.
@@ -844,7 +844,7 @@ def build_app(
 
     # Verify that the composed context is a valid app session context.
     if not isinstance(app_session_context, AppSessionContext):
-        RaiseError.execute(
+        TiferetError.raise_error(
             a.error.INVALID_APP_SESSION_TYPE_ID,
             f'App context for session is not valid: {interface_id}.',
             interface_id=interface_id,

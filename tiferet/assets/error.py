@@ -1,8 +1,8 @@
 """Tiferet Assets Error
 
 Provides the default error catalog for the Tiferet framework. Each entry maps
-a framework error-code constant (defined in ``assets/constants.py``) to its
-name and multilingual message templates.
+a framework error-code constant, defined alongside its default definition in
+this module, to its name and multilingual message templates.
 
 The ``ErrorContext`` and the error domain events consume this catalog to
 resolve built-in error definitions when they are not overridden by the

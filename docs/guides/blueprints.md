@@ -49,7 +49,7 @@ def build_app(interface_id, module_path=..., class_name=..., **parameters) -> Ap
     app_session = get_app_session(interface_id, cache, module_path, class_name, **parameters)
     app_session_context = build_app_session_context(app_session, cache)
     if not isinstance(app_session_context, AppSessionContext):
-        RaiseError.execute(a.const.INVALID_APP_SESSION_TYPE_ID, ..., interface_id=interface_id)
+        TiferetError.raise_error(a.const.INVALID_APP_SESSION_TYPE_ID, ..., interface_id=interface_id)
     return app_session_context
 ```
 
@@ -130,7 +130,7 @@ app = App('basic_calc', app_config='config.yml')
 
 ### 2. Consistent Error Handling
 
-Use framework constants and `RaiseError.execute()` for all failure paths.
+Use framework constants and `TiferetError.raise_error()` for all failure paths.
 
 ### 3. Keep Blueprints Thin
 

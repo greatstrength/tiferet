@@ -318,7 +318,7 @@ def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) ->
     error is raised as a ``TiferetAPIError`` — already the formatted,
     consumer-facing representation — so it passes through ``handle_error``
     verbatim. The function always raises; it never returns, echoing the
-    ``RaiseError`` convention.
+    ``TiferetError.raise_error`` convention.
 
     :param handler_name: The name of the handler slot the blueprint failed to supply.
     :type handler_name: str

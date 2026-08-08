@@ -21,7 +21,7 @@ There are no domain objects, aggregates, services, events, or contexts here. Tha
 
 ## The Assets Layer's Role
 
-- **Exceptions** — `TiferetError` and `TiferetAPIError` (`exceptions.py`) are the structured error types raised throughout the framework.
+- **Exceptions** — `TiferetError` and `TiferetAPIError` (`core.py`) are the structured error types raised throughout the framework.
 - **Constants** — error-code identifier constants (`constants.py`), the `DEFAULT_ERRORS` catalog (`error.py`), bootstrap wiring defaults (`blueprints.py`), and default logging configuration (`logging.py`).
 - **Exports** — `__init__.py` re-exports the commonly used symbols and exposes the `constants` and `blueprints` modules under the short aliases `const` and `bps`.
 
@@ -115,7 +115,7 @@ def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) ->
 
 ### Classes (standalone)
 
-Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types like `TiferetError` are ordinary standalone classes under `# *** classes` / `# ** class:`:
+Standalone classes carry no injected dependencies and extend only stdlib or other assets primitives. Exception types like `TiferetError` are ordinary standalone classes under `# *** classes` / `# ** class:`. `TiferetError` carries a `raise_error(cls, error_code, message=None, **kwargs)` classmethod raiser so `raise cls(...)` dispatches to whichever subclass it is called on — `TiferetAPIError.raise_error(...)` raises a `TiferetAPIError` directly, with no override needed:
 
 ```python
 # *** classes
@@ -143,6 +143,16 @@ class TiferetError(Exception):
         super().__init__(
             json.dumps({'error_code': error_code, 'message': message, **kwargs})
         )
+
+    # * method: raise_error (class)
+    @classmethod
+    def raise_error(cls, error_code: str, message: str = None, **kwargs):
+        '''
+        Raise an instance of the class this classmethod is called on.
+        '''
+
+        # Raise an instance of the class this method is called on.
+        raise cls(error_code, message, **kwargs)
 ```
 
 ### Exports
@@ -153,7 +163,7 @@ Only `__init__.py` carries an `# *** exports` section. It re-exports the public 
 # *** exports
 
 # ** app
-from .exceptions import TiferetError, TiferetAPIError
+from .core import TiferetError, TiferetAPIError
 from .constants import ERROR_NOT_FOUND_ID
 from .error import DEFAULT_ERRORS
 from . import constants as const
@@ -180,9 +190,9 @@ from . import blueprints as bps
 ```
 tiferet/assets/
 ├── __init__.py      — Public exports; exposes `const` and `bps` module aliases
+├── core.py          — Shared constants, create_* factories, TiferetError, and TiferetAPIError
 ├── constants.py     — Error-code identifier constants
 ├── error.py         — The DEFAULT_ERRORS catalog (imports ids from constants.py)
-├── exceptions.py    — TiferetError and TiferetAPIError
 ├── blueprints.py    — Bootstrap default constants and service wiring
 └── logging.py       — Default logging formatters, handlers, and loggers
 ```

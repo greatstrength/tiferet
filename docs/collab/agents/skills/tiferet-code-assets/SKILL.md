@@ -79,6 +79,7 @@ The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline gro
 - **Optional parameters in factory calls:** must always be passed as keyword arguments. Required positional parameters may be passed positionally. See `tiferet-code-style` for the general keyword-argument rule and example.
 - **Functions:** Small, stateless, no framework dependencies. Use RST docstrings.
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
+- **`TiferetError.raise_error`:** `TiferetError` (and its subclass `TiferetAPIError`) carries a `raise_error(cls, error_code, message=None, **kwargs)` classmethod raiser — `raise cls(error_code, message, **kwargs)` dispatches to whichever subclass it is called on, so `TiferetAPIError.raise_error(...)` raises a `TiferetAPIError` directly with no override needed. This mirrors the classmethod-raiser shape of `ModelError.raise_error` (`domain/core.py`) and `ServiceError.raise_for` (`interfaces/core.py`) — each of the framework's three error families raises through a classmethod on the exception it owns.
 - **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import constants as const`).
 
 ## Example
@@ -172,6 +173,23 @@ class TiferetError(Exception):
         super().__init__(
             json.dumps({'error_code': error_code, 'message': message, **kwargs})
         )
+
+    # * method: raise_error (class)
+    @classmethod
+    def raise_error(cls, error_code: str, message: str = None, **kwargs):
+        '''
+        Raise an instance of the class this classmethod is called on.
+
+        :param error_code: The structured error code.
+        :type error_code: str
+        :param message: Optional human-readable message.
+        :type message: str
+        :param kwargs: Additional error context.
+        :type kwargs: dict
+        '''
+
+        # Raise an instance of the class this method is called on.
+        raise cls(error_code, message, **kwargs)
 ```
 
 ## Canonical source

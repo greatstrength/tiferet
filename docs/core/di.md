@@ -143,7 +143,7 @@ Key characteristics:
 - Backed by `containers.DynamicContainer`, which supports runtime provider registration via `set_provider()`.
 - Class types are registered as `Factory` providers (a new instance per resolution); non-type values (scalars, callables, etc.) are registered as `Object` providers (pass-through).
 - `get_service()` returns fully resolved instances; callers never interact with the container directly.
-- Event-free and asset-free: a missing or failing provider raises a raw exception for a caller with event access to convert into a structured error (no `RaiseError` inside DI).
+- Event-free and asset-free: a missing or failing provider raises a raw exception for a caller with event access to convert into a structured error (no exception-raising helper inside DI).
 
 ```python
 # tiferet/di/settings.py

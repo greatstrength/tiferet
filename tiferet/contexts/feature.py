@@ -23,10 +23,7 @@ from ..assets.error import (
     PARAMETER_NOT_FOUND_ID,
     REQUEST_VALIDATION_FAILED_ID,
 )
-from ..events import (
-    DomainEvent,
-    RaiseError
-)
+from ..events import DomainEvent
 from ..domain import Feature, EventFeatureStep, unpack_validation_error
 
 # *** constants
@@ -322,7 +319,7 @@ def validate_request(feature: Feature, request: RequestContext) -> None:
     # the flattened violations as error context.
     except ValidationError as error:
         violations = unpack_validation_error(error)
-        RaiseError.execute(
+        TiferetError.raise_error(
             REQUEST_VALIDATION_FAILED_ID,
             f'Request validation failed for feature {feature.id}: {violations}.',
             feature_id=feature.id,
@@ -428,7 +425,7 @@ class FeatureContext(BaseContext):
 
         # If the event is not found, raise a structured error.
         except Exception as e:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 FEATURE_STEP_LOADING_FAILED_ID,
                 f'Failed to load feature step: {service_id}. Ensure the container is configured with the appropriate default settings/flags.',
                 service_id=service_id,
@@ -459,7 +456,7 @@ class FeatureContext(BaseContext):
 
             # If the middleware cannot be loaded, raise an error.
             except Exception as e:
-                RaiseError.execute(
+                TiferetError.raise_error(
                     MIDDLEWARE_LOADING_FAILED_ID,
                     f'Failed to load middleware: {mid_id}. Ensure the container is configured with the appropriate default settings/flags.',
                     service_id=mid_id,
@@ -493,7 +490,7 @@ class FeatureContext(BaseContext):
 
         # Raise an error if the request is not provided for a request-backed parameter.
         if not request:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 REQUEST_NOT_FOUND_ID,
                 'Request data is not available for parameter parsing.',
                 parameter=parameter
@@ -504,7 +501,7 @@ class FeatureContext(BaseContext):
 
         # Raise an error if the parameter key is not found in the request data.
         if result is None:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 PARAMETER_NOT_FOUND_ID,
                 f'Parameter {parameter} not found in request data.',
                 parameter=parameter
