@@ -61,7 +61,7 @@ flowchart TD
 
 **Key notes on position:**
 - `assets` is the **root node** of the Accessor layer — it has no framework imports, but every other layer may import from it.
-- `domain` has **no framework dependencies** — pure Pydantic model definitions plus the self-contained model error protocol (`ModelError`, `unpack_validation_error`, and the three model error constants in `domain/core.py`).
+- `domain` has **no framework dependencies** — pure Pydantic model definitions plus the self-contained model error protocol (`ModelError`, `describe_model`, `unpack_validation_error`, and the model error constants in `domain/core.py`).
 - `mappers` depends on `domain` alone. There is no Infrastructure→Actor edge to `events`: the mutation error vocabulary that once required it now lives in `domain`.
 - `blueprints` accesses domain models via `contexts` and wires DI through blueprint-injected handler functions; it never imports `domain` or `mappers` directly.
 - `contexts` receive DI resolution through blueprint-injected handler callables — they do not import `di` or `mappers` directly.

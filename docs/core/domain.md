@@ -86,6 +86,18 @@ Key characteristics:
 | `INVALID_MODEL_ATTRIBUTE_ID` | `'INVALID_MODEL_ATTRIBUTE'` | No such field on the model. |
 | `INVALID_MODEL_VALUE_ID` | `'INVALID_MODEL_VALUE'` | The field exists but the assigned value failed field validation. |
 | `ATTRIBUTE_NOT_SETTABLE_ID` | `'ATTRIBUTE_NOT_SETTABLE'` | The field exists but is not directly settable; a dedicated mutator owns it. |
+| `MODEL_IDENTITY_FIELDS` | `('id', 'name', 'key')` | The identity fields `describe_model` reports when a model declares them. |
+
+### `describe_model` (`# *** functions`)
+
+A pure helper summarizing the instance a violation originated from, so a model error names *which* model failed and not merely which field:
+
+```python
+descriptor = describe_model(command_aggregate)
+# {'type': 'CliCommandAggregate', 'module': 'tiferet.mappers.cli', 'id': 'calc.add', 'name': 'Add Number Command'}
+```
+
+The descriptor reports the type identity plus whichever of `MODEL_IDENTITY_FIELDS` the model declares, skipping absent fields and any non-primitive value. It deliberately holds **no reference** to the instance and never serializes its whole state, so the descriptor remains JSON-serializable error context.
 
 ### `unpack_validation_error` (`# *** functions`)
 
@@ -102,18 +114,34 @@ It is shared by the mutation path (`Aggregate.set_attribute`) and the request-va
 
 ```python
 class ModelError(Exception):
-    def __init__(self, error_code, message=None, violations=None, **kwargs): ...
+    def __init__(self, error_code, message=None, model=None, violations=None, **kwargs): ...
 
     @classmethod
-    def raise_error(cls, error_code, message=None, **kwargs) -> None: ...
+    def raise_error(cls, error_code, message=None, model=None, **kwargs) -> None: ...
 
     @classmethod
-    def raise_for_validation(cls, error, message=None, **kwargs) -> None: ...
+    def raise_for_validation(cls, error, message=None, model=None, **kwargs) -> None: ...
 ```
 
 `ModelError` is a **standalone `Exception`, deliberately not a `TiferetError`**. A model inconsistency is a consumer defect, not a domain outcome, so it is not catalogued in `assets/error.py`, never resolved through the `Error` catalog, never formatted as a `TiferetAPIError`, and not skippable by a feature step's `pass_on_error`. It carries its own message and leaks to the top as the intended defect signal.
 
 Both raisers follow the classmethod-constructor convention. `raise_for_validation` takes **no** `error_code`: it flattens the violations, then classifies the failure itself — `INVALID_MODEL_ATTRIBUTE_ID` when any violation reports Pydantic's `no_such_attribute` type, otherwise `INVALID_MODEL_VALUE_ID` — and chains the original `ValidationError` as the exception cause. No call site ever chooses between the two codes.
+
+### Naming the offending instance
+
+Because a `ModelError` is read as a **defect report** rather than a response, it also carries the metadata a catalogued `TiferetError` never needs: which instance raised it. Both raisers accept the live model as `model` and store the `describe_model` descriptor on the error's `model` attribute, which is serialized into the exception message alongside the code and violations:
+
+```python
+# tiferet/mappers/core.py — Aggregate.set_attribute
+except ValidationError as error:
+    ModelError.raise_for_validation(
+        error,
+        model=self,
+        attribute=attribute,
+    )
+```
+
+`raise_for_validation` falls back to the type name Pydantic's `ValidationError.title` reports when no instance is supplied, so the descriptor is never empty on the conversion path, and its derived message leads with that type (`'CliCommandAggregate validation failed: [...]'`). The `__init__` parameter takes the **descriptor**; the raisers take the **instance** and describe it — mirroring the split between `violations` and the `ValidationError` they are flattened from.
 
 > **Note on assignment strictness.** `DomainObject` sets `coerce_numbers_to_str=True`, so assignment validation is coercing rather than strict: `setattr(obj, 'name', 123)` succeeds as `'123'`. "Validated on mutation" is therefore weaker than it sounds — the value branch fires only for genuinely non-coercible values.
 

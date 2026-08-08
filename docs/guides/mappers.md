@@ -180,13 +180,14 @@ def set_attribute(self, attribute: str, value: Any) -> None:
         ModelError.raise_error(
             ATTRIBUTE_NOT_SETTABLE_ID,
             message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+            model=self,
             attribute=attribute,
             supported=supported_names,
         )
     setattr(self, attribute, value)
 ```
 
-The gate raises `ATTRIBUTE_NOT_SETTABLE_ID`, not `INVALID_MODEL_ATTRIBUTE_ID`: the field usually **does** exist on the model, so the refusal expresses mutation policy rather than a model inconsistency. The whitelist is deliberately narrower than `model_fields`, which is why Pydantic cannot subsume the check.
+The gate raises `ATTRIBUTE_NOT_SETTABLE_ID`, not `INVALID_MODEL_ATTRIBUTE_ID`: the field usually **does** exist on the model, so the refusal expresses mutation policy rather than a model inconsistency. The whitelist is deliberately narrower than `model_fields`, which is why Pydantic cannot subsume the check. Passing `model=self` describes the refusing aggregate onto the error, so the leaked defect identifies the instance as well as the attribute.
 
 **When to gate:** when the aggregate has fields that should only change through dedicated methods (e.g., `services` via `add_service`/`remove_service`, `constants` via `set_constants`).
 

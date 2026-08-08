@@ -58,10 +58,12 @@ class Aggregate(DomainObject):
             setattr(self, attribute, value)
 
         # An unknown attribute or an invalid value both surface here; the
-        # raiser classifies which of the two occurred.
+        # raiser classifies which of the two occurred and describes this
+        # aggregate as the offending instance.
         except ValidationError as error:
             ModelError.raise_for_validation(
                 error,
+                model=self,
                 attribute=attribute,
             )
 ```
@@ -70,6 +72,7 @@ Key characteristics:
 - Aggregates are instantiated directly via the Pydantic constructor: `ErrorAggregate(id='...', name='...')`.
 - **`set_attribute`** relies on Pydantic rather than a hand-rolled existence check: `extra='forbid'` and `validate_assignment=True` (both inherited from `DomainObject`) reject an unknown field and an invalid value alike, and the resulting `ValidationError` is converted.
 - Invalid attribute mutations raise `ModelError` — **not** a `TiferetError`. `ModelError.raise_for_validation` selects the code itself: `INVALID_MODEL_ATTRIBUTE_ID` when Pydantic reports a `no_such_attribute` violation, otherwise `INVALID_MODEL_VALUE_ID`. The original `ValidationError` is preserved as the exception cause.
+- Passing `model=self` describes the offending aggregate onto the error (`type`, `module`, and any declared `id` / `name` / `key`), so the leaked defect names *which* aggregate refused the mutation and not merely which attribute. The gated `set_attribute` overrides pass the same. See [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) for `describe_model`.
 - The error vocabulary lives in `tiferet/domain/core.py`, so the `mappers` layer imports only `domain` — there is no `mappers` → `events` or `mappers` → `assets` edge.
 
 ### Why `ModelError` and not `TiferetError`

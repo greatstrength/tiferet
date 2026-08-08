@@ -47,7 +47,8 @@ Use `# *** classes` in `core.py` for the `Aggregate` and `TransferObject` base c
 - Instantiate via direct Pydantic constructor: `ErrorAggregate(id='ERR', name='Error')`.
 - Add mutation methods; `validate_assignment=True` (inherited) triggers field validation on every `setattr`.
 - Use `set_attribute(attr, value)` for safe mutations. The base implementation wraps `setattr` and converts the resulting `ValidationError` via `ModelError.raise_for_validation`, which classifies the failure as `INVALID_MODEL_ATTRIBUTE_ID` (unknown field) or `INVALID_MODEL_VALUE_ID` (bad value).
-- Override `set_attribute` with a whitelist guard only when the settable set is **narrower** than `model_fields` — identity fields, or fields owned by a dedicated mutator. Raise `ModelError.raise_error(ATTRIBUTE_NOT_SETTABLE_ID, ...)` with an f-string message; that is a mutation-policy refusal, not a model inconsistency.
+- Always pass `model=self` when raising a `ModelError` from an aggregate, so the error names the offending instance (`type`, `module`, and any declared `id` / `name` / `key`) and not just the attribute.
+- Override `set_attribute` with a whitelist guard only when the settable set is **narrower** than `model_fields` — identity fields, or fields owned by a dedicated mutator. Raise `ModelError.raise_error(ATTRIBUTE_NOT_SETTABLE_ID, ..., model=self)` with an f-string message; that is a mutation-policy refusal, not a model inconsistency.
 - `ModelError` is a standalone `Exception`, not a `TiferetError`: it is not catalogued, not formatted as an API response, and not skippable by a feature step's `pass_on_error`.
 - No `Aggregate.new()` factory — use the constructor directly.
 - `to_dict(role=None, **overrides)` — serialize an aggregate to a dict; mirrors `TransferObject.to_primitive` for consistent serialization without going through a transfer object.
