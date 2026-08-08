@@ -294,7 +294,7 @@ def build_cli_session_context(
     CLI path: uses :class:`CliSessionContext` directly (blueprint-level context
     class selection), resolves the CLI event collaborators to build the
     injected ``_parse_cli_args`` closure, and overrides the
-    ``create_request_handler`` and ``response_handler`` FE4 slots with
+    ``create_request_handler`` and ``response_handler`` slots with
     CLI-specific implementations.
 
     :param app_session: The resolved app session definition.
@@ -312,9 +312,6 @@ def build_cli_session_context(
     # Build the feature-level resolver from the app container.
     resolver = core.build_service_resolver(app_container)
 
-    # Build the logging context once at session startup (parallel to core path).
-    logging_ctx = core.build_logging_context(cache, resolver.get_dependency, app_session.logger_id)
-
     # Resolve the CLI event collaborators from the app container.
     list_commands_evt = app_container.get_dependency('list_commands_evt')
     get_parent_args_evt = app_container.get_dependency('get_parent_args_evt')
@@ -327,13 +324,14 @@ def build_cli_session_context(
     )
 
     # Resolve the context's other collaborators from the app container by id;
-    # the resolver, cache, logging context, handler params, and the CLI
-    # arg-parser are all reserved and supplied explicitly.
+    # the resolver, cache, handler params, and the CLI arg-parser are all
+    # reserved and supplied explicitly.
     collaborators = core.resolve_collaborators(CliSessionContext, app_container)
 
-    # Build the four FE4 handlers, overriding the request and response slots
+    # Build the five handlers, overriding the request and response slots
     # with CLI-specific implementations.
     handlers = dict(
+        build_logger_handler=core.build_logger_handler(cache, resolver.get_dependency),
         execute_feature_handler=core.execute_feature_handler(resolver.get_dependency, cache),
         create_request_handler=create_cli_request_context,
         raise_error_handler=core.raise_error_handler(core.get_error(cache, resolver.get_dependency)),
@@ -345,7 +343,6 @@ def build_cli_session_context(
         app_session,
         get_dependency=resolver.get_dependency,
         cache=cache,
-        logging_context=logging_ctx,
         parse_cli_args=parse_cli_args,
         **handlers,
         **collaborators,

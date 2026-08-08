@@ -18,7 +18,6 @@ from ..domain import (
 )
 from .app import AppSessionContext
 from .cache import CacheContext
-from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
@@ -198,9 +197,9 @@ class CliSessionContext(AppSessionContext):
     # * init
     def __init__(self,
             get_dependency: Callable,
-            logging_context: LoggingContext = None,
             parse_cli_args: Callable = None,
             cache: CacheContext = None,
+            build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
@@ -212,33 +211,34 @@ class CliSessionContext(AppSessionContext):
         :param get_dependency: The injected service-resolution handler used to
             resolve feature step events and middleware.
         :type get_dependency: Callable
-        :param logging_context: The pre-built logging context for this session.
-        :type logging_context: LoggingContext
         :param parse_cli_args: Injected callable that parses ``argv`` and returns
             ``(feature_id, headers, data)``. Built by the CLI blueprint via
             ``parse_cli_args_handler``.
         :type parse_cli_args: Callable
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
+        :param build_logger_handler: The logger-construction callable; one of the
+            five handlers the hub requires.
+        :type build_logger_handler: Callable
         :param execute_feature_handler: The feature-execution callable; one of the
-            four handlers the hub requires.
+            five handlers the hub requires.
         :type execute_feature_handler: Callable
         :param create_request_handler: The request-creation callable; one of the
-            four handlers the hub requires.
+            five handlers the hub requires.
         :type create_request_handler: Callable
-        :param raise_error_handler: The error-raising callable; one of the four
+        :param raise_error_handler: The error-raising callable; one of the five
             handlers the hub requires.
         :type raise_error_handler: Callable
-        :param response_handler: The response-extraction callable; one of the four
+        :param response_handler: The response-extraction callable; one of the five
             handlers the hub requires.
         :type response_handler: Callable
         '''
 
         # Initialize the base application session hub.
         super().__init__(
-            logging_context=logging_context,
             get_dependency=get_dependency,
             cache=cache,
+            build_logger_handler=build_logger_handler,
             execute_feature_handler=execute_feature_handler,
             create_request_handler=create_request_handler,
             raise_error_handler=raise_error_handler,

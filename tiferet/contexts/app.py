@@ -3,6 +3,7 @@
 # *** imports
 
 # ** core
+import logging
 import time
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -18,7 +19,6 @@ from ..events.app import GetAppSession
 from ..interfaces import AppService
 from .core import BaseContext
 from .cache import CacheContext
-from .logging import LoggingContext
 from .request import RequestContext
 
 # *** constants
@@ -354,10 +354,11 @@ def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) ->
 class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object
-    and delegates feature execution, error handling, request construction,
-    and response building to four injected template-method handlers.
+    and delegates logger construction, feature execution, error handling,
+    request construction, and response building to five injected
+    template-method handlers.
 
-    All four handlers are required: an unwired handler is a composition bug,
+    All five handlers are required: an unwired handler is a composition bug,
     so each template method raises ``APP_ERROR`` naming the missing handler
     rather than degrading to a fallback implementation. Because that error is
     already a ``TiferetAPIError``, ``handle_error`` passes it through verbatim.
@@ -372,8 +373,8 @@ class AppSessionContext(BaseContext):
     # * attribute: cache
     cache: CacheContext
 
-    # * attribute: logging (private)
-    _logging: LoggingContext
+    # * attribute: build_logger (private)
+    _build_logger: Callable
 
     # * attribute: execute_feature (private)
     _execute_feature: Callable
@@ -390,8 +391,8 @@ class AppSessionContext(BaseContext):
     # * init
     def __init__(self,
             get_dependency: Callable,
-            logging_context: LoggingContext = None,
             cache: CacheContext = None,
+            build_logger_handler: Callable = None,
             execute_feature_handler: Callable = None,
             create_request_handler: Callable = None,
             raise_error_handler: Callable = None,
@@ -407,10 +408,11 @@ class AppSessionContext(BaseContext):
         :param get_dependency: The injected service-resolution handler used to
             resolve feature step events and middleware.
         :type get_dependency: Callable
-        :param logging_context: The pre-built logging context for this session.
-        :type logging_context: LoggingContext
         :param cache: The shared cache context for all sub-contexts.
         :type cache: CacheContext
+        :param build_logger_handler: The logger-construction callable produced by
+            the ``build_logger_handler`` blueprint.
+        :type build_logger_handler: Callable
         :param execute_feature_handler: The feature-execution callable produced by
             the ``execute_feature_handler`` blueprint.
         :type execute_feature_handler: Callable
@@ -434,10 +436,8 @@ class AppSessionContext(BaseContext):
         # Store the service-resolution handler.
         self.get_dependency = get_dependency
 
-        # Store the pre-built logging context.
-        self._logging = logging_context
-
-        # Store the four injected handler callables.
+        # Store the five injected handler callables.
+        self._build_logger = build_logger_handler
         self._execute_feature = execute_feature_handler
         self._create_request = create_request_handler
         self._raise_error = raise_error_handler
@@ -467,17 +467,37 @@ class AppSessionContext(BaseContext):
             id=interface_id,
         )
 
-    # * method: load_logging_context
-    def load_logging_context(self) -> LoggingContext:
+    # * method: build_logger
+    def build_logger(self) -> logging.Logger:
         '''
-        Return the pre-built logging context.
+        Build the logger for this session run.
 
-        :return: The shared logging context.
-        :rtype: LoggingContext
+        Template method override point. Delegates to the injected
+        ``_build_logger`` callable, which the blueprint layer wires from
+        ``build_logger_handler``. An unwired handler raises ``APP_ERROR``
+        naming the missing slot. A ``TiferetError`` raised by the handler is
+        formatted into its ``TiferetAPIError`` representation via
+        ``handle_error`` rather than left to propagate, so the pre-try region
+        of ``run`` raises only ``TiferetAPIError``.
+
+        :return: The constructed logger for this session.
+        :rtype: logging.Logger
         '''
 
-        # Return the pre-built logging context.
-        return self._logging
+        # Fail loudly when the blueprint-supplied logger factory is absent.
+        if self._build_logger is None:
+            raise_unwired_handler_error(
+                'build_logger_handler',
+                self.domain.id,
+            )
+
+        # Delegate logger construction to the injected handler, formatting a
+        # domain error into its API representation so the pre-try region of
+        # run raises only TiferetAPIError.
+        try:
+            return self._build_logger(self.domain.logger_id)
+        except TiferetError as e:
+            return self.handle_error(e)
 
     # * method: build_request
     def build_request(self, feature_id: str, headers: Dict[str, str] = {}, data: Dict[str, Any] = {}) -> RequestContext:
@@ -641,8 +661,8 @@ class AppSessionContext(BaseContext):
         # Start timing immediately.
         start_time = time.perf_counter()
 
-        # Build the logger for this session run.
-        logger = self.load_logging_context().build_logger()
+        # Build the logger for this session run via the template method.
+        logger = self.build_logger()
 
         # Build request via the template method.
         logger.debug(f'Building request for feature: {feature_id}')
