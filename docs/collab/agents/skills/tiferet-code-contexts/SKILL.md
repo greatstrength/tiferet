@@ -44,7 +44,7 @@ Context-specific labels:
 
 **High-level contexts** (user-facing, e.g. `CliContext`, `FlaskApiContext`):
 - Extend `AppSessionContext` (the minimal hub in `tiferet/contexts/app.py`).
-- `AppSessionContext` receives blueprint-injected handler callables — `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` — plus `get_dependency`, `logging_context`, and `cache`. These are wired by the blueprint during app initialization, not declared as named event collaborators.
+- `AppSessionContext` receives blueprint-injected handler callables — `build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler` — plus `get_dependency` and `cache`. These are wired by the blueprint during app initialization, not declared as named event collaborators.
 - Override only the methods your interface specializes (e.g. `parse_request`, `build_response`).
 
 **Low-level contexts** (supporting any domain concern at the app-operation level):

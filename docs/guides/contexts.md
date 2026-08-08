@@ -167,9 +167,9 @@ Feature-step services are resolved by `ServiceResolver`, whose bound `get_depend
 - `ErrorContext.format_response(error, exception, lang)` formats a localized payload from a pre-loaded `Error` domain object and the raised `TiferetError` (reading its `kwargs` directly). Error retrieval is owned by the hub's `get_error`, which resolves the error from the shared cache (pre-seeded with the framework defaults under `error_`-prefixed keys) or, on a miss, the get-error event — caching the result. `AppInterfaceContext.handle_error` loads the error domain, formats the payload, and wraps it in `TiferetAPIError`.
 - `LoggingContext.build_logger` wraps the configured formatters, handlers, and loggers in a `LoggingSettings` value object (which owns the `dictConfig` assembly) and creates a ready-to-use logger instance.
 
-The error context is built on demand inside `handle_error`; the logging context is lazily cached via `load_logging_context`. Both are typically not subclassed — extend the underlying services instead.
+The error context is built on demand inside `handle_error`; the logger is built via the injected `build_logger_handler` on the hub's `build_logger` template method (cache-first, on the first `run()`). Neither is typically subclassed — extend the underlying services instead.
 
-Error formatting itself is owned by the injected `raise_error_handler`, which the hub's `handle_error` delegates to. A `TiferetAPIError` is re-raised verbatim rather than delegated, since it is already the formatted, consumer-facing representation. All four injected handlers are required — an unwired one raises `APP_ERROR` naming the missing slot rather than falling back to a hub-local implementation.
+Error formatting itself is owned by the injected `raise_error_handler`, which the hub's `handle_error` delegates to. A `TiferetAPIError` is re-raised verbatim rather than delegated, since it is already the formatted, consumer-facing representation. All five injected handlers are required — an unwired one raises `APP_ERROR` naming the missing slot rather than falling back to a hub-local implementation. `build_logger` additionally formats a `TiferetError` raised by its handler into a `TiferetAPIError` via `handle_error`.
 
 ### CacheContext
 
@@ -188,7 +188,7 @@ build_app (blueprint)
               └── LoggingContext   ── (no cache)
 ```
 
-Each `AppInterfaceContext` instance is per-interface. Interface events and repositories are wired by name into a registry; the context graph itself is built declaratively. Tests can inject a `get_dependency` mock and the logging mock via the hub's lazy cache (`_logging`), and provide feature/error contexts by patching `BaseContext.for_domain`.
+Each `AppInterfaceContext` instance is per-interface. Interface events and repositories are wired by name into a registry; the context graph itself is built declaratively. Tests can inject a `get_dependency` mock and a `build_logger_handler` mock at construction time, and provide feature/error contexts by patching `BaseContext.for_domain`.
 
 ## Testing Contexts
 
@@ -209,17 +209,17 @@ Context tests use `pytest` with `unittest.mock`. Focus on behavior, not implemen
 # ** fixture: app_interface_context
 @pytest.fixture
 def app_interface_context(app_interface):
-    # Build the hub declaratively, then inject mock sub-contexts via the caches.
+    # Build the hub declaratively, injecting a mock build_logger_handler
+    # directly; feature/error contexts are built on demand, so patch
+    # BaseContext.for_domain to supply mocks for them.
     context = AppInterfaceContext.from_domain(
         app_interface,
         get_feature_evt=mock.Mock(),
         get_error_evt=mock.Mock(),
         logging_list_all_evt=mock.Mock(),
         get_dependency=mock.Mock(),
+        build_logger_handler=mock.Mock(return_value=mock.Mock()),
     )
-    # Inject the logging mock via its cache; feature/error contexts are built on
-    # demand, so patch BaseContext.for_domain to supply mocks for them.
-    context._logging = mock.Mock(spec=LoggingContext)
     return context
 
 # *** tests
@@ -231,7 +231,7 @@ def test_run_success(app_interface_context):
     '''
 
     # Arrange the logger and response.
-    app_interface_context.load_logging_context().build_logger.return_value = mock.Mock()
+    app_interface_context._build_logger.return_value = mock.Mock()
 
     # Act.
     result = app_interface_context.run('calc.add', data={'a': 1, 'b': 2})
