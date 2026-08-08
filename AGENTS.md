@@ -291,7 +291,7 @@ Only `TiferetError` is catalogued. `pass_on_error` on a feature step passes on *
 
 ### Error Code Hosting
 
-`assets/error.py` holds domain codes only: `CORE_DEFAULT_ERRORS` (15 entries) plus `ADMIN_DEFAULT_ERRORS` (13 of its own), unioned into `DEFAULT_ERRORS`. The acceptance rule is that **every catalogued code has a raiser somewhere in `tiferet/`**; do not pre-create entries for anticipated needs.
+`assets/error.py` holds domain codes only: `CORE_DEFAULT_ERRORS` (15 entries) plus `ADMIN_DEFAULT_ERRORS` (13 of its own). The acceptance rule is that **every catalogued code has a raiser somewhere in `tiferet/`**; do not pre-create entries for anticipated needs.
 
 Infrastructure codes live beside their raise sites:
 

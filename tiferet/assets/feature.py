@@ -316,10 +316,7 @@ ERROR_GET = create_default_feature(
     'get',
     [{'service_id': 'get_error_evt', 'name': 'Get error'}],
     description='Retrieve an error by ID.',
-    params_schema=create_params_schema(
-        id='str',
-        include_defaults={'type': 'bool', 'required': False, 'default': False},
-    ),
+    params_schema=create_params_schema(id='str'),
 )
 
 # ** constant: error_list
@@ -330,9 +327,6 @@ ERROR_LIST = create_default_feature(
     'list',
     [{'service_id': 'list_errors_evt', 'name': 'List errors'}],
     description='List all error definitions.',
-    params_schema=create_params_schema(
-        include_defaults={'type': 'bool', 'required': False, 'default': False},
-    ),
 )
 
 # ** constant: error_rename

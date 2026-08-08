@@ -8,9 +8,9 @@ import pytest
 # ** app
 from tiferet.assets import (
     TiferetError,
-    DEFAULT_ERRORS,
     ERROR_NOT_FOUND_ID,
 )
+from tiferet.assets.error import CORE_DEFAULT_ERRORS
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import (
     ErrorContext,
@@ -33,8 +33,8 @@ def sample_errors() -> dict:
 
     # Return a representative slice of the default error catalog.
     return {
-        k: DEFAULT_ERRORS[k]
-        for k in list(DEFAULT_ERRORS)[:3]
+        k: CORE_DEFAULT_ERRORS[k]
+        for k in list(CORE_DEFAULT_ERRORS)[:3]
     }
 
 
@@ -79,7 +79,7 @@ def error() -> Error:
     '''
 
     # Build and return the ERROR_NOT_FOUND error.
-    return Error(**DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
+    return Error(**CORE_DEFAULT_ERRORS.get(ERROR_NOT_FOUND_ID))
 
 # *** tests
 
