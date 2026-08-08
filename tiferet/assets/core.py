@@ -50,24 +50,30 @@ CORE_DOMAIN_PATH = 'core'
 
 # *** functions
 
-# ** function: create_default_error
-def create_default_error(id: str, name: str, messages: List[Tuple[str, str]]) -> Dict[str, Any]:
+# ** function: create_default_error_data
+def create_default_error_data(
+        name: str,
+        messages: List[Tuple[str, str]],
+    ) -> Dict[str, Any]:
     '''
     Build a default error definition dictionary.
 
-    :param id: The unique identifier of the error.
-    :type id: str
+    The identifier is intentionally not a parameter here: the returned dict is
+    always stored under its owning ``*_ID`` constant as a group-dict key, so
+    embedding the id a second time inside the value would restate it. The
+    consuming ``add_default_errors`` decorator reinjects the id from that key
+    when reconstituting the ``Error`` domain object.
+
     :param name: The human-readable error name.
     :type name: str
     :param messages: Ordered (lang, text) message pairs.
     :type messages: List[Tuple[str, str]]
-    :return: The default error definition.
+    :return: The default error definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble and return the default error definition dictionary.
     return {
-        'id': id,
         'name': name,
         'message': [{'lang': lang, 'text': text} for lang, text in messages],
     }
@@ -117,9 +123,8 @@ def create_service_dependency(
         'parameters': parameters or {},
     }
 
-# ** function: create_app_service_dependency
-def create_app_service_dependency(
-        service_id: str,
+# ** function: create_app_service_dependency_data
+def create_app_service_dependency_data(
         module_path: str,
         class_name: str,
         parameters: Dict[str, Any] = None,
@@ -127,27 +132,28 @@ def create_app_service_dependency(
     '''
     Build a default app service dependency definition dictionary.
 
-    :param service_id: The unique service identifier for the dependency.
-    :type service_id: str
+    The ``service_id`` is intentionally not a parameter here: the returned
+    dict is always stored under its owning ``*_ID`` constant as a group-dict
+    key, so embedding the id a second time inside the value would restate it.
+    The consuming ``add_default_app_services`` / ``add_default_admin_services``
+    decorators reinject ``service_id`` from that key when reconstituting the
+    ``AppServiceDependency`` domain object.
+
     :param module_path: The module path of the service implementation.
     :type module_path: str
     :param class_name: The class name of the service implementation.
     :type class_name: str
     :param parameters: Optional DI parameters for the dependency.
     :type parameters: Dict[str, Any]
-    :return: The default app service dependency definition.
+    :return: The default app service dependency definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble and return the app service dependency definition dictionary.
-    return {
-        'service_id': service_id,
-        **create_service_dependency(module_path, class_name, parameters),
-    }
+    return create_service_dependency(module_path, class_name, parameters)
 
-# ** function: create_service_registration
-def create_service_registration(
-        id: str,
+# ** function: create_service_registration_data
+def create_service_registration_data(
         module_path: str,
         class_name: str,
         parameters: Dict[str, Any] = None,
@@ -155,27 +161,25 @@ def create_service_registration(
     '''
     Build a default service registration definition dictionary.
 
-    :param id: The unique service registration identifier.
-    :type id: str
+    The identifier is intentionally not a parameter here: the returned dict is
+    always stored under its owning ``*_ID`` constant as a group-dict key, so
+    embedding the id a second time inside the value would restate it.
+
     :param module_path: The module path of the service implementation.
     :type module_path: str
     :param class_name: The class name of the service implementation.
     :type class_name: str
     :param parameters: Optional DI parameters for the registration.
     :type parameters: Dict[str, Any]
-    :return: The default service registration definition.
+    :return: The default service registration definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble and return the service registration definition dictionary.
-    return {
-        'id': id,
-        **create_service_dependency(module_path, class_name, parameters),
-    }
+    return create_service_dependency(module_path, class_name, parameters)
 
-# ** function: create_default_feature
-def create_default_feature(
-        id: str,
+# ** function: create_default_feature_data
+def create_default_feature_data(
         name: str,
         group_id: str,
         feature_key: str,
@@ -186,8 +190,12 @@ def create_default_feature(
     '''
     Build a default feature workflow definition dictionary.
 
-    :param id: The unique feature identifier (e.g. ``'feature.add'``).
-    :type id: str
+    The identifier is intentionally not a parameter here: the returned dict is
+    always stored under its owning ``*_ID`` constant as a group-dict key, so
+    embedding the id a second time inside the value would restate it. The
+    consuming ``add_default_features`` decorator reinjects the id from that
+    key when reconstituting the ``Feature`` domain object.
+
     :param name: The human-readable feature name.
     :type name: str
     :param group_id: The group this feature belongs to.
@@ -200,13 +208,12 @@ def create_default_feature(
     :type description: str
     :param params_schema: Optional request parameter schema dict.
     :type params_schema: Dict[str, Any]
-    :return: The default feature workflow definition.
+    :return: The default feature workflow definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble the base feature definition.
     feature = {
-        'id': id,
         'name': name,
         'group_id': group_id,
         'feature_key': feature_key,
@@ -243,28 +250,30 @@ def create_params_schema(**params: Any) -> Dict[str, Any]:
     # Return the assembled parameter schema dict.
     return dict(params)
 
-# ** function: create_default_app_session
-def create_default_app_session(
-        id: str,
+# ** function: create_default_app_session_data
+def create_default_app_session_data(
         name: str,
         description: str = None,
     ) -> Dict[str, Any]:
     '''
     Build a default application session definition dictionary.
 
-    :param id: The unique session identifier.
-    :type id: str
+    The identifier is intentionally not a parameter here: the returned dict is
+    always stored under its owning ``*_ID`` constant as a group-dict key, so
+    embedding the id a second time inside the value would restate it. The
+    consuming ``add_default_app_sessions`` decorator reinjects the id from
+    that key when reconstituting the ``AppSession`` domain object.
+
     :param name: The human-readable session name.
     :type name: str
     :param description: Optional session description.
     :type description: str
-    :return: The default application session definition.
+    :return: The default application session definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble the base session definition.
     session = {
-        'id': id,
         'name': name,
     }
 
@@ -476,9 +485,8 @@ def create_default_cli_argument(
     # Return the assembled argument definition.
     return argument
 
-# ** function: create_default_cli_command
-def create_default_cli_command(
-        id: str,
+# ** function: create_default_cli_command_data
+def create_default_cli_command_data(
         key: str,
         group_key: str,
         name: str,
@@ -488,8 +496,12 @@ def create_default_cli_command(
     '''
     Build a default CLI command definition dictionary.
 
-    :param id: The unique command identifier (e.g. ``'feature.add'``).
-    :type id: str
+    The identifier is intentionally not a parameter here: the returned dict is
+    always stored under its owning ``*_ID`` constant as a group-dict key, so
+    embedding the id a second time inside the value would restate it. The
+    consuming ``add_default_cli_commands`` decorator reinjects the id from
+    that key when reconstituting the ``CliCommand`` domain object.
+
     :param key: The command key used in CLI invocation.
     :type key: str
     :param group_key: The group key for the command.
@@ -500,13 +512,12 @@ def create_default_cli_command(
     :type description: str
     :param arguments: Optional ordered list of argument definition dicts.
     :type arguments: List[Dict[str, Any]]
-    :return: The default CLI command definition.
+    :return: The default CLI command definition, without its id.
     :rtype: Dict[str, Any]
     '''
 
     # Assemble the base command definition.
     command = {
-        'id': id,
         'key': key,
         'group_key': group_key,
         'name': name,

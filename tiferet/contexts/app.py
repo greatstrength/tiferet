@@ -48,10 +48,11 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``services`` is reconstituted into an ``AppServiceDependency``
-    domain object and stored in the cache under the ``APP_SERVICE_CACHE_PREFIX``
-    namespace keyed by service id.
+    domain object (with its ``service_id`` re-injected) and stored in the
+    cache under the ``APP_SERVICE_CACHE_PREFIX`` namespace keyed by service id.
 
-    :param services: A mapping of service ids to raw service dependency dicts.
+    :param services: A mapping of service ids to raw service dependency dicts
+        (each value is the dependency without its ``service_id``).
     :type services: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -67,11 +68,12 @@ def add_default_app_services(services: Dict[str, Any]) -> Callable:
             cache = build_fn(*args, **kwargs)
 
             # Reconstitute each raw service dict into an AppServiceDependency
-            # domain object and cache it under the services namespace.
+            # domain object (re-injecting service_id) and cache it under the
+            # services namespace.
             for service_id, service_data in services.items():
                 cache.set(
                     service_id,
-                    AppServiceDependency.model_validate(service_data),
+                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
                     *APP_SERVICE_CACHE_PREFIX,
                 )
 
@@ -156,7 +158,8 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
     namespace, giving the admin blueprints their own catalog distinct from the
     core app-service catalog.
 
-    :param services: A mapping of service ids to raw service dependency dicts.
+    :param services: A mapping of service ids to raw service dependency dicts
+        (each value is the dependency without its ``service_id``).
     :type services: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -172,11 +175,12 @@ def add_default_admin_services(services: Dict[str, Any]) -> Callable:
             cache = build_fn(*args, **kwargs)
 
             # Reconstitute each raw service dict into an AppServiceDependency
-            # domain object and cache it under the admin services namespace.
+            # domain object (re-injecting service_id) and cache it under the
+            # admin services namespace.
             for service_id, service_data in services.items():
                 cache.set(
                     service_id,
-                    AppServiceDependency.model_validate(service_data),
+                    AppServiceDependency.model_validate({**service_data, 'service_id': service_id}),
                     *ADMIN_SERVICE_CACHE_PREFIX,
                 )
 
@@ -258,10 +262,11 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``sessions`` is reconstituted into an ``AppSession`` domain
-    object and stored in the cache under the ``APP_SESSION_CACHE_PREFIX``
-    namespace keyed by session id.
+    object (with its id re-injected) and stored in the cache under the
+    ``APP_SESSION_CACHE_PREFIX`` namespace keyed by session id.
 
-    :param sessions: A mapping of session ids to raw session definition dicts.
+    :param sessions: A mapping of session ids to raw session definition dicts
+        (each value is the definition without its id).
     :type sessions: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -276,12 +281,13 @@ def add_default_app_sessions(sessions: Dict[str, Any]) -> Callable:
             # Delegate to the wrapped cache-builder.
             cache = build_fn(*args, **kwargs)
 
-            # Reconstitute each raw session dict into an AppSession domain object
-            # and cache it under the sessions namespace keyed by session id.
+            # Reconstitute each raw session dict into an AppSession domain
+            # object (re-injecting the id) and cache it under the sessions
+            # namespace keyed by session id.
             for session_id, session_data in sessions.items():
                 cache.set(
                     session_id,
-                    AppSession.model_validate(session_data),
+                    AppSession.model_validate({**session_data, 'id': session_id}),
                     *APP_SESSION_CACHE_PREFIX,
                 )
 

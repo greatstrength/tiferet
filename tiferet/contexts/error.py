@@ -25,9 +25,11 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
 
     Wraps a cache-builder callable so that, after the cache is constructed,
     each entry in ``errors`` is reconstituted into an ``Error`` domain object
-    and stored in the cache under the ``ERROR_CACHE_PREFIX`` namespace.
+    (with its id re-injected) and stored in the cache under the
+    ``ERROR_CACHE_PREFIX`` namespace.
 
-    :param errors: A mapping of error-code IDs to raw error definition dicts.
+    :param errors: A mapping of error-code IDs to raw error definition dicts
+        (each value is the definition without its id).
     :type errors: Dict[str, Any]
     :return: A decorator that wraps a cache-builder callable.
     :rtype: Callable
@@ -42,10 +44,14 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
             # Delegate to the wrapped cache-builder.
             cache = build_fn(*args, **kwargs)
 
-            # Reconstitute each raw error dict into an Error domain object and
-            # cache it under the error namespace keyed by error id.
+            # Reconstitute each raw error dict into an Error domain object
+            # (re-injecting the id) and cache it under the error namespace.
             for error_id, error_data in errors.items():
-                cache.set(error_id, Error.model_validate(error_data), *ERROR_CACHE_PREFIX)
+                cache.set(
+                    error_id,
+                    Error.model_validate({**error_data, 'id': error_id}),
+                    *ERROR_CACHE_PREFIX,
+                )
 
             # Return the populated cache context.
             return cache
