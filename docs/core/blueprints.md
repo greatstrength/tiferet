@@ -142,7 +142,7 @@ Blueprint tests use `pytest` with `unittest.mock`. Focus on:
 
 - Keep blueprints **thin** — they should orchestrate, not implement domain logic.
 - Always validate the resolved context type (`INVALID_APP_SESSION_TYPE`) in the single-call entry points (`core.build_app`, `build_tiferet_app`, `build_tiferet_cli`).
-- Use `RaiseError.execute()` for all error paths with proper constants.
+- Use `TiferetError.raise_error()` for all error paths with proper constants.
 - Inject the `ServiceResolver`'s `get_dependency` handler into the context so contexts remain decoupled from the DI engine.
 
 ## Conclusion

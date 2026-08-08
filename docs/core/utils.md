@@ -17,7 +17,7 @@ A **Utility** in Tiferet is a concrete class that implements one or more Service
 
 - Implements a Service contract (e.g., `FileLoader` implements `FileService`, `SqliteClient` implements `SqliteService`).
 - Encapsulates infrastructure concerns — both **physical** (file I/O, database connections, network calls) and **computational** (algorithms, heuristics, model inference, data transformation pipelines).
-- Uses `RaiseError.execute()` from `tiferet/events/static.py` for structured error handling with framework-defined error codes.
+- Uses `ServiceError.raise_for()` from `tiferet/interfaces/core.py` for structured infrastructural-failure handling, with error codes hosted beside the raise site.
 - Provides both instance methods (for stateful or lifecycle-managed operations) and static convenience methods (for one-shot operations).
 - Is exported from `tiferet/utils/__init__.py` with both full names and shorthand aliases (e.g., `FileLoader` / `File`, `YamlLoader` / `Yaml`).
 

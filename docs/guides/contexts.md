@@ -259,7 +259,7 @@ When extending `AppInterfaceContext`, override only the steps that differ and ca
 
 Domain events depend on **services**, not contexts. Passing a context into an event couples domain logic to the runtime graph and makes the event harder to test.
 
-### 5. Use `RaiseError.execute()` for Context-Level Errors
+### 5. Use `TiferetError.raise_error()` for Context-Level Errors
 
 Contexts must raise structured `TiferetError` instances with framework error codes — never raw exceptions. `AppInterfaceContext.handle_error` wraps unhandled exceptions, but preferring structured errors at the source yields better diagnostics.
 

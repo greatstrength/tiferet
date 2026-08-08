@@ -30,7 +30,7 @@ app/
 **app/utils/calc.py**
 
 ```python
-from tiferet.events import RaiseError
+from tiferet.assets import TiferetError
 
 class CalcUtil:
     """Reusable calculator utilities – mostly number validation for now."""
@@ -44,7 +44,7 @@ class CalcUtil:
         try:
             num = float(value)
         except (ValueError, TypeError):
-            RaiseError.execute(
+            TiferetError.raise_error(
                 error_code='INVALID_INPUT',
                 value=value,
             )
@@ -52,7 +52,7 @@ class CalcUtil:
 ```
 
 This is a static method so we can call it easily without instantiating anything.  
-It uses Tiferet's built-in `RaiseError` for consistent, structured errors (we'll configure the messages in YAML later).
+It uses Tiferet's `TiferetError.raise_error` classmethod for consistent, structured errors (we'll configure the messages in YAML later).
 
 ### 3.3 Update the events to use the utility
 
@@ -61,7 +61,7 @@ Now let's refine our events to call `CalcUtil.verify_number()` instead of trusti
 **app/events/calc.py** (updated)
 
 ```python
-from tiferet.events import DomainEvent, RaiseError
+from tiferet.events import DomainEvent
 from ..utils.calc import CalcUtil
 
 class AddNumber(DomainEvent):
@@ -94,7 +94,7 @@ class DivideNumber(DomainEvent):
         a_val = CalcUtil.verify_number(a)
         b_val = CalcUtil.verify_number(b)
         if b_val == 0:
-            RaiseError.execute(
+            self.raise_error(
                 error_code='DIVISION_BY_ZERO',
             )
         return a_val / b_val
@@ -113,7 +113,7 @@ class Exponentiate(DomainEvent):
 - Events now safely convert and validate inputs using the shared utility
 - Validation logic lives in one place (`CalcUtil`) — easy to update or extend
 - We added a zero-division check right in `DivideNumber` (a domain rule!)
-- `RaiseError` is imported and used directly for the division-by-zero case
+- `self.raise_error` (the documented `DomainEvent` idiom) is used directly for the division-by-zero case
 - Still pure domain logic — no config or YAML awareness here
 
 This is classic Tiferet separation:  

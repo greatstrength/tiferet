@@ -70,7 +70,7 @@ flowchart TD
 - `repos` and `utils` are resolved through DI at runtime; `contexts` and `blueprints` do not import them directly.
 
 **Each layer owns its own error vocabulary**, and the three families are deliberately unrelated:
-- `TiferetError` (`assets/exceptions.py`) — a **domain outcome**. Catalogued in `assets/error.py`, localized, and formatted into a `TiferetAPIError` by `AppSessionContext.run`.
+- `TiferetError` (`assets/core.py`) — a **domain outcome**. Catalogued in `assets/error.py`, localized, and formatted into a `TiferetAPIError` by `AppSessionContext.run`.
 - `ServiceError` (`interfaces/core.py`) — an **infrastructural failure**. Codes are hosted by the module that raises them; never catalogued or formatted.
 - `ModelError` (`domain/core.py`) — a **model defect**. Also uncatalogued and never formatted.
 

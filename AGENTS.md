@@ -200,10 +200,6 @@ Domain events are the primary operational units. Key patterns:
 - `self.raise_error(error_code, message, **kwargs)` for direct error raising.
 - Return domain models or identifiers.
 
-### Static Events
-
-`ParseParameter`, `ImportDependency`, `RaiseError` in `events/static.py` are utility events called with static `.execute()` methods.
-
 ### Bootstrap Events
 
 `CreateServiceResolver` in `events/blueprint.py` is a bootstrap domain event that composes a fully wired `ServiceResolver` from an `AppSession`: it locates the `di_service` dependency, constructs the DI repository, builds the typed default-config index, and injects `ParseParameter.execute` so the DI layer never imports the parameter parser itself. It is invoked by `load_app_instance` via `DomainEvent.handle`.
@@ -283,7 +279,7 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 
 The framework has **three unrelated error families**, one per concern:
 
-- `TiferetError` (`assets/exceptions.py`): a **domain outcome**. Base exception with `error_code` and `kwargs`. `TiferetAPIError` extends it with `name` and `message` for API responses. Codes are catalogued in `assets/error.py`, localized, and formatted by `AppSessionContext.run`. Access via `from .. import assets as a` then `a.error.ERROR_CODE_ID`.
+- `TiferetError` (`assets/core.py`): a **domain outcome**. Base exception with `error_code` and `kwargs`, plus a `raise_error(cls, error_code, message=None, **kwargs)` classmethod raiser. `TiferetAPIError` extends it with `name` (defaulting to `error_code`) and `message` for API responses; the classmethod raiser dispatches to whichever subclass it is called on. Codes are catalogued in `assets/error.py`, localized, and formatted by `AppSessionContext.run`. Access via `from .. import assets as a` then `a.error.ERROR_CODE_ID`.
 - `ServiceError` (`interfaces/core.py`): an **infrastructural failure** — typically faulty configuration or a lost connection. Deliberately **not** a `TiferetError` subclass, so `run` never catches or formats it. Raised via the `raise_for(service, error_code, message, cause=None, **kwargs)` classmethod, which derives `module_path` / `class_name` / `target_method` from the failing service and the calling frame. Codes are **not** catalogued: each is an `_ID` constant in the module that raises it, with an inline English-only f-string message.
 - `ModelError` (`domain/core.py`): a **model defect**. Also uncatalogued and never formatted. See Key Concepts.
 
@@ -396,13 +392,25 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/contexts/app.py` — `AppSessionContext` (minimal declarative hub bound to the loaded `AppSession`)
 - `tiferet/contexts/cli.py` — `CliContext` (CLI high-level context: argparse parsing helpers + `get_commands`/`parse_cli_request`/`run_cli`)
 - `tiferet/contexts/feature.py` — `FeatureContext` (sync feature execution engine) and `AsyncFeatureContext` (async subclass selected when `Feature.is_async` is set)
-- `tiferet/assets/constants.py` — Error codes plus the `create_default_error` / `create_app_service_dependency` factories
+- `tiferet/assets/core.py` — Shared constants, the `create_default_error` / `create_app_service_dependency` factories, and the `TiferetError` / `TiferetAPIError` exception classes
 - `tiferet/assets/app.py` — Default interface definitions and the `CORE_DEFAULT_SERVICES` / `CORE_DEFAULT_CONSTANTS` bootstrap catalogs
-- `tiferet/assets/exceptions.py` — `TiferetError` and `TiferetAPIError`
 - `tiferet/repos/settings.py` — `ConfigurationRepository` base class (format-agnostic config I/O)
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### Exception Asset Consolidation
+
+This cycle retires the `assets`/`events` layering workaround the exception classes lived behind and gives `TiferetError` the same classmethod-raiser shape as `ModelError` and `ServiceError`:
+
+- **`assets/exceptions.py` is deleted; `TiferetError` and `TiferetAPIError` move into a new `# *** classes` section in `assets/core.py`**, appended after `# *** functions`. `assets/__init__.py` now imports them from `.core`.
+- **`TiferetError` gains a classmethod raiser** — `raise_error(cls, error_code, message=None, **kwargs)` — replacing the standalone `RaiseError` helper class. `raise cls(error_code, message, **kwargs)` dispatches to whichever subclass the method is called on, so `TiferetAPIError.raise_error(...)` raises a `TiferetAPIError` directly.
+- **`TiferetAPIError.__init__` is normalized** to `(error_code, message=None, name=None, **kwargs)`, with `name` defaulting to `error_code`. This makes the signature positionally compatible with `TiferetError.__init__`, so the inherited `raise_error` classmethod needs no override.
+- **`RaiseError` is retired outright** — `tiferet/events/static.py` and `tests/events/test_static.py` are deleted (the module's only remaining content, after HF-23/HF-24, was a `RaiseError` re-export). `events/__init__.py` drops the `RaiseError` export.
+- **`DomainEvent.raise_error`** (`events/core.py`) is reduced to a one-line delegate to `TiferetError.raise_error`, keeping the same signature, `@staticmethod` form, and docstring contract — it remains the documented event-layer idiom (`self.raise_error(...)`).
+- **The ten residual `RaiseError.execute` call sites** — seven in `contexts` (`core.py`, `logging.py` ×2, `feature.py` ×4/5 depending on branch state) and three in `blueprints` (`core.py` ×2, `admin.py` ×1) — convert to `TiferetError.raise_error`. `contexts/core.py` and `contexts/logging.py` replace `from ..events import RaiseError, a` with direct `assets` imports, removing the last `contexts` → `events` passthrough for `a`.
+- **Zero behavior change** — `RaiseError.execute(error_code, message=None, **kwargs)` raised `TiferetError(error_code, message, **kwargs)`; `TiferetError.raise_error` raises `cls(error_code, message, **kwargs)` where `cls` is `TiferetError` at every converted call site (all pass `error_code` positionally), so the conversion is a pure receiver substitution.
+- **Deferred** — `TiferetError.metadata`; the `TiferetError` → `DomainError` rename; an `error_type=` parameter on the raiser (unblocked but not needed, since `TiferetAPIError.raise_error(...)` already expresses it); the mirrored change on `main`.
 
 ### Service Error Protocol
 
