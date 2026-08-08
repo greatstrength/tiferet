@@ -35,7 +35,7 @@ Artifact labels:
 # ** constant: feature_not_found_id
 FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 
-# *** constants (models)            ← assembled default definition constants (core group)
+# *** constants (data)              ← assembled default definition constants (core group)
 # ** constant: feature_not_found_data
 FEATURE_NOT_FOUND_DATA = create_default_error_data(...)  # no id — see below
 
@@ -48,13 +48,13 @@ CORE_DEFAULT_ERRORS = {
 
 The `_DATA` suffix on the leaf constant signals that the id was factored out: the factory (`create_default_error_data` and its siblings) does not take an `id`/`service_id` parameter, since the definition is always stored under its owning `*_ID` constant as the group-dict key above. Embedding the id a second time inside the value would restate it. The consuming `add_default_*` decorator (e.g. `add_default_errors`) reinjects the id from that key when reconstituting the domain object.
 
-**Multi-group catalogs** — when a module defines additional capability groups (e.g., `admin`, `sqlite`, `csv`), each group name is a shared key across all three layers: `(ids_<group>)`, `(models_<group>)`, and a named dict entry in `(groups)`. Adding an entry to a capability group always requires touching all three locations:
+**Multi-group catalogs** — when a module defines additional capability groups (e.g., `admin`, `sqlite`, `csv`), each group name is a shared key across all three layers: `(ids_<group>)`, `(data_<group>)`, and a named dict entry in `(groups)`. Adding an entry to a capability group always requires touching all three locations:
 ```python
 # *** constants (ids_sqlite)
 # ** constant: sqlite_conn_failed_id
 SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
 
-# *** constants (models_sqlite)
+# *** constants (data_sqlite)
 # ** constant: sqlite_conn_failed_data
 SQLITE_CONN_FAILED_DATA = create_default_error_data(
     'SQLite Connection Failed',
@@ -68,7 +68,7 @@ SQLITE_DEFAULT_ERRORS = {
 }
 ```
 
-The plain `(ids)` / `(models)` sub-groups (no suffix) hold the core/baseline group. All additional groups use the `_<group>` suffix consistently.
+The plain `(ids)` / `(data)` sub-groups (no suffix) hold the core/baseline group. All additional groups use the `_<group>` suffix consistently.
 
 ## Key conventions
 
@@ -100,7 +100,7 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 # ** constant: feature_already_exists_id
 FEATURE_ALREADY_EXISTS_ID = 'FEATURE_ALREADY_EXISTS'
 
-# *** constants (models)
+# *** constants (data)
 
 # ** constant: feature_not_found_data
 FEATURE_NOT_FOUND_DATA = create_default_error_data(

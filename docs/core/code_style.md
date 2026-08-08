@@ -91,10 +91,10 @@ The most common use is grouping unit tests by the class or method under test, so
 **Multi-group asset catalogs** — When an `assets/` module defines multiple capability groups (e.g., `admin`, `sqlite`, `csv`), apply a three-layer sub-group structure. Each capability group name is a shared key across all three layers:
 
 1. `# *** constants (ids_<group>)` — raw string ID constants for the group.
-2. `# *** constants (models_<group>)` — assembled model constants (e.g., via `create_default_error`) in the same order as the corresponding `(ids_<group>)` section.
-3. A named dict entry under `# *** constants (groups)` — aggregates the group's models.
+2. `# *** constants (data_<group>)` — assembled data constants (e.g., via `create_default_error_data`) in the same order as the corresponding `(ids_<group>)` section.
+3. A named dict entry under `# *** constants (groups)` — aggregates the group's data.
 
-When adding an entry to a capability group, touch all three locations: `(ids_<group>)`, `(models_<group>)`, and the group dict in `(groups)`. See `tiferet/assets/error.py` for the canonical reference.
+When adding an entry to a capability group, touch all three locations: `(ids_<group>)`, `(data_<group>)`, and the group dict in `(groups)`. See `tiferet/assets/error.py` for the canonical reference.
 
 ```python
 # *** constants (ids_admin)
@@ -102,7 +102,7 @@ When adding an entry to a capability group, touch all three locations: `(ids_<gr
 # ** constant: error_already_exists_id
 ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
 
-# *** constants (models_admin)
+# *** constants (data_admin)
 
 # ** constant: error_already_exists_data
 ERROR_ALREADY_EXISTS_DATA = create_default_error_data(
@@ -121,7 +121,7 @@ ADMIN_DEFAULT_ERRORS = {
 
 The factory omits `id`: the definition is always stored under its owning `*_ID` constant as the group-dict key, so embedding the id a second time inside the value would restate it. The `_DATA` suffix on the leaf constant signals this — it is raw data, not an id-keyed model. The consuming `add_default_*` decorator reinjects the id from the group-dict key when reconstituting the domain object.
 
-The plain `(ids)` and `(models)` sub-groups (no suffix) hold the core/baseline group. All additional capability groups use the `_<group>` suffix consistently.
+The plain `(ids)` and `(data)` sub-groups (no suffix) hold the core/baseline group. All additional capability groups use the `_<group>` suffix consistently.
 
 **A catalogued code must have a raiser.** The error catalog holds **domain** codes only — outcomes a consumer can act on. An infrastructural failure raises a `ServiceError` whose code is a plain `_ID` constant in the module that raises it, and a model defect raises a `ModelError` against the constants in `domain/core.py`; neither is catalogued. Do not pre-create a catalog entry in anticipation of a future raiser: `assets/error.py` previously accumulated 15 codes with no raiser anywhere in the framework, and they were deleted rather than kept.
 
