@@ -110,7 +110,7 @@ SERVICE_REGISTRATION_ALREADY_EXISTS_ID = 'SERVICE_REGISTRATION_ALREADY_EXISTS'
 # ** constant: service_registration_not_found_id
 SERVICE_REGISTRATION_NOT_FOUND_ID = 'SERVICE_REGISTRATION_NOT_FOUND'
 
-# *** constants (models)
+# *** constants (data)
 
 # ** constant: app_error_data
 APP_ERROR_DATA = create_default_error_data(
@@ -202,7 +202,7 @@ REQUEST_VALIDATION_FAILED_DATA = create_default_error_data(
     [(EN_US, 'Request validation failed for feature {feature_id}: {violations}.')],
 )
 
-# *** constants (models_admin)
+# *** constants (data_admin)
 
 # ** constant: cli_command_already_exists_data
 CLI_COMMAND_ALREADY_EXISTS_DATA = create_default_error_data(

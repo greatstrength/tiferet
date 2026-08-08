@@ -4,7 +4,7 @@ Provides the default interface definitions plus the core service-dependency and
 bootstrap-constant catalogs for the built-in Tiferet application.
 
 The service and constant catalogs mirror the default-error catalog in
-``assets/error.py``: id constants, model constants (services built via
+``assets/error.py``: id constants, data constants (services built via
 ``create_app_service_dependency_data``), and group mappings
 (``CORE_DEFAULT_SERVICES`` / ``CORE_DEFAULT_CONSTANTS``) consumed during
 application bootstrapping and cache seeding.
