@@ -44,7 +44,6 @@ from .core import BaseContext
 from .cache import CacheContext
 from .feature import FeatureContext
 from .error import ErrorContext
-from .logging import LoggingContext
 from ..domain import AppSession
 
 # *** contexts
@@ -58,8 +57,8 @@ class AppSessionContext(BaseContext):
     # * init
     def __init__(self,
                  get_dependency,
-                 logging_context=None,
                  cache=None,
+                 build_logger_handler=None,
                  execute_feature_handler=None,
                  create_request_handler=None,
                  raise_error_handler=None,
@@ -71,16 +70,16 @@ class AppSessionContext(BaseContext):
         super().__init__()
         self.cache = cache if cache is not None else CacheContext()
         self.get_dependency = get_dependency
-        # ... store the injected handler callables and logging context;
-        # sub-contexts are built on demand via BaseContext.for_domain ...
+        # ... store the injected handler callables; sub-contexts are built on
+        # demand via BaseContext.for_domain ...
 
     # * method: run
     def run(self, feature_id, headers=None, data=None, **kwargs):
         '''
         Execute a feature and return the response.
         '''
-        # Build the logger from the lazily-created logging context.
-        logger = self.load_logging_context().build_logger()
+        # Build the logger via the injected build_logger_handler.
+        logger = self.build_logger()
 
         # Parse request into a RequestContext (interface id from self.domain.id).
         request = self.parse_request(headers or {}, data or {}, feature_id)
@@ -95,13 +94,13 @@ class AppSessionContext(BaseContext):
         return request.handle_response()
 ```
 
-The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, lazily caches the `LoggingContext` (`load_logging_context`), and loads domain objects via `load_feature_domain` / `get_error`. The hub owns a `CacheContext` — used by `load_feature_domain` and `get_error` (which resolves an error from the cache, pre-seeded with the framework defaults under `error_`-prefixed keys by `build_cache`, before falling back to the get-error event and caching the result) and shared with the `FeatureContext` it builds; the error and logging contexts no longer take a cache. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds.
+The hub builds the `FeatureContext` and `ErrorContext` on demand (via `BaseContext.for_domain`) inside `execute_feature` / `handle_error`, builds a logger via the injected `build_logger_handler` (cache-first, on the first `run()`), and loads domain objects via `load_feature_domain` / `get_error`. The hub owns a `CacheContext` — used by `load_feature_domain` and `get_error` (which resolves an error from the cache, pre-seeded with the framework defaults under `error_`-prefixed keys by `build_cache`, before falling back to the get-error event and caching the result) and shared with the `FeatureContext` it builds; the error and logging contexts no longer take a cache. Feature-step services are resolved through the injected `get_dependency` handler (provided by the `ServiceResolver`), which the hub forwards to each `FeatureContext` it builds.
 
 When a loaded `Feature` has `is_async` set to `True`, `execute_feature` selects the `AsyncFeatureContext` subclass — which extends `FeatureContext` with awaiting (`handle_feature_step_async` / `execute_feature_async`) step execution while inheriting the shared step-resolution, parameter-parsing, condition, and middleware helpers — and drives its `execute_feature_async` coroutine to completion via a `_run_coroutine` helper. The helper uses `asyncio.run` when no event loop is running and falls back to a dedicated worker thread when one is, keeping `run()` synchronous. `AsyncFeatureContext` deliberately does not declare its own `domain_type`, so the `Feature → FeatureContext` registry entry is preserved.
 
 ### Required Handler Wiring
 
-The hub's four template methods — `build_request`, `execute_feature`, `handle_error`, and `build_response` — each delegate to an injected handler callable supplied by the blueprint layer (`create_request_handler`, `execute_feature_handler`, `raise_error_handler`, `response_handler`). None of them has a fallback implementation: an unwired handler raises `APP_ERROR` naming the missing slot via the module-level `raise_unwired_handler_error` helper, since a hub that cannot complete the `run` pipeline is a composition bug rather than a condition to degrade around.
+The hub's five template methods — `build_logger`, `build_request`, `execute_feature`, `handle_error`, and `build_response` — each delegate to an injected handler callable supplied by the blueprint layer (`build_logger_handler`, `create_request_handler`, `execute_feature_handler`, `raise_error_handler`, `response_handler`). None of them has a fallback implementation: an unwired handler raises `APP_ERROR` naming the missing slot via the module-level `raise_unwired_handler_error` helper, since a hub that cannot complete the `run` pipeline is a composition bug rather than a condition to degrade around. `build_logger` additionally formats a `TiferetError` raised by its handler into a `TiferetAPIError` via `handle_error`, so the pre-try region of `run` raises only `TiferetAPIError`.
 
 `handle_error` re-raises a `TiferetAPIError` verbatim before consulting its handler. The API error is already the formatted, consumer-facing representation, so routing it through `raise_error_handler` would re-derive its name and message from the error catalog. This pass-through also runs *before* the unwired-handler check, so an unwired `execute_feature_handler` surfaces as itself rather than being masked by a missing `raise_error_handler`. When the error handler is the missing one, the original error's code and message are carried as `original_error_code` / `original_error_message` kwargs.
 
@@ -164,21 +163,21 @@ Tests use `pytest` with `unittest.mock`, organized under `# *** fixtures` and `#
 
 # ** fixture: app_session_context
 @pytest.fixture
-def app_session_context(app_session, logging_context):
+def app_session_context(app_session, build_logger_handler):
     # Build the hub declaratively from a loaded app session via from_domain.
     context = AppSessionContext.from_domain(
         app_session,
         get_dependency=mock.Mock(),
-        logging_context=logging_context,
+        build_logger_handler=build_logger_handler,
     )
     return context
 
 # *** tests
 
 # ** test: app_session_context_run_success
-def test_app_session_context_run_success(app_session_context, logging_context):
+def test_app_session_context_run_success(app_session_context, build_logger_handler):
     # Arrange the logger.
-    logging_context.build_logger.return_value = mock.Mock()
+    build_logger_handler.return_value = mock.Mock()
 
     # Act.
     result = app_session_context.run('calc.add', data={'a': 1, 'b': 2})

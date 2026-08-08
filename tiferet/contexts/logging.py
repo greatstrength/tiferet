@@ -19,6 +19,9 @@ from ..assets import TiferetError
 # ** constant: logging_cache_prefix
 LOGGING_CACHE_PREFIX: Tuple[str, ...] = ('logging',)
 
+# ** constant: logger_cache_prefix
+LOGGER_CACHE_PREFIX: Tuple[str, ...] = ('logging', 'loggers')
+
 # *** functions
 
 # ** function: add_default_logging_settings

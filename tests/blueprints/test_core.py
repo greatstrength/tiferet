@@ -24,14 +24,21 @@ from tiferet.blueprints.core import (
     execute_feature_handler,
     raise_error_handler,
     response_handler,
-    build_logging_context,
+    merge_logging_settings,
+    create_logging_context,
+    build_logger_handler,
     build_app_session_context,
     build_app,
 )
 from tiferet.contexts.cache import CacheContext
 from tiferet.contexts.error import ERROR_CACHE_PREFIX
 from tiferet.contexts.feature import FEATURE_CACHE_PREFIX, FeatureContext
-from tiferet.contexts.logging import LoggingContext, LoggingSettings, LOGGING_CACHE_PREFIX
+from tiferet.contexts.logging import (
+    LoggingContext,
+    LoggingSettings,
+    LOGGING_CACHE_PREFIX,
+    LOGGER_CACHE_PREFIX,
+)
 from tiferet.contexts.request import RequestContext
 from tiferet.contexts.app import APP_SERVICE_CACHE_PREFIX, APP_CONSTANT_CACHE_PREFIX, AppSessionContext
 from tiferet.domain import Error, Feature, AppSession, AppServiceDependency
@@ -984,83 +991,35 @@ def test_build_app_service_container_wires_load_cache_into_cache_middleware():
     assert middleware.load_cache is loader
 
 
-# ** test: build_logging_context_returns_logging_context
-def test_build_logging_context_returns_logging_context():
+# ** test: merge_logging_settings_uses_defaults_when_sections_empty
+def test_merge_logging_settings_uses_defaults_when_sections_empty():
     '''
-    Test that build_logging_context returns a LoggingContext with the
-    assembled LoggingSettings bound as its domain.
+    Test that merge_logging_settings falls back to cache-seeded defaults when
+    the repository sections are empty.
     '''
 
     # Arrange cache seeded with default logging settings.
     cache = build_cache()
 
-    # Arrange a get_dependency that returns a mock logging_list_all_evt.
-    logging_evt = mock.Mock()
-    logging_evt.execute.return_value = ([], [], [])
-    get_dependency = mock.Mock(return_value=logging_evt)
+    # Merge with all-empty repository sections.
+    result = merge_logging_settings(cache, [], [], [])
 
-    # Build the logging context.
-    result = build_logging_context(cache, get_dependency, logger_id='default')
-
-    # Assert the result is a LoggingContext with a LoggingSettings domain.
-    assert isinstance(result, LoggingContext)
-    assert isinstance(result.domain, LoggingSettings)
-    assert result.logger_id == 'default'
+    # Assert the result uses the cache-seeded defaults (non-empty).
+    assert len(result.formatters) > 0
+    assert len(result.handlers) > 0
+    assert len(result.loggers) > 0
 
 
-# ** test: build_logging_context_calls_evt_once
-def test_build_logging_context_calls_evt_once():
+# ** test: merge_logging_settings_merges_repo_data_over_defaults_by_id
+def test_merge_logging_settings_merges_repo_data_over_defaults_by_id():
     '''
-    Test that build_logging_context resolves logging_list_all_evt from the
-    app-scoped container and calls execute() exactly once.
-    '''
-
-    # Arrange cache and a mock event.
-    cache = build_cache()
-    logging_evt = mock.Mock()
-    logging_evt.execute.return_value = ([], [], [])
-    get_dependency = mock.Mock(return_value=logging_evt)
-
-    # Build the logging context.
-    build_logging_context(cache, get_dependency, logger_id='default')
-
-    # Assert the event was resolved and called once.
-    get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
-    logging_evt.execute.assert_called_once()
-
-
-# ** test: build_logging_context_uses_defaults_when_evt_returns_empty
-def test_build_logging_context_uses_defaults_when_evt_returns_empty():
-    '''
-    Test that build_logging_context falls back to cache-seeded defaults when
-    the event returns empty sections.
-    '''
-
-    # Arrange cache and an event that returns all-empty sections.
-    cache = build_cache()
-    logging_evt = mock.Mock()
-    logging_evt.execute.return_value = ([], [], [])
-    get_dependency = mock.Mock(return_value=logging_evt)
-
-    # Build the logging context.
-    result = build_logging_context(cache, get_dependency, logger_id='default')
-
-    # Assert the domain uses the cache-seeded defaults (non-empty).
-    assert len(result.domain.formatters) > 0
-    assert len(result.domain.handlers) > 0
-    assert len(result.domain.loggers) > 0
-
-
-# ** test: build_logging_context_merges_repo_data_over_defaults_by_id
-def test_build_logging_context_merges_repo_data_over_defaults_by_id():
-    '''
-    Test that build_logging_context merges repo-supplied sections over the
+    Test that merge_logging_settings merges repo-supplied sections over the
     cache-seeded defaults by id: an entry sharing a default's id replaces it,
     while defaults the repo does not redeclare survive.
     '''
     from tiferet.domain.logging import Formatter, Handler, Logger
 
-    # Arrange cache and an event returning one new formatter, one new handler,
+    # Arrange cache and repo sections: one new formatter, one new handler,
     # and a logger whose id collides with the seeded 'root' default.
     cache = build_cache()
     repo_formatter = Formatter(
@@ -1076,28 +1035,27 @@ def test_build_logging_context_merges_repo_data_over_defaults_by_id():
         level='INFO', handlers=['repo_h'],
         is_root=True,
     )
-    logging_evt = mock.Mock()
-    logging_evt.execute.return_value = ([repo_formatter], [repo_handler], [repo_logger])
-    get_dependency = mock.Mock(return_value=logging_evt)
 
-    # Build the logging context.
-    result = build_logging_context(cache, get_dependency, logger_id='default')
+    # Merge the repo sections over the defaults.
+    result = merge_logging_settings(
+        cache, [repo_formatter], [repo_handler], [repo_logger],
+    )
 
     # Assert the repo entries are present alongside the surviving defaults.
-    assert repo_formatter in result.domain.formatters
-    assert repo_handler in result.domain.handlers
-    assert {'default', 'repo'} == {f.id for f in result.domain.formatters}
-    assert {'default_root', 'default', 'debug', 'repo_h'} == {h.id for h in result.domain.handlers}
+    assert repo_formatter in result.formatters
+    assert repo_handler in result.handlers
+    assert {'default', 'repo'} == {f.id for f in result.formatters}
+    assert {'default_root', 'default', 'debug', 'repo_h'} == {h.id for h in result.handlers}
 
     # Assert the id collision replaced only the matching default logger.
-    assert {'root', 'default', 'debug'} == {l.id for l in result.domain.loggers}
-    assert next(l for l in result.domain.loggers if l.id == 'root') is repo_logger
+    assert {'root', 'default', 'debug'} == {l.id for l in result.loggers}
+    assert next(l for l in result.loggers if l.id == 'root') is repo_logger
 
 
-# ** test: build_logging_context_tolerates_unseeded_cache
-def test_build_logging_context_tolerates_unseeded_cache():
+# ** test: merge_logging_settings_tolerates_unseeded_cache
+def test_merge_logging_settings_tolerates_unseeded_cache():
     '''
-    Test that build_logging_context does not fail when the cache carries no
+    Test that merge_logging_settings does not fail when the cache carries no
     seeded logging defaults, using the repo-supplied sections alone.
     '''
     from tiferet.domain.logging import Formatter
@@ -1107,24 +1065,113 @@ def test_build_logging_context_tolerates_unseeded_cache():
     repo_formatter = Formatter(
         id='repo', name='Repo Formatter', format='%(message)s'
     )
-    logging_evt = mock.Mock()
-    logging_evt.execute.return_value = ([repo_formatter], [], [])
-    get_dependency = mock.Mock(return_value=logging_evt)
 
-    # Build the logging context against the unseeded cache.
-    result = build_logging_context(cache, get_dependency, logger_id='default')
+    # Merge against the unseeded cache.
+    result = merge_logging_settings(cache, [repo_formatter], [], [])
 
     # Assert only the repo-supplied formatter is present and no error was raised.
-    assert [f.id for f in result.domain.formatters] == ['repo']
-    assert result.domain.handlers == []
-    assert result.domain.loggers == []
+    assert [f.id for f in result.formatters] == ['repo']
+    assert result.handlers == []
+    assert result.loggers == []
+
+
+# ** test: create_logging_context_returns_logging_context
+def test_create_logging_context_returns_logging_context():
+    '''
+    Test that create_logging_context is a pure factory returning a
+    LoggingContext bound to the given settings and logger id.
+    '''
+
+    # Arrange an assembled LoggingSettings.
+    settings = LoggingSettings(formatters=[], handlers=[], loggers=[])
+
+    # Build the logging context.
+    result = create_logging_context(settings, logger_id='default')
+
+    # Assert the result is a LoggingContext bound to the given settings.
+    assert isinstance(result, LoggingContext)
+    assert result.domain is settings
+    assert result.logger_id == 'default'
+
+
+# ** test: build_logger_handler_returns_callable
+def test_build_logger_handler_returns_callable():
+    '''
+    Test that build_logger_handler returns a callable bound to the cache and
+    resolver.
+    '''
+
+    # Arrange the cache and a mock resolver.
+    cache = build_cache()
+    get_dependency = mock.Mock()
+
+    # Build the handler.
+    handler = build_logger_handler(cache, get_dependency)
+
+    # Assert the result is callable.
+    assert callable(handler)
+
+
+# ** test: build_logger_handler_resolves_evt_and_builds_logger_on_miss
+def test_build_logger_handler_resolves_evt_and_builds_logger_on_miss():
+    '''
+    Test that build_logger_handler resolves logging_list_all_evt from the
+    app-scoped container, merges its sections, and builds a logger on a
+    cache miss.
+    '''
+
+    # Arrange a cache seeded with default logging settings and a mock event.
+    cache = build_cache()
+    logging_evt = mock.Mock()
+    logging_evt.execute.return_value = ([], [], [])
+    get_dependency = mock.Mock(return_value=logging_evt)
+
+    # Build and invoke the handler for a fresh logger id.
+    handler = build_logger_handler(cache, get_dependency)
+    logger = handler('default')
+
+    # Assert the event was resolved and called once, and a logger was returned.
+    get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
+    logging_evt.execute.assert_called_once()
+    import logging as stdlib_logging
+    assert isinstance(logger, stdlib_logging.Logger)
+
+
+# ** test: build_logger_handler_caches_built_logger
+def test_build_logger_handler_caches_built_logger():
+    '''
+    Test that build_logger_handler caches the built logger under
+    LOGGER_CACHE_PREFIX and does not re-resolve logging_list_all_evt on a
+    second call for the same logger id — the regression that closes the
+    dictConfig-per-request defect.
+    '''
+
+    # Arrange a cache and a mock event.
+    cache = build_cache()
+    logging_evt = mock.Mock()
+    logging_evt.execute.return_value = ([], [], [])
+    get_dependency = mock.Mock(return_value=logging_evt)
+
+    # Build the handler and invoke it twice for the same logger id.
+    handler = build_logger_handler(cache, get_dependency)
+    first_logger = handler('default')
+    second_logger = handler('default')
+
+    # Assert the same logger was returned and the event was resolved only once.
+    assert first_logger is second_logger
+    get_dependency.assert_called_once_with('logging_list_all_evt', 'app')
+    logging_evt.execute.assert_called_once()
+
+    # Assert the logger was cached under the logger cache prefix.
+    assert cache.get('default', *LOGGER_CACHE_PREFIX) is first_logger
 
 
 # ** test: build_app_session_context_returns_app_session_context
 def test_build_app_session_context_returns_app_session_context(monkeypatch):
     '''
     Test that build_app_session_context returns a fully wired AppSessionContext
-    with the domain bound, the resolver handler, and a logging context injected.
+    with the domain bound, the resolver handler, and a callable
+    build_logger_handler wired.
 
     :param monkeypatch: The pytest monkeypatch fixture.
     :type monkeypatch: pytest.MonkeyPatch
@@ -1138,10 +1185,7 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
     # Arrange a mock resolver.
     resolver = mock.Mock()
 
-    # Arrange a mock logging context.
-    logging_ctx = mock.Mock(spec=LoggingContext)
-
-    # Patch build_app_service_container, build_service_resolver, and build_logging_context.
+    # Patch build_app_service_container and build_service_resolver.
     monkeypatch.setattr(
         'tiferet.blueprints.core.build_app_service_container',
         lambda *a, **kw: app_container,
@@ -1149,10 +1193,6 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
     monkeypatch.setattr(
         'tiferet.blueprints.core.build_service_resolver',
         lambda *a, **kw: resolver,
-    )
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.build_logging_context',
-        lambda *a, **kw: logging_ctx,
     )
 
     # Build a minimal app session.
@@ -1165,61 +1205,20 @@ def test_build_app_session_context_returns_app_session_context(monkeypatch):
     # Build the session context.
     result = build_app_session_context(app_session, cache)
 
-    # Assert the result is an AppSessionContext with domain, resolver, and logging wired.
+    # Assert the result is an AppSessionContext with domain, resolver, cache,
+    # and a callable build_logger_handler wired — built lazily rather than
+    # eagerly fetching the logging config at compose time.
     assert isinstance(result, AppSessionContext)
     assert result.domain is app_session
     assert result.get_dependency is resolver.get_dependency
     assert result.cache is cache
-    assert result._logging is logging_ctx
+    assert callable(result._build_logger)
 
 
-# ** test: build_app_session_context_injects_logging_context_via_build_logging_context
-def test_build_app_session_context_injects_logging_context_via_build_logging_context(monkeypatch):
+# ** test: build_app_session_context_wires_five_handlers
+def test_build_app_session_context_wires_five_handlers(monkeypatch):
     '''
-    Test that build_app_session_context calls build_logging_context and passes
-    its result as logging_context to the constructed AppSessionContext.
-
-    :param monkeypatch: The pytest monkeypatch fixture.
-    :type monkeypatch: pytest.MonkeyPatch
-    '''
-
-    # Arrange stubs.
-    app_container = mock.Mock()
-    app_container.has_dependency.return_value = False
-    app_container.get_dependency.return_value = mock.Mock()
-
-    logging_ctx = mock.Mock(spec=LoggingContext)
-    build_logging_ctx_mock = mock.Mock(return_value=logging_ctx)
-
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.build_app_service_container',
-        lambda *a, **kw: app_container,
-    )
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.build_service_resolver',
-        lambda *a, **kw: mock.Mock(),
-    )
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.build_logging_context',
-        build_logging_ctx_mock,
-    )
-
-    # Build the context.
-    app_session = AppSession(
-        id='test_app',
-        name='Test App',
-    )
-    result = build_app_session_context(app_session, CacheContext())
-
-    # Assert build_logging_context was called and the result is wired.
-    build_logging_ctx_mock.assert_called_once()
-    assert result._logging is logging_ctx
-
-
-# ** test: build_app_session_context_wires_four_handlers
-def test_build_app_session_context_wires_four_handlers(monkeypatch):
-    '''
-    Test that build_app_session_context wires all four template-method
+    Test that build_app_session_context wires all five template-method
     handler callables onto the resulting hub.
 
     :param monkeypatch: The pytest monkeypatch fixture.
@@ -1231,7 +1230,7 @@ def test_build_app_session_context_wires_four_handlers(monkeypatch):
     app_container.has_dependency.return_value = False
     app_container.get_dependency.return_value = mock.Mock()
 
-    # Patch the three builders.
+    # Patch the two builders.
     monkeypatch.setattr(
         'tiferet.blueprints.core.build_app_service_container',
         lambda *a, **kw: app_container,
@@ -1239,10 +1238,6 @@ def test_build_app_session_context_wires_four_handlers(monkeypatch):
     monkeypatch.setattr(
         'tiferet.blueprints.core.build_service_resolver',
         lambda *a, **kw: mock.Mock(),
-    )
-    monkeypatch.setattr(
-        'tiferet.blueprints.core.build_logging_context',
-        lambda *a, **kw: mock.Mock(spec=LoggingContext),
     )
 
     # Build the context.
@@ -1252,7 +1247,8 @@ def test_build_app_session_context_wires_four_handlers(monkeypatch):
     )
     result = build_app_session_context(app_session, CacheContext())
 
-    # Assert all four handler attributes are callable.
+    # Assert all five handler attributes are callable.
+    assert callable(result._build_logger)
     assert callable(result._execute_feature)
     assert callable(result._create_request)
     assert callable(result._raise_error)

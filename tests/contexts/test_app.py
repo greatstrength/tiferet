@@ -24,7 +24,6 @@ from tiferet.interfaces.core import ServiceError
 from tiferet.mappers import AppSessionAggregate
 from tiferet.contexts.app import (
     BaseContext,
-    LoggingContext,
     RequestContext,
     AppSessionContext,
     add_default_app_services,
@@ -161,34 +160,34 @@ def error_context():
     # Return the mock ErrorContext instance.
     return error_context
 
-# ** fixture: logging_context
+# ** fixture: build_logger_handler
 @pytest.fixture
-def logging_context():
+def build_logger_handler():
     """
-    Fixture to create a mock LoggingContext instance.
+    Fixture to create a mock build_logger_handler callable.
 
-    :return: A mock instance of LoggingContext.
-    :rtype: LoggingContext
+    :return: A mock callable taking logger_id and returning a mock logger.
+    :rtype: mock.Mock
     """
 
-    # Create a mock LoggingContext instance.
-    logging_context = mock.Mock(spec=LoggingContext)
+    # Create a mock callable standing in for the blueprint-built handler.
+    handler = mock.Mock()
 
-    # Mock the build_logger method to return a mock logger.
-    logging_context.build_logger.return_value = mock.Mock(spec=logging.Logger)
+    # Configure the handler to return a mock logger regardless of logger_id.
+    handler.return_value = mock.Mock(spec=logging.Logger)
 
-    # Return the mock LoggingContext instance.
-    return logging_context
+    # Return the mock handler callable.
+    return handler
 
 # ** fixture: app_interface_context
 @pytest.fixture
-def app_interface_context(app_interface, feature_context, error_context, logging_context):
+def app_interface_context(app_interface, feature_context, error_context, build_logger_handler):
     """
     Fixture to create an AppSessionContext hub bound to the test interface,
-    with all four handlers wired — execution and error handling delegate to
-    the mock feature and error contexts, while request construction and response
-    extraction mirror the blueprint handlers. All four are required, so tests
-    that exercise run() need every slot filled.
+    with all five handlers wired — execution and error handling delegate to
+    the mock feature and error contexts, while logger construction, request
+    construction, and response extraction mirror the blueprint handlers. All
+    five are required, so tests that exercise run() need every slot filled.
 
     :return: An AppSessionContext instance.
     :rtype: AppSessionContext
@@ -217,12 +216,12 @@ def app_interface_context(app_interface, feature_context, error_context, logging
     def _response_handler(request):
         return request.handle_response()
 
-    # Construct the hub declaratively from the loaded interface with all four
-    # handlers wired, passing the pre-built mock logging context directly.
+    # Construct the hub declaratively from the loaded interface with all five
+    # handlers wired, passing the mock build_logger_handler callable directly.
     return AppSessionContext.from_domain(
         app_interface,
-        logging_context=logging_context,
         get_dependency=mock.Mock(),
+        build_logger_handler=build_logger_handler,
         execute_feature_handler=_execute_feature_handler,
         create_request_handler=_create_request_handler,
         raise_error_handler=_raise_error_handler,
@@ -727,8 +726,75 @@ def test_app_session_context_execute_feature_unwired_handler_raises(app_interfac
     assert exc_info.value.kwargs.get('feature_id') == 'group.feat'
 
 
+# ** test: app_session_context_build_logger_unwired_handler_raises
+def test_app_session_context_build_logger_unwired_handler_raises(app_interface):
+    """
+    Test that build_logger raises APP_ERROR when no build_logger_handler is
+    wired, rather than reaching past the hub for a concrete LoggingContext.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Construct the hub without a build_logger_handler.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+    )
+
+    # Assert the unwired handler surfaces as a structured API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.build_logger()
+
+    # Assert the generic app error code and a handler-specific message.
+    assert exc_info.value.error_code == APP_ERROR_ID
+    assert 'build_logger_handler' in exc_info.value.message
+
+
+# ** test: app_session_context_build_logger_formats_tiferet_error
+def test_app_session_context_build_logger_formats_tiferet_error(app_interface):
+    """
+    Test that a TiferetError raised by the injected build_logger_handler is
+    formatted into a TiferetAPIError via handle_error, so the pre-try region
+    of run raises only TiferetAPIError.
+
+    :param app_interface: The test AppSessionAggregate.
+    :type app_interface: AppSessionAggregate
+    """
+
+    # Arrange a build_logger_handler that fails with a domain error.
+    domain_error = TiferetError(
+        'LOGGING_CONFIG_FAILED',
+        'Failed to configure logging.',
+    )
+    failing_handler = mock.Mock(side_effect=domain_error)
+
+    # Arrange a raise_error_handler that formats the domain error.
+    raise_mock = mock.Mock(side_effect=TiferetAPIError(
+        error_code='LOGGING_CONFIG_FAILED',
+        name='Logging Config Failed',
+        message='Failed to configure logging.',
+    ))
+
+    # Construct the hub with the failing handler and error handler wired.
+    context = AppSessionContext.from_domain(
+        app_interface,
+        get_dependency=mock.Mock(),
+        build_logger_handler=failing_handler,
+        raise_error_handler=raise_mock,
+    )
+
+    # Invoke build_logger and assert it raises the formatted API error.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        context.build_logger()
+
+    # Assert the raise_error_handler was invoked with the domain error.
+    raise_mock.assert_called_once_with(domain_error)
+    assert exc_info.value.error_code == 'LOGGING_CONFIG_FAILED'
+
+
 # ** test: app_session_context_execute_feature_unwired_handler_passes_through_run
-def test_app_session_context_execute_feature_unwired_handler_passes_through_run(app_interface, logging_context):
+def test_app_session_context_execute_feature_unwired_handler_passes_through_run(app_interface, build_logger_handler):
     """
     Test that the unwired-handler error reaches the caller unmodified when run
     routes it through handle_error with no raise_error_handler wired — the
@@ -737,8 +803,8 @@ def test_app_session_context_execute_feature_unwired_handler_passes_through_run(
 
     :param app_interface: The test AppSessionAggregate.
     :type app_interface: AppSessionAggregate
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Construct the hub with the request and response handlers wired but neither
@@ -746,7 +812,7 @@ def test_app_session_context_execute_feature_unwired_handler_passes_through_run(
     context = AppSessionContext.from_domain(
         app_interface,
         get_dependency=mock.Mock(),
-        logging_context=logging_context,
+        build_logger_handler=build_logger_handler,
         create_request_handler=mock.Mock(return_value=RequestContext(data={})),
         response_handler=mock.Mock(),
     )
@@ -765,7 +831,7 @@ def test_app_session_context_execute_feature_unwired_handler_passes_through_run(
     assert 'An error occurred in the app' not in exc_info.value.message
 
     # Assert the failure was logged as an error rather than passing silently.
-    logging_context.build_logger.return_value.error.assert_called_once()
+    build_logger_handler.return_value.error.assert_called_once()
 
 
 # ** test: app_session_context_handle_error_passes_api_errors_through
@@ -874,14 +940,14 @@ def test_app_interface_context_handle_response(app_interface_context):
     assert response.get('data') == {"key": "value"}
 
 # ** test: app_interface_context_run
-def test_app_interface_context_run(app_interface_context, logging_context: LoggingContext):
+def test_app_interface_context_run(app_interface_context, build_logger_handler):
     """
     Test running the AppSessionContext.
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Run the app interface context.
@@ -898,8 +964,8 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
     )
 
     # Assert that the logger was created and used.
-    logging_context.build_logger()
-    logger = logging_context.build_logger.return_value
+    build_logger_handler.assert_called_once()
+    logger = build_logger_handler.return_value
 
     # Verify that debug calls were made but no pre-execution INFO log exists.
     logger.debug.assert_called()
@@ -912,7 +978,7 @@ def test_app_interface_context_run(app_interface_context, logging_context: Loggi
     assert '(ms)' in final_log or 'ms)' in final_log
 
 # ** test: app_interface_context_run_invalid
-def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, logging_context):
+def test_app_interface_context_run_invalid(app_interface_context, feature_context, error_context, build_logger_handler):
     """
     Test running the AppSessionContext with an invalid feature.
 
@@ -922,8 +988,8 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock the execute_feature method to raise an error for an invalid feature.
@@ -959,20 +1025,20 @@ def test_app_interface_context_run_invalid(app_interface_context, feature_contex
     assert 'Feature not found: invalid_group.invalid_feature.' in exc_info.value.message
 
     # Assert that the logger was created and used for error logging.
-    logging_context.build_logger.assert_called_once()
-    logger = logging_context.build_logger.return_value
+    build_logger_handler.assert_called_once()
+    logger = build_logger_handler.return_value
     logger.error.assert_called_once()
 
 
 # ** test: app_interface_context_run_timing_success
-def test_app_interface_context_run_timing_success(app_interface_context, logging_context):
+def test_app_interface_context_run_timing_success(app_interface_context, build_logger_handler):
     """
     Test that successful execution logs duration in final INFO message.
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Run the app interface context.
@@ -983,7 +1049,7 @@ def test_app_interface_context_run_timing_success(app_interface_context, logging
     )
 
     # Get the logger mock.
-    logger = logging_context.build_logger.return_value
+    logger = build_logger_handler.return_value
 
     # Extract all INFO log calls.
     info_calls = [call[0][0] for call in logger.info.call_args_list]
@@ -1005,14 +1071,14 @@ def test_app_interface_context_run_timing_success(app_interface_context, logging
 
 
 # ** test: app_interface_context_run_timing_no_pre_execution_log
-def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_context, logging_context):
+def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_context, build_logger_handler):
     """
     Test that pre-execution INFO log is removed.
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Run the app interface context.
@@ -1023,7 +1089,7 @@ def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_con
     )
 
     # Get the logger mock.
-    logger = logging_context.build_logger.return_value
+    logger = build_logger_handler.return_value
 
     # Extract all INFO log calls.
     info_calls = [call[0][0] for call in logger.info.call_args_list]
@@ -1034,7 +1100,7 @@ def test_app_interface_context_run_timing_no_pre_execution_log(app_interface_con
 
 
 # ** test: app_interface_context_run_timing_error_path
-def test_app_interface_context_run_timing_error_path(app_interface_context, feature_context, error_context, logging_context):
+def test_app_interface_context_run_timing_error_path(app_interface_context, feature_context, error_context, build_logger_handler):
     """
     Test that no duration is logged on error paths.
 
@@ -1044,8 +1110,8 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock the execute_feature method to raise an error.
@@ -1075,7 +1141,7 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
     assert exc_info.value.message == 'Test error occurred.'
 
     # Get the logger mock.
-    logger = logging_context.build_logger.return_value
+    logger = build_logger_handler.return_value
 
     # Extract all INFO log calls.
     info_calls = [call[0][0] for call in logger.info.call_args_list]
@@ -1089,7 +1155,7 @@ def test_app_interface_context_run_timing_error_path(app_interface_context, feat
 
 
 # ** test: app_interface_context_run_leaks_model_error
-def test_app_interface_context_run_leaks_model_error(app_interface_context, feature_context, error_context, logging_context):
+def test_app_interface_context_run_leaks_model_error(app_interface_context, feature_context, error_context, build_logger_handler):
     """
     Test that a ModelError raised during feature execution leaks out of run
     unformatted. run catches only TiferetError, so a model defect — a consumer
@@ -1102,8 +1168,8 @@ def test_app_interface_context_run_leaks_model_error(app_interface_context, feat
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock feature execution to fail with a model defect.
@@ -1130,7 +1196,7 @@ def test_app_interface_context_run_leaks_model_error(app_interface_context, feat
 
 
 # ** test: app_interface_context_run_leaks_service_error
-def test_app_interface_context_run_leaks_service_error(app_interface_context, feature_context, error_context, logging_context):
+def test_app_interface_context_run_leaks_service_error(app_interface_context, feature_context, error_context, build_logger_handler):
     """
     Test that a ServiceError raised during feature execution leaks out of run
     unformatted. run catches only TiferetError, so an infrastructural failure —
@@ -1144,8 +1210,8 @@ def test_app_interface_context_run_leaks_service_error(app_interface_context, fe
     :type feature_context: FeatureContext
     :param error_context: The mock ErrorContext instance.
     :type error_context: ErrorContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock feature execution to fail with an infrastructural failure.
@@ -1177,14 +1243,14 @@ def test_app_interface_context_run_leaks_service_error(app_interface_context, fe
 
 
 # ** test: app_interface_context_run_timing_zero_duration
-def test_app_interface_context_run_timing_zero_duration(app_interface_context, logging_context):
+def test_app_interface_context_run_timing_zero_duration(app_interface_context, build_logger_handler):
     """
     Test edge case where execution is extremely fast (0ms).
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock time.perf_counter to simulate zero duration.
@@ -1197,7 +1263,7 @@ def test_app_interface_context_run_timing_zero_duration(app_interface_context, l
         )
 
         # Get the logger mock.
-        logger = logging_context.build_logger.return_value
+        logger = build_logger_handler.return_value
 
         # Extract all INFO log calls.
         info_calls = [call[0][0] for call in logger.info.call_args_list]
@@ -1208,14 +1274,14 @@ def test_app_interface_context_run_timing_zero_duration(app_interface_context, l
 
 
 # ** test: app_interface_context_run_timing_long_execution
-def test_app_interface_context_run_timing_long_execution(app_interface_context, logging_context):
+def test_app_interface_context_run_timing_long_execution(app_interface_context, build_logger_handler):
     """
     Test that long execution durations are logged correctly.
 
     :param app_interface_context: The AppSessionContext instance.
     :type app_interface_context: AppSessionContext
-    :param logging_context: The mock LoggingContext instance.
-    :type logging_context: LoggingContext
+    :param build_logger_handler: The mock build_logger_handler callable.
+    :type build_logger_handler: mock.Mock
     """
 
     # Mock time.perf_counter to simulate 1.5 second duration.
@@ -1228,7 +1294,7 @@ def test_app_interface_context_run_timing_long_execution(app_interface_context, 
         )
 
         # Get the logger mock.
-        logger = logging_context.build_logger.return_value
+        logger = build_logger_handler.return_value
 
         # Extract all INFO log calls.
         info_calls = [call[0][0] for call in logger.info.call_args_list]
