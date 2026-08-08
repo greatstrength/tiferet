@@ -9,11 +9,20 @@ import sqlite3
 
 # ** infra
 import pytest
+from unittest import mock
 
 # ** app
-from tiferet.utils.sqlite import SqliteClient
-from tiferet.events import a
-from tiferet.events.core import TiferetError
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.sqlite import (
+    SqliteClient,
+    SQLITE_CONN_ALREADY_OPEN_ID,
+    SQLITE_CONN_FAILED_ID,
+    SQLITE_CONN_NOT_INITIALIZED_ID,
+    SQLITE_INVALID_MODE_ID,
+    SQLITE_QUERY_FAILED_ID,
+    SQLITE_STATEMENT_FAILED_ID,
+    SQLITE_TRANSACTION_FAILED_ID,
+)
 
 # *** fixtures
 
@@ -112,11 +121,11 @@ def test_sqlite_client_invalid_mode():
     client = SqliteClient(path=':memory:', mode='invalid')
 
     # Attempt to open; expect SQLITE_INVALID_MODE error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_INVALID_MODE_ID
+    assert exc_info.value.error_code == SQLITE_INVALID_MODE_ID
 
 # ** test: sqlite_client_already_open
 def test_sqlite_client_already_open(memory_client: SqliteClient):
@@ -133,11 +142,11 @@ def test_sqlite_client_already_open(memory_client: SqliteClient):
     try:
 
         # Attempt to open again; expect SQLITE_CONN_ALREADY_OPEN error.
-        with pytest.raises(TiferetError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             memory_client.open_file()
 
         # Verify the error code.
-        assert exc_info.value.error_code == a.error.SQLITE_CONN_ALREADY_OPEN_ID
+        assert exc_info.value.error_code == SQLITE_CONN_ALREADY_OPEN_ID
 
     finally:
 
@@ -426,11 +435,11 @@ def test_sqlite_client_backup_not_initialized(memory_client: SqliteClient, tmp_p
     backup_path = tmp_path / 'backup_fail.db'
 
     # Attempt backup with source closed; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.backup(str(backup_path))
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_execute_not_initialized
 def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
@@ -442,11 +451,11 @@ def test_sqlite_client_execute_not_initialized(memory_client: SqliteClient):
     '''
 
     # Attempt to execute without opening; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.execute('SELECT 1')
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_commit_not_initialized
 def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
@@ -458,11 +467,11 @@ def test_sqlite_client_commit_not_initialized(memory_client: SqliteClient):
     '''
 
     # Attempt to commit without opening; expect error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         memory_client.commit()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_NOT_INITIALIZED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_NOT_INITIALIZED_ID
 
 # ** test: sqlite_client_conn_failed
 def test_sqlite_client_conn_failed(tmp_path: Path):
@@ -477,11 +486,11 @@ def test_sqlite_client_conn_failed(tmp_path: Path):
     client = SqliteClient(path=tmp_path / 'nonexistent.db', mode='rw')
 
     # Attempt to open; expect SQLITE_CONN_FAILED error.
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         client.open_file()
 
     # Verify the error code.
-    assert exc_info.value.error_code == a.error.SQLITE_CONN_FAILED_ID
+    assert exc_info.value.error_code == SQLITE_CONN_FAILED_ID
 
 # ** test: sqlite_client_isolation_level_propagation
 def test_sqlite_client_isolation_level_propagation():
@@ -496,3 +505,214 @@ def test_sqlite_client_isolation_level_propagation():
 
         # Verify the isolation level was propagated.
         assert db.conn.isolation_level == 'DEFERRED'
+
+# ** test: sqlite_client_execute_wraps_driver_error
+def test_sqlite_client_execute_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that execute wraps a driver failure as a service error preserving the cause.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Query a table that does not exist.
+        with pytest.raises(ServiceError) as exc_info:
+            db.execute('SELECT * FROM does_not_exist')
+
+    # Verify the code, the derived provenance, and the surviving driver cause.
+    assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+    assert exc_info.value.class_name == 'SqliteClient'
+    assert exc_info.value.target_method == 'execute'
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_executemany_wraps_driver_error
+def test_sqlite_client_executemany_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that executemany wraps a driver failure as a service error.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Insert into a table that does not exist.
+        with pytest.raises(ServiceError) as exc_info:
+            db.executemany('INSERT INTO does_not_exist VALUES (?)', [(1,), (2,)])
+
+    # Verify the code and the surviving driver cause.
+    assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_executescript_wraps_driver_error
+def test_sqlite_client_executescript_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that executescript wraps a driver failure as a service error.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Run a syntactically invalid script.
+        with pytest.raises(ServiceError) as exc_info:
+            db.executescript('NOT VALID SQL;')
+
+    # Verify the code and the surviving driver cause.
+    assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_fetch_all_wraps_driver_error
+def test_sqlite_client_fetch_all_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that fetch_all surfaces a service error rather than a driver exception.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Query a table that does not exist.
+        with pytest.raises(ServiceError) as exc_info:
+            db.fetch_all('SELECT * FROM does_not_exist')
+
+    # The failure originates in the wrapped execute call.
+    assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_fetch_one_wraps_driver_error
+def test_sqlite_client_fetch_one_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that fetch_one surfaces a service error rather than a driver exception.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Query a table that does not exist.
+        with pytest.raises(ServiceError) as exc_info:
+            db.fetch_one('SELECT * FROM does_not_exist')
+
+    # The failure originates in the wrapped execute call.
+    assert exc_info.value.error_code == SQLITE_STATEMENT_FAILED_ID
+    assert isinstance(exc_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_fetch_wraps_cursor_failure
+def test_sqlite_client_fetch_wraps_cursor_failure(memory_client: SqliteClient):
+    '''
+    Test that a failure raised while fetching rows becomes a query service error,
+    distinct from a statement failure.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Open the connection directly; the driver's own cursor cannot be patched.
+    memory_client.open_file()
+
+    try:
+
+        # Substitute a cursor whose statement succeeds but whose fetch fails.
+        cursor = mock.Mock()
+        cursor.fetchall.side_effect = sqlite3.OperationalError('cursor lost')
+        cursor.fetchone.side_effect = sqlite3.OperationalError('cursor lost')
+        memory_client.cursor = cursor
+
+        # Fetching many rows should surface a query failure.
+        with pytest.raises(ServiceError) as fetch_all_info:
+            memory_client.fetch_all('SELECT 1')
+
+        # Fetching a single row should surface a query failure too.
+        with pytest.raises(ServiceError) as fetch_one_info:
+            memory_client.fetch_one('SELECT 1')
+
+    finally:
+
+        # Clean up the connection.
+        memory_client.close_file()
+
+    # Verify the query code and the surviving driver cause for both paths.
+    assert fetch_all_info.value.error_code == SQLITE_QUERY_FAILED_ID
+    assert fetch_all_info.value.target_method == 'fetch_all'
+    assert isinstance(fetch_all_info.value.__cause__, sqlite3.Error)
+    assert fetch_one_info.value.error_code == SQLITE_QUERY_FAILED_ID
+    assert fetch_one_info.value.target_method == 'fetch_one'
+    assert isinstance(fetch_one_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_transaction_wraps_driver_error
+def test_sqlite_client_transaction_wraps_driver_error(memory_client: SqliteClient):
+    '''
+    Test that commit and rollback failures become transaction service errors.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    # Open the connection directly so the context manager does not auto-commit.
+    memory_client.open_file()
+
+    try:
+
+        # Substitute a connection whose transaction control fails.
+        conn = mock.Mock()
+        conn.commit.side_effect = sqlite3.OperationalError('commit failed')
+        conn.rollback.side_effect = sqlite3.OperationalError('rollback failed')
+        memory_client.conn = conn
+
+        # Committing should surface a transaction failure.
+        with pytest.raises(ServiceError) as commit_info:
+            memory_client.commit()
+
+        # Rolling back should surface a transaction failure.
+        with pytest.raises(ServiceError) as rollback_info:
+            memory_client.rollback()
+
+    finally:
+
+        # Clean up the connection.
+        memory_client.close_file()
+
+    # Verify both surfaced as transaction failures with the driver cause intact.
+    assert commit_info.value.error_code == SQLITE_TRANSACTION_FAILED_ID
+    assert commit_info.value.target_method == 'commit'
+    assert isinstance(commit_info.value.__cause__, sqlite3.Error)
+    assert rollback_info.value.error_code == SQLITE_TRANSACTION_FAILED_ID
+    assert rollback_info.value.target_method == 'rollback'
+    assert isinstance(rollback_info.value.__cause__, sqlite3.Error)
+
+# ** test: sqlite_client_never_leaks_driver_exceptions
+def test_sqlite_client_never_leaks_driver_exceptions(memory_client: SqliteClient):
+    '''
+    Test that no sqlite3 exception escapes the utility for any driver-facing
+    method, which is the acceptance criterion for the driver wrapping.
+
+    :param memory_client: The in-memory SqliteClient fixture.
+    :type memory_client: SqliteClient
+    '''
+
+    with memory_client as db:
+
+        # Create a table with a uniqueness constraint to provoke an IntegrityError.
+        db.execute('CREATE TABLE unique_items (name TEXT UNIQUE)')
+        db.execute('INSERT INTO unique_items (name) VALUES (?)', ('duplicate',))
+
+        # Each failing invocation must raise a ServiceError, never a sqlite3 error.
+        invocations = [
+            lambda: db.execute('SELECT * FROM does_not_exist'),
+            lambda: db.execute('INSERT INTO unique_items (name) VALUES (?)', ('duplicate',)),
+            lambda: db.executemany('INSERT INTO does_not_exist VALUES (?)', [(1,)]),
+            lambda: db.executescript('NOT VALID SQL;'),
+            lambda: db.fetch_one('SELECT * FROM does_not_exist'),
+            lambda: db.fetch_all('SELECT * FROM does_not_exist'),
+        ]
+
+        # Assert every invocation fails as a service error.
+        for invoke in invocations:
+            with pytest.raises(ServiceError):
+                invoke()

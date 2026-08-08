@@ -63,10 +63,18 @@ flowchart TD
 - `assets` is the **root node** of the Accessor layer — it has no framework imports, but every other layer may import from it.
 - `domain` has **no framework dependencies** — pure Pydantic model definitions plus the self-contained model error protocol (`ModelError`, `describe_model`, `unpack_validation_error`, and the model error constants in `domain/core.py`).
 - `mappers` depends on `domain` alone. There is no Infrastructure→Actor edge to `events`: the mutation error vocabulary that once required it now lives in `domain`.
+- `utils` and `repos` depend on `interfaces` alone for their error vocabulary. Neither imports `events`: the infrastructure error vocabulary that once required it now lives in `interfaces` as `ServiceError`.
 - `blueprints` accesses domain models via `contexts` and wires DI through blueprint-injected handler functions; it never imports `domain` or `mappers` directly.
 - `contexts` receive DI resolution through blueprint-injected handler callables — they do not import `di` or `mappers` directly.
-- `di` is **event-free and asset-free** — it imports only from `domain` and `interfaces`.
+- `di` is **event-free and asset-free** — it imports only from `domain` and `interfaces`. The allowance covers `interfaces` generally, not just `interfaces.di`, because `ServiceError` lives in `interfaces.core`; neither is an event or an asset, so the constraint holds.
 - `repos` and `utils` are resolved through DI at runtime; `contexts` and `blueprints` do not import them directly.
+
+**Each layer owns its own error vocabulary**, and the three families are deliberately unrelated:
+- `TiferetError` (`assets/exceptions.py`) — a **domain outcome**. Catalogued in `assets/error.py`, localized, and formatted into a `TiferetAPIError` by `AppSessionContext.run`.
+- `ServiceError` (`interfaces/core.py`) — an **infrastructural failure**. Codes are hosted by the module that raises them; never catalogued or formatted.
+- `ModelError` (`domain/core.py`) — a **model defect**. Also uncatalogued and never formatted.
+
+Only `TiferetError` is caught by `run`, so the other two surface as unhandled exceptions by design. Because `pass_on_error` on a feature step catches `TiferetError`, it passes on domain errors only.
 
 ## Per-layer import rules
 
@@ -82,6 +90,7 @@ These rules govern what is valid in the `# ** app` import group of each package.
 
 **`interfaces`** — abstract service contracts
 - `# ** app`: `domain` (for type hints in abstract method signatures); sibling `interfaces` modules.
+- Owns `ServiceError` (`interfaces/core.py`), the error vocabulary every service layer above it raises.
 - ✗ Never: `events`, `mappers`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`events`** — central actor; the hub of the Actor layer
@@ -93,15 +102,15 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - ✗ Never: `events`, `assets`, `interfaces`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`di`** — dependency injection (event-free, asset-free)
-- `# ** app`: `domain` (`ServiceDependency`), `interfaces.di` (`DIService`).
+- `# ** app`: `domain` (`ServiceDependency`), `interfaces` (`interfaces.di` for `DIService`, `interfaces.core` for `ServiceError`).
 - ✗ Never: `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, `blueprints`.
 
 **`utils`** — infrastructure implementations
-- `# ** app`: `interfaces` (to implement a Service contract), `mappers` (for aggregate and transfer types).
+- `# ** app`: `interfaces` (the Service contract to implement, plus `interfaces.core` for `ServiceError`), `mappers` (for aggregate and transfer types).
 - ✗ Never: `events`, `domain`, `repos`, `di`, `contexts`, `blueprints`.
 
 **`repos`** — configuration and database persistence
-- `# ** app`: `interfaces` (the Service to implement), `mappers` (transfer objects and aggregates), `utils` (loader utilities).
+- `# ** app`: `interfaces` (the Service to implement, plus `interfaces.core` for `ServiceError`), `mappers` (transfer objects and aggregates), `utils` (loader utilities).
 - ✗ Never: `events`, `domain` directly (use `mappers` instead), `di`, `contexts`, `blueprints`.
 
 **`contexts`** — runtime orchestration
@@ -112,6 +121,25 @@ These rules govern what is valid in the `# ** app` import group of each package.
 - `# ** app`: `assets`, `contexts` (to build and wire AppSessionContext), `di` (container and resolver classes), `events` (for bootstrap events via `DomainEvent.handle`).
 - Domain models are accessed **via `contexts` or `di`**, not by importing directly from `domain`.
 - ✗ Never: `domain` directly, `interfaces`, `mappers`, `utils`, `repos`.
+
+## What `core.py` holds, per layer
+
+Most layers have a `core.py`, but it carries two different kinds of thing depending on the layer. The distinguishing axis is **concreteness, not whether the class is extended.**
+
+**Abstract core** — the layer's foundational base type or contract:
+- `domain/core.py` — `DomainObject`, plus the model error protocol
+- `mappers/core.py` — `Aggregate`, `TransferObject`
+- `interfaces/core.py` — `Service`, plus `ServiceError`
+- `contexts/core.py` — `ContextMeta`, `BaseContext`
+- `events/core.py` — `DomainEvent`, `AsyncDomainEvent`
+- `di/core.py` — the `ServiceContainer` / `ServiceResolver` ABCs
+- `assets/core.py` — shared constants and the `create_*` factories
+
+**Concrete core services** — working infrastructure the layers above require:
+- `utils/core.py` — the three `MiddlewareService` implementations
+- `repos/core.py` — `ConfigurationRepository`
+
+Stating the axis explicitly matters because the intuitive reading — "a base class others extend belongs with the abstract cores" — misclassifies `repos/core.py`. `ConfigurationRepository` is extended by all six concrete repositories, but it declares no abstract methods and no ABC base: `_get_loader`, `_load`, and `_save` are real implementations. It is machinery the repos *use* via mixin composition, where `Aggregate` is a type domain objects *become*. `utils/core.py` and `repos/core.py` differ only in composition mechanism — DI registration versus mixin inheritance.
 
 ## Runtime flow
 

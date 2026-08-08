@@ -14,14 +14,13 @@ Use `TomlLoader` (or its alias `Toml`) directly when you need to read TOML files
 
 **TOML is read-only in this utility** — the `tomllib` / `tomli` library only provides parsing, so there is no `save()` method. Use a third-party library (e.g., `tomlkit`) if you need to write TOML files.
 
-`TomlLoader` does **not** implement `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer.
+`TomlLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer. The `ConfigurationService` interface that once described this shape had no implementers and no consumers, and has been retired; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## When to Use TomlLoader vs. Injected Service
 
 | Scenario                                        | Recommended Approach                | Reason                                                                 |
 |-------------------------------------------------|-------------------------------------|------------------------------------------------------------------------|
 | One-shot TOML read in an event or script        | `Toml(path).load()`                | Simple, no dependency injection required                               |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 | Pre-flight TOML file validation                 | `TomlLoader.verify_toml_file()`     | Static check for extension + existence before opening                  |
 
@@ -70,20 +69,32 @@ Pre-flight validation that checks:
 
 `TomlLoader` follows a layered error strategy:
 
-- **`TiferetError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
 - **`tomllib.TOMLDecodeError`** and other exceptions — caught and wrapped as `TOML_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), which is deliberately
+**not** a `TiferetError`: an infrastructural failure is not a domain outcome, so it
+is never resolved through the error catalog or formatted into an API response. A
+wrapped driver exception is preserved as `__cause__`, and each error carries the
+provenance of the failing service (`module_path`, `class_name`, `target_method`).
 
-- `a.const.TOML_FILE_NOT_FOUND_ID`
-- `a.const.TOML_FILE_LOAD_ERROR_ID`
-- `a.const.INVALID_TOML_FILE_ID` (extension mismatch in `verify_toml_file`)
+Codes are hosted by the module that raises them (`tiferet.utils.toml`, with the
+file-level codes in `tiferet.utils.file`), not by the error catalog:
 
-Inherited from `FileLoader`:
-- `a.const.FILE_NOT_FOUND_ID`
-- `a.const.INVALID_FILE_MODE_ID`
-- `a.const.INVALID_ENCODING_ID`
-- `a.const.FILE_ALREADY_OPEN_ID`
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.toml import (
+    TOML_FILE_NOT_FOUND_ID,
+    TOML_FILE_LOAD_ERROR_ID,
+    INVALID_TOML_FILE_ID,    # extension mismatch in verify_toml_file
+)
+```
+
+Inherited from `FileLoader` (`tiferet.utils.file`):
+- `FILE_NOT_FOUND_ID`
+- `INVALID_FILE_MODE_ID`
+- `INVALID_ENCODING_ID`
+- `FILE_ALREADY_OPEN_ID`
 
 ## Example – Domain Event with Direct Usage
 
@@ -154,13 +165,13 @@ def test_load_project_config_success(tmp_path):
 
 # ** test: load_project_config_file_not_found
 def test_load_project_config_file_not_found(tmp_path):
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         DomainEvent.handle(
             LoadProjectConfig,
             config_path=str(tmp_path / 'missing.toml'),
         )
 
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
 
 ## Deviations from YamlLoader / JsonLoader

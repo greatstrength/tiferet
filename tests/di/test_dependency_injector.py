@@ -9,6 +9,7 @@ from unittest import mock
 # ** app
 from tiferet import assets as a
 from tiferet.assets.exceptions import TiferetError
+from tiferet.interfaces.core import ServiceError
 from tiferet.domain import (
     ServiceDependency,
     AppServiceDependency,
@@ -20,6 +21,7 @@ from tiferet.di.dependency_injector import (
     DIDynamicServiceContainer,
     DIAppServiceContainer,
     DIDynamicServiceResolver,
+    DI_DEPENDENCY_NOT_REGISTERED_ID,
 )
 
 # *** constants
@@ -401,18 +403,23 @@ def test_has_dependency_app_container(simple_dependency: ServiceDependency):
     assert container.has_dependency('simple_service') is True
     assert container.has_dependency('not_registered') is False
 
-# ** test: get_dependency_missing_raises_raw_error
-def test_get_dependency_missing_raises_raw_error():
+# ** test: get_dependency_missing_raises_service_error
+def test_get_dependency_missing_raises_service_error():
     '''
-    Test that get_dependency raises a raw (non-structured) error for a missing provider.
+    Test that get_dependency raises a service error naming the unregistered id,
+    rather than the bare TypeError an absent provider used to produce.
     '''
 
     # Attempt to resolve a dependency that was never registered.
     container = DIDynamicServiceContainer()
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         container.get_dependency('missing_dependency')
 
-    # Assert the engine raised a raw error, not a structured TiferetError.
+    # Assert the guard names the missing dependency.
+    assert exc_info.value.error_code == DI_DEPENDENCY_NOT_REGISTERED_ID
+    assert exc_info.value.kwargs.get('dependency_id') == 'missing_dependency'
+
+    # Assert the failure is not a domain error, so it is never formatted.
     assert not isinstance(exc_info.value, TiferetError)
 
 # ** test: remove_dependency_removes

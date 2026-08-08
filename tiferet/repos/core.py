@@ -7,8 +7,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 # ** app
+from ..interfaces.core import ServiceError
 from ..utils import YamlLoader, JsonLoader
-from ..events import RaiseError, a
+
+# *** constants
+
+# ** constant: unsupported_config_file_type_id
+UNSUPPORTED_CONFIG_FILE_TYPE_ID = 'UNSUPPORTED_CONFIG_FILE_TYPE'
 
 # *** classes
 
@@ -57,6 +62,7 @@ class ConfigurationRepository:
         :type mode: str
         :return: A loader appropriate for the configuration file's format.
         :rtype: Any
+        :raises ServiceError: If the configuration file type is unsupported.
         '''
 
         # Determine the configuration file extension.
@@ -70,9 +76,13 @@ class ConfigurationRepository:
         if ext == '.json':
             return JsonLoader(self.config_file, mode=mode, encoding=self.encoding)
 
-        # Raise a structured error for any unsupported file type.
-        RaiseError.execute(
-            error_code=a.error.UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+        # Raise a service error for any unsupported file type; passing self
+        # derives the provenance from the runtime repository type, naming the
+        # configured service that produced the failing instance.
+        ServiceError.raise_for(
+            self,
+            UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+            f'Unsupported configuration file type: {ext}.',
             file_extension=ext,
         )
 

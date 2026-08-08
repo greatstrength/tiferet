@@ -60,17 +60,36 @@ with File('data/audit.log', 'a', encoding='utf-8') as f:
 
 - File is opened on `__enter__`
 - File is properly closed on `__exit__` (even on exceptions)
-- Any method call after the `with` block raises `TiferetError(FILE_ALREADY_OPEN_ID)`
+- Reopening an already-open loader raises `ServiceError(FILE_ALREADY_OPEN_ID)`
 
 ## Common Error Codes
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), raised via
+`ServiceError.raise_for`. It is deliberately **not** a `TiferetError`: an
+infrastructural failure is not a domain outcome, so it is never resolved through
+the error catalog or formatted into an API response, and it is not skippable via a
+feature step's `pass_on_error`.
 
-- `a.const.FILE_NOT_FOUND_ID`  
-- `a.const.INVALID_FILE_MODE_ID`  
-- `a.const.INVALID_ENCODING_ID`  
-- `a.const.FILE_ALREADY_OPEN_ID`  
-- `a.const.FILE_PERMISSION_DENIED_ID` (OS level)
+Codes are hosted by `tiferet/utils/file.py` — the module that raises them — rather
+than by the error catalog:
+
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.file import (
+    FILE_NOT_FOUND_ID,
+    FILE_ALREADY_OPEN_ID,
+    INVALID_FILE_ID,
+    INVALID_FILE_MODE_ID,
+    INVALID_ENCODING_ID,
+)
+```
+
+`INVALID_FILE_ID` is hosted here because both `YamlLoader` and `JsonLoader` raise it
+for their extension checks and both already import from this module.
+
+Each error carries the provenance of the failing service — `module_path`,
+`class_name`, and `target_method` — so it names the loader subclass and the method
+that failed.
 
 ## Example – Domain Event with Direct Usage
 

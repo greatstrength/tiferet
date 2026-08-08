@@ -13,8 +13,18 @@ except ModuleNotFoundError:
 
 # ** app
 from .file import FileLoader
-from ..events import RaiseError, a
-from ..events.core import TiferetError
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: toml_file_not_found_id
+TOML_FILE_NOT_FOUND_ID = 'TOML_FILE_NOT_FOUND'
+
+# ** constant: toml_file_load_error_id
+TOML_FILE_LOAD_ERROR_ID = 'TOML_FILE_LOAD_ERROR'
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 
@@ -58,6 +68,8 @@ class TomlLoader(FileLoader):
         :type loader: TomlLoader
         :param default_path: Optional fallback path if primary path is invalid.
         :type default_path: Optional[Path]
+        :raises ServiceError: If the extension is not a TOML extension or the
+            resolved path does not exist.
         '''
 
         # Start with the loader's path.
@@ -68,16 +80,19 @@ class TomlLoader(FileLoader):
             if default_path and default_path.suffix.lower() == '.toml':
                 path = default_path
             else:
-                RaiseError.execute(
-                    error_code=a.error.INVALID_TOML_FILE_ID,
-                    message="File must have .toml extension",
+                ServiceError.raise_for(
+                    loader,
+                    INVALID_TOML_FILE_ID,
+                    'File must have .toml extension.',
                     path=str(loader.path),
                 )
 
         # Verify the resolved path exists.
         if not path.exists():
-            RaiseError.execute(
-                error_code=a.error.TOML_FILE_NOT_FOUND_ID,
+            ServiceError.raise_for(
+                loader,
+                TOML_FILE_NOT_FOUND_ID,
+                f'The specified TOML file could not be found at {path}.',
                 path=str(path),
             )
 
@@ -98,6 +113,7 @@ class TomlLoader(FileLoader):
         :type kwargs: dict
         :return: Parsed and transformed Python object.
         :rtype: Any
+        :raises ServiceError: If the file cannot be read or parsed.
         '''
 
         try:
@@ -112,16 +128,20 @@ class TomlLoader(FileLoader):
                 # Apply the data_factory and return.
                 return data_factory(transformed)
 
-        except TiferetError:
+        except ServiceError:
 
-            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            # Re-raise service errors from FileLoader (e.g., FILE_NOT_FOUND) so a
+            # missing file is not relabelled a parse failure.
             raise
 
         except Exception as e:
 
-            # Wrap TOML parsing errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.TOML_FILE_LOAD_ERROR_ID,
+            # Wrap TOML parsing errors as a service error.
+            ServiceError.raise_for(
+                self,
+                TOML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse TOML file: {e}. Path: {self.path}.',
+                cause=e,
                 error=str(e),
                 path=str(self.path),
             )

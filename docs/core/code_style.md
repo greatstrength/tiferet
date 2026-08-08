@@ -97,29 +97,51 @@ The most common use is grouping unit tests by the class or method under test, so
 When adding an entry to a capability group, touch all three locations: `(ids_<group>)`, `(models_<group>)`, and the group dict in `(groups)`. See `tiferet/assets/error.py` for the canonical reference.
 
 ```python
-# *** constants (ids_sqlite)
+# *** constants (ids_admin)
 
-# ** constant: sqlite_conn_failed_id
-SQLITE_CONN_FAILED_ID = 'SQLITE_CONN_FAILED'
+# ** constant: error_already_exists_id
+ERROR_ALREADY_EXISTS_ID = 'ERROR_ALREADY_EXISTS'
 
-# *** constants (models_sqlite)
+# *** constants (models_admin)
 
-# ** constant: sqlite_conn_failed
-SQLITE_CONN_FAILED = create_default_error(
-    SQLITE_CONN_FAILED_ID,
-    'SQLite Connection Failed',
-    [(EN_US, 'Failed to connect: {original_error}')],
+# ** constant: error_already_exists
+ERROR_ALREADY_EXISTS = create_default_error(
+    ERROR_ALREADY_EXISTS_ID,
+    'Error Already Exists',
+    [(EN_US, 'An error with ID {id} already exists.')],
 )
 
 # *** constants (groups)
 
-# ** constant: sqlite_default_errors
-SQLITE_DEFAULT_ERRORS = {
-    SQLITE_CONN_FAILED_ID: SQLITE_CONN_FAILED,
+# ** constant: admin_default_errors
+ADMIN_DEFAULT_ERRORS = {
+    **CORE_DEFAULT_ERRORS,
+    ERROR_ALREADY_EXISTS_ID: ERROR_ALREADY_EXISTS,
 }
 ```
 
 The plain `(ids)` and `(models)` sub-groups (no suffix) hold the core/baseline group. All additional capability groups use the `_<group>` suffix consistently.
+
+**A catalogued code must have a raiser.** The error catalog holds **domain** codes only — outcomes a consumer can act on. An infrastructural failure raises a `ServiceError` whose code is a plain `_ID` constant in the module that raises it, and a model defect raises a `ModelError` against the constants in `domain/core.py`; neither is catalogued. Do not pre-create a catalog entry in anticipation of a future raiser: `assets/error.py` previously accumulated 15 codes with no raiser anywhere in the framework, and they were deleted rather than kept.
+
+### What `core.py` Holds
+
+A layer's `core.py` carries one of two different kinds of thing, and which one depends on the layer. The distinguishing axis is **concreteness, not whether the class is extended.**
+
+**Abstract core** — the layer's foundational base type or contract, declared under `# *** classes` (or the layer's construct group where one applies):
+- `DomainObject` and the model error protocol (`domain/core.py`)
+- `Aggregate` / `TransferObject` (`mappers/core.py`)
+- `Service` and `ServiceError` (`interfaces/core.py`)
+- `ContextMeta` / `BaseContext` (`contexts/core.py`)
+- `DomainEvent` / `AsyncDomainEvent` (`events/core.py`)
+- The `ServiceContainer` / `ServiceResolver` ABCs (`di/core.py`)
+- The shared constants and `create_*` factories (`assets/core.py`)
+
+**Concrete core services** — working infrastructure the app and event layers require:
+- The three `MiddlewareService` implementations (`utils/core.py`)
+- `ConfigurationRepository` (`repos/core.py`)
+
+Stating the axis explicitly matters because the intuitive reading — "a base class others extend belongs with the abstract cores" — misclassifies `repos/core.py`. `ConfigurationRepository` is extended by all six concrete repositories, yet it declares no abstract methods and no ABC base: `_get_loader`, `_load`, and `_save` are real implementations. It is machinery the repositories *use* via mixin composition, whereas `Aggregate` is a type domain objects *become*. `utils/core.py` and `repos/core.py` differ only in composition mechanism — DI registration versus mixin inheritance.
 
 ### Mid-Level (`# **`)
 Specifies categories or individual components:

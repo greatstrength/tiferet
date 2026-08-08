@@ -12,14 +12,13 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 
 Use `JsonLoader` (or its alias `Json`) directly when you need to read or write JSON files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
-`JsonLoader` does **not** implement `ConfigurationService` — this is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer.
+`JsonLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer. The `ConfigurationService` interface that once described this shape had no implementers and no consumers, and has been retired; format dispatch is owned by `ConfigurationRepository` instead.
 
 ## When to Use JsonLoader vs. Injected Service
 
 | Scenario                                        | Recommended Approach                | Reason                                                                 |
 |-------------------------------------------------|-------------------------------------|------------------------------------------------------------------------|
 | One-shot JSON read/write in an event or script  | `Json(path, mode='r').load()`       | Simple, no dependency injection required                               |
-| Configurable / swappable config loading          | Inject `ConfigurationService`       | Allows mocking, swapping implementations, dependency management       |
 | Domain object CRUD (features, errors, etc.)     | Inject corresponding `*Service`     | Keeps domain events decoupled from concrete file paths & formats       |
 | Pre-flight JSON file validation                 | `JsonLoader.verify_json_file()`     | Static check for extension + existence before opening                  |
 | Navigating nested JSON structures               | `JsonLoader.parse_json_path()`      | Static helper with dot-notation and array index support                |
@@ -90,23 +89,35 @@ Navigates nested JSON structures using dot-separated paths with array index supp
 
 `JsonLoader` follows a layered error strategy:
 
-- **`TiferetError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — propagated as-is, preserving the original error code.
+- **`ServiceError` from `FileLoader`** (e.g., `FILE_NOT_FOUND_ID`, `INVALID_FILE_MODE_ID`) — re-raised as-is, preserving the original error code. This is why a missing file is never relabelled a parse failure.
 - **`json.JSONDecodeError`** — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` with `error` and `path` kwargs.
 - **All other exceptions** during load/save — caught and wrapped as `JSON_FILE_LOAD_ERROR_ID` or `JSON_FILE_SAVE_ERROR_ID` respectively.
 
-All errors are raised via `RaiseError.execute()` with these constants (import via `from tiferet import a`):
+Every failure is a `ServiceError` (`tiferet.interfaces.core`), which is deliberately
+**not** a `TiferetError`: an infrastructural failure is not a domain outcome, so it
+is never resolved through the error catalog or formatted into an API response. A
+wrapped driver exception is preserved as `__cause__`, and each error carries the
+provenance of the failing service (`module_path`, `class_name`, `target_method`).
 
-- `a.const.JSON_FILE_NOT_FOUND_ID`
-- `a.const.JSON_FILE_LOAD_ERROR_ID`
-- `a.const.JSON_FILE_SAVE_ERROR_ID`
-- `a.const.INVALID_JSON_PATH_ID`
-- `a.const.INVALID_FILE_ID` (extension mismatch in `verify_json_file`)
+Codes are hosted by the module that raises them (`tiferet.utils.json`, with the
+file-level codes in `tiferet.utils.file`), not by the error catalog:
 
-Inherited from `FileLoader`:
-- `a.const.FILE_NOT_FOUND_ID`
-- `a.const.INVALID_FILE_MODE_ID`
-- `a.const.INVALID_ENCODING_ID`
-- `a.const.FILE_ALREADY_OPEN_ID`
+```python
+from tiferet.interfaces.core import ServiceError
+from tiferet.utils.json import (
+    JSON_FILE_NOT_FOUND_ID,
+    JSON_FILE_LOAD_ERROR_ID,
+    JSON_FILE_SAVE_ERROR_ID,
+    INVALID_JSON_PATH_ID,
+)
+from tiferet.utils.file import INVALID_FILE_ID    # extension mismatch in verify_json_file
+```
+
+Inherited from `FileLoader` (`tiferet.utils.file`):
+- `FILE_NOT_FOUND_ID`
+- `INVALID_FILE_MODE_ID`
+- `INVALID_ENCODING_ID`
+- `FILE_ALREADY_OPEN_ID`
 
 ## Example – Domain Event with Direct Usage
 
@@ -204,13 +215,13 @@ def test_load_json_config_success(tmp_path):
 
 # ** test: load_json_config_file_not_found
 def test_load_json_config_file_not_found(tmp_path):
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         DomainEvent.handle(
             LoadJsonConfig,
             config_path=str(tmp_path / 'missing.json'),
         )
 
-    assert exc_info.value.error_code == a.const.FILE_NOT_FOUND_ID
+    assert exc_info.value.error_code == FILE_NOT_FOUND_ID
 ```
 
 ## Deviations from YamlLoader

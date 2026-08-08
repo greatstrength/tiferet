@@ -6,9 +6,12 @@
 import pytest
 
 # ** app
-from tiferet.repos.core import ConfigurationRepository
+from tiferet.interfaces.core import ServiceError
+from tiferet.repos.core import (
+    ConfigurationRepository,
+    UNSUPPORTED_CONFIG_FILE_TYPE_ID,
+)
 from tiferet.utils import YamlLoader, JsonLoader
-from tiferet.assets import TiferetError
 
 
 # *** fixtures
@@ -148,9 +151,13 @@ def test_int_unsupported_config_file_type(tmp_path) -> None:
     # Create a repository pointed at an unsupported file type.
     repo = ConfigurationRepository(str(tmp_path / 'config.txt'))
 
-    # Resolving a loader should raise a structured error.
-    with pytest.raises(TiferetError) as exc_info:
+    # Resolving a loader should raise a service error.
+    with pytest.raises(ServiceError) as exc_info:
         repo._get_loader()
 
     # The error code should indicate an unsupported configuration file type.
-    assert exc_info.value.error_code == 'UNSUPPORTED_CONFIG_FILE_TYPE'
+    assert exc_info.value.error_code == UNSUPPORTED_CONFIG_FILE_TYPE_ID
+
+    # The provenance should name the repository that failed to dispatch.
+    assert exc_info.value.class_name == 'ConfigurationRepository'
+    assert exc_info.value.target_method == '_get_loader'

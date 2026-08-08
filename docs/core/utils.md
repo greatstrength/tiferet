@@ -176,7 +176,12 @@ import tomllib
 
 # ** app
 from .file import FileLoader
-from ..events import RaiseError, a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 
@@ -194,18 +199,29 @@ class TomlLoader(FileLoader):
     def load(self, start_node=lambda x: x, data_factory=lambda x: x):
         '''
         Load and parse TOML content.
+
+        :raises ServiceError: If the file cannot be read or parsed.
         '''
         try:
             with self:
                 data = tomllib.load(self.file)
                 return data_factory(start_node(data))
         except tomllib.TOMLDecodeError as e:
-            RaiseError.execute(
-                error_code=a.const.INVALID_TOML_FILE_ID,
+            ServiceError.raise_for(
+                self,
+                INVALID_TOML_FILE_ID,
+                f'File is not a valid TOML file: {self.path}.',
+                cause=e,
                 error=str(e),
                 path=str(self.path),
             )
 ```
+
+Note the two conventions this example carries. The error code is a module-level
+constant **in the module that raises it** — infrastructure error vocabulary does
+not belong in the domain error catalog — and the failure is raised as a
+`ServiceError` via `ServiceError.raise_for`, which derives the failing service's
+provenance and chains the driver exception as the cause.
 
 ### Computational Infrastructure Example — EmbeddingClient
 
@@ -213,8 +229,8 @@ class TomlLoader(FileLoader):
 # *** imports
 
 # ** app
+from ..interfaces.core import ServiceError
 from ..interfaces.embedding import EmbeddingService
-from ..events import RaiseError, a
 
 # *** utils
 
@@ -241,11 +257,14 @@ class EmbeddingClient(EmbeddingService):
 ## Best Practices
 
 - Use artifact comments (`# *** utils` / `# ** util:` / `# * method:`) consistently.
-- Raise errors only via `RaiseError.execute()` — never raise raw exceptions from utilities.
+- Raise failures as a `ServiceError` via `ServiceError.raise_for(self, ...)` — never let a raw driver exception escape a utility, and never reach into the `events` layer for an error vocabulary.
+- Host each error code as an `_ID` constant in a `# *** constants` section of the module that raises it. Infrastructure codes are deliberately **not** catalogued in `assets/error.py`.
+- Pass `cause=e` when converting an underlying exception so its diagnostic detail survives as `__cause__`.
+- Supply the message inline as an f-string. A service error is never localized or formatted for a consumer, so there is no catalog template to fall back on.
 - Implement context manager protocol (`__enter__` / `__exit__`) for resource-owning utilities.
-- Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`).
+- Provide static one-shot helpers for common operations (e.g., `CsvLoader.load_rows()`). At a static raise site, pass the class in place of an instance.
 - Keep utilities focused on infrastructure — domain logic belongs in domain events and contexts.
-- Align every utility with a Service contract from `tiferet/interfaces/`.
+- Implement a Service contract from `tiferet/interfaces/` when the utility must be DI-injectable. It is **not** required otherwise: the configuration loaders (`YamlLoader`, `JsonLoader`, `TomlLoader`) deliberately declare only `FileLoader`.
 - Stateless computational utilities need not implement context managers.
 
 ## Testing Utilities
@@ -284,16 +303,18 @@ def test_file_loader_invalid_mode(temp_file):
     Test that an invalid mode raises INVALID_FILE_MODE.
     '''
     loader = FileLoader(path=temp_file, mode='z')
-    with pytest.raises(TiferetError) as exc_info:
+    with pytest.raises(ServiceError) as exc_info:
         loader.open_file()
-    assert exc_info.value.error_code == a.const.INVALID_FILE_MODE_ID
+    assert exc_info.value.error_code == INVALID_FILE_MODE_ID
 ```
 
 **Key testing patterns:**
 - Test success paths, error paths, and edge cases.
+- Assert on `ServiceError` and import the expected `_ID` constant from the utility module that hosts it.
 - Use in-memory databases for `SqliteClient` tests.
 - Mock computational utilities when testing domain events that consume them.
 - Verify structured error codes, not just exception types.
+- For a converted driver call, assert the wrapped exception survives as `__cause__` and that no driver exception type escapes the utility.
 
 ## Package Layout
 
@@ -316,17 +337,19 @@ tiferet/utils/
 
 ## Relationship to Service Interfaces
 
-Utilities implement Services from `tiferet/interfaces/`:
+Some utilities implement Services from `tiferet/interfaces/`:
 
 - `FileLoader` → `FileService` (`interfaces/file.py`)
 - `SqliteClient` → `SqliteService` (`interfaces/sqlite.py`) + `FileService` (via `FileLoader`)
-- `YamlLoader` / `JsonLoader` / `CsvLoader` satisfy the `ConfigurationService` pattern indirectly via repositories that consume them.
+- `YamlLoader` / `JsonLoader` / `TomlLoader` / `CsvLoader` declare **only** `FileLoader`. They implement no configuration contract, and this is deliberate: the `ConfigurationService` interface that once described their shape had zero implementers and zero consumers, and has been retired. Format dispatch is owned by `ConfigurationRepository` (`repos/core.py`), so the loaders need no contract of their own.
 
-Future utilities follow the same pattern: define a Service interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export with an alias.
+A utility needs a Service interface when it must be resolved from the DI container. Where one exists, follow the same pattern: define the interface in `tiferet/interfaces/`, implement the concrete utility in `tiferet/utils/`, and export it with an alias.
+
+Every utility, contract or not, shares one obligation: a failure leaves the utility as a `ServiceError` (`interfaces/core.py`). Because `ServiceError` is deliberately not a `TiferetError`, it is never caught by `AppSessionContext.run` and never formatted into an API response — an infrastructural failure surfaces as an unhandled exception by design.
 
 ## Conclusion
 
-Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation, `RaiseError` handling, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
+Utilities provide the infrastructure backbone of Tiferet, encapsulating repeatable processes — both physical and computational — behind injectable Service contracts. Their consistent pattern — Service implementation where DI requires it, `ServiceError` handling with module-hosted codes, context-manager lifecycle, and artifact organization — ensures reliability, testability, and alignment with the framework's DDD architecture.
 
 Explore source in `tiferet/utils/`, contracts in `tiferet/interfaces/`, and tests in `tiferet/utils/tests/`.
 

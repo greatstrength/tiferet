@@ -15,6 +15,11 @@ from .file import FileService
 class SqliteService(FileService):
     '''
     Service contract for SQLite database operations.
+
+    Every method raises a ``ServiceError`` for an infrastructural failure. No
+    implementation may let a raw database driver exception escape: a lost
+    connection or a rejected statement is a service failure, not a domain
+    outcome, and consumers must not be made to catch driver types.
     '''
 
     # * method: execute
@@ -29,6 +34,8 @@ class SqliteService(FileService):
         :type parameters: Iterable[Any]
         :return: The cursor result.
         :rtype: Any
+        :raises ServiceError: If the connection is unavailable or the statement
+            is rejected.
         '''
         raise NotImplementedError()
 
@@ -44,6 +51,8 @@ class SqliteService(FileService):
         :type seq_of_parameters: Iterable[Iterable[Any]]
         :return: The cursor result.
         :rtype: Any
+        :raises ServiceError: If the connection is unavailable or the statement
+            is rejected.
         '''
         raise NotImplementedError()
 
@@ -57,6 +66,8 @@ class SqliteService(FileService):
         :type sql_script: str
         :return: The cursor result.
         :rtype: Any
+        :raises ServiceError: If the connection is unavailable or the script is
+            rejected.
         '''
         raise NotImplementedError()
 
@@ -72,6 +83,8 @@ class SqliteService(FileService):
         :type parameters: Iterable[Any]
         :return: The first row as a tuple, or None if no rows.
         :rtype: tuple | None
+        :raises ServiceError: If the connection is unavailable, the query is
+            rejected, or the row cannot be fetched.
         '''
         raise NotImplementedError()
 
@@ -87,6 +100,8 @@ class SqliteService(FileService):
         :type parameters: Iterable[Any]
         :return: All rows as a list of tuples.
         :rtype: list[tuple]
+        :raises ServiceError: If the connection is unavailable, the query is
+            rejected, or the rows cannot be fetched.
         '''
         raise NotImplementedError()
 
@@ -95,6 +110,8 @@ class SqliteService(FileService):
     def commit(self) -> None:
         '''
         Commit current transaction.
+
+        :raises ServiceError: If the connection is unavailable or the commit fails.
         '''
         raise NotImplementedError()
 
@@ -103,6 +120,8 @@ class SqliteService(FileService):
     def rollback(self) -> None:
         '''
         Roll back current transaction.
+
+        :raises ServiceError: If the connection is unavailable or the rollback fails.
         '''
         raise NotImplementedError()
 
@@ -122,5 +141,7 @@ class SqliteService(FileService):
         :type pages: int
         :param progress: Optional progress callback(status, remaining, total).
         :type progress: Optional[Callable[[int, int, int], None]]
+        :raises ServiceError: If the source connection is unavailable or the
+            backup fails.
         '''
         raise NotImplementedError()

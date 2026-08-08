@@ -9,9 +9,19 @@ from typing import Any, Callable, Optional
 import yaml
 
 # ** app
-from .file import FileLoader
-from ..events import RaiseError, a
-from ..events.core import TiferetError
+from .file import FileLoader, INVALID_FILE_ID
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: yaml_file_not_found_id
+YAML_FILE_NOT_FOUND_ID = 'YAML_FILE_NOT_FOUND'
+
+# ** constant: yaml_file_load_error_id
+YAML_FILE_LOAD_ERROR_ID = 'YAML_FILE_LOAD_ERROR'
+
+# ** constant: yaml_file_save_error_id
+YAML_FILE_SAVE_ERROR_ID = 'YAML_FILE_SAVE_ERROR'
 
 # *** utils
 
@@ -55,6 +65,8 @@ class YamlLoader(FileLoader):
         :type loader: YamlLoader
         :param default_path: Optional fallback path if primary path is invalid.
         :type default_path: Optional[Path]
+        :raises ServiceError: If the extension is not a YAML extension or the
+            resolved path does not exist.
         '''
 
         # Start with the loader's path.
@@ -65,16 +77,19 @@ class YamlLoader(FileLoader):
             if default_path and default_path.suffix.lower() in {'.yaml', '.yml'}:
                 path = default_path
             else:
-                RaiseError.execute(
-                    error_code=a.error.INVALID_FILE_ID,
-                    message="File must have .yaml or .yml extension",
+                ServiceError.raise_for(
+                    loader,
+                    INVALID_FILE_ID,
+                    'File must have .yaml or .yml extension.',
                     path=str(loader.path),
                 )
 
         # Verify the resolved path exists.
         if not path.exists():
-            RaiseError.execute(
-                error_code=a.error.YAML_FILE_NOT_FOUND_ID,
+            ServiceError.raise_for(
+                loader,
+                YAML_FILE_NOT_FOUND_ID,
+                f'The specified YAML file could not be found at {path}.',
                 path=str(path),
             )
 
@@ -95,6 +110,7 @@ class YamlLoader(FileLoader):
         :type kwargs: dict
         :return: Parsed and transformed Python object.
         :rtype: Any
+        :raises ServiceError: If the file cannot be read or parsed.
         '''
 
         try:
@@ -113,25 +129,32 @@ class YamlLoader(FileLoader):
                 # Apply the data_factory and return.
                 return data_factory(transformed)
 
-        except TiferetError:
+        except ServiceError:
 
-            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            # Re-raise service errors from FileLoader (e.g., FILE_NOT_FOUND) so a
+            # missing file is not relabelled a parse failure.
             raise
 
         except yaml.YAMLError as e:
 
-            # Wrap YAML parsing errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.YAML_FILE_LOAD_ERROR_ID,
+            # Wrap YAML parsing errors as a service error.
+            ServiceError.raise_for(
+                self,
+                YAML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse YAML file: {e}. Path: {self.path}.',
+                cause=e,
                 error=str(e),
                 path=str(self.path),
             )
 
         except Exception as e:
 
-            # Wrap all other exceptions as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.YAML_FILE_LOAD_ERROR_ID,
+            # Wrap all other exceptions as a service error.
+            ServiceError.raise_for(
+                self,
+                YAML_FILE_LOAD_ERROR_ID,
+                f'Failed to parse YAML file: {e}. Path: {self.path}.',
+                cause=e,
                 error=str(e),
                 path=str(self.path),
             )
@@ -147,6 +170,7 @@ class YamlLoader(FileLoader):
         :type data_path: Optional[str]
         :param kwargs: Additional keyword arguments (ignored).
         :type kwargs: dict
+        :raises ServiceError: If the file cannot be serialized or written.
         '''
 
         try:
@@ -163,16 +187,20 @@ class YamlLoader(FileLoader):
             with self:
                 self.file.write(content)
 
-        except TiferetError:
+        except ServiceError:
 
-            # Re-raise structured errors from FileLoader (e.g., FILE_NOT_FOUND).
+            # Re-raise service errors from FileLoader (e.g., FILE_NOT_FOUND) so a
+            # missing file is not relabelled a write failure.
             raise
 
         except Exception as e:
 
-            # Wrap write errors as structured TiferetError.
-            RaiseError.execute(
-                error_code=a.error.YAML_FILE_SAVE_ERROR_ID,
+            # Wrap write errors as a service error.
+            ServiceError.raise_for(
+                self,
+                YAML_FILE_SAVE_ERROR_ID,
+                f'Failed to write YAML file: {e}. Path: {self.path}.',
+                cause=e,
                 error=str(e),
                 path=str(self.path),
             )

@@ -7,8 +7,50 @@ from pathlib import Path
 from typing import IO, Any, Optional
 
 # ** app
+from ..interfaces.core import ServiceError
 from ..interfaces.file import FileService
-from ..events import RaiseError, a
+
+# *** constants
+
+# ** constant: file_not_found_id
+FILE_NOT_FOUND_ID = 'FILE_NOT_FOUND'
+
+# ** constant: file_already_open_id
+FILE_ALREADY_OPEN_ID = 'FILE_ALREADY_OPEN'
+
+# ** constant: invalid_file_id
+INVALID_FILE_ID = 'INVALID_FILE'
+
+# ** constant: invalid_file_mode_id
+INVALID_FILE_MODE_ID = 'INVALID_FILE_MODE'
+
+# ** constant: invalid_encoding_id
+INVALID_ENCODING_ID = 'INVALID_ENCODING'
+
+# ** constant: valid_file_modes
+VALID_FILE_MODES = (
+    'r',
+    'rb',
+    'w',
+    'wb',
+    'a',
+    'ab',
+    'x',
+    'xb',
+    'r+',
+    'rb+',
+    'w+',
+    'wb+',
+    'a+',
+    'ab+',
+)
+
+# ** constant: valid_encodings
+VALID_ENCODINGS = (
+    'utf-8',
+    'ascii',
+    'latin-1',
+)
 
 # *** utils
 
@@ -85,21 +127,26 @@ class FileLoader(FileService):
         :type path: Path
         :param mode: The file open mode (used to determine verification strategy).
         :type mode: str
+        :raises ServiceError: If the file or its parent directory does not exist.
         '''
 
         # For write, append, or exclusive modes, verify the parent directory exists.
         if any(c in mode for c in ('w', 'a', 'x')):
             if not path.parent.exists():
-                RaiseError.execute(
-                    error_code=a.error.FILE_NOT_FOUND_ID,
+                ServiceError.raise_for(
+                    FileLoader,
+                    FILE_NOT_FOUND_ID,
+                    f'File not found: {path}.',
                     path=str(path),
                 )
 
         # For read modes, verify the file itself exists.
         else:
             if not path.exists():
-                RaiseError.execute(
-                    error_code=a.error.FILE_NOT_FOUND_ID,
+                ServiceError.raise_for(
+                    FileLoader,
+                    FILE_NOT_FOUND_ID,
+                    f'File not found: {path}.',
                     path=str(path),
                 )
 
@@ -108,20 +155,18 @@ class FileLoader(FileService):
         '''
         Validate the file mode string.
 
-        :raises TiferetError: If the mode is not in the set of valid modes.
+        :raises ServiceError: If the mode is not in the set of valid modes.
         '''
 
-        # Define the set of valid file modes.
-        valid = {
-            'r', 'rb', 'w', 'wb', 'a', 'ab',
-            'x', 'xb', 'r+', 'rb+', 'w+', 'wb+', 'a+', 'ab+',
-        }
-
         # Raise an error if the mode is not valid.
-        if self.mode not in valid:
-            RaiseError.execute(
-                error_code=a.error.INVALID_FILE_MODE_ID,
+        if self.mode not in VALID_FILE_MODES:
+            ServiceError.raise_for(
+                self,
+                INVALID_FILE_MODE_ID,
+                f'Invalid file mode: {self.mode}. '
+                f'Valid modes include {", ".join(VALID_FILE_MODES)}.',
                 mode=self.mode,
+                modes=list(VALID_FILE_MODES),
             )
 
     # * method: verify_encoding
@@ -129,14 +174,17 @@ class FileLoader(FileService):
         '''
         Ensure encoding is provided when required for text modes.
 
-        :raises TiferetError: If encoding is None for a text (non-binary) mode.
+        :raises ServiceError: If encoding is None for a text (non-binary) mode.
         '''
 
         # Raise an error if encoding is missing for a text mode.
         if 'b' not in self.mode and self.encoding is None:
-            RaiseError.execute(
-                error_code=a.error.INVALID_ENCODING_ID,
-                encoding=None,
+            ServiceError.raise_for(
+                self,
+                INVALID_ENCODING_ID,
+                f'Invalid encoding: {self.encoding}. '
+                f'Supported encodings are: {", ".join(VALID_ENCODINGS)}.',
+                encoding=self.encoding,
             )
 
     # * method: open_file
@@ -146,14 +194,16 @@ class FileLoader(FileService):
 
         :return: The opened file stream.
         :rtype: IO[Any]
-        :raises TiferetError: If the file is already open, the path is invalid,
+        :raises ServiceError: If the file is already open, the path is invalid,
             the mode is invalid, or encoding is missing for text modes.
         '''
 
         # Raise an error if the file is already open.
         if self.file is not None:
-            RaiseError.execute(
-                error_code=a.error.FILE_ALREADY_OPEN_ID,
+            ServiceError.raise_for(
+                self,
+                FILE_ALREADY_OPEN_ID,
+                f'File is already open: {self.path}.',
                 path=str(self.path),
             )
 
