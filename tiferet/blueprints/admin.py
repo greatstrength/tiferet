@@ -6,7 +6,7 @@
 from typing import Any, Callable, Dict, List
 
 # ** app
-from ..assets import RaiseError
+from ..assets import TiferetError
 from . import core
 from ..contexts.cache import CacheContext
 from ..contexts.error import add_default_errors
@@ -204,7 +204,7 @@ def build_admin_app(
 
     # Verify that the composed context is a valid app session context.
     if not isinstance(app_session_context, AppSessionContext):
-        RaiseError.execute(
+        TiferetError.raise_error(
             a.error.INVALID_APP_SESSION_TYPE_ID,
             f'App context for session is not valid: {interface_id}.',
             interface_id=interface_id,

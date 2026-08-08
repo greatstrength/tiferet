@@ -7,7 +7,8 @@ from typing import Any, ClassVar, Dict, Optional, Type
 
 # ** app
 from ..domain import DomainObject
-from ..events import RaiseError, a
+from .. import assets as a
+from ..assets import TiferetError
 
 # *** classes
 
@@ -102,7 +103,7 @@ class BaseContext(metaclass=ContextMeta):
 
         # Raise a structured error when no context is registered for the domain.
         if context_cls is None:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 a.error.CONTEXT_NOT_FOUND_ID,
                 f'No context registered for domain type: {getattr(domain_cls, "__name__", domain_cls)}.',
                 domain_type=getattr(domain_cls, '__name__', str(domain_cls)),

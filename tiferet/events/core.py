@@ -47,12 +47,8 @@ class DomainEvent(object):
         :type kwargs: dict
         '''
 
-        # Raise the TiferetError with the given error code and arguments.
-        raise TiferetError(
-            error_code,
-            message,
-            **kwargs
-        )
+        # Delegate to the TiferetError classmethod raiser.
+        TiferetError.raise_error(error_code, message, **kwargs)
 
     # * method: verify
     def verify(self, expression: bool, error_code: str, message: str = None, **kwargs):

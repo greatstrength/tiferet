@@ -2,6 +2,9 @@
 
 # *** imports
 
+# ** infra
+import pytest
+
 # ** app
 from tiferet.assets.core import (
     create_service_dependency,
@@ -16,6 +19,8 @@ from tiferet.assets.core import (
     create_default_logger,
     create_default_cli_argument,
     create_default_cli_command,
+    TiferetError,
+    TiferetAPIError,
     TIFERET,
     TIFERET_EVENTS_PATH,
     TIFERET_REPOS_PATH,
@@ -552,3 +557,90 @@ def test_create_default_cli_command_includes_optional_fields_when_provided() -> 
     # Assert optional fields are included.
     assert result['description'] == 'Retrieve a feature by ID.'
     assert result['arguments'] == args
+
+# ** test: tiferet_error_raise_error_code_only
+def test_tiferet_error_raise_error_code_only() -> None:
+    '''
+    Test that TiferetError.raise_error raises with only an error code.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise with a code only, expect a TiferetError.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error('BASIC_ERROR')
+
+    # Assert the error code is carried.
+    assert exc_info.value.error_code == 'BASIC_ERROR'
+
+# ** test: tiferet_error_raise_error_with_message_and_kwargs
+def test_tiferet_error_raise_error_with_message_and_kwargs() -> None:
+    '''
+    Test that TiferetError.raise_error raises with a message and kwargs.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise with a code, message, and kwargs.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error('ARG_ERROR', message='Something failed', detail='extra')
+
+    # Assert the error code, message, and kwargs are carried.
+    assert exc_info.value.error_code == 'ARG_ERROR'
+    assert 'Something failed' in str(exc_info.value)
+    assert exc_info.value.kwargs.get('detail') == 'extra'
+
+# ** test: tiferet_error_raise_error_kwargs_without_message
+def test_tiferet_error_raise_error_kwargs_without_message() -> None:
+    '''
+    Test that TiferetError.raise_error raises with kwargs but no message.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise with a code and kwargs but no message.
+    with pytest.raises(TiferetError) as exc_info:
+        TiferetError.raise_error('NO_MSG_ERROR', reason='missing')
+
+    # Assert the error code and kwargs are carried.
+    assert exc_info.value.error_code == 'NO_MSG_ERROR'
+    assert exc_info.value.kwargs.get('reason') == 'missing'
+
+# ** test: tiferet_api_error_raise_error_dispatches_to_subclass
+def test_tiferet_api_error_raise_error_dispatches_to_subclass() -> None:
+    '''
+    Test that TiferetAPIError.raise_error raises a TiferetAPIError (not a bare
+    TiferetError), dispatching to the subclass it is called on, and that name
+    defaults to the error code.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Raise via the subclass; expect a TiferetAPIError specifically.
+    with pytest.raises(TiferetAPIError) as exc_info:
+        TiferetAPIError.raise_error('SOME_CODE')
+
+    # Assert the classmethod dispatched to the subclass and defaulted name.
+    assert exc_info.value.error_code == 'SOME_CODE'
+    assert exc_info.value.name == 'SOME_CODE'
+
+# ** test: tiferet_api_error_positional_message_binds_to_message
+def test_tiferet_api_error_positional_message_binds_to_message() -> None:
+    '''
+    Test that TiferetAPIError(error_code, message) binds the second positional
+    argument to message and defaults name to the error code.
+
+    :return: None
+    :rtype: None
+    '''
+
+    # Construct with two positional arguments.
+    error = TiferetAPIError('SOME_CODE', 'Something went wrong.')
+
+    # Assert message binds correctly and name defaults to the error code.
+    assert error.message == 'Something went wrong.'
+    assert error.name == 'SOME_CODE'

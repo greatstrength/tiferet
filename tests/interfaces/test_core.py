@@ -6,7 +6,7 @@
 import pytest
 
 # ** app
-from tiferet.assets.exceptions import TiferetError
+from tiferet.assets import TiferetError
 from tiferet.interfaces.core import Service, ServiceError
 
 # *** constants

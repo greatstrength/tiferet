@@ -11,7 +11,8 @@ from typing import Any, Callable, Dict, Tuple
 from .core import BaseContext
 from .cache import CacheContext
 from ..domain import LoggingSettings
-from ..events import RaiseError, a
+from .. import assets as a
+from ..assets import TiferetError
 
 # *** constants
 
@@ -119,7 +120,7 @@ class LoggingContext(BaseContext):
         try:
             logging.config.dictConfig(logging_config)
         except Exception as e:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 a.error.LOGGING_CONFIG_FAILED_ID,
                 f'Failed to configure logging: {e}.',
                 exception=str(e)
@@ -129,7 +130,7 @@ class LoggingContext(BaseContext):
         try:
             logger = logging.getLogger(logger_id)
         except Exception as e:
-            RaiseError.execute(
+            TiferetError.raise_error(
                 a.error.LOGGER_CREATION_FAILED_ID,
                 f'Failed to create logger with ID {logger_id}: {e}.',
                 logger_id=logger_id,
