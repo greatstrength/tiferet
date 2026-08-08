@@ -39,7 +39,8 @@ A working calculator application is provided in `examples/basic_calculator/`.
 - **DomainObject** (`domain/core.py`): Base domain model class extending `pydantic.BaseModel`. Instantiate via direct Pydantic constructors (e.g., `Feature(id='calc.add', ...)`). Use `model_construct()` to skip validation. Domain objects are read-only; mutation goes through Aggregates.
 - **ModelError** (`domain/core.py`): Standalone `Exception` (deliberately **not** a `TiferetError`) describing an inconsistency within a single model. Classmethod raisers `raise_error(error_code, message=None, model=None, **kwargs)` and `raise_for_validation(error, ..., model=None)`, the latter classifying a Pydantic `ValidationError` as `INVALID_MODEL_ATTRIBUTE_ID` or `INVALID_MODEL_VALUE_ID` and chaining the cause. Uncatalogued, never formatted as a `TiferetAPIError`, and never skippable via `pass_on_error` — a model defect is a consumer bug that leaks. `ATTRIBUTE_NOT_SETTABLE_ID` covers mutation-policy refusals. Both raisers accept the offending instance as `model` and store a serializable descriptor (`type`, `module`, plus any of `id` / `name` / `key` the model declares) built by the pure `describe_model` helper — the instance-identifying metadata a catalogued `TiferetError` has no need to carry. The pure `unpack_validation_error` helper flattens violations for both the mutation and request-validation paths.
 - **DomainEvent** (`events/settings.py`): Base class for domain operations. Receives dependencies via constructor injection. Entry point is `execute(**kwargs)`. Use `@DomainEvent.parameters_required([...])` for declarative input validation. Use `DomainEvent.handle(EventClass, dependencies={...}, **kwargs)` for invocation in tests. Each single-service event module defines a per-module base event (e.g., `ErrorEvent`, `FeatureEvent`) that holds the shared service injection; concrete events extend the base and define only `execute`.
-- **Service** (`interfaces/settings.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **Service** (`interfaces/core.py`): Abstract base class (`ABC`) for all service contracts. All vertical concerns (data access, config, utilities) are unified under Service.
+- **ServiceError** (`interfaces/core.py`): The exception a service raises for an **infrastructural** failure — faulty configuration or a lost connection. Deliberately **not** a `TiferetError`, so it is never catalogued, localized, or formatted into an API response; an infrastructural failure that reaches the top is an unhandled exception by design. Raised via the `raise_for` classmethod, which derives the failing service's `module_path` / `class_name` / `target_method` and chains the underlying exception as `__cause__`. It lives beside `Service` because the failure is part of the service contract and every layer holding a service already imports `interfaces`.
 - **MiddlewareService** (`interfaces/middleware.py`): Abstract callable that wraps domain event execution. Implement `__call__(self, event, kwargs, next_fn)` for sync middleware or `async def __call__` for async. Resolved from the DI container by `service_id` and composed into an ordered chain by `FeatureContext`.
 - **Aggregate** (`mappers/settings.py`): Mutable extension of domain objects. Instantiate via direct constructors. Provides `set_attribute()` for validated mutation with `validate_assignment=True`, converting the resulting Pydantic `ValidationError` into a `ModelError`. The `mappers` layer imports `domain` only.
 - **TransferObject** (`mappers/settings.py`): Serialization layer with role-based field control via `_ROLES` ClassVar. Methods: `to_primitive(role)`, `map(target)`, `@classmethod from_model()`. Uses lenient config (`extra='ignore'`).
@@ -243,10 +244,11 @@ result = DomainEvent.handle(
 
 ## Interfaces (Services)
 
-- Extend `Service` (ABC) from `tiferet/interfaces/settings.py`.
+- Extend `Service` (ABC) from `tiferet/interfaces/core.py`.
 - All methods marked `@abstractmethod`.
 - Artifact comments use `# *** interfaces` / `# ** interface: <name>`.
-- Services: `AppService`, `CliService`, `ConfigurationService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`.
+- Services: `AppService`, `CliService`, `ContainerService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `CacheService`, `MiddlewareService`. (`ConfigurationService` was **retired** — zero implementers and zero consumers; the config loaders declare only `FileLoader` and format dispatch belongs to `ConfigurationRepository`.)
+- **`ServiceError`** (`interfaces/core.py`, in a `# *** classes` section) is the exception every service raises for an infrastructural failure. See Error Handling.
 
 ## Mappers
 
@@ -279,22 +281,28 @@ See [docs/core/repos.md](docs/core/repos.md) for structured code design and [doc
 
 ## Error Handling
 
-- `TiferetError` (`assets/exceptions.py`): Base exception with `error_code` and `kwargs`.
-- `TiferetAPIError`: Extends `TiferetError` with `name` and `message` for API responses.
-- Error constants defined in `assets/constants.py` (e.g., `FEATURE_NOT_FOUND_ID`, `COMMAND_PARAMETER_REQUIRED_ID`).
-- Default error definitions in `assets/constants.py::DEFAULT_ERRORS` dict.
-- Access constants via `from .. import assets as a` then `a.const.ERROR_CODE_ID`.
-- `ModelError` (`domain/core.py`) is the one error class **outside** this hierarchy: model error codes are not catalogued and never resolved through `Error`. See Key Concepts.
-- `pass_on_error` on a feature step passes on **domain** errors only — both step executors catch `TiferetError`, so a `ModelError` or any other exception propagates instead of resolving to `None`.
+The framework has **three unrelated error families**, one per concern:
 
-### Error Constants (v2.0.0b3)
+- `TiferetError` (`assets/exceptions.py`): a **domain outcome**. Base exception with `error_code` and `kwargs`. `TiferetAPIError` extends it with `name` and `message` for API responses. Codes are catalogued in `assets/error.py`, localized, and formatted by `AppSessionContext.run`. Access via `from .. import assets as a` then `a.error.ERROR_CODE_ID`.
+- `ServiceError` (`interfaces/core.py`): an **infrastructural failure** — typically faulty configuration or a lost connection. Deliberately **not** a `TiferetError` subclass, so `run` never catches or formats it. Raised via the `raise_for(service, error_code, message, cause=None, **kwargs)` classmethod, which derives `module_path` / `class_name` / `target_method` from the failing service and the calling frame. Codes are **not** catalogued: each is an `_ID` constant in the module that raises it, with an inline English-only f-string message.
+- `ModelError` (`domain/core.py`): a **model defect**. Also uncatalogued and never formatted. See Key Concepts.
 
-New error constants added in the b2→b3 cycle:
+Only `TiferetError` is catalogued. `pass_on_error` on a feature step passes on **domain** errors only — both step executors catch `TiferetError`, so a `ServiceError`, a `ModelError`, or any other exception propagates instead of resolving to `None`.
 
-- `YAML_FILE_NOT_FOUND_ID`, `YAML_FILE_LOAD_ERROR_ID`, `YAML_FILE_SAVE_ERROR_ID` — YAML utility errors.
-- `JSON_FILE_NOT_FOUND_ID`, `JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`, `INVALID_JSON_PATH_ID` — JSON utility errors.
-- `CSV_INVALID_MODE_ID`, `CSV_HANDLE_NOT_INITIALIZED_ID`, `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, `CSV_FIELDNAMES_REQUIRED_ID`, `CSV_DICT_NO_HEADER_ID` — CSV utility errors.
-- `CONFIG_FILE_NOT_FOUND`, `APP_CONFIG_LOADING_FAILED`, `CONTAINER_CONFIG_LOADING_FAILED`, `FEATURE_CONFIG_LOADING_FAILED`, `ERROR_CONFIG_LOADING_FAILED`, `CLI_CONFIG_LOADING_FAILED` — Configuration loading errors.
+### Error Code Hosting
+
+`assets/error.py` holds domain codes only: `CORE_DEFAULT_ERRORS` (15 entries) plus `ADMIN_DEFAULT_ERRORS` (13 of its own), unioned into `DEFAULT_ERRORS`. The acceptance rule is that **every catalogued code has a raiser somewhere in `tiferet/`**; do not pre-create entries for anticipated needs.
+
+Infrastructure codes live beside their raise sites:
+
+- `utils/file.py` — `FILE_NOT_FOUND_ID`, `FILE_ALREADY_OPEN_ID`, `INVALID_FILE_ID`, `INVALID_FILE_MODE_ID`, `INVALID_ENCODING_ID`
+- `utils/yaml.py` — `YAML_FILE_NOT_FOUND_ID`, `YAML_FILE_LOAD_ERROR_ID`, `YAML_FILE_SAVE_ERROR_ID`
+- `utils/json.py` — `JSON_FILE_NOT_FOUND_ID`, `JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`, `INVALID_JSON_PATH_ID`
+- `utils/toml.py` — `TOML_FILE_NOT_FOUND_ID`, `TOML_FILE_LOAD_ERROR_ID`, `INVALID_TOML_FILE_ID`
+- `utils/csv.py` — `CSV_FIELDNAMES_REQUIRED_ID`, `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`
+- `utils/sqlite.py` — `SQLITE_CONN_FAILED_ID`, `SQLITE_CONN_ALREADY_OPEN_ID`, `SQLITE_CONN_NOT_INITIALIZED_ID`, `SQLITE_INVALID_MODE_ID`, `SQLITE_STATEMENT_FAILED_ID`, `SQLITE_QUERY_FAILED_ID`, `SQLITE_TRANSACTION_FAILED_ID`, `SQLITE_BACKUP_FAILED_ID`
+- `repos/core.py` — `UNSUPPORTED_CONFIG_FILE_TYPE_ID`
+- `di/dependency_injector.py` — `DI_DEPENDENCY_NOT_REGISTERED_ID`
 
 ## Configuration
 
@@ -344,6 +352,8 @@ Key methods: `execute(sql, parameters)`, `executemany(sql, seq_of_parameters)`, 
 
 All query/mutation methods guard against uninitialized connections with `SQLITE_CONN_NOT_INITIALIZED` errors. Context manager protocol (`__enter__`/`__exit__`) auto-commits on success and auto-rolls-back on exception.
 
+**No `sqlite3` exception escapes the client.** Every driver call is wrapped as a `ServiceError`: `SQLITE_STATEMENT_FAILED` (`execute` / `executemany` / `executescript`), `SQLITE_QUERY_FAILED` (row retrieval in `fetch_one` / `fetch_all`), `SQLITE_TRANSACTION_FAILED` (`commit` / `rollback`), `SQLITE_CONN_FAILED` (connect), and `SQLITE_BACKUP_FAILED` (`backup`), each preserving the driver exception as `__cause__`. `sqlite3.IntegrityError` gets no special handling — a consumer needing domain semantics for a constraint violation catches the specific code inside its own event.
+
 ## Package Exports
 
 The top-level `tiferet/__init__.py` exports:
@@ -360,7 +370,7 @@ The top-level `tiferet/__init__.py` exports:
 - `DomainEvent`, `ParseParameter` (from `tiferet.events`)
 
 **Interfaces:**
-- `Service` (from `tiferet.interfaces`)
+- `Service`, `ServiceError` (from `tiferet.interfaces`)
 
 **Mappers:**
 - `Aggregate`, `TransferObject` (from `tiferet.mappers`)
@@ -374,7 +384,7 @@ The top-level `tiferet/__init__.py` exports:
 - `tiferet/domain/core.py` — `DomainObject` base class (extends `pydantic.BaseModel`), the `ServiceDependency` core model, and the model error protocol (`ModelError`, `describe_model`, `unpack_validation_error`, model error constants)
 - `tiferet/events/settings.py` — `DomainEvent` base class (execute, verify, parameters_required, handle)
 - `tiferet/mappers/settings.py` — `Aggregate` and `TransferObject` base classes
-- `tiferet/interfaces/settings.py` — `Service` (ABC) base class
+- `tiferet/interfaces/core.py` — `Service` (ABC) base class and `ServiceError`
 - `tiferet/di/core.py` — `ServiceContainer` / `ServiceResolver` ABCs + `injectable_parameter_names` / `normalize_flags`
 - `tiferet/di/dependency_injector.py` — `DIDynamicServiceContainer` (Factory), `DIAppServiceContainer` (Singleton), `DIDynamicServiceResolver` (per-flag)
 - `tiferet/di/settings.py` — legacy `ServiceContainer` (DI engine) and `ServiceResolver` (public provider), still wired by `build_app`
@@ -393,6 +403,22 @@ The top-level `tiferet/__init__.py` exports:
 - `examples/basic_calculator/` — Working calculator application example
 
 ## Migration Notes
+
+### Service Error Protocol
+
+This cycle gives `interfaces` its own error vocabulary and severs the last Infrastructure→Actor import edges:
+
+- **`interfaces/core.py` owns `ServiceError`** — A new `# *** classes` section, inserted **between** `# *** imports` and `# *** interfaces`, holds `ServiceError(Exception)` with a `raise_for(service, error_code, message=None, cause=None, **kwargs)` classmethod. It is exported from `tiferet/interfaces/__init__.py`. Standalone by design: because `AppSessionContext.run` catches only `TiferetError`, the leak is structural and needs no change to `run`.
+- **Provenance is derived, not hand-passed** — `raise_for` takes the failing service first and derives `module_path` / `class_name` from `type(service)` and `target_method` from the calling frame. Passing `self` names the runtime type, so an unsupported extension configured for the app repository reports `AppConfigRepository`, not the `ConfigurationRepository` mixin holding the raise site. A class may be passed at a static raise site. The `cause` parameter is an addition to the TRD's illustrative signature; it makes `raise ... from cause` explicit at each conversion rather than inferring the active exception from `sys.exc_info()`, which would mis-attribute a cause when a utility is called from inside an unrelated `except` block.
+- **`utils` and `repos` no longer import `events`** — All 36 `utils` raise sites plus `repos/core.py` convert to `ServiceError.raise_for`; the `from ..events import RaiseError, a` and `from ..events.core import TiferetError` imports are gone. The documented "`utils` never imports `events`" rule is true for the first time.
+- **Codes relocate to their raise sites** — 23 utility codes plus `UNSUPPORTED_CONFIG_FILE_TYPE` migrate out of `assets/error.py` into `# *** constants` sections of the modules that raise them. See Error Code Hosting.
+- **The five structured-error passthroughs narrow** — `except TiferetError: raise` becomes `except ServiceError: raise` in `utils/{json,toml,yaml}.py`, keeping a missing file from being relabelled a parse failure.
+- **The SQLite driver is fully wrapped** — `execute`, `executemany`, `executescript`, `fetch_one`, `fetch_all`, `commit`, and `rollback` were calling the driver bare; each now converts `sqlite3.Error` into a `ServiceError` with the driver exception as `__cause__`, under three new codes (`SQLITE_STATEMENT_FAILED`, `SQLITE_QUERY_FAILED`, `SQLITE_TRANSACTION_FAILED`). `open_file` widens from `sqlite3.OperationalError` to `sqlite3.Error`. Consequently **all seven `except sqlite3.Error` blocks in `events/sqlite.py` are deleted** along with the six `APP_ERROR` raises, the `SQLITE_BACKUP_FAILED` raise, and the `import sqlite3`; each `try` collapses to its body and a failure propagates unhandled. `events/sqlite.py` is no longer the only module in `events/` with an `except` clause.
+- **`ConfigurationService` retired** — `interfaces/config.py` is deleted and the export removed. Zero implementers, zero consumers; the loaders declare only `FileLoader` and format dispatch belongs to `ConfigurationRepository`.
+- **DI gains a named guard** — `DIDynamicServiceContainer.get_dependency` raises `DI_DEPENDENCY_NOT_REGISTERED` instead of letting `TypeError: 'NoneType' object is not callable` surface. This widens the documented `di` import allowance from `interfaces.di` to `interfaces`; the event-free/asset-free constraint is unaffected since `ServiceError` is neither.
+- **Catalog reduction** — `CORE_DEFAULT_ERRORS` goes 36 → 15 (10 orphans, 10 migrated codes, `UNSUPPORTED_CONFIG_FILE_TYPE`); `ADMIN_DEFAULT_ERRORS` loses 3 of its own. The `SQLITE`/`TOML`/`CSV` group dicts and their `(ids_*)` / `(models_*)` sub-sections are deleted outright, collapsing `DEFAULT_ERRORS` to a `CORE` + `ADMIN` union. `SQLITE_BACKUP_FAILED` migrates out rather than moving into `CORE`, since its only raiser is now the utility. The acceptance criterion — every catalogued code has a raiser in `tiferet/` — holds.
+- **Two latent defects fixed in passing** — `INVALID_FILE_MODE`'s catalog template carried a `{modes}` placeholder the raise site never supplied, making `KeyError: 'modes'` reachable; the inline f-string resolves it by construction. `utils/file.py` hardcoded `encoding=None`, so `INVALID_ENCODING` always read "Invalid encoding: None." regardless of the offending value.
+- **Deferred** — Converting `ServiceDependency.get_service_type`'s dynamic import (`domain/core.py`) is excluded to keep `domain` framework-import-free; retiring `RaiseError` and consolidating `assets/exceptions.py` belong to the Exception Asset Consolidation item; the mirrored change on `main`.
 
 ### Model Error Protocol & Mapper Layer Independence
 

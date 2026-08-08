@@ -11,7 +11,7 @@ The interfaces layer defines abstract service contracts that domain events, cont
 
 There are two categories of service interfaces in Tiferet:
 
-- **Infrastructure services** — abstract low-level I/O operations that are independent of any domain model (`FileService`, `ConfigurationService`, `SqliteService`). These are general-purpose contracts consumed by middleware, repositories, and utilities.
+- **Infrastructure services** — abstract low-level I/O operations that are independent of any domain model (`FileService`, `SqliteService`). These are general-purpose contracts consumed by middleware, repositories, and utilities.
 - **Domain services** — abstract persistence and query operations scoped to a specific domain aggregate (`AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `LoggingService`). These are the primary contracts consumed by domain events.
 
 This guide covers the cross-cutting strategies and design decisions that apply across all interface modules.
@@ -126,7 +126,7 @@ self.feature_service.save(feature)
 
 If the interface declared a plain `Feature` return type, domain events would need to convert it to an aggregate before mutation, creating unnecessary overhead and reducing clarity.
 
-Infrastructure services (`FileService`, `ConfigurationService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`).
+Infrastructure services (`FileService`, `SqliteService`) are the exception — they have no domain aggregate concept and return raw I/O types (`IO[Any]`, `Any`). They raise a `ServiceError` rather than a `TiferetError`, since an infrastructural failure is not a domain outcome.
 
 ## How Services Are Consumed by Domain Events
 

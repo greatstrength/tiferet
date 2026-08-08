@@ -34,9 +34,13 @@ Util-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `interfaces` (to implement a Service contract), `events` (`RaiseError`, `a`). Never import from `domain`, `mappers`, `repos`, `di`, `contexts`, or `blueprints`.
-- Implementing a **Service** contract from `tiferet/interfaces/` is **optional** — required only when the utility needs to be DI-injectable (resolved from the container). Utilities called statically or directly do not need a Service interface.
-- Use `RaiseError.execute(error_code, ...)` from `tiferet/events/static.py` for all error paths — never raise raw exceptions from utilities.
+- **Layer boundary — valid `# ** app` imports:** `interfaces` (the Service contract to implement, plus `interfaces.core` for `ServiceError`), `mappers`. Never import from `events`, `domain`, `repos`, `di`, `contexts`, or `blueprints`. The `events` prohibition is real: reaching into `events` for an error vocabulary was the violation the service error protocol removed.
+- Implementing a **Service** contract from `tiferet/interfaces/` is **optional** — required only when the utility needs to be DI-injectable (resolved from the container). Utilities called statically or directly do not need a Service interface. The config loaders (`YamlLoader`, `JsonLoader`, `TomlLoader`) deliberately declare only `FileLoader`.
+- Raise every failure as a `ServiceError` via `ServiceError.raise_for(self, error_code, message, ...)` from `tiferet/interfaces/core.py`. Never let a raw driver exception escape a utility, and never use `RaiseError` / `TiferetError` — an infrastructural failure is not a domain outcome.
+- Host each error code as an `_ID` constant in a `# *** constants` section of the module that raises it. Infrastructure codes are **not** catalogued in `assets/error.py`. When a code is raised from two modules, host it in the one they both already import (e.g. `INVALID_FILE_ID` lives in `utils/file.py`).
+- Supply the message inline as an f-string, since a service error is never localized. When a placeholder-free message repeats across raise sites, hoist it to a module-level message constant in a `# *** constants (messages)` sub-group.
+- Pass `cause=e` when converting an underlying exception so its detail survives as `__cause__`.
+- At a static raise site with no instance available, pass the class in place of `self`.
 - **Resource-owning utilities** implement the context manager protocol: `__enter__` (open/connect) and `__exit__` (close/disconnect; commit or rollback on error).
 - **Static one-shot helpers** on utilities (e.g. `CsvLoader.load_rows(path)`) provide a convenience API that opens, reads, closes in a single call.
 - Export from `tiferet/utils/__init__.py` with both the full class name and a short alias (e.g. `FileLoader` / `File`, `YamlLoader` / `Yaml`).
@@ -44,18 +48,21 @@ Util-specific labels:
 
 **Current utility aliases:**
 
-| Full name | Alias | Service contract |
-|---|---|---|
-| `FileLoader` | `File` | `FileService` |
-| `YamlLoader` | `Yaml` | (via `FileLoader`) |
-| `JsonLoader` | `Json` | (via `FileLoader`) |
-| `TomlLoader` | `Toml` | (via `FileLoader`) |
-| `CsvLoader` | `Csv` | (via `FileLoader`) |
-| `CsvDictLoader` | `CsvDict` | (via `FileLoader`) |
-| `SqliteClient` | `Sqlite` | `SqliteService`, `FileService` |
-| `LoggingMiddleware` | — | `MiddlewareService` |
-| `TimingMiddleware` | — | `MiddlewareService` |
-| `CacheMiddleware` | — | `MiddlewareService` |
+| Full name | Alias | Service contract | Hosted error codes |
+|---|---|---|---|
+| `FileLoader` | `File` | `FileService` | `FILE_NOT_FOUND`, `FILE_ALREADY_OPEN`, `INVALID_FILE`, `INVALID_FILE_MODE`, `INVALID_ENCODING` |
+| `YamlLoader` | `Yaml` | `FileService` (inherited) | `YAML_FILE_NOT_FOUND`, `YAML_FILE_LOAD_ERROR`, `YAML_FILE_SAVE_ERROR` |
+| `JsonLoader` | `Json` | `FileService` (inherited) | `JSON_FILE_NOT_FOUND`, `JSON_FILE_LOAD_ERROR`, `JSON_FILE_SAVE_ERROR`, `INVALID_JSON_PATH` |
+| `TomlLoader` | `Toml` | `FileService` (inherited) | `TOML_FILE_NOT_FOUND`, `TOML_FILE_LOAD_ERROR`, `INVALID_TOML_FILE` |
+| `CsvLoader` | `Csv` | `FileService` (inherited) | `CSV_FIELDNAMES_REQUIRED`, `CSV_INVALID_READ_MODE`, `CSV_INVALID_WRITE_MODE` |
+| `CsvDictLoader` | `CsvDict` | `FileService` (inherited) | (shares the `CsvLoader` codes) |
+| `SqliteClient` | `Sqlite` | `SqliteService`, `FileService` | `SQLITE_CONN_FAILED`, `SQLITE_CONN_ALREADY_OPEN`, `SQLITE_CONN_NOT_INITIALIZED`, `SQLITE_INVALID_MODE`, `SQLITE_STATEMENT_FAILED`, `SQLITE_QUERY_FAILED`, `SQLITE_TRANSACTION_FAILED`, `SQLITE_BACKUP_FAILED` |
+| `LoggingMiddleware` | — | `MiddlewareService` | — |
+| `TimingMiddleware` | — | `MiddlewareService` | — |
+| `CacheMiddleware` | — | `MiddlewareService` | — |
+
+The config loaders declare only `FileLoader`; they implement no configuration
+contract. `ConfigurationService` was retired for having no implementers.
 
 ## Example
 
@@ -68,8 +75,12 @@ from pathlib import Path
 
 # ** app
 from .file import FileLoader
-from ..events.static import RaiseError
-from .. import assets as a
+from ..interfaces.core import ServiceError
+
+# *** constants
+
+# ** constant: invalid_toml_file_id
+INVALID_TOML_FILE_ID = 'INVALID_TOML_FILE'
 
 # *** utils
 
@@ -111,6 +122,7 @@ class TomlLoader(FileLoader):
         :type data_factory: Callable
         :return: The loaded and transformed data.
         :rtype: Any
+        :raises ServiceError: If the file cannot be parsed.
         '''
 
         # Open, parse, transform, and return the TOML data.
@@ -118,9 +130,12 @@ class TomlLoader(FileLoader):
             try:
                 data = tomllib.load(self.file)
             except tomllib.TOMLDecodeError as e:
-                RaiseError.execute(
-                    error_code=a.const.INVALID_TOML_FILE_ID,
-                    message=str(e),
+                ServiceError.raise_for(
+                    self,
+                    INVALID_TOML_FILE_ID,
+                    f'File is not a valid TOML file: {self.path}.',
+                    cause=e,
+                    error=str(e),
                     path=str(self.path),
                 )
 

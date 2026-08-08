@@ -37,9 +37,9 @@ DI-specific labels:
 
 ## Key conventions
 
-- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces.di` (`DIService`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
-- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and (in `dependency_injector.py`) `..interfaces.di`. Never import `RaiseError`, `TiferetError`, `a.error`, or any other event/asset.
-- Raw exceptions surface from DI classes; callers with event access convert them to structured errors.
+- **Layer boundary — valid `# ** app` imports:** `domain` (`ServiceDependency`), `interfaces` (`interfaces.di` for `DIService`, `interfaces.core` for `ServiceError`). Never import from `events`, `assets`, `mappers`, `repos`, `utils`, `contexts`, or `blueprints`.
+- The DI layer is **event-free and asset-free**: imports only stdlib, `dependency_injector`, `..domain`, and `..interfaces`. Never import `RaiseError`, `TiferetError`, `a.error`, or any other event/asset. `ServiceError` is neither an event nor an asset, so importing it does not breach this constraint.
+- Raise a `ServiceError` for a failure the DI layer can name itself — an unregistered dependency id, for example, rather than letting a bare `TypeError` surface. Host the code as an `_ID` constant in the raising module. Failures the layer cannot name (a service constructor blowing up) still surface as raw exceptions for callers with event access to convert.
 - **All new DI components must extend either `ServiceContainer` or `ServiceResolver`** — there is no valid DI class that does not inherit from one of these two ABCs.
 - **DI inverts the domain event principle:** Domain events expose a minimal interface (`execute`) to serve unlimited domain use cases. DI components expose a richer interface to solve one highly specific concern — dependency resolution. Both are injection targets, but in opposite directions of interface breadth vs. domain breadth.
 - **`injectable_parameter_names(service_type)`** — returns constructor parameter names eligible for automatic wiring (excludes `self`, `*args`, `**kwargs`). Uninspectable types are treated as no-arg.
