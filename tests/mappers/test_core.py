@@ -192,6 +192,28 @@ def test_aggregate_set_attribute_validates_assignment(test_aggregate: type):
     # Assert the Pydantic error is preserved as the exception cause.
     assert isinstance(exc_info.value.__cause__, ValidationError)
 
+# ** test: aggregate_set_attribute_describes_offending_model
+def test_aggregate_set_attribute_describes_offending_model(test_aggregate: type):
+    '''
+    Test that set_attribute describes the aggregate that refused the mutation,
+    so the leaked defect names the offending instance.
+
+    :param test_aggregate: The Aggregate subclass to test.
+    :type test_aggregate: type
+    '''
+
+    # Create an aggregate instance.
+    aggregate = test_aggregate(id='test_id', name='Test Name')
+
+    # Attempt to set an unknown attribute.
+    with pytest.raises(ModelError) as exc_info:
+        aggregate.set_attribute('invalid_attribute', 'value')
+
+    # Assert the model descriptor identifies the aggregate that raised.
+    assert exc_info.value.model['type'] == 'TestAggregate'
+    assert exc_info.value.model['id'] == 'test_id'
+    assert exc_info.value.model['name'] == 'Test Name'
+
 # ** test: transfer_object_from_data
 def test_transfer_object_from_data(test_data_object: type):
     '''

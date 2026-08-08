@@ -10,6 +10,7 @@ from .core import (
     DomainObject,
     ModelError,
     ServiceDependency,
+    describe_model,
     unpack_validation_error,
 )
 from .app import (
@@ -57,6 +58,7 @@ __all__ = [
     'DomainObject',
     'ModelError',
     'ServiceDependency',
+    'describe_model',
     'unpack_validation_error',
     'AppSession',
     'AppServiceDependency',

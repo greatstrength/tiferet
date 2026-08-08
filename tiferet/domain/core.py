@@ -21,7 +21,44 @@ INVALID_MODEL_VALUE_ID = 'INVALID_MODEL_VALUE'
 # ** constant: attribute_not_settable_id
 ATTRIBUTE_NOT_SETTABLE_ID = 'ATTRIBUTE_NOT_SETTABLE'
 
+# ** constant: model_identity_fields
+MODEL_IDENTITY_FIELDS = (
+    'id',
+    'name',
+    'key',
+)
+
 # *** functions
+
+# ** function: describe_model
+def describe_model(model: Any) -> Dict[str, Any]:
+    '''
+    Summarize the model instance a violation originated from.
+
+    The descriptor reports the model's type identity plus whichever identifying
+    fields the model happens to declare, so a model error names the offending
+    instance without holding a reference to it or serializing its whole state.
+
+    :param model: The model instance to describe.
+    :type model: Any
+    :return: The model descriptor.
+    :rtype: Dict[str, Any]
+    '''
+
+    # Start with the model's type identity.
+    descriptor: Dict[str, Any] = {
+        'type': type(model).__name__,
+        'module': type(model).__module__,
+    }
+
+    # Add each identifying field the model exposes as a primitive value.
+    for field in MODEL_IDENTITY_FIELDS:
+        value = getattr(model, field, None)
+        if isinstance(value, (bool, float, int, str)):
+            descriptor[field] = value
+
+    # Return the descriptor.
+    return descriptor
 
 # ** function: unpack_validation_error
 def unpack_validation_error(error: ValidationError) -> List[Dict[str, Any]]:
@@ -59,10 +96,18 @@ class ModelError(Exception):
     inconsistency is a consumer defect rather than a domain outcome, so it is
     not catalogued, not localized, and not formatted as an API response. It
     carries its own message and leaks to the top as an unhandled exception.
+
+    Because the error is read as a defect report rather than a response, it also
+    names the offending instance: the ``model`` descriptor identifies which model
+    raised the violation, which is the metadata a catalogued ``TiferetError``
+    never needs to carry.
     '''
 
     # * attribute: error_code
     error_code: str
+
+    # * attribute: model
+    model: Dict[str, Any]
 
     # * attribute: violations
     violations: List[Dict[str, Any]]
@@ -74,23 +119,29 @@ class ModelError(Exception):
     def __init__(self,
             error_code: str,
             message: str = None,
+            model: Dict[str, Any] = None,
             violations: List[Dict[str, Any]] = None,
             **kwargs):
         '''
-        Initialize the ModelError with an error code, message, and violations.
+        Initialize the ModelError with an error code, message, model descriptor,
+        and violations.
 
         :param error_code: The model error code.
         :type error_code: str
         :param message: The error message carried by the error itself.
         :type message: str
+        :param model: The descriptor of the model that raised the error, as
+            produced by :func:`describe_model`.
+        :type model: Dict[str, Any]
         :param violations: The structured field violations, when available.
         :type violations: List[Dict[str, Any]]
         :param kwargs: Additional error keyword arguments.
         :type kwargs: dict
         '''
 
-        # Set the error code, violations, and additional arguments.
+        # Set the error code, model descriptor, violations, and additional arguments.
         self.error_code = error_code
+        self.model = model or {}
         self.violations = violations or []
         self.kwargs = kwargs
 
@@ -99,6 +150,7 @@ class ModelError(Exception):
             json.dumps({
                 'error_code': error_code,
                 'message': message,
+                'model': self.model,
                 'violations': self.violations,
                 **kwargs,
             })
@@ -106,7 +158,7 @@ class ModelError(Exception):
 
     # * method: raise_error
     @classmethod
-    def raise_error(cls, error_code: str, message: str = None, **kwargs) -> None:
+    def raise_error(cls, error_code: str, message: str = None, model: Any = None, **kwargs) -> None:
         '''
         Raise a model error with the given code and message.
 
@@ -114,16 +166,28 @@ class ModelError(Exception):
         :type error_code: str
         :param message: The error message to carry.
         :type message: str
+        :param model: The model instance that raised the error, described into
+            error context when supplied.
+        :type model: Any
         :param kwargs: Additional error keyword arguments.
         :type kwargs: dict
         '''
 
-        # Raise the model error with the supplied code and context.
-        raise cls(error_code, message=message, **kwargs)
+        # Raise the model error with the supplied code, described model, and context.
+        raise cls(
+            error_code,
+            message=message,
+            model=describe_model(model) if model is not None else None,
+            **kwargs,
+        )
 
     # * method: raise_for_validation
     @classmethod
-    def raise_for_validation(cls, error: ValidationError, message: str = None, **kwargs) -> None:
+    def raise_for_validation(cls,
+            error: ValidationError,
+            message: str = None,
+            model: Any = None,
+            **kwargs) -> None:
         '''
         Convert a Pydantic validation error into a model error, classifying the
         failure and preserving the original error as the exception cause.
@@ -132,12 +196,23 @@ class ModelError(Exception):
         :type error: ValidationError
         :param message: An optional message overriding the derived one.
         :type message: str
+        :param model: The model instance that raised the error; when omitted the
+            descriptor falls back to the type the validation error reports.
+        :type model: Any
         :param kwargs: Additional error keyword arguments.
         :type kwargs: dict
         '''
 
         # Flatten the reported violations.
         violations = unpack_validation_error(error)
+
+        # Describe the offending instance, falling back to the type name the
+        # validation error itself reports when no instance was supplied.
+        descriptor = (
+            describe_model(model)
+            if model is not None
+            else {'type': error.title}
+        )
 
         # An unknown field and an invalid value are distinct failures; Pydantic
         # reports the former as a no_such_attribute violation.
@@ -150,7 +225,8 @@ class ModelError(Exception):
         # Raise the classified model error, preserving the Pydantic cause.
         raise cls(
             error_code,
-            message=message or f'Model validation failed: {violations}.',
+            message=message or f'{descriptor["type"]} validation failed: {violations}.',
+            model=descriptor,
             violations=violations,
             **kwargs,
         ) from error

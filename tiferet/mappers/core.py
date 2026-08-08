@@ -52,10 +52,12 @@ class Aggregate(DomainObject):
             setattr(self, attribute, value)
 
         # An unknown attribute or an invalid value both surface here; the
-        # raiser classifies which of the two occurred.
+        # raiser classifies which of the two occurred and describes this
+        # aggregate as the offending instance.
         except ValidationError as error:
             ModelError.raise_for_validation(
                 error,
+                model=self,
                 attribute=attribute,
             )
 

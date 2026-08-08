@@ -15,6 +15,7 @@ from tiferet.domain.core import (
     DomainObject,
     ModelError,
     ServiceDependency,
+    describe_model,
     unpack_validation_error,
 )
 
@@ -39,6 +40,31 @@ def test_domain_object() -> type:
 
     # Return the class.
     return TestDomainObject
+
+# ** fixture: test_identified_object
+@pytest.fixture
+def test_identified_object() -> type:
+    '''
+    Fixture for a DomainObject subclass declaring identifying fields.
+
+    :return: The DomainObject subclass.
+    :rtype: type
+    '''
+
+    # Define a subclass carrying two of the identity fields describe_model reads.
+    class TestIdentifiedObject(DomainObject):
+        id: str = Field(
+            ...,
+            description='The identifier.',
+        )
+
+        name: str = Field(
+            ...,
+            description='The name.',
+        )
+
+    # Return the class.
+    return TestIdentifiedObject
 
 # *** tests
 
@@ -180,6 +206,46 @@ def test_unpack_validation_error_flattens_violations(test_domain_object: type):
     assert violations[0]['field'] == 'attribute'
     assert set(violations[0]) == {'field', 'type', 'message'}
 
+# ** test: describe_model_reports_type_and_identity
+def test_describe_model_reports_type_and_identity(test_identified_object: type):
+    '''
+    Test that describe_model reports the model's type identity plus whichever
+    identifying fields the model declares.
+
+    :param test_identified_object: The DomainObject subclass to describe.
+    :type test_identified_object: type
+    '''
+
+    # Describe an instance declaring two of the three identity fields.
+    descriptor = describe_model(test_identified_object(id='test_id', name='Test Name'))
+
+    # Assert the type identity and the declared identity fields are reported.
+    assert descriptor['type'] == 'TestIdentifiedObject'
+    assert descriptor['module'] == test_identified_object.__module__
+    assert descriptor['id'] == 'test_id'
+    assert descriptor['name'] == 'Test Name'
+
+    # Assert an undeclared identity field is omitted rather than reported as None.
+    assert 'key' not in descriptor
+
+# ** test: describe_model_omits_non_primitive_identity
+def test_describe_model_omits_non_primitive_identity():
+    '''
+    Test that describe_model omits an identity field whose value is not a
+    primitive, so the descriptor stays serializable as error context.
+    '''
+
+    # Define a stub whose identity field holds a non-primitive value.
+    class Stub:
+        id = {'nested': 'value'}
+
+    # Describe the stub.
+    descriptor = describe_model(Stub())
+
+    # Assert only the type identity is reported.
+    assert descriptor['type'] == 'Stub'
+    assert 'id' not in descriptor
+
 # ** test: model_error_is_not_a_tiferet_error
 def test_model_error_is_not_a_tiferet_error():
     '''
@@ -212,6 +278,29 @@ def test_model_error_carries_code_violations_and_context():
     assert error.kwargs == {'attribute': 'name'}
     assert 'Bad value.' in str(error)
 
+    # Assert the model descriptor defaults to empty when no model is described.
+    assert error.model == {}
+
+# ** test: model_error_serializes_model_descriptor
+def test_model_error_serializes_model_descriptor():
+    '''
+    Test that ModelError retains the model descriptor and serializes it into the
+    exception message, so the offending instance is named in a traceback.
+    '''
+
+    # Construct an error carrying a model descriptor.
+    error = ModelError(
+        ATTRIBUTE_NOT_SETTABLE_ID,
+        message='Not settable.',
+        model={'type': 'CliCommandAggregate', 'id': 'calc.add'},
+        attribute='id',
+    )
+
+    # Assert the descriptor is both retained and serialized.
+    assert error.model == {'type': 'CliCommandAggregate', 'id': 'calc.add'}
+    assert 'CliCommandAggregate' in str(error)
+    assert 'calc.add' in str(error)
+
 # ** test: model_error_raise_error
 def test_model_error_raise_error():
     '''
@@ -230,6 +319,31 @@ def test_model_error_raise_error():
     assert exc_info.value.error_code == ATTRIBUTE_NOT_SETTABLE_ID
     assert exc_info.value.kwargs.get('attribute') == 'id'
     assert exc_info.value.violations == []
+
+# ** test: model_error_raise_error_describes_model
+def test_model_error_raise_error_describes_model(test_identified_object: type):
+    '''
+    Test that raise_error describes a supplied model instance into the error
+    rather than carrying a reference to it.
+
+    :param test_identified_object: The DomainObject subclass to describe.
+    :type test_identified_object: type
+    '''
+
+    # Raise with the offending instance supplied.
+    model = test_identified_object(id='test_id', name='Test Name')
+    with pytest.raises(ModelError) as exc_info:
+        ModelError.raise_error(
+            ATTRIBUTE_NOT_SETTABLE_ID,
+            message='Not settable.',
+            model=model,
+            attribute='id',
+        )
+
+    # Assert the descriptor names the instance and holds no reference to it.
+    assert exc_info.value.model['type'] == 'TestIdentifiedObject'
+    assert exc_info.value.model['id'] == 'test_id'
+    assert all(isinstance(value, str) for value in exc_info.value.model.values())
 
 # ** test: model_error_raise_for_validation_unknown_attribute
 def test_model_error_raise_for_validation_unknown_attribute(test_domain_object: type):
@@ -276,3 +390,49 @@ def test_model_error_raise_for_validation_invalid_value(test_domain_object: type
     # Assert the value branch was selected and the cause was chained.
     assert exc_info.value.error_code == INVALID_MODEL_VALUE_ID
     assert exc_info.value.__cause__ is validation_info.value
+
+# ** test: model_error_raise_for_validation_describes_model
+def test_model_error_raise_for_validation_describes_model(test_identified_object: type):
+    '''
+    Test that raise_for_validation describes a supplied model instance and names
+    it in the derived message.
+
+    :param test_identified_object: The DomainObject subclass to describe.
+    :type test_identified_object: type
+    '''
+
+    # Capture a validation error from a non-coercible assignment.
+    model = test_identified_object(id='test_id', name='Test Name')
+    with pytest.raises(ValidationError) as validation_info:
+        model.name = ['not', 'a', 'string']
+
+    # Convert the captured error with the instance supplied.
+    with pytest.raises(ModelError) as exc_info:
+        ModelError.raise_for_validation(validation_info.value, model=model, attribute='name')
+
+    # Assert the descriptor names the instance and the message reports its type.
+    assert exc_info.value.model['type'] == 'TestIdentifiedObject'
+    assert exc_info.value.model['id'] == 'test_id'
+    assert 'TestIdentifiedObject validation failed' in str(exc_info.value)
+
+# ** test: model_error_raise_for_validation_falls_back_to_error_title
+def test_model_error_raise_for_validation_falls_back_to_error_title(test_domain_object: type):
+    '''
+    Test that raise_for_validation derives the model type from the validation
+    error itself when no instance is supplied.
+
+    :param test_domain_object: The DomainObject subclass to test.
+    :type test_domain_object: type
+    '''
+
+    # Capture a validation error without retaining the instance.
+    domain_object = test_domain_object(attribute='test')
+    with pytest.raises(ValidationError) as validation_info:
+        domain_object.attribute = ['not', 'a', 'string']
+
+    # Convert the captured error with no model supplied.
+    with pytest.raises(ModelError) as exc_info:
+        ModelError.raise_for_validation(validation_info.value, attribute='attribute')
+
+    # Assert the descriptor reports the type the validation error named.
+    assert exc_info.value.model == {'type': 'TestDomainObject'}

@@ -58,6 +58,7 @@ class CliArgumentAggregate(CliArgument, Aggregate):
             ModelError.raise_error(
                 ATTRIBUTE_NOT_SETTABLE_ID,
                 message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
                 supported=supported_names,
             )
@@ -155,6 +156,7 @@ class CliCommandAggregate(CliCommand, Aggregate):
             ModelError.raise_error(
                 ATTRIBUTE_NOT_SETTABLE_ID,
                 message=f'Invalid attribute: {attribute}. Supported attributes are {supported_names}.',
+                model=self,
                 attribute=attribute,
                 supported=supported_names,
             )
