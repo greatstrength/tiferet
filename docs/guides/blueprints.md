@@ -147,6 +147,30 @@ return context_cls.from_domain(app_session, get_dependency=resolver.get_dependen
 
 (The `CreateServiceResolver` bootstrap event is used by the `_load_app_instance` path in `tiferet/blueprints/tiferet_cli.py` for the built-in CLI bootstrapper.)
 
+## Admin Blueprints
+
+`tiferet/blueprints/admin.py` and `tiferet/blueprints/admin_cli.py` compose the built-in admin app and admin CLI sessions (`admin` / `admin_cli`) that ship with the framework rather than being defined in a consumer's config file. Both are **parallel, not derived** implementations of the core path: they mirror `core.build_app`/`core.build_app_session_context` function-for-function but substitute an admin-aware cache and resolver at each step.
+
+### `admin.py` — the admin app session
+
+- **`build_cache()`** — stacks `add_default_admin_services`/`add_default_admin_constants`/`add_default_features`/`add_default_errors` (seeded from `a.app.ADMIN_DEFAULT_SERVICES`/`ADMIN_DEFAULT_CONSTANTS`, `a.feat.ADMIN_DEFAULT_FEATURES`, `a.error.ADMIN_DEFAULT_ERRORS`) on top of `core.build_cache`, giving the admin blueprints their full catalog without touching a consumer config file.
+- **`build_admin_service_resolver(app_container, cache, parse_parameter=core.parse_parameter)`** — parallel to `core.build_service_resolver`, but builds a **second** `DIAppServiceContainer` from the cache-seeded admin services/constants and registers it under both the `'admin'` flag and as the default (empty-flag) container, so admin feature steps resolve without explicit flag annotations.
+- **`build_admin_app_session_context(app_session, cache, **context_kwargs)`** — parallel to `core.build_app_session_context`, substituting `build_admin_service_resolver` for `core.build_service_resolver`. Hardcodes `context_cls = AppSessionContext` (no declarative context-class resolution, since the admin app path only ever composes the base hub).
+- **`build_admin_app(interface_id=a.app.TIFERET_ADMIN_ID, **parameters)`** — the single-call entry point, parallel to `core.build_app`.
+
+### `admin_cli.py` — the admin CLI session
+
+- **`build_cache()`** — extends `admin.build_cache` with `add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)`, adding the built-in admin CLI command definitions.
+- **`build_admin_cli_session_context(app_session, cache)`** — parallel to the consumer-facing CLI session composition, substituting `admin.build_admin_service_resolver` and wiring CLI-specific `create_request_handler`/`response_handler` slots (`create_cli_request_context`/`cli_response_handler`).
+- **`build_admin_cli(app_config, argv=None)`** — resolves the `admin_cli` session, **re-seeds its constants** so every config-file-backed repo (`app_config`, `cli_config`, `di_config`, `error_config`, `feature_config`, `logging_config`) points at the consumer's `app_config` path instead of the seeded `'config.yml'` placeholders, then dispatches `argv` via `CliSessionContext.run`.
+- **`main()`** — the `tiferet` console-script entry point; pre-parses `--config` before delegating to `build_admin_cli`.
+
+### Known gap: `build_logger_handler` is not wired
+
+Unlike `core.build_app_session_context` (which wires `build_logger_handler=build_logger_handler(cache, resolver.get_dependency)` into every session's handler dict), **neither** `build_admin_app_session_context` nor `build_admin_cli_session_context` supplies a `build_logger_handler` slot. Both blueprints predate the fifth handler slot and were never updated when it was introduced (they also never wired the earlier `logging_context` predecessor).
+
+The practical effect: an admin or admin-CLI session's first `run()` call hits `AppSessionContext.build_logger`'s unwired-handler guard and raises a clean `APP_ERROR` naming the missing `build_logger_handler` slot — a **strict improvement** over the previously unguarded `AttributeError` this gap produced before the guard existed, but still a gap relative to the core path's logging behavior. Closing it (wiring `build_logger_handler(cache, resolver.get_dependency)` into both admin handler dicts, mirroring the core path) is left as a follow-up item; it is not yet scheduled.
+
 ## Related Documentation
 
 - [docs/core/blueprints.md](../core/blueprints.md) — detailed blueprint implementation reference
