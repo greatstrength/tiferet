@@ -56,12 +56,13 @@ FEATURE_NOT_FOUND_ID = 'FEATURE_NOT_FOUND'
 ## Key conventions
 
 - **Spacing:** One empty line between artifact section and first artifact; one empty line between artifacts; one empty line between artifact members (`# *`); one empty line after docstrings; one empty line between code snippets within a method.
-- **Docstrings:** RST format — include `:param`/`:type` for every parameter and `:return`/`:rtype` for every return value.
+- **Docstrings:** RST format — include `:param`/`:type` for every parameter and `:return`/`:rtype` for every return value. Class-level docstrings additionally open with a 1–2 sentence vision-tier value statement (why the concept exists, not just its fields) — see `tiferet-guide-docs` for the docstring↔guide-doc convention.
 - **Parameter indentation:** For methods with >3 parameters, align subsequent params to the opening parenthesis.
 - **Code snippets:** Each logical step is a separate snippet preceded by a 1–2 line comment describing intent.
 - **Annotation artifacts** (transient lifecycle markers, placed immediately after the `# *` label they annotate):
   - `# ++ todo: <message>` — deferred work; remove when done.
   - `# -- obsolete: <reason>` — deprecated artifact; remove with the artifact. Shorthand: `# * method: foo (obsolete)`.
+  - `# >> see: <path>#<anchor>` (or `@guides/`-shorthand) — points to the `docs/guides/` distillation-tier entry for this class/method; see `tiferet-guide-docs` for the full docstring↔guide convention.
 - **Pre-session scan:** Before editing, run `grep -rn "# ++\|# --" tiferet/` to find open annotations.
 - **Constant declaration style:** All list- and dictionary-typed constants use the multi-line hanging-indent style with a trailing comma, wherever they appear. Short constants are just as mandatory as long ones. Never `{ **OTHER_DICT }` inline.
 - **Optional parameters in function/factory calls:** must be passed as keyword arguments — not positionally. Required positional parameters may continue to be passed positionally. Correct: `create_default_app_session_data('Admin App', description='...')`. Incorrect: `create_default_app_session_data('Admin App', '...')` (the optional `description` passed positionally loses its self-documenting value).

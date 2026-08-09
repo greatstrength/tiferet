@@ -82,6 +82,7 @@ The plain `(ids)` / `(data)` sub-groups (no suffix) hold the core/baseline group
 - **Classes:** Plain standalone classes (exception types, data primitives). Use `# *** classes` / `# ** class: <name>`, `# * attribute: <name>`, `# * init`.
 - **`TiferetError.raise_error`:** `TiferetError` (and its subclass `TiferetAPIError`) carries a `raise_error(cls, error_code, message=None, **kwargs)` classmethod raiser — `raise cls(error_code, message, **kwargs)` dispatches to whichever subclass it is called on, so `TiferetAPIError.raise_error(...)` raises a `TiferetAPIError` directly with no override needed. This mirrors the classmethod-raiser shape of `ModelError.raise_error` (`domain/core.py`) and `ServiceError.raise_for` (`interfaces/core.py`) — each of the framework's three error families raises through a classmethod on the exception it owns.
 - **Exports:** Only in `__init__.py` under `# *** exports`. Use short module aliases for frequently consumed modules (e.g. `from . import constants as const`).
+- **Docstrings & guides:** Standalone class docstrings (e.g. `TiferetError`) open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/assets.md#<anchor>` to `docs/guides/assets.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

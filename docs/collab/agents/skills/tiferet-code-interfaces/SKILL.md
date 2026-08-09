@@ -44,6 +44,7 @@ Interface-specific labels:
 - Do **not** define a Service for a concern nothing implements. Any Service class outside the abstract core (`interfaces/core.py`) with zero subclasses is suspicious and a candidate for removal — an ABC with zero implementers and zero consumers is an artifact without a consumer.
 - **`ServiceError`** (`tiferet/interfaces/core.py`) lives in a `# *** classes` section of `core.py`, placed **between** `# *** imports` and `# *** interfaces` per the canonical section order. It is the exception every service raises for an infrastructural failure, and it is deliberately **not** a `TiferetError` subclass: an infrastructural failure is not a domain outcome, so it is never catalogued, localized, or formatted into an API response. Raise it via the `raise_for` classmethod, which derives `module_path` / `class_name` / `target_method` from the failing service and the calling frame; document it as `:raises ServiceError:` on the abstract methods that can fail.
 - **Exported interfaces:** `Service`, `ServiceError`, `AppService`, `CliService`, `DIService`, `ErrorService`, `FeatureService`, `FileService`, `LoggingService`, `SqliteService`, `MiddlewareService`.
+- **Docstrings & guides:** Interface class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/interfaces.md#<anchor>` to `docs/guides/interfaces.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

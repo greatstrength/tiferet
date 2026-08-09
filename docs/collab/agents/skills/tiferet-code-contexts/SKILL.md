@@ -61,6 +61,8 @@ Context-specific labels:
 
 **`run(feature_id, headers, data, **kwargs)`** is the standard high-level execution entry point (inherited from `AppSessionContext`).
 
+**Docstrings & guides:** Context class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/contexts.md#<anchor>` to `docs/guides/contexts.md`, which carries the full distillation-tier detail. See `tiferet-guide-docs` for the complete convention.
+
 ## Example
 
 ```python

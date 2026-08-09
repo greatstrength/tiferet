@@ -49,6 +49,7 @@ DI-specific labels:
 - **App-level:** `DIAppServiceContainer` uses `Singleton` scope — one shared instance per app. Created via `from_dependencies(services, constants)` classmethod.
 - **Feature-level:** `DIDynamicServiceResolver` uses `Factory` scope — a new instance per resolution. Built per flag set by `build_container`.
 - Use `# *** di` as the construct group for all DI component classes. Use `# * method: <name> (class)` for `@classmethod` entries.
+- **Docstrings & guides:** DI class docstrings open with a 1–2 sentence vision-tier value statement, linked via `# >> see: @guides/di.md#<anchor>` (ABCs) or `@guides/di/dependency_injector.md#<anchor>` (concrete engines) to the corresponding guide. See `tiferet-guide-docs` for the complete convention.
 
 ## Example
 

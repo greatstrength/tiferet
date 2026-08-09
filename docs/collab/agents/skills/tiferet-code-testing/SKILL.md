@@ -68,6 +68,7 @@ Repository integration tests use `# ** test_int: <name>`.
 - Tests use `pytest`.
 - Keep docstrings RST-style and keep one blank line after docstrings.
 - Use mocks for event/unit tests; use real temp files (`tmp_path`) for repository integration tests.
+- **Docstrings & guides:** The testing harness has no `docs/guides/` entry of its own — when a test module's harness usage is worth distilling, add it to the guide of the component under test (per `tiferet-guide-docs`) rather than inventing a testing-specific guide.
 
 ## Example
 
