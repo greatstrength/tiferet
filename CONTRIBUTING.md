@@ -93,6 +93,10 @@ Warp/AI agents contributing to Tiferet follow the same conventions described abo
 - **`tiferet-milestone-session`** — run a milestone's per-issue branch → PR → merge → report loop ([main.md](docs/collab/main.md)).
 - **`tiferet-pr-code-review`** — review a PR by comparing its feature branch against a prototype source of truth and posting only actionable comments ([code_review.md](docs/collab/code_review.md)).
 
+**Documentation skills** handle the docstring ↔ guide-doc convention:
+
+- **`tiferet-guide-docs`** — what belongs in a docstring (vision-tier) vs. a `docs/guides/` entry (distillation-tier), the four genre-specific guide templates (`docs/guides/templates/`) and how to choose between them, and the anchor/`# >> see:` linking convention ([code_style.md § Annotation Artifacts](docs/core/code_style.md)). Use when writing/upgrading a docstring, authoring or remediating a guide, or adding a `# >> see:` annotation.
+
 **Super-TRD skills** handle multi-child implementation workflows (XL+ issues decomposed into sequenced children). See [docs/collab/super_trd_workflow.md](docs/collab/super_trd_workflow.md) for the complete workflow reference.
 
 - **`tiferet-super-trd`** — dispatch skill; read first to self-identify your role via the state machine.

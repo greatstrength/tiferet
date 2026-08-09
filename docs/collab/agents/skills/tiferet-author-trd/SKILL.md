@@ -52,6 +52,7 @@ Follow this exact structure (pure Markdown — headers, tables, code blocks):
 ## 8. Related Code Style Documentation
 - `tiferet-code-style` — required for every story.
 - `tiferet-code-<component>` — include only for components this story modifies (domain, events, mappers, interfaces, contexts, repos, assets, blueprints, utils, di, testing). For multi-component stories, also include `tiferet-code-architecture`.
+- `tiferet-guide-docs` — include when the story's Acceptance Criteria requires adding or remediating a `docs/guides/` entry.
 - **Fallback** (if skills not installed): link to `docs/core/<component>.md` directly.
 ```
 
