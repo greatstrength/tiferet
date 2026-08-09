@@ -60,15 +60,15 @@ The built-in CLI exposes these command groups:
 Run a group with no command, or an unknown command, to see argparse usage for
 that group.
 
-## JSON-Valued Arguments
+## Dict-Valued Arguments
 
-Some commands accept structured values. These arguments are provided as JSON
-strings on the command line and decoded before the feature executes:
+The admin CLI is JSON-free: flat string-to-string map arguments are provided
+as `key=value` tokens rather than JSON strings, and are parsed by
+`CliArgument.parse_value()` before the feature executes:
 
 - `--parameters`
 - `--constants`
-- `--services`
-- `--flagged-dependencies`
+- `--additional-messages`
 
 Example — add a service registration with parameters:
 
@@ -76,21 +76,25 @@ Example — add a service registration with parameters:
 tiferet --config app/config.yml service add my_svc \
   --module-path tiferet.repos.feature \
   --class-name FeatureConfigRepository \
-  --parameters '{"feature_config": "app/config.yml"}'
+  --parameters feature_config=app/config.yml
 ```
 
-Malformed JSON fails cleanly with a message on stderr and a non-zero exit code
-rather than an unhandled traceback. Optional list/dict arguments that are omitted
-are treated as empty (`[]` / `{}`) by the underlying domain events, except where
-an explicit `null`/absence is meaningful (e.g. `set-constants` clearing all
-constants).
+A `dict` value may contain `=` because `parse_value()` splits on the first
+delimiter only. Optional dict arguments that are omitted are treated as empty
+(`{}`) by the underlying domain events, except where an explicit
+`null`/absence is meaningful (e.g. `set-constants` clearing all constants).
+
+Bulk-record arguments (nested records rather than flat maps, e.g. a service's
+dependency list) are not encoded through the CLI at all. Create the parent
+record first, then use the granular follow-up commands (`app.set-service`,
+`service.set-dependency`) to add records one at a time.
 
 ## Exit Codes
 
 - `0` — success.
 - `1` — a `TiferetAPIError` was raised while executing the feature (the formatted
   error message is printed to stderr).
-- `2` — argument parsing failed, or a JSON-valued argument was malformed.
+- `2` — argument parsing failed.
 
 ## Programmatic Use
 
