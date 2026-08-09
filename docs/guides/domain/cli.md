@@ -1,76 +1,172 @@
-# Domain – CLI: CliArgument and CliCommand
+# Domain – CLI: CliRecord, CliOutputRecord, CliRecordList, CliArgument, and CliCommand
 
 **Project:** Tiferet Framework  
 **Repository:** https://github.com/greatstrength/tiferet  
-**Date:** May 04, 2026  
+**Date:** August 09, 2026  
 **Version:** 2.0.0
 
 ## Overview
 
-The CLI domain defines the structural configuration for command-line interface commands in Tiferet. CLI commands serve as the **terminal-to-feature bridge**: each `CliCommand` has a composite identifier (`group_key.key`) that maps directly to a feature ID in `feature.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input.
+The CLI domain defines two related concerns: the structural configuration for command-line interface commands, and the typed output-rendering models a CLI response is displayed through. `CliCommand` is the **terminal-to-feature bridge**: it has a composite identifier (`group_key.key`) that maps directly to a feature ID in `feature.yml`, enabling seamless execution of domain features via `argparse`-driven command-line input. `CliRecord`/`CliOutputRecord`/`CliRecordList` are a separate, independent concern — rendering a raw feature result as vertical or tabular stdout text — that has no relationship to the command/argument configuration shape.
 
+- `CliRecord` — a typed atomic record unit both output models are built from.
+- `CliOutputRecord` — renders a single `CliRecord` as a vertical attribute-value list.
+- `CliRecordList` — renders multiple `CliRecord` rows as an aligned table.
 - `CliArgument` — represents a single command-line argument or flag, mapping to `argparse.add_argument()` parameters.
-- `CliCommand` — represents a CLI command with a composite ID, a custom `new()` factory for ID derivation, and a `has_argument()` query method.
+- `CliCommand` — represents a CLI command with a composite ID (derived by a `@model_validator`) and a `has_argument()` query method.
 
-Both domain objects are **immutable value objects**: they carry no mutation methods and expose only read-only queries. All state changes (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
+All five domain objects are **immutable value objects**: they carry no mutation methods (the two output-rendering classes carry a pure `format_output()` query instead) and expose only read-only queries. All state changes to `CliCommand`/`CliArgument` (adding/removing arguments, renaming commands) occur exclusively through Aggregates in the mappers layer.
 
 **Module:** `tiferet/domain/cli.py`
+**Vision:** See the `CliCommand` and `CliRecordList` class docstrings in `tiferet/domain/cli.py` for the value statements this guide distills.
+
+## Ubiquitous Language
+
+- **Terminal-to-feature bridge** — the design pattern where `CliCommand.id` maps 1:1 to a feature ID, so a CLI command is a thin entry point rather than its own business-logic surface.
+- **Record** — one `CliRecord`: an ordered, string-coerced attribute-value mapping extracted from a raw domain result, independent of how it is ultimately rendered.
+- **Vertical output** — `CliOutputRecord`'s rendering shape: one `attribute: value` line per field, for a single record.
+- **Tabular output** — `CliRecordList`'s rendering shape: an aligned, header-plus-rows table across multiple records.
+- **Argument dest** — the argparse destination key `CliArgument.get_dest()` derives from `name_or_flags`, mirroring argparse's own long-flag-wins derivation.
 
 ## Domain Objects
 
-### CliArgument
+### CliRecord
 
-Represents a single command-line argument or flag.
+The atomic unit both output models are built from: an ordered mapping of attribute names to string values, with all values coerced to `str` so column/line output never needs a type check.
 
-| Attribute       | Type                   | Required | Default | Description                                                                      |
-|-----------------|------------------------|----------|---------|----------------------------------------------------------------------------------|
-| `name_or_flags` | `List[str]`            | Yes      | —       | The name or flags of the argument (e.g., `["-f", "--flag"]`).                     |
-| `description`   | `str \| None`          | No       | `None`  | A brief description of the argument.                                              |
-| `type`          | `str \| None`          | No       | `'str'` | The type: `"str"`, `"int"`, or `"float"`.                                         |
-| `required`      | `bool \| None`         | No       | `None`  | Whether the argument is required.                                                 |
-| `default`       | `str \| None`          | No       | `None`  | The default value if not provided.                                                |
-| `choices`       | `List[str] \| None`    | No       | `None`  | Valid choices for the argument.                                                   |
-| `nargs`         | `str \| None`          | No       | `None`  | Number of arguments: `"?"`, `"*"`, `"+"`, or an integer.                          |
-| `action`        | `str \| None`          | No       | `None`  | The action: `store`, `store_true`, `store_false`, `append`, `count`, `help`, etc. |
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clirecord-fields"></a>`fields` | `Dict[str, str]` | No | `{}` | Ordered attribute-to-string-value pairs extracted from the raw result. |
+
+No methods — `CliRecord` is a pure data container; both rendering classes below own the formatting behavior.
+
+### CliOutputRecord
+
+Wraps one `CliRecord` and renders it as a top-down attribute-value list, with attribute names left-padded to a consistent width.
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clioutputrecord-record"></a>`record` | `CliRecord` | Yes | — | The typed record to display. |
 
 #### Methods
 
-**`get_type() -> str | int | float`**
+<a id="clioutputrecord-format-output"></a>
+**`format_output(indent: int = 2) -> str`**
 
-Maps the stored `type` string to a Python type object. Falls back to `str` if the type is `None` or unrecognized.
+Renders one `<indent><attribute padded to max width>: <value>` line per field. Returns an empty string when the record has no fields.
+
+```python
+CliOutputRecord(record=CliRecord(fields={'id': 'calc.add', 'name': 'Add'})).format_output()
+# '  id  : calc.add\n  name: Add'
+```
+
+### CliRecordList
+
+Wraps a list of `CliRecord` rows and renders them as an aligned table: a header row derived from the union of all field keys (in encounter order), a separator row, then one row per record, with each column aligned to its widest value.
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clirecordlist-records"></a>`records` | `List[CliRecord]` | No | `[]` | The typed record rows; each `CliRecord` represents one table row. |
+
+#### Methods
+
+<a id="clirecordlist-format-output"></a>
+**`format_output() -> str`**
+
+Renders the aligned table described above. Returns an empty string when the list is empty, or when every record has no fields.
+
+```python
+CliRecordList(records=[
+    CliRecord(fields={'id': 'calc.add', 'name': 'Add'}),
+    CliRecord(fields={'id': 'calc.sqrt', 'name': 'Square Root'}),
+]).format_output()
+```
+
+### CliArgument
+
+Represents a single command-line argument or flag. The `type` field is a `Literal` driving materially different `to_argparse_kwargs()` branching — there is no separate `action` field; action is derived from `type`.
+
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="cliargument-name-or-flags"></a>`name_or_flags` | `List[str]` | Yes | — | The name or flags of the argument (e.g., `["-f", "--flag"]`). |
+| <a id="cliargument-description"></a>`description` | `str \| None` | No | `None` | A brief description of the argument. |
+| <a id="cliargument-type"></a>`type` | `Literal['str', 'int', 'float', 'bool', 'json', 'list', 'dict']` | No | `'str'` | The argument input shape — see the `type`-to-argparse mapping table below. |
+| <a id="cliargument-required"></a>`required` | `bool \| None` | No | `None` | Whether the argument is required. |
+| <a id="cliargument-default"></a>`default` | `str \| None` | No | `None` | The default value if not provided. |
+| <a id="cliargument-choices"></a>`choices` | `List[str] \| None` | No | `None` | Valid choices for the argument (scalar and `list` types only). |
+| <a id="cliargument-nargs"></a>`nargs` | `str \| None` | No | `None` | Number of arguments: `"?"`, `"*"`, `"+"`, or an integer. Defaults to `'*'` for `list`/`dict` when unset. |
+
+**The `type` → argparse mapping:**
+
+| `type` | `to_argparse_kwargs()` behavior |
+|---|---|
+| `'str'` / `'int'` / `'float'` | Resolves the Python builtin via `get_type()`; honors `nargs`/`choices` when set. |
+| `'bool'` | `action='store_true'` — no value consumed; `nargs`/`choices`/`type` are omitted entirely. |
+| `'json'` | `type=json.loads` — decodes a single JSON string at parse time. |
+| `'list'` | `type=str`, `nargs=self.nargs or '*'` — collects space-separated tokens; `choices` still applies per-element. |
+| `'dict'` | `type=str`, `nargs=self.nargs or '*'` — collects space-separated tokens later reassembled by `parse_value()`. |
+
+#### Methods
+
+<a id="cliargument-get-type"></a>
+**`get_type() -> type`**
+
+Maps a scalar `type` string (`'str'`, `'int'`, `'float'`) to its Python builtin. Non-scalar types are handled directly by `to_argparse_kwargs()`; this method returns `str` as a safe fallback for any unrecognised value.
 
 ```python
 arg = CliArgument(name_or_flags=['--count'], type='int')
 assert arg.get_type() is int
 ```
 
+<a id="cliargument-to-argparse-kwargs"></a>
 **`to_argparse_kwargs() -> Dict[str, Any]`**
 
-Builds the keyword arguments for `argparse.add_argument()` from the argument's fields. Trivial fields come from a pydantic `model_dump(exclude_none=True, ...)` and `description` is mapped to `help`. Value-consuming actions (the default, `store`, `append`) receive a resolved `type` callable (via `get_type()`) and retain `nargs`/`choices`, while flag and const actions (e.g. `store_true`) omit those keywords so parser construction stays valid. `name_or_flags` is excluded because it is passed positionally to `add_argument`.
+Builds the keyword arguments for `argparse.add_argument()` per the `type` → argparse mapping table above. `name_or_flags` is excluded because it is passed positionally to `add_argument`.
 
 ```python
 arg = CliArgument(name_or_flags=['a'], description='First operand.', type='int')
 arg.to_argparse_kwargs()  # {'help': 'First operand.', 'type': int}
 
-flag = CliArgument(name_or_flags=['--verbose'], description='Verbose.', action='store_true')
-flag.to_argparse_kwargs()  # {'action': 'store_true', 'help': 'Verbose.'}
+flag = CliArgument(name_or_flags=['--verbose'], description='Verbose.', type='bool')
+flag.to_argparse_kwargs()  # {'help': 'Verbose.', 'action': 'store_true'}
+```
+
+<a id="cliargument-get-dest"></a>
+**`get_dest() -> str`**
+
+Derives the argparse destination name, mirroring argparse's own dest derivation: the first long flag (`--foo-bar`) wins, normalizing hyphens to underscores; falls back to the first short flag; a positional argument returns its name directly.
+
+```python
+CliArgument(name_or_flags=['-c', '--count']).get_dest()  # 'count'
+CliArgument(name_or_flags=['a']).get_dest()               # 'a'
+```
+
+<a id="cliargument-parse-value"></a>
+**`parse_value(value: Any) -> Any`**
+
+Interprets the raw value argparse returns for this argument. A `'dict'`-typed argument arrives as a list of `key=value` strings (from `nargs='*'`); this method assembles them into a mapping via `DICT_ARGUMENT_DELIMITER` (`'='`). Every other type is already in its correct Python form and is returned unchanged.
+
+```python
+CliArgument(name_or_flags=['--tag'], type='dict').parse_value(['env=prod', 'region=us'])
+# {'env': 'prod', 'region': 'us'}
 ```
 
 ### CliCommand
 
 Represents a CLI command with a composite identifier.
 
-| Attribute    | Type                              | Required | Default | Description                                                  |
-|--------------|-----------------------------------|----------|---------|--------------------------------------------------------------|
-| `id`         | `str`                             | Yes      | —       | The unique identifier, formatted as `"group_key.key"`.        |
-| `name`       | `str`                             | Yes      | —       | The name of the command.                                      |
-| `description`| `str \| None`                     | No       | `None`  | A brief description of the command.                           |
-| `key`        | `str`                             | Yes      | —       | The unique key for the command.                               |
-| `group_key`  | `str`                             | Yes      | —       | The group key the command belongs to.                         |
-| `arguments`  | `List[CliArgument]`               | No       | `[]`    | A list of arguments for the command.                          |
+| Attribute | Type | Required | Default | Description |
+|---|---|---|---|---|
+| <a id="clicommand-id"></a>`id` | `str` | Yes | — | The unique identifier, formatted as `"group_key.key"`. |
+| <a id="clicommand-name"></a>`name` | `str` | Yes | — | The name of the command. |
+| <a id="clicommand-description"></a>`description` | `str \| None` | No | `None` | A brief description of the command. |
+| <a id="clicommand-key"></a>`key` | `str` | Yes | — | The unique key for the command. |
+| <a id="clicommand-group-key"></a>`group_key` | `str` | Yes | — | The group key the command belongs to. |
+| <a id="clicommand-arguments"></a>`arguments` | `List[CliArgument]` | No | `[]` | A list of arguments for the command. |
 
 #### Methods
 
+<a id="clicommand-derive-id"></a>
 **ID Derivation via `@model_validator`**
 
 The `id` is automatically derived by a `@model_validator(mode='before')` that normalizes hyphens to underscores in both `group_key` and `key`, then joins them with a dot:
@@ -83,6 +179,7 @@ cmd = CliCommand(group_key='my-group', key='my-cmd', name='My Command')
 assert cmd.id == 'my_group.my_cmd'
 ```
 
+<a id="clicommand-has-argument"></a>
 **`has_argument(flags: List[str]) -> bool`**
 
 Returns `True` if any of the provided flags match the `name_or_flags` of an existing argument in the command.
@@ -160,23 +257,31 @@ These events depend on the `CliService` interface for persistence operations.
 **`CliService`** (`tiferet/interfaces/cli.py`) defines the abstract contract for CLI configuration persistence:
 
 - `exists(id: str) -> bool`
-- `get(id: str) -> CliCommand`
-- `list() -> List[CliCommand]`
-- `save(cli_command) -> None`
+- `get(id: str) -> CliCommandAggregate`
+- `list() -> List[CliCommandAggregate]`
+- `save(command: CliCommandAggregate) -> None`
 - `delete(id: str) -> None`
+- `get_parent_arguments() -> List[CliArgumentAggregate]`
+- `save_parent_arguments(parent_arguments: List[CliArgumentAggregate]) -> None`
 
 Concrete implementations (e.g., `CliConfigRepository`) satisfy this interface.
 
 ## Relationships to Other Domains
 
 - **Feature:** `CliCommand.id` maps 1:1 to feature IDs in `feature.yml`. CLI commands are thin entry points that delegate to the feature layer.
-- **App:** The CLI interface in the configuration points at `CliContext` and specifies `CliService` as a service dependency. `CliContext` handles argparse wiring; the `build_cli` blueprint realizes the context and delegates to `CliContext.run_cli`.
+- **App:** The CLI session in the configuration points at `CliContext` and specifies `CliService` as a service dependency. `CliContext` handles argparse wiring; the `build_cli` blueprint realizes the context and delegates to `CliContext.run_cli`.
 - **Error:** CLI error responses are formatted via `ErrorContext`, providing user-friendly messages for validation failures and domain errors.
+- **Output rendering:** `CliOutputRecord`/`CliRecordList` are independent of `CliCommand`/`CliArgument` — they render whatever a feature's response contains, regardless of which command produced it.
+
+## Boundaries
+
+**Inside this domain:** the CLI command/argument configuration shape and the terminal-to-feature id mapping; the record-based vertical/tabular output-rendering shape.
+**Outside this domain:** argparse wiring, subparser construction, and CLI request dispatch (`CliContext`, `docs/core/contexts.md`); mutation of a `CliCommand`/`CliArgument` (`CliCommandAggregate`/`CliArgumentAggregate` in `mappers`); which service produces the raw result a `CliRecord` wraps (that belongs to the feature/event layer, not this domain).
 
 ## Instantiation
 
 ```python
-from tiferet.domain import CliArgument, CliCommand
+from tiferet.domain import CliArgument, CliCommand, CliRecord, CliRecordList
 
 # Create an argument directly via Pydantic constructor
 arg = CliArgument(
@@ -195,12 +300,16 @@ cmd = CliCommand(
     arguments=[arg],
 )
 # cmd.id == 'calc.add'
+
+# Render a tabular result
+table = CliRecordList(records=[CliRecord(fields={'id': cmd.id, 'name': cmd.name})])
+print(table.format_output())
 ```
 
 ## Related Documentation
 
+- [docs/guides/domain/app.md](app.md) — App domain guide (session configuration)
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/domain.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/domain.md) — Domain model conventions
-- [docs/guides/domain/app.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/domain/app.md) — App domain guide (interface configuration)
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service contract definitions
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
