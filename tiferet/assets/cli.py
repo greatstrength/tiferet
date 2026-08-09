@@ -156,8 +156,7 @@ APP_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['class_name'], 'Name of the context class.'),
         create_default_cli_argument(['--description'], 'Optional description.'),
         create_default_cli_argument(['--logger-id'], 'Logger identifier (default: default).', default='default'),
-        create_default_cli_argument(['--services'], 'Service dependencies as JSON string.', type='json'),
-        create_default_cli_argument(['--constants'], 'Constants as JSON string.', type='json'),
+        create_default_cli_argument(['--constants'], 'Constants as key=value pairs.', type='dict'),
     ],
 )
 
@@ -201,7 +200,7 @@ APP_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     description='Set or clear constants on an app interface.',
     arguments=[
         create_default_cli_argument(['id'], 'The interface identifier.'),
-        create_default_cli_argument(['--constants'], 'Constants as JSON string. Omit to clear all.', type='json'),
+        create_default_cli_argument(['--constants'], 'Constants as key=value pairs. Omit to clear all.', type='dict'),
     ],
 )
 
@@ -216,7 +215,7 @@ APP_SET_SERVICE_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['service_id'], 'The service dependency identifier.'),
         create_default_cli_argument(['module_path'], 'Module path for the service.'),
         create_default_cli_argument(['class_name'], 'Class name for the service.'),
-        create_default_cli_argument(['--parameters'], 'Parameters as JSON string.', type='json'),
+        create_default_cli_argument(['--parameters'], 'Parameters as key=value pairs.', type='dict'),
     ],
 )
 
@@ -293,6 +292,11 @@ ERROR_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['name'], 'The error name.'),
         create_default_cli_argument(['message'], 'The primary error message text.'),
         create_default_cli_argument(['--lang'], 'Language code for the message (default: en_US).', default='en_US'),
+        create_default_cli_argument(
+            ['--additional-messages'],
+            'Additional messages beyond the primary one, as lang=text pairs.',
+            type='dict',
+        ),
     ],
 )
 
@@ -433,7 +437,7 @@ FEATURE_ADD_STEP_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['id'], 'The feature identifier.'),
         create_default_cli_argument(['name'], 'The step name.'),
         create_default_cli_argument(['service_id'], 'The service configuration ID for the step.'),
-        create_default_cli_argument(['--parameters'], 'Optional step parameters as JSON string.', type='json'),
+        create_default_cli_argument(['--parameters'], 'Optional step parameters as key=value pairs.', type='dict'),
         create_default_cli_argument(['--data-key'], 'Optional result data key.'),
         create_default_cli_argument(['--position'], 'Insertion position (default: append).', type='int'),
     ],
@@ -492,8 +496,7 @@ SERVICE_ADD_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['id'], 'The unique service configuration identifier.'),
         create_default_cli_argument(['--module-path'], 'Default module path.'),
         create_default_cli_argument(['--class-name'], 'Default class name.'),
-        create_default_cli_argument(['--parameters'], 'Configuration parameters as JSON string.', type='json'),
-        create_default_cli_argument(['--flagged-dependencies'], 'Flagged dependencies as JSON string.', type='json'),
+        create_default_cli_argument(['--parameters'], 'Configuration parameters as key=value pairs.', type='dict'),
     ],
 )
 
@@ -515,7 +518,7 @@ SERVICE_SET_DEFAULT_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['id'], 'The service configuration identifier.'),
         create_default_cli_argument(['--module-path'], 'Default module path.'),
         create_default_cli_argument(['--class-name'], 'Default class name.'),
-        create_default_cli_argument(['--parameters'], 'Parameters as JSON string.', type='json'),
+        create_default_cli_argument(['--parameters'], 'Parameters as key=value pairs.', type='dict'),
     ],
 )
 
@@ -530,7 +533,7 @@ SERVICE_SET_DEPENDENCY_CLI_CMD_DATA = create_default_cli_command_data(
         create_default_cli_argument(['flag'], 'The flag identifying the dependency.'),
         create_default_cli_argument(['module_path'], 'Module path for the dependency.'),
         create_default_cli_argument(['class_name'], 'Class name for the dependency.'),
-        create_default_cli_argument(['--parameters'], 'Parameters as JSON string.', type='json'),
+        create_default_cli_argument(['--parameters'], 'Parameters as key=value pairs.', type='dict'),
     ],
 )
 
@@ -564,7 +567,7 @@ SERVICE_SET_CONSTANTS_CLI_CMD_DATA = create_default_cli_command_data(
     'Set Service Constants',
     description='Set or clear service-level constants.',
     arguments=[
-        create_default_cli_argument(['--constants'], 'Constants as JSON string. Omit to clear all.', type='json'),
+        create_default_cli_argument(['--constants'], 'Constants as key=value pairs. Omit to clear all.', type='dict'),
     ],
 )
 

@@ -292,7 +292,7 @@ ERROR_ADD_DATA = create_default_feature_data(
         name='str',
         message='str',
         lang={'type': 'str', 'required': False, 'default': 'en_US'},
-        additional_messages={'type': 'list', 'required': False, 'default': []},
+        additional_messages={'type': 'dict', 'required': False, 'default': {}},
     ),
 )
 
@@ -647,8 +647,8 @@ LOGGING_LIST_DATA = create_default_feature_data(
 
 # *** constants (groups)
 
-# ** constant: default_tiferet_cli_features
-DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Any] = {
+# ** constant: admin_default_features
+ADMIN_DEFAULT_FEATURES: Dict[str, Any] = {
     APP_ADD_ID: APP_ADD_DATA,
     APP_GET_ID: APP_GET_DATA,
     APP_LIST_ID: APP_LIST_DATA,
@@ -691,6 +691,3 @@ DEFAULT_TIFERET_CLI_FEATURES: Dict[str, Any] = {
     LOGGING_REMOVE_LOGGER_ID: LOGGING_REMOVE_LOGGER_DATA,
     LOGGING_LIST_ID: LOGGING_LIST_DATA,
 }
-
-# ** constant: admin_default_features
-ADMIN_DEFAULT_FEATURES: Dict[str, Any] = DEFAULT_TIFERET_CLI_FEATURES
