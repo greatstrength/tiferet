@@ -266,7 +266,9 @@ Signals deferred work attached to a specific artifact. The `++` prefix is semant
 Signals that an artifact is deprecated and slated for removal. The `--` prefix is semantic: *this is being reduced or removed*. Replaces the informal `# NOTE:` docstring approach with a single, consistently placed annotation line.
 
 ### `# >> see: <path>#<anchor>`
-Links a public class, method, or attribute to the distillation-tier guide content that documents it. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) — narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a repo-relative path plus an explicit anchor id (e.g. `docs/guides/domain/error.md#error-format-message`), never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage — do not add it preemptively to artifacts with no guide entry yet. See `.handoff/docstring-guide-doc-reorganization.handoff.md` for the full docstring↔guide mechanism this annotation is part of.
+Links a public class, method, or attribute to the distillation-tier guide content that documents it. The `>>` prefix is semantic: *the fuller story lives elsewhere*. The docstring on the annotated artifact stays vision-tier (a class-level value statement, or the plain mechanical `:param`/`:return` contract for a method) — narrative depth, rationale, and cross-domain relationships live in the linked guide instead. The target is always a path plus an explicit anchor id, never a signature-derived anchor, so a renamed parameter never breaks the link. Apply it only to **public** artifacts that have corresponding guide coverage — do not add it preemptively to artifacts with no guide entry yet. See `.handoff/docstring-guide-doc-reorganization.handoff.md` for the full docstring↔guide mechanism this annotation is part of.
+
+**The `@guides/` shorthand** — since every `# >> see:` target is rooted at `docs/guides/`, write it as `@guides/<rest-of-path>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. `@guides/` is a source-code-only shorthand for this annotation target — it is not a real path and must never appear in a clickable Markdown link; links between guide documents keep using normal relative paths (e.g. `[docs/guides/errors.md](../errors.md)`) so they render and navigate correctly on GitHub.
 
 **Placement grammar** — annotations appear immediately after the structural comment they annotate, on their own line, before the code body:
 
@@ -281,12 +283,12 @@ def remove_service(self, service_id: str | None = None, attribute_id: str | None
 return_to_data: bool = Field(default=False, ...)
 
 # ** model: error
-# >> see: docs/guides/domain/error.md#error
+# >> see: @guides/domain/error.md#error
 class Error(DomainObject):
     ...
 
     # * method: format_message
-    # >> see: docs/guides/domain/error.md#error-format-message
+    # >> see: @guides/domain/error.md#error-format-message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         ...
 ```

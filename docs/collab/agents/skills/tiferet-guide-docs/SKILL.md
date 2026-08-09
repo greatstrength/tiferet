@@ -31,7 +31,7 @@ A fifth annotation artifact (alongside `# ++ todo:` / `# -- obsolete:`), fully s
 
 ```python
 # ** model: error
-# >> see: docs/guides/domain/error.md#error
+# >> see: @guides/domain/error.md#error
 class Error(DomainObject):
     '''
     The declared, catalogued shape of a failure condition — the contract that
@@ -40,7 +40,7 @@ class Error(DomainObject):
     '''
 
     # * method: format_message
-    # >> see: docs/guides/domain/error.md#error-format-message
+    # >> see: @guides/domain/error.md#error-format-message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         '''
         Formats the error message text for the specified language.
@@ -48,7 +48,8 @@ class Error(DomainObject):
         '''
 ```
 
-- Target is always a **repo-relative path plus an explicit anchor id** — never a signature-derived anchor, so a renamed parameter never breaks the link.
+- Target is always a path plus an explicit anchor id — never a signature-derived anchor, so a renamed parameter never breaks the link.
+- **`@guides/` shorthand:** every target is rooted at `docs/guides/`, so write `@guides/<rest>#<anchor>` (e.g. `@guides/domain/error.md#error-format-message`) instead of spelling out `docs/guides/domain/error.md#error-format-message`. This shorthand is for the `# >> see:` annotation target only — never use it in a clickable Markdown link between guides; those stay normal relative paths (e.g. `../errors.md`) so GitHub renders them correctly.
 - Apply only to **public** classes/methods/attributes that have corresponding guide coverage. Do not add it preemptively to artifacts with no guide entry yet.
 - Placement: immediately after the `# *`/`# **` structural comment it annotates, before the docstring. Stacks after `# ++ todo:`/`# -- obsolete:` are ordered `# >> see:` first (see code_style.md).
 - Update the tag whenever the target anchor id changes; remove it if the guide section is deleted rather than leaving it dangling.
