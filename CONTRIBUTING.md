@@ -50,6 +50,7 @@ Key points:
 
 - Read **`tiferet-code-style`** before writing any code — artifact comments, spacing rules, RST docstrings, and snippet conventions are enforced across the codebase. If the skill is not installed, use [docs/core/code_style.md](docs/core/code_style.md) directly.
 - Read the **`tiferet-code-<component>`** skill for each layer you’re modifying (see the Code Style Skills list in **Working with AI Agents** above). If the skill is not installed, use the corresponding `docs/core/<component>.md` guide directly.
+- When writing or upgrading a docstring, or authoring/remediating a `docs/guides/` entry, read **`tiferet-guide-docs`** and start from the matching genre template in [docs/guides/templates/](docs/guides/templates/) rather than authoring from scratch.
 - Write tests using `pytest`.
 
 ### Commit Hygiene
