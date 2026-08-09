@@ -351,6 +351,7 @@ def raise_unwired_handler_error(handler_name: str, session_id: str, **kwargs) ->
 # *** contexts
 
 # ** context: app_session_context
+# >> see: @guides/contexts.md#appsessioncontext
 class AppSessionContext(BaseContext):
     '''
     The application session hub binds a loaded ``AppSession`` domain object

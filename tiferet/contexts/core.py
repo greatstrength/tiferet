@@ -13,6 +13,7 @@ from ..assets import TiferetError
 # *** classes
 
 # ** class: context_meta
+# >> see: @guides/contexts.md#contextmeta
 class ContextMeta(type):
     '''
     Metaclass that maintains a registry mapping domain object types to their
@@ -55,6 +56,7 @@ class ContextMeta(type):
         return cls
 
 # ** class: base_context
+# >> see: @guides/contexts.md#basecontext
 class BaseContext(metaclass=ContextMeta):
     '''
     The base context, providing a shared services slot plus a

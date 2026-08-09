@@ -63,6 +63,7 @@ def add_default_errors(errors: Dict[str, Any]) -> Callable:
 # *** contexts
 
 # ** context: error_context
+# >> see: @guides/contexts.md#errorcontext
 class ErrorContext(BaseContext):
     '''
     The error context formats structured error responses from loaded ``Error``

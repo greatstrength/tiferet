@@ -276,7 +276,7 @@ class ServiceResolver(object):
 The contexts do not hold a container or provider. Instead, the resolver's bound `get_dependency` method is injected as a plain callable:
 
 - `AppSessionContext` receives `get_dependency` and forwards it to the feature context it builds on demand.
-- `FeatureContext` (and `AsyncFeatureContext`) call `self.get_dependency(service_id, *flags)` to resolve each step's domain event and any configured middleware.
+- `FeatureContext` calls `self.get_dependency(service_id, *flags)` to resolve each step's domain event and any configured middleware — sync and async step dispatch are both handled internally by the same class.
 
 ```python
 # tiferet/contexts/feature.py (excerpt)

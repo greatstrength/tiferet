@@ -148,7 +148,7 @@ Immutable value object representing a complete feature workflow definition.
 | <a id="feature-feature-key"></a>`feature_key` | `str` | Yes | — | The key of the feature. |
 | <a id="feature-steps"></a>`steps` | `List[EventFeatureStep]` | No | `[]` | The ordered step workflow for the feature. |
 | <a id="feature-middleware"></a>`middleware` | `List[str]` | No | `[]` | Ordered middleware service IDs applied to every step in this feature. Outermost wrapper first. |
-| <a id="feature-is-async"></a>`is_async` | `bool` | No | `False` | Whether the feature executes its steps asynchronously (selects `AsyncFeatureContext`). |
+| <a id="feature-is-async"></a>`is_async` | `bool` | No | `False` | Whether `FeatureContext` drives the entire step loop asynchronously. |
 | <a id="feature-log-params"></a>`log_params` | `Dict[str, str]` | No | `{}` | Parameters to log for the feature. |
 | <a id="feature-params-schema"></a>`params_schema` | `RequestSpecification \| None` | No | `None` | Optional feature-level request validation schema applied to request data before step execution. |
 
@@ -185,7 +185,7 @@ The Feature domain objects participate in runtime workflow execution through the
 5. If `data_key` is set, the result is stored back into the data context under that key for downstream steps.
 6. If `pass_on_error` is `True`, a `TiferetError` from that step is caught, the step result resolves to `None`, and the workflow continues. The flag passes on **domain** errors only: a `ModelError` or `ServiceError` (or any other non-`TiferetError` exception) is a defect rather than a domain outcome and propagates regardless — see [docs/guides/errors.md](../errors.md).
 
-When `feature.is_async` is `True`, the application interface hub selects the `AsyncFeatureContext` (a subclass of `FeatureContext`) and awaits each step via `execute_feature_async`; otherwise the synchronous `FeatureContext` is used. The public `run()` entry point remains synchronous in both cases.
+There is no separate async context class: when `feature.is_async` is `True`, `FeatureContext.execute_feature` itself drives the whole step loop through an internal coroutine (`_execute_async`), run to completion via the module-level `run_coroutine` helper; an individual `step.is_async=True` step within an otherwise synchronous feature is driven the same way, per step. The public `run()` entry point stays synchronous in every case.
 
 ## Configuration Mapping
 

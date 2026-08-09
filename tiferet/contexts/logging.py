@@ -78,6 +78,7 @@ def get_default_logging_settings(cache: CacheContext) -> LoggingSettings | None:
 # *** contexts
 
 # ** context: logging_context
+# >> see: @guides/contexts.md#loggingcontext
 class LoggingContext(BaseContext):
     '''
     The logging context builds a configured logger from a pre-assembled
