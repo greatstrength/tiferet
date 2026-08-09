@@ -21,6 +21,7 @@ _OMITTED: Any = object()
 # *** events
 
 # ** event: di_event
+# >> see: @guides/events/di.md#dievent
 class DIEvent(DomainEvent):
     '''
     Base event providing the shared DIService dependency for DI domain events.
@@ -42,6 +43,7 @@ class DIEvent(DomainEvent):
         self.di_service = di_service
 
 # ** event: add_service_registration
+# >> see: @guides/events/di.md#addserviceregistration
 class AddServiceRegistration(DIEvent):
     '''
     A domain event to add a new service registration.
@@ -108,6 +110,7 @@ class AddServiceRegistration(DIEvent):
         return registration
 
 # ** event: set_default_service_registration
+# >> see: @guides/events/di.md#setdefaultserviceregistration
 class SetDefaultServiceRegistration(DIEvent):
     '''
     A domain event to set or update the default service registration for an
@@ -179,6 +182,7 @@ class SetDefaultServiceRegistration(DIEvent):
         return registration
 
 # ** event: set_service_dependency
+# >> see: @guides/events/di.md#setservicedependency
 class SetServiceDependency(DIEvent):
     '''
     A domain event to set or update a flagged dependency on an existing
@@ -252,6 +256,7 @@ class SetServiceDependency(DIEvent):
         return id
 
 # ** event: remove_service_dependency
+# >> see: @guides/events/di.md#removeservicedependency
 class RemoveServiceDependency(DIEvent):
     '''
     A domain event to remove a flagged dependency from an existing service
@@ -305,6 +310,7 @@ class RemoveServiceDependency(DIEvent):
         return id
 
 # ** event: remove_service_registration
+# >> see: @guides/events/di.md#removeserviceregistration
 class RemoveServiceRegistration(DIEvent):
     '''
     A domain event to remove a service registration by ID.
@@ -331,6 +337,7 @@ class RemoveServiceRegistration(DIEvent):
         return id
 
 # ** event: set_service_constants
+# >> see: @guides/events/di.md#setserviceconstants
 class SetServiceConstants(DIEvent):
     '''
     A domain event to set or clear service-level constants.
@@ -383,6 +390,7 @@ class SetServiceConstants(DIEvent):
         return updated
 
 # ** event: list_all_settings
+# >> see: @guides/events/di.md#listallsettings
 class ListAllSettings(DIEvent):
     '''
     A domain event to list all service registrations and constants.

@@ -14,6 +14,7 @@ from .core import DomainEvent, a
 # *** events
 
 # ** event: feature_event
+# >> see: @guides/events/feature.md#featureevent
 class FeatureEvent(DomainEvent):
     '''
     Base event providing the shared FeatureService dependency for feature domain events.
@@ -35,6 +36,7 @@ class FeatureEvent(DomainEvent):
         self.feature_service = feature_service
 
 # ** event: add_feature
+# >> see: @guides/events/feature.md#addfeature
 class AddFeature(FeatureEvent):
     '''
     Event to add a new feature configuration.
@@ -103,6 +105,7 @@ class AddFeature(FeatureEvent):
         return feature
 
 # ** event: get_feature
+# >> see: @guides/events/feature.md#getfeature
 class GetFeature(FeatureEvent):
     '''
     Event to retrieve a feature by its identifier.
@@ -141,6 +144,7 @@ class GetFeature(FeatureEvent):
         return feature
 
 # ** event: list_features
+# >> see: @guides/events/feature.md#listfeatures
 class ListFeatures(FeatureEvent):
     '''
     Event to list feature configurations.
@@ -163,6 +167,7 @@ class ListFeatures(FeatureEvent):
         return self.feature_service.list(group_id=group_id)
 
 # ** event: remove_feature
+# >> see: @guides/events/feature.md#removefeature
 class RemoveFeature(FeatureEvent):
     '''
     Event to remove an entire feature configuration by ID (idempotent).
@@ -194,6 +199,7 @@ class RemoveFeature(FeatureEvent):
         return id
 
 # ** event: update_feature
+# >> see: @guides/events/feature.md#updatefeature
 class UpdateFeature(FeatureEvent):
     '''
     Event to update basic metadata of an existing feature.
@@ -266,6 +272,7 @@ class UpdateFeature(FeatureEvent):
         return feature
 
 # ** event: add_feature_step
+# >> see: @guides/events/feature.md#addfeaturestep
 class AddFeatureStep(FeatureEvent):
     '''
     Event to add a step to an existing feature.
@@ -333,6 +340,7 @@ class AddFeatureStep(FeatureEvent):
         return id
 
 # ** event: update_feature_step
+# >> see: @guides/events/feature.md#updatefeaturestep
 class UpdateFeatureStep(FeatureEvent):
     '''
     Event to update an existing feature step within a feature workflow.
@@ -445,6 +453,7 @@ class UpdateFeatureStep(FeatureEvent):
         return id
 
 # ** event: remove_feature_step
+# >> see: @guides/events/feature.md#removefeaturestep
 class RemoveFeatureStep(FeatureEvent):
     '''
     Event to remove a step from an existing feature by position.
@@ -497,6 +506,7 @@ class RemoveFeatureStep(FeatureEvent):
         return id
 
 # ** event: reorder_feature_step
+# >> see: @guides/events/feature.md#reorderfeaturestep
 class ReorderFeatureStep(FeatureEvent):
     '''
     Event to reorder an existing feature step within a feature workflow.

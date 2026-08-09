@@ -14,6 +14,7 @@ from .core import DomainEvent, a
 # *** events
 
 # ** event: logging_event
+# >> see: @guides/events/logging.md#loggingevent
 class LoggingEvent(DomainEvent):
     '''
     Base event providing the shared LoggingService dependency for logging domain events.
@@ -35,6 +36,7 @@ class LoggingEvent(DomainEvent):
         self.logging_service = logging_service
 
 # ** event: list_all_logging_configs
+# >> see: @guides/events/logging.md#listallloggingconfigs
 class ListAllLoggingConfigs(LoggingEvent):
     '''
     Event to list all logging configurations (formatters, handlers, loggers).
@@ -55,6 +57,7 @@ class ListAllLoggingConfigs(LoggingEvent):
         return self.logging_service.list_all()
 
 # ** event: add_formatter
+# >> see: @guides/events/logging.md#addformatter
 class AddFormatter(LoggingEvent):
     '''
     Event to add a new logging formatter configuration.
@@ -107,6 +110,7 @@ class AddFormatter(LoggingEvent):
         return formatter
 
 # ** event: remove_formatter
+# >> see: @guides/events/logging.md#removeformatter
 class RemoveFormatter(LoggingEvent):
     '''
     Event to remove a formatter configuration by ID (idempotent).
@@ -133,6 +137,7 @@ class RemoveFormatter(LoggingEvent):
         return id
 
 # ** event: add_handler
+# >> see: @guides/events/logging.md#addhandler
 class AddHandler(LoggingEvent):
     '''
     Event to add a new logging handler configuration.
@@ -201,6 +206,7 @@ class AddHandler(LoggingEvent):
         return handler
 
 # ** event: remove_handler
+# >> see: @guides/events/logging.md#removehandler
 class RemoveHandler(LoggingEvent):
     '''
     Event to remove a handler configuration by ID (idempotent).
@@ -227,6 +233,7 @@ class RemoveHandler(LoggingEvent):
         return id
 
 # ** event: add_logger
+# >> see: @guides/events/logging.md#addlogger
 class AddLogger(LoggingEvent):
     '''
     Event to add a new logger configuration.
@@ -283,6 +290,7 @@ class AddLogger(LoggingEvent):
         return logger
 
 # ** event: remove_logger
+# >> see: @guides/events/logging.md#removelogger
 class RemoveLogger(LoggingEvent):
     '''
     Event to remove a logger configuration by ID (idempotent).

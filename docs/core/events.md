@@ -393,16 +393,16 @@ class AsyncAuditMiddleware(MiddlewareService):
         return result
 ```
 
-**Configuration-driven middleware.** Beyond programmatic use, middleware can be declared in `config.yml` and resolved from the DI container by `FeatureContext` during `execute_feature` / `execute_feature_async`. Feature-level middleware wraps every step in the feature; step-level middleware applies to a single command.
+**Configuration-driven middleware.** Beyond programmatic use, middleware can be declared in `config.yml` and resolved from the DI container by `FeatureContext.execute_feature` (which drives sync and async step dispatch internally based on `is_async` flags — there is no separate async context class). Feature-level middleware wraps every step in the feature; step-level middleware applies to a single command.
 
-For built-in middleware, the `MiddlewareService` interface, ordering, `config.yml` registration, and testing, see the [Middleware guide](../guides/middleware.md).
+For built-in middleware, the `MiddlewareService` interface, ordering, `config.yml` registration, and testing, see [docs/guides/utils.md](../guides/utils.md) (the middleware composition pattern lives alongside the utils strategy guide, not in a standalone middleware guide).
 
 ## Package Layout
 
 Domain events are defined in `tiferet/events/`:
 
 - `core.py` – `DomainEvent` base class, `@parameters_required` decorator.
-- `app.py` – `AppEvent` base + app interface management events.
+- `app.py` – `AppEvent` base + app session management events.
 - `cli.py` – `CliEvent` base + CLI command management events.
 - `di.py` – `DIEvent` base + DI service registration events.
 - `error.py` – `ErrorEvent` base + error management events.
