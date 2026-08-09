@@ -98,7 +98,7 @@ Every physical utility wraps its underlying library/driver exceptions as a `Serv
 1. **Physical utility**: extend `FileLoader` in a new `tiferet/utils/<format>.py`; implement static one-shot helpers or a stateful client as appropriate; wrap all underlying exceptions as `ServiceError`.
 2. **Computational utility (middleware)**: extend `MiddlewareService` in `tiferet/utils/core.py` (or application code); implement `__call__` (or `async def __call__`); observe-and-reraise; register via `config.yml` if it needs to be resolved by id.
 3. **Write tests** in `tests/utils/test_<name>.py`, exercising the utility directly and, for physical utilities, via `tmp_path` fixtures rather than mocks.
-4. **Document** — add a `docs/guides/utils/<name>.md` cookbook entry following the utils-flavored shape demonstrated by `utils/core.md`/`utils/sqlite.md` (see the canonical guide template suite in `docs/guides/TEMPLATE*.md` once the template split lands).
+4. **Document** — add a `docs/guides/utils/<name>.md` cookbook entry following the utils-flavored shape demonstrated by `utils/core.md`/`utils/sqlite.md` (see the canonical guide template suite in `docs/guides/templates/TEMPLATE-utils.md`).
 
 ## Boundaries
 
