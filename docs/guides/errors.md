@@ -31,6 +31,8 @@ Tiferet has **three unrelated exception families**, one per concern, and none of
 None of the three extends another. A `except TiferetError:` block — the only kind `AppSessionContext.run` and `FeatureContext.execute_step`/`_execute_step_async` install — never catches a `ServiceError` or a `ModelError`. That is intentional: an infrastructural fault or a model defect reaching the top of the stack unhandled is the designed behavior, not a gap to close.
 
 ## `TiferetError` / `TiferetAPIError` — Domain Outcomes
+<a id="tiferet-error"></a>
+<a id="tiferet-api-error"></a>
 
 `TiferetError` (`tiferet/assets/core.py`) is the base for every catalogued, resolvable domain outcome. `TiferetAPIError` extends it with `name` (defaulting to `error_code`) and `message`, and is already the formatted, consumer-facing shape.
 
