@@ -350,6 +350,7 @@ def build_cli_session_context(
 
 
 # ** blueprint: build_app
+# >> see: @guides/blueprints.md#build-cli
 def build_app(
     interface_id: str,
     argv: Optional[List[str]] = None,
@@ -358,6 +359,10 @@ def build_app(
     **parameters
 ) -> Any:
     '''
+    The single-call public entry point (exported as ``CLI``) for command-line
+    interfaces — the CLI-flavored counterpart to ``core.build_app``, composing
+    a ``CliSessionContext`` and dispatching ``argv`` through it directly.
+
     Build the CLI session context and dispatch argv through its CLI pipeline.
 
     Orchestrates the CLI composition chain in fixed order: builds the shared

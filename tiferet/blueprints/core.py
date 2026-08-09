@@ -866,6 +866,7 @@ def build_app_session_context(
     )
 
 # ** blueprint: build_app
+# >> see: @guides/blueprints.md#build-app
 def build_app(
     interface_id: str,
     module_path: str = a.app.DEFAULT_APP_SERVICE_MODULE_PATH,
@@ -873,6 +874,11 @@ def build_app(
     **parameters,
 ) -> AppSessionContext:
     '''
+    The framework's single-call public entry point (exported as ``App``) —
+    the thin orchestrator that turns an interface id into a fully wired,
+    ready-to-run application session without the caller wiring DI, caching,
+    or handler composition by hand.
+
     Build a fully wired app session context in a single call.
 
     Orchestrates the core composition chain in fixed order: builds the shared

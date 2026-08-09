@@ -120,11 +120,17 @@ def build_admin_cli_session_context(
 
 
 # ** blueprint: build_admin_cli
+# >> see: @guides/blueprints.md#build-admin-cli
 def build_admin_cli(
     app_config: str,
     argv: Optional[List[str]] = None,
 ) -> Any:
     '''
+    The single-call entry point for the built-in ``tiferet`` CLI management
+    tool — the admin, config-file-agnostic counterpart to ``cli.build_app``
+    that lets a consumer manage their own configuration without hand-rolling
+    a management interface.
+
     Build the built-in admin CLI session context and dispatch ``argv``.
 
     Parallel to the consumer-facing :func:`cli.build_app` but targeted at the

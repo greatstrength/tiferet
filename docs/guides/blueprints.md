@@ -17,7 +17,7 @@ A blueprint is responsible for:
 - Composing the app service container and feature-level `ServiceResolver` via the core composition functions
 - Executing features through the resolved interface context
 
-The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The built-in CLI bootstrapper (`build_tiferet_cli`) uses a separate declarative bootstrap path in `tiferet/blueprints/tiferet_cli.py`.
+The canonical example is `build_app` in `tiferet/blueprints/core.py` (exported as `App`). The framework's own built-in sessions (`admin`, `admin_cli`) are composed by a parallel pair of blueprints, `tiferet/blueprints/admin.py` / `admin_cli.py` — see the Admin Blueprints section below.
 
 ## Role of Blueprints in the Architecture
 
@@ -34,11 +34,12 @@ Key responsibilities:
 
 - **Service loading** — dynamic import of the app service (usually a repository)
 - **Default configuration** — injecting `CORE_DEFAULT_SERVICES` and `CORE_DEFAULT_CONSTANTS` from `assets.app` (`a.app`)
-- **Interface resolution** — calling `GetAppInterface` and validating the result
-- **Execution** — delegating to `AppInterfaceContext.run()`
+- **Session resolution** — calling `GetAppSession` and validating the result
+- **Execution** — delegating to `AppSessionContext.run()`
 
 Blueprints are intentionally **thin** — they coordinate rather than implement business logic.
 
+<a id="build-app"></a>
 ## The build_app Blueprint
 
 `core.build_app` is the single-call entry point (exported as `App`). It chains smaller `core.py` composition functions in a fixed order:
@@ -67,17 +68,14 @@ def build_app(interface_id, module_path=..., class_name=..., **parameters) -> Ap
 
 - builds the singleton app service container from the cache defaults merged with the session's own constants/services, session winning (`build_app_service_container`);
 - composes the feature-level `ServiceResolver` (`build_service_resolver`, caching the app container under the `app` flag);
-- imports the declared context class, resolves its event collaborators from the app container, wires the four hub handler callables, and constructs the context via `BaseContext.from_domain`.
+- hardcodes `context_cls = AppSessionContext` (blueprint functions are the declarative owner of context class selection — a session's `module_path`/`class_name` fields are no longer consulted at runtime), resolves any remaining event collaborators from the app container, wires the five hub handler callables (`build_logger_handler`, `execute_feature_handler`, `create_request_handler`, `raise_error_handler`, `response_handler`), and constructs the context via `BaseContext.from_domain`.
 
 No `apply_defaults` is called on the core path — all framework defaults come from the cache.
 
-### Built-in Bootstrappers
-
-`build_tiferet_app` (`TiferetApp`) and `build_tiferet_cli` (`TiferetCLI`) target built-in sessions (`tiferet_app` / `tiferet_cli`) that are not defined in the consumer config. They resolve through a shared `_resolve_bootstrap_session` helper (module-private in `tiferet/blueprints/tiferet_cli.py`) that falls back to the built-in session definition via `resolve_default_interface` and applies `apply_defaults`. `build_tiferet_cli` additionally uses the `_load_app_instance` / `_wire_services` declarative feature-DI bootstrap (via the `CreateServiceResolver` event) in `tiferet/blueprints/tiferet_cli.py`.
-
+<a id="build-cli"></a>
 ## The build_cli Blueprint
 
-The CLI blueprint is a thin entrypoint. Argparse parsing and request derivation are owned by `CliContext` (`tiferet/contexts/cli.py`); the blueprint only resolves, realizes, and delegates.
+The CLI blueprint (`build_cli`, `tiferet/blueprints/cli.py`, exported as `CLI`) does not delegate through `core.build_app` — it runs its own parallel composition chain, substituting `CliSessionContext` for `AppSessionContext` throughout. Argparse parsing and CLI-specific request/response handling live in blueprint-level closures (`parse_cli_args_handler`, `create_cli_request_context`, `cli_response_handler`), not in a context method.
 
 ### Usage
 
@@ -92,10 +90,12 @@ if __name__ == '__main__':
 
 `build_cli(interface_id, argv=None, ...)` follows these steps:
 
-1. Build the context via `core.build_app(interface_id, ...)`. Because the interface points at `CliContext`, the composed context exposes `run_cli`.
-2. Delegate to `cli_context.run_cli(argv)`, which builds the parser, parses `argv` (exiting `2` on failure), derives the feature request, dispatches through the inherited `run`, prints the response, and converts a `TiferetAPIError` into `sys.exit(1)`.
+1. `build_cli_cache()` — builds the shared cache via `core.build_cache`, then layers `add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)` on top so CLI command definitions are seeded alongside the standard defaults.
+2. `core.get_app_session(interface_id, cache, ...)` — resolves the app session exactly as the core path does.
+3. `build_cli_session_context(app_session, cache)` — parallel to `core.build_app_session_context`, but hardcodes `CliSessionContext`, resolves `list_commands_evt`/`get_parent_args_evt` to build the injected `parse_cli_args` closure, and overrides the `create_request_handler`/`response_handler` slots with `create_cli_request_context`/`cli_response_handler`.
+4. `cli_context.run(argv)` — parses `argv` via the injected closure (argparse failures exit `2`), dispatches through the inherited `AppSessionContext.run`, and exits `1` on an unhandled `TiferetAPIError`.
 
-Consumer CLI interfaces opt in by declaring `module_path: tiferet.contexts.cli` / `class_name: CliContext` in their interface config.
+There is no interface-config opt-in (no `module_path`/`class_name` declaration selects the CLI context) — any interface resolved through the `CLI`/`build_cli` entry point always gets a `CliSessionContext`.
 
 ## When to Create a New Blueprint
 
@@ -145,8 +145,7 @@ resolver = build_service_resolver(app_container)
 return context_cls.from_domain(app_session, get_dependency=resolver.get_dependency, ...)
 ```
 
-(The `CreateServiceResolver` bootstrap event is used by the `_load_app_instance` path in `tiferet/blueprints/tiferet_cli.py` for the built-in CLI bootstrapper.)
-
+<a id="admin-blueprints"></a>
 ## Admin Blueprints
 
 `tiferet/blueprints/admin.py` and `tiferet/blueprints/admin_cli.py` compose the built-in admin app and admin CLI sessions (`admin` / `admin_cli`) that ship with the framework rather than being defined in a consumer's config file. Both are **parallel, not derived** implementations of the core path: they mirror `core.build_app`/`core.build_app_session_context` function-for-function but substitute an admin-aware cache and resolver at each step.
@@ -156,12 +155,14 @@ return context_cls.from_domain(app_session, get_dependency=resolver.get_dependen
 - **`build_cache()`** — stacks `add_default_admin_services`/`add_default_admin_constants`/`add_default_features`/`add_default_errors` (seeded from `a.app.ADMIN_DEFAULT_SERVICES`/`ADMIN_DEFAULT_CONSTANTS`, `a.feat.ADMIN_DEFAULT_FEATURES`, `a.error.ADMIN_DEFAULT_ERRORS`) on top of `core.build_cache`, giving the admin blueprints their full catalog without touching a consumer config file.
 - **`build_admin_service_resolver(app_container, cache, parse_parameter=core.parse_parameter)`** — parallel to `core.build_service_resolver`, but builds a **second** `DIAppServiceContainer` from the cache-seeded admin services/constants and registers it under both the `'admin'` flag and as the default (empty-flag) container, so admin feature steps resolve without explicit flag annotations.
 - **`build_admin_app_session_context(app_session, cache, **context_kwargs)`** — parallel to `core.build_app_session_context`, substituting `build_admin_service_resolver` for `core.build_service_resolver`. Hardcodes `context_cls = AppSessionContext` (no declarative context-class resolution, since the admin app path only ever composes the base hub).
+<a id="build-admin-app"></a>
 - **`build_admin_app(interface_id=a.app.TIFERET_ADMIN_ID, **parameters)`** — the single-call entry point, parallel to `core.build_app`.
 
 ### `admin_cli.py` — the admin CLI session
 
 - **`build_cache()`** — extends `admin.build_cache` with `add_default_cli_commands(a.cli.ADMIN_DEFAULT_COMMANDS)`, adding the built-in admin CLI command definitions.
 - **`build_admin_cli_session_context(app_session, cache)`** — parallel to the consumer-facing CLI session composition, substituting `admin.build_admin_service_resolver` and wiring CLI-specific `create_request_handler`/`response_handler` slots (`create_cli_request_context`/`cli_response_handler`).
+<a id="build-admin-cli"></a>
 - **`build_admin_cli(app_config, argv=None)`** — resolves the `admin_cli` session, **re-seeds its constants** so every config-file-backed repo (`app_config`, `cli_config`, `di_config`, `error_config`, `feature_config`, `logging_config`) points at the consumer's `app_config` path instead of the seeded `'config.yml'` placeholders, then dispatches `argv` via `CliSessionContext.run`.
 - **`main()`** — the `tiferet` console-script entry point; pre-parses `--config` before delegating to `build_admin_cli`.
 
