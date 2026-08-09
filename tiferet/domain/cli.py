@@ -20,6 +20,7 @@ DICT_ARGUMENT_DELIMITER = '='
 # *** models
 
 # ** model: cli_record
+# >> see: @guides/domain/cli.md#clirecord
 class CliRecord(DomainObject):
     '''
     A typed atomic record unit that both CLI output models are built from.
@@ -37,6 +38,7 @@ class CliRecord(DomainObject):
 
 
 # ** model: cli_output_record
+# >> see: @guides/domain/cli.md#clioutputrecord
 class CliOutputRecord(DomainObject):
     '''
     Single-record vertical output model.
@@ -53,6 +55,7 @@ class CliOutputRecord(DomainObject):
     )
 
     # * method: format_output
+    # >> see: @guides/domain/cli.md#clioutputrecord-format-output
     def format_output(self, indent: int = 2) -> str:
         '''
         Render the record as an indented attribute-value list.
@@ -84,6 +87,7 @@ class CliOutputRecord(DomainObject):
 
 
 # ** model: cli_record_list
+# >> see: @guides/domain/cli.md#clirecordlist
 class CliRecordList(DomainObject):
     '''
     Multi-record tabular output model.
@@ -101,6 +105,7 @@ class CliRecordList(DomainObject):
     )
 
     # * method: format_output
+    # >> see: @guides/domain/cli.md#clirecordlist-format-output
     def format_output(self) -> str:
         '''
         Render the records as an aligned table.
@@ -155,9 +160,12 @@ class CliRecordList(DomainObject):
 
 
 # ** model: cli_argument
+# >> see: @guides/domain/cli.md#cliargument
 class CliArgument(DomainObject):
     '''
-    Represents a command line argument.
+    The declared shape of one command-line argument, translating a single
+    ``type`` literal into the materially different argparse wiring
+    (``store_true``, JSON decoding, token collection) each shape requires.
     '''
 
     # * attribute: name_or_flags
@@ -208,6 +216,7 @@ class CliArgument(DomainObject):
     )
 
     # * method: get_type
+    # >> see: @guides/domain/cli.md#cliargument-get-type
     def get_type(self) -> type:
         '''
         Get the Python type callable for scalar argument types.
@@ -234,6 +243,7 @@ class CliArgument(DomainObject):
             return str
 
     # * method: to_argparse_kwargs
+    # >> see: @guides/domain/cli.md#cliargument-to-argparse-kwargs
     def to_argparse_kwargs(self) -> Dict[str, Any]:
         '''
         Express this CLI argument in the form an argparse parser expects.
@@ -289,6 +299,7 @@ class CliArgument(DomainObject):
         return kwargs
 
     # * method: get_dest
+    # >> see: @guides/domain/cli.md#cliargument-get-dest
     def get_dest(self) -> str:
         '''
         Derive the argparse destination name for this argument.
@@ -316,6 +327,7 @@ class CliArgument(DomainObject):
         return self.name_or_flags[0]
 
     # * method: parse_value
+    # >> see: @guides/domain/cli.md#cliargument-parse-value
     def parse_value(self, value: Any) -> Any:
         '''
         Interpret the raw value returned by argparse for this argument.
@@ -343,9 +355,12 @@ class CliArgument(DomainObject):
         return value
 
 # ** model: cli_command
+# >> see: @guides/domain/cli.md#clicommand
 class CliCommand(DomainObject):
     '''
-    Represents a command line command.
+    The terminal-to-feature bridge — a CLI command's composite id maps 1:1 to
+    a feature id, so a command is a thin entry point that always delegates its
+    actual business logic to the feature layer.
     '''
 
     # * attribute: id
@@ -414,6 +429,7 @@ class CliCommand(DomainObject):
         return data
 
     # * method: has_argument
+    # >> see: @guides/domain/cli.md#clicommand-has-argument
     def has_argument(self, flags: List[str]) -> bool:
         '''
         Check if the command has an argument with the given flags.

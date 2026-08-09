@@ -14,9 +14,11 @@ from .core import DomainObject
 # *** models
 
 # ** model: formatter
+# >> see: @guides/domain/logging.md#formatter
 class Formatter(DomainObject):
     '''
-    An entity representing a logging formatter configuration.
+    The declared shape of "how a log message reads" — a format and date
+    string a Handler references by id rather than embedding inline.
     '''
 
     # * attribute: id
@@ -50,6 +52,7 @@ class Formatter(DomainObject):
     )
 
     # * method: format_config
+    # >> see: @guides/domain/logging.md#formatter-format-config
     def format_config(self) -> Dict[str, Any]:
         '''
         Format the formatter configuration into a dictionary.
@@ -65,9 +68,11 @@ class Formatter(DomainObject):
         }
 
 # ** model: handler
+# >> see: @guides/domain/logging.md#handler
 class Handler(DomainObject):
     '''
-    An entity representing a logging handler configuration.
+    The declared shape of "where a log message goes" — a destination (console,
+    file) at a given level, referencing a Formatter by id for how it reads.
     '''
 
     # * attribute: id
@@ -125,6 +130,7 @@ class Handler(DomainObject):
     )
 
     # * method: format_config
+    # >> see: @guides/domain/logging.md#handler-format-config
     def format_config(self) -> Dict[str, Any]:
         '''
         Format the handler configuration into a dictionary.
@@ -150,9 +156,11 @@ class Handler(DomainObject):
         return config
 
 # ** model: logger
+# >> see: @guides/domain/logging.md#logger
 class Logger(DomainObject):
     '''
-    An entity representing a logger configuration.
+    The declared shape of "which messages get emitted, and where" — a named
+    logger's level and its ordered list of Handler ids.
     '''
 
     # * attribute: id
@@ -198,6 +206,7 @@ class Logger(DomainObject):
     )
 
     # * method: format_config
+    # >> see: @guides/domain/logging.md#logger-format-config
     def format_config(self) -> Dict[str, Any]:
         '''
         Format the logger configuration into a dictionary.
@@ -214,10 +223,13 @@ class Logger(DomainObject):
         }
 
 # ** model: logging_settings
+# >> see: @guides/domain/logging.md#loggingsettings
 class LoggingSettings(DomainObject):
     '''
-    A value object representing the overall logging configuration, bundling
-    the formatter, handler, and logger configurations.
+    The single point where a session's formatters, handlers, and loggers are
+    bundled and assembled into the exact dict shape Python's own
+    logging.config.dictConfig expects, so no other module has to know that
+    shape.
     '''
 
     # * attribute: formatters
@@ -251,6 +263,7 @@ class LoggingSettings(DomainObject):
     )
 
     # * method: format_config
+    # >> see: @guides/domain/logging.md#loggingsettings-format-config
     def format_config(self) -> Dict[str, Any]:
         '''
         Assemble a dictionary suitable for ``logging.config.dictConfig`` from

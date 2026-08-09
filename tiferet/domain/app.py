@@ -14,9 +14,12 @@ from .core import DomainObject, ServiceDependency
 # *** models
 
 # ** model: app_service_dependency
+# >> see: @guides/domain/app.md#appservicedependency
 class AppServiceDependency(ServiceDependency):
     '''
-    An app service dependency that defines the service configuration for an app interface.
+    A single injectable service dependency binding an app session declares by
+    name, so a feature step or context collaborator can resolve it without
+    knowing the concrete module/class behind it.
     '''
 
     # * attribute: service_id
@@ -26,9 +29,13 @@ class AppServiceDependency(ServiceDependency):
     )
 
 # ** model: app_session
+# >> see: @guides/domain/app.md#appsession
 class AppSession(DomainObject):
     '''
-    The base application session object.
+    The framework's "declared application" concept — the complete, named
+    configuration of one runnable entry point (its logging, DI flags,
+    constants, and service dependencies) that build_app resolves into a fully
+    wired runtime context.
     '''
 
     # * attribute: id
@@ -74,6 +81,7 @@ class AppSession(DomainObject):
     )
 
     # * method: get_service
+    # >> see: @guides/domain/app.md#appsession-get-service
     def get_service(self, service_id: str) -> AppServiceDependency | None:
         '''
         Get the service dependency by service id.

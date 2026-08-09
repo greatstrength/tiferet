@@ -14,9 +14,12 @@ from .core import DomainObject, ServiceDependency
 # *** models
 
 # ** model: flagged_dependency
+# >> see: @guides/domain/di.md#flaggeddependency
 class FlaggedDependency(ServiceDependency):
     '''
-    A flagged container dependency object.
+    A flag-qualified override that lets a service registration swap its
+    implementation at runtime (e.g. yaml vs. sqlite) without touching the
+    registration's own default binding.
     '''
 
     # * attribute: flag
@@ -26,9 +29,13 @@ class FlaggedDependency(ServiceDependency):
     )
 
 # ** model: service_registration
+# >> see: @guides/domain/di.md#serviceregistration
 class ServiceRegistration(DomainObject):
     '''
-    A service registration that defines dependency injection behavior.
+    One entry in the DI registry — a default implementation binding plus
+    zero or more flag-qualified overrides — that lets ServiceResolver select
+    the correct concrete implementation for a service without the caller
+    needing to know which flags are active.
     '''
 
     # * attribute: id
@@ -68,6 +75,7 @@ class ServiceRegistration(DomainObject):
     )
 
     # * method: get_dependency
+    # >> see: @guides/domain/di.md#serviceregistration-get-dependency
     def get_dependency(self, *flags) -> FlaggedDependency | None:
         '''
         Gets a flagged dependency by flag.
@@ -92,6 +100,7 @@ class ServiceRegistration(DomainObject):
         return None
 
     # * method: get_service_type
+    # >> see: @guides/domain/di.md#serviceregistration-get-service-type
     def get_service_type(self, *flags) -> type | None:
         '''
         Gets the service type based on the provided flags.
@@ -111,6 +120,7 @@ class ServiceRegistration(DomainObject):
         return dependency.get_service_type() if dependency else None
 
     # * method: resolve_service
+    # >> see: @guides/domain/di.md#serviceregistration-resolve-service
     def resolve_service(self, *flags) -> ServiceDependency | None:
         '''
         Resolve the effective core service dependency for the given flags.

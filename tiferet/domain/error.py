@@ -14,9 +14,12 @@ from .core import DomainObject
 # *** models
 
 # ** model: error_message
+# >> see: @guides/domain/error.md#errormessage
 class ErrorMessage(DomainObject):
     '''
-    An error message object.
+    One localized translation of a catalogued error's message, keyed by
+    language so the same error resolves to a user-facing message in whichever
+    locale the caller requests.
     '''
 
     # * attribute: lang
@@ -26,6 +29,7 @@ class ErrorMessage(DomainObject):
     text: str = Field(..., description='The error message text.')
 
     # * method: format
+    # >> see: @guides/domain/error.md#errormessage-format
     def format(self, **kwargs) -> str:
         '''
         Formats the error message text.
@@ -44,9 +48,12 @@ class ErrorMessage(DomainObject):
         return self.text.format(**kwargs)
 
 # ** model: error
+# >> see: @guides/domain/error.md#error
 class Error(DomainObject):
     '''
-    An error object.
+    The declared, catalogued shape of a failure condition — the contract that
+    lets a raised TiferetError be resolved back into a localized, user-facing
+    message instead of leaking as raw exception state.
     '''
 
     # * attribute: id
@@ -65,6 +72,7 @@ class Error(DomainObject):
     message: List[ErrorMessage] = Field(default_factory=list, description='The error message translations for the error.')
 
     # * method: _derive_error_code (validator)
+    # >> see: @guides/domain/error.md#error-derive-error-code
     @model_validator(mode='before')
     @classmethod
     def _derive_error_code(cls, data: Any) -> Any:
@@ -86,6 +94,7 @@ class Error(DomainObject):
         return data
 
     # * method: format_message
+    # >> see: @guides/domain/error.md#error-format-message
     def format_message(self, lang: str = 'en_US', **kwargs) -> str:
         '''
         Formats the error message text for the specified language.
