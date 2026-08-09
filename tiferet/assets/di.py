@@ -368,8 +368,8 @@ REMOVE_LOGGER_EVT_DATA = create_service_registration_data(
 
 # *** constants (groups)
 
-# ** constant: default_tiferet_cli_services
-DEFAULT_TIFERET_CLI_SERVICES: Dict[str, Dict[str, Any]] = {
+# ** constant: admin_default_services
+ADMIN_DEFAULT_SERVICES: Dict[str, Dict[str, Any]] = {
     APP_SERVICE_ID: APP_SERVICE_DATA,
     ADD_FEATURE_EVT_ID: ADD_FEATURE_EVT_DATA,
     LIST_FEATURES_EVT_ID: LIST_FEATURES_EVT_DATA,

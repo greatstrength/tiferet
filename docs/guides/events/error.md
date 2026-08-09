@@ -40,7 +40,7 @@ Creates a new `Error` with a primary message and optional additional language me
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `lang` | `str` | `'en_US'` | Language code for the primary message |
-| `additional_messages` | `List[Dict[str, Any]]` | `[]` | Additional messages (each with `lang` and `text`) |
+| `additional_messages` | `Dict[str, str]` | `{}` | Additional messages, keyed by language code, mapped to message text |
 
 **Returns:** The created `Error` instance.
 
@@ -54,9 +54,9 @@ result = DomainEvent.handle(
     id='CUSTOM_VALIDATION_ERROR',
     name='Custom Validation Error',
     message='Input validation failed for field {field}.',
-    additional_messages=[
-        {'lang': 'es_ES', 'text': 'La validación falló para el campo {field}.'}
-    ],
+    additional_messages={
+        'es_ES': 'La validación falló para el campo {field}.',
+    },
 )
 ```
 

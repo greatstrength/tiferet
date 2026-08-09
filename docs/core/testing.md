@@ -195,7 +195,7 @@ class TestAddError(DomainEventTestBase):
         name='New Error',
         message='This is a new error message.',
         lang='en_US',
-        additional_messages=[],
+        additional_messages={},
     )
     required_params = ['id', 'name', 'message']
 
