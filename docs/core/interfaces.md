@@ -6,7 +6,7 @@ This document focuses exclusively on **Services** as the vertical contracts.
 
 ## What is a Service?
 
-A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.settings.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
+A **Service** in Tiferet is an abstract class derived from `tiferet.interfaces.core.Service` (a minimal `ABC`) that defines the expected behavior for vertical concerns in the application. Services act as the contracts that:
 
 - Abstract data access (CRUD operations, existence checks, listing)
 - Manage configuration persistence (loading/saving structured data from YAML/JSON/etc.)
@@ -122,7 +122,7 @@ class FileService(Service):
 
 1. **Define a New Service Interface**
    - Place under `# *** interfaces` in a domain-specific module.
-   - Extend `Service` from `tiferet.interfaces.settings`.
+   - Extend `Service` from `tiferet.interfaces.core`.
    - Define abstract methods with domain-appropriate signatures.
 
 2. **Implement the Service**

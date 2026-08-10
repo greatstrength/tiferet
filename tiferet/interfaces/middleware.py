@@ -12,6 +12,7 @@ from .core import Service
 # *** interfaces
 
 # ** interface: middleware_service
+# >> see: @guides/utils.md#the-middlewareservice-pattern
 class MiddlewareService(Service):
     '''
     Abstract service interface for domain event middleware.
