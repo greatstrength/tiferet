@@ -7,10 +7,17 @@
 
 ## Overview
 
-Repositories are the concrete data-access layer in Tiferet. Each repository implements a Service interface and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O for the domain's transfer objects and aggregates. Repositories are highly situational — their functionality is shaped by the specific structural requirements of the configuration format they manage.
+Repositories are the concrete data-access layer in Tiferet. Each repository implements a Service interface and inherits the shared `ConfigurationRepository` base, which handles format-specific file I/O for the domain's transfer objects and aggregates. Repositories are highly situational — their functionality is shaped by the specific structural requirements of the configuration format they manage. **Vision:** see the `ConfigurationRepository` class docstring in `tiferet/repos/core.py` for the value statement this guide distills.
 
 This guide covers the cross-cutting strategies and design decisions that apply to all repository modules, rather than any single domain.
 
+## Ubiquitous Language
+
+- **`ConfigurationRepository`** — the format-agnostic base every repo extends; dispatches `_load`/`_save` to a `YamlLoader` or `JsonLoader` chosen by the config file's extension.
+- **`start_node`** — the `_load` callback that navigates from the parsed file's root into the section a repository method needs, isolating the repo from the top-level file layout.
+- **`data_factory`** — the `_load` callback used instead of (or in addition to) `start_node` when a single read must construct multiple related transfer objects from sibling sections in one pass.
+
+<a id="configurationrepository"></a>
 ## The Service Interface Contract
 
 Every repository implements a Service interface from `tiferet/interfaces/`. The interface defines the abstract CRUD operations; the repository provides the concrete data-utility wiring.
@@ -64,8 +71,8 @@ error_data = self._load(
 )
 
 # Entire section.
-interfaces_data = self._load(
-    start_node=lambda data: data.get('interfaces', {})
+sessions_data = self._load(
+    start_node=lambda data: data.get('sessions', {})
 )
 ```
 
@@ -204,7 +211,7 @@ The logging repository uses `LoggingSettingsConfigObject` — a transfer object 
 
 ```python
 data = self._load(
-    data_factory=lambda d: LoggingSettingsConfigObject.hydrate(**d),
+    data_factory=lambda d: LoggingSettingsConfigObject.from_data(**d),
     start_node=lambda d: d.get('logging', {})
 )
 return (
@@ -250,10 +257,15 @@ Tests operate against real temporary files, not mocks, because the repository's 
 3. **Write tests** in `tests/repos/test_<domain>.py` with sample configuration data and `tmp_path` fixtures.
 4. **Register via DI** — add the repository to the DI configuration file with `module_path` and `class_name`. No `__init__.py` export needed.
 
+## Boundaries
+
+**Inside this domain:** format-agnostic config file I/O (`ConfigurationRepository`) and the concrete read/write/delete patterns each repo builds on top of it.
+**Outside this domain:** the `Service` interface contract a repo implements ([docs/guides/interfaces.md](interfaces.md)); the `Aggregate`/`ConfigObject` mapping a repo delegates to ([docs/guides/mappers.md](mappers.md)); the underlying `YamlLoader`/`JsonLoader` file I/O a repo never calls directly (`_load`/`_save` own that indirection — [docs/guides/utils.md](utils.md)).
+
 ## Related Documentation
 
 - [docs/core/repos.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/repos.md) — Repository base patterns and structured code design
-- [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — Service interface conventions
-- [docs/guides/mappers.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/mappers.md) — Aggregate and TransferObject patterns
+- [docs/guides/interfaces.md](interfaces.md) — The Service contracts repositories implement
+- [docs/guides/mappers.md](mappers.md) — Aggregate and TransferObject patterns
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader utility guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comments and formatting
