@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="csvloader"></a><a id="csvdictloader"></a>
 ## Overview
 
 `CsvLoader` and `CsvDictLoader` are format-specific utilities for reading and writing CSV files in Tiferet.  
@@ -15,6 +16,11 @@ Both extend `FileLoader` (`tiferet/utils/file.py`), inheriting full context-mana
 Use `CsvLoader` (or its alias `Csv`) for positional row data and `CsvDictLoader` (or its alias `CsvDict`) for header-based dict data. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
 Neither class implements a configuration contract — both declare only `FileLoader`. This is an intentional v2.0 design choice that keeps the utilities as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **Reader/writer (lazy)** — the underlying `csv.reader`/`csv.writer` (or `DictReader`/`DictWriter`) objects, built on first use rather than at construction, so a file opened `r+` can serve both roles.
+- **Row** — a `List[str]` (`CsvLoader`) or `Dict[str, Any]` (`CsvDictLoader`) representing one CSV line.
 
 ## When to Use CsvLoader vs. CsvDictLoader vs. Injected Service
 
@@ -278,10 +284,16 @@ def test_import_csv_records_file_not_found(tmp_path):
 - **CSV-specific error constants**: `CSV_INVALID_READ_MODE_ID`, `CSV_INVALID_WRITE_MODE_ID`, and `CSV_FIELDNAMES_REQUIRED_ID` guard CSV-specific conditions. They are hosted in `tiferet/utils/csv.py` alongside the raise sites rather than in the error catalog. A fourth code, `CSV_DICT_NO_HEADER_ID`, was created but never given a raiser and has since been deleted.
 - **Documentation guide**: A `docs/guides/utils/csv.md` guide was created alongside the implementation, following the pattern of the existing `yaml.md` and `json.md` guides. This was not in the original TRD scope but adds consistency to the documentation suite.
 
+## Boundaries
+
+**Inside this domain:** CSV row-level parsing/serialization, both positional (`CsvLoader`) and header-based (`CsvDictLoader`).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); CSV-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
 - [docs/guides/utils/json.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/json.md) — JsonLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing

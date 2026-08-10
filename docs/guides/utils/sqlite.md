@@ -5,6 +5,7 @@
 **Date:** March 02, 2026  
 **Version:** 2.0.0
 
+<a id="sqliteclient"></a>
 ## Overview
 
 `SqliteClient` is Tiferet’s friendly, safe way to work with SQLite databases.  
@@ -17,6 +18,11 @@ At the same time, you can still use it directly (with or without the alias `Sqli
 The context manager is especially helpful here:  
 - Everything inside the `with` block either succeeds completely (auto-commit)  
 - or fails safely (auto-rollback + connection closed)
+
+## Ubiquitous Language
+
+- **URI mode** — `ro`/`rw`/`rwc`, SQLite's own connection-level access modes, distinct from the classic file-open modes other loaders use.
+- **No special-cased constraint violations** — `sqlite3.IntegrityError` becomes a `SQLITE_STATEMENT_FAILED` `ServiceError` like any other driver failure; domain semantics for a specific constraint are the calling event's responsibility, not this client's.
 
 ## When should you reach for SqliteClient?
 
@@ -185,9 +191,15 @@ def test_record_visit_creates_table_and_row(tmp_path):
 - Implements `SqliteService` — the only utility that does this  
 - No `encoding` or `newline` parameters (not meaningful for SQLite)
 
+## Boundaries
+
+**Inside this domain:** the SQLite connection lifecycle, statement/query execution, transactions, and backups, plus the driver-exception-to-`ServiceError` wrapping.
+**Outside this domain:** the inherited file/path handling ([docs/guides/utils/file.md](file.md)); domain semantics for a specific driver failure code (the calling event's responsibility, not this client's — see the constraint-violation example above); domain-object persistence via a repository ([docs/guides/repos.md](../repos.md)).
+
 ## Related reading
 
 - [FileLoader guide](../file.md) – the parent class everyone inherits from  
+- [docs/guides/utils.md](../utils.md) – Utils layer strategy guide  
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) – full utilities architecture  
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) – `SqliteService` contract  
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) – domain events & testing patterns  

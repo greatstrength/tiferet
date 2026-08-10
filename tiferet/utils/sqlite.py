@@ -56,6 +56,7 @@ VALID_SQLITE_MODES = (
 # *** utils
 
 # ** util: sqlite_client
+# >> see: @guides/utils/sqlite.md#sqliteclient
 class SqliteClient(FileLoader, SqliteService):
     '''
     SQLite database client with connection management and structured error handling.

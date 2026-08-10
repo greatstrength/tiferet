@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="fileloader"></a>
 ## Overview
 
 `FileLoader` is the foundational utility for all file-based operations in Tiferet.  
@@ -13,6 +14,11 @@ It implements the `FileService` interface (`tiferet/interfaces/file.py`) and pro
 All format-specific loaders (`YamlLoader`, `JsonLoader`, `CsvLoader`, etc.) inherit from `FileLoader` and override behavior such as file extension verification and content parsing/dumping.
 
 Use `FileLoader` (or its alias `File`) directly when you need low-level file I/O inside domain events, scripts, or tests. For domain-model persistence use the corresponding repositories and injected services.
+
+## Ubiquitous Language
+
+- **Loader** — a `FileLoader` subclass exposing static, one-shot helpers for a specific file format.
+- **Path/encoding validation** — the shared existence/mode/encoding checks `FileLoader` performs before any format-specific parsing runs, so every subclass gets `FILE_NOT_FOUND`/`INVALID_ENCODING` behavior for free.
 
 ## When to Use FileLoader vs. Injected FileService
 
@@ -157,8 +163,14 @@ def test_count_file_lines_success(tmp_path):
     assert result == 2   # only non-empty lines
 ```
 
+## Boundaries
+
+**Inside this domain:** low-level file stream lifecycle (open/close, path/mode/encoding validation) and the `FileService` contract implementation.
+**Outside this domain:** format-specific parsing/serialization (`YamlLoader`, `JsonLoader`, `CsvLoader`, `TomlLoader` — their own guides); domain-object persistence (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)); the broader physical-vs-computational utility split ([docs/guides/utils.md](../utils.md)).
+
 ## Related Documentation
 
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide (physical vs. computational families)
 - [docs/core/utils.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/utils.md) — Full utilities architecture and style guide
 - [docs/core/interfaces.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/interfaces.md) — `FileService` contract definition
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules

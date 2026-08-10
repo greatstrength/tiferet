@@ -5,6 +5,7 @@
 **Date:** March 01, 2026  
 **Version:** 2.0.0
 
+<a id="jsonloader"></a>
 ## Overview
 
 `JsonLoader` is a format-specific utility for loading and saving JSON files in Tiferet.  
@@ -13,6 +14,11 @@ It extends `FileLoader` (`tiferet/utils/file.py`), inheriting full context-manag
 Use `JsonLoader` (or its alias `Json`) directly when you need to read or write JSON files inside domain events, scripts, or tests. For domain-model persistence (features, errors, containers, etc.) use the corresponding repositories and injected services.
 
 `JsonLoader` implements no configuration contract — it declares only `FileLoader`. This is an intentional v2.0 design choice that keeps the utility as a pure infrastructure layer; format dispatch is owned by `ConfigurationRepository` instead.
+
+## Ubiquitous Language
+
+- **`start_node`/`data_factory`** — the two optional transformation callables `load()` applies in sequence, identical in spirit to `YamlLoader`'s.
+- **`parse_json_path`** — the dot-notation-with-array-index navigation helper unique to `JsonLoader` among the file-format loaders.
 
 ## When to Use JsonLoader vs. Injected Service
 
@@ -230,9 +236,15 @@ def test_load_json_config_file_not_found(tmp_path):
 - **Additional static method**: `parse_json_path` is unique to `JsonLoader`, providing dot-notation navigation with array index support — a pattern common in JSON tooling but not applicable to YAML's typical use cases in Tiferet.
 - **New error constants**: `JSON_FILE_NOT_FOUND_ID` and `INVALID_JSON_PATH_ID` were added to `constants.py` beyond the TRD's original error codes (`JSON_FILE_LOAD_ERROR_ID`, `JSON_FILE_SAVE_ERROR_ID`), aligning with the `YamlLoader` pattern of having a dedicated file-not-found error for the `verify_*_file` static method.
 
+## Boundaries
+
+**Inside this domain:** JSON parsing/serialization and nested-path navigation (`parse_json_path`).
+**Outside this domain:** the inherited file lifecycle and path/mode/encoding validation ([docs/guides/utils/file.md](file.md)); JSON-file-to-domain-object mapping and format dispatch (`ConfigurationRepository` — [docs/guides/repos.md](../repos.md)).
+
 ## Related Documentation
 
 - [docs/guides/utils/file.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/file.md) — FileLoader guide (parent class)
 - [docs/guides/utils/yaml.md](https://github.com/greatstrength/tiferet/blob/main/docs/guides/utils/yaml.md) — YamlLoader guide (sibling utility)
+- [docs/guides/utils.md](../utils.md) — Utils layer strategy guide
 - [docs/core/code_style.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/code_style.md) — Artifact comment & formatting rules
 - [docs/core/events.md](https://github.com/greatstrength/tiferet/blob/main/docs/core/events.md) — Domain event patterns & testing
